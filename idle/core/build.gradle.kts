@@ -1,5 +1,9 @@
 plugins {
-    id("java")
+    `java-library`
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 }
 
 group = "org.example"
