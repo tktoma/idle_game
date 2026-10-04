@@ -8,18 +8,32 @@ package idle.core;
  * @param name       nom affiché au joueur
  * @param baseCost   coût du premier niveau
  * @param costGrowth facteur appliqué au coût à chaque niveau acheté (1.15 = +15 %)
+ * @param maxLevel   nombre maximal de niveaux, ou {@link #NO_LIMIT}
  * @param effect     ce que rapporte chaque niveau
  */
-public record Upgrade(String id, String name, BigNum baseCost, double costGrowth, Effect effect) {
+public record Upgrade(String id, String name, BigNum baseCost, double costGrowth, int maxLevel, Effect effect) {
+
+    /** Valeur de {@code maxLevel} pour une amélioration achetable sans limite. */
+    public static final int NO_LIMIT = Integer.MAX_VALUE;
 
     public Upgrade {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("id manquant");
         if (baseCost.sign() <= 0) throw new IllegalArgumentException("Le coût de base doit être positif");
         if (costGrowth < 1) throw new IllegalArgumentException("Le coût ne peut pas diminuer avec le niveau");
+        if (maxLevel < 1) throw new IllegalArgumentException("Il faut au moins un niveau achetable");
     }
 
-    /** Coût du prochain achat quand on possède déjà {@code level} niveaux. */
+    public boolean hasLimit() {
+        return maxLevel != NO_LIMIT;
+    }
+
+    /**
+     * Coût du prochain achat quand on possède déjà {@code level} niveaux,
+     * arrondi à la particule entière supérieure.
+     */
     public BigNum costAt(int level) {
-        return baseCost.multiply(BigNum.of(costGrowth).pow(level));
+        BigNum cost = baseCost.multiply(BigNum.of(costGrowth).pow(level));
+        // Au-delà de 1e15, un double n'a plus de partie décimale : rien à arrondir.
+        return cost.exponent() < 15 ? BigNum.of(Math.ceil(cost.toDouble())) : cost;
     }
 }
