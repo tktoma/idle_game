@@ -50,8 +50,8 @@ final class DebugBar extends HBox {
                 cheat("Particules ×10", () ->
                         game.state().setParticles(game.state().particles().multiply(10))),
                 cheat("+1 générateur", this::addGenerator),
-                cheat("+1 atome", () ->
-                        game.state().setAtoms(game.state().atoms().add(BigNum.ONE))));
+                cheat("+1 atome", () -> addAtoms(1)),
+                cheat("+10 atomes", () -> addAtoms(10)));
     }
 
     /** Facteur d'accélération du temps choisi : 1 = vitesse normale. */
@@ -66,6 +66,11 @@ final class DebugBar extends HBox {
             if (game.isStarted()) action.run();
         });
         return button;
+    }
+
+    private void addAtoms(int count) {
+        game.state().setAtoms(game.state().atoms().add(BigNum.of(count)));
+        game.state().setTotalAtoms(game.state().totalAtoms().add(BigNum.of(count)));
     }
 
     /** Débloque gratuitement le générateur suivant, s'il en reste. */

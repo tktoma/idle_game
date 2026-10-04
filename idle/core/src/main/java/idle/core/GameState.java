@@ -2,8 +2,10 @@ package idle.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Tout ce qui change pendant une partie, et rien d'autre.
@@ -16,9 +18,12 @@ public final class GameState {
     private boolean started = false;
     private BigNum particles = BigNum.ZERO;
     private BigNum atoms = BigNum.ZERO;
+    private BigNum totalAtoms = BigNum.ZERO;
+    private double timeSinceFusion = 0;
     private final List<Double> formations = new ArrayList<>();
     private double timePlayed = 0;
     private final Map<String, Integer> upgradeLevels = new HashMap<>();
+    private final Set<String> automatedUpgrades = new HashSet<>();
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
     public boolean started() {
@@ -39,7 +44,7 @@ public final class GameState {
         this.particles = particles;
     }
 
-    /** Atomes possédés : la deuxième ressource, obtenue en fusionnant les générateurs. */
+    /** Atomes disponibles : la deuxième ressource, gagnée par fusion et dépensée en améliorations. */
     public BigNum atoms() {
         return atoms;
     }
@@ -47,6 +52,26 @@ public final class GameState {
     public void setAtoms(BigNum atoms) {
         if (atoms.sign() < 0) throw new IllegalArgumentException("Le nombre d'atomes ne peut pas être négatif");
         this.atoms = atoms;
+    }
+
+    /** Atomes créés depuis le début du jeu, dépensés ou non. Ne diminue jamais. */
+    public BigNum totalAtoms() {
+        return totalAtoms;
+    }
+
+    public void setTotalAtoms(BigNum totalAtoms) {
+        if (totalAtoms.sign() < 0) throw new IllegalArgumentException("Le nombre d'atomes ne peut pas être négatif");
+        this.totalAtoms = totalAtoms;
+    }
+
+    /** Temps écoulé depuis la dernière fusion (ou depuis le démarrage), en secondes. */
+    public double timeSinceFusion() {
+        return timeSinceFusion;
+    }
+
+    public void setTimeSinceFusion(double timeSinceFusion) {
+        if (!(timeSinceFusion >= 0)) throw new IllegalArgumentException("Durée invalide : " + timeSinceFusion);
+        this.timeSinceFusion = timeSinceFusion;
     }
 
     /**
@@ -98,9 +123,22 @@ public final class GameState {
         upgradeLevels.put(upgradeId, level);
     }
 
-    /** Oublie toutes les améliorations achetées (après une fusion). */
-    public void clearUpgradeLevels() {
-        upgradeLevels.clear();
+    /** Vrai si le joueur a activé l'achat automatique de cette amélioration. */
+    public boolean isAutomated(String upgradeId) {
+        return automatedUpgrades.contains(upgradeId);
+    }
+
+    public void setAutomated(String upgradeId, boolean automated) {
+        if (automated) {
+            automatedUpgrades.add(upgradeId);
+        } else {
+            automatedUpgrades.remove(upgradeId);
+        }
+    }
+
+    /** Vue en lecture seule des achats automatiques activés, pour la sauvegarde. */
+    public Set<String> automatedUpgrades() {
+        return Set.copyOf(automatedUpgrades);
     }
 
     /** Vue en lecture seule des niveaux, pour la sauvegarde. */

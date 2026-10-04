@@ -2,6 +2,7 @@ package idle.ui;
 
 import idle.core.BigNum;
 import idle.core.Game;
+import idle.core.Resource;
 import idle.core.Upgrade;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,7 +31,12 @@ import javafx.util.Duration;
  *
  * <p>Une partie neuve s'ouvre sur un écran de démarrage : un fond de poussières et un
  * bouton qui crée le premier générateur. Quand tous les générateurs sont débloqués,
- * un bouton permet de les fusionner en un atome, affiché ensuite en haut de la fenêtre.
+ * un bouton permet de les fusionner en un atome.
+ *
+ * <p>À partir du premier atome, des onglets apparaissent en haut de la fenêtre :
+ * « Particules » (les générateurs et leurs améliorations) et « Atomes » ({@link AtomsPage}),
+ * puis « Automatisation » ({@link AutomationPage}) une fois l'amélioration Persistance achetée.
+ * Le jeu continue de tourner quel que soit l'onglet affiché.
  *
  * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en
  * plus une {@link DebugBar} pour accélérer le temps et s'ajouter des ressources.
@@ -41,17 +47,33 @@ import javafx.util.Duration;
 public final class GameApp extends Application {
 
     private static final double BUTTON_WIDTH = 420;
-    private static final BigNum THOUSAND = BigNum.of(1, 3);
-    private static final BigNum MILLION = BigNum.of(1, 6);
+
+    /** Style commun aux deux onglets ; la couleur dépend de l'onglet et de son état. */
+    private static final String TAB_STYLE = "-fx-font-size: 14px; -fx-padding: 10 28; -fx-cursor: hand;"
+            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0;";
+    private static final String PARTICLES_COLOR = "#9fd0ff";
+    private static final String ATOMS_COLOR = "#ffd27f";
+    private static final String AUTOMATION_COLOR = "#9be7a8";
+
+    /** Les onglets du jeu. */
+    private enum Tab { PARTICLES, ATOMS, AUTOMATION }
 
     private final Game game = new Game();
     private final GeneratorPane generators = new GeneratorPane();
     private final Label particlesLabel = new Label();
     private final Label productionLabel = new Label();
-    private final AtomView atomView = new AtomView(44);
-    private final Label atomsLabel = new Label();
-    private final HBox atomsBar = new HBox(12, atomView, atomsLabel);
     private final Button fuseButton = new Button();
+
+    // Les onglets, visibles à partir du premier atome.
+    private final Button particlesTab = new Button("Particules");
+    private final Button atomsTab = new Button();
+    private final Button automationTab = new Button("Automatisation");
+    private final AtomView atomsTabIcon = new AtomView(22);
+    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab);
+    private final BorderPane particlesPage = new BorderPane();
+    private final AtomsPage atomsPage = new AtomsPage(game);
+    private final AutomationPage automationPage = new AutomationPage(game);
+    private Tab selectedTab = Tab.PARTICLES;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
     private DebugBar debugBar;
     private final Map<Upgrade, Button> upgradeButtons = new LinkedHashMap<>();
@@ -68,8 +90,8 @@ public final class GameApp extends Application {
         controls.setPadding(new Insets(12, 24, 24, 24));
         controls.setAlignment(Pos.TOP_CENTER);
 
-        // Un bouton par amélioration du catalogue : en ajouter une dans core suffit à la faire apparaître.
-        for (Upgrade upgrade : game.upgrades()) {
+        // Un bouton par amélioration payée en particules : en ajouter une dans core suffit à la faire apparaître.
+        for (Upgrade upgrade : game.upgrades(Resource.PARTICLES)) {
             Button button = new Button();
             button.setPrefWidth(BUTTON_WIDTH);
             button.setOnAction(event -> {
@@ -81,28 +103,36 @@ public final class GameApp extends Application {
         }
         controls.getChildren().add(fuseButton());
 
-        // En haut : les atomes. La barre n'apparaît qu'après la première fusion.
-        atomsLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #ffd27f;");
-        atomsBar.setAlignment(Pos.CENTER);
-        atomsBar.setPadding(new Insets(12, 24, 0, 24));
-
         // Au centre : les générateurs, qui occupent toute la place restante.
         StackPane center = new StackPane(generators);
         if (!game.isStarted()) {
             center.getChildren().add(startButton(center, controls));
         }
 
-        BorderPane root = new BorderPane();
-        // Tout en haut : la barre du profil de test, seulement si le jeu est lancé avec --test.
-        VBox top = new VBox(atomsBar);
+        // Onglet « Particules » : les générateurs au-dessus, le compteur et les améliorations en dessous.
+        particlesPage.setCenter(center);
+        particlesPage.setBottom(controls);
+
+        // Les onglets sont empilés au même endroit ; un seul est visible à la fois.
+        StackPane pages = new StackPane(particlesPage, atomsPage, automationPage);
+        particlesTab.setOnAction(event -> selectTab(Tab.PARTICLES));
+        atomsTab.setOnAction(event -> selectTab(Tab.ATOMS));
+        automationTab.setOnAction(event -> selectTab(Tab.AUTOMATION));
+        atomsTab.setGraphic(atomsTabIcon);
+        tabBar.setAlignment(Pos.CENTER);
+        selectTab(Tab.PARTICLES);
+
+        // En haut : la barre d'onglets, et au-dessus la barre du profil de test si le jeu est lancé avec --test.
+        VBox top = new VBox(tabBar);
         boolean testProfile = getParameters().getRaw().contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
             top.getChildren().add(0, debugBar);
         }
+
+        BorderPane root = new BorderPane();
         root.setTop(top);
-        root.setCenter(center);
-        root.setBottom(controls);
+        root.setCenter(pages);
         root.setStyle("-fx-background-color: #0b0e14;");
 
         // Boucle de jeu : appelée à chaque image (~60 fois par seconde) sur le thread JavaFX.
@@ -193,26 +223,54 @@ public final class GameApp extends Application {
             if (!game.canFuse()) return;
             generators.fuse(() -> {
                 game.fuse(); // un seul générateur renaît à l'image suivante, là où les autres ont fusionné
+                refresh();   // fait apparaître les onglets si c'est le premier atome
 
-                // L'atome arrive : son icône part grande et se pose à sa taille.
-                ScaleTransition arrive = new ScaleTransition(Duration.seconds(0.6), atomView);
-                arrive.setFromX(2.5);
-                arrive.setFromY(2.5);
-                arrive.setToX(1);
-                arrive.setToY(1);
-                arrive.play();
-                refresh();
+                // L'atome arrive : l'onglet « Atomes » bat quelques fois pour attirer l'œil.
+                ScaleTransition notice = new ScaleTransition(Duration.seconds(0.35), atomsTab);
+                notice.setFromX(1);
+                notice.setFromY(1);
+                notice.setToX(1.15);
+                notice.setToY(1.15);
+                notice.setAutoReverse(true);
+                notice.setCycleCount(6);
+                notice.play();
+                atomsPage.celebrate();
             });
             refresh();
         });
         return fuseButton;
     }
 
-    /** Affiche les générateurs existants et fait avancer les animations. */
+    /** Affiche un onglet et masque les autres. */
+    private void selectTab(Tab tab) {
+        selectedTab = tab;
+        particlesPage.setVisible(tab == Tab.PARTICLES);
+        atomsPage.setVisible(tab == Tab.ATOMS);
+        automationPage.setVisible(tab == Tab.AUTOMATION);
+        particlesTab.setStyle(tabStyle(PARTICLES_COLOR, tab == Tab.PARTICLES));
+        atomsTab.setStyle(tabStyle(ATOMS_COLOR, tab == Tab.ATOMS));
+        automationTab.setStyle(tabStyle(AUTOMATION_COLOR, tab == Tab.AUTOMATION));
+    }
+
+    /** L'onglet affiché est souligné et éclairé dans sa couleur ; l'autre est estompé. */
+    private static String tabStyle(String color, boolean selected) {
+        return TAB_STYLE + (selected
+                ? " -fx-text-fill: " + color + "; -fx-background-color: #16202e;"
+                        + " -fx-border-color: transparent transparent " + color + " transparent;"
+                : " -fx-text-fill: #8fa3b8; -fx-background-color: transparent; -fx-border-color: transparent;");
+    }
+
+    /** Affiche les générateurs existants et fait avancer les animations de l'onglet visible. */
     private void animate(double dt) {
-        generators.animateBackground(dt);
-        atomView.frame(dt);
         generators.setCount(game.generatorCount());
+        atomsTabIcon.frame(dt);
+        if (selectedTab == Tab.ATOMS) {
+            atomsPage.frame(dt);
+        }
+        if (selectedTab != Tab.PARTICLES) {
+            return;
+        }
+        generators.animateBackground(dt);
         double speed = Math.min(game.speed().toDouble() * timeFactor(), 1e9);
         List<ParticleView> views = generators.views();
         for (int i = 0; i < views.size(); i++) {
@@ -228,14 +286,14 @@ public final class GameApp extends Application {
     /** Recopie l'état du jeu dans les composants. */
     private void refresh() {
         BigNum particles = game.state().particles();
-        particlesLabel.setText(count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
+        particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
         double rate = Math.min(game.productionPerSecond().toDouble(), 1e9);
         String perSecond = rate <= 0 ? "Aucun générateur"
                 : rate < 1
                 ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
                 : "+" + game.productionPerSecond().format() + " particules par seconde";
-        productionLabel.setText(perSecond + "   |   " + perMinute(game.productionPerSecond()) + " p/m");
+        productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m");
 
         upgradeButtons.forEach((upgrade, button) -> {
             button.setText(label(upgrade));
@@ -245,12 +303,18 @@ public final class GameApp extends Application {
         fuseButton.setText("Fusionner les " + game.maxGeneratorCount() + " générateurs en 1 atome");
         fuseButton.setVisible(game.canFuse() && !generators.isFusing());
 
-        BigNum atoms = game.state().atoms();
-        boolean hasAtoms = atoms.sign() > 0;
-        atomsBar.setVisible(hasAtoms);
-        atomsBar.setManaged(hasAtoms); // tant qu'il n'y a pas d'atome, la barre ne prend aucune place
-        atomsLabel.setText(count(atoms) + (atoms.gt(BigNum.ONE) ? " atomes" : " atome")
-                + "   |   " + count(game.particlesPerCreation()) + " particules par création");
+        // Les onglets n'existent qu'à partir du premier atome ; avant, la barre ne prend aucune place.
+        boolean hasAtoms = game.state().totalAtoms().sign() > 0;
+        tabBar.setVisible(hasAtoms);
+        tabBar.setManaged(hasAtoms);
+        atomsTab.setText("Atomes (" + Format.count(game.state().atoms()) + ")");
+        atomsPage.refresh();
+
+        // L'onglet « Automatisation » n'existe qu'une fois la Persistance achetée.
+        boolean automation = game.isAutomationUnlocked();
+        automationTab.setVisible(automation);
+        automationTab.setManaged(automation);
+        automationPage.refresh();
     }
 
     private String label(Upgrade upgrade) {
@@ -260,21 +324,6 @@ public final class GameApp extends Application {
         }
         String levelText = upgrade.hasLimit() ? level + "/" + upgrade.maxLevel() : String.valueOf(level);
         return upgrade.name() + " (niveau " + levelText + ") : "
-                + count(game.costOf(upgrade.id())) + " particules";
-    }
-
-    /** Production par minute : une décimale tant que le nombre est petit, puis comme les autres nombres. */
-    private static String perMinute(BigNum perSecond) {
-        BigNum value = perSecond.multiply(60);
-        if (value.lt(THOUSAND)) {
-            String text = String.format(Locale.ROOT, "%.1f", value.toDouble());
-            return text.endsWith(".0") ? text.substring(0, text.length() - 2) : text;
-        }
-        return count(value);
-    }
-
-    /** Nombre de particules : en entier tant que c'est lisible, puis en notation scientifique. */
-    private static String count(BigNum value) {
-        return value.lt(MILLION) ? String.valueOf(Math.round(value.toDouble())) : value.format();
+                + Format.count(game.costOf(upgrade.id())) + " particules";
     }
 }

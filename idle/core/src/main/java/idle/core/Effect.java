@@ -14,4 +14,34 @@ public sealed interface Effect {
 
     /** Ajoute un générateur par niveau, qui forme ses particules en parallèle des autres. */
     record AddGenerator() implements Effect {}
+
+    /** Multiplie les particules obtenues à chaque création par {@code perLevel} à chaque niveau. */
+    record MultiplyParticles(double perLevel) implements Effect {}
+
+    /**
+     * Multiplie les particules par {@code 1 + perAtom × atomes créés depuis le début du jeu}.
+     * Le bonus grandit donc à chaque fusion, même si les atomes ont été dépensés.
+     */
+    record MultiplyByAtoms(double perAtom) implements Effect {}
+
+    /**
+     * Multiplie les particules par {@code 1 + factor × √minutes écoulées depuis la dernière fusion}.
+     * Le bonus repart de ×1 à chaque fusion et monte de moins en moins vite.
+     */
+    record MultiplyByRunTime(double factor) implements Effect {}
+
+    /**
+     * Renforce les améliorations de vitesse : chacun de leurs niveaux multiplie la vitesse par
+     * {@code extraPerLevel} de plus. Avec 0.01, un niveau qui donnait ×1.10 donne ×1.11.
+     */
+    record StrengthenSpeed(double extraPerLevel) implements Effect {}
+
+    /** Multiplie le coût des générateurs par {@code factorPerLevel} à chaque niveau (0.8 = −20 %). */
+    record DiscountGenerators(double factorPerLevel) implements Effect {}
+
+    /**
+     * La fusion ne remet plus à zéro les améliorations payées en particules.
+     * Les générateurs, eux, sont toujours consommés : ce sont eux qui fusionnent.
+     */
+    record KeepUpgradesOnFusion() implements Effect {}
 }
