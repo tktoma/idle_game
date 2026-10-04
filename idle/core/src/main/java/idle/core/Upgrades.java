@@ -17,11 +17,18 @@ import java.util.List;
  * Le test {@code GameTest.Simulation} vérifie que la durée reste dans la fourchette voulue.
  *
  * <p>La suite (atomes, automatismes, tableau périodique) a été réglée de la même façon, en
- * simulant deux profils de joueur sur toute la progression. Repères : Persistance vers 2 h 30 à
- * 3 h 30, tableau périodique ouvert vers 4 h 15 à 4 h 30, premier élément unique (et synthèse
- * automatique) dans l'heure qui suit, moitié du tableau entre 6 h et 7 h 30, les 118 éléments
- * découverts une dizaine de minutes plus tard, puis tous portés à leur maximum d'exemplaires
- * (811 en tout) en une à deux minutes : la fin s'emballe, c'est voulu.
+ * simulant deux profils de joueur sur toute la progression, avec huit tirages de hasard chacun.
+ * La première explosion, celle qui donne la première matière noire, demande <b>environ un jour
+ * de jeu</b> à un joueur qui optimise : 24 h en moyenne, de 21 h à 29 h selon la chance. Repères :
+ * Persistance vers 2 h 30 à 3 h 30, tableau périodique ouvert vers 7 h à 9 h, premier élément
+ * unique (et synthèse automatique) une à deux heures plus tard, 30 éléments vers 15 h 30, la
+ * moitié du tableau vers 20 h, les 118 éléments vers 23 h 30, puis tous portés à leur maximum
+ * d'exemplaires (811 en tout) en une vingtaine de minutes.
+ *
+ * <p>Le début (premier atome, Persistance) est resté celui de la version courte : c'est la
+ * partie où le joueur clique. Ce sont les deux phases automatisées qui ont été allongées, par la
+ * cadence des automatismes ({@link Automation#DEFAULT_INTERVAL}), le Rendement, et les éléments
+ * qui accélèrent la synthèse elle-même (voir {@link PeriodicTable}).
  */
 public final class Upgrades {
 
@@ -80,13 +87,13 @@ public final class Upgrades {
 
             // ----- Le lien entre les particules et les atomes. -----
 
-            // +50 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
+            // +15 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
             // de 1 000 particules par seconde. Sans lui, les particules ne serviraient plus à rien
             // une fois les parties automatisées ; avec lui, tout ce qui augmente la production
             // (vitesse, générateurs, éléments) finit par rapporter des atomes.
             new Upgrade("atom_yield", "Rendement", Resource.ATOMS,
                     BigNum.of(40), 1, 1,
-                    new Effect.MultiplyAtomsByProduction(1_000, 0.3)));
+                    new Effect.MultiplyAtomsByProduction(1_000, 0.15)));
 
     private Upgrades() {}
 }

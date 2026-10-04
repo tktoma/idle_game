@@ -11,6 +11,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -43,6 +44,11 @@ final class AutomationPage extends VBox {
     private final Label goalLabel = new Label();
     private final Map<Automation, Button> cards = new LinkedHashMap<>();
     private final Map<Automation, Button> cadences = new LinkedHashMap<>();
+    // Le seuil de la fusion automatique, réglable une fois débloqué dans l'arbre de matière noire.
+    private final Button lessGenerators = new Button("−");
+    private final Button moreGenerators = new Button("+");
+    private final Label thresholdLabel = new Label();
+    private final HBox thresholdRow = new HBox(8, lessGenerators, thresholdLabel, moreGenerators);
 
     AutomationPage(Game game) {
         super(12);
@@ -63,13 +69,18 @@ final class AutomationPage extends VBox {
         getChildren().add(hint);
         getChildren().add(balanceLabel);
         goalLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
+        goalLabel.setWrapText(true);
+        goalLabel.setTextAlignment(TextAlignment.CENTER);
 
         // Une carte par automatisme du catalogue : en ajouter un dans core suffit à le faire apparaître.
         for (Automation automation : game.automations()) {
             Button card = new Button();
             card.setPrefWidth(400);
-            card.setPrefHeight(84);
+            card.setMinWidth(0);                 // la carte rétrécit avec la fenêtre : son texte passe à la ligne
+            card.setMaxWidth(520);
+            card.setMinHeight(84);
             card.setWrapText(true);
+            HBox.setHgrow(card, Priority.ALWAYS);
             card.setTextAlignment(TextAlignment.CENTER);
             card.setOnAction(event -> {
                 if (game.ownsAutomation(automation.id())) {
@@ -83,7 +94,9 @@ final class AutomationPage extends VBox {
 
             Button cadence = new Button();
             cadence.setPrefWidth(250);
-            cadence.setPrefHeight(84);
+            cadence.setMinWidth(0);
+            cadence.setMaxHeight(Double.MAX_VALUE);   // même hauteur que la carte, quelle qu'elle soit
+            cadence.setMinHeight(84);
             cadence.setWrapText(true);
             cadence.setTextAlignment(TextAlignment.CENTER);
             cadence.setOnAction(event -> {
@@ -94,8 +107,27 @@ final class AutomationPage extends VBox {
 
             HBox row = new HBox(8, card, cadence);
             row.setAlignment(Pos.CENTER);
+            row.setFillHeight(true);
             getChildren().add(row);
+            // Le réglage du seuil vient juste sous l'automatisme de fusion.
+            if (automation.kind() == Automation.Kind.FUSION) getChildren().add(thresholdRow);
         }
+        thresholdRow.setAlignment(Pos.CENTER);
+        thresholdLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9a6ff;");
+        String stepStyle = "-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 2 12; -fx-cursor: hand;"
+                + " -fx-text-fill: #c9a6ff; -fx-background-color: #1c1630; -fx-background-radius: 6;"
+                + " -fx-border-color: #c9a6ff; -fx-border-radius: 6;";
+        lessGenerators.setStyle(stepStyle);
+        moreGenerators.setStyle(stepStyle);
+        // Un clic déplace le seuil d'un groupe de générateurs : 10, 20, 30…
+        lessGenerators.setOnAction(event -> {
+            game.setFusionThreshold(game.fusionThreshold() - game.generatorsPerAtom());
+            refresh();
+        });
+        moreGenerators.setOnAction(event -> {
+            game.setFusionThreshold(game.fusionThreshold() + game.generatorsPerAtom());
+            refresh();
+        });
         getChildren().add(goalLabel);
     }
 
@@ -107,6 +139,17 @@ final class AutomationPage extends VBox {
         goalLabel.setText(game.isPeriodicTableUnlocked()
                 ? "Le tableau périodique est ouvert dans l'onglet Atomes : ses éléments accélèrent encore les automatismes."
                 : "Portez les automatismes disponibles à leur cadence maximale pour débloquer le tableau périodique.");
+
+        boolean threshold = game.isFusionThresholdUnlocked();
+        thresholdRow.setVisible(threshold);
+        thresholdRow.setManaged(threshold);
+        if (threshold) {
+            int generators = game.fusionThreshold();
+            thresholdLabel.setText("La fusion automatique attend " + generators + " générateurs ("
+                    + generators / game.generatorsPerAtom() + " fois les atomes)");
+            lessGenerators.setDisable(generators <= game.generatorsPerAtom());
+            moreGenerators.setDisable(generators + game.generatorsPerAtom() > game.maxGeneratorCount());
+        }
 
         cards.forEach((automation, card) -> {
             String what = switch (automation.kind()) {
@@ -139,7 +182,7 @@ final class AutomationPage extends VBox {
                 cadence.setStyle(OFF_STYLE);
                 cadence.setDisable(true);
             } else if (game.isAutomationMaxed(automation.id())) {
-                boolean floor = game.automationInterval(automation.id()) <= Game.MIN_AUTOMATION_INTERVAL;
+                boolean floor = game.automationInterval(automation.id()) <= game.minAutomationInterval();
                 cadence.setText("Cadence maximale\n" + delay
                         + (floor ? "\n(le plus court possible)" : "\nLes éléments l'accélèrent"));
                 cadence.setStyle(ON_STYLE);

@@ -6,8 +6,10 @@ import java.util.List;
  * Catalogue des automatismes du jeu. Ils s'achètent chacun une fois, en atomes.
  *
  * <p>Les trois premiers se débloquent avec l'amélioration « Persistance ». Tous partent d'une
- * action toutes les 4 secondes ; chaque niveau de cadence divise ce délai par deux, jusqu'à
- * 0,5 seconde. Au-delà, seuls les éléments du tableau périodique les accélèrent encore.
+ * action toutes les 16 secondes ; chaque niveau de cadence (5, 20 puis 80 atomes) divise ce délai
+ * par deux, jusqu'à 2 secondes. Au-delà, seuls les éléments du tableau périodique les accélèrent
+ * encore. C'est cette phase, de Persistance à l'ouverture du tableau périodique, qui occupe le
+ * joueur de la 3ᵉ à la 7ᵉ heure environ.
  *
  * <p>Le quatrième, la synthèse automatique, se débloque en obtenant un élément unique
  * (gaz noble ou actinide).

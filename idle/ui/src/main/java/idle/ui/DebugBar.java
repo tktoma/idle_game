@@ -1,14 +1,17 @@
 package idle.ui;
 
+import idle.core.Automation;
 import idle.core.BigNum;
 import idle.core.Effect;
+import idle.core.Element;
 import idle.core.Game;
+import idle.core.PeriodicTable;
 import idle.core.Upgrade;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.FlowPane;
 
 /**
  * Barre d'outils du profil de test : accélérer le temps et s'ajouter des ressources,
@@ -18,7 +21,7 @@ import javafx.scene.layout.HBox;
  * (tâche Gradle {@code runTest}). Elle modifie directement l'état du jeu,
  * sans passer par les règles : c'est un outil de développement, pas du gameplay.
  */
-final class DebugBar extends HBox {
+final class DebugBar extends FlowPane {
 
     /** Vitesses proposées par le bouton « Temps », dans l'ordre des clics. */
     private static final double[] TIME_FACTORS = {1, 10, 100};
@@ -27,7 +30,7 @@ final class DebugBar extends HBox {
     private int timeIndex = 0;
 
     DebugBar(Game game) {
-        super(8);
+        super(8, 6);   // les boutons passent à la ligne quand la fenêtre est étroite
         this.game = game;
         setAlignment(Pos.CENTER);
         setPadding(new Insets(8, 12, 8, 12));
@@ -51,7 +54,8 @@ final class DebugBar extends HBox {
                         game.state().setParticles(game.state().particles().multiply(10))),
                 cheat("+1 générateur", this::addGenerator),
                 cheat("+1 atome", () -> addAtoms(1)),
-                cheat("+10 atomes", () -> addAtoms(10)));
+                cheat("+10 atomes", () -> addAtoms(10)),
+                cheat("Tableau complet", this::fillPeriodicTable));
     }
 
     /** Facteur d'accélération du temps choisi : 1 = vitesse normale. */
@@ -69,8 +73,28 @@ final class DebugBar extends HBox {
     }
 
     private void addAtoms(int count) {
-        game.state().setAtoms(game.state().atoms().add(BigNum.of(count)).min(Game.MAX_ATOMS));
+        BigNum atoms = game.state().atoms().add(BigNum.of(count));
+        game.state().setAtoms(game.isAtomCapLifted() ? atoms : atoms.min(Game.MAX_ATOMS));
         game.state().setTotalAtoms(game.state().totalAtoms().add(BigNum.of(count)));
+    }
+
+    /**
+     * Saute à la fin du jeu : Persistance, tous les automatismes à leur cadence maximale et
+     * tous les éléments à leur maximum d'exemplaires. Sert à essayer l'explosion sans attendre.
+     */
+    private void fillPeriodicTable() {
+        if (game.state().totalAtoms().isZero()) addAtoms(1);
+        for (Upgrade upgrade : game.upgrades()) {
+            if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion) game.state().setLevel(upgrade.id(), 1);
+        }
+        for (Automation automation : game.automations()) {
+            game.state().addAutomation(automation.id());
+            game.state().setAutomationEnabled(automation.id(), true);
+            game.state().setAutomationSpeedLevel(automation.id(), automation.maxSpeedLevel());
+        }
+        for (Element element : PeriodicTable.ELEMENTS) {
+            game.state().setElementCount(element.number(), game.maxCopiesOf(element.category()));
+        }
     }
 
     /** Débloque gratuitement le générateur suivant, s'il en reste. */

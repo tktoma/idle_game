@@ -32,6 +32,12 @@ import java.util.random.RandomGenerator;
  * premier élément unique obtenu débloque la synthèse automatique. Chaque élément a un nombre
  * maximal d'exemplaires : quand tous l'ont atteint, le tableau est complet.
  *
+ * <p>Un tableau complet peut {@linkplain #explode() exploser} : toute la matière disparaît, la
+ * partie repart du premier générateur, et il reste de la <b>matière noire</b>, la troisième ressource.
+ * Le joueur la fait grossir ({@link #growDarkMatter(double)}), et elle ouvre un arbre
+ * d'améliorations définitives ({@link DarkUpgrade}), payées en particules, en atomes, ou
+ * débloquées par sa taille.
+ *
  * <p>Les particules gardent leur intérêt jusqu'au bout grâce au rendement de fusion
  * ({@link #fusionYield()}) : plus la production est forte au moment de fusionner, plus la
  * fusion rapporte d'atomes.
@@ -75,7 +81,7 @@ public final class Game {
      * Tant qu'aucun élément unique n'a été obtenu, la synthèse de ce rang en donne un à coup sûr :
      * la synthèse automatique, qu'il débloque, ne dépend ainsi pas que de la chance.
      */
-    public static final int GUARANTEED_UNIQUE_SYNTHESIS = 12;
+    public static final int GUARANTEED_UNIQUE_SYNTHESIS = 8;
 
     /**
      * Ce que les éléments peuvent ajouter, au plus, au gain d'un niveau de vitesse (0.10 = 10 points).
@@ -85,6 +91,29 @@ public final class Game {
      * le tableau périodique changerait.
      */
     public static final double MAX_ELEMENT_SPEED_EXTRA = 0.10;
+
+    /** Matière noire laissée par chaque explosion du tableau périodique. */
+    public static final BigNum DARK_MATTER_PER_EXPLOSION = BigNum.ONE;
+
+    /** Taille de départ de la matière noire, en mètres : celle d'un proton. */
+    public static final BigNum DARK_MATTER_START_SIZE = BigNum.of(1, -15);
+
+    /**
+     * Élan que chaque unité de matière noire donne à la croissance de sa taille, par seconde
+     * d'appui, avant le facteur d'avancement (0.003 = +0,3 % par seconde tant qu'elle a la taille
+     * d'un proton). Voir {@link #darkMatterGrowthPerSecond()}. Réglé pour des parties d'un jour :
+     * l'année-lumière est atteinte vers la cinquième explosion.
+     */
+    public static final double DARK_MATTER_GROWTH_PER_UNIT = 0.003;
+
+    /**
+     * Résistance de la matière noire à sa propre croissance : la vitesse est divisée par sa
+     * taille (comptée en protons) élevée à cette puissance. Avec 0,1, elle est divisée par deux
+     * chaque fois que la taille est multipliée par mille. C'est ce qui étale la croissance, du
+     * proton à l'univers, sur toute la durée du jeu : doubler l'élan (matière noire, arbre,
+     * avancement) ou le temps d'appui fait gagner trois ordres de grandeur, pas davantage.
+     */
+    public static final double DARK_MATTER_RESISTANCE = 0.1;
 
     /** Au-delà de ce nombre de particules par tick, on ne les compte plus une par une. */
     private static final long WHOLE_PARTICLES_MAX_EXPONENT = 15;
@@ -101,6 +130,8 @@ public final class Game {
     private final GameState state;
     private final Map<String, Upgrade> upgrades = new LinkedHashMap<>();
     private final Map<String, Automation> automations = new LinkedHashMap<>();
+    private final Map<String, DarkUpgrade> darkUpgrades = new LinkedHashMap<>();
+    private final Map<String, DarkAutomation> darkAutomations = new LinkedHashMap<>();
     private final RandomGenerator random;
 
     /** Bonus des éléments, recalculés seulement quand la collection change. */
@@ -129,6 +160,12 @@ public final class Game {
      */
     public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
                 RandomGenerator random) {
+        this(state, catalog, automationCatalog, DarkUpgrades.DEFAULT, random);
+    }
+
+    /** Comme le précédent, avec un arbre d'améliorations de matière noire sur mesure. */
+    public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
+                List<DarkUpgrade> darkCatalog, RandomGenerator random) {
         this.state = state;
         this.random = random;
         for (Upgrade upgrade : catalog) {
@@ -142,6 +179,17 @@ public final class Game {
             }
             if (automations.put(automation.id(), automation) != null) {
                 throw new IllegalArgumentException("Automatisme en double : " + automation.id());
+            }
+        }
+        for (DarkAutomation automation : DarkAutomations.DEFAULT) {
+            darkAutomations.put(automation.id(), automation);
+        }
+        for (DarkUpgrade dark : darkCatalog) {
+            if (dark.requires() != null && !darkUpgrades.containsKey(dark.requires())) {
+                throw new IllegalArgumentException("Amélioration de matière noire sans sa case du dessus : " + dark.id());
+            }
+            if (darkUpgrades.put(dark.id(), dark) != null) {
+                throw new IllegalArgumentException("Amélioration de matière noire en double : " + dark.id());
             }
         }
     }
@@ -178,6 +226,10 @@ public final class Game {
         if (dt < 0 || Double.isNaN(dt) || Double.isInfinite(dt)) {
             throw new IllegalArgumentException("Durée invalide : " + dt);
         }
+        // La matière noire qui grossit seule : une petite part de ce que donnerait un appui.
+        double autoShare = darkAutoExpansionShare();
+        if (autoShare > 0) growDarkMatter(dt * autoShare);
+
         boolean automation = hasActiveAutomation();
         if (!automation && !hasTimeDependentBonus()) {
             step(dt);
@@ -185,12 +237,15 @@ public final class Game {
         }
         // Avec un automatisme en marche, on avance au rythme de son délai minimal : il agit ainsi
         // au même moment que le jeu soit affiché à 20 ou 200 images par seconde, ou rattrapé hors-ligne.
-        double maxStep = automation ? MIN_AUTOMATION_INTERVAL : MAX_STEP;
+        double maxStep = automation ? minAutomationInterval() : MAX_STEP;
         double remaining = dt;
         do {
             double part = Math.min(remaining, maxStep);
             step(part);
-            if (automation) runAutomation(part);
+            if (automation) {
+                runAutomation(part);
+                runDarkAutomation(part);
+            }
             remaining -= part;
         } while (remaining > 0);
     }
@@ -246,7 +301,8 @@ public final class Game {
 
     /** Vrai une fois l'amélioration de persistance achetée : les automatismes deviennent achetables. */
     public boolean isAutomationUnlocked() {
-        return keepsUpgradesOnFusion();
+        // Des automatismes conservés après une explosion restent utilisables sans racheter la persistance.
+        return keepsUpgradesOnFusion() || !state.ownedAutomations().isEmpty();
     }
 
     /** Vrai une fois un élément unique obtenu : la synthèse automatique devient achetable. */
@@ -314,6 +370,9 @@ public final class Game {
         for (Automation automation : automations.values()) {
             if (isAutomationEnabled(automation.id())) return true;
         }
+        for (DarkAutomation automation : darkAutomations.values()) {
+            if (isDarkAutomationEnabled(automation.id())) return true;
+        }
         return false;
     }
 
@@ -324,13 +383,27 @@ public final class Game {
 
     /**
      * Délai actuel entre deux actions de cet automatisme, en secondes : celui de son niveau de
-     * cadence, divisé par le bonus des éléments, sans jamais descendre sous {@link #MIN_AUTOMATION_INTERVAL}.
+     * cadence, divisé par le bonus des éléments, sans jamais descendre sous {@link #minAutomationInterval()}.
      */
     public double automationInterval(String automationId) {
         Automation automation = automation(automationId);
         double interval = automation.intervalAt(state.automationSpeedLevel(automation.id()))
                 / bonuses().automationDivisor(target(automation));
-        return Math.max(MIN_AUTOMATION_INTERVAL, interval);
+        return Math.max(minAutomationInterval(), interval);
+    }
+
+    /**
+     * Délai en dessous duquel aucun automatisme ne descend : {@link #MIN_AUTOMATION_INTERVAL},
+     * ou moins si l'arbre de matière noire l'a abaissé.
+     */
+    public double minAutomationInterval() {
+        double min = MIN_AUTOMATION_INTERVAL;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.FasterAutomations faster && state.darkLevelOf(dark.id()) > 0) {
+                min = Math.min(min, faster.minInterval());
+            }
+        }
+        return min;
     }
 
     /** Vrai quand tous les niveaux de cadence de cet automatisme sont achetés. */
@@ -403,7 +476,7 @@ public final class Game {
     private boolean act(Automation automation) {
         return switch (automation.kind()) {
             case UPGRADE -> buy(automation.upgradeId());
-            case FUSION -> fuse();
+            case FUSION -> generatorCount() >= fusionThreshold() && fuse();
             case SYNTHESIS -> !synthesize().isEmpty();
         };
     }
@@ -448,7 +521,7 @@ public final class Game {
 
     /**
      * Vrai quand tous les éléments sont à leur nombre maximal d'exemplaires
-     * ({@link ElementCategory#maxCopies()}) : il n'y a plus rien à synthétiser.
+     * ({@link #maxCopiesOf(ElementCategory)}) : il n'y a plus rien à synthétiser.
      */
     public boolean isPeriodicTableComplete() {
         for (ElementCategory category : ElementCategory.values()) {
@@ -460,19 +533,19 @@ public final class Game {
     /** Vrai quand cet élément a atteint son nombre maximal d'exemplaires : il ne sortira plus. */
     public boolean isElementMaxed(int atomicNumber) {
         Element element = PeriodicTable.element(atomicNumber);
-        return state.elementCount(element.number()) >= element.category().maxCopies();
+        return state.elementCount(element.number()) >= maxCopiesOf(element.category());
     }
 
     /** Nombre total d'exemplaires possédés, tous éléments confondus, sans dépasser le maximum de chacun. */
     public int ownedCopies() {
         int copies = 0;
         for (Map.Entry<Integer, Integer> entry : state.elements().entrySet()) {
-            copies += Math.min(entry.getValue(), PeriodicTable.element(entry.getKey()).category().maxCopies());
+            copies += Math.min(entry.getValue(), maxCopiesOf(PeriodicTable.element(entry.getKey()).category()));
         }
         return copies;
     }
 
-    /** Nombre total d'exemplaires qu'on peut posséder : le tableau est complet quand on les a tous. */
+    /** Nombre total d'exemplaires du tableau de base, avant ce que l'arbre de matière noire y ajoute ({@link #maxTotalCopies()}). */
     public static int maxCopies() {
         int copies = 0;
         for (Element element : PeriodicTable.ELEMENTS) copies += element.category().maxCopies();
@@ -485,11 +558,11 @@ public final class Game {
      * cette famille. Un élément déjà possédé gagne un exemplaire ; un élément qui a atteint son
      * maximum d'exemplaires (un seul pour un élément unique) ne peut pas retomber. Avec de la
      * chance ({@link #doubleDrawChance()}), un second élément est tiré, s'il en reste à obtenir.
-     * Si aucun élément unique n'est sorti avant, la synthèse n° {@link #GUARANTEED_UNIQUE_SYNTHESIS}
+     * Si aucun élément unique n'est sorti avant, la synthèse n° {@link #guaranteedUniqueSynthesis()}
      * en donne un à coup sûr.
      * Rien d'autre n'est perdu : améliorations et automatismes sont conservés.
      *
-     * @return les éléments obtenus (un, parfois deux), ou une liste vide si la synthèse est
+     * @return les éléments obtenus (un, parfois deux, davantage avec la matière noire), ou une liste vide si la synthèse est
      *         impossible (tableau verrouillé, tableau complet ou pas assez d'atomes)
      */
     public List<Element> synthesize() {
@@ -499,9 +572,13 @@ public final class Game {
 
         double doubleChance = doubleDrawChance();   // la chance d'avant le tirage, pas celle qu'il donnerait
         boolean guaranteed = !isSynthesisAutomationUnlocked()
-                && state.synthesisCount() >= GUARANTEED_UNIQUE_SYNTHESIS;
+                && state.synthesisCount() >= guaranteedUniqueSynthesis();
         List<Element> obtained = new ArrayList<>();
         obtained.add(drawElement(guaranteed));
+        // Les éléments en plus de la matière noire, tant qu'il en reste à obtenir.
+        for (int extra = elementsPerSynthesis() - 1; extra > 0 && !isPeriodicTableComplete(); extra--) {
+            obtained.add(drawElement(false));
+        }
         if (random.nextDouble() < doubleChance && !isPeriodicTableComplete()) {
             obtained.add(drawElement(false));
         }
@@ -536,7 +613,7 @@ public final class Game {
     /** Les éléments d'une famille qui peuvent encore sortir : ceux qui n'ont pas atteint leur maximum d'exemplaires. */
     private List<Element> availableElements(ElementCategory category) {
         return PeriodicTable.elements(category).stream()
-                .filter(element -> state.elementCount(element.number()) < category.maxCopies())
+                .filter(element -> state.elementCount(element.number()) < maxCopiesOf(category))
                 .toList();
     }
 
@@ -622,6 +699,515 @@ public final class Game {
     }
 
     // ------------------------------------------------------------------
+    // L'explosion
+    // ------------------------------------------------------------------
+
+    /** Vrai quand le tableau périodique est complet : il peut exploser. */
+    public boolean canExplode() {
+        if (!state.started()) return false;
+        if (isPeriodicTableComplete()) return true;
+        // Avec la bonne case de l'arbre, il suffit d'avoir découvert tous les éléments.
+        return hasDark(DarkEffect.ExplodeWhenDiscovered.class)
+                && state.elements().size() == PeriodicTable.ELEMENTS.size();
+    }
+
+    /**
+     * Fait exploser le tableau périodique complet.
+     *
+     * <p>Tout ce qui est fait de matière disparaît : particules, atomes, améliorations (même
+     * celles payées en atomes), automatismes et éléments. La partie repart d'un seul générateur,
+     * comme au tout début, sauf ce que l'arbre de matière noire permet de garder. En échange, le
+     * joueur gagne {@link #darkMatterPerExplosion()} de matière noire, qu'aucune explosion ne lui
+     * reprendra.
+     *
+     * @return {@code true} si l'explosion a eu lieu
+     */
+    public boolean explode() {
+        if (!canExplode()) return false;
+        // Ce que la matière noire permet de garder, mis de côté avant de tout effacer.
+        Map<String, Integer> keptLevels = hasDark(DarkEffect.KeepUpgradesOnExplosion.class)
+                ? state.upgradeLevels() : Map.of();
+        boolean keepAutomations = hasDark(DarkEffect.KeepAutomationsOnExplosion.class);
+        java.util.Set<String> owned = keepAutomations ? state.ownedAutomations() : java.util.Set.of();
+        java.util.Set<String> enabled = keepAutomations ? state.enabledAutomations() : java.util.Set.of();
+        List<Integer> keptElements = new ArrayList<>();
+        if (hasDark(DarkEffect.KeepUniqueElementsOnExplosion.class)) {
+            for (int number : state.elements().keySet()) {
+                if (PeriodicTable.element(number).category().unique()) keptElements.add(number);
+            }
+        }
+        Map<String, Integer> cadences = keepAutomations ? state.automationSpeedLevels() : Map.of();
+
+        state.setDarkMatter(state.darkMatter().add(darkMatterPerExplosion()));
+        state.setExplosions(state.explosions() + 1);
+        state.clearMatter();
+
+        for (Map.Entry<String, Integer> level : keptLevels.entrySet()) {
+            Upgrade upgrade = upgrades.get(level.getKey());
+            // Les générateurs sont de la matière : ils disparaissent toujours.
+            if (upgrade != null && !(upgrade.effect() instanceof Effect.AddGenerator)) {
+                state.setLevel(level.getKey(), level.getValue());
+            }
+        }
+        for (String id : owned) {
+            state.addAutomation(id);
+            state.setAutomationEnabled(id, enabled.contains(id));
+        }
+        cadences.forEach(state::setAutomationSpeedLevel);
+        for (int number : keptElements) state.setElementCount(number, 1);
+        return true;
+    }
+
+    /** Matière noire que laissera la prochaine explosion : {@link #DARK_MATTER_PER_EXPLOSION}, plus ce qu'ajoute l'arbre. */
+    public BigNum darkMatterPerExplosion() {
+        BigNum amount = DARK_MATTER_PER_EXPLOSION;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.AddDarkMatterPerExplosion add) {
+                amount = amount.add(BigNum.of(add.perLevel() * state.darkLevelOf(dark.id())));
+            }
+        }
+        return amount;
+    }
+
+    /** Vrai une fois la première explosion déclenchée : la matière noire existe. */
+    public boolean isDarkMatterUnlocked() {
+        return state.explosions() > 0;
+    }
+
+    /**
+     * Ce que l'avancement de la partie en cours apporte à la croissance de la matière noire :
+     * {@code 1 + ordres de grandeur de la production + ordres de grandeur des atomes créés}.
+     * Avec 10¹² particules par seconde et 1 000 atomes créés depuis la dernière explosion, le
+     * facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
+     * et des atomes : faible au début d'une partie, de plus en plus fort ensuite.
+     *
+     * <p>La production comptée est celle de tous les générateurs réunis
+     * ({@link #productionAtFusion()}), pour ne pas retomber à chaque fusion.
+     */
+    public double darkMatterProgressFactor() {
+        double production = Math.max(0, productionAtFusion().log10());
+        double atoms = Math.max(0, state.totalAtoms().log10());
+        return 1 + production + atoms;
+    }
+
+    /**
+     * Élan de la croissance de la matière noire :
+     * {@code DARK_MATTER_GROWTH_PER_UNIT × matière noire possédée × facteur d'avancement ×
+     * multiplicateur de l'arbre}. C'est son taux de croissance par seconde d'appui quand elle a
+     * la taille d'un proton ; ensuite sa résistance le divise.
+     */
+    public double darkMatterMomentum() {
+        // Bornée pour rester calculable, bien au-delà de ce qu'un joueur peut posséder.
+        double units = state.darkMatter().min(BigNum.of(1, 15)).toDouble();
+        return DARK_MATTER_GROWTH_PER_UNIT * units * darkMatterProgressFactor()
+                * darkExpansionMultiplier().min(BigNum.of(1, 100)).toDouble();
+    }
+
+    /**
+     * Ce qui freine la croissance : la taille, comptée en protons, à la puissance
+     * {@link #DARK_MATTER_RESISTANCE}. Vaut 1 au départ, 2 après trois ordres de grandeur, 4 après six.
+     */
+    public BigNum darkMatterResistance() {
+        return state.darkMatterSize().divide(DARK_MATTER_START_SIZE).max(BigNum.ONE).pow(DARK_MATTER_RESISTANCE);
+    }
+
+    /**
+     * Ce par quoi la taille de la matière noire est multipliée, en ce moment, à chaque seconde
+     * d'appui : l'élan divisé par la résistance donne son taux de croissance. Plus elle est
+     * grande, plus ce nombre se rapproche de 1.
+     */
+    public BigNum darkMatterGrowthPerSecond() {
+        if (state.darkMatter().isZero()) return BigNum.ONE;
+        double rate = BigNum.of(darkMatterMomentum()).divide(darkMatterResistance()).toDouble();
+        return BigNum.pow10(rate / Math.log(10));     // e^taux, même quand le taux est énorme
+    }
+
+    /** Taille de la matière noire en années-lumière : la distance qu'elle a « parcourue » en grossissant. */
+    public BigNum darkMatterLightYears() {
+        return state.darkMatterSize().divide(SizeScale.LIGHT_YEAR);
+    }
+
+    /**
+     * Fait grossir la matière noire comme si le joueur la maintenait appuyée pendant {@code seconds}
+     * secondes. L'interface l'appelle à chaque image tant que le clic est maintenu. La taille ne
+     * diminue jamais, et aucune explosion ne la remet à zéro.
+     *
+     * @return {@code true} si la matière noire a grossi (il en faut au moins un peu pour cela)
+     */
+    public boolean growDarkMatter(double seconds) {
+        if (seconds < 0 || Double.isNaN(seconds) || Double.isInfinite(seconds)) {
+            throw new IllegalArgumentException("Durée invalide : " + seconds);
+        }
+        if (!isDarkMatterUnlocked() || state.darkMatter().isZero() || seconds == 0) return false;
+        // La résistance grandit avec la taille pendant l'appui. Le calcul est exact : la résistance
+        // augmente de (puissance × élan) par seconde, et la taille s'en déduit. Un long appui donne
+        // donc le même résultat que beaucoup de petits.
+        BigNum resistance = darkMatterResistance()
+                .add(BigNum.of(DARK_MATTER_RESISTANCE * darkMatterMomentum() * seconds));
+        state.setDarkMatterSize(DARK_MATTER_START_SIZE.multiply(resistance.pow(1 / DARK_MATTER_RESISTANCE))
+                .max(state.darkMatterSize()));
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Les automatismes de matière noire
+    // ------------------------------------------------------------------
+
+    /** Tous les automatismes de matière noire, dans l'ordre du catalogue. */
+    public Collection<DarkAutomation> darkAutomations() {
+        return darkAutomations.values();
+    }
+
+    /** Vrai quand le joueur possède assez de matière noire pour cet automatisme. Rien n'est dépensé. */
+    public boolean isDarkAutomationUnlocked(String darkAutomationId) {
+        return state.darkMatter().gte(darkAutomation(darkAutomationId).darkMatter());
+    }
+
+    /** Vrai si cet automatisme de matière noire est débloqué et en marche. */
+    public boolean isDarkAutomationEnabled(String darkAutomationId) {
+        DarkAutomation automation = darkAutomation(darkAutomationId);
+        return state.isDarkAutomationEnabled(automation.id()) && isDarkAutomationUnlocked(darkAutomationId);
+    }
+
+    /**
+     * Met en marche ou coupe un automatisme de matière noire débloqué.
+     *
+     * @return {@code true} si le réglage a été pris en compte
+     */
+    public boolean setDarkAutomationEnabled(String darkAutomationId, boolean enabled) {
+        if (!isDarkAutomationUnlocked(darkAutomationId)) return false;
+        state.setDarkAutomationEnabled(darkAutomation(darkAutomationId).id(), enabled);
+        return true;
+    }
+
+    /** Fait agir les automatismes de matière noire en marche dont le délai est écoulé : une action par délai. */
+    private void runDarkAutomation(double dt) {
+        for (DarkAutomation automation : darkAutomations.values()) {
+            if (!isDarkAutomationEnabled(automation.id())) continue;
+            double waited = state.darkAutomationTimer(automation.id()) + dt;
+            if (waited >= automation.interval() - 1e-9) {
+                // Rien à faire pour l'instant : il reste prêt, et agira dès que ce sera possible.
+                waited = act(automation) ? Math.max(0, waited - automation.interval()) : automation.interval();
+            }
+            state.setDarkAutomationTimer(automation.id(), waited);
+        }
+    }
+
+    /** Fait faire à l'automatisme de matière noire une action ; faux s'il ne peut rien faire pour l'instant. */
+    private boolean act(DarkAutomation automation) {
+        return switch (automation.kind()) {
+            case PARTICLE_UPGRADES -> playEarlyGame();
+            case ATOM_UPGRADES -> buyCheapestAtomUpgrade();
+            case AUTOMATIONS -> buyCheapestAutomation();
+            case EXPLOSION -> explode();
+        };
+    }
+
+    /**
+     * Une action à la place du joueur : synthétiser, fusionner, sinon acheter une amélioration
+     * payée en particules. Il laisse faire les automatismes ordinaires qui sont en marche.
+     */
+    private boolean playEarlyGame() {
+        boolean fusionAutomated = false;
+        boolean synthesisAutomated = false;
+        java.util.Set<String> automated = new java.util.HashSet<>();
+        for (Automation automation : automations.values()) {
+            if (!isAutomationEnabled(automation.id())) continue;
+            if (automation.kind() == Automation.Kind.FUSION) fusionAutomated = true;
+            if (automation.kind() == Automation.Kind.SYNTHESIS) synthesisAutomated = true;
+            if (automation.kind() == Automation.Kind.UPGRADE) automated.add(automation.upgradeId());
+        }
+        // Les premières synthèses, tant que la synthèse automatique n'est pas débloquée et en marche.
+        if (!synthesisAutomated && !synthesize().isEmpty()) return true;
+        if (!fusionAutomated && generatorCount() >= fusionThreshold() && fuse()) return true;
+        // Les générateurs d'abord : ce sont eux qui mènent à la fusion.
+        for (Upgrade upgrade : upgrades.values()) {
+            if (upgrade.resource() == Resource.PARTICLES && upgrade.effect() instanceof Effect.AddGenerator
+                    && !automated.contains(upgrade.id()) && buy(upgrade.id())) return true;
+        }
+        for (Upgrade upgrade : upgrades.values()) {
+            if (upgrade.resource() == Resource.PARTICLES && !automated.contains(upgrade.id()) && buy(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Achète l'amélioration payée en atomes la moins chère que le joueur peut s'offrir. */
+    private boolean buyCheapestAtomUpgrade() {
+        Upgrade cheapest = null;
+        for (Upgrade upgrade : upgrades.values()) {
+            if (upgrade.resource() != Resource.ATOMS || !canBuy(upgrade.id())) continue;
+            if (cheapest == null || costOf(upgrade.id()).lt(costOf(cheapest.id()))) cheapest = upgrade;
+        }
+        return cheapest != null && buy(cheapest.id());
+    }
+
+    /** Achète l'automatisme ordinaire, ou le niveau de cadence, le moins cher que le joueur peut s'offrir. */
+    private boolean buyCheapestAutomation() {
+        Automation cheapest = null;
+        BigNum cheapestCost = null;
+        for (Automation automation : automations.values()) {
+            BigNum cost;
+            if (canBuyAutomation(automation.id())) {
+                cost = automation.cost();
+            } else if (canSpeedUpAutomation(automation.id())) {
+                cost = automationSpeedCost(automation.id());
+            } else {
+                continue;
+            }
+            if (cheapestCost == null || cost.lt(cheapestCost)) {
+                cheapest = automation;
+                cheapestCost = cost;
+            }
+        }
+        if (cheapest == null) return false;
+        return state.ownsAutomation(cheapest.id()) ? speedUpAutomation(cheapest.id()) : buyAutomation(cheapest.id());
+    }
+
+    // ------------------------------------------------------------------
+    // L'arbre de matière noire
+    // ------------------------------------------------------------------
+
+    /** Toutes les améliorations de matière noire, dans l'ordre du catalogue. */
+    public Collection<DarkUpgrade> darkUpgrades() {
+        return darkUpgrades.values();
+    }
+
+    public int darkLevelOf(String darkUpgradeId) {
+        return state.darkLevelOf(darkUpgrade(darkUpgradeId).id());
+    }
+
+    public boolean isDarkMaxed(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        return state.darkLevelOf(dark.id()) >= dark.maxLevel();
+    }
+
+    /**
+     * Vrai si la case est accessible : la matière noire existe, le joueur en possède assez pour
+     * cette case, et la case du dessus est acquise (s'il y en a une).
+     */
+    public boolean isDarkAvailable(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        return isDarkMatterUnlocked() && hasDarkMatterFor(darkUpgradeId)
+                && (dark.requires() == null || state.darkLevelOf(dark.requires()) > 0);
+    }
+
+    /** Vrai si le joueur possède la matière noire que demande cette case. */
+    public boolean hasDarkMatterFor(String darkUpgradeId) {
+        return state.darkMatter().gte(BigNum.of(darkUpgrade(darkUpgradeId).darkMatter()));
+    }
+
+    /** Prix du prochain niveau, dans l'unité de sa branche (particules, atomes, ou mètres à atteindre). */
+    public BigNum darkCostOf(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        return dark.costAt(state.darkLevelOf(dark.id()));
+    }
+
+    /** Ce que le joueur a dans l'unité d'une branche : particules, atomes disponibles, ou taille de la matière noire en mètres. */
+    public BigNum darkBalance(DarkUpgrade.Branch branch) {
+        return switch (branch) {
+            case PARTICLES -> state.particles();
+            case ATOMS -> state.atoms();
+            case SIZE -> state.darkMatterSize();
+        };
+    }
+
+    public boolean canBuyDark(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        return isDarkAvailable(darkUpgradeId) && !isDarkMaxed(darkUpgradeId)
+                && darkBalance(dark.branch()).gte(darkCostOf(darkUpgradeId));
+    }
+
+    /**
+     * Achète un niveau d'une amélioration de matière noire. Les particules et les atomes sont
+     * dépensés ; une taille à atteindre ne coûte rien, la matière noire ne rétrécit pas.
+     *
+     * @return {@code true} si l'achat a eu lieu
+     */
+    public boolean buyDark(String darkUpgradeId) {
+        if (!canBuyDark(darkUpgradeId)) return false;
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        BigNum cost = darkCostOf(darkUpgradeId);
+        switch (dark.branch()) {
+            case PARTICLES -> state.setParticles(state.particles().subtract(cost).max(BigNum.ZERO));
+            case ATOMS -> state.setAtoms(state.atoms().subtract(cost).max(BigNum.ZERO));
+            case SIZE -> { /* un seuil, pas un prix */ }
+        }
+        state.setDarkLevel(dark.id(), state.darkLevelOf(dark.id()) + 1);
+        return true;
+    }
+
+    /** Vrai si le joueur possède au moins un niveau d'une amélioration de matière noire de ce type. */
+    private boolean hasDark(Class<? extends DarkEffect> type) {
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (type.isInstance(dark.effect()) && state.darkLevelOf(dark.id()) > 0) return true;
+        }
+        return false;
+    }
+
+    /** Atomes de base ajoutés à chaque fusion par l'arbre. */
+    public double darkAtomsPerFusion() {
+        double added = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.AddAtomsPerFusion add) {
+                added += add.perLevel() * state.darkLevelOf(dark.id());
+            }
+        }
+        return added;
+    }
+
+    /** Nombre d'éléments tirés à chaque synthèse, avant le tirage double : un, plus ceux de l'arbre. */
+    public int elementsPerSynthesis() {
+        int count = 1;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.AddElementsPerSynthesis add) {
+                count += add.perLevel() * state.darkLevelOf(dark.id());
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Ce que l'arbre multiplie dans les particules de chaque création : le multiplicateur de base,
+     * et la taille de la matière noire en années-lumière (à partir d'une année-lumière).
+     */
+    public BigNum darkParticlesMultiplier() {
+        BigNum result = BigNum.ONE;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            int level = state.darkLevelOf(dark.id());
+            if (level == 0) continue;
+            if (dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply) {
+                result = result.multiply(BigNum.of(multiply.perLevel()).pow(level));
+            } else if (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter byDarkMatter) {
+                // Borné pour rester calculable, bien au-delà de ce qu'un joueur peut posséder.
+                double units = state.darkMatter().min(BigNum.of(1, 15)).toDouble();
+                result = result.multiply(BigNum.of(byDarkMatter.perUnit()).pow(units * level));
+            } else if (dark.effect() instanceof DarkEffect.ParticlesByLightYears byLightYears) {
+                BigNum lightYears = darkMatterLightYears();
+                if (lightYears.gt(BigNum.ONE)) result = result.multiply(lightYears.pow(byLightYears.exponent() * level));
+            }
+        }
+        return result;
+    }
+
+    /** Ce que l'arbre multiplie dans la vitesse de croissance de la matière noire. */
+    public BigNum darkExpansionMultiplier() {
+        BigNum result = BigNum.ONE;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.MultiplyExpansion multiply) {
+                result = result.multiply(BigNum.of(multiply.perLevel()).pow(state.darkLevelOf(dark.id())));
+            }
+        }
+        return result;
+    }
+
+    /** Part de la vitesse d'appui à laquelle la matière noire grossit seule (0 sans l'amélioration). */
+    public double darkAutoExpansionShare() {
+        double share = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            int level = state.darkLevelOf(dark.id());
+            if (dark.effect() instanceof DarkEffect.AutoExpansion auto && level > 0) {
+                share += auto.share() * Math.pow(auto.growth(), level - 1);
+            }
+        }
+        return share;
+    }
+
+    /** Secondes d'appui que vaut chaque fusion pour la matière noire (0 sans l'amélioration). */
+    public double darkFusionPulse() {
+        double seconds = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.FusionPulse pulse) {
+                seconds += pulse.seconds() * state.darkLevelOf(dark.id());
+            }
+        }
+        return seconds;
+    }
+
+    /** Niveaux de vitesse offerts par l'arbre : ils s'ajoutent à ceux achetés et ne se perdent jamais. */
+    public int startingSpeedLevels() {
+        int levels = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.StartingSpeedLevels start) {
+                levels += start.perLevel() * state.darkLevelOf(dark.id());
+            }
+        }
+        return levels;
+    }
+
+    /** Rang de la synthèse qui donne un élément unique à coup sûr, tant qu'aucun n'est sorti. */
+    public int guaranteedUniqueSynthesis() {
+        int rank = GUARANTEED_UNIQUE_SYNTHESIS;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.EarlierGuaranteedUnique earlier && state.darkLevelOf(dark.id()) > 0) {
+                rank = Math.min(rank, earlier.rank());
+            }
+        }
+        return rank;
+    }
+
+    /**
+     * Nombre maximal d'exemplaires d'un élément de cette famille, arbre de matière noire compris.
+     * Les familles uniques restent à un exemplaire ; pour les autres, c'est la force maximale
+     * (la racine du maximum) qui gagne un cran par niveau : 9 → 16 → 25.
+     */
+    public int maxCopiesOf(ElementCategory category) {
+        if (category.unique()) return 1;
+        int steps = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.IncreaseMaxCopies more) {
+                steps += more.perLevel() * state.darkLevelOf(dark.id());
+            }
+        }
+        if (steps == 0) return category.maxCopies();
+        int strength = (int) Math.round(Math.sqrt(category.maxCopies())) + steps;
+        return strength * strength;
+    }
+
+    /** Nombre total d'exemplaires qu'on peut posséder en ce moment : le tableau est complet quand on les a tous. */
+    public int maxTotalCopies() {
+        int copies = 0;
+        for (Element element : PeriodicTable.ELEMENTS) copies += maxCopiesOf(element.category());
+        return copies;
+    }
+
+    /** Vrai quand l'arbre a débloqué le verrou de l'appui sur la matière noire. */
+    public boolean isHoldLockUnlocked() {
+        return hasDark(DarkEffect.HoldLock.class);
+    }
+
+    /** Vrai quand l'arbre a débloqué le réglage du seuil de fusion. */
+    public boolean isFusionThresholdUnlocked() {
+        return hasDark(DarkEffect.FusionThreshold.class);
+    }
+
+    /**
+     * Nombre de générateurs que la fusion automatique attend avant de fusionner : celui qu'il
+     * faut pour fusionner, ou le réglage du joueur une fois le seuil débloqué, ramené entre ce
+     * minimum et la limite de générateurs. La fusion à la main, elle, reste possible dès le minimum.
+     */
+    public int fusionThreshold() {
+        int minimum = generatorsPerAtom();
+        if (!isFusionThresholdUnlocked() || state.fusionThreshold() == 0) return minimum;
+        return Math.max(minimum, Math.min(state.fusionThreshold(), maxGeneratorCount()));
+    }
+
+    /**
+     * Règle le seuil de la fusion automatique.
+     *
+     * @return {@code true} si le réglage a été pris en compte (il faut l'avoir débloqué)
+     */
+    public boolean setFusionThreshold(int generators) {
+        if (!isFusionThresholdUnlocked()) return false;
+        state.setFusionThreshold(Math.max(generatorsPerAtom(), Math.min(generators, maxGeneratorCount())));
+        return true;
+    }
+
+    /** Vrai quand l'arbre a levé le plafond d'atomes. */
+    public boolean isAtomCapLifted() {
+        return hasDark(DarkEffect.UncapAtoms.class);
+    }
+
+    // ------------------------------------------------------------------
     // La production
     // ------------------------------------------------------------------
 
@@ -631,7 +1217,8 @@ public final class Game {
         BigNum speed = BASE_SPEED.multiply(elementMultiplier(ElementEffect.Stat.SPEED));
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.effect() instanceof Effect.MultiplySpeed multiply) {
-                speed = speed.multiply(BigNum.of(multiply.perLevel() + extra).pow(state.levelOf(upgrade.id())));
+                speed = speed.multiply(BigNum.of(multiply.perLevel() + extra)
+                        .pow(state.levelOf(upgrade.id()) + startingSpeedLevels()));
             }
         }
         return speed;
@@ -683,17 +1270,48 @@ public final class Game {
     /** Nombre de générateurs actifs : aucun avant {@link #start()}, puis le premier plus ceux achetés. */
     public int generatorCount() {
         if (!state.started()) return 0;
-        int count = 1;
+        int count = 1 + startingGenerators();
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.effect() instanceof Effect.AddGenerator) {
                 count += state.levelOf(upgrade.id());
             }
         }
-        return count;
+        return Math.min(count, maxGeneratorCount());
     }
 
-    /** Nombre de générateurs une fois toutes les améliorations au maximum. */
+    /**
+     * Générateurs offerts au départ de chaque partie par l'arbre de matière noire, en plus du
+     * premier. Jamais plus qu'il n'en faut pour fusionner.
+     */
+    public int startingGenerators() {
+        int bonus = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.StartingGenerators start) {
+                bonus += start.perLevel() * state.darkLevelOf(dark.id());
+            }
+        }
+        return Math.min(bonus, generatorsPerAtom() - 1);
+    }
+
+    /**
+     * Nombre maximal de générateurs : celui qu'il faut pour fusionner, ou la limite repoussée par
+     * l'arbre de matière noire.
+     */
     public int maxGeneratorCount() {
+        int limit = generatorsPerAtom();
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.effect() instanceof DarkEffect.UncapGenerators uncap && state.darkLevelOf(dark.id()) > 0) {
+                limit = Math.max(limit, uncap.limit());
+            }
+        }
+        return limit;
+    }
+
+    /**
+     * Nombre de générateurs qu'il faut pour fusionner, et que consomme chaque atome de base :
+     * le premier, plus tous ceux des améliorations du catalogue (dix dans le jeu).
+     */
+    public int generatorsPerAtom() {
         int count = 1;
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.effect() instanceof Effect.AddGenerator && upgrade.hasLimit()) {
@@ -708,7 +1326,7 @@ public final class Game {
      * une de base, multipliée par tous les bonus achetés et par ceux des éléments.
      */
     public BigNum particlesPerCreation() {
-        BigNum result = BigNum.of(elementMultiplier(ElementEffect.Stat.PARTICLES));
+        BigNum result = BigNum.of(elementMultiplier(ElementEffect.Stat.PARTICLES)).multiply(darkParticlesMultiplier());
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade.id(), state.levelOf(upgrade.id())));
         }
@@ -761,7 +1379,7 @@ public final class Game {
      * au moment d'une fusion. C'est elle que regarde {@link #fusionYield()}.
      */
     public BigNum productionAtFusion() {
-        return production(maxGeneratorCount());
+        return production(Math.max(generatorCount(), generatorsPerAtom()));
     }
 
     /** Production des {@code generators} premiers générateurs, avec les bonus actuels. */
@@ -781,12 +1399,25 @@ public final class Game {
     // ------------------------------------------------------------------
 
     /**
-     * Atomes gagnés à la prochaine fusion : {@link #ATOMS_PER_FUSION}, multiplié par le bonus des
-     * éléments et par le {@linkplain #fusionYield() rendement de fusion}. Le résultat peut être
-     * fractionnaire : les fractions s'accumulent d'une fusion à l'autre.
+     * Atomes gagnés à la prochaine fusion : {@link #ATOMS_PER_FUSION} plus ceux de l'arbre de
+     * matière noire, multipliés par le bonus des éléments, par le
+     * {@linkplain #fusionYield() rendement de fusion} et par le nombre de groupes de générateurs
+     * ({@link #fusionGroups()}). Le résultat peut être fractionnaire : les fractions s'accumulent
+     * d'une fusion à l'autre.
      */
     public BigNum atomsPerFusion() {
-        return ATOMS_PER_FUSION.multiply(elementMultiplier(ElementEffect.Stat.ATOMS)).multiply(fusionYield());
+        return ATOMS_PER_FUSION.add(BigNum.of(darkAtomsPerFusion()))
+                .multiply(elementMultiplier(ElementEffect.Stat.ATOMS))
+                .multiply(fusionYield())
+                .multiply(fusionGroups());
+    }
+
+    /**
+     * Nombre de groupes complets de générateurs qu'une fusion consommerait maintenant : un tant
+     * que leur nombre est limité, deux avec vingt générateurs, etc. Au moins un.
+     */
+    public int fusionGroups() {
+        return Math.max(1, generatorCount() / generatorsPerAtom());
     }
 
     /**
@@ -824,12 +1455,15 @@ public final class Game {
 
     /** Vrai quand tous les générateurs sont débloqués, que la fusion soit possible ou non. */
     public boolean hasAllGenerators() {
-        return state.started() && generatorCount() >= maxGeneratorCount();
+        return state.started() && generatorCount() >= generatorsPerAtom();
     }
 
-    /** Vrai quand le joueur possède déjà {@link #MAX_ATOMS} atomes : aucune fusion tant qu'il n'en dépense pas. */
+    /**
+     * Vrai quand le joueur possède déjà {@link #MAX_ATOMS} atomes : aucune fusion tant qu'il n'en
+     * dépense pas. Toujours faux une fois le plafond levé par l'arbre de matière noire.
+     */
     public boolean isAtomCapReached() {
-        return state.atoms().gte(MAX_ATOMS);
+        return !isAtomCapLifted() && state.atoms().gte(MAX_ATOMS);
     }
 
     /**
@@ -845,8 +1479,12 @@ public final class Game {
      */
     public boolean fuse() {
         if (!canFuse()) return false;
+        // L'onde de fusion : la matière noire grossit un peu, avec la production d'avant la remise à zéro.
+        double pulse = darkFusionPulse();
+        if (pulse > 0) growDarkMatter(pulse);
         BigNum gained = atomsPerFusion();
-        state.setAtoms(state.atoms().add(gained).min(MAX_ATOMS));
+        BigNum atoms = state.atoms().add(gained);
+        state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(MAX_ATOMS));
         state.setTotalAtoms(state.totalAtoms().add(gained));
         state.setParticles(BigNum.ZERO);
         state.clearFormations();
@@ -884,6 +1522,8 @@ public final class Game {
     /** Vrai quand l'amélioration a atteint son niveau maximal. */
     public boolean isMaxed(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
+        // Les générateurs : la limite est celle du moment, que la matière noire peut repousser.
+        if (upgrade.effect() instanceof Effect.AddGenerator) return generatorCount() >= maxGeneratorCount();
         return state.levelOf(upgrade.id()) >= upgrade.maxLevel();
     }
 
@@ -946,6 +1586,18 @@ public final class Game {
         Automation automation = automations.get(automationId);
         if (automation == null) throw new IllegalArgumentException("Automatisme inconnu : " + automationId);
         return automation;
+    }
+
+    private DarkAutomation darkAutomation(String darkAutomationId) {
+        DarkAutomation automation = darkAutomations.get(darkAutomationId);
+        if (automation == null) throw new IllegalArgumentException("Automatisme de matière noire inconnu : " + darkAutomationId);
+        return automation;
+    }
+
+    private DarkUpgrade darkUpgrade(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrades.get(darkUpgradeId);
+        if (dark == null) throw new IllegalArgumentException("Amélioration de matière noire inconnue : " + darkUpgradeId);
+        return dark;
     }
 
     private Upgrade upgrade(String upgradeId) {

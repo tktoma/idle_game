@@ -42,8 +42,13 @@ import javafx.util.Duration;
  */
 final class PeriodicTablePage extends VBox {
 
-    private static final double CELL_SIZE = 36;
-    private static final String CELL_STYLE = "-fx-font-size: 11px; -fx-font-weight: bold; -fx-cursor: hand;"
+    /** Le tableau fait 18 cases de large, séparées par un petit espace. */
+    private static final int COLUMNS = 18;
+    private static final double CELL_GAP = 2;
+    /** Côté d'une case : il suit la largeur de la fenêtre, entre ces deux bornes. */
+    private static final double MIN_CELL_SIZE = 20;
+    private static final double MAX_CELL_SIZE = 64;
+    private static final String CELL_STYLE = "-fx-font-weight: bold; -fx-cursor: hand;"
             + " -fx-background-radius: 4; -fx-border-radius: 4;";
 
     /** Une couleur par famille, comme sur les tableaux périodiques imprimés. */
@@ -74,8 +79,12 @@ final class PeriodicTablePage extends VBox {
     private final Map<ElementCategory, Label> legend = new EnumMap<>(ElementCategory.class);
     /** Dernier état affiché du tableau, pour ne le redessiner que lorsqu'il change ; {@code null} avant le premier affichage. */
     private Map<Integer, Integer> shown = null;
+    /** Maximum total d'exemplaires au dernier affichage. */
+    private int shownMaxTotal = -1;
     /** Élément dont le détail est affiché sous le tableau, ou {@code null}. */
     private Element selected = null;
+    /** Côté actuel d'une case, en pixels. */
+    private double cellSize = 36;
 
     PeriodicTablePage(Game game) {
         super(10);
@@ -108,13 +117,13 @@ final class PeriodicTablePage extends VBox {
 
         // Le tableau : sept périodes, puis les lanthanides et les actinides sur deux lignes à part.
         GridPane table = new GridPane();
-        table.setHgap(2);
-        table.setVgap(2);
+        table.setHgap(CELL_GAP);
+        table.setVgap(CELL_GAP);
         table.setAlignment(Pos.CENTER);
         for (Element element : PeriodicTable.ELEMENTS) {
             Label cell = new Label(element.symbol());
-            cell.setMinSize(CELL_SIZE, CELL_SIZE);
-            cell.setPrefSize(CELL_SIZE, CELL_SIZE);
+            cell.setMinSize(cellSize, cellSize);
+            cell.setPrefSize(cellSize, cellSize);
             cell.setAlignment(Pos.CENTER);
             cell.setTextAlignment(TextAlignment.CENTER);
             cell.setOnMouseClicked(event -> {
@@ -147,6 +156,9 @@ final class PeriodicTablePage extends VBox {
         legendHint.setWrapText(true);
         legendHint.setTextAlignment(TextAlignment.CENTER);
 
+        // Les cases grandissent et rétrécissent avec la fenêtre.
+        widthProperty().addListener((observable, before, after) -> fitCells(after.doubleValue()));
+
         getChildren().add(synthesizeButton);
         getChildren().add(resultLabel);
         getChildren().add(progressLabel);
@@ -171,20 +183,57 @@ final class PeriodicTablePage extends VBox {
 
         int doubleDraw = (int) Math.round(game.doubleDrawChance() * 100);
         progressLabel.setText(game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size() + " éléments découverts"
-                + "   |   " + game.ownedCopies() + " / " + Game.maxCopies() + " exemplaires"
+                + "   |   " + game.ownedCopies() + " / " + game.maxTotalCopies() + " exemplaires"
                 + "   |   " + game.state().synthesisCount() + (game.state().synthesisCount() > 1 ? " synthèses" : " synthèse")
                 + (doubleDraw > 0 ? "   |   tirage double : " + doubleDraw + " %" : ""));
         automationLabel.setText(automationStatus());
 
         // Le tableau et les bonus ne changent qu'à la synthèse : inutile de tout réécrire à chaque image.
+        // L'arbre de matière noire peut aussi repousser le maximum d'exemplaires : il faut alors repeindre.
         Map<Integer, Integer> owned = game.state().elements();
-        if (owned.equals(shown)) return;
+        int maxTotal = game.maxTotalCopies();
+        if (owned.equals(shown) && maxTotal == shownMaxTotal) return;
+        shownMaxTotal = maxTotal;
         if (shown != null) announce(owned);
+        if (owned.isEmpty()) resultLabel.setText("");     // tableau vidé par une explosion
         shown = new HashMap<>(owned);
 
+        paintCells();
+        showDetail();
+        bonusLabel.setText(bonusSummary());
+        for (ElementCategory category : ElementCategory.values()) {
+            double chance = game.categoryChance(category);
+            legend.get(category).setText("■ " + category.label() + " ("
+                    + (chance > 0 ? percent(chance) : "complet")
+                    + (category.unique() ? "" : ", " + game.maxCopiesOf(category) + " exemplaires au plus")
+                    + ") : " + category.description());
+        }
+    }
+
+    /**
+     * Donne aux cases la plus grande taille qui fait tenir les 18 colonnes dans la largeur
+     * disponible, entre {@link #MIN_CELL_SIZE} et {@link #MAX_CELL_SIZE}.
+     */
+    private void fitCells(double width) {
+        double room = width - 34 - (COLUMNS - 1) * CELL_GAP;   // un peu de marge de chaque côté
+        double size = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, Math.floor(room / COLUMNS)));
+        // On rétrécit dès qu'il le faut, mais on ne grandit que franchement : sinon l'apparition de la
+        // barre de défilement, qui rogne un peu la largeur, ferait hésiter les cases entre deux tailles.
+        if (size == cellSize || (size > cellSize && size < cellSize + 2)) return;
+        cellSize = size;
+        for (Label cell : cells.values()) {
+            cell.setMinSize(size, size);
+            cell.setPrefSize(size, size);
+        }
+        paintCells();    // la taille du texte suit celle de la case
+    }
+
+    /** Écrit et colore chaque case d'après ce que le joueur possède. */
+    private void paintCells() {
+        String font = "-fx-font-size: " + Math.max(8, Math.round(cellSize * 0.31)) + "px; ";
         for (Element element : PeriodicTable.ELEMENTS) {
             int copies = game.elementCount(element.number());
-            int max = element.category().maxCopies();
+            int max = game.maxCopiesOf(element.category());
             boolean unique = element.category().unique();
             boolean maxed = game.isElementMaxed(element.number());
             String color = COLORS.get(element.category());
@@ -192,21 +241,12 @@ final class PeriodicTablePage extends VBox {
             cell.setText(unique ? element.symbol() + "\n★"
                     : copies > 0 ? element.symbol() + "\n" + Math.min(copies, max) + "/" + max : element.symbol());
             // Pas encore obtenu : éteint. Possédé : allumé. Au maximum : couleur pleine.
-            cell.setStyle(CELL_STYLE + (maxed
+            cell.setStyle(font + CELL_STYLE + (maxed
                     ? " -fx-text-fill: #10151f; -fx-background-color: " + color + "; -fx-border-color: #ffffff;"
                     : copies > 0
                     ? " -fx-text-fill: #ffffff; -fx-background-color: " + color + "55; -fx-border-color: " + color + ";"
                     : " -fx-text-fill: " + color + "88; -fx-background-color: #10151f; -fx-border-color: " + color + "44;"));
             tooltips.get(element.number()).setText(detail(element, "\n"));
-        }
-        showDetail();
-        bonusLabel.setText(bonusSummary());
-        for (ElementCategory category : ElementCategory.values()) {
-            double chance = game.categoryChance(category);
-            legend.get(category).setText("■ " + category.label() + " ("
-                    + (chance > 0 ? percent(chance) : "complet")
-                    + (category.unique() ? "" : ", " + category.maxCopies() + " exemplaires au plus")
-                    + ") : " + category.description());
         }
     }
 
@@ -251,9 +291,14 @@ final class PeriodicTablePage extends VBox {
             if (automation.kind() == Automation.Kind.SYNTHESIS) synthesis = automation;
         }
         if (synthesis == null) return "";
-        if (game.isPeriodicTableComplete()) return "Tous les éléments sont au maximum : il n'y a plus rien à synthétiser.";
+        if (game.isPeriodicTableComplete()) {
+            return "Tous les éléments sont au maximum : le tableau peut exploser, avec le bouton tout en haut de la fenêtre.";
+        }
+        if (game.canExplode()) {
+            return "Les 118 éléments sont découverts : le tableau peut exploser, avec le bouton tout en haut de la fenêtre.";
+        }
         if (!game.isSynthesisAutomationUnlocked()) {
-            int left = Game.GUARANTEED_UNIQUE_SYNTHESIS - game.state().synthesisCount();
+            int left = game.guaranteedUniqueSynthesis() - game.state().synthesisCount();
             return "Synthèse automatique : se débloque avec le premier élément unique ★ (gaz noble ou actinide)"
                     + (left > 1 ? ", garanti au plus tard dans " + left + " synthèses"
                             : ", garanti à la prochaine synthèse");
@@ -283,7 +328,7 @@ final class PeriodicTablePage extends VBox {
     private String detail(Element element, String separator) {
         int copies = game.elementCount(element.number());
         String stacking = ElementText.stacking(element.effect(), copies);
-        int max = element.category().maxCopies();
+        int max = game.maxCopiesOf(element.category());
         String owned = element.category().unique() ? (copies == 0 ? "Pas encore obtenu" : "Obtenu")
                 : (copies == 0 ? "Pas encore obtenu, " + max + " exemplaires au plus"
                         : Math.min(copies, max) + " / " + max + (max > 1 ? " exemplaires" : " exemplaire")
@@ -305,7 +350,7 @@ final class PeriodicTablePage extends VBox {
             double divisor = game.elementCostDivisor(target);
             if (divisor != 1) parts.add("Prix " + ElementText.of(target) + " ÷" + ElementText.number(divisor));
         }
-        for (int generator = 0; generator < game.maxGeneratorCount(); generator++) {
+        for (int generator = 0; generator < game.generatorsPerAtom(); generator++) {
             double production = game.generatorParticlesMultiplier(generator) * game.generatorSpeedMultiplier(generator);
             if (production != 1) {
                 parts.add("Générateur " + (generator + 1) + " " + Format.multiplier(BigNum.of(production)));

@@ -54,9 +54,11 @@ final class AtomsPage extends VBox {
 
     // Sous-page « Atome »
     private final AtomModelView atomView = new AtomModelView(240);
+    /** L'atome prend la place disponible, en restant carré, jusqu'à 440 pixels de côté. */
+    private final CanvasPane atomHolder = CanvasPane.square(atomView, 440);
     private final Label orbsLabel = new Label();
     private final Label hintLabel = new Label();
-    private final VBox atomPane = new VBox(10, atomView, orbsLabel, hintLabel);
+    private final VBox atomPane = new VBox(10, atomHolder, orbsLabel, hintLabel);
 
     // Sous-page « Améliorations »
     private final Map<Upgrade, Button> upgradeButtons = new LinkedHashMap<>();
@@ -87,6 +89,11 @@ final class AtomsPage extends VBox {
         subTabs.setAlignment(Pos.CENTER);
 
         atomPane.setAlignment(Pos.TOP_CENTER);
+        VBox.setVgrow(atomHolder, Priority.ALWAYS);
+        hintLabel.setWrapText(true);
+        hintLabel.setTextAlignment(TextAlignment.CENTER);
+        bonusLabel.setWrapText(true);
+        bonusLabel.setTextAlignment(TextAlignment.CENTER);
 
         // Les cartes passent à la ligne selon la largeur ; si elles dépassent en hauteur, on fait défiler.
         upgradeCards.setAlignment(Pos.TOP_CENTER);
@@ -163,6 +170,7 @@ final class AtomsPage extends VBox {
         int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
         atomView.setOrbs(orbs);
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
+                + (atoms.gt(Game.MAX_ATOMS) ? " (le plafond d'atomes est levé, pas celui des orbes)" : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
         // Le tableau périodique n'apparaît qu'une fois tous les automatismes à leur cadence maximale.
@@ -175,7 +183,7 @@ final class AtomsPage extends VBox {
                 ? (tableUnlocked && !game.isPeriodicTableComplete()
                         ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
                         : "Maximum atteint : dépensez des atomes pour pouvoir fusionner de nouveau.")
-                : "Fusionnez les " + game.maxGeneratorCount() + " générateurs pour créer un atome de plus.");
+                : "Fusionnez les " + game.generatorsPerAtom() + " générateurs pour créer un atome de plus.");
 
         upgradeButtons.forEach((upgrade, button) -> {
             button.setText(describe(upgrade));

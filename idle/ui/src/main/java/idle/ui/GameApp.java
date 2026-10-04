@@ -11,6 +11,8 @@ import java.util.Map;
 import javafx.animation.Animation;
 import javafx.animation.AnimationTimer;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
 import javafx.animation.ScaleTransition;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -18,10 +20,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -38,6 +43,10 @@ import javafx.util.Duration;
  * puis « Automatisation » ({@link AutomationPage}) une fois l'amélioration Persistance achetée.
  * Le jeu continue de tourner quel que soit l'onglet affiché.
  *
+ * <p>Quand le tableau périodique est complet, un bouton apparaît au-dessus des onglets : il
+ * déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet
+ * « Matière noire » ({@link DarkMatterPage}).
+ *
  * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en
  * plus une {@link DebugBar} pour accélérer le temps et s'ajouter des ressources.
  *
@@ -47,16 +56,22 @@ import javafx.util.Duration;
 public final class GameApp extends Application {
 
     private static final double BUTTON_WIDTH = 420;
+    /** Nombre maximal de générateurs dessinés ; les suivants produisent sans être affichés. */
+    private static final int MAX_VISIBLE_GENERATORS = 30;
 
-    /** Style commun aux deux onglets ; la couleur dépend de l'onglet et de son état. */
-    private static final String TAB_STYLE = "-fx-font-size: 14px; -fx-padding: 10 28; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0;";
+    /** Style commun aux onglets ; la couleur dépend de l'onglet et de son état, les marges de la largeur de la fenêtre. */
+    private static final String TAB_STYLE = "-fx-cursor: hand; -fx-background-radius: 0; -fx-border-width: 0 0 2 0;";
+    private static final String WIDE_TAB = " -fx-font-size: 14px; -fx-padding: 10 28;";
+    private static final String NARROW_TAB = " -fx-font-size: 12px; -fx-padding: 8 10;";
+    /** En dessous de cette largeur de fenêtre, les onglets se resserrent pour tenir sur une ligne. */
+    private static final double NARROW_WINDOW = 720;
     private static final String PARTICLES_COLOR = "#9fd0ff";
     private static final String ATOMS_COLOR = "#ffd27f";
     private static final String AUTOMATION_COLOR = "#9be7a8";
+    static final String DARK_MATTER_COLOR = "#c9a6ff";
 
     /** Les onglets du jeu. */
-    private enum Tab { PARTICLES, ATOMS, AUTOMATION }
+    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER }
 
     private final Game game = new Game();
     private final GeneratorPane generators = new GeneratorPane();
@@ -68,12 +83,25 @@ public final class GameApp extends Application {
     private final Button particlesTab = new Button("Particules");
     private final Button atomsTab = new Button();
     private final Button automationTab = new Button("Automatisation");
+    private final Button darkMatterTab = new Button();
     private final AtomView atomsTabIcon = new AtomView(22);
-    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab);
+    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab, darkMatterTab);
     private final BorderPane particlesPage = new BorderPane();
     private final AtomsPage atomsPage = new AtomsPage(game);
     private final AutomationPage automationPage = new AutomationPage(game);
+    private final DarkMatterPage darkMatterPage = new DarkMatterPage(game);
+    /** La page des automatismes défile quand la fenêtre est trop basse pour toutes ses cartes. */
+    private final ScrollPane automationScroll = new ScrollPane(automationPage);
+    private final BorderPane root = new BorderPane();
     private Tab selectedTab = Tab.PARTICLES;
+    private boolean narrow = false;
+
+    // L'explosion : le bouton au-dessus des onglets, et ce qui recouvre la fenêtre pendant qu'elle a lieu.
+    private final Button explosionButton = new Button();
+    private final StackPane flash = new StackPane();
+    private final Circle shockwave = new Circle(24, Color.web(DARK_MATTER_COLOR));
+    private final StackPane blast = new StackPane(flash, shockwave);
+    private boolean exploding = false;
     /** Atomes créés à la dernière image, pour repérer l'arrivée d'un nouvel atome ; −1 avant la première image. */
     private double lastTotalAtoms = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
@@ -96,6 +124,7 @@ public final class GameApp extends Application {
         for (Upgrade upgrade : game.upgrades(Resource.PARTICLES)) {
             Button button = new Button();
             button.setPrefWidth(BUTTON_WIDTH);
+            button.setMinWidth(0);               // dans une fenêtre étroite, le bouton rétrécit avec elle
             button.setOnAction(event -> {
                 game.buy(upgrade.id());
                 refresh();
@@ -116,26 +145,41 @@ public final class GameApp extends Application {
         particlesPage.setBottom(controls);
 
         // Les onglets sont empilés au même endroit ; un seul est visible à la fois.
-        StackPane pages = new StackPane(particlesPage, atomsPage, automationPage);
+        automationScroll.setFitToWidth(true);
+        automationScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        automationScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage);
         particlesTab.setOnAction(event -> selectTab(Tab.PARTICLES));
         atomsTab.setOnAction(event -> selectTab(Tab.ATOMS));
         automationTab.setOnAction(event -> selectTab(Tab.AUTOMATION));
+        darkMatterTab.setOnAction(event -> selectTab(Tab.DARK_MATTER));
         atomsTab.setGraphic(atomsTabIcon);
         tabBar.setAlignment(Pos.CENTER);
         selectTab(Tab.PARTICLES);
 
         // En haut : la barre d'onglets, et au-dessus la barre du profil de test si le jeu est lancé avec --test.
-        VBox top = new VBox(tabBar);
+        // Au-dessus des onglets : le bouton d'explosion, quand le tableau périodique est complet.
+        explosionButton.setMaxWidth(Double.MAX_VALUE);
+        explosionButton.setWrapText(true);
+        explosionButton.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 20; -fx-cursor: hand;"
+                + " -fx-text-fill: #1a0f2e; -fx-background-color: " + DARK_MATTER_COLOR + "; -fx-background-radius: 0;");
+        explosionButton.setOnAction(event -> explode());
+        VBox top = new VBox(explosionButton, tabBar);
         boolean testProfile = getParameters().getRaw().contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
             top.getChildren().add(0, debugBar);
         }
 
-        BorderPane root = new BorderPane();
         root.setTop(top);
         root.setCenter(pages);
         root.setStyle("-fx-background-color: #0b0e14;");
+
+        // L'explosion recouvre toute la fenêtre : un éclair blanc et une onde qui part du centre.
+        flash.setStyle("-fx-background-color: #ffffff;");
+        flash.setOpacity(0);
+        blast.setVisible(false);
+        StackPane window = new StackPane(root, blast);
 
         // Boucle de jeu : appelée à chaque image (~60 fois par seconde) sur le thread JavaFX.
         new AnimationTimer() {
@@ -154,7 +198,7 @@ public final class GameApp extends Application {
         animate(0);
         refresh();
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
-        stage.setScene(new Scene(root, 800, 600));
+        stage.setScene(new Scene(window, 800, 600));
         stage.setMinWidth(480);
         stage.setMinHeight(420);
         stage.show();
@@ -207,6 +251,7 @@ public final class GameApp extends Application {
      */
     private Button fuseButton() {
         fuseButton.setPrefWidth(BUTTON_WIDTH);
+        fuseButton.setMinWidth(0);
         fuseButton.setStyle("-fx-font-size: 14px; -fx-padding: 8 16; -fx-text-fill: #ffd27f;"
                 + " -fx-background-color: #2a2113; -fx-background-radius: 8;"
                 + " -fx-border-color: #ffd27f; -fx-border-radius: 8; -fx-cursor: hand;");
@@ -232,20 +277,71 @@ public final class GameApp extends Application {
         return fuseButton;
     }
 
+    /**
+     * L'explosion du tableau périodique : une onde part du centre et la fenêtre vire au blanc ;
+     * au plus fort de l'éclair, le jeu remet tout à zéro, puis l'écran revient sur l'onglet
+     * « Matière noire ». La fenêtre ne réagit à aucun clic tant que l'explosion n'est pas finie.
+     */
+    private void explode() {
+        if (exploding || !game.canExplode()) return;
+        exploding = true;
+        blast.setVisible(true);
+        flash.setOpacity(0);
+        shockwave.setVisible(true);
+
+        ScaleTransition grow = new ScaleTransition(Duration.seconds(1.1), shockwave);
+        grow.setFromX(0.1);
+        grow.setFromY(0.1);
+        grow.setToX(60);
+        grow.setToY(60);
+        grow.setInterpolator(Interpolator.EASE_IN); // départ lent, arrivée rapide
+        FadeTransition whiten = new FadeTransition(Duration.seconds(0.7), flash);
+        whiten.setDelay(Duration.seconds(0.4));
+        whiten.setFromValue(0);
+        whiten.setToValue(1);
+        ParallelTransition bang = new ParallelTransition();
+        bang.getChildren().add(grow);
+        bang.getChildren().add(whiten);
+        bang.setOnFinished(done -> {
+            game.explode();
+            shockwave.setVisible(false);
+            selectTab(Tab.DARK_MATTER);
+            refresh();
+
+            FadeTransition clear = new FadeTransition(Duration.seconds(1.4), flash);
+            clear.setFromValue(1);
+            clear.setToValue(0);
+            clear.setOnFinished(end -> {
+                blast.setVisible(false);
+                exploding = false;
+            });
+            clear.play();
+        });
+        bang.play();
+    }
+
     /** Affiche un onglet et masque les autres. */
     private void selectTab(Tab tab) {
         selectedTab = tab;
+        if (tab != Tab.DARK_MATTER) darkMatterPage.release();
         particlesPage.setVisible(tab == Tab.PARTICLES);
         atomsPage.setVisible(tab == Tab.ATOMS);
-        automationPage.setVisible(tab == Tab.AUTOMATION);
-        particlesTab.setStyle(tabStyle(PARTICLES_COLOR, tab == Tab.PARTICLES));
-        atomsTab.setStyle(tabStyle(ATOMS_COLOR, tab == Tab.ATOMS));
-        automationTab.setStyle(tabStyle(AUTOMATION_COLOR, tab == Tab.AUTOMATION));
+        automationScroll.setVisible(tab == Tab.AUTOMATION);
+        darkMatterPage.setVisible(tab == Tab.DARK_MATTER);
+        styleTabs();
+    }
+
+    /** Colore les onglets : celui qui est affiché est éclairé, et tous se resserrent dans une fenêtre étroite. */
+    private void styleTabs() {
+        particlesTab.setStyle(tabStyle(PARTICLES_COLOR, selectedTab == Tab.PARTICLES));
+        atomsTab.setStyle(tabStyle(ATOMS_COLOR, selectedTab == Tab.ATOMS));
+        automationTab.setStyle(tabStyle(AUTOMATION_COLOR, selectedTab == Tab.AUTOMATION));
+        darkMatterTab.setStyle(tabStyle(DARK_MATTER_COLOR, selectedTab == Tab.DARK_MATTER));
     }
 
     /** L'onglet affiché est souligné et éclairé dans sa couleur ; l'autre est estompé. */
-    private static String tabStyle(String color, boolean selected) {
-        return TAB_STYLE + (selected
+    private String tabStyle(String color, boolean selected) {
+        return TAB_STYLE + (narrow ? NARROW_TAB : WIDE_TAB) + (selected
                 ? " -fx-text-fill: " + color + "; -fx-background-color: #16202e;"
                         + " -fx-border-color: transparent transparent " + color + " transparent;"
                 : " -fx-text-fill: #8fa3b8; -fx-background-color: transparent; -fx-border-color: transparent;");
@@ -268,13 +364,18 @@ public final class GameApp extends Application {
     private void animate(double dt) {
         // Moins de générateurs dans le jeu qu'à l'écran : une fusion automatique vient d'avoir lieu.
         // On joue la même animation que pour une fusion manuelle, puis les nouveaux générateurs naissent.
-        if (game.generatorCount() < generators.views().size() && !generators.isFusing()) {
+        if (Math.min(game.generatorCount(), MAX_VISIBLE_GENERATORS) < generators.views().size()
+                && !generators.isFusing()) {
             generators.fuse(() -> { });
         }
-        generators.setCount(game.generatorCount());
+        // Au-delà d'un certain nombre, les générateurs tournent sans être dessinés : ils deviendraient illisibles.
+        generators.setCount(Math.min(game.generatorCount(), MAX_VISIBLE_GENERATORS));
         atomsTabIcon.frame(dt);
         if (selectedTab == Tab.ATOMS) {
             atomsPage.frame(dt);
+        }
+        if (selectedTab == Tab.DARK_MATTER) {
+            darkMatterPage.frame(dt, timeFactor());
         }
         if (selectedTab != Tab.PARTICLES) {
             return;
@@ -295,6 +396,13 @@ public final class GameApp extends Application {
 
     /** Recopie l'état du jeu dans les composants. */
     private void refresh() {
+        // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
+        boolean nowNarrow = root.getWidth() > 0 && root.getWidth() < NARROW_WINDOW;
+        if (nowNarrow != narrow) {
+            narrow = nowNarrow;
+            styleTabs();
+        }
+
         BigNum particles = game.state().particles();
         particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
@@ -303,7 +411,9 @@ public final class GameApp extends Application {
                 : rate < 1
                 ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
                 : "+" + game.productionPerSecond().format() + " particules par seconde";
-        productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m");
+        int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
+        productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m"
+                + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
 
         upgradeButtons.forEach((upgrade, button) -> {
             button.setText(label(upgrade));
@@ -316,7 +426,9 @@ public final class GameApp extends Application {
                 ? "Maximum de " + Format.count(Game.MAX_ATOMS) + " atomes atteint : dépensez-en"
                         + (game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete()
                                 ? " ou synthétisez un élément" : " pour fusionner")
-                : "Fusionner les " + game.maxGeneratorCount() + " générateurs : +"
+                : (game.generatorCount() > game.generatorsPerAtom()
+                        ? "Fusionner " + game.generatorCount() + " générateurs : +"
+                        : "Fusionner les " + game.generatorsPerAtom() + " générateurs : +")
                         + Format.amount(game.atomsPerFusion()) + (game.atomsPerFusion().gt(BigNum.ONE) ? " atomes" : " atome"));
         fuseButton.setDisable(capped);
         fuseButton.setVisible(game.hasAllGenerators() && !generators.isFusing());
@@ -329,9 +441,13 @@ public final class GameApp extends Application {
         }
         lastTotalAtoms = totalAtoms;
 
+        // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         boolean hasAtoms = game.state().totalAtoms().sign() > 0;
-        tabBar.setVisible(hasAtoms);
-        tabBar.setManaged(hasAtoms);
+        boolean darkMatter = game.isDarkMatterUnlocked();
+        tabBar.setVisible(hasAtoms || darkMatter);
+        tabBar.setManaged(hasAtoms || darkMatter);
+        atomsTab.setVisible(hasAtoms);
+        atomsTab.setManaged(hasAtoms);
         atomsTab.setText("Atomes (" + Format.count(game.state().atoms()) + ")");
         atomsPage.refresh();
 
@@ -340,6 +456,25 @@ public final class GameApp extends Application {
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
         automationPage.refresh();
+
+        // L'onglet « Matière noire » n'existe qu'après la première explosion.
+        darkMatterTab.setVisible(darkMatter);
+        darkMatterTab.setManaged(darkMatter);
+        darkMatterTab.setText("Matière noire (" + Format.count(game.state().darkMatter()) + ")");
+        darkMatterPage.refresh();
+
+        // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
+        if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
+                || (selectedTab == Tab.DARK_MATTER && !darkMatter)) {
+            selectTab(Tab.PARTICLES);
+        }
+
+        // Le bouton d'explosion n'apparaît que lorsque le tableau périodique est complet.
+        explosionButton.setText("Faire exploser le tableau périodique : tout repart de zéro, +"
+                + Format.count(game.darkMatterPerExplosion()) + " matière noire");
+        boolean canExplode = game.canExplode() && !exploding;
+        explosionButton.setVisible(canExplode);
+        explosionButton.setManaged(canExplode);
     }
 
     private String label(Upgrade upgrade) {

@@ -31,13 +31,13 @@ public record Automation(String id, String name, Kind kind, BigNum cost, String 
         SYNTHESIS
     }
 
-    /** Délai de départ par défaut : une action toutes les 4 secondes. */
-    public static final double DEFAULT_INTERVAL = 4;
-    /** Par défaut, trois niveaux de cadence : 4 s, puis 2 s, 1 s et 0,5 s. */
+    /** Délai de départ par défaut : une action toutes les 16 secondes. */
+    public static final double DEFAULT_INTERVAL = 16;
+    /** Par défaut, trois niveaux de cadence : 16 s, puis 8 s, 4 s et 2 s. */
     public static final int DEFAULT_MAX_SPEED_LEVEL = 3;
-    /** Par défaut, les niveaux de cadence coûtent 4, 12 puis 36 atomes. */
-    public static final BigNum DEFAULT_SPEED_COST = BigNum.of(4);
-    public static final double DEFAULT_SPEED_COST_GROWTH = 3;
+    /** Par défaut, les niveaux de cadence coûtent 5, 20 puis 80 atomes. */
+    public static final BigNum DEFAULT_SPEED_COST = BigNum.of(5);
+    public static final double DEFAULT_SPEED_COST_GROWTH = 4;
 
     public Automation {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("id manquant");

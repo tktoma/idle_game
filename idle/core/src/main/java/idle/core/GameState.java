@@ -32,6 +32,13 @@ public final class GameState {
     private final Map<Integer, Integer> elements = new TreeMap<>();
     private int elementsVersion = 0;
     private int synthesisCount = 0;
+    private BigNum darkMatter = BigNum.ZERO;
+    private BigNum darkMatterSize = Game.DARK_MATTER_START_SIZE;
+    private int explosions = 0;
+    private final Map<String, Integer> darkUpgradeLevels = new HashMap<>();
+    private int fusionThreshold = 0;
+    private final Set<String> enabledDarkAutomations = new HashSet<>();
+    private final Map<String, Double> darkAutomationTimers = new HashMap<>();
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
     public boolean started() {
@@ -206,6 +213,113 @@ public final class GameState {
     public void setSynthesisCount(int synthesisCount) {
         if (synthesisCount < 0) throw new IllegalArgumentException("Nombre de synthèses négatif");
         this.synthesisCount = synthesisCount;
+    }
+
+    /** Matière noire possédée : la troisième ressource, laissée par chaque explosion du tableau périodique. */
+    public BigNum darkMatter() {
+        return darkMatter;
+    }
+
+    public void setDarkMatter(BigNum darkMatter) {
+        if (darkMatter.sign() < 0) throw new IllegalArgumentException("La quantité de matière noire ne peut pas être négative");
+        this.darkMatter = darkMatter;
+    }
+
+    /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
+    public BigNum darkMatterSize() {
+        return darkMatterSize;
+    }
+
+    public void setDarkMatterSize(BigNum darkMatterSize) {
+        if (darkMatterSize.sign() <= 0) throw new IllegalArgumentException("La taille de la matière noire doit être positive");
+        this.darkMatterSize = darkMatterSize;
+    }
+
+    /** Nombre d'explosions déclenchées depuis le début du jeu. */
+    public int explosions() {
+        return explosions;
+    }
+
+    public void setExplosions(int explosions) {
+        if (explosions < 0) throw new IllegalArgumentException("Nombre d'explosions négatif");
+        this.explosions = explosions;
+    }
+
+    /**
+     * Nombre de générateurs que la fusion automatique attend avant de fusionner, choisi par le
+     * joueur ; 0 tant qu'il n'a rien réglé. C'est un réglage : aucune explosion ne l'efface.
+     */
+    public int fusionThreshold() {
+        return fusionThreshold;
+    }
+
+    public void setFusionThreshold(int fusionThreshold) {
+        if (fusionThreshold < 0) throw new IllegalArgumentException("Seuil négatif");
+        this.fusionThreshold = fusionThreshold;
+    }
+
+    /** Vrai si le joueur a mis cet automatisme de matière noire en marche. Aucune explosion ne le coupe. */
+    public boolean isDarkAutomationEnabled(String darkAutomationId) {
+        return enabledDarkAutomations.contains(darkAutomationId);
+    }
+
+    public void setDarkAutomationEnabled(String darkAutomationId, boolean enabled) {
+        if (enabled) {
+            enabledDarkAutomations.add(darkAutomationId);
+        } else {
+            enabledDarkAutomations.remove(darkAutomationId);
+        }
+    }
+
+    /** Vue en lecture seule des automatismes de matière noire en marche, pour la sauvegarde. */
+    public Set<String> enabledDarkAutomations() {
+        return Set.copyOf(enabledDarkAutomations);
+    }
+
+    /** Temps écoulé depuis la dernière action d'un automatisme de matière noire, en secondes. */
+    public double darkAutomationTimer(String darkAutomationId) {
+        return darkAutomationTimers.getOrDefault(darkAutomationId, 0.0);
+    }
+
+    public void setDarkAutomationTimer(String darkAutomationId, double seconds) {
+        if (!(seconds >= 0)) throw new IllegalArgumentException("Durée invalide : " + seconds);
+        darkAutomationTimers.put(darkAutomationId, seconds);
+    }
+
+    /** Niveau possédé pour une amélioration de matière noire (0 si jamais achetée). */
+    public int darkLevelOf(String darkUpgradeId) {
+        return darkUpgradeLevels.getOrDefault(darkUpgradeId, 0);
+    }
+
+    public void setDarkLevel(String darkUpgradeId, int level) {
+        if (level < 0) throw new IllegalArgumentException("Niveau négatif");
+        darkUpgradeLevels.put(darkUpgradeId, level);
+    }
+
+    /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
+    public Map<String, Integer> darkUpgradeLevels() {
+        return Map.copyOf(darkUpgradeLevels);
+    }
+
+    /**
+     * Efface toute la matière : particules, atomes, améliorations, automatismes et éléments.
+     * Il ne reste que le premier générateur, la matière noire, sa taille et ses améliorations,
+     * le nombre d'explosions et le temps de jeu.
+     */
+    public void clearMatter() {
+        particles = BigNum.ZERO;
+        atoms = BigNum.ZERO;
+        totalAtoms = BigNum.ZERO;
+        timeSinceFusion = 0;
+        formations.clear();
+        upgradeLevels.clear();
+        ownedAutomations.clear();
+        enabledAutomations.clear();
+        automationSpeedLevels.clear();
+        automationTimers.clear();
+        elements.clear();
+        elementsVersion++;
+        synthesisCount = 0;
     }
 
     /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */
