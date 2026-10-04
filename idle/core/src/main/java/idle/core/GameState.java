@@ -1,11 +1,13 @@
 package idle.core;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Tout ce qui change pendant une partie, et rien d'autre.
@@ -23,7 +25,12 @@ public final class GameState {
     private final List<Double> formations = new ArrayList<>();
     private double timePlayed = 0;
     private final Map<String, Integer> upgradeLevels = new HashMap<>();
-    private final Set<String> automatedUpgrades = new HashSet<>();
+    private final Set<String> ownedAutomations = new HashSet<>();
+    private final Set<String> enabledAutomations = new HashSet<>();
+    private final Map<String, Integer> automationSpeedLevels = new HashMap<>();
+    private final Map<String, Double> automationTimers = new HashMap<>();
+    private final Map<Integer, Integer> elements = new TreeMap<>();
+    private int synthesisCount = 0;
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
     public boolean started() {
@@ -123,22 +130,90 @@ public final class GameState {
         upgradeLevels.put(upgradeId, level);
     }
 
-    /** Vrai si le joueur a activé l'achat automatique de cette amélioration. */
-    public boolean isAutomated(String upgradeId) {
-        return automatedUpgrades.contains(upgradeId);
+    /** Vrai si le joueur a acheté cet automatisme. */
+    public boolean ownsAutomation(String automationId) {
+        return ownedAutomations.contains(automationId);
     }
 
-    public void setAutomated(String upgradeId, boolean automated) {
-        if (automated) {
-            automatedUpgrades.add(upgradeId);
+    public void addAutomation(String automationId) {
+        ownedAutomations.add(automationId);
+    }
+
+    /** Vrai si cet automatisme est en marche. Un automatisme acheté peut être coupé. */
+    public boolean isAutomationEnabled(String automationId) {
+        return enabledAutomations.contains(automationId);
+    }
+
+    public void setAutomationEnabled(String automationId, boolean enabled) {
+        if (enabled) {
+            enabledAutomations.add(automationId);
         } else {
-            automatedUpgrades.remove(upgradeId);
+            enabledAutomations.remove(automationId);
         }
     }
 
-    /** Vue en lecture seule des achats automatiques activés, pour la sauvegarde. */
-    public Set<String> automatedUpgrades() {
-        return Set.copyOf(automatedUpgrades);
+    /** Niveau de cadence d'un automatisme : plus il est haut, plus le délai entre deux actions est court. */
+    public int automationSpeedLevel(String automationId) {
+        return automationSpeedLevels.getOrDefault(automationId, 0);
+    }
+
+    public void setAutomationSpeedLevel(String automationId, int level) {
+        if (level < 0) throw new IllegalArgumentException("Niveau négatif");
+        automationSpeedLevels.put(automationId, level);
+    }
+
+    /** Temps écoulé depuis la dernière action d'un automatisme, en secondes. */
+    public double automationTimer(String automationId) {
+        return automationTimers.getOrDefault(automationId, 0.0);
+    }
+
+    public void setAutomationTimer(String automationId, double seconds) {
+        if (!(seconds >= 0)) throw new IllegalArgumentException("Durée invalide : " + seconds);
+        automationTimers.put(automationId, seconds);
+    }
+
+    /** Vue en lecture seule des niveaux de cadence, pour la sauvegarde. */
+    public Map<String, Integer> automationSpeedLevels() {
+        return Map.copyOf(automationSpeedLevels);
+    }
+
+    /** Nombre d'exemplaires possédés d'un élément du tableau périodique (0 si jamais obtenu). */
+    public int elementCount(int atomicNumber) {
+        return elements.getOrDefault(atomicNumber, 0);
+    }
+
+    public void setElementCount(int atomicNumber, int count) {
+        if (count < 0) throw new IllegalArgumentException("Nombre d'exemplaires négatif");
+        if (count == 0) {
+            elements.remove(atomicNumber);
+        } else {
+            elements.put(atomicNumber, count);
+        }
+    }
+
+    /** Nombre de synthèses déjà faites : c'est lui qui fixe le prix de la suivante. */
+    public int synthesisCount() {
+        return synthesisCount;
+    }
+
+    public void setSynthesisCount(int synthesisCount) {
+        if (synthesisCount < 0) throw new IllegalArgumentException("Nombre de synthèses négatif");
+        this.synthesisCount = synthesisCount;
+    }
+
+    /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */
+    public Map<Integer, Integer> elements() {
+        return Collections.unmodifiableMap(elements);
+    }
+
+    /** Vue en lecture seule des automatismes achetés, pour la sauvegarde. */
+    public Set<String> ownedAutomations() {
+        return Set.copyOf(ownedAutomations);
+    }
+
+    /** Vue en lecture seule des automatismes en marche, pour la sauvegarde. */
+    public Set<String> enabledAutomations() {
+        return Set.copyOf(enabledAutomations);
     }
 
     /** Vue en lecture seule des niveaux, pour la sauvegarde. */

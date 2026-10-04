@@ -1,0 +1,145 @@
+package idle.core;
+
+import java.util.List;
+
+/**
+ * Le tableau périodique : les 118 éléments, rangés par numéro atomique.
+ * La famille de chaque élément fixe sa rareté et son bonus ({@link ElementCategory}).
+ */
+public final class PeriodicTable {
+
+    public static final List<Element> ELEMENTS = List.of(
+            new Element(1, "H", "Hydrogène", ElementCategory.NONMETAL),
+            new Element(2, "He", "Hélium", ElementCategory.NOBLE_GAS),
+            new Element(3, "Li", "Lithium", ElementCategory.ALKALI_METAL),
+            new Element(4, "Be", "Béryllium", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(5, "B", "Bore", ElementCategory.METALLOID),
+            new Element(6, "C", "Carbone", ElementCategory.NONMETAL),
+            new Element(7, "N", "Azote", ElementCategory.NONMETAL),
+            new Element(8, "O", "Oxygène", ElementCategory.NONMETAL),
+            new Element(9, "F", "Fluor", ElementCategory.HALOGEN),
+            new Element(10, "Ne", "Néon", ElementCategory.NOBLE_GAS),
+            new Element(11, "Na", "Sodium", ElementCategory.ALKALI_METAL),
+            new Element(12, "Mg", "Magnésium", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(13, "Al", "Aluminium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(14, "Si", "Silicium", ElementCategory.METALLOID),
+            new Element(15, "P", "Phosphore", ElementCategory.NONMETAL),
+            new Element(16, "S", "Soufre", ElementCategory.NONMETAL),
+            new Element(17, "Cl", "Chlore", ElementCategory.HALOGEN),
+            new Element(18, "Ar", "Argon", ElementCategory.NOBLE_GAS),
+            new Element(19, "K", "Potassium", ElementCategory.ALKALI_METAL),
+            new Element(20, "Ca", "Calcium", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(21, "Sc", "Scandium", ElementCategory.TRANSITION_METAL),
+            new Element(22, "Ti", "Titane", ElementCategory.TRANSITION_METAL),
+            new Element(23, "V", "Vanadium", ElementCategory.TRANSITION_METAL),
+            new Element(24, "Cr", "Chrome", ElementCategory.TRANSITION_METAL),
+            new Element(25, "Mn", "Manganèse", ElementCategory.TRANSITION_METAL),
+            new Element(26, "Fe", "Fer", ElementCategory.TRANSITION_METAL),
+            new Element(27, "Co", "Cobalt", ElementCategory.TRANSITION_METAL),
+            new Element(28, "Ni", "Nickel", ElementCategory.TRANSITION_METAL),
+            new Element(29, "Cu", "Cuivre", ElementCategory.TRANSITION_METAL),
+            new Element(30, "Zn", "Zinc", ElementCategory.TRANSITION_METAL),
+            new Element(31, "Ga", "Gallium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(32, "Ge", "Germanium", ElementCategory.METALLOID),
+            new Element(33, "As", "Arsenic", ElementCategory.METALLOID),
+            new Element(34, "Se", "Sélénium", ElementCategory.NONMETAL),
+            new Element(35, "Br", "Brome", ElementCategory.HALOGEN),
+            new Element(36, "Kr", "Krypton", ElementCategory.NOBLE_GAS),
+            new Element(37, "Rb", "Rubidium", ElementCategory.ALKALI_METAL),
+            new Element(38, "Sr", "Strontium", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(39, "Y", "Yttrium", ElementCategory.TRANSITION_METAL),
+            new Element(40, "Zr", "Zirconium", ElementCategory.TRANSITION_METAL),
+            new Element(41, "Nb", "Niobium", ElementCategory.TRANSITION_METAL),
+            new Element(42, "Mo", "Molybdène", ElementCategory.TRANSITION_METAL),
+            new Element(43, "Tc", "Technétium", ElementCategory.TRANSITION_METAL),
+            new Element(44, "Ru", "Ruthénium", ElementCategory.TRANSITION_METAL),
+            new Element(45, "Rh", "Rhodium", ElementCategory.TRANSITION_METAL),
+            new Element(46, "Pd", "Palladium", ElementCategory.TRANSITION_METAL),
+            new Element(47, "Ag", "Argent", ElementCategory.TRANSITION_METAL),
+            new Element(48, "Cd", "Cadmium", ElementCategory.TRANSITION_METAL),
+            new Element(49, "In", "Indium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(50, "Sn", "Étain", ElementCategory.POST_TRANSITION_METAL),
+            new Element(51, "Sb", "Antimoine", ElementCategory.METALLOID),
+            new Element(52, "Te", "Tellure", ElementCategory.METALLOID),
+            new Element(53, "I", "Iode", ElementCategory.HALOGEN),
+            new Element(54, "Xe", "Xénon", ElementCategory.NOBLE_GAS),
+            new Element(55, "Cs", "Césium", ElementCategory.ALKALI_METAL),
+            new Element(56, "Ba", "Baryum", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(57, "La", "Lanthane", ElementCategory.LANTHANIDE),
+            new Element(58, "Ce", "Cérium", ElementCategory.LANTHANIDE),
+            new Element(59, "Pr", "Praséodyme", ElementCategory.LANTHANIDE),
+            new Element(60, "Nd", "Néodyme", ElementCategory.LANTHANIDE),
+            new Element(61, "Pm", "Prométhium", ElementCategory.LANTHANIDE),
+            new Element(62, "Sm", "Samarium", ElementCategory.LANTHANIDE),
+            new Element(63, "Eu", "Europium", ElementCategory.LANTHANIDE),
+            new Element(64, "Gd", "Gadolinium", ElementCategory.LANTHANIDE),
+            new Element(65, "Tb", "Terbium", ElementCategory.LANTHANIDE),
+            new Element(66, "Dy", "Dysprosium", ElementCategory.LANTHANIDE),
+            new Element(67, "Ho", "Holmium", ElementCategory.LANTHANIDE),
+            new Element(68, "Er", "Erbium", ElementCategory.LANTHANIDE),
+            new Element(69, "Tm", "Thulium", ElementCategory.LANTHANIDE),
+            new Element(70, "Yb", "Ytterbium", ElementCategory.LANTHANIDE),
+            new Element(71, "Lu", "Lutécium", ElementCategory.LANTHANIDE),
+            new Element(72, "Hf", "Hafnium", ElementCategory.TRANSITION_METAL),
+            new Element(73, "Ta", "Tantale", ElementCategory.TRANSITION_METAL),
+            new Element(74, "W", "Tungstène", ElementCategory.TRANSITION_METAL),
+            new Element(75, "Re", "Rhénium", ElementCategory.TRANSITION_METAL),
+            new Element(76, "Os", "Osmium", ElementCategory.TRANSITION_METAL),
+            new Element(77, "Ir", "Iridium", ElementCategory.TRANSITION_METAL),
+            new Element(78, "Pt", "Platine", ElementCategory.TRANSITION_METAL),
+            new Element(79, "Au", "Or", ElementCategory.TRANSITION_METAL),
+            new Element(80, "Hg", "Mercure", ElementCategory.TRANSITION_METAL),
+            new Element(81, "Tl", "Thallium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(82, "Pb", "Plomb", ElementCategory.POST_TRANSITION_METAL),
+            new Element(83, "Bi", "Bismuth", ElementCategory.POST_TRANSITION_METAL),
+            new Element(84, "Po", "Polonium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(85, "At", "Astate", ElementCategory.HALOGEN),
+            new Element(86, "Rn", "Radon", ElementCategory.NOBLE_GAS),
+            new Element(87, "Fr", "Francium", ElementCategory.ALKALI_METAL),
+            new Element(88, "Ra", "Radium", ElementCategory.ALKALINE_EARTH_METAL),
+            new Element(89, "Ac", "Actinium", ElementCategory.ACTINIDE),
+            new Element(90, "Th", "Thorium", ElementCategory.ACTINIDE),
+            new Element(91, "Pa", "Protactinium", ElementCategory.ACTINIDE),
+            new Element(92, "U", "Uranium", ElementCategory.ACTINIDE),
+            new Element(93, "Np", "Neptunium", ElementCategory.ACTINIDE),
+            new Element(94, "Pu", "Plutonium", ElementCategory.ACTINIDE),
+            new Element(95, "Am", "Américium", ElementCategory.ACTINIDE),
+            new Element(96, "Cm", "Curium", ElementCategory.ACTINIDE),
+            new Element(97, "Bk", "Berkélium", ElementCategory.ACTINIDE),
+            new Element(98, "Cf", "Californium", ElementCategory.ACTINIDE),
+            new Element(99, "Es", "Einsteinium", ElementCategory.ACTINIDE),
+            new Element(100, "Fm", "Fermium", ElementCategory.ACTINIDE),
+            new Element(101, "Md", "Mendélévium", ElementCategory.ACTINIDE),
+            new Element(102, "No", "Nobélium", ElementCategory.ACTINIDE),
+            new Element(103, "Lr", "Lawrencium", ElementCategory.ACTINIDE),
+            new Element(104, "Rf", "Rutherfordium", ElementCategory.TRANSITION_METAL),
+            new Element(105, "Db", "Dubnium", ElementCategory.TRANSITION_METAL),
+            new Element(106, "Sg", "Seaborgium", ElementCategory.TRANSITION_METAL),
+            new Element(107, "Bh", "Bohrium", ElementCategory.TRANSITION_METAL),
+            new Element(108, "Hs", "Hassium", ElementCategory.TRANSITION_METAL),
+            new Element(109, "Mt", "Meitnérium", ElementCategory.TRANSITION_METAL),
+            new Element(110, "Ds", "Darmstadtium", ElementCategory.TRANSITION_METAL),
+            new Element(111, "Rg", "Roentgenium", ElementCategory.TRANSITION_METAL),
+            new Element(112, "Cn", "Copernicium", ElementCategory.TRANSITION_METAL),
+            new Element(113, "Nh", "Nihonium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(114, "Fl", "Flérovium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(115, "Mc", "Moscovium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(116, "Lv", "Livermorium", ElementCategory.POST_TRANSITION_METAL),
+            new Element(117, "Ts", "Tennesse", ElementCategory.HALOGEN),
+            new Element(118, "Og", "Oganesson", ElementCategory.NOBLE_GAS));
+
+    /** L'élément de numéro atomique donné, de 1 à 118. */
+    public static Element element(int number) {
+        if (number < 1 || number > ELEMENTS.size()) {
+            throw new IllegalArgumentException("Numéro atomique inconnu : " + number);
+        }
+        return ELEMENTS.get(number - 1);
+    }
+
+    /** Les éléments d'une famille, par numéro atomique croissant. */
+    public static List<Element> elements(ElementCategory category) {
+        return ELEMENTS.stream().filter(element -> element.category() == category).toList();
+    }
+
+    private PeriodicTable() {}
+}

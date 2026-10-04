@@ -69,7 +69,7 @@ final class DebugBar extends HBox {
     }
 
     private void addAtoms(int count) {
-        game.state().setAtoms(game.state().atoms().add(BigNum.of(count)));
+        game.state().setAtoms(game.state().atoms().add(BigNum.of(count)).min(Game.MAX_ATOMS));
         game.state().setTotalAtoms(game.state().totalAtoms().add(BigNum.of(count)));
     }
 

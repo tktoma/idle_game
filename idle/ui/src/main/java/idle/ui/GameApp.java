@@ -74,6 +74,8 @@ public final class GameApp extends Application {
     private final AtomsPage atomsPage = new AtomsPage(game);
     private final AutomationPage automationPage = new AutomationPage(game);
     private Tab selectedTab = Tab.PARTICLES;
+    /** Atomes créés à la dernière image, pour repérer l'arrivée d'un nouvel atome ; −1 avant la première image. */
+    private double lastTotalAtoms = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
     private DebugBar debugBar;
     private final Map<Upgrade, Button> upgradeButtons = new LinkedHashMap<>();
@@ -224,17 +226,6 @@ public final class GameApp extends Application {
             generators.fuse(() -> {
                 game.fuse(); // un seul générateur renaît à l'image suivante, là où les autres ont fusionné
                 refresh();   // fait apparaître les onglets si c'est le premier atome
-
-                // L'atome arrive : l'onglet « Atomes » bat quelques fois pour attirer l'œil.
-                ScaleTransition notice = new ScaleTransition(Duration.seconds(0.35), atomsTab);
-                notice.setFromX(1);
-                notice.setFromY(1);
-                notice.setToX(1.15);
-                notice.setToY(1.15);
-                notice.setAutoReverse(true);
-                notice.setCycleCount(6);
-                notice.play();
-                atomsPage.celebrate();
             });
             refresh();
         });
@@ -260,8 +251,26 @@ public final class GameApp extends Application {
                 : " -fx-text-fill: #8fa3b8; -fx-background-color: transparent; -fx-border-color: transparent;");
     }
 
+    /** Un atome vient d'être créé : l'onglet « Atomes » bat quelques fois pour attirer l'œil. */
+    private void celebrateNewAtom() {
+        ScaleTransition notice = new ScaleTransition(Duration.seconds(0.35), atomsTab);
+        notice.setFromX(1);
+        notice.setFromY(1);
+        notice.setToX(1.15);
+        notice.setToY(1.15);
+        notice.setAutoReverse(true);
+        notice.setCycleCount(6);
+        notice.play();
+        atomsPage.celebrate();
+    }
+
     /** Affiche les générateurs existants et fait avancer les animations de l'onglet visible. */
     private void animate(double dt) {
+        // Moins de générateurs dans le jeu qu'à l'écran : une fusion automatique vient d'avoir lieu.
+        // On joue la même animation que pour une fusion manuelle, puis les nouveaux générateurs naissent.
+        if (game.generatorCount() < generators.views().size() && !generators.isFusing()) {
+            generators.fuse(() -> { });
+        }
         generators.setCount(game.generatorCount());
         atomsTabIcon.frame(dt);
         if (selectedTab == Tab.ATOMS) {
@@ -300,10 +309,22 @@ public final class GameApp extends Application {
             button.setDisable(!game.canBuy(upgrade.id()));
         });
 
-        fuseButton.setText("Fusionner les " + game.maxGeneratorCount() + " générateurs en 1 atome");
-        fuseButton.setVisible(game.canFuse() && !generators.isFusing());
+        // Au plafond d'atomes, le bouton reste affiché mais grisé, pour expliquer pourquoi rien ne se passe.
+        boolean capped = game.isAtomCapReached();
+        fuseButton.setText(capped
+                ? "Maximum de " + Format.count(Game.MAX_ATOMS) + " atomes atteint : dépensez-en ou synthétisez un élément"
+                : "Fusionner les " + game.maxGeneratorCount() + " générateurs en 1 atome");
+        fuseButton.setDisable(capped);
+        fuseButton.setVisible(game.hasAllGenerators() && !generators.isFusing());
 
         // Les onglets n'existent qu'à partir du premier atome ; avant, la barre ne prend aucune place.
+        // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
+        double totalAtoms = game.state().totalAtoms().toDouble();
+        if (lastTotalAtoms >= 0 && totalAtoms > lastTotalAtoms) {
+            celebrateNewAtom();
+        }
+        lastTotalAtoms = totalAtoms;
+
         boolean hasAtoms = game.state().totalAtoms().sign() > 0;
         tabBar.setVisible(hasAtoms);
         tabBar.setManaged(hasAtoms);

@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.random.RandomGenerator;
 
 /**
  * Les règles du jeu : comment les ressources sont créées et ce que font les améliorations.
@@ -19,8 +21,14 @@ import java.util.Map;
  *       particules obtenues à chaque création.</li>
  * </ul>
  *
- * <p>Une fois l'amélioration de persistance achetée, le joueur peut confier au jeu l'achat
- * des améliorations payées en particules ({@link #setAutomated(String, boolean)}).
+ * <p>Une fois l'amélioration de persistance achetée, le joueur peut acheter des automatismes
+ * ({@link Automation}) : le jeu achète alors lui-même les améliorations payées en particules,
+ * voire fusionne tout seul.
+ *
+ * <p>Enfin, le joueur peut dépenser des atomes pour {@linkplain #synthesize() synthétiser}
+ * un élément du tableau périodique tiré au sort. Le prix double à chaque synthèse, jusqu'à
+ * atteindre {@link #MAX_ATOMS}.
+ * Chaque élément possédé améliore un aspect du jeu ({@link #elementPower(Aspect)}).
  *
  * <p>L'interface n'a besoin que de trois choses :
  * <ul>
@@ -36,6 +44,18 @@ public final class Game {
 
     /** Atomes gagnés à chaque fusion. */
     public static final BigNum ATOMS_PER_FUSION = BigNum.ONE;
+
+    /**
+     * Nombre maximal d'atomes qu'on peut posséder en même temps : le nombre d'éléments du
+     * tableau périodique. Arrivé là, il faut en dépenser pour pouvoir fusionner de nouveau.
+     */
+    public static final BigNum MAX_ATOMS = BigNum.of(118);
+
+    /**
+     * Prix de la première synthèse d'élément, en atomes. Il double à chaque synthèse
+     * (2, 4, 8, 16, 32, 64) jusqu'à être plafonné par {@link #MAX_ATOMS}.
+     */
+    public static final BigNum SYNTHESIS_BASE_COST = BigNum.of(2);
 
     /** Au-delà de ce nombre de particules par tick, on ne les compte plus une par une. */
     private static final long WHOLE_PARTICLES_MAX_EXPONENT = 15;
@@ -53,20 +73,53 @@ public final class Game {
      */
     private static final int MAX_AUTO_BUYS_PER_STEP = 100;
 
+    /**
+     * Rythme d'un automatisme « sans délai » : il agit dix fois par seconde de jeu. Sans ce
+     * rythme fixe, il agirait une fois par image, et le jeu irait plus ou moins vite selon
+     * la machine (et bien plus lentement hors-ligne qu'en direct).
+     */
+    private static final double INSTANT_AUTOMATION_STEP = 0.1;
+
     private final GameState state;
     private final Map<String, Upgrade> upgrades = new LinkedHashMap<>();
+    private final Map<String, Automation> automations = new LinkedHashMap<>();
+    private final RandomGenerator random;
 
-    /** Nouvelle partie avec le catalogue par défaut. */
+    /** Nouvelle partie avec les catalogues par défaut. */
     public Game() {
-        this(new GameState(), Upgrades.DEFAULT);
+        this(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT);
     }
 
-    /** Partie reprise depuis un état existant (sauvegarde, test…). */
+    /** Partie sans aucun automatisme au catalogue. */
     public Game(GameState state, List<Upgrade> catalog) {
+        this(state, catalog, List.of());
+    }
+
+    /** Partie reprise depuis un état existant, avec un hasard imprévisible pour la synthèse. */
+    public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog) {
+        this(state, catalog, automationCatalog, new Random());
+    }
+
+    /**
+     * Partie reprise depuis un état existant (sauvegarde, test…).
+     *
+     * @param random source de hasard de la synthèse ; les tests en passent une reproductible
+     */
+    public Game(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog,
+                RandomGenerator random) {
         this.state = state;
+        this.random = random;
         for (Upgrade upgrade : catalog) {
             if (upgrades.put(upgrade.id(), upgrade) != null) {
                 throw new IllegalArgumentException("Amélioration en double : " + upgrade.id());
+            }
+        }
+        for (Automation automation : automationCatalog) {
+            if (!automation.isFusion() && !upgrades.containsKey(automation.upgradeId())) {
+                throw new IllegalArgumentException("Automatisme sans amélioration : " + automation.upgradeId());
+            }
+            if (automations.put(automation.id(), automation) != null) {
+                throw new IllegalArgumentException("Automatisme en double : " + automation.id());
             }
         }
     }
@@ -108,11 +161,12 @@ public final class Game {
             step(dt);
             return;
         }
+        double maxStep = automation ? INSTANT_AUTOMATION_STEP : MAX_STEP;
         double remaining = dt;
         do {
-            double part = Math.min(remaining, MAX_STEP);
+            double part = Math.min(remaining, maxStep);
             step(part);
-            if (automation) runAutomation();
+            if (automation) runAutomation(part);
             remaining -= part;
         } while (remaining > 0);
     }
@@ -157,46 +211,230 @@ public final class Game {
     // L'automatisation
     // ------------------------------------------------------------------
 
-    /** Vrai une fois l'amélioration de persistance achetée : les achats automatiques deviennent réglables. */
+    /** Tous les automatismes, dans l'ordre du catalogue. */
+    public Collection<Automation> automations() {
+        return automations.values();
+    }
+
+    /** Vrai une fois l'amélioration de persistance achetée : les automatismes deviennent achetables. */
     public boolean isAutomationUnlocked() {
         return keepsUpgradesOnFusion();
     }
 
-    /** Vrai si l'achat automatique de cette amélioration est activé. */
-    public boolean isAutomated(String upgradeId) {
-        return state.isAutomated(upgrade(upgradeId).id());
+    /** Vrai si le joueur a acheté cet automatisme. */
+    public boolean ownsAutomation(String automationId) {
+        return state.ownsAutomation(automation(automationId).id());
+    }
+
+    public boolean canBuyAutomation(String automationId) {
+        Automation automation = automation(automationId);
+        return isAutomationUnlocked() && !state.ownsAutomation(automation.id())
+                && state.atoms().gte(automation.cost());
     }
 
     /**
-     * Active ou coupe l'achat automatique d'une amélioration. Seules les améliorations payées
-     * en particules peuvent être automatisées, et seulement une fois l'automatisation débloquée.
+     * Achète un automatisme avec des atomes. Il est mis en marche aussitôt.
+     *
+     * @return {@code true} si l'achat a eu lieu
+     */
+    public boolean buyAutomation(String automationId) {
+        if (!canBuyAutomation(automationId)) return false;
+        Automation automation = automation(automationId);
+        state.setAtoms(state.atoms().subtract(automation.cost()).max(BigNum.ZERO));
+        state.addAutomation(automation.id());
+        state.setAutomationEnabled(automation.id(), true);
+        return true;
+    }
+
+    /** Vrai si cet automatisme est acheté et en marche. */
+    public boolean isAutomationEnabled(String automationId) {
+        Automation automation = automation(automationId);
+        return state.ownsAutomation(automation.id()) && state.isAutomationEnabled(automation.id());
+    }
+
+    /**
+     * Met en marche ou coupe un automatisme déjà acheté.
      *
      * @return {@code true} si le réglage a été pris en compte
      */
-    public boolean setAutomated(String upgradeId, boolean automated) {
-        Upgrade upgrade = upgrade(upgradeId);
-        if (upgrade.resource() != Resource.PARTICLES || !isAutomationUnlocked()) return false;
-        state.setAutomated(upgrade.id(), automated);
+    public boolean setAutomationEnabled(String automationId, boolean enabled) {
+        Automation automation = automation(automationId);
+        if (!state.ownsAutomation(automation.id())) return false;
+        state.setAutomationEnabled(automation.id(), enabled);
         return true;
     }
 
     private boolean hasActiveAutomation() {
-        if (!isAutomationUnlocked()) return false;
-        for (Upgrade upgrade : upgrades.values()) {
-            if (state.isAutomated(upgrade.id())) return true;
+        for (Automation automation : automations.values()) {
+            if (isAutomationEnabled(automation.id())) return true;
         }
         return false;
     }
 
-    /** Achète, dans l'ordre du catalogue, tout ce que les achats automatiques activés peuvent payer. */
-    private void runAutomation() {
-        for (Upgrade upgrade : upgrades.values()) {
-            if (!state.isAutomated(upgrade.id())) continue;
-            int bought = 0;
-            while (bought < MAX_AUTO_BUYS_PER_STEP && buy(upgrade.id())) {
-                bought++;
+    /** Niveau de cadence acheté pour cet automatisme. */
+    public int automationSpeedLevel(String automationId) {
+        return state.automationSpeedLevel(automation(automationId).id());
+    }
+
+    /**
+     * Délai actuel entre deux actions de cet automatisme, en secondes, bonus des éléments
+     * compris. 0 = sans délai : il agit dès qu'il le peut.
+     */
+    public double automationInterval(String automationId) {
+        Automation automation = automation(automationId);
+        return automation.intervalAt(state.automationSpeedLevel(automation.id())) / elementPower(Aspect.AUTOMATION);
+    }
+
+    /** Vrai quand la cadence de cet automatisme ne peut plus être améliorée : il n'a plus de délai. */
+    public boolean isAutomationInstant(String automationId) {
+        Automation automation = automation(automationId);
+        return state.automationSpeedLevel(automation.id()) >= automation.instantLevel();
+    }
+
+    /** Prix du prochain niveau de cadence de cet automatisme, en atomes. */
+    public BigNum automationSpeedCost(String automationId) {
+        Automation automation = automation(automationId);
+        return automation.speedCostAt(state.automationSpeedLevel(automation.id()));
+    }
+
+    public boolean canSpeedUpAutomation(String automationId) {
+        Automation automation = automation(automationId);
+        return state.ownsAutomation(automation.id()) && !isAutomationInstant(automationId)
+                && state.atoms().gte(automationSpeedCost(automationId));
+    }
+
+    /**
+     * Achète un niveau de cadence pour un automatisme déjà possédé : son délai est divisé par
+     * deux, puis supprimé au dernier niveau.
+     *
+     * @return {@code true} si l'achat a eu lieu
+     */
+    public boolean speedUpAutomation(String automationId) {
+        if (!canSpeedUpAutomation(automationId)) return false;
+        Automation automation = automation(automationId);
+        state.setAtoms(state.atoms().subtract(automationSpeedCost(automationId)).max(BigNum.ZERO));
+        state.setAutomationSpeedLevel(automation.id(), state.automationSpeedLevel(automation.id()) + 1);
+        return true;
+    }
+
+    /**
+     * Fait agir, dans l'ordre du catalogue, les automatismes en marche dont le délai est écoulé.
+     * Un automatisme prêt qui n'a rien à faire (pas assez de particules) reste prêt : il agira
+     * dès que ce sera possible, puis son délai repartira.
+     */
+    private void runAutomation(double dt) {
+        for (Automation automation : automations.values()) {
+            if (!isAutomationEnabled(automation.id())) continue;
+            double interval = automationInterval(automation.id());
+            double waited = state.automationTimer(automation.id()) + dt;
+            if (interval <= 0) {
+                // Sans délai : dix passes par seconde. À chaque passe, un achat automatique prend
+                // tout ce qu'il peut payer ; une fusion automatique fusionne une fois.
+                if (waited >= INSTANT_AUTOMATION_STEP) {
+                    waited = Math.min(waited - INSTANT_AUTOMATION_STEP, INSTANT_AUTOMATION_STEP);
+                    int actions = 0;
+                    int limit = automation.isFusion() ? 1 : MAX_AUTO_BUYS_PER_STEP;
+                    while (actions < limit && act(automation)) {
+                        actions++;
+                    }
+                }
+                state.setAutomationTimer(automation.id(), waited);
+                continue;
+            }
+            int actions = 0;
+            while (waited >= interval && actions < MAX_AUTO_BUYS_PER_STEP) {
+                if (!act(automation)) {
+                    waited = interval;
+                    break;
+                }
+                waited -= interval;
+                actions++;
+            }
+            state.setAutomationTimer(automation.id(), waited);
+        }
+    }
+
+    /** Fait faire à l'automatisme une action ; faux s'il ne peut rien faire pour l'instant. */
+    private boolean act(Automation automation) {
+        return automation.isFusion() ? fuse() : buy(automation.upgradeId());
+    }
+
+    // ------------------------------------------------------------------
+    // Le tableau périodique
+    // ------------------------------------------------------------------
+
+    /**
+     * Prix de la prochaine synthèse, en atomes : {@link #SYNTHESIS_BASE_COST}, doublé à chaque
+     * synthèse déjà faite, sans jamais dépasser {@link #MAX_ATOMS} puisqu'on ne peut pas posséder plus.
+     */
+    public BigNum synthesisCost() {
+        return SYNTHESIS_BASE_COST.multiply(BigNum.of(2).pow(state.synthesisCount())).min(MAX_ATOMS);
+    }
+
+    /** Vrai quand le joueur a de quoi payer la prochaine synthèse. */
+    public boolean canSynthesize() {
+        return state.started() && state.atoms().gte(synthesisCost());
+    }
+
+    /**
+     * Consomme {@link #synthesisCost()} atomes pour créer un élément du tableau périodique tiré au
+     * sort : d'abord la famille, selon {@link ElementCategory#chance()}, puis un élément de
+     * cette famille. Un élément déjà possédé gagne un exemplaire, et son bonus grandit d'autant.
+     * Rien d'autre n'est perdu : améliorations et automatismes sont conservés.
+     *
+     * @return l'élément obtenu, ou {@code null} si la synthèse est impossible
+     */
+    public Element synthesize() {
+        if (!canSynthesize()) return null;
+        Element element = drawElement();
+        state.setAtoms(state.atoms().subtract(synthesisCost()).max(BigNum.ZERO));
+        state.setSynthesisCount(state.synthesisCount() + 1);
+        state.setElementCount(element.number(), state.elementCount(element.number()) + 1);
+        return element;
+    }
+
+    private Element drawElement() {
+        double roll = random.nextDouble();
+        ElementCategory chosen = ElementCategory.values()[ElementCategory.values().length - 1];
+        double cumulative = 0;
+        for (ElementCategory category : ElementCategory.values()) {
+            cumulative += category.chance();
+            if (roll < cumulative) {
+                chosen = category;
+                break;
             }
         }
+        List<Element> family = PeriodicTable.elements(chosen);
+        return family.get(random.nextInt(family.size()));
+    }
+
+    /** Nombre d'exemplaires possédés d'un élément. */
+    public int elementCount(int atomicNumber) {
+        return state.elementCount(PeriodicTable.element(atomicNumber).number());
+    }
+
+    /** Nombre d'éléments différents possédés, sur 118. */
+    public int discoveredElements() {
+        return state.elements().size();
+    }
+
+    /**
+     * Puissance qu'apportent les éléments possédés à un aspect du jeu : 1 sans élément, puis
+     * +{@link ElementCategory#bonusPerCopy()} par exemplaire des familles concernées. Les familles
+     * qui améliorent {@link Aspect#ALL} comptent pour tous les aspects.
+     *
+     * <p>Pour une production (particules, vitesse, atomes), la valeur est multipliée par cette
+     * puissance ; pour un coût ou un délai, elle est divisée par elle.
+     */
+    public double elementPower(Aspect aspect) {
+        double power = 1;
+        for (Map.Entry<Integer, Integer> owned : state.elements().entrySet()) {
+            ElementCategory category = PeriodicTable.element(owned.getKey()).category();
+            if (category.aspect() == aspect || category.aspect() == Aspect.ALL) {
+                power += category.bonusPerCopy() * owned.getValue();
+            }
+        }
+        return power;
     }
 
     // ------------------------------------------------------------------
@@ -206,7 +444,7 @@ public final class Game {
     /** Vitesse d'un générateur, en créations par seconde. */
     public BigNum speed() {
         double extra = speedExtraPerLevel();
-        BigNum speed = BASE_SPEED;
+        BigNum speed = BASE_SPEED.multiply(elementPower(Aspect.SPEED));
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.effect() instanceof Effect.MultiplySpeed multiply) {
                 speed = speed.multiply(BigNum.of(multiply.perLevel() + extra).pow(state.levelOf(upgrade.id())));
@@ -270,9 +508,12 @@ public final class Game {
         return count;
     }
 
-    /** Particules obtenues à chaque création : une de base, multipliée par tous les bonus achetés. */
+    /**
+     * Particules obtenues à chaque création : une de base, multipliée par tous les bonus achetés
+     * et par celui des éléments.
+     */
     public BigNum particlesPerCreation() {
-        BigNum result = BigNum.ONE;
+        BigNum result = BigNum.of(elementPower(Aspect.PARTICLES));
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade.id(), state.levelOf(upgrade.id())));
         }
@@ -313,15 +554,37 @@ public final class Game {
     // La fusion
     // ------------------------------------------------------------------
 
-    /** Vrai quand tous les générateurs sont débloqués : ils peuvent fusionner en un atome. */
+    /**
+     * Atomes gagnés à la prochaine fusion : {@link #ATOMS_PER_FUSION}, multiplié par le bonus des
+     * éléments. Le résultat peut être fractionnaire : les fractions s'accumulent d'une fusion à l'autre.
+     */
+    public BigNum atomsPerFusion() {
+        return ATOMS_PER_FUSION.multiply(elementPower(Aspect.ATOMS));
+    }
+
+    /**
+     * Vrai quand tous les générateurs sont débloqués et qu'il reste de la place pour un atome :
+     * ils peuvent fusionner.
+     */
     public boolean canFuse() {
+        return hasAllGenerators() && !isAtomCapReached();
+    }
+
+    /** Vrai quand tous les générateurs sont débloqués, que la fusion soit possible ou non. */
+    public boolean hasAllGenerators() {
         return state.started() && generatorCount() >= maxGeneratorCount();
+    }
+
+    /** Vrai quand le joueur possède déjà {@link #MAX_ATOMS} atomes : aucune fusion tant qu'il n'en dépense pas. */
+    public boolean isAtomCapReached() {
+        return state.atoms().gte(MAX_ATOMS);
     }
 
     /**
      * Fusionne tous les générateurs en un atome.
      *
-     * <p>Le joueur gagne {@link #ATOMS_PER_FUSION} et repart du début : un seul générateur,
+     * <p>Impossible tant qu'il manque des générateurs, ou si le joueur possède déjà
+     * {@link #MAX_ATOMS} atomes. Sinon il gagne {@link #atomsPerFusion()} et repart du début : un seul générateur,
      * plus aucune particule, plus aucune amélioration payée en particules, sauf s'il possède
      * une amélioration {@link Effect.KeepUpgradesOnFusion}. Les améliorations payées en atomes
      * sont toujours conservées.
@@ -330,8 +593,9 @@ public final class Game {
      */
     public boolean fuse() {
         if (!canFuse()) return false;
-        state.setAtoms(state.atoms().add(ATOMS_PER_FUSION));
-        state.setTotalAtoms(state.totalAtoms().add(ATOMS_PER_FUSION));
+        BigNum gained = atomsPerFusion();
+        state.setAtoms(state.atoms().add(gained).min(MAX_ATOMS));
+        state.setTotalAtoms(state.totalAtoms().add(gained));
         state.setParticles(BigNum.ZERO);
         state.clearFormations();
         state.setTimeSinceFusion(0);
@@ -375,11 +639,14 @@ public final class Game {
     public BigNum costOf(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
         BigNum cost = upgrade.costAt(state.levelOf(upgrade.id()));
+        double factor = 1;
         if (upgrade.effect() instanceof Effect.AddGenerator) {
-            double factor = generatorCostFactor();
-            if (factor != 1) {
-                cost = Upgrade.roundUp(cost.multiply(factor)).max(BigNum.ONE);
-            }
+            factor = generatorCostFactor() / elementPower(Aspect.GENERATOR_COST);
+        } else if (upgrade.effect() instanceof Effect.MultiplySpeed) {
+            factor = 1 / elementPower(Aspect.SPEED_COST);
+        }
+        if (factor != 1) {
+            cost = Upgrade.roundUp(cost.multiply(factor)).max(BigNum.ONE);
         }
         return cost;
     }
@@ -418,6 +685,12 @@ public final class Game {
 
     public GameState state() {
         return state;
+    }
+
+    private Automation automation(String automationId) {
+        Automation automation = automations.get(automationId);
+        if (automation == null) throw new IllegalArgumentException("Automatisme inconnu : " + automationId);
+        return automation;
     }
 
     private Upgrade upgrade(String upgradeId) {

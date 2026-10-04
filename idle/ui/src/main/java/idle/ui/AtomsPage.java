@@ -29,7 +29,8 @@ import javafx.util.Duration;
  *   <li>« Atome » : le grand atome animé, qui porte une orbe par atome disponible.
  *       Dépenser un atome lui retire donc une orbe ;</li>
  *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, sous forme de
- *       cartes rangées en colonnes selon la largeur de la fenêtre.</li>
+ *       cartes rangées en colonnes selon la largeur de la fenêtre ;</li>
+ *   <li>« Tableau périodique » : la synthèse d'éléments et leurs bonus ({@link PeriodicTablePage}).</li>
  * </ul>
  */
 final class AtomsPage extends VBox {
@@ -46,7 +47,9 @@ final class AtomsPage extends VBox {
 
     private final Button atomTab = new Button("Atome");
     private final Button upgradesTab = new Button("Améliorations");
-    private boolean upgradesSelected = false;
+    private final Button tableTab = new Button("Tableau périodique");
+    /** Sous-page affichée : 0 = atome, 1 = améliorations, 2 = tableau périodique. */
+    private int selected = 0;
 
     // Sous-page « Atome »
     private final AtomModelView atomView = new AtomModelView(240);
@@ -59,9 +62,15 @@ final class AtomsPage extends VBox {
     private final FlowPane upgradeCards = new FlowPane(12, 12);
     private final ScrollPane upgradesPane = new ScrollPane(upgradeCards);
 
+    // Sous-page « Tableau périodique »
+    private final PeriodicTablePage tablePage;
+    private final ScrollPane tablePane;
+
     AtomsPage(Game game) {
         super(10);
         this.game = game;
+        this.tablePage = new PeriodicTablePage(game);
+        this.tablePane = new ScrollPane(tablePage);
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 24, 24));
 
@@ -70,9 +79,10 @@ final class AtomsPage extends VBox {
         orbsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
         hintLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
-        atomTab.setOnAction(event -> select(false));
-        upgradesTab.setOnAction(event -> select(true));
-        HBox subTabs = new HBox(atomTab, upgradesTab);
+        atomTab.setOnAction(event -> select(0));
+        upgradesTab.setOnAction(event -> select(1));
+        tableTab.setOnAction(event -> select(2));
+        HBox subTabs = new HBox(atomTab, upgradesTab, tableTab);
         subTabs.setAlignment(Pos.CENTER);
 
         atomPane.setAlignment(Pos.TOP_CENTER);
@@ -83,6 +93,9 @@ final class AtomsPage extends VBox {
         upgradesPane.setFitToWidth(true);
         upgradesPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         upgradesPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        tablePane.setFitToWidth(true);
+        tablePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        tablePane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
         // Une carte par amélioration payée en atomes : en ajouter une dans core suffit à la faire apparaître.
         for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
@@ -100,24 +113,26 @@ final class AtomsPage extends VBox {
             upgradeCards.getChildren().add(button);
         }
 
-        // Les deux sous-pages sont empilées au même endroit ; une seule est visible à la fois.
-        StackPane pages = new StackPane(atomPane, upgradesPane);
+        // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
+        StackPane pages = new StackPane(atomPane, upgradesPane, tablePane);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
         getChildren().add(balanceLabel);
         getChildren().add(bonusLabel);
         getChildren().add(subTabs);
         getChildren().add(pages);
-        select(false);
+        select(0);
     }
 
-    /** Affiche la sous-page « Améliorations » ({@code true}) ou « Atome » ({@code false}). */
-    private void select(boolean upgrades) {
-        upgradesSelected = upgrades;
-        atomPane.setVisible(!upgrades);
-        upgradesPane.setVisible(upgrades);
-        atomTab.setStyle(subTabStyle(!upgrades));
-        upgradesTab.setStyle(subTabStyle(upgrades));
+    /** Affiche une sous-page : 0 = atome, 1 = améliorations, 2 = tableau périodique. */
+    private void select(int index) {
+        selected = index;
+        atomPane.setVisible(index == 0);
+        upgradesPane.setVisible(index == 1);
+        tablePane.setVisible(index == 2);
+        atomTab.setStyle(subTabStyle(index == 0));
+        upgradesTab.setStyle(subTabStyle(index == 1));
+        tableTab.setStyle(subTabStyle(index == 2));
     }
 
     private static String subTabStyle(boolean selected) {
@@ -128,7 +143,7 @@ final class AtomsPage extends VBox {
 
     /** Fait avancer l'animation de l'atome, quand il est visible. */
     void frame(double dt) {
-        if (!upgradesSelected) atomView.frame(dt);
+        if (selected == 0) atomView.frame(dt);
     }
 
     /** Recopie l'état du jeu dans les textes et les boutons. */
@@ -138,7 +153,8 @@ final class AtomsPage extends VBox {
         balanceLabel.setText(Format.count(atoms)
                 + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
         bonusLabel.setText("Chaque création donne " + Format.multiplier(game.particlesPerCreation())
-                .substring(1) + " particules");
+                .substring(1) + " particules   |   chaque fusion donne "
+                + Format.multiplier(game.atomsPerFusion()).substring(1) + " atome");
 
         // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
         // un atome dépensé quitte le visuel.
@@ -147,8 +163,10 @@ final class AtomsPage extends VBox {
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
-        hintLabel.setText("Fusionnez les " + game.maxGeneratorCount()
-                + " générateurs pour créer un atome de plus.");
+        tablePage.refresh();
+        hintLabel.setText(game.isAtomCapReached()
+                ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
+                : "Fusionnez les " + game.maxGeneratorCount() + " générateurs pour créer un atome de plus.");
 
         upgradeButtons.forEach((upgrade, button) -> {
             button.setText(describe(upgrade));

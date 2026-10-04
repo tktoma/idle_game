@@ -18,7 +18,7 @@ final class AtomModelView extends Canvas {
     /** Nombre d'orbes que peut porter chaque couche, de la plus proche du noyau à la plus lointaine. */
     private static final int[] SHELL_CAPACITIES = {2, 8, 18, 32, 32, 18, 8};
 
-    /** Nombre maximal d'orbes : le nombre d'éléments du tableau périodique. */
+    /** Nombre maximal d'orbes : le nombre d'éléments du tableau périodique, comme {@code Game.MAX_ATOMS}. */
     static final int MAX_ORBS = 118;
 
     /** Durée de l'apparition d'une nouvelle orbe, en secondes. */
