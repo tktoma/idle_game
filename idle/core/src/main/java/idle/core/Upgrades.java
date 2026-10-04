@@ -15,6 +15,13 @@ import java.util.List;
  * </ul>
  * Pour allonger ou raccourcir la phase, voir les deux lignes commentées « durée ».
  * Le test {@code GameTest.Simulation} vérifie que la durée reste dans la fourchette voulue.
+ *
+ * <p>La suite (atomes, automatismes, tableau périodique) a été réglée de la même façon, en
+ * simulant deux profils de joueur sur toute la progression. Repères : Persistance vers 2 h 30 à
+ * 3 h 30, tableau périodique ouvert vers 4 h 15 à 4 h 30, premier élément unique (et synthèse
+ * automatique) dans l'heure qui suit, moitié du tableau entre 6 h et 7 h 30, les 118 éléments
+ * découverts une dizaine de minutes plus tard, puis tous portés à leur maximum d'exemplaires
+ * (811 en tout) en une à deux minutes : la fin s'emballe, c'est voulu.
  */
 public final class Upgrades {
 
@@ -43,7 +50,7 @@ public final class Upgrades {
             new Upgrade("atom_double", "Dédoublement", Resource.ATOMS,
                     BigNum.of(1), 4, Upgrade.NO_LIMIT,
                     new Effect.MultiplyParticles(2)),
-            // ×(1 + 5 % par atome créé depuis le début) : ×1,2 à 4 atomes, ×2 à 20, ×6,9 à 118.
+            // ×(1 + 5 % par atome créé depuis le début, jusqu'à 118) : ×1,2 à 4 atomes, ×2 à 20, ×6,9 au maximum.
             new Upgrade("atom_mass", "Masse atomique", Resource.ATOMS,
                     BigNum.of(2), 1, 1,
                     new Effect.MultiplyByAtoms(0.05)),
@@ -64,11 +71,22 @@ public final class Upgrades {
             new Upgrade("atom_discount", "Compression", Resource.ATOMS,
                     BigNum.of(3), 2, 5,
                     new Effect.DiscountGenerators(0.8)),
-            // La fusion ne remet plus « Vitesse de création » à zéro. Très puissant : une partie
-            // ne demande plus que de racheter les générateurs, d'où le coût élevé.
+            // La fusion ne remet plus « Vitesse de création » à zéro, et les automatismes se débloquent.
+            // À 8 atomes, elle arrive entre 2 h 30 et 3 h 50 de jeu selon le joueur : au moment où
+            // les parties passent sous les 5 minutes et où tout racheter à la main devient répétitif.
             new Upgrade("atom_keep", "Persistance", Resource.ATOMS,
-                    BigNum.of(25), 1, 1,
-                    new Effect.KeepUpgradesOnFusion()));
+                    BigNum.of(8), 1, 1,
+                    new Effect.KeepUpgradesOnFusion()),
+
+            // ----- Le lien entre les particules et les atomes. -----
+
+            // +50 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
+            // de 1 000 particules par seconde. Sans lui, les particules ne serviraient plus à rien
+            // une fois les parties automatisées ; avec lui, tout ce qui augmente la production
+            // (vitesse, générateurs, éléments) finit par rapporter des atomes.
+            new Upgrade("atom_yield", "Rendement", Resource.ATOMS,
+                    BigNum.of(40), 1, 1,
+                    new Effect.MultiplyAtomsByProduction(1_000, 0.3)));
 
     private Upgrades() {}
 }

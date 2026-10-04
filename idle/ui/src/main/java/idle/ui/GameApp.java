@@ -280,9 +280,10 @@ public final class GameApp extends Application {
             return;
         }
         generators.animateBackground(dt);
-        double speed = Math.min(game.speed().toDouble() * timeFactor(), 1e9);
+        // Chaque générateur a sa propre vitesse : les éléments du tableau périodique en accélèrent certains.
         List<ParticleView> views = generators.views();
         for (int i = 0; i < views.size(); i++) {
+            double speed = Math.min(game.speed(i).toDouble() * timeFactor(), 1e9);
             views.get(i).frame(dt, game.state().formation(i), speed);
         }
     }
@@ -312,8 +313,11 @@ public final class GameApp extends Application {
         // Au plafond d'atomes, le bouton reste affiché mais grisé, pour expliquer pourquoi rien ne se passe.
         boolean capped = game.isAtomCapReached();
         fuseButton.setText(capped
-                ? "Maximum de " + Format.count(Game.MAX_ATOMS) + " atomes atteint : dépensez-en ou synthétisez un élément"
-                : "Fusionner les " + game.maxGeneratorCount() + " générateurs en 1 atome");
+                ? "Maximum de " + Format.count(Game.MAX_ATOMS) + " atomes atteint : dépensez-en"
+                        + (game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete()
+                                ? " ou synthétisez un élément" : " pour fusionner")
+                : "Fusionner les " + game.maxGeneratorCount() + " générateurs : +"
+                        + Format.amount(game.atomsPerFusion()) + (game.atomsPerFusion().gt(BigNum.ONE) ? " atomes" : " atome"));
         fuseButton.setDisable(capped);
         fuseButton.setVisible(game.hasAllGenerators() && !generators.isFusing());
 

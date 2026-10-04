@@ -25,6 +25,11 @@ final class Format {
         return "×" + text.replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
+    /** Quantité qui peut être fractionnaire : « 1 », « 2.35 », puis en notation scientifique. */
+    static String amount(BigNum value) {
+        return multiplier(value).substring(1);
+    }
+
     /** Production par minute : une décimale tant que le nombre est petit, puis comme les autres nombres. */
     static String perMinute(BigNum perSecond) {
         BigNum value = perSecond.multiply(60);

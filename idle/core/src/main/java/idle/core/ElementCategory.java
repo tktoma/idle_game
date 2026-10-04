@@ -1,34 +1,53 @@
 package idle.core;
 
 /**
- * Les familles du tableau périodique. Chacune a sa probabilité d'être tirée à la synthèse,
- * et son bonus : plus la famille est rare, plus chaque exemplaire rapporte.
+ * Les familles du tableau périodique. Chacune a sa probabilité d'être tirée à la synthèse et
+ * son type d'effet ; au sein d'une famille, tous les éléments ont la même chance, mais chacun
+ * a un effet qui lui est propre ({@link Element#effect()}).
  *
- * <p>Les probabilités totalisent 100 %. Au sein d'une famille, tous les éléments ont la même chance.
+ * <p>Les probabilités totalisent 100 %. Chaque famille limite le nombre d'exemplaires qu'on peut
+ * posséder d'un même élément ({@link #maxCopies()}) : un élément au maximum ne sort plus, et sa
+ * chance profite aux autres. Les deux familles les plus rares sont uniques : chacun de leurs
+ * éléments ne s'obtient qu'une fois, et le premier obtenu débloque la synthèse automatique.
+ *
+ * <p>Les maximums sont des carrés, parce que la force d'un élément est la racine carrée de son
+ * nombre d'exemplaires : 9 exemplaires comptent pour 3, 4 pour 2.
  */
 public enum ElementCategory {
 
-    TRANSITION_METAL("Métaux de transition", 0.30, Aspect.PARTICLES, 0.02),
-    POST_TRANSITION_METAL("Métaux pauvres", 0.15, Aspect.GENERATOR_COST, 0.03),
-    NONMETAL("Non-métaux", 0.12, Aspect.SPEED, 0.02),
-    ALKALI_METAL("Métaux alcalins", 0.09, Aspect.SPEED_COST, 0.04),
-    ALKALINE_EARTH_METAL("Métaux alcalino-terreux", 0.09, Aspect.AUTOMATION, 0.05),
-    METALLOID("Métalloïdes", 0.08, Aspect.PARTICLES, 0.08),
-    HALOGEN("Halogènes", 0.06, Aspect.ATOMS, 0.05),
-    LANTHANIDE("Lanthanides", 0.06, Aspect.SPEED, 0.06),
-    NOBLE_GAS("Gaz nobles", 0.03, Aspect.ATOMS, 0.15),
-    ACTINIDE("Actinides", 0.02, Aspect.ALL, 0.10);
+    TRANSITION_METAL("Métaux de transition", 0.30, 9, false,
+            "Chacun multiplie les particules ou la vitesse d'un seul générateur, celui de sa colonne"),
+    POST_TRANSITION_METAL("Métaux pauvres", 0.15, 9, false,
+            "Réduisent les prix : vitesse de création, améliorations en atomes, synthèse"),
+    NONMETAL("Non-métaux", 0.12, 9, false,
+            "Chacun renforce une amélioration existante"),
+    ALKALI_METAL("Métaux alcalins", 0.09, 9, false,
+            "Chacun accélère un automatisme"),
+    ALKALINE_EARTH_METAL("Métaux alcalino-terreux", 0.09, 9, false,
+            "Plus d'atomes à chaque fusion"),
+    METALLOID("Métalloïdes", 0.08, 9, false,
+            "Synergies : des bonus qui grandissent avec le reste du jeu"),
+    HALOGEN("Halogènes", 0.06, 9, false,
+            "Améliorent la synthèse : tirages doubles et familles rares plus fréquentes"),
+    LANTHANIDE("Lanthanides", 0.06, 4, true,
+            "Multiplicateurs : ils se multiplient entre eux au lieu de s'additionner"),
+    NOBLE_GAS("Gaz nobles", 0.03, 1, true,
+            "Uniques. Chacun apporte un bonus majeur"),
+    ACTINIDE("Actinides", 0.02, 1, true,
+            "Uniques. Chacun double à la fois les particules et la vitesse");
 
     private final String label;
     private final double chance;
-    private final Aspect aspect;
-    private final double bonusPerCopy;
+    private final int maxCopies;
+    private final boolean rare;
+    private final String description;
 
-    ElementCategory(String label, double chance, Aspect aspect, double bonusPerCopy) {
+    ElementCategory(String label, double chance, int maxCopies, boolean rare, String description) {
         this.label = label;
         this.chance = chance;
-        this.aspect = aspect;
-        this.bonusPerCopy = bonusPerCopy;
+        this.maxCopies = maxCopies;
+        this.rare = rare;
+        this.description = description;
     }
 
     /** Nom affiché au joueur. */
@@ -36,18 +55,28 @@ public enum ElementCategory {
         return label;
     }
 
-    /** Probabilité qu'une synthèse tombe dans cette famille (0.30 = 30 %). */
+    /** Probabilité de base qu'une synthèse tombe dans cette famille (0.30 = 30 %). */
     public double chance() {
         return chance;
     }
 
-    /** L'aspect du jeu que cette famille améliore. */
-    public Aspect aspect() {
-        return aspect;
+    /** Nombre maximal d'exemplaires d'un même élément de la famille. */
+    public int maxCopies() {
+        return maxCopies;
     }
 
-    /** Ce que chaque exemplaire possédé ajoute à la puissance de l'aspect (0.02 = +2 %). */
-    public double bonusPerCopy() {
-        return bonusPerCopy;
+    /** Vrai si chaque élément de la famille ne s'obtient qu'une fois. */
+    public boolean unique() {
+        return maxCopies == 1;
+    }
+
+    /** Vrai pour les familles dont la chance est augmentée par les effets {@link ElementEffect.Luck}. */
+    public boolean rare() {
+        return rare;
+    }
+
+    /** Ce que fait la famille, en une phrase, pour la légende. */
+    public String description() {
+        return description;
     }
 }

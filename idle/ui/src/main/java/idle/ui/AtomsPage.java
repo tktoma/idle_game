@@ -30,7 +30,8 @@ import javafx.util.Duration;
  *       Dépenser un atome lui retire donc une orbe ;</li>
  *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, sous forme de
  *       cartes rangées en colonnes selon la largeur de la fenêtre ;</li>
- *   <li>« Tableau périodique » : la synthèse d'éléments et leurs bonus ({@link PeriodicTablePage}).</li>
+ *   <li>« Tableau périodique » : la synthèse d'éléments et leurs effets ({@link PeriodicTablePage}).
+ *       Cette sous-page n'apparaît qu'une fois les automatismes à leur cadence maximale.</li>
  * </ul>
  */
 final class AtomsPage extends VBox {
@@ -152,9 +153,10 @@ final class AtomsPage extends VBox {
         BigNum created = game.state().totalAtoms();
         balanceLabel.setText(Format.count(atoms)
                 + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
-        bonusLabel.setText("Chaque création donne " + Format.multiplier(game.particlesPerCreation())
-                .substring(1) + " particules   |   chaque fusion donne "
-                + Format.multiplier(game.atomsPerFusion()).substring(1) + " atome");
+        BigNum perFusion = game.atomsPerFusion();
+        bonusLabel.setText("Chaque création donne " + Format.amount(game.particlesPerCreation())
+                + " particules   |   chaque fusion donne " + Format.amount(perFusion)
+                + (perFusion.gt(BigNum.ONE) ? " atomes" : " atome"));
 
         // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
         // un atome dépensé quitte le visuel.
@@ -163,9 +165,16 @@ final class AtomsPage extends VBox {
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
+        // Le tableau périodique n'apparaît qu'une fois tous les automatismes à leur cadence maximale.
+        boolean tableUnlocked = game.isPeriodicTableUnlocked();
+        tableTab.setVisible(tableUnlocked);
+        tableTab.setManaged(tableUnlocked);
+        if (!tableUnlocked && selected == 2) select(0);
         tablePage.refresh();
         hintLabel.setText(game.isAtomCapReached()
-                ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
+                ? (tableUnlocked && !game.isPeriodicTableComplete()
+                        ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
+                        : "Maximum atteint : dépensez des atomes pour pouvoir fusionner de nouveau.")
                 : "Fusionnez les " + game.maxGeneratorCount() + " générateurs pour créer un atome de plus.");
 
         upgradeButtons.forEach((upgrade, button) -> {
@@ -197,7 +206,8 @@ final class AtomsPage extends VBox {
                     "Multiplie par " + trim(multiply.perLevel()) + " les particules créées, à chaque niveau. "
                             + (level > 0 ? now : "");
             case Effect.MultiplyByAtoms byAtoms ->
-                    "+" + trim(byAtoms.perAtom() * 100) + " % de particules par atome créé depuis le début. " + now;
+                    "+" + trim(byAtoms.perAtom() * 100) + " % de particules par atome créé depuis le début, jusqu'à "
+                            + Format.count(Game.MAX_ATOMS) + ". " + now;
             case Effect.MultiplyByRunTime byTime ->
                     "Plus de particules à mesure que le temps passe depuis la dernière fusion. " + now;
             case Effect.StrengthenSpeed strengthen ->
@@ -210,6 +220,16 @@ final class AtomsPage extends VBox {
             case Effect.KeepUpgradesOnFusion keep ->
                     "La fusion ne remet plus à zéro « Vitesse de création ». "
                             + "Les générateurs, eux, fusionnent toujours.";
+            case Effect.MultiplyAtomsByProduction byProduction -> {
+                // Pas encore acheté : ce qu'il donnerait avec la production actuelle.
+                double perDecade = game.fusionYieldPerDecade(byProduction);
+                double decades = Math.max(0, game.productionAtFusion().divide(byProduction.threshold()).log10());
+                double multiplier = level > 0 ? game.fusionYield() : 1 + perDecade * decades;
+                yield "+" + trim(perDecade * 100) + " % d'atomes par fusion chaque fois que la production est "
+                        + "multipliée par 10, à partir de " + Format.count(BigNum.of(byProduction.threshold()))
+                        + " particules par seconde. " + (level > 0 ? "Actuellement " : "Donnerait ")
+                        + Format.multiplier(BigNum.of(multiplier));
+            }
             case Effect.MultiplySpeed speed -> "Accélère la création.";
             case Effect.AddGenerator generator -> "Ajoute un générateur.";
         };

@@ -44,4 +44,17 @@ public sealed interface Effect {
      * Les générateurs, eux, sont toujours consommés : ce sont eux qui fusionnent.
      */
     record KeepUpgradesOnFusion() implements Effect {}
+
+    /**
+     * Augmente les atomes gagnés à la fusion selon la production de particules : {@code +perDecade}
+     * chaque fois que la production par seconde est multipliée par dix au-delà de {@code threshold}
+     * (0.5 = +50 %). Sans effet sous le seuil.
+     * C'est ce qui donne un intérêt aux particules une fois les parties automatisées.
+     */
+    record MultiplyAtomsByProduction(double threshold, double perDecade) implements Effect {
+        public MultiplyAtomsByProduction {
+            if (!(threshold > 0)) throw new IllegalArgumentException("Le seuil doit être positif");
+            if (perDecade < 0) throw new IllegalArgumentException("Bonus négatif");
+        }
+    }
 }

@@ -19,9 +19,12 @@ import javafx.scene.text.TextAlignment;
  * À gauche, sa carte : tant qu'il n'est pas acheté, elle affiche son prix en atomes et sert
  * à l'acheter ; ensuite elle devient un interrupteur pour le mettre en marche ou le couper.
  * À droite, sa cadence : le délai entre deux actions, et le bouton pour le réduire en
- * payant des atomes, jusqu'à ce qu'il n'y ait plus de délai du tout.
+ * payant des atomes. La cadence achetée en atomes a un maximum ; au-delà, seuls les éléments
+ * du tableau périodique réduisent encore le délai.
  *
- * <p>L'onglet n'apparaît qu'une fois l'amélioration « Persistance » achetée.
+ * <p>L'onglet n'apparaît qu'une fois l'amélioration « Persistance » achetée. La synthèse
+ * automatique y figure dès le début, mais verrouillée : elle se débloque avec le premier
+ * élément unique du tableau périodique.
  */
 final class AutomationPage extends VBox {
 
@@ -37,6 +40,7 @@ final class AutomationPage extends VBox {
 
     private final Game game;
     private final Label balanceLabel = new Label();
+    private final Label goalLabel = new Label();
     private final Map<Automation, Button> cards = new LinkedHashMap<>();
     private final Map<Automation, Button> cadences = new LinkedHashMap<>();
 
@@ -49,7 +53,8 @@ final class AutomationPage extends VBox {
         Label title = new Label("Automatismes");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
         Label hint = new Label("Chaque automatisme s'achète une fois, en atomes, puis s'active ou se coupe librement. "
-                + "Il agit à intervalles réguliers : accélérez sa cadence pour réduire ce délai, jusqu'à le supprimer.");
+                + "Il agit à intervalles réguliers : accélérez sa cadence en atomes jusqu'à son maximum ; "
+                + "au-delà, seuls les éléments du tableau périodique réduisent encore le délai.");
         hint.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
         hint.setWrapText(true);
         hint.setTextAlignment(TextAlignment.CENTER);
@@ -57,12 +62,14 @@ final class AutomationPage extends VBox {
         getChildren().add(title);
         getChildren().add(hint);
         getChildren().add(balanceLabel);
+        goalLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
 
         // Une carte par automatisme du catalogue : en ajouter un dans core suffit à le faire apparaître.
         for (Automation automation : game.automations()) {
             Button card = new Button();
-            card.setPrefWidth(340);
+            card.setPrefWidth(400);
             card.setPrefHeight(84);
+            card.setWrapText(true);
             card.setTextAlignment(TextAlignment.CENTER);
             card.setOnAction(event -> {
                 if (game.ownsAutomation(automation.id())) {
@@ -75,8 +82,9 @@ final class AutomationPage extends VBox {
             cards.put(automation, card);
 
             Button cadence = new Button();
-            cadence.setPrefWidth(200);
+            cadence.setPrefWidth(250);
             cadence.setPrefHeight(84);
+            cadence.setWrapText(true);
             cadence.setTextAlignment(TextAlignment.CENTER);
             cadence.setOnAction(event -> {
                 game.speedUpAutomation(automation.id());
@@ -88,6 +96,7 @@ final class AutomationPage extends VBox {
             row.setAlignment(Pos.CENTER);
             getChildren().add(row);
         }
+        getChildren().add(goalLabel);
     }
 
     /** Recopie l'état des automatismes dans les cartes. */
@@ -95,11 +104,22 @@ final class AutomationPage extends VBox {
         BigNum atoms = game.state().atoms();
         balanceLabel.setText(Format.count(atoms) + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
 
+        goalLabel.setText(game.isPeriodicTableUnlocked()
+                ? "Le tableau périodique est ouvert dans l'onglet Atomes : ses éléments accélèrent encore les automatismes."
+                : "Portez les automatismes disponibles à leur cadence maximale pour débloquer le tableau périodique.");
+
         cards.forEach((automation, card) -> {
-            String what = automation.isFusion()
-                    ? "Fusionne dès que tous les générateurs sont débloqués"
-                    : "Achète « " + automation.name() + " » dès que possible";
-            if (!game.ownsAutomation(automation.id())) {
+            String what = switch (automation.kind()) {
+                case UPGRADE -> "Achète « " + automation.name() + " » dès que possible";
+                case FUSION -> "Fusionne dès que tous les générateurs sont débloqués";
+                case SYNTHESIS -> "Synthétise un élément dès qu'il y a assez d'atomes";
+            };
+            if (!game.isAutomationAvailable(automation.id())) {
+                card.setText(automation.name() + "\n" + what
+                        + "\nSe débloque avec un élément unique ★");
+                card.setStyle(OFF_STYLE);
+                card.setDisable(true);
+            } else if (!game.ownsAutomation(automation.id())) {
                 card.setText(automation.name() + "\n" + what + "\nAcheter : " + Format.count(automation.cost())
                         + (automation.cost().gt(BigNum.ONE) ? " atomes" : " atome"));
                 card.setStyle(TO_BUY_STYLE);
@@ -113,10 +133,15 @@ final class AutomationPage extends VBox {
         });
 
         cadences.forEach((automation, cadence) -> {
-            double interval = game.automationInterval(automation.id());
-            String delay = interval <= 0 ? "Sans délai" : "Une action toutes les " + seconds(interval);
-            if (game.isAutomationInstant(automation.id())) {
-                cadence.setText("Cadence maximale\n" + delay);
+            String delay = "Une action toutes les " + seconds(game.automationInterval(automation.id()));
+            if (!game.isAutomationAvailable(automation.id())) {
+                cadence.setText("Verrouillé");
+                cadence.setStyle(OFF_STYLE);
+                cadence.setDisable(true);
+            } else if (game.isAutomationMaxed(automation.id())) {
+                boolean floor = game.automationInterval(automation.id()) <= Game.MIN_AUTOMATION_INTERVAL;
+                cadence.setText("Cadence maximale\n" + delay
+                        + (floor ? "\n(le plus court possible)" : "\nLes éléments l'accélèrent"));
                 cadence.setStyle(ON_STYLE);
                 cadence.setDisable(true);
             } else {

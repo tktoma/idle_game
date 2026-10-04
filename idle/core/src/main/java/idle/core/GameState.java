@@ -30,6 +30,7 @@ public final class GameState {
     private final Map<String, Integer> automationSpeedLevels = new HashMap<>();
     private final Map<String, Double> automationTimers = new HashMap<>();
     private final Map<Integer, Integer> elements = new TreeMap<>();
+    private int elementsVersion = 0;
     private int synthesisCount = 0;
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
@@ -189,6 +190,12 @@ public final class GameState {
         } else {
             elements.put(atomicNumber, count);
         }
+        elementsVersion++;
+    }
+
+    /** Compteur qui change à chaque modification des éléments possédés ; sert à savoir quand recalculer leurs bonus. */
+    public int elementsVersion() {
+        return elementsVersion;
     }
 
     /** Nombre de synthèses déjà faites : c'est lui qui fixe le prix de la suivante. */
