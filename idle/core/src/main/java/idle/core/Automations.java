@@ -5,11 +5,12 @@ import java.util.List;
 /**
  * Catalogue des automatismes du jeu. Ils s'achètent chacun une fois, en atomes.
  *
- * <p>Les trois premiers se débloquent avec l'amélioration « Persistance ». Tous partent d'une
- * action toutes les 16 secondes ; chaque niveau de cadence (5, 20 puis 80 atomes) divise ce délai
- * par deux, jusqu'à 2 secondes. Au-delà, seuls les éléments du tableau périodique les accélèrent
- * encore. C'est cette phase, de Persistance à l'ouverture du tableau périodique, qui occupe le
- * joueur de la 3ᵉ à la 7ᵉ heure environ.
+ * <p>Les trois premiers se débloquent à 30 atomes créés ({@link Game#UNLOCK_TOTAL_ATOMS}), en
+ * même temps que le tableau périodique. Tous partent d'une action toutes les 16 secondes ;
+ * chaque niveau de cadence (5, 20 puis 80 atomes) divise ce délai par deux, jusqu'à 2 secondes.
+ * Au-delà, seuls les éléments du tableau périodique et les améliorations payées en matière noire
+ * les accélèrent encore. Les acheter et les porter à leur cadence maximale occupe le joueur de
+ * la 3ᵉ à la 8ᵉ heure environ.
  *
  * <p>Le quatrième, la synthèse automatique, se débloque en obtenant un élément unique
  * (gaz noble ou actinide).

@@ -46,7 +46,7 @@ final class DarkText {
                     "+" + start.perLevel() + " niveaux de vitesse offerts, à chaque niveau. Ils ne coûtent rien et ne se "
                             + "perdent jamais. Actuellement +" + game.startingSpeedLevels();
             case DarkEffect.ParticlesByDarkMatter byDarkMatter ->
-                    "Particules ×" + ElementText.number(byDarkMatter.perUnit()) + " pour chaque matière noire possédée";
+                    "Particules ×" + ElementText.number(byDarkMatter.perUnit()) + " pour chaque matière noire gagnée";
             case DarkEffect.FasterAutomations faster ->
                     "Délai minimal des automatismes : " + ElementText.number(faster.minInterval()) + " s au lieu de "
                             + ElementText.number(Game.MIN_AUTOMATION_INTERVAL) + " s";
@@ -76,6 +76,21 @@ final class DarkText {
                             + Format.count(game.darkMatterPerExplosion()) + " par explosion";
             case DarkEffect.UncapAtoms uncap ->
                     "Plus de plafond d'atomes : on peut en posséder plus de " + Format.count(Game.MAX_ATOMS);
+            case DarkEffect.AtomsByDarkMatter by ->
+                    "Atomes par fusion +" + ElementText.percent(by.perUnit()) + " par matière noire gagnée, à chaque "
+                            + "niveau. Actuellement " + Format.multiplier(BigNum.of(game.darkAtomsMultiplier()));
+            case DarkEffect.AutomationsByDarkMatter by ->
+                    "Automatismes ordinaires : +" + ElementText.percent(by.perUnit()) + " de cadence par matière noire "
+                            + "gagnée, à chaque niveau. Actuellement délais ÷"
+                            + ElementText.number(game.darkAutomationDivisor());
+            case DarkEffect.SynthesisByDarkMatter by ->
+                    "Prix de la synthèse : diviseur +" + ElementText.number(by.perUnit()) + " par matière noire gagnée, "
+                            + "à chaque niveau. Actuellement ÷" + ElementText.number(game.darkSynthesisDivisor());
+            case DarkEffect.HeadStartByDarkMatter by ->
+                    "Chaque partie démarre avec " + ElementText.number(by.perUnit()) + " atomes déjà comptés comme créés par "
+                            + "matière noire gagnée (" + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " au plus). Actuellement "
+                            + Format.count(BigNum.of(by.perUnit()).multiply(game.darkMatterEarned())
+                                    .min(Game.UNLOCK_TOTAL_ATOMS));
         };
     }
 

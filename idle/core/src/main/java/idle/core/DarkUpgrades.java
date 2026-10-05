@@ -3,8 +3,9 @@ package idle.core;
 import java.util.List;
 
 /**
- * L'arbre d'améliorations de la matière noire : trois branches, dont chaque case est débloquée
- * par la case du dessus.
+ * Les améliorations de matière noire : l'arbre, puis celles qui se paient en matière noire.
+ *
+ * <p>L'arbre a trois branches, dont chaque case est débloquée par la case du dessus.
  *
  * <ul>
  *   <li><b>particules</b> : se paie avec les particules de la partie en cours ;</li>
@@ -13,16 +14,21 @@ import java.util.List;
  *   <li><b>taille</b> : se débloque en faisant grossir la matière noire, sans rien dépenser.</li>
  * </ul>
  *
- * <p>Chaque case demande en plus de <b>posséder</b> un certain nombre de matières noires (sans
- * les dépenser) : c'est ce qui étale l'arbre sur plusieurs explosions au lieu de le laisser
- * s'acheter d'un coup.
+ * <p>Chaque case demande en plus d'avoir <b>gagné</b> un certain nombre de matières noires
+ * ({@link Game#darkMatterEarned()}), sans les dépenser : c'est ce qui étale l'arbre sur
+ * plusieurs explosions au lieu de le laisser s'acheter d'un coup.
+ *
+ * <p>Hors de l'arbre, quatre améliorations se paient en matière noire
+ * ({@link DarkUpgrade.Branch#DARK_MATTER}). La matière noire dépensée reste comptée comme gagnée,
+ * et leur effet grandit avec toute la matière noire gagnée : chaque explosion les renforce.
  *
  * <p>Réglage vérifié par simulation (joueur qui achète tout dès que possible et garde l'appui
- * 5 % du temps, 15 % une fois le Verrou acquis) : les parties durent environ 24 h, 9 h, 4 h,
- * 3 h 30, 1 h 30, 1 h, 40 min, puis quelques minutes ; l'arbre est complet vers la neuvième
- * explosion, après 44 à 50 h de jeu. Les deux premières cases (Densité à 1 000 particules, Noyau
- * lourd à 10 atomes) sont volontairement bon marché : ce sont elles qui rendent la deuxième
- * partie presque trois fois plus courte que la première.
+ * 5 % du temps, 15 % une fois le Verrou acquis) : les parties durent environ 24 h, 8 h, 2 h 30,
+ * 2 h, 30 min, 15 min, 10 min, puis quelques minutes ; l'arbre est complet vers la douzième
+ * explosion, après 36 à 39 h de jeu. Les deux premières cases (Densité à 1 000 particules, Noyau
+ * lourd à 10 atomes) sont volontairement bon marché : avec la première amélioration payée en
+ * matière noire, ce sont elles qui rendent la deuxième partie trois fois plus courte que la
+ * première.
  */
 public final class DarkUpgrades {
 
@@ -119,7 +125,29 @@ public final class DarkUpgrades {
             // Plus de plafond d'atomes. À atteindre : 100 000 années-lumière, la taille de la Voie lactée.
             new DarkUpgrade("dark_overflow", "Débordement", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e5), 1, 1, "dark_condensation", 6,
-                    new DarkEffect.UncapAtoms()));
+                    new DarkEffect.UncapAtoms()),
+
+            // ----- Améliorations payées en matière noire (hors de l'arbre) -----
+            // La matière noire est dépensée, mais reste comptée comme gagnée : leur effet grandit
+            // avec tout ce que le joueur a gagné depuis le début, pas avec ce qui lui reste.
+
+            // Atomes par fusion +20 % par matière noire gagnée et par niveau. Prix : 1, 2, 4, 8, 16.
+            new DarkUpgrade("dark_shop_atoms", "Noyaux sombres", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.ONE, 2, 5, null, 0,
+                    new DarkEffect.AtomsByDarkMatter(0.2)),
+            // Automatismes ordinaires +10 % de cadence par matière noire gagnée et par niveau. Prix : 1, 2, 4.
+            new DarkUpgrade("dark_shop_cadence", "Rouages sombres", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.ONE, 2, 3, null, 0,
+                    new DarkEffect.AutomationsByDarkMatter(0.1)),
+            // Prix de la synthèse divisé par 1 + 10 % par matière noire gagnée et par niveau. Prix : 2, 4, 8.
+            new DarkUpgrade("dark_shop_synthesis", "Synthèse sombre", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.of(2), 2, 3, null, 0,
+                    new DarkEffect.SynthesisByDarkMatter(0.1)),
+            // 5 atomes comptés comme créés au départ de chaque partie, par matière noire gagnée : à
+            // 6 matières noires, l'automatisation et le tableau périodique sont ouverts d'entrée.
+            new DarkUpgrade("dark_shop_start", "Départ lancé", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.of(2), 1, 1, null, 0,
+                    new DarkEffect.HeadStartByDarkMatter(5)));
 
     private DarkUpgrades() {}
 }

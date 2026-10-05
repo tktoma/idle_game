@@ -1,7 +1,8 @@
 package idle.core;
 
 /**
- * Description d'une amélioration de matière noire : une case de l'arbre. Donnée pure ; le niveau
+ * Description d'une amélioration de matière noire : une case de l'arbre, ou une amélioration
+ * payée en matière noire. Donnée pure ; le niveau
  * possédé est dans {@link GameState}. Ces améliorations sont définitives : ni la fusion ni
  * l'explosion ne les reprennent.
  *
@@ -12,14 +13,14 @@ package idle.core;
  * @param costGrowth facteur appliqué au prix à chaque niveau acheté
  * @param maxLevel   nombre maximal de niveaux, ou {@link Upgrade#NO_LIMIT}
  * @param requires   amélioration à posséder avant celle-ci (la case du dessus), ou {@code null}
- * @param darkMatter matière noire qu'il faut posséder pour y avoir accès ; elle n'est pas dépensée.
+ * @param darkMatter matière noire qu'il faut avoir gagnée pour y avoir accès ; elle n'est pas dépensée.
  *                   C'est ce qui étale l'arbre sur plusieurs explosions
  * @param effect     ce que rapporte chaque niveau
  */
 public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost, double costGrowth,
                           int maxLevel, String requires, int darkMatter, DarkEffect effect) {
 
-    /** Les trois branches de l'arbre. */
+    /** Les trois branches de l'arbre, et les améliorations payées en matière noire. */
     public enum Branch {
         /** Se paie en particules : elles sont dépensées. */
         PARTICLES,
@@ -29,7 +30,17 @@ public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost
          * Se débloque par la taille de la matière noire, en mètres : il faut l'avoir atteinte,
          * mais rien n'est dépensé, la matière noire ne rétrécit pas.
          */
-        SIZE
+        SIZE,
+        /**
+         * Se paie en matière noire : elle est dépensée. Ces améliorations ne sont pas dans
+         * l'arbre, elles ont leur propre sous-onglet.
+         */
+        DARK_MATTER;
+
+        /** Vrai pour les trois branches dessinées dans l'arbre. */
+        public boolean inTree() {
+            return this != DARK_MATTER;
+        }
     }
 
     public DarkUpgrade {

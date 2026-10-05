@@ -114,4 +114,29 @@ public sealed interface DarkEffect {
 
     /** Lève le plafond d'atomes ({@link Game#MAX_ATOMS}) : on peut en posséder autant qu'on veut. */
     record UncapAtoms() implements DarkEffect {}
+
+    // ----- Améliorations payées en matière noire : leur effet grandit avec la matière noire gagnée -----
+
+    /**
+     * Multiplie les atomes de chaque fusion par {@code 1 + perUnit × niveau × matière noire gagnée}
+     * (0.2 = +20 % par matière noire et par niveau).
+     */
+    record AtomsByDarkMatter(double perUnit) implements DarkEffect {}
+
+    /**
+     * Accélère tous les automatismes ordinaires : leur délai est divisé par
+     * {@code 1 + perUnit × niveau × matière noire gagnée}.
+     */
+    record AutomationsByDarkMatter(double perUnit) implements DarkEffect {}
+
+    /** Divise le prix de la synthèse par {@code 1 + perUnit × niveau × matière noire gagnée}. */
+    record SynthesisByDarkMatter(double perUnit) implements DarkEffect {}
+
+    /**
+     * Chaque partie démarre avec des atomes déjà comptés comme créés : {@code perUnit} par
+     * matière noire gagnée et par niveau, sans dépasser le seuil qui débloque l'automatisation et
+     * le tableau périodique ({@link Game#UNLOCK_TOTAL_ATOMS}). Ce sont des atomes « créés », pas
+     * des atomes à dépenser.
+     */
+    record HeadStartByDarkMatter(double perUnit) implements DarkEffect {}
 }

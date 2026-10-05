@@ -493,6 +493,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(MAX - 2 + 1 + 3 + 5));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.buyAutomation("autoGen");
             game.buyAutomation("autoFusion");         // reste MAX − 2 atomes
             assertValue(MAX - 2, game.state().atoms());
@@ -755,23 +756,49 @@ class GameTest {
     @Nested
     class Automatisation {
 
-        /** Partie avec la persistance achetée et {@code atoms} atomes à dépenser, sans particule. */
+        /** Partie où l'automatisation est débloquée, avec {@code atoms} atomes à dépenser, sans particule. */
         private Game gameWithAutomation(int atoms) {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(atoms + 1));
             game.buy("keep");
+            createEnoughAtoms(game);
             return game;
         }
 
         @Test
-        void verrouilleeSansPersistance() {
+        void verrouilleeAvantTrenteAtomesCrees() {
+            assertValue(30, Game.UNLOCK_TOTAL_ATOMS);
             Game game = gameWithParticles(1e9);
             game.state().setAtoms(BigNum.of(100));
+            game.state().setTotalAtoms(BigNum.of(29));
+            game.buy("keep");                                 // la persistance ne débloque plus rien
             assertFalse(game.isAutomationUnlocked());
             assertFalse(game.canBuyAutomation("autoSpeed"));
             assertFalse(game.buyAutomation("autoSpeed"));
             assertFalse(game.ownsAutomation("autoSpeed"));
-            assertValue(100, game.state().atoms());
+            assertValue(99, game.state().atoms());
+        }
+
+        @Test
+        void seDebloqueATrenteAtomesCreesMemeDepenses() {
+            Game game = newGame();
+            game.state().setTotalAtoms(BigNum.of(30));
+            game.state().setAtoms(BigNum.of(3));              // les 27 autres ont été dépensés
+            assertTrue(game.isAutomationUnlocked());
+            assertEquals(0, game.levelOf("keep"));            // sans persistance
+            assertTrue(game.buyAutomation("autoSpeed"));
+            assertValue(1, game.state().atoms());
+        }
+
+        @Test
+        void laFusionQuiCreeLeTrentiemeAtomeDebloqueToutDeSuite() {
+            Game game = gameReadyToFuse();
+            game.state().setTotalAtoms(BigNum.of(29));
+            assertFalse(game.isAutomationUnlocked());
+            assertFalse(game.isPeriodicTableUnlocked());
+            assertTrue(game.fuse());
+            assertTrue(game.isAutomationUnlocked());
+            assertTrue(game.isPeriodicTableUnlocked());
         }
 
         @Test
@@ -946,6 +973,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(atoms + 2));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.buyAutomation("autoSlow");
             game.state().setParticles(BigNum.of(1e9));
             return game;
@@ -1036,6 +1064,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(50));
             game.buy("keep");
+            createEnoughAtoms(game);
             assertFalse(game.canSpeedUpAutomation("autoSlow"));
             assertFalse(game.speedUpAutomation("autoSlow"));
             assertEquals(0, game.automationSpeedLevel("autoSlow"));
@@ -1069,6 +1098,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(1 + 3 + 5));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.buyAutomation("autoGen");
             game.buyAutomation("autoFusion");
             return game;
@@ -1209,34 +1239,32 @@ class GameTest {
         }
 
         @Test
-        void verrouilleTantQueLesAutomatismesNeSontPasAuMaximum() {
+        void leTableauSOuvreATrenteAtomesCreesSansRienAcheter() {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(100));
-            assertFalse(game.isPeriodicTableUnlocked());      // rien d'acheté
-
-            game.buy("keep");
-            for (Automation automation : game.automations()) game.buyAutomation(automation.id());
-            assertFalse(game.isPeriodicTableUnlocked());      // « autoSlow » a encore des niveaux de cadence
-
-            game.speedUpAutomation("autoSlow");
+            game.state().setTotalAtoms(BigNum.of(29.9));
             assertFalse(game.isPeriodicTableUnlocked());
 
-            game.speedUpAutomation("autoSlow");
-            assertTrue(game.isPeriodicTableUnlocked());       // la synthèse automatique n'est pas exigée
-            assertFalse(game.ownsAutomation("autoSynth"));
+            game.state().setTotalAtoms(BigNum.of(30));
+            assertTrue(game.isPeriodicTableUnlocked());       // ni persistance ni automatisme exigés
+            assertEquals(0, game.levelOf("keep"));
+            assertFalse(game.ownsAutomation("autoSpeed"));
+            assertTrue(game.canSynthesize());
         }
 
         @Test
-        void ilManqueUnSeulAutomatismeEtLeTableauResteVerrouille() {
+        void sansAssezDAtomesCreesNiPersistanceNiAutomatismesNOuvrentLeTableau() {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(100));
+            game.state().setTotalAtoms(BigNum.of(10));
             game.buy("keep");
-            game.buyAutomation("autoSpeed");
-            game.buyAutomation("autoGen");
-            game.buyAutomation("autoSlow");
-            game.speedUpAutomation("autoSlow");
-            game.speedUpAutomation("autoSlow");
-            assertFalse(game.isPeriodicTableUnlocked());      // « autoFusion » n'est pas acheté
+            // Des automatismes déjà possédés, comme après une explosion qui les conserve.
+            for (Automation automation : game.automations()) {
+                game.state().addAutomation(automation.id());
+                game.state().setAutomationSpeedLevel(automation.id(), automation.maxSpeedLevel());
+            }
+            assertTrue(game.isAutomationUnlocked());
+            assertFalse(game.isPeriodicTableUnlocked());
         }
 
         @Test
@@ -1858,6 +1886,7 @@ class GameTest {
             game.state().setElementCount(51, 1);              // +10 % de particules par automatisme possédé
             game.state().setAtoms(BigNum.of(20));
             game.buy("keep");
+            createEnoughAtoms(game);
             assertValue(1, game.particlesPerCreation());
             game.buyAutomation("autoSpeed");
             game.buyAutomation("autoGen");
@@ -2007,12 +2036,12 @@ class GameTest {
         }
 
         @Test
-        void leRendementDuJeuDemarreAMilleParticulesParSeconde() {
+        void leRendementDuJeuDemarreADixMilleParticulesParSeconde() {
             Game game = new Game();
             game.start();
             Upgrade upgrade = game.upgrades().stream().filter(u -> u.id().equals("atom_yield")).findFirst().orElseThrow();
             assertEquals(Resource.ATOMS, upgrade.resource());
-            assertEquals(new Effect.MultiplyAtomsByProduction(1_000, 0.15), upgrade.effect());
+            assertEquals(new Effect.MultiplyAtomsByProduction(10_000, 0.15), upgrade.effect());
         }
     }
 
@@ -2057,6 +2086,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(10));
             game.buy("keep");
+            createEnoughAtoms(game);
             assertTrue(game.isAutomationAvailable("autoSpeed"));
             assertFalse(game.isAutomationAvailable("autoSynth"));
         }
@@ -2460,6 +2490,7 @@ class GameTest {
             Map<DarkUpgrade.Branch, String> previous = new EnumMap<>(DarkUpgrade.Branch.class);
             for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
                 count.merge(dark.branch(), 1, Integer::sum);
+                if (!dark.branch().inTree()) continue;         // celles payées en matière noire ne sont pas dans l'arbre
                 assertEquals(previous.get(dark.branch()), dark.requires());   // la case du dessus
                 if (dark.requires() != null) {                 // plus on descend, plus il faut de matière noire
                     int above = DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals(dark.requires()))
@@ -2473,8 +2504,9 @@ class GameTest {
             assertEquals(8, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
             assertEquals(8, count.get(DarkUpgrade.Branch.ATOMS).intValue());
             assertEquals(6, count.get(DarkUpgrade.Branch.SIZE).intValue());
-            assertEquals(22, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
-            assertEquals(22, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
+            assertEquals(4, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
+            assertEquals(26, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
+            assertEquals(26, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
         }
 
         @Test
@@ -2648,7 +2680,7 @@ class GameTest {
             assertFalse(game.isAutomationEnabled("autoGen")); // coupé avant, coupé après
             assertEquals(0, game.levelOf("keep"));            // les améliorations, elles, sont perdues
             assertTrue(game.isAutomationUnlocked());          // mais l'onglet reste, puisqu'il y a des automatismes
-            assertTrue(game.isPeriodicTableUnlocked());
+            assertFalse(game.isPeriodicTableUnlocked());      // le tableau, lui, attend de nouveau 30 atomes créés
         }
 
         @Test
@@ -2907,6 +2939,7 @@ class GameTest {
             Game game = gameWithParticles(1e30);
             game.state().setAtoms(BigNum.of(100));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.buyAutomation("autoFusion");                 // agit toutes les 0,1 s
             give(game, "dark_swarm", 1);
             give(game, "dark_threshold", 1);
@@ -2986,6 +3019,7 @@ class GameTest {
             Game game = newGame();
             game.state().setAtoms(BigNum.of(100));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.buyAutomation("autoSpeed");                  // au délai minimal dès l'achat
             assertEquals(0.1, game.minAutomationInterval());
             assertEquals(0.1, game.automationInterval("autoSpeed"));
@@ -3120,10 +3154,482 @@ class GameTest {
     }
 
     @Nested
-    class AutomatismesDeMatiereNoire {
+    class Statistiques {
 
-        /** Le délai de « Premiers pas » : celui d'un automatisme ordinaire sans niveau de cadence. */
-        private static final double STEP = Automation.DEFAULT_INTERVAL;
+        @Test
+        void unePartieNeuveNARienCompte() {
+            GameStats stats = unstartedGame().stats();
+            assertEquals(BigNum.ZERO, stats.particlesCreated());
+            assertEquals(BigNum.ZERO, stats.bestProduction());
+            assertEquals(0, stats.fusions());
+            assertEquals(0, stats.fastestFusionTime());
+            assertEquals(0, stats.syntheses());
+            assertEquals(0, stats.runTime());
+            assertEquals(0, stats.fastestExplosionTime());
+        }
+
+        @Test
+        void lesParticulesCreeesEtDepenseesSontComptees() {
+            Game game = newGame();
+            game.tick(40);                                    // 0,25 par seconde : 10 particules
+            assertValue(10, game.stats().particlesCreated());
+            assertValue(10, game.stats().runParticlesCreated());
+            assertEquals(40, game.stats().runTime(), 1e-9);
+            BigNum cost = game.costOf("speed");
+            assertTrue(game.buy("speed"));
+            assertEquals(cost, game.stats().particlesSpent());
+            assertEquals(1, game.stats().particleUpgradesBought());
+            assertEquals(0, game.stats().generatorsBought());
+            game.state().setParticles(BigNum.of(1e6));       // donnés, pas créés
+            BigNum generator = game.costOf("gen");
+            assertTrue(game.buy("gen"));
+            assertEquals(1, game.stats().generatorsBought());
+            assertEquals(2, game.stats().particleUpgradesBought());
+            assertEquals(cost.add(generator), game.stats().particlesSpent());
+            assertValue(10, game.stats().particlesCreated());
+        }
+
+        @Test
+        void leRecordDeProductionEstReleveALaLecture() {
+            Game game = newGame();
+            assertValue(0.25, game.stats().bestProduction());
+            game.state().setLevel("gen", 2);
+            assertValue(0.75, game.stats().bestProduction());
+            game.state().setLevel("gen", 0);                  // la production retombe, pas le record
+            assertValue(0.75, game.stats().bestProduction());
+        }
+
+        @Test
+        void chaqueFusionNoteSaDureeEtSesAtomes() {
+            Game game = gameReadyToFuse();
+            game.tick(30 - game.stats().runTime());           // la partie dure 30 s en tout
+            assertTrue(game.fuse());
+            GameStats stats = game.stats();
+            assertEquals(1, stats.fusions());
+            assertEquals(1, stats.runFusions());
+            assertValue(1, stats.atomsCreated());
+            assertValue(1, stats.bestAtomsPerFusion());
+            assertEquals(30, stats.lastFusionTime(), 1e-9);
+            assertEquals(30, stats.fastestFusionTime(), 1e-9);
+            assertValue(1.5, stats.bestProduction());         // trois générateurs à vitesse doublée, relevée avant la remise à zéro
+
+            fuseAgain(game);                                  // tout de suite : une partie de zéro seconde
+            assertEquals(2, stats.fusions());
+            assertEquals(0, stats.lastFusionTime(), 1e-9);
+            assertEquals(0, stats.fastestFusionTime(), 1e-9);
+            game.tick(50);
+            fuseAgain(game);
+            assertEquals(50, stats.lastFusionTime(), 1e-9);
+            assertEquals(0, stats.fastestFusionTime(), 1e-9); // le record reste
+            assertValue(3, stats.atomsCreated());
+        }
+
+        @Test
+        void lesAtomesDepensesSontComptesQuelQueSoitLAchat() {
+            Game game = newGame();
+            game.state().setAtoms(BigNum.of(100));
+            game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+            assertTrue(game.buy("keep"));                     // 1 atome
+            assertEquals(1, game.stats().atomUpgradesBought());
+            assertTrue(game.buyAutomation("autoSlow"));       // 1 atome
+            assertTrue(game.speedUpAutomation("autoSlow"));   // 2 atomes
+            assertValue(4, game.stats().atomsSpent());
+            BigNum synthesis = game.synthesisCost();
+            assertFalse(game.synthesize().isEmpty());
+            assertValue(4 + synthesis.toDouble(), game.stats().atomsSpent());
+            assertEquals(1, game.stats().atomUpgradesBought());   // seules les améliorations comptent ici
+        }
+
+        @Test
+        void lesSynthesesEtLeursElementsSontComptes() {
+            Game game = newGame();
+            unlock(game);
+            for (int synthesis = 0; synthesis < 3; synthesis++) {
+                game.state().setAtoms(Game.MAX_ATOMS);
+                game.synthesize();
+            }
+            assertEquals(3, game.stats().syntheses());
+            assertEquals(3, game.stats().elementsObtained());  // aucune chance de tirage double au départ
+            assertEquals(0, game.stats().doubleDraws());
+            game.state().setElementCount(35, 100);             // brome : tirage double assuré
+            game.state().setAtoms(Game.MAX_ATOMS);
+            assertEquals(2, game.synthesize().size());
+            assertEquals(4, game.stats().syntheses());
+            assertEquals(5, game.stats().elementsObtained());
+            assertEquals(1, game.stats().doubleDraws());
+        }
+
+        @Test
+        void lesActionsDesAutomatismesSontComptees() {
+            Game game = newGame();
+            game.state().setAtoms(BigNum.of(100));
+            game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+            game.buyAutomation("autoSlow");                   // achète la vitesse toutes les 4 s
+            game.state().setParticles(BigNum.of(1e9));
+            game.tick(8.5);
+            assertEquals(2, game.stats().automationActions());
+            assertEquals(2, game.levelOf("speed"));
+            assertEquals(2, game.stats().particleUpgradesBought());   // l'automatisme achète pour le joueur
+            assertEquals(0, game.stats().darkAutomationActions());
+        }
+
+        @Test
+        void seulLAppuiDuJoueurCompteCommeTempsDAppui() {
+            Game game = gameReadyToFuse();
+            game.state().setDarkMatter(BigNum.of(3));
+            game.state().setExplosions(1);
+            assertTrue(game.growDarkMatter(2.5));
+            assertEquals(2.5, game.stats().holdTime(), 1e-12);
+            game.state().setDarkLevel("dark_wave", 1);        // l'onde de fusion fait grossir sans appui
+            BigNum size = game.state().darkMatterSize();
+            assertTrue(game.fuse());
+            assertTrue(game.state().darkMatterSize().gt(size));
+            assertEquals(2.5, game.stats().holdTime(), 1e-12);
+            game.state().setDarkLevel("dark_spontaneous", 1); // l'expansion spontanée non plus
+            game.tick(10);
+            assertEquals(2.5, game.stats().holdTime(), 1e-12);
+        }
+
+        @Test
+        void lExplosionNoteSaDureeEtRemetLesCompteursDeLaPartieAZero() {
+            Game game = gameReadyToFuse();
+            game.tick(100 - game.stats().runTime());
+            game.fuse();
+            for (Element element : PeriodicTable.ELEMENTS) {
+                game.state().setElementCount(element.number(), element.category().maxCopies());
+            }
+            BigNum created = game.stats().particlesCreated();
+            assertTrue(created.gt(BigNum.ZERO));
+            assertTrue(game.explode());
+            GameStats stats = game.stats();
+            assertEquals(100, stats.lastExplosionTime(), 1e-9);
+            assertEquals(100, stats.fastestExplosionTime(), 1e-9);
+            assertEquals(0, stats.runTime(), 1e-9);
+            assertEquals(0, stats.runFusions());
+            assertEquals(BigNum.ZERO, stats.runParticlesCreated());
+            assertEquals(1, stats.fusions());                 // les compteurs du jeu entier restent
+            assertEquals(created, stats.particlesCreated());
+            assertValue(1, stats.atomsCreated());
+
+            game.tick(250);
+            for (Element element : PeriodicTable.ELEMENTS) {
+                game.state().setElementCount(element.number(), element.category().maxCopies());
+            }
+            assertTrue(game.explode());
+            assertEquals(250, stats.lastExplosionTime(), 1e-9);
+            assertEquals(100, stats.fastestExplosionTime(), 1e-9);    // la plus rapide reste la première
+        }
+    }
+
+    @Nested
+    class HistoriqueEtDeblocages {
+
+        private void fillTable(Game game) {
+            for (Element element : PeriodicTable.ELEMENTS) {
+                game.state().setElementCount(element.number(), element.category().maxCopies());
+            }
+        }
+
+        @Test
+        void unReleveEstPrisAIntervallesReguliers() {
+            Game game = unstartedGame();
+            game.tick(60);
+            assertTrue(game.stats().history().samples().isEmpty());     // rien avant le premier générateur
+            game.start();
+            game.tick(0.1);                                             // le premier relevé, tout de suite
+            assertEquals(1, game.stats().history().samples().size());
+            for (int i = 0; i < 102; i++) game.tick(0.1);               // dix secondes : deux relevés de plus
+            List<StatsHistory.Sample> samples = game.stats().history().samples();
+            assertEquals(3, samples.size());
+            assertEquals(StatsHistory.FIRST_INTERVAL, samples.get(1).time() - samples.get(0).time(), 0.11);
+            StatsHistory.Sample first = samples.get(0);
+            assertEquals(Math.log10(0.25), first.production(), 1e-9);   // un générateur, 0,25 particule par seconde
+            assertEquals(0, first.atomsPerFusion(), 1e-9);              // un atome par fusion
+            assertTrue(Double.isNaN(first.fusionTime()));               // aucune fusion encore
+            assertEquals(0, first.elementsShare());
+            assertEquals(-15, first.darkMatterSize(), 1e-9);
+        }
+
+        @Test
+        void lHistoriqueSuitLeJeu() {
+            Game game = gameReadyToFuse();
+            game.tick(30);
+            game.fuse();
+            game.state().setElementCount(18, 1);
+            game.state().setElementCount(26, 3);
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            List<StatsHistory.Sample> samples = game.stats().history().samples();
+            StatsHistory.Sample last = samples.get(samples.size() - 1);
+            assertEquals(30.5, last.fusionTime(), 1e-9);
+            assertEquals(2.0 / 118, last.elementsShare(), 1e-12);
+            assertEquals(4.0 / Game.maxCopies(), last.copiesShare(), 1e-12);
+            assertEquals(Math.log10(1.15), last.atomsPerFusion(), 1e-9);    // l'argon
+        }
+
+        @Test
+        void leReleveGardeLeSommetDeProductionDAvantLaFusion() {
+            Game game = gameReadyToFuse();                        // trois générateurs à vitesse doublée : 1,5 par seconde
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            assertTrue(game.fuse());                              // la production retombe à 0,25
+            assertValue(0.25, game.productionPerSecond());
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            List<StatsHistory.Sample> samples = game.stats().history().samples();
+            assertEquals(Math.log10(1.5), samples.get(samples.size() - 1).production(), 1e-9);
+            game.tick(StatsHistory.FIRST_INTERVAL);               // plus de fusion depuis : le relevé suivant dit la production du moment
+            samples = game.stats().history().samples();
+            assertEquals(Math.log10(0.25), samples.get(samples.size() - 1).production(), 1e-9);
+        }
+
+        @Test
+        void pleinIlGardeUnReleveSurDeuxEtEspaceLesSuivants() {
+            Game game = newGame();
+            double step = StatsHistory.FIRST_INTERVAL;
+            for (int i = 0; i < StatsHistory.CAPACITY + 10; i++) game.tick(step);
+            StatsHistory history = game.stats().history();
+            assertEquals(2 * step, history.interval());
+            assertTrue(history.samples().size() <= StatsHistory.CAPACITY / 2 + 6, () -> "taille " + history.samples().size());
+            assertTrue(history.samples().size() >= StatsHistory.CAPACITY / 2);
+            assertEquals(step, history.samples().get(0).time(), 1e-9);     // le tout premier relevé est toujours là
+            double end = game.state().timePlayed();
+            assertTrue(end - history.samples().get(history.samples().size() - 1).time() <= 2 * step);
+            for (int i = 1; i < history.samples().size(); i++) {           // toujours dans l'ordre du temps
+                assertTrue(history.samples().get(i).time() > history.samples().get(i - 1).time());
+            }
+        }
+
+        @Test
+        void lExplosionVideLHistoriqueDeLaPartiePasCeluiDuJeu() {
+            Game game = newGame();
+            game.tick(100);
+            game.tick(100);
+            int whole = game.stats().history().samples().size();
+            assertEquals(whole, game.stats().runHistory().samples().size());
+            fillTable(game);
+            assertTrue(game.explode());
+            assertTrue(game.stats().runHistory().samples().isEmpty());
+            assertEquals(whole, game.stats().history().samples().size());
+            game.tick(10);
+            assertEquals(1, game.stats().runHistory().samples().size());
+            assertEquals(10, game.stats().runHistory().samples().get(0).time(), 1e-9);  // compté depuis l'explosion
+            assertEquals(210, game.stats().history().samples().get(whole).time(), 1e-9);
+        }
+
+        @Test
+        void laDureeDeChaqueExplosionEstGardee() {
+            Game game = newGame();
+            for (double duration : new double[]{300, 120, 45}) {
+                game.tick(duration);
+                fillTable(game);
+                assertTrue(game.explode());
+            }
+            assertEquals(List.of(300.0, 120.0, 45.0), game.stats().explosionTimes());
+            assertEquals(3, game.stats().timedExplosions());
+        }
+
+        @Test
+        void unAutomatismeDejaDebloqueResteConnuApresLExplosion() {
+            Game game = newGame();
+            assertFalse(game.wasAutomationEverAvailable("autoGen"));
+            createEnoughAtoms(game);
+            game.tick(0.1);
+            assertTrue(game.wasAutomationEverAvailable("autoGen"));
+            assertFalse(game.wasAutomationEverAvailable("autoSynth"));  // il lui faut un élément unique
+            fillTable(game);
+            game.tick(0.1);
+            assertTrue(game.wasAutomationEverAvailable("autoSynth"));
+            assertTrue(game.explode());
+            assertFalse(game.isAutomationAvailable("autoGen"));         // reverrouillé…
+            assertFalse(game.isAutomationAvailable("autoSynth"));
+            assertTrue(game.wasAutomationEverAvailable("autoGen"));     // … mais pas oublié
+            assertTrue(game.wasAutomationEverAvailable("autoSynth"));
+            game.reset();                                               // recommencer de zéro efface tout
+            assertFalse(game.wasAutomationEverAvailable("autoGen"));
+            assertThrows(IllegalArgumentException.class, () -> game.wasAutomationEverAvailable("inconnu"));
+        }
+    }
+
+    @Nested
+    class RemiseAZero {
+
+        @Test
+        void toutEstEffaceJusquALaMatiereNoireEtAuxStatistiques() {
+            Game game = gameReadyToFuse();
+            game.fuse();
+            game.state().setAtoms(BigNum.of(50));
+            game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+            game.buy("keep");
+            game.buyAutomation("autoSlow");
+            game.state().setElementCount(18, 1);
+            game.state().setDarkMatter(BigNum.of(7));
+            game.state().setDarkMatterSpent(BigNum.of(2));
+            game.state().setExplosions(3);
+            game.state().setDarkLevel("dark_nucleus", 2);
+            game.setDarkAutomationEnabled("dark_auto_start", true);
+            game.growDarkMatter(100);
+
+            game.reset();
+            GameState state = game.state();
+            assertFalse(game.isStarted());
+            assertEquals(0, game.generatorCount());
+            assertEquals(BigNum.ZERO, state.particles());
+            assertEquals(BigNum.ZERO, state.atoms());
+            assertEquals(BigNum.ZERO, state.totalAtoms());
+            assertEquals(0, game.levelOf("keep"));
+            assertFalse(game.ownsAutomation("autoSlow"));
+            assertEquals(0, game.discoveredElements());
+            assertEquals(BigNum.ZERO, state.darkMatter());
+            assertEquals(BigNum.ZERO, game.darkMatterEarned());
+            assertEquals(0, state.explosions());
+            assertEquals(Game.DARK_MATTER_START_SIZE, state.darkMatterSize());
+            assertEquals(0, game.darkLevelOf("dark_nucleus"));
+            assertFalse(game.isDarkAutomationEnabled("dark_auto_start"));
+            assertEquals(0, state.timePlayed());
+            assertEquals(0, game.stats().fusions());
+            assertEquals(0, game.stats().holdTime());
+            assertValue(1, game.atomsPerFusion());            // plus aucun bonus d'élément
+
+            game.start();                                     // et la partie redémarre normalement
+            game.tick(40);
+            assertValue(10, state.particles());
+        }
+    }
+
+    @Nested
+    class AmeliorationsPayeesEnMatiereNoire {
+
+        /** Partie qui a {@code darkMatter} matières noires à dépenser, après une explosion. */
+        private Game gameWithDarkMatter(int darkMatter) {
+            Game game = gameReadyToFuse();
+            game.state().setDarkMatter(BigNum.of(darkMatter));
+            game.state().setExplosions(1);
+            return game;
+        }
+
+        @Test
+        void ellesSontQuatreEtHorsDeLArbre() {
+            Game game = gameWithDarkMatter(1);
+            List<DarkUpgrade> shop = game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER);
+            assertEquals(4, shop.size());
+            for (DarkUpgrade dark : shop) {
+                assertFalse(dark.branch().inTree());
+                assertEquals(null, dark.requires());
+                assertTrue(game.isDarkAvailable(dark.id()));   // dès la première matière noire
+            }
+            assertEquals(8, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());
+        }
+
+        @Test
+        void laMatiereNoireEstDepenseeMaisResteGagnee() {
+            Game game = gameWithDarkMatter(5);
+            assertValue(1, game.darkCostOf("dark_shop_atoms"));
+            assertTrue(game.buyDark("dark_shop_atoms"));
+            assertValue(4, game.state().darkMatter());
+            assertValue(1, game.state().darkMatterSpent());
+            assertValue(5, game.darkMatterEarned());
+            assertEquals(1, game.darkLevelOf("dark_shop_atoms"));
+            assertValue(2, game.darkCostOf("dark_shop_atoms"));   // le prix double à chaque niveau
+            assertTrue(game.buyDark("dark_shop_atoms"));
+            assertTrue(game.buyDark("dark_shop_cadence"));
+            assertValue(1, game.state().darkMatter());
+            assertFalse(game.canBuyDark("dark_shop_synthesis"));  // 2 matières noires, il n'en reste qu'une
+            assertValue(5, game.darkMatterEarned());
+        }
+
+        @Test
+        void sansMatiereNoireOnNAchetePas() {
+            Game game = gameWithDarkMatter(0);
+            assertFalse(game.buyDark("dark_shop_atoms"));
+            Game before = gameReadyToFuse();                      // aucune explosion : rien n'est accessible
+            before.state().setDarkMatter(BigNum.of(5));
+            assertFalse(before.buyDark("dark_shop_atoms"));
+        }
+
+        @Test
+        void depenserNeRefermeRien() {
+            Game game = gameWithDarkMatter(2);
+            double momentum = game.darkMatterMomentum();
+            assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
+            assertTrue(game.hasDarkMatterFor("dark_swarm"));
+            assertTrue(game.buyDark("dark_shop_synthesis"));      // tout y passe
+            assertValue(0, game.state().darkMatter());
+            assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
+            assertTrue(game.hasDarkMatterFor("dark_swarm"));
+            assertEquals(momentum, game.darkMatterMomentum(), 1e-12);
+            assertTrue(game.growDarkMatter(1));
+        }
+
+        @Test
+        void noyauxSombresMultiplientLesAtomesSelonLaMatiereNoireGagnee() {
+            Game game = gameWithDarkMatter(5);
+            assertValue(1, game.atomsPerFusion());
+            game.state().setDarkLevel("dark_shop_atoms", 1);
+            assertValue(2, game.atomsPerFusion());                // +20 % × 5 matières noires
+            game.state().setDarkLevel("dark_shop_atoms", 2);
+            assertValue(3, game.atomsPerFusion());
+            game.state().setDarkMatter(BigNum.of(10));
+            assertValue(5, game.atomsPerFusion());
+            game.state().setDarkMatter(BigNum.ZERO);              // dépensée ou pas, elle compte
+            game.state().setDarkMatterSpent(BigNum.of(10));
+            assertValue(5, game.atomsPerFusion());
+            assertTrue(game.fuse());
+            assertValue(5, game.state().atoms());
+        }
+
+        @Test
+        void rouagesSombresAccelerentLesAutomatismes() {
+            Game game = new Game();
+            game.start();
+            game.state().setExplosions(1);
+            game.state().setDarkMatter(BigNum.of(5));
+            assertEquals(Automation.DEFAULT_INTERVAL, game.automationInterval("auto_fusion"));
+            game.state().setDarkLevel("dark_shop_cadence", 1);
+            assertEquals(1.5, game.darkAutomationDivisor(), 1e-12);
+            assertEquals(Automation.DEFAULT_INTERVAL / 1.5, game.automationInterval("auto_fusion"), 1e-12);
+            game.state().setDarkLevel("dark_shop_cadence", 3);
+            assertEquals(Automation.DEFAULT_INTERVAL / 2.5, game.automationInterval("auto_generator"), 1e-12);
+        }
+
+        @Test
+        void syntheseSombreBaisseLePrixDeLaSynthese() {
+            Game game = gameWithDarkMatter(5);
+            game.state().setSynthesisCount(20);                   // prix au plafond
+            assertValue(118, game.synthesisCost());
+            game.state().setDarkLevel("dark_shop_synthesis", 2);  // diviseur 1 + 0,1 × 2 × 5
+            assertValue(59, game.synthesisCost());
+        }
+
+        @Test
+        void departLanceCompteDesAtomesCommeCreesDesLAchat() {
+            Game game = gameWithDarkMatter(3);
+            assertValue(0, game.darkHeadStartAtoms());
+            assertTrue(game.buyDark("dark_shop_start"));          // 2 matières noires
+            assertValue(15, game.darkHeadStartAtoms());           // 5 × 3 gagnées
+            assertValue(15, game.state().totalAtoms());
+            assertValue(0, game.state().atoms());                 // comptés comme créés, pas à dépenser
+            assertFalse(game.isAutomationUnlocked());
+            game.state().setTotalAtoms(BigNum.of(20));            // il n'enlève rien à qui a déjà plus
+            game.state().setDarkLevel("dark_shop_start", 1);
+            assertValue(20, game.state().totalAtoms());
+        }
+
+        @Test
+        void departLanceOuvreLAutomatisationEtLeTableauApresLExplosion() {
+            Game game = gameWithDarkMatter(9);
+            game.state().setDarkLevel("dark_shop_start", 1);
+            for (Element element : PeriodicTable.ELEMENTS) {
+                game.state().setElementCount(element.number(), element.category().maxCopies());
+            }
+            assertTrue(game.explode());
+            assertValue(Game.UNLOCK_TOTAL_ATOMS.toDouble(), game.darkHeadStartAtoms());   // 50, plafonné à 30
+            assertValue(Game.UNLOCK_TOTAL_ATOMS.toDouble(), game.state().totalAtoms());
+            assertTrue(game.isAutomationUnlocked());
+            assertTrue(game.isPeriodicTableUnlocked());
+            assertValue(0, game.state().atoms());
+        }
+    }
+
+    @Nested
+    class AutomatismesDeMatiereNoire {
 
         /** Partie démarrée avec {@code darkMatter} matière noire. */
         private Game gameWithDarkMatter(int darkMatter) {
@@ -3157,58 +3663,112 @@ class GameTest {
         }
 
         @Test
-        void premiersPasJoueLeDebutDePartieAuRythmeDUnAutomatismeNeuf() {
+        void lesAutomatismesOrdinairesSontOffertsDesLeDebutDeLaPartie() {
             Game game = gameWithDarkMatter(2);
-            game.state().setParticles(BigNum.of(1e9));
+            assertFalse(game.isAutomationUnlocked());         // aucun atome créé : rien n'est débloqué
             game.setDarkAutomationEnabled("dark_auto_start", true);
-            assertEquals(STEP, DarkAutomations.DEFAULT.get(0).interval());
-            game.tick(STEP - 0.1);
-            assertEquals(1, game.generatorCount());           // pas encore le délai
+            game.tick(0.9);
+            assertFalse(game.ownsAutomation("autoSpeed"));    // pas encore une seconde
             game.tick(0.2);
-            assertEquals(2, game.generatorCount());           // les générateurs d'abord
-            game.tick(STEP);
-            assertEquals(3, game.generatorCount());
-            game.tick(STEP);                                  // tous les générateurs sont là : il fusionne
-            assertEquals(1, game.generatorCount());
-            assertValue(1, game.state().atoms());
+            assertTrue(game.ownsAutomation("autoSpeed"));     // un par seconde, dans l'ordre du catalogue
+            assertFalse(game.ownsAutomation("autoGen"));
+            game.tick(3);
+            for (String id : List.of("autoSpeed", "autoGen", "autoFusion", "autoSlow")) {
+                assertTrue(game.ownsAutomation(id), () -> id);
+                assertTrue(game.isAutomationEnabled(id), () -> id);       // offerts en marche
+                assertTrue(game.isAutomationAvailable(id), () -> id);
+            }
+            assertFalse(game.ownsAutomation("autoSynth"));    // la synthèse automatique attend son heure
+            assertTrue(game.isAutomationUnlocked());
+            assertValue(0, game.state().atoms());             // rien n'a été payé
+            assertValue(0, game.stats().atomsSpent());
         }
 
         @Test
-        void premiersPasAcheteAussiLaVitesse() {
+        void ceSontLesAutomatismesOrdinairesQuiJouentPasUnDouble() {
             Game game = gameWithDarkMatter(2);
-            game.state().setParticles(BigNum.of(50));         // de quoi payer la vitesse (10), pas un générateur (100)
             game.setDarkAutomationEnabled("dark_auto_start", true);
-            game.tick(STEP + 0.05);
-            assertEquals(1, game.levelOf("speed"));
-            assertEquals(1, game.generatorCount());
+            game.tick(4.5);                                   // les quatre sont offerts
+            game.state().setParticles(BigNum.of(1e9));
+            game.tick(1);                                     // ils achètent les générateurs et fusionnent tout seuls
+            assertTrue(game.state().totalAtoms().gte(BigNum.ONE));
+            assertTrue(game.stats().automationActions() > 0);
+            // L'automatisme de matière noire n'a fait qu'offrir : quatre actions, une par automatisme.
+            assertEquals(4, game.stats().darkAutomationActions());
+            game.setAutomationEnabled("autoGen", false);      // coupé, un automatisme offert le reste : personne ne joue à sa place
+            game.setAutomationEnabled("autoFusion", false);
+            int generators = game.generatorCount();
+            game.state().setParticles(BigNum.of(1e9));
+            game.tick(5);
+            assertEquals(generators, game.generatorCount());
+            assertEquals(4, game.stats().darkAutomationActions());
         }
 
         @Test
-        void premiersPasLaisseFaireLesAutomatismesEnMarche() {
+        void laSyntheseAutomatiqueEstOfferteUneFoisLesAutresAuMaximumEtLeTableauOuvert() {
             Game game = gameWithDarkMatter(2);
-            game.state().setAtoms(BigNum.of(100));
-            game.buy("keep");
-            game.buyAutomation("autoSlow");                   // achète la vitesse, mais seulement toutes les 4 s
-            game.state().setParticles(BigNum.of(50));
             game.setDarkAutomationEnabled("dark_auto_start", true);
-            game.tick(2);
-            assertEquals(0, game.levelOf("speed"));           // il ne double pas l'automatisme ordinaire
-            game.tick(2.5);
-            assertEquals(1, game.levelOf("speed"));
-        }
-
-        @Test
-        void premiersPasFaitLesSynthesesTantQuAucunAutomatismeNeLesFait() {
-            Game game = gameWithDarkMatter(2);
-            unlock(game);                                     // tableau ouvert, automatismes ordinaires coupés
-            game.state().setAtoms(game.synthesisCost());
-            game.setDarkAutomationEnabled("dark_auto_start", true);
-            game.tick(STEP + 0.05);
+            game.tick(4.5);
+            createEnoughAtoms(game);                          // tableau ouvert, mais « autoSlow » n'est pas à sa cadence maximale
+            game.state().setAtoms(BigNum.of(50));
+            game.tick(3);
+            assertFalse(game.ownsAutomation("autoSynth"));
+            assertEquals(0, game.state().synthesisCount());   // les atomes du joueur ne sont pas dépensés dans son dos
+            assertTrue(game.speedUpAutomation("autoSlow"));
+            assertTrue(game.speedUpAutomation("autoSlow"));   // tous au maximum
+            game.setAutomationEnabled("autoSlow", false);
+            game.tick(1.05);
+            assertTrue(game.ownsAutomation("autoSynth"));     // offerte sans élément unique
+            assertFalse(game.isSynthesisAutomationUnlocked());
+            assertTrue(game.isAutomationAvailable("autoSynth"));
+            game.tick(2.05);                                  // et elle synthétise, comme si elle avait été achetée
             assertEquals(1, game.state().synthesisCount());
-            assertEquals(1, game.ownedCopies());
-            assertValue(0, game.state().atoms());
-            game.tick(STEP + 0.05);                           // plus d'atomes : il ne synthétise pas à crédit
-            assertEquals(1, game.state().synthesisCount());
+        }
+
+        @Test
+        void sansTableauOuvertLaSyntheseAutomatiqueNEstPasOfferte() {
+            Game game = gameWithDarkMatter(2);
+            game.setDarkAutomationEnabled("dark_auto_start", true);
+            game.tick(4.5);
+            game.state().setAtoms(BigNum.of(50));
+            game.speedUpAutomation("autoSlow");
+            game.speedUpAutomation("autoSlow");
+            game.state().setTotalAtoms(BigNum.ZERO);          // pas assez d'atomes créés : le tableau est fermé
+            game.tick(3);
+            assertFalse(game.isPeriodicTableUnlocked());
+            assertFalse(game.ownsAutomation("autoSynth"));
+        }
+
+        @Test
+        void ilsSontRedonnesApresChaqueExplosion() {
+            Game game = gameWithDarkMatter(2);
+            game.setDarkAutomationEnabled("dark_auto_start", true);
+            game.tick(4.5);
+            game.state().setAtoms(BigNum.of(10));
+            game.speedUpAutomation("autoSlow");
+            for (Element element : PeriodicTable.ELEMENTS) {
+                game.state().setElementCount(element.number(), element.category().maxCopies());
+            }
+            assertTrue(game.explode());
+            assertFalse(game.ownsAutomation("autoSpeed"));    // l'explosion les a détruits…
+            game.tick(4.5);
+            assertTrue(game.ownsAutomation("autoSpeed"));     // … ils reviennent, sans leur cadence
+            assertTrue(game.ownsAutomation("autoSlow"));
+            assertEquals(0, game.automationSpeedLevel("autoSlow"));
+        }
+
+        @Test
+        void ilNOffrePasCeQueLeJoueurPossedeDeja() {
+            Game game = gameWithDarkMatter(2);
+            createEnoughAtoms(game);
+            game.state().setAtoms(BigNum.of(10));
+            assertTrue(game.buyAutomation("autoGen"));
+            game.setAutomationEnabled("autoGen", false);      // acheté puis coupé par le joueur
+            game.setDarkAutomationEnabled("dark_auto_start", true);
+            game.tick(4.5);
+            assertFalse(game.isAutomationEnabled("autoGen")); // il n'y touche pas
+            assertTrue(game.ownsAutomation("autoSpeed"));
+            assertEquals(3, game.stats().darkAutomationActions());
         }
 
         @Test
@@ -3231,6 +3791,7 @@ class GameTest {
             Game game = gameWithDarkMatter(4);
             game.state().setAtoms(BigNum.of(100));
             game.buy("keep");
+            createEnoughAtoms(game);
             game.setDarkAutomationEnabled("dark_auto_machines", true);
             game.tick(1.05);
             assertTrue(game.ownsAutomation("autoSlow"));      // le moins cher : 1 atome
@@ -3271,11 +3832,11 @@ class GameTest {
         @Test
         void coupeIlNeFaitRien() {
             Game game = gameWithDarkMatter(6);
-            game.state().setParticles(BigNum.of(1e9));
             game.setDarkAutomationEnabled("dark_auto_start", true);
             game.setDarkAutomationEnabled("dark_auto_start", false);
             game.tick(10);
-            assertEquals(1, game.generatorCount());
+            assertFalse(game.ownsAutomation("autoSpeed"));
+            assertFalse(game.isAutomationUnlocked());
         }
 
         @Test
@@ -3324,25 +3885,35 @@ class GameTest {
         }
 
         /**
-         * Garde-fou sur l'arrivée de l'automatisation : un joueur qui achète les trois premières
-         * améliorations en atomes puis économise pour Persistance doit l'obtenir entre 2 h et 3 h 15,
-         * et pouvoir aussitôt enchaîner sur les automatismes. Plus tôt, le début perd son intérêt ;
-         * plus tard, il faut racheter les améliorations à la main des dizaines de fois.
+         * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
+         * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
+         * économiser pour Persistance) doit créer son trentième atome entre 2 h 45 et 3 h 45.
+         * Plus tôt, le début perd son intérêt ; plus tard, il faut tout racheter à la main des
+         * dizaines de fois.
          */
         @Test
-        void persistanceArriveEntre2hEt3h15() {
+        void automatisationEtTableauArriventEntre2h45Et3h45() {
             Game game = new Game();
             game.start();
             double minutes = 0;
-            String[] order = {"atom_double", "atom_patience", "atom_mass", "atom_keep"};
-            int next = 0;
-            while (next < order.length && minutes < 10 * 60) {
+            while (!game.isAutomationUnlocked() && minutes < 10 * 60) {
                 minutes += minutesUntilFusion(game);
                 assertTrue(game.fuse());
-                while (next < order.length && game.buy(order[next])) next++;
+                boolean bought = true;
+                while (bought) {
+                    Upgrade cheapest = null;
+                    for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
+                        if (upgrade.id().equals("atom_keep") || !game.canBuy(upgrade.id())) continue;
+                        if (cheapest == null || game.costOf(upgrade.id()).lt(game.costOf(cheapest.id()))) cheapest = upgrade;
+                    }
+                    bought = cheapest != null && game.buy(cheapest.id());
+                }
             }
             assertTrue(game.isAutomationUnlocked());
-            assertTrue(minutes >= 120 && minutes <= 195, "Persistance obtenue après " + minutes + " min");
+            assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
+            assertEquals(0, game.levelOf("atom_keep"));
+            assertValue(25, game.costOf("atom_keep"));
+            assertTrue(minutes >= 165 && minutes <= 225, "trentième atome créé après " + minutes + " min");
         }
 
         /**
@@ -3380,11 +3951,17 @@ class GameTest {
         return game;
     }
 
-    /** Achète Persistance et tous les automatismes disponibles, les porte à leur cadence maximale, puis les coupe. */
+    /** Fait comme si la partie avait déjà créé les atomes qui débloquent l'automatisation et le tableau périodique. */
+    private static void createEnoughAtoms(Game game) {
+        game.state().setTotalAtoms(game.state().totalAtoms().max(Game.UNLOCK_TOTAL_ATOMS));
+    }
+
+    /** Débloque le tableau, achète Persistance et tous les automatismes disponibles, les porte à leur cadence maximale, puis les coupe. */
     private static void unlock(Game game) {
         BigNum atoms = game.state().atoms();
         game.state().setAtoms(BigNum.of(100));
         game.buy("keep");
+        createEnoughAtoms(game);
         for (Automation automation : game.automations()) {
             game.buyAutomation(automation.id());
             while (game.speedUpAutomation(automation.id())) { /* jusqu'à la cadence maximale */ }

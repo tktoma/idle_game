@@ -84,6 +84,8 @@ final class DebugBar extends FlowPane {
      */
     private void fillPeriodicTable() {
         if (game.state().totalAtoms().isZero()) addAtoms(1);
+        // Assez d'atomes créés pour que l'automatisation et le tableau périodique soient débloqués.
+        game.state().setTotalAtoms(game.state().totalAtoms().max(Game.UNLOCK_TOTAL_ATOMS));
         for (Upgrade upgrade : game.upgrades()) {
             if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion) game.state().setLevel(upgrade.id(), 1);
         }

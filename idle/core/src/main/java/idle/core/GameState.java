@@ -33,12 +33,19 @@ public final class GameState {
     private int elementsVersion = 0;
     private int synthesisCount = 0;
     private BigNum darkMatter = BigNum.ZERO;
+    private BigNum darkMatterSpent = BigNum.ZERO;
     private BigNum darkMatterSize = Game.DARK_MATTER_START_SIZE;
     private int explosions = 0;
     private final Map<String, Integer> darkUpgradeLevels = new HashMap<>();
     private int fusionThreshold = 0;
     private final Set<String> enabledDarkAutomations = new HashSet<>();
     private final Map<String, Double> darkAutomationTimers = new HashMap<>();
+    private GameStats stats = new GameStats();
+
+    /** Les statistiques de la partie : des compteurs pour l'affichage, que les règles ne lisent pas. */
+    public GameStats stats() {
+        return stats;
+    }
 
     /** Faux tant que le joueur n'a pas créé son premier générateur. */
     public boolean started() {
@@ -226,6 +233,19 @@ public final class GameState {
     }
 
     /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
+    /**
+     * Matière noire dépensée en améliorations depuis le début du jeu. Ajoutée à celle qui reste
+     * ({@link #darkMatter()}), elle donne la matière noire gagnée en tout.
+     */
+    public BigNum darkMatterSpent() {
+        return darkMatterSpent;
+    }
+
+    public void setDarkMatterSpent(BigNum darkMatterSpent) {
+        if (darkMatterSpent.sign() < 0) throw new IllegalArgumentException("La matière noire dépensée ne peut pas être négative");
+        this.darkMatterSpent = darkMatterSpent;
+    }
+
     public BigNum darkMatterSize() {
         return darkMatterSize;
     }
@@ -299,6 +319,25 @@ public final class GameState {
     /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
     public Map<String, Integer> darkUpgradeLevels() {
         return Map.copyOf(darkUpgradeLevels);
+    }
+
+    /**
+     * Efface absolument tout, matière noire et statistiques comprises : l'état redevient celui
+     * d'une partie jamais commencée.
+     */
+    public void reset() {
+        clearMatter();
+        started = false;
+        timePlayed = 0;
+        darkMatter = BigNum.ZERO;
+        darkMatterSpent = BigNum.ZERO;
+        darkMatterSize = Game.DARK_MATTER_START_SIZE;
+        explosions = 0;
+        darkUpgradeLevels.clear();
+        fusionThreshold = 0;
+        enabledDarkAutomations.clear();
+        darkAutomationTimers.clear();
+        stats = new GameStats();
     }
 
     /**

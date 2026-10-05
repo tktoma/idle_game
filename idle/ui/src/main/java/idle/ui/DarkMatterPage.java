@@ -1,13 +1,9 @@
 package idle.ui;
 
-import idle.core.Automation;
 import idle.core.BigNum;
-import idle.core.DarkAutomation;
 import idle.core.Game;
 import idle.core.Landmark;
 import idle.core.SizeScale;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -20,18 +16,21 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Matière noire ». En haut, la quantité possédée ; en dessous, deux sous-pages :
+ * Contenu de l'onglet « Matière noire ». En haut, la quantité disponible et la quantité gagnée ;
+ * en dessous, deux sous-pages :
  * <ul>
  *   <li>« Matière noire » : le point ({@link DarkMatterView}). Tant que le joueur maintient le
  *       clic dessus (ou après un clic, une fois le verrou débloqué dans l'arbre), il grossit, d'autant plus vite que le joueur a de matière noire et que sa
  *       partie est avancée. La vue dézoome à mesure, et l'échelle des grandeurs situe sa taille :
  *       cercles des objets connus autour du point, règle graduée, repère dépassé et repère
  *       suivant. La vue occupe toute la place que laisse la fenêtre ;</li>
- *   <li>« Améliorations » : l'arbre d'améliorations ({@link DarkMatterTreePane}) ;</li>
- *   <li>« Automatisation » : les automatismes de matière noire, qui font ce que les automatismes
- *       ordinaires laissent au joueur. Chacun se débloque en possédant assez de matière noire,
- *       puis se met en marche ou se coupe d'un clic.</li>
+ *   <li>« Arbre » : l'arbre d'améliorations ({@link DarkMatterTreePane}), toutes branches réunies.
+ *       Trois se paient en particules, en atomes, ou se débloquent par la taille ; la quatrième
+ *       se paie en matière noire. La matière noire dépensée reste comptée comme gagnée, et c'est
+ *       avec la matière noire gagnée que l'effet de cette branche grandit.</li>
  * </ul>
+ *
+ * <p>Les automatismes de matière noire sont avec les autres, dans l'onglet « Automatisation ».
  *
  * <p>L'onglet n'apparaît qu'après la première explosion du tableau périodique.
  */
@@ -44,9 +43,8 @@ final class DarkMatterPage extends VBox {
     private final Label balanceLabel = new Label();
 
     private final Button pointTab = new Button("Matière noire");
-    private final Button treeTab = new Button("Améliorations");
-    private final Button automationTab = new Button("Automatisation");
-    /** Sous-page affichée : 0 = le point, 1 = l'arbre d'améliorations, 2 = les automatismes. */
+    private final Button treeTab = new Button("Arbre");
+    /** Sous-page affichée : 0 = le point, 1 = l'arbre. */
     private int selected = 0;
 
     // Sous-page « Matière noire »
@@ -60,17 +58,10 @@ final class DarkMatterPage extends VBox {
     /** Vrai quand l'appui est verrouillé : il continue sans le bouton, tant que cette sous-page est affichée. */
     private boolean locked = false;
 
-    // Sous-page « Améliorations »
+    // Sous-page « Arbre »
     private final DarkMatterTreePane tree;
     private final VBox treePane = new VBox(10);
     private final ScrollPane treeScroll = new ScrollPane(treePane);
-
-    // Sous-page « Automatisation »
-    private static final String CARD_STYLE = "-fx-font-size: 14px; -fx-padding: 12 16; -fx-background-radius: 8;"
-            + " -fx-border-radius: 8;";
-    private final Map<DarkAutomation, Button> automationCards = new LinkedHashMap<>();
-    private final VBox automationPane = new VBox(12);
-    private final ScrollPane automationScroll = new ScrollPane(automationPane);
 
     DarkMatterPage(Game game) {
         super(8);
@@ -90,8 +81,7 @@ final class DarkMatterPage extends VBox {
 
         pointTab.setOnAction(event -> select(0));
         treeTab.setOnAction(event -> select(1));
-        automationTab.setOnAction(event -> select(2));
-        HBox subTabs = new HBox(pointTab, treeTab, automationTab);
+        HBox subTabs = new HBox(pointTab, treeTab);
         subTabs.setAlignment(Pos.CENTER);
 
         // Le clic doit commencer sur le point ; il compte ensuite jusqu'à ce qu'on relâche le bouton.
@@ -115,8 +105,9 @@ final class DarkMatterPage extends VBox {
 
         // L'arbre, qui défile s'il dépasse la fenêtre.
         Label mockNotice = new Label("Ces améliorations sont définitives : ni la fusion ni l'explosion ne les "
-                + "reprennent. À gauche, elles se paient en particules ; au milieu, en atomes ; à droite, elles "
-                + "se débloquent quand la matière noire atteint une taille, sans rien dépenser.");
+                + "reprennent. Chaque branche se paie avec ce qu'indique son en-tête ; la taille, elle, se débloque "
+                + "en l'atteignant, sans rien dépenser. La matière noire dépensée reste comptée comme gagnée : "
+                + "les cases qui demandent « N matières noires gagnées » et la croissance n'y perdent rien.");
         mockNotice.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
         mockNotice.setWrapText(true);
         mockNotice.setTextAlignment(TextAlignment.CENTER);
@@ -128,39 +119,8 @@ final class DarkMatterPage extends VBox {
         treeScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         treeScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        // Les automatismes de matière noire : une carte chacun, qui sert d'interrupteur une fois débloquée.
-        Label automationNotice = new Label("Ces automatismes font ce que ceux de l'onglet Automatisation laissent "
-                + "au joueur : une action par seconde, sauf « Premiers pas » qui agit toutes les "
-                + ElementText.number(Automation.DEFAULT_INTERVAL) + " s, comme un automatisme neuf. "
-                + "Ils se débloquent en possédant assez de matière noire, sans la "
-                + "dépenser. Attention : l'explosion automatique n'attend pas que vous ayez dépensé vos particules "
-                + "et vos atomes dans l'arbre.");
-        automationNotice.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        automationNotice.setWrapText(true);
-        automationNotice.setTextAlignment(TextAlignment.CENTER);
-        automationPane.setAlignment(Pos.TOP_CENTER);
-        automationPane.setPadding(new Insets(10, 0, 10, 0));
-        automationPane.getChildren().add(automationNotice);
-        for (DarkAutomation automation : game.darkAutomations()) {
-            Button card = new Button();
-            card.setPrefWidth(520);
-            card.setMinWidth(0);                 // la carte rétrécit avec la fenêtre : son texte passe à la ligne
-            card.setMinHeight(84);
-            card.setWrapText(true);
-            card.setTextAlignment(TextAlignment.CENTER);
-            card.setOnAction(event -> {
-                game.setDarkAutomationEnabled(automation.id(), !game.isDarkAutomationEnabled(automation.id()));
-                refresh();
-            });
-            automationCards.put(automation, card);
-            automationPane.getChildren().add(card);
-        }
-        automationScroll.setFitToWidth(true);
-        automationScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        automationScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-
         // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
-        StackPane pages = new StackPane(pointPane, treeScroll, automationScroll);
+        StackPane pages = new StackPane(pointPane, treeScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
         getChildren().add(balanceLabel);
@@ -169,16 +129,14 @@ final class DarkMatterPage extends VBox {
         select(0);
     }
 
-    /** Affiche une sous-page : 0 = le point, 1 = l'arbre d'améliorations, 2 = les automatismes. */
+    /** Affiche une sous-page : 0 = le point, 1 = l'arbre. */
     private void select(int index) {
         selected = index;
         pressed = false;
         pointPane.setVisible(index == 0);
         treeScroll.setVisible(index == 1);
-        automationScroll.setVisible(index == 2);
         pointTab.setStyle(subTabStyle(index == 0));
         treeTab.setStyle(subTabStyle(index == 1));
-        automationTab.setStyle(subTabStyle(index == 2));
     }
 
     private static String subTabStyle(boolean selected) {
@@ -206,12 +164,20 @@ final class DarkMatterPage extends VBox {
         pressed = false;
     }
 
+    /** La partie recommence de zéro : plus d'appui, plus de verrou, et retour à la première sous-page. */
+    void reset() {
+        locked = false;
+        select(0);
+    }
+
     /** Recopie l'état du jeu dans les textes. */
     void refresh() {
         BigNum darkMatter = game.state().darkMatter();
+        BigNum earned = game.darkMatterEarned();
         int explosions = game.state().explosions();
-        balanceLabel.setText(Format.count(darkMatter) + " matière noire   (" + explosions
-                + (explosions > 1 ? " explosions)" : " explosion)"));
+        balanceLabel.setText(Format.count(darkMatter) + " matière noire"
+                + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
+                + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
 
         BigNum size = game.state().darkMatterSize();
         sizeLabel.setText("Taille : " + Format.length(size));
@@ -230,8 +196,8 @@ final class DarkMatterPage extends VBox {
                 : locked ? "Appui verrouillé (un clic sur le point le libère) : "
                 : "Cliquez sur le point pour verrouiller l'appui : ";
         speedLabel.setText(how + speed + " par seconde d'appui.\n"
-                + "Élan : " + ElementText.percent(Game.DARK_MATTER_GROWTH_PER_UNIT) + " × " + Format.count(darkMatter)
-                + " matière noire × avancement de la partie " + ElementText.number(game.darkMatterProgressFactor())
+                + "Élan : " + ElementText.percent(Game.DARK_MATTER_GROWTH_PER_UNIT) + " × " + Format.count(earned)
+                + " matière noire gagnée × avancement de la partie " + ElementText.number(game.darkMatterProgressFactor())
                 + (game.darkExpansionMultiplier().gt(BigNum.ONE)
                         ? " × " + Format.amount(game.darkExpansionMultiplier()) + " (arbre)" : "")
                 + ". Résistance : ÷" + Format.amount(game.darkMatterResistance())
@@ -241,30 +207,6 @@ final class DarkMatterPage extends VBox {
                                 + " de cette vitesse." : ""));
 
         tree.refresh();
-
-        automationCards.forEach((automation, card) -> {
-            String what = switch (automation.kind()) {
-                case PARTICLE_UPGRADES -> "Achète vitesse et générateurs, fusionne et synthétise, tant que "
-                        + "l'automatisme ordinaire correspondant n'est pas en marche";
-                case ATOM_UPGRADES -> "Achète les améliorations en atomes, la moins chère d'abord";
-                case AUTOMATIONS -> "Achète les automatismes ordinaires et leur cadence, le moins cher d'abord";
-                case EXPLOSION -> "Fait exploser le tableau périodique dès que c'est possible";
-            };
-            if (!game.isDarkAutomationUnlocked(automation.id())) {
-                card.setText(automation.name() + "\n" + what + "\nVerrouillé : il faut "
-                        + Format.count(automation.darkMatter()) + " matières noires (vous : " + Format.count(darkMatter) + ")");
-                card.setStyle(CARD_STYLE + " -fx-text-fill: #8fa3b8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;");
-                card.setDisable(true);
-            } else {
-                boolean on = game.isDarkAutomationEnabled(automation.id());
-                card.setText(automation.name() + "\n" + what + "\n" + (on ? "En marche" : "Coupé"));
-                card.setStyle(CARD_STYLE + " -fx-cursor: hand;" + (on
-                        ? " -fx-text-fill: #1a0f2e; -fx-background-color: " + GameApp.DARK_MATTER_COLOR + "; -fx-border-color: #ffffff;"
-                        : " -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + "; -fx-background-color: #1c1630; -fx-border-color: "
-                                + GameApp.DARK_MATTER_COLOR + ";"));
-                card.setDisable(false);
-            }
-        });
     }
 
     private static String describe(Landmark landmark) {

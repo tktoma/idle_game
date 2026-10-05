@@ -17,18 +17,25 @@ import java.util.List;
  * Le test {@code GameTest.Simulation} vérifie que la durée reste dans la fourchette voulue.
  *
  * <p>La suite (atomes, automatismes, tableau périodique) a été réglée de la même façon, en
- * simulant deux profils de joueur sur toute la progression, avec huit tirages de hasard chacun.
+ * simulant plusieurs ordres d'achat sur toute la progression, avec huit tirages de hasard chacun.
  * La première explosion, celle qui donne la première matière noire, demande <b>environ un jour
- * de jeu</b> à un joueur qui optimise : 24 h en moyenne, de 21 h à 29 h selon la chance. Repères :
- * Persistance vers 2 h 30 à 3 h 30, tableau périodique ouvert vers 7 h à 9 h, premier élément
- * unique (et synthèse automatique) une à deux heures plus tard, 30 éléments vers 15 h 30, la
- * moitié du tableau vers 20 h, les 118 éléments vers 23 h 30, puis tous portés à leur maximum
- * d'exemplaires (811 en tout) en une vingtaine de minutes.
+ * de jeu</b> à un joueur qui optimise : 24 h en moyenne, de 21 h à 28 h selon la chance. Un
+ * joueur qui achète sans réfléchir met plutôt 27 h. Repères du meilleur ordre d'achat trouvé :
+ * 30 atomes créés (automatisation et tableau périodique débloqués, {@link Game#UNLOCK_TOTAL_ATOMS})
+ * vers 3 h 10, Persistance vers 4 h 40, automatismes à leur cadence maximale vers 8 h, premier
+ * élément unique (et synthèse automatique) vers 8 h 20, 30 éléments vers 15 h 20, la moitié du
+ * tableau vers 20 h, les 118 éléments vers 23 h 45, puis tous portés à leur maximum d'exemplaires
+ * (811 en tout) en une vingtaine de minutes.
  *
- * <p>Le début (premier atome, Persistance) est resté celui de la version courte : c'est la
- * partie où le joueur clique. Ce sont les deux phases automatisées qui ont été allongées, par la
- * cadence des automatismes ({@link Automation#DEFAULT_INTERVAL}), le Rendement, et les éléments
- * qui accélèrent la synthèse elle-même (voir {@link PeriodicTable}).
+ * <p>Ce meilleur ordre : Dédoublement, Patience, Masse atomique, un second Dédoublement, un
+ * Catalyseur et une Compression avant les 30 atomes ; puis l'automatisme des générateurs, celui
+ * de la fusion, deux niveaux de cadence pour les générateurs, Persistance, l'automatisme de la
+ * vitesse, et le reste au moins cher.
+ *
+ * <p>Le début (premier atome à 38 minutes) est resté celui de la version courte : c'est la
+ * partie où le joueur clique. Ce sont les phases automatisées qui durent, par la cadence des
+ * automatismes ({@link Automation#DEFAULT_INTERVAL}), le Rendement, et les éléments qui
+ * accélèrent la synthèse elle-même (voir {@link PeriodicTable}).
  */
 public final class Upgrades {
 
@@ -78,22 +85,24 @@ public final class Upgrades {
             new Upgrade("atom_discount", "Compression", Resource.ATOMS,
                     BigNum.of(3), 2, 5,
                     new Effect.DiscountGenerators(0.8)),
-            // La fusion ne remet plus « Vitesse de création » à zéro, et les automatismes se débloquent.
-            // À 8 atomes, elle arrive entre 2 h 30 et 3 h 50 de jeu selon le joueur : au moment où
-            // les parties passent sous les 5 minutes et où tout racheter à la main devient répétitif.
+            // La fusion ne remet plus « Vitesse de création » à zéro. Elle ne débloque plus rien :
+            // l'automatisation et le tableau périodique s'ouvrent à 30 atomes créés
+            // (Game.UNLOCK_TOTAL_ATOMS). À 25 atomes au lieu de 8, c'est un vrai choix : l'acheter avant
+            // ce cap le retarde d'une heure et demie ; le mieux est de la prendre juste après les
+            // premiers automatismes, vers 4 h 40 de jeu.
             new Upgrade("atom_keep", "Persistance", Resource.ATOMS,
-                    BigNum.of(8), 1, 1,
+                    BigNum.of(25), 1, 1,
                     new Effect.KeepUpgradesOnFusion()),
 
             // ----- Le lien entre les particules et les atomes. -----
 
             // +15 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
-            // de 1 000 particules par seconde. Sans lui, les particules ne serviraient plus à rien
+            // de 10 000 particules par seconde. Sans lui, les particules ne serviraient plus à rien
             // une fois les parties automatisées ; avec lui, tout ce qui augmente la production
             // (vitesse, générateurs, éléments) finit par rapporter des atomes.
             new Upgrade("atom_yield", "Rendement", Resource.ATOMS,
                     BigNum.of(40), 1, 1,
-                    new Effect.MultiplyAtomsByProduction(1_000, 0.15)));
+                    new Effect.MultiplyAtomsByProduction(10_000, 0.15)));
 
     private Upgrades() {}
 }

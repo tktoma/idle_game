@@ -4,11 +4,88 @@ import idle.core.BigNum;
 import idle.core.SizeScale;
 import java.util.Locale;
 
-/** Mise en forme des nombres affichés au joueur. */
+/**
+ * Mise en forme des nombres affichés au joueur. Les grands nombres suivent la notation choisie
+ * dans les réglages ({@link Settings.Notation}).
+ */
 final class Format {
 
     private static final BigNum THOUSAND = BigNum.of(1, 3);
     private static final BigNum MILLION = BigNum.of(1, 6);
+    /** Abréviations des milliers successifs : 1e3, 1e6, 1e9… jusqu'à 1e33. */
+    private static final String[] LETTERS = {"K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"};
+
+    private static Settings.Notation notation = Settings.Notation.SCIENTIFIC;
+
+    /** Change la façon d'écrire les grands nombres, partout dans le jeu. */
+    static void setNotation(Settings.Notation chosen) {
+        notation = chosen;
+    }
+
+    /**
+     * Grand nombre dans la notation choisie : « 1.23e7 », « 12.3e6 » ou « 12.3 M ». En dessous de
+     * mille, toutes les notations donnent la même chose : « 123.45 ».
+     */
+    static String big(BigNum value) {
+        if (notation == Settings.Notation.SCIENTIFIC || value.sign() <= 0 || value.lt(THOUSAND)) return value.format();
+        // Mantisse ramenée entre 1 et 1000, avec un exposant multiple de trois.
+        long exponent = Math.floorDiv(value.exponent(), 3L) * 3;
+        double mantissa = value.mantissa() * Math.pow(10, value.exponent() - exponent);
+        if (mantissa >= 999.5) {            // 999.7 s'arrondirait à 1000 : on passe au millier suivant
+            mantissa /= 1000;
+            exponent += 3;
+        }
+        // Trois chiffres significatifs : 1.23, 12.3, 123.
+        String digits = String.format(Locale.ROOT, mantissa < 9.995 ? "%.2f" : mantissa < 99.95 ? "%.1f" : "%.0f", mantissa);
+        int letter = (int) (exponent / 3) - 1;
+        if (notation == Settings.Notation.LETTERS && letter < LETTERS.length) return digits + " " + LETTERS[letter];
+        return notation == Settings.Notation.LETTERS ? value.format() : digits + "e" + exponent;
+    }
+
+    /**
+     * Durée lisible : « 8.2 s », « 12 min 05 s », « 3 h 12 min », « 2 j 3 h ». Deux unités au
+     * plus : au-delà, la précision n'apporte rien.
+     */
+    static String duration(double seconds) {
+        if (seconds < 60) {
+            String text = String.format(Locale.ROOT, "%.1f", Math.max(0, seconds));
+            return (text.endsWith(".0") ? text.substring(0, text.length() - 2) : text) + " s";
+        }
+        long total = (long) Math.floor(seconds);
+        long days = total / 86_400, hours = total % 86_400 / 3_600, minutes = total % 3_600 / 60, rest = total % 60;
+        if (days > 0) return days + " j " + hours + " h";
+        if (hours > 0) return hours + " h " + String.format(Locale.ROOT, "%02d", minutes) + " min";
+        return minutes + " min " + String.format(Locale.ROOT, "%02d", rest) + " s";
+    }
+
+    /**
+     * Durée courte, pour les graduations d'un graphique : « 30 s », « 12 min », « 12 min 05 »,
+     * « 2 h », « 2 h 30 », « 1 j », « 1 j 4 h ».
+     */
+    static String clock(double seconds) {
+        long total = Math.round(Math.max(0, seconds));
+        if (seconds < 60 && total < 60) {
+            String text = String.format(Locale.ROOT, "%.1f", Math.max(0, seconds));
+            return (text.endsWith(".0") ? text.substring(0, text.length() - 2) : text) + " s";
+        }
+        long days = total / 86_400, hours = total % 86_400 / 3_600, minutes = total % 3_600 / 60, rest = total % 60;
+        if (days > 0) return days + " j" + (hours > 0 ? " " + hours + " h" : "");
+        if (hours > 0) return hours + " h" + (minutes > 0 ? String.format(Locale.ROOT, " %02d", minutes) : "");
+        return minutes + " min" + (rest > 0 ? String.format(Locale.ROOT, " %02d", rest) : "");
+    }
+
+    /**
+     * Une puissance de dix ronde, pour les graduations d'un graphique : « 1e20 » en notation
+     * scientifique (plus court que « 1.00e20 »), sinon comme les autres grands nombres.
+     */
+    static String powerOfTen(long exponent) {
+        return notation == Settings.Notation.SCIENTIFIC ? "1e" + exponent : big(BigNum.of(1, exponent));
+    }
+
+    /** Nombre entier avec des espaces entre les milliers : « 12 345 ». */
+    static String whole(long value) {
+        return String.format(Locale.ROOT, "%,d", value).replace(',', ' ');
+    }
 
     /**
      * Quantité de ressource : en entier tant que c'est lisible, puis en notation scientifique.
@@ -16,12 +93,12 @@ final class Format {
      */
     static String count(BigNum value) {
         // Le petit ajout absorbe les erreurs d'arrondi des double (2,9999999 doit s'afficher 3).
-        return value.lt(MILLION) ? String.valueOf((long) Math.floor(value.toDouble() + 1e-9)) : value.format();
+        return value.lt(MILLION) ? String.valueOf((long) Math.floor(value.toDouble() + 1e-9)) : big(value);
     }
 
     /** Multiplicateur : « ×2 », « ×1.25 », puis en notation scientifique. */
     static String multiplier(BigNum value) {
-        if (!value.lt(THOUSAND)) return "×" + value.format();
+        if (!value.lt(THOUSAND)) return "×" + big(value);
         String text = String.format(Locale.ROOT, "%.2f", value.toDouble());
         return "×" + text.replaceAll("0+$", "").replaceAll("\\.$", "");
     }

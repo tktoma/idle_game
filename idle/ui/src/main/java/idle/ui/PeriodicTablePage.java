@@ -95,6 +95,7 @@ final class PeriodicTablePage extends VBox {
         synthesizeButton.setStyle("-fx-font-size: 14px; -fx-padding: 8 20; -fx-cursor: hand; -fx-text-fill: #ffd27f;"
                 + " -fx-background-color: #2a2113; -fx-background-radius: 8;"
                 + " -fx-border-color: #ffd27f; -fx-border-radius: 8;");
+        synthesizeButton.setFocusTraversable(false);   // sinon, grisé après un clic, il fait défiler la page
         synthesizeButton.setOnAction(event -> {
             game.synthesize();
             refresh();     // c'est l'affichage qui repère l'élément obtenu, comme pour une synthèse automatique

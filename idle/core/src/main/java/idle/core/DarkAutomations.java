@@ -4,21 +4,24 @@ import java.util.List;
 
 /**
  * Catalogue des automatismes de matière noire : ils prennent en charge ce que les automatismes
- * ordinaires laissent au joueur. Chacun se débloque en possédant assez de matière noire. Les
- * trois qui achètent ou font exploser agissent une fois par seconde ; « Premiers pas », qui joue
- * à la place des automatismes ordinaires, va au rythme d'un automatisme neuf
- * ({@link Automation#DEFAULT_INTERVAL}) : il ne doit jamais faire mieux qu'eux.
+ * ordinaires laissent au joueur. Chacun se débloque une fois assez de matière noire gagnée, et
+ * agit une fois par seconde.
  *
- * <p>Avec les quatre en marche, et les automatismes ordinaires, le jeu enchaîne les explosions
- * sans aucun clic ; seules restent au joueur la croissance de la matière noire et son arbre.
+ * <p>Aucun ne fait double emploi avec un automatisme ordinaire. Le premier ne joue pas à leur
+ * place : il les offre, dès le début de chaque partie. Les suivants achètent ce que les
+ * automatismes ordinaires n'achètent pas (améliorations en atomes, cadences), et le dernier
+ * déclenche l'explosion.
+ *
+ * <p>Avec les quatre en marche, le jeu enchaîne les explosions sans aucun clic ; seules restent
+ * au joueur la croissance de la matière noire et ses améliorations.
  */
 public final class DarkAutomations {
 
     public static final List<DarkAutomation> DEFAULT = List.of(
-            // Le début de chaque partie, avant d'avoir racheté Persistance et les automatismes, et les
-            // premières synthèses, avant d'avoir un élément unique.
-            new DarkAutomation("dark_auto_start", "Premiers pas", DarkAutomation.Kind.PARTICLE_UPGRADES,
-                    BigNum.of(2), Automation.DEFAULT_INTERVAL),
+            // Les automatismes ordinaires, offerts dès le début de chaque partie ; la synthèse
+            // automatique, une fois les autres à leur cadence maximale et le tableau ouvert.
+            new DarkAutomation("dark_auto_start", "Automatismes offerts", DarkAutomation.Kind.GRANT_AUTOMATIONS,
+                    BigNum.of(2), 1),
             new DarkAutomation("dark_auto_atoms", "Améliorations en atomes", DarkAutomation.Kind.ATOM_UPGRADES,
                     BigNum.of(3), 1),
             new DarkAutomation("dark_auto_machines", "Achat des automatismes", DarkAutomation.Kind.AUTOMATIONS,

@@ -31,7 +31,7 @@ import javafx.util.Duration;
  *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, sous forme de
  *       cartes rangées en colonnes selon la largeur de la fenêtre ;</li>
  *   <li>« Tableau périodique » : la synthèse d'éléments et leurs effets ({@link PeriodicTablePage}).
- *       Cette sous-page n'apparaît qu'une fois les automatismes à leur cadence maximale.</li>
+ *       Cette sous-page n'apparaît qu'une fois assez d'atomes créés, comme l'automatisation.</li>
  * </ul>
  */
 final class AtomsPage extends VBox {
@@ -113,6 +113,8 @@ final class AtomsPage extends VBox {
             button.setWrapText(true);
             button.setTextAlignment(TextAlignment.CENTER);
             button.setStyle(UPGRADE_STYLE);
+            // Une carte qui garde le focus puis se grise le passe à la suivante, et la page défile toute seule.
+            button.setFocusTraversable(false);
             button.setOnAction(event -> {
                 game.buy(upgrade.id());
                 refresh();
@@ -173,7 +175,7 @@ final class AtomsPage extends VBox {
                 + (atoms.gt(Game.MAX_ATOMS) ? " (le plafond d'atomes est levé, pas celui des orbes)" : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
-        // Le tableau périodique n'apparaît qu'une fois tous les automatismes à leur cadence maximale.
+        // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
         boolean tableUnlocked = game.isPeriodicTableUnlocked();
         tableTab.setVisible(tableUnlocked);
         tableTab.setManaged(tableUnlocked);
@@ -183,7 +185,10 @@ final class AtomsPage extends VBox {
                 ? (tableUnlocked && !game.isPeriodicTableComplete()
                         ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
                         : "Maximum atteint : dépensez des atomes pour pouvoir fusionner de nouveau.")
-                : "Fusionnez les " + game.generatorsPerAtom() + " générateurs pour créer un atome de plus.");
+                : "Fusionnez les " + game.generatorsPerAtom() + " générateurs pour créer un atome de plus."
+                        + (tableUnlocked ? "" : "\nL'automatisation et le tableau périodique se débloquent à "
+                                + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " atomes créés (vous : "
+                                + Format.count(created) + ")."));
 
         upgradeButtons.forEach((upgrade, button) -> {
             button.setText(describe(upgrade));
