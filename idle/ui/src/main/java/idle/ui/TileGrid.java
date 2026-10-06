@@ -25,7 +25,7 @@ final class TileGrid extends VBox {
     private static final double WIDEN_MARGIN = 24;
 
     private final List<Region> tiles = new ArrayList<>();
-    private final List<Region> hidden = new ArrayList<>();
+    private final java.util.Set<Region> hidden = new java.util.HashSet<>();
     private final double tileWidth;
     private final int maxColumns;
     private final double gap;

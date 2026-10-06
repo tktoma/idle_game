@@ -62,6 +62,68 @@ final class Goals {
         return estimate.isEmpty() ? goal : goal + "  ·  " + estimate;
     }
 
+    /**
+     * Le prochain pas du troisième acte, celui qui s'ouvre au premier Big Bang et que ni l'explosion
+     * ni le Big Bang n'effacent : une amélioration d'espace à prendre, une première molécule, un
+     * premier rassemblement, un premier assemblage, le prochain astre, la galaxie. Vide avant le
+     * premier Big Bang.
+     */
+    static String act(Game game) {
+        if (!game.isBigBangUnlocked()) return "";
+        if (game.hasGalaxy()) return "la galaxie est formée";
+        if (game.canFormGalaxy()) return "former la galaxie";
+        // Une amélioration que l'espace créé permet déjà de prendre : elle ne coûte rien, elle passe d'abord.
+        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) {
+            if (game.canBuySpaceUpgrade(upgrade.id())) return "prendre l'amélioration « " + upgrade.name() + " »";
+        }
+        if (game.moleculesCreated() == 0) {
+            // Après un Big Bang le tableau périodique est vide : il faut d'abord le regarnir, et laisser l'espace grandir.
+            boolean elements = false;
+            for (idle.core.Molecule molecule : game.molecules()) {
+                if (game.canCreateMolecule(molecule.id())) return "créer une première molécule";
+                elements |= game.isMoleculeKindUnlocked(molecule.kind()) && game.hasElementsForMolecule(molecule.id());
+            }
+            return elements ? "attendre l'espace d'une première molécule"
+                    : "regarnir le tableau périodique pour créer une première molécule";
+        }
+        if (game.isBodiesUnlocked()) {
+            // Le prochain astre : le premier du catalogue qui n'est pas formé et dont les astres de départ le sont.
+            for (idle.core.Body body : game.bodies()) {
+                if (game.hasBody(body.id())) continue;
+                boolean reachable = true;
+                for (String smaller : body.bodies()) reachable &= game.hasBody(smaller);
+                if (!reachable) continue;
+                return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + body.conditions()
+                        + " conditions)";
+            }
+        }
+        if (game.isAssembliesUnlocked() && game.assembliesFormed() == 0) return "former un premier assemblage";
+        if (game.isStatesUnlocked() && game.substancesFormed() == 0) {
+            return "rassembler " + Game.SUBSTANCE_MOLECULES + " molécules d'une même sorte";
+        }
+        // Sinon, la prochaine amélioration d'espace : la moins chère de celles qui sont proposées.
+        idle.core.SpaceUpgrade next = null;
+        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) {
+            if (game.ownsSpaceUpgrade(upgrade.id()) || !game.isSpaceUpgradeAvailable(upgrade.id())) continue;
+            if (next == null || upgrade.space().lt(next.space())) next = upgrade;
+        }
+        if (next != null) {
+            double wait = game.secondsUntilSpace(next.space());
+            return "atteindre " + Format.count(next.space()) + " d'espace pour « " + next.name() + " »"
+                    + (wait <= 0 || Double.isInfinite(wait) ? "" : ", dans " + Format.wait(wait));
+        }
+        return game.isAssembliesUnlocked() ? "former d'autres assemblages" : "créer d'autres molécules";
+    }
+
+    /** « un amas rocheux », « une comète glacée », « le Soleil » : le nom d'un astre avec son article. */
+    private static String article(String name) {
+        if (name.equals("Soleil")) return "le Soleil";
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")
+                || lower.startsWith("géante") || lower.startsWith("naine") || lower.startsWith("étoile");
+        return (feminine ? "une " : "un ") + lower;
+    }
+
     /** « 3 fusions, environ 12 min » : le temps vient de la durée de la dernière partie entre deux fusions. */
     private static String fusions(long count, GameStats stats) {
         String text = Format.whole(count) + (count > 1 ? " fusions" : " fusion");

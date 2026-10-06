@@ -115,7 +115,22 @@ public final class StatsHistory {
 
         // ----- Général -----
         /** Succès obtenus. */
-        ACHIEVEMENTS
+        ACHIEVEMENTS,
+
+        // ----- Big Bang -----
+        /** Espace créé par l'expansion de la matière, en puissance de dix. Sans valeur avant le premier Big Bang. */
+        SPACE,
+        /** Espace utilisé par les molécules et leurs lieux de rassemblement, en puissance de dix. */
+        SPACE_USED,
+        /** Molécules créées. */
+        MOLECULES,
+        /** Ce que les molécules, les assemblages et les astres multiplient : l'espace, les particules, les atomes, la matière noire, en puissance de dix. */
+        MOLECULE_SPACE,
+        MOLECULE_PARTICLES,
+        MOLECULE_ATOMS,
+        MOLECULE_DARK,
+        /** Assemblages et astres formés, galaxie comprise. */
+        SKY
     }
 
     /**

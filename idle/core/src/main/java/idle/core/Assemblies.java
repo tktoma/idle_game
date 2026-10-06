@@ -3,8 +3,8 @@ package idle.core;
 import java.util.List;
 
 /**
- * Catalogue des assemblages, rangés par famille ({@link Assembly.Family}) : 44 matières qu'on
- * trouve dans la nature, de la roche granitique à la glace de comète. Rien de vivant, et aucune
+ * Catalogue des assemblages, rangés par famille ({@link Assembly.Family}) : 58 matières qu'on
+ * trouve dans la nature, de la roche granitique à la glace de comète, puis à la matière des étoiles. Rien de vivant, et aucune
  * molécule du rayon du vivant n'y entre ; rien de fabriqué non plus, ni verre, ni alliage, ni
  * batterie. Le catalogue est large à dessein, pour pouvoir y trier ensuite.
  *
@@ -12,10 +12,12 @@ import java.util.List;
  * de cuivre », « Lac salé »), pas un échantillon précis, et réunit trois à huit sortes de molécules
  * qui vont ensemble.
  *
- * <p>Chaque assemblage demande 200 à 420 molécules, dans des proportions proches de la matière
+ * <p>Chaque assemblage demande 200 à 420 molécules, et ceux de la matière d'étoiles jusqu'à 1 500,
+ * presque tout en hydrogène : une étoile est bien plus grosse qu'une planète. Les proportions sont proches de la matière
  * réelle : la base en centaines, les traces à l'unité (quatre oxydes de chrome dans trois cents
- * corindons). Ces nombres viennent de mémoire et sont un premier réglage : ils sont choisis pour
- * que le bloc soit grand à côté d'une molécule, pas encore pour être atteints en jouant.
+ * corindons). Ces nombres viennent de mémoire ; ils sont choisis pour que le bloc soit grand à
+ * côté d'une molécule, et la simulation du troisième acte montre qu'ils s'atteignent en jouant,
+ * une fois les sortes rassemblées ({@link Game#moleculesPerCreation(String)}).
  */
 public final class Assemblies {
 
@@ -83,7 +85,7 @@ public final class Assemblies {
             of(Assembly.Family.WATER, "spring_water", "Eau de source", "#5aa9e0")
                     .with("H2O", 350).with("CaCO3", 3).with("CO2", 3).with("MgSO4", 2).with("NaHCO3", 2),
             of(Assembly.Family.WATER, "sparkling_water", "Eau pétillante", "#7fc4ea")
-                    .with("H2O", 300).with("CO2", 25).with("H2CO3", 10),
+                    .with("H2O", 300).with("CO2", 12).with("H2CO3", 10),
             of(Assembly.Family.WATER, "thermal_water", "Eau thermale", "#6fb8a8")
                     .with("H2O", 300).with("H2S", 10).with("CO2", 10).with("SiO2", 10).with("NaCl", 10).with("H3BO3", 5),
             of(Assembly.Family.WATER, "salt_lake", "Lac salé", "#c9d9d0")
@@ -119,7 +121,38 @@ public final class Assemblies {
             of(Assembly.Family.FUEL, "natural_gas", "Gaz naturel", "#8fa0c8")
                     .with("CH4", 240).with("C2H6", 30).with("C3H8", 15).with("C4H10", 10).with("CO2", 5),
             of(Assembly.Family.FUEL, "bitumen", "Bitume", "#26221e")
-                    .with("C10H8", 80).with("C14H10", 60).with("C7H8", 40).with("C8H10", 40).with("C8H18", 30).with("C4H4S", 10));
+                    .with("C10H8", 80).with("C14H10", 60).with("C7H8", 40).with("C8H10", 40).with("C8H18", 30).with("C4H4S", 10),
+
+            // La matière des étoiles : surtout de l'hydrogène, par centaines et par milliers, et ce qu'elles
+            // laissent en mourant. Ces assemblages sont bien plus gros que les autres : une étoile l'est aussi.
+            of(Assembly.Family.STELLAR, "brown_dwarf_atmosphere", "Atmosphère de naine brune", "#8a4a5a")
+                    .with("H2", 560).with("CH4", 70).with("H2O", 35).with("NH3", 20).with("CO", 15),
+            of(Assembly.Family.STELLAR, "red_dwarf_envelope", "Enveloppe de naine rouge", "#e0503a")
+                    .with("H2", 700).with("CO", 60).with("H2O", 40).with("TiO2", 30).with("LiH", 20),
+            of(Assembly.Family.STELLAR, "solar_plasma", "Plasma solaire", "#ffcc4a")
+                    .with("H2", 950).with("O2", 50).with("CO", 40).with("N2", 30).with("SiH4", 30),
+            of(Assembly.Family.STELLAR, "blue_giant_envelope", "Enveloppe de géante bleue", "#8ab8ff")
+                    .with("H2", 1100).with("N2", 90).with("O2", 70).with("CO", 40),
+            of(Assembly.Family.STELLAR, "red_giant_envelope", "Enveloppe de géante rouge", "#ff7a3a")
+                    .with("H2", 1050).with("CO", 150).with("H2O", 80).with("SiC", 50).with("TiO2", 30).with("C2H2", 25).with("HCN", 15),
+            of(Assembly.Family.STELLAR, "carbon_core", "Cœur de carbone et d'oxygène", "#dfe8f8")
+                    .with("CO", 200).with("CO2", 100).with("SiC", 40).with("MgO", 20),
+            of(Assembly.Family.STELLAR, "planetary_nebula", "Nébuleuse planétaire", "#7ad0c8")
+                    .with("H2", 280).with("O2", 50).with("N2", 40).with("CO", 30),
+            of(Assembly.Family.STELLAR, "iron_crust", "Croûte de fer et de nickel", "#8a8f9c")
+                    .with("Fe3O4", 200).with("Fe2O3", 80).with("NiO", 60).with("FeS2", 25).with("Cr2O3", 15),
+            of(Assembly.Family.STELLAR, "supernova_remnant", "Reste de supernova", "#c86a9a")
+                    .with("H2", 180).with("SiO2", 80).with("Fe2O3", 60).with("MgO", 40).with("CaO", 30).with("TiO2", 20).with("NiO", 10),
+            of(Assembly.Family.STELLAR, "accretion_disc", "Disque d'accrétion", "#ff9a3a")
+                    .with("H2", 650).with("CO", 90).with("H2O", 60).with("SiO2", 60).with("Fe2O3", 40),
+            of(Assembly.Family.STELLAR, "heavy_ashes", "Cendres d'éléments lourds", "#c8a85a")
+                    .with("CeO2", 90).with("Nd2O3", 70).with("La2O3", 50).with("Gd2O3", 40).with("Au2O3", 30).with("Y2O3", 20),
+            of(Assembly.Family.STELLAR, "galactic_core_gas", "Gaz du cœur de la galaxie", "#b890e0")
+                    .with("H2", 1150).with("CO", 150).with("NH3", 60).with("CH3OH", 50).with("HCN", 40).with("C2H5OH", 30).with("CH2O", 20),
+            of(Assembly.Family.STELLAR, "bulge_dust", "Poussière du bulbe", "#a08a70")
+                    .with("SiO2", 300).with("Mg2SiO4", 180).with("MgSiO3", 150).with("Al2O3", 80).with("SiC", 50).with("TiO2", 40),
+            of(Assembly.Family.STELLAR, "stellar_wreckage", "Débris d'étoiles", "#d8b890")
+                    .with("H2", 300).with("Fe3O4", 120).with("SiO2", 80).with("CO", 60).with("NiO", 40));
 
     private static Assembly of(Assembly.Family family, String id, String name, String tint) {
         return Assembly.of(family, id, name, tint);

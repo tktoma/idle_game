@@ -2,6 +2,9 @@ package idle.ui;
 
 import idle.core.Automation;
 import idle.core.BigNum;
+import idle.core.SpaceUpgrade;
+import idle.core.Molecule;
+import idle.core.Body;
 import idle.core.DarkUpgrade;
 import idle.core.Element;
 import idle.core.ElementCategory;
@@ -192,6 +195,7 @@ final class StatsPage extends VBox {
         automation();
         periodicTable();
         darkMatter();
+        bigBang();
 
         VBox.setVgrow(stack, Priority.ALWAYS);
         getChildren().add(title);
@@ -633,6 +637,102 @@ final class StatsPage extends VBox {
     /** Le prochain grand pas de la partie en cours, en une phrase. */
     private String nextGoal() {
         return Goals.next(game);
+    }
+
+    /** Le troisième acte : l'espace, les molécules, ce qu'elles forment, et ce que tout cela multiplie. */
+    private void bigBang() {
+        page("Big Bang", GameApp.BIG_BANG_COLOR, game::isBigBangUnlocked, "au premier Big Bang");
+        curves();
+        log("Espace créé", "par l'expansion de la matière", ChartPane.YELLOW, StatsHistory.Stat.SPACE, () -> true);
+        log("Espace utilisé", "par les molécules et leurs lieux de rassemblement", ChartPane.ORANGE,
+                StatsHistory.Stat.SPACE_USED, () -> game.moleculesCreated() > 0);
+        count("Molécules créées", "", ChartPane.YELLOW, StatsHistory.Stat.MOLECULES, () -> game.moleculesCreated() > 0);
+        count("Assemblages et astres formés", "galaxie comprise", ChartPane.TEAL, StatsHistory.Stat.SKY,
+                () -> game.assembliesFormed() > 0);
+        curve("Ce que la matière multiplie : espace et matière noire", this::boosted,
+                () -> new ChartPane("Ce que la matière multiplie", "espace par seconde et croissance de la matière noire · échelle logarithmique",
+                        true, Format::clock, value -> Format.multiplier(BigNum.pow10(value)), false, 0, Double.NaN),
+                new Line("Espace", ChartPane.YELLOW, sample -> sample.value(StatsHistory.Stat.MOLECULE_SPACE)),
+                new Line("Matière noire", ChartPane.VIOLET, sample -> sample.value(StatsHistory.Stat.MOLECULE_DARK)));
+        curve("Ce que la matière multiplie : particules et atomes", this::boosted,
+                () -> new ChartPane("Ce que la matière multiplie", "particules et atomes par fusion · échelle logarithmique",
+                        true, Format::clock, value -> Format.multiplier(BigNum.pow10(value)), false, 0, Double.NaN),
+                new Line("Particules", ChartPane.BLUE, sample -> sample.value(StatsHistory.Stat.MOLECULE_PARTICLES)),
+                new Line("Atomes", ChartPane.ORANGE, sample -> sample.value(StatsHistory.Stat.MOLECULE_ATOMS)));
+
+        section("Avancée");
+        row("Prochain pas", () -> Goals.act(game));
+        row("Big Bangs", () -> Format.whole(game.bigBangs()));
+        row("Paliers de Big Bang", () -> game.bigBangMilestonesReached() + " / " + game.bigBangMilestones().size());
+        row("Améliorations d'espace prises", () -> {
+            int owned = 0;
+            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
+                if (game.ownsSpaceUpgrade(upgrade.id())) owned++;
+            }
+            return owned + " / " + game.spaceUpgrades().size();
+        });
+        row("Appui automatique sur la matière noire", () -> game.isAutoHoldEnabled() ? "en marche" : "coupé", game::isAutoHoldUnlocked);
+        row("Création automatique des molécules", () -> (game.isMoleculeAutomationEnabled() ? "en marche, " : "coupée, ")
+                + game.automatedMolecules() + (game.automatedMolecules() > 1 ? " amas confiés" : " amas confié"),
+                game::isMoleculeAutomationUnlocked);
+        row("Expansion multipliée par la matière noire", () -> multiplier(game.darkMatterSpaceBoost()),
+                () -> game.darkMatterSpaceBoost() > 1);
+
+        section("Expansion de la matière");
+        charted("Espace créé", row("Espace créé", () -> Format.count(game.state().space())));
+        row("Espace par seconde", () -> "+" + Format.amount(game.spacePerSecond()));
+        charted("Espace utilisé", row("Occupé par les molécules", () -> Format.count(game.occupiedSpace()), () -> game.moleculesCreated() > 0));
+        row("Réservé aux rassemblements", () -> Format.count(game.reservedSpace()), () -> game.substancesFormed() > 0);
+        row("Espace libre", () -> Format.count(game.freeSpace()));
+
+        section("Molécules");
+        charted("Molécules créées", row("Molécules créées", () -> Format.whole(game.moleculesCreated())));
+        row("Sortes de molécules créées", () -> {
+            int sorts = 0;
+            for (Molecule molecule : game.molecules()) {
+                if (game.moleculeCount(molecule.id()) > 0) sorts++;
+            }
+            return sorts + " / " + game.molecules().size();
+        });
+        row("Rayons ouverts", () -> game.moleculeKindsUnlocked() + " / " + Molecule.Kind.values().length);
+        row("Sortes rassemblées", () -> Format.whole(game.substancesFormed()), game::isStatesUnlocked);
+        for (Molecule.State state : Molecule.State.values()) {
+            row(BigBangPage.placeTitle(state) + " rassemblés", () -> Format.whole(game.gatheredInState(state)),
+                    () -> game.gatheredInState(state) > 0);
+        }
+
+        section("Assemblages et astres");
+        charted("Assemblages et astres formés", row("Assemblages formés",
+                () -> game.assembliesFormed() + " / " + game.assemblies().size(), game::isAssembliesUnlocked));
+        row("Astres formés", () -> game.bodiesFormed() + " / " + game.bodies().size(), game::isBodiesUnlocked);
+        for (Body.Tier tier : Body.Tier.values()) {
+            row(tier.label(), () -> game.bodiesFormed(tier) + " / " + game.bodiesIn(tier),
+                    () -> game.isBodiesUnlocked() && (game.bodiesFormed(tier) > 0 || tier == Body.Tier.RUBBLE));
+        }
+        row("Galaxie", () -> game.hasGalaxy() ? "formée" : game.canFormGalaxy() ? "prête à être formée" : "pas encore",
+                game::isGalaxyUnlocked);
+
+        section("Ce que la matière multiplie");
+        row("Particules", () -> multiplier(game.moleculeBoost(Molecule.Stat.PARTICLES)), this::boosted);
+        row("Atomes par fusion", () -> multiplier(game.moleculeBoost(Molecule.Stat.ATOMS)), this::boosted);
+        row("Espace par seconde", () -> multiplier(game.moleculeBoost(Molecule.Stat.SPACE)), this::boosted);
+        row("Croissance de la matière noire", () -> multiplier(game.moleculeBoost(Molecule.Stat.DARK_GROWTH)), this::boosted);
+        row("dont les améliorations d'espace", () -> "atomes " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.ATOMS))
+                + ", particules " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.PARTICLES))
+                + ", espace " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)), this::upgraded);
+    }
+
+    /** Vrai dès que le troisième acte multiplie quelque chose : une molécule créée, ou une amélioration d'espace qui multiplie. */
+    private boolean boosted() {
+        return game.moleculesCreated() > 0 || upgraded();
+    }
+
+    /** Vrai si une amélioration d'espace acquise multiplie une grandeur. */
+    private boolean upgraded() {
+        for (Molecule.Stat stat : Molecule.Stat.values()) {
+            if (game.spaceUpgradeBoost(stat) > 1) return true;
+        }
+        return false;
     }
 
     private static String multiplier(double value) {

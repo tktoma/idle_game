@@ -7,23 +7,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Un astre : un corps du ciel, de l'amas de roches à la planète. C'est l'étage au-dessus des
+ * Un astre : un corps du ciel, de l'amas de roches au trou noir supermassif. C'est l'étage au-dessus des
  * assemblages : un astre se forme en cumulant ce que le joueur a déjà fait de plus petit.
  *
  * <p>Les astres vont par échelles ({@link Tier}), chacune avec plusieurs types : un amas peut être
  * rocheux, glacé, ferreux ou carboné ; une planète, rocheuse, océan, de lave, glacée ou géante.
+ * Au-delà des planètes viennent les étoiles, de la naine brune à la géante, puis ce qu'elles
+ * laissent en mourant (naine blanche, étoile à neutrons), les trous noirs, et le trou noir
+ * supermassif autour duquel tout finira par tourner ({@link Game#formGalaxy()}).
  * Un astre se forme avec {@link Game#formBody(String)}, une seule fois, quand le joueur réunit
  * tout ce qu'il demande :
  * <ul>
+ *   <li>des assemblages déjà formés ({@link #assemblies()}) : c'est ce dont l'astre est fait. Ils
+ *       entrent dans l'astre, et aucun autre astre ne les utilise : dans le catalogue, chaque
+ *       assemblage appartient à un seul astre. Dans l'espace, leurs blocs se regroupent pour
+ *       former le corps de l'astre ;</li>
  *   <li>des astres de l'échelle d'en dessous, déjà formés ({@link #bodies()}) : une comète part
  *       d'un amas, une planète de lunes et d'astéroïdes ;</li>
- *   <li>des assemblages déjà formés ({@link #assemblies()}) ;</li>
  *   <li>de la matière : un nombre de molécules rassemblées dans un état donné, toutes sortes
  *       confondues ({@link #matter()}) ;</li>
  *   <li>des molécules précises, en nombre ({@link #molecules()}).</li>
  * </ul>
- * Rien n'est consommé ni réservé : ce sont des seuils. Deux astres peuvent demander le même
- * assemblage ou le même amas.
+ * Les trois dernières sont des seuils : rien n'y est consommé ni réservé, et ce qui sert à un
+ * astre sert aussi aux autres.
  *
  * @param id         identifiant stable (sert de clé dans la sauvegarde) : « icy_comet »
  * @param name       nom affiché
@@ -33,7 +39,7 @@ import java.util.Map;
  * @param accent     la couleur de ses détails, « #rrggbb »
  * @param stat       la grandeur qu'il augmente une fois formé
  * @param bodies     les astres qu'il faut avoir formés
- * @param assemblies les assemblages qu'il faut avoir formés
+ * @param assemblies les assemblages dont il est fait, qu'il faut avoir formés et qu'il est seul à utiliser
  * @param matter     la matière demandée : état → nombre de molécules rassemblées dans cet état
  * @param molecules  les molécules demandées : identifiant → nombre de molécules créées
  */
@@ -47,7 +53,11 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
         COMET("Comètes", 4),
         ASTEROID("Astéroïdes", 8),
         MOON("Lunes", 16),
-        PLANET("Planètes", 32);
+        PLANET("Planètes", 32),
+        STAR("Étoiles", 64),
+        REMNANT("Étoiles mortes", 128),
+        BLACK_HOLE("Trous noirs", 256),
+        CORE("Cœur de galaxie", 512);
 
         private final String label;
         private final double gain;
@@ -85,7 +95,13 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
         /** Des bandes de gaz. */
         BANDED,
         /** Des bandes de gaz, et des anneaux. */
-        RINGED
+        RINGED,
+        /** Une étoile : elle brille par elle-même, dans sa couronne. */
+        GLOWING,
+        /** Une étoile à neutrons : minuscule, avec ses deux faisceaux. */
+        BEAMING,
+        /** Un trou noir : un disque noir dans l'anneau de ce qui y tombe. */
+        VOID
     }
 
     public Body {

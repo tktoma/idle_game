@@ -43,7 +43,8 @@ public record Assembly(String id, String name, Family family, String tint, Map<S
         GEM("Pierres précieuses", Molecule.Stat.DARK_GROWTH),
         WATER("Eaux et glaces", Molecule.Stat.PARTICLES),
         AIR("Gaz", Molecule.Stat.SPACE),
-        FUEL("Hydrocarbures", Molecule.Stat.ATOMS);
+        FUEL("Hydrocarbures", Molecule.Stat.ATOMS),
+        STELLAR("Matière d'étoiles", Molecule.Stat.PARTICLES);
 
         private final String label;
         private final Molecule.Stat stat;
@@ -102,7 +103,6 @@ public record Assembly(String id, String name, Family family, String tint, Map<S
     /**
      * Ce que donne l'assemblage une fois formé : la grandeur de sa famille, augmentée de 100 % par
      * {@link #MOLECULES_PER_WHOLE} molécules assemblées. Une roche granitique de 270 molécules ajoute 135 %.
-     * C'est un premier réglage.
      */
     public Molecule.Boost boost() {
         return new Molecule.Boost(family.stat(), size() / MOLECULES_PER_WHOLE);

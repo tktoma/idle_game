@@ -51,9 +51,11 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
     public sealed interface Bonus {}
 
     /**
-     * Augmente une grandeur de {@code perMolecule} par molécule créée (0.05 = +5 %). Les bonus de
-     * toutes les molécules sur une même grandeur s'additionnent : la grandeur est multipliée par
-     * {@code 1 + leur somme} ({@link Game#moleculeBoost(Stat)}).
+     * Augmente une grandeur de {@code perMolecule} (0.05 = +5 %) : c'est ce que donne la première
+     * molécule de la sorte, et ce que donne ensuite chaque doublement de leur nombre
+     * ({@link Game#effectiveMolecules(String)}). Les bonus de toutes les sortes sur une même
+     * grandeur s'additionnent : la grandeur est multipliée par {@code 1 + leur somme}
+     * ({@link Game#moleculeBoost(Stat)}).
      */
     public record Boost(Stat stat, double perMolecule) implements Bonus {
         public Boost {
@@ -64,8 +66,10 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
 
     /**
      * Relève le plafond d'un élément dans le tableau périodique : un exemplaire de plus au maximum
-     * par molécule créée ({@link Game#maxCopiesOf(Element)}). L'élément est toujours l'un de ceux de
-     * la formule : c'est en mettant de l'hydrogène dans du dihydrogène qu'on apprend à en garder plus.
+     * pour la première molécule, puis un de plus chaque fois que leur nombre double
+     * ({@link Game#effectiveMolecules(String)}, {@link Game#maxCopiesOf(Element)}). L'élément est
+     * toujours l'un de ceux de la formule : c'est en mettant de l'hydrogène dans du dihydrogène
+     * qu'on apprend à en garder plus.
      *
      * @param element numéro atomique de l'élément dont le maximum augmente
      */
@@ -103,11 +107,15 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
      * c'est ce que donne {@link Game#formSubstance(String)}. Chaque état a son lieu dans l'espace,
      * où toutes les molécules de la sorte vont se ranger.
      *
-     * <p>Chaque état a son exposant : le nombre de molécules rassemblées est compté à cette
-     * puissance dans leur bonus, donc pour un peu plus qu'elles-mêmes. Plus l'état est serré, plus
-     * il les compte : un métal davantage qu'un cristal, un cristal davantage qu'un solide, et
-     * ainsi jusqu'au gaz, qui demande en plus le lieu le plus vaste. Chaque molécule rassemblée
-     * ajoute enfin sa part de particules ou d'atomes.
+     * <p>Chaque état a son exposant : ce pour quoi compte une sorte rassemblée
+     * ({@link Game#effectiveMolecules(String)}) est élevé à cette puissance dans son bonus. Plus
+     * l'état est serré, plus il compte : un métal davantage qu'un cristal, un cristal davantage
+     * qu'un solide, et ainsi jusqu'au gaz. Une sorte rassemblée ajoute enfin sa part de particules
+     * ou d'atomes.
+     *
+     * <p>Chaque état a aussi sa place : une molécule de gaz en occupe vingt fois plus qu'une
+     * molécule de cristal du même poids, un liquide deux fois plus, un métal les trois quarts
+     * ({@link #spaceFactor()}). C'est ce qui rend les étoiles, faites de gaz, si vastes.
      *
      * <p>Les trois états solides se distinguent par ce qui tient la matière ensemble : des
      * molécules entières posées les unes contre les autres (solide : le sucre, l'iode), un réseau
@@ -115,15 +123,15 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
      * mis en commun (métal : les alliages, les carbures conducteurs).
      */
     public enum State {
-        /** Demande un lieu de trois fois la place de ses molécules, et ajoute des particules. */
-        GAS("Gaz", 1.15, 3, 0.08, 0),
-        /** Entre les deux : un peu de particules, un peu d'atomes. */
-        LIQUID("Liquide", 1.25, 1.5, 0.05, 0.02),
-        /** Un solide fait de molécules entières : tient dans la place de ses molécules, et ajoute des atomes. */
+        /** Le plus vaste : vingt fois la place d'un cristal du même poids. Ajoute des particules. */
+        GAS("Gaz", 1.15, 20, 0.08, 0),
+        /** Entre les deux : deux fois la place d'un cristal, un peu de particules, un peu d'atomes. */
+        LIQUID("Liquide", 1.25, 2, 0.05, 0.02),
+        /** Un solide fait de molécules entières : il ajoute des atomes. */
         SOLID("Solide", 1.35, 1, 0, 0.05),
-        /** Un réseau d'ions ou d'atomes : tient dans la place de ses molécules, ajoute des atomes et un peu de particules. */
+        /** Un réseau d'ions ou d'atomes : il ajoute des atomes et un peu de particules. */
         CRYSTAL("Cristal", 1.40, 1, 0.03, 0.05),
-        /** Le plus serré : tient dans les trois quarts de la place de ses molécules, et ajoute le plus d'atomes. */
+        /** Le plus serré : les trois quarts de la place d'un cristal, et le plus d'atomes. */
         METAL("Métal", 1.45, 0.75, 0, 0.08);
 
         private final String label;
@@ -150,17 +158,17 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
             return exponent;
         }
 
-        /** Espace que demande le lieu du rassemblement, en multiples du volume des molécules qu'il faut pour l'ouvrir. */
+        /** Ce par quoi cet état multiplie la place d'une molécule ({@link Game#moleculeVolume(String)}) : 20 pour un gaz, 1 pour un cristal. */
         public double spaceFactor() {
             return spaceFactor;
         }
 
-        /** Ce que chaque molécule rassemblée ajoute aux particules de chaque création (0.08 = +8 %). */
+        /** Ce qu'une sorte rassemblée ajoute aux particules de chaque création, pour chaque unité de ce qu'elle compte (0.08 = +8 %). */
         public double particles() {
             return particles;
         }
 
-        /** Ce que chaque molécule rassemblée ajoute aux atomes de chaque fusion de générateurs (0.05 = +5 %). */
+        /** Ce qu'une sorte rassemblée ajoute aux atomes de chaque fusion de générateurs, pour chaque unité de ce qu'elle compte (0.05 = +5 %). */
         public double atoms() {
             return atoms;
         }
@@ -200,14 +208,14 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
         return new Molecule(plainFormula, name, subscripts(plainFormula), recipe, kind, null, null);
     }
 
-    /** La même molécule, qui augmente une grandeur de {@code perMolecule} par molécule créée (0.05 = +5 %). */
+    /** La même molécule, qui augmente une grandeur de {@code perMolecule} à chaque doublement de leur nombre (0.05 = +5 %). */
     public Molecule boosting(Stat stat, double perMolecule) {
         return new Molecule(id, name, formula, recipe, kind, new Boost(stat, perMolecule), state);
     }
 
     /**
-     * La même molécule, qui relève d'un exemplaire par molécule créée le plafond de l'élément de ce
-     * symbole (« H »).
+     * La même molécule, qui relève d'un exemplaire à chaque doublement de leur nombre le plafond de
+     * l'élément de ce symbole (« H »).
      *
      * @throws IllegalArgumentException si la molécule ne contient pas cet élément
      */

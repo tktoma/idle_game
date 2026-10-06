@@ -238,11 +238,50 @@ final class PeriodicTablePage extends VBox {
 
     /** Recopie l'état du jeu dans la carte de synthèse, le tableau, le résumé des bonus et la légende. */
     void refresh() {
-        BigNum cost = game.synthesisCost();
-        String price = Format.count(cost) + (cost.gt(BigNum.ONE) ? " atomes" : " atome");
+        refresh(true);
+    }
+
+    /**
+     * Recopie l'état du jeu dans la page.
+     *
+     * @param visible faux quand la page n'est pas à l'écran : les textes qui se recopient tels quels à
+     *                chaque image attendent alors qu'elle y revienne. Ce qui suit les changements du
+     *                tableau, lui, ne s'arrête jamais : l'annonce du dernier élément obtenu, l'étape
+     *                payée d'une synthèse ciblée, les tuiles. La page dit ainsi la même chose au
+     *                retour que si elle était restée affichée.
+     */
+    void refresh(boolean visible) {
         ElementCategory target = game.synthesisTarget();
         int left = game.synthesisTriesLeft();
         int count = game.state().synthesisCount();
+        if (visible) refreshSynthesis(target, left, count);
+
+        // Une étape de synthèse ciblée a été payée sans rien donner : on le dit, sinon le clic semble perdu.
+        if (count > shownSynthesisCount && target != null && game.state().elements().equals(shown)) {
+            resultLabel.setText("Étape payée : encore " + left + (left > 1 ? " synthèses" : " synthèse")
+                    + " avant l'élément visé (" + target.label().toLowerCase(Locale.ROOT) + ").");
+            resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: " + COLORS.get(target) + ";");
+        }
+        shownSynthesisCount = count;
+
+        if (visible) {
+            int doubleDraw = (int) Math.round(game.doubleDrawChance() * 100);
+            progressLabel.setText(game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size() + " éléments"
+                    + "   |   " + game.ownedCopies() + " / " + game.maxTotalCopies() + " exemplaires"
+                    + (doubleDraw > 0 ? "   |   tirage double " + doubleDraw + " %" : ""));
+            automationLabel.setText(automationStatus());
+            legendBox.setVisible(Detail.shown());
+            legendBox.setManaged(Detail.shown());
+            legendHint.setVisible(Detail.shown());
+            legendHint.setManaged(Detail.shown());
+        }
+        refreshTable();
+    }
+
+    /** La carte de synthèse et la rangée de la synthèse ciblée : ce qui se recopie à chaque image. */
+    private void refreshSynthesis(ElementCategory target, int left, int count) {
+        BigNum cost = game.synthesisCost();
+        String price = Format.count(cost) + (cost.gt(BigNum.ONE) ? " atomes" : " atome");
         if (game.isPeriodicTableComplete()) {
             synthesizeCard.show(Card.State.DONE, "", "complet", "Tableau périodique complet",
                     "Tous les éléments sont au maximum", "", "", "");
@@ -264,25 +303,10 @@ final class PeriodicTablePage extends VBox {
                     price, fusions > 0 ? Format.whole(fusions) + (fusions > 1 ? " fusions" : " fusion") : "");
         }
         refreshTargets(target, left);
+    }
 
-        // Une étape de synthèse ciblée a été payée sans rien donner : on le dit, sinon le clic semble perdu.
-        if (count > shownSynthesisCount && target != null && game.state().elements().equals(shown)) {
-            resultLabel.setText("Étape payée : encore " + left + (left > 1 ? " synthèses" : " synthèse")
-                    + " avant l'élément visé (" + target.label().toLowerCase(Locale.ROOT) + ").");
-            resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: " + COLORS.get(target) + ";");
-        }
-        shownSynthesisCount = count;
-
-        int doubleDraw = (int) Math.round(game.doubleDrawChance() * 100);
-        progressLabel.setText(game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size() + " éléments"
-                + "   |   " + game.ownedCopies() + " / " + game.maxTotalCopies() + " exemplaires"
-                + (doubleDraw > 0 ? "   |   tirage double " + doubleDraw + " %" : ""));
-        automationLabel.setText(automationStatus());
-        legendBox.setVisible(Detail.shown());
-        legendBox.setManaged(Detail.shown());
-        legendHint.setVisible(Detail.shown());
-        legendHint.setManaged(Detail.shown());
-
+    /** Les tuiles, les bonus et l'annonce du dernier élément obtenu : seulement quand le tableau a changé. */
+    private void refreshTable() {
         // Le tableau et les bonus ne changent qu'à la synthèse : inutile de tout réécrire à chaque image.
         // L'arbre de matière noire peut aussi repousser le maximum d'exemplaires : il faut alors repeindre.
         // Passer en mode détails, ou en sortir, change aussi les textes des tuiles.

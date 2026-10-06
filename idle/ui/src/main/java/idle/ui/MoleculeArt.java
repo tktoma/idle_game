@@ -99,13 +99,30 @@ final class MoleculeArt {
                 if (atom.labelled() && r >= LABEL_FROM) {
                     double size = Math.min(13, r * (atom.symbol().length() > 1 ? 0.95 : 1.15));
                     g.setFill(INK);
-                    g.setFont(Font.font("System", FontWeight.BOLD, size));
+                    g.setFont(label(size));
                     g.setTextAlign(TextAlignment.CENTER);
                     g.fillText(atom.symbol(), x, y + size * 0.36);
                 }
             }
         }
     }
+
+    /**
+     * La police des symboles à cette taille. À un instant donné, tous les atomes d'une même sorte
+     * ont la même taille à l'écran : une police est donc demandée une fois, puis reprise.
+     */
+    private static Font label(double size) {
+        Double key = size;
+        Font font = LABELS.get(key);
+        if (font == null) {
+            if (LABELS.size() >= 256) LABELS.clear();
+            font = Font.font("System", FontWeight.BOLD, size);
+            LABELS.put(key, font);
+        }
+        return font;
+    }
+
+    private static final Map<Double, Font> LABELS = new HashMap<>();
 
     /** La mise en place d'une molécule, calculée à la première demande. */
     static Shape of(Molecule molecule) {

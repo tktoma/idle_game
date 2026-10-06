@@ -5,6 +5,7 @@ import idle.core.Game;
 import idle.core.Molecule;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -31,7 +32,7 @@ import javafx.scene.text.TextAlignment;
 final class BodiesPane extends VBox {
 
     /** Hauteur du ciel, en pixels : de quoi montrer les petits astres sur une ligne et les planètes sur une autre. */
-    private static final double SKY_HEIGHT = 250;
+    private static final double SKY_HEIGHT = 330;
     private static final double PICTURE_WIDTH = 150;
     private static final double PICTURE_HEIGHT = 64;
 
@@ -123,7 +124,7 @@ final class BodiesPane extends VBox {
             String gain = BigBangPage.what(body.boost().stat()) + " +" + ElementText.percent(body.boost().perMolecule());
             card.show(formed ? Card.State.DONE : ready ? Card.State.READY : met > 0 ? Card.State.STARTED : Card.State.WAITING,
                     formed ? "" : met + "/" + body.conditions(), formed ? "formé" : "", body.name(),
-                    gain + "\n" + origin(body), needs(body, formed),
+                    gain + "\n" + origin(body), Detail.shown() ? needs(body, formed) : "",
                     formed ? "" : ready ? "Former" : missing(body), "");
         }
         int formedAll = 0;
@@ -136,12 +137,15 @@ final class BodiesPane extends VBox {
             title.setManaged(counts[0] > 0);
         }
         intro.setText((formedAll == 0
-                ? "Un astre se forme en cumulant des assemblages, de la matière rassemblée et des molécules : d'abord un amas de roches."
-                : "Chaque astre part d'astres plus petits : amas de roches, comètes, astéroïdes, lunes, puis planètes.")
-                + Detail.only(" Un achat unique, qui ne consomme et ne réserve rien : ce sont des seuils à atteindre, et ce qui "
-                        + "sert à un astre sert aussi aux autres. La matière compte toutes les molécules rassemblées dans un "
-                        + "état, quelle que soit leur sorte. Un astre augmente une grandeur de 200 % pour un amas, et du double "
-                        + "à chaque échelle, jusqu'à 3 200 % pour une planète. Un astre plus gros n'est montré que lorsqu'un "
+                ? "Un astre est fait de ses assemblages, avec assez de matière rassemblée et de molécules autour : d'abord un amas de roches."
+                : "Un astre est fait de ses assemblages et part d'astres plus petits : amas de roches, comètes, astéroïdes, lunes, "
+                        + "planètes, puis étoiles, étoiles mortes et trous noirs.")
+                + Detail.only(" Un achat unique. Ses assemblages entrent en lui : dans l'expansion de la matière, leurs blocs "
+                        + "se rangent en couronne autour de l'astre, qui prend le milieu. Ils restent formés et gardent "
+                        + "leur bonus, et chaque assemblage n'entre que dans un seul astre. Le reste, ce sont des seuils à "
+                        + "atteindre, qui servent aussi aux autres astres : les astres plus petits, la matière, qui compte "
+                        + "toutes les molécules rassemblées dans un état quelle que soit leur sorte, et les molécules. Un astre augmente une grandeur de 200 % pour un amas, et du double "
+                        + "à chaque échelle : 3 200 % pour une planète, 6 400 % pour une étoile, jusqu'à 51 200 % pour le trou noir supermassif. Un astre plus gros n'est montré que lorsqu'un "
                         + "de ceux dont il part est formé."));
     }
 
@@ -171,15 +175,13 @@ final class BodiesPane extends VBox {
         });
     }
 
-    /** D'où part un astre, en une ligne : « Part de : Amas glacé » ou « Fait de 3 assemblages ». */
+    /** De quoi un astre est fait, en une ligne : « Fait de roche sableuse » ou « Fait de glace de comète et eau de source ». */
     private String origin(Body body) {
-        if (body.bodies().isEmpty()) {
-            return "Fait de " + body.assemblies().size() + (body.assemblies().size() > 1 ? " assemblages" : " assemblage");
-        }
-        StringBuilder text = new StringBuilder("Part de : ");
-        for (String smaller : body.bodies()) {
-            if (text.length() > 10) text.append(", ");
-            text.append(game.body(smaller).name().toLowerCase());
+        StringBuilder text = new StringBuilder("Fait de ");
+        List<String> parts = body.assemblies();
+        for (int index = 0; index < parts.size(); index++) {
+            if (index > 0) text.append(index == parts.size() - 1 ? " et " : ", ");
+            text.append(game.assembly(parts.get(index)).name().toLowerCase());
         }
         return text.toString();
     }

@@ -255,14 +255,14 @@ public final class GameApp extends Application {
         achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, bigBangPage,
                 achievementsScroll, statsPage, settingsScroll);
-        particlesTab.setOnAction(event -> selectTab(Tab.PARTICLES));
-        atomsTab.setOnAction(event -> selectTab(Tab.ATOMS));
-        automationTab.setOnAction(event -> selectTab(Tab.AUTOMATION));
-        darkMatterTab.setOnAction(event -> selectTab(Tab.DARK_MATTER));
-        bigBangTab.setOnAction(event -> selectTab(Tab.BIG_BANG));
-        achievementsTab.setOnAction(event -> selectTab(Tab.ACHIEVEMENTS));
-        statsTab.setOnAction(event -> selectTab(Tab.STATS));
-        settingsTab.setOnAction(event -> selectTab(Tab.SETTINGS));
+        particlesTab.setOnAction(event -> open(Tab.PARTICLES));
+        atomsTab.setOnAction(event -> open(Tab.ATOMS));
+        automationTab.setOnAction(event -> open(Tab.AUTOMATION));
+        darkMatterTab.setOnAction(event -> open(Tab.DARK_MATTER));
+        bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
+        achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
+        statsTab.setOnAction(event -> open(Tab.STATS));
+        settingsTab.setOnAction(event -> open(Tab.SETTINGS));
         atomsTab.setGraphic(atomsTabIcon);
         tabBar.setAlignment(Pos.CENTER);
         selectTab(Tab.PARTICLES);
@@ -336,10 +336,13 @@ public final class GameApp extends Application {
         Scene scene = new Scene(scaled, 800, 640);
         applyAppearance();
         // Les touches sont lues avant les boutons : sinon, Espace irait d'abord au bouton qui a le focus.
+        // Sauf quand le joueur écrit dans une barre de recherche : ses lettres ne sont pas des raccourcis.
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (typing(scene) && !event.getCode().isModifierKey()) return;
             if (keyPressed(event.getCode())) event.consume();
         });
         scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
+            if (typing(scene) && !event.getCode().isModifierKey()) return;
             if (keyReleased(event.getCode())) event.consume();
         });
         // La fenêtre perd la main touche enfoncée : le relâchement ne viendra jamais, on l'anticipe.
@@ -473,6 +476,19 @@ public final class GameApp extends Application {
      *
      * @return vrai si la touche a servi à l'interface et ne doit pas aller plus loin
      */
+    /**
+     * Vrai si le clavier est dans une zone de saisie visible : une barre de recherche. Une zone
+     * cachée avec sa page ne compte pas, même si la fenêtre lui a laissé le clavier.
+     */
+    private static boolean typing(Scene scene) {
+        javafx.scene.Node owner = scene.getFocusOwner();
+        if (!(owner instanceof javafx.scene.control.TextInputControl)) return false;
+        for (javafx.scene.Node node = owner; node != null; node = node.getParent()) {
+            if (!node.isVisible()) return false;
+        }
+        return true;
+    }
+
     private boolean keyPressed(KeyCode code) {
         if (settingsPage.isCapturing()) {
             settingsPage.capture(code, isShortcut(code));
@@ -633,6 +649,12 @@ public final class GameApp extends Application {
         return ATOMS_COLOR;
     }
 
+    /** Un clic sur un onglet : il s'affiche, et son contenu est recopié aussitôt, puisqu'il ne l'était plus tant qu'il était caché. */
+    private void open(Tab tab) {
+        selectTab(tab);
+        refresh();
+    }
+
     /** Affiche un onglet et masque les autres. */
     private void selectTab(Tab tab) {
         selectedTab = tab;
@@ -735,46 +757,49 @@ public final class GameApp extends Application {
         }
         if (debugBar != null) debugBar.refresh();
 
-        BigNum particles = game.state().particles();
-        particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
+        // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.
+        if (selectedTab == Tab.PARTICLES) {
+            BigNum particles = game.state().particles();
+            particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
-        double rate = Math.min(game.productionPerSecond().toDouble(), 1e9);
-        String perSecond = rate <= 0 ? "Aucun générateur"
-                : rate < 1
-                ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
-                : "+" + Format.big(game.productionPerSecond()) + " particules par seconde";
-        int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
-        productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m"
-                + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
+            double rate = Math.min(game.productionPerSecond().toDouble(), 1e9);
+            String perSecond = rate <= 0 ? "Aucun générateur"
+                    : rate < 1
+                    ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
+                    : "+" + Format.big(game.productionPerSecond()) + " particules par seconde";
+            int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
+            productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m"
+                    + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
 
-        upgradeCards.forEach(this::show);
-        amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
-                ? " -fx-text-fill: #0b0e14; -fx-background-color: " + PARTICLES_COLOR + "; -fx-border-color: #ffffff;"
-                : " -fx-text-fill: " + PARTICLES_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
-        // Les autres raccourcis, ceux qui ne sont écrits sur aucune carte : en mode détails seulement.
-        boolean keys = settings.shortcuts() && Detail.shown();
-        shortcutsLabel.setText(shortcutsHint());
-        shortcutsLabel.setVisible(keys);
-        shortcutsLabel.setManaged(keys);
+            upgradeCards.forEach(this::show);
+            amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
+                    ? " -fx-text-fill: #0b0e14; -fx-background-color: " + PARTICLES_COLOR + "; -fx-border-color: #ffffff;"
+                    : " -fx-text-fill: " + PARTICLES_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
+            // Les autres raccourcis, ceux qui ne sont écrits sur aucune carte : en mode détails seulement.
+            boolean keys = settings.shortcuts() && Detail.shown();
+            shortcutsLabel.setText(shortcutsHint());
+            shortcutsLabel.setVisible(keys);
+            shortcutsLabel.setManaged(keys);
 
-        // Au plafond d'atomes, la carte reste affichée mais éteinte, pour expliquer pourquoi rien ne se passe.
-        boolean capped = game.isAtomCapReached();
-        boolean table = game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete();
-        BigNum gain = game.atomsPerFusion();
-        fuseCard.show(capped ? Card.State.WAITING : Card.State.READY,
-                String.valueOf(game.generatorCount()), settings.shortcuts() ? "F" : "",
-                game.generatorCount() > game.generatorsPerAtom()
-                        ? "Fusionner " + game.generatorCount() + " générateurs"
-                        : "Fusionner les " + game.generatorsPerAtom() + " générateurs",
-                capped ? "Maximum de " + Format.count(game.atomCap()) + " atomes atteint"
-                        : "+" + Format.amount(gain) + (gain.gt(BigNum.ONE) ? " atomes" : " atome"),
-                capped ? "Dépensez des atomes" + (table ? " ou synthétisez un élément" : "") + " pour fusionner de nouveau."
-                        : "Les générateurs fusionnent : il n'en reste qu'un, et les particules repartent de zéro. "
-                                + (game.keepsUpgradesOnFusion()
-                                        ? "Les améliorations payées en particules sont gardées (Persistance)."
-                                        : "Les améliorations payées en particules aussi."),
-                "", "");
-        fuseCard.setVisible(game.hasAllGenerators() && !generators.isFusing());
+            // Au plafond d'atomes, la carte reste affichée mais éteinte, pour expliquer pourquoi rien ne se passe.
+            boolean capped = game.isAtomCapReached();
+            boolean table = game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete();
+            BigNum gain = game.atomsPerFusion();
+            fuseCard.show(capped ? Card.State.WAITING : Card.State.READY,
+                    String.valueOf(game.generatorCount()), settings.shortcuts() ? "F" : "",
+                    game.generatorCount() > game.generatorsPerAtom()
+                            ? "Fusionner " + game.generatorCount() + " générateurs"
+                            : "Fusionner les " + game.generatorsPerAtom() + " générateurs",
+                    capped ? "Maximum de " + Format.count(game.atomCap()) + " atomes atteint"
+                            : "+" + Format.amount(gain) + (gain.gt(BigNum.ONE) ? " atomes" : " atome"),
+                    capped ? "Dépensez des atomes" + (table ? " ou synthétisez un élément" : "") + " pour fusionner de nouveau."
+                            : "Les générateurs fusionnent : il n'en reste qu'un, et les particules repartent de zéro. "
+                                    + (game.keepsUpgradesOnFusion()
+                                            ? "Les améliorations payées en particules sont gardées (Persistance)."
+                                            : "Les améliorations payées en particules aussi."),
+                    "", "");
+            fuseCard.setVisible(game.hasAllGenerators() && !generators.isFusing());
+        }
 
         // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
         double totalAtoms = game.state().totalAtoms().toDouble();
@@ -790,19 +815,19 @@ public final class GameApp extends Application {
         atomsTab.setVisible(hasAtoms);
         atomsTab.setManaged(hasAtoms);
         atomsTab.setText("Atomes (" + Format.count(game.state().atoms()) + ")");
-        atomsPage.refresh();
+        atomsPage.refresh(selectedTab == Tab.ATOMS);
 
         // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire.
         boolean automation = AutomationPage.hasContent(game);
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
-        automationPage.refresh();
+        if (selectedTab == Tab.AUTOMATION) automationPage.refresh();
 
         // L'onglet « Matière noire » n'existe qu'après la première explosion.
         darkMatterTab.setVisible(darkMatter);
         darkMatterTab.setManaged(darkMatter);
         darkMatterTab.setText((narrow ? "M. noire (" : "Matière noire (") + Format.count(game.state().darkMatter()) + ")");
-        darkMatterPage.refresh();
+        darkMatterPage.refresh(selectedTab == Tab.DARK_MATTER);
 
         // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
         // comme une explosion mène à l'onglet « Matière noire ».
@@ -826,29 +851,39 @@ public final class GameApp extends Application {
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)) {
             selectTab(Tab.PARTICLES);
+            // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
+            refresh();
+            return;
         }
 
         // Le bouton d'explosion n'apparaît que lorsque les 118 éléments sont découverts.
         Challenge challenge = game.activeChallenge();
-        explosionButton.setText(explosionArmed > 0
-                ? "Cliquer encore pour confirmer l'explosion : tout repart de zéro (" + (int) Math.ceil(explosionArmed) + " s)"
-                : game.isChallengeReplay()
-                ? "Terminer le défi « " + challenge.name() + " » en " + Format.duration(game.stats().runTime())
-                        + Detail.only(". Déjà réussi, il ne compte que pour son temps : ni matière noire, ni tableau plus lourd.")
-                : "Faire exploser le tableau : +" + Format.count(game.nextExplosionDarkMatter()) + " matière noire"
-                        + (challenge == null ? "" : ", défi « " + challenge.name() + " » réussi")
-                        + Detail.only(". Tout repart de zéro : particules, atomes, éléments. "
-                                + (game.state().tableWeightLevel() < Game.TABLE_WEIGHT_MAX_LEVEL
-                                        ? "Le tableau suivant sera " + ElementText.number(Game.TABLE_WEIGHT_GROWTH)
-                                                + " fois plus lourd : plafond d'atomes et prix maximal d'une synthèse. "
-                                        : "Le tableau a atteint sa masse maximale : il ne s'alourdira plus. ")
-                                + "Rien n'oblige à attendre les exemplaires manquants : ils renforcent les éléments, "
-                                + "pas l'explosion."));
+        boolean canExplode = game.canExplode() && !exploding;
+        // Son texte n'est composé que lorsqu'il se voit.
+        if (canExplode) {
+            explosionButton.setText(explosionArmed > 0
+                    ? "Cliquer encore pour confirmer l'explosion : tout repart de zéro (" + (int) Math.ceil(explosionArmed) + " s)"
+                    : game.isChallengeReplay()
+                    ? "Terminer le défi « " + challenge.name() + " » en " + Format.duration(game.stats().runTime())
+                            + Detail.only(". Déjà réussi, il ne compte que pour son temps : ni matière noire, ni tableau plus lourd.")
+                    : "Faire exploser le tableau : +" + Format.count(game.nextExplosionDarkMatter()) + " matière noire"
+                            + (challenge == null ? "" : ", défi « " + challenge.name() + " » réussi")
+                            + Detail.only(". Tout repart de zéro : particules, atomes, éléments. "
+                                    + (game.state().tableWeightLevel() < Game.TABLE_WEIGHT_MAX_LEVEL
+                                            ? "Le tableau suivant sera " + ElementText.number(Game.TABLE_WEIGHT_GROWTH)
+                                                    + " fois plus lourd : plafond d'atomes et prix maximal d'une synthèse. "
+                                            : "Le tableau a atteint sa masse maximale : il ne s'alourdira plus. ")
+                                    + "Rien n'oblige à attendre les exemplaires manquants : ils renforcent les éléments, "
+                                    + "pas l'explosion."));
+        }
         // Le thème clair suit la taille de la fenêtre.
         if (settings.theme() == Settings.Theme.LIGHT) lightTheme.fit();
         // L'objectif du moment, sous les onglets. Caché, il laisse sa place vide : le rappel reste à droite.
         boolean goal = settings.showGoal() && game.isStarted();
-        goalLabel.setText(goal ? "Objectif : " + Goals.withEstimate(game, game.stats()) : "");
+        // Après un premier Big Bang, deux objectifs se suivent de front : celui de la partie, et celui du troisième acte.
+        String act = goal ? Goals.act(game) : "";
+        goalLabel.setText(goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
+                + (act.isEmpty() ? "" : "   |   Big Bang : " + act) : "");
         String detailKey = Detail.keyName(settings.detailKey());
         detailHint.setText(Detail.shown()
                 ? (settings.detailToggle() ? detailKey + " : cacher les détails" : "Détails affichés")
@@ -865,7 +900,6 @@ public final class GameApp extends Application {
             challengeLabel.setText("Défi « " + challenge.name() + " » depuis " + Format.duration(game.stats().runTime())
                     + " : " + (Detail.shown() ? ChallengesPane.rule(challenge) : ChallengesPane.shortRule(challenge)));
         }
-        boolean canExplode = game.canExplode() && !exploding;
         explosionButton.setVisible(canExplode);
         explosionButton.setManaged(canExplode);
     }

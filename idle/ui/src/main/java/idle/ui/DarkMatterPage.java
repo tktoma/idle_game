@@ -96,9 +96,19 @@ final class DarkMatterPage extends VBox {
         speedLabel.setWrapText(true);
         speedLabel.setTextAlignment(TextAlignment.CENTER);
 
-        pointTab.setOnAction(event -> select(0));
-        treeTab.setOnAction(event -> select(1));
-        challengesTab.setOnAction(event -> select(2));
+        // Une sous-page n'est recopiée que lorsqu'elle est affichée : elle l'est donc dès qu'on la choisit.
+        pointTab.setOnAction(event -> {
+            select(0);
+            refresh();
+        });
+        treeTab.setOnAction(event -> {
+            select(1);
+            refresh();
+        });
+        challengesTab.setOnAction(event -> {
+            select(2);
+            refresh();
+        });
         HBox subTabs = new HBox(pointTab, treeTab, challengesTab);
         subTabs.setAlignment(Pos.CENTER);
 
@@ -185,8 +195,10 @@ final class DarkMatterPage extends VBox {
         if (selected != 0) return;
         // Verrouillée, elle grossit déjà toute seule à chaque tick du jeu : tenir le clic n'ajoute que la part manquante.
         boolean locked = game.isHoldLocked();
-        if (pressed) game.growDarkMatter(elapsed * timeFactor * (locked ? 1 - Game.HOLD_LOCK_SHARE : 1));
-        view.frame(elapsed, game.state().darkMatterSize(), pressed || locked);
+        // Avec l'appui automatique, le jeu tient déjà le clic en entier : le tenir soi-même n'ajoute rien.
+        boolean held = game.isAutoHolding();
+        if (pressed && !held) game.growDarkMatter(elapsed * timeFactor * (locked ? 1 - Game.HOLD_LOCK_SHARE : 1));
+        view.frame(elapsed, game.state().darkMatterSize(), pressed || locked || held);
     }
 
     /** L'onglet n'est plus affiché : un clic resté « maintenu » ne doit pas reprendre au retour. */
@@ -203,18 +215,36 @@ final class DarkMatterPage extends VBox {
 
     /** Recopie l'état du jeu dans les textes. */
     void refresh() {
+        refresh(true);
+    }
+
+    /**
+     * Recopie l'état du jeu dans la page : son en-tête, et la sous-page affichée.
+     *
+     * @param visible faux quand l'onglet « Matière noire » n'est pas à l'écran : rien n'est alors recopié,
+     *                la page le sera à son retour. Elle ne cesse pas pour autant de guetter le Big Bang.
+     */
+    void refresh(boolean visible) {
         // Un Big Bang vient d'avoir lieu : la page reviendra sur sa première sous-page, à la prochaine explosion.
         if (game.bigBangs() != bigBangs) {
             bigBangs = game.bigBangs();
             release();
             reset();
         }
+        if (!visible) return;
         BigNum darkMatter = game.state().darkMatter();
         BigNum earned = game.darkMatterEarned();
         int explosions = game.state().explosions();
         balanceLabel.setText(Format.count(darkMatter) + " matière noire"
                 + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
                 + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
+
+        mockNotice.setVisible(Detail.shown());
+        mockNotice.setManaged(Detail.shown());
+        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")");
+        if (selected == 1) tree.refresh();
+        if (selected == 2) challenges.refresh();
+        if (selected != 0) return;
 
         BigNum size = game.state().darkMatterSize();
         sizeLabel.setText("Taille : " + Format.length(size));
@@ -231,10 +261,13 @@ final class DarkMatterPage extends VBox {
         boolean locked = game.isHoldLocked();
         String share = ElementText.percent(Game.HOLD_LOCK_SHARE);
         // En quelques mots : quoi faire, et à quelle vitesse. Le calcul complet vient en mode détails.
-        String how = !game.isHoldLockUnlocked() ? "Maintenez le clic sur le point : "
+        String how = game.isAutoHolding() ? "Appui automatique, sans rien tenir : "
+                : !game.isHoldLockUnlocked() ? "Maintenez le clic sur le point : "
                 : locked ? "Appui verrouillé à " + share + " : "
                 : "Cliquez sur le point pour verrouiller l'appui : ";
-        String more = !game.isHoldLockUnlocked() ? ""
+        String more = game.isAutoHolding() ? " L'appui automatique, acquis avec l'espace, tient le clic pour vous depuis "
+                        + "n'importe quel onglet ; il se coupe dans l'onglet Automatisation."
+                : !game.isHoldLockUnlocked() ? ""
                 : locked ? " Verrouillée, elle grossit seule à " + share + " de cette vitesse, depuis n'importe quel "
                         + "onglet, jusqu'à la prochaine explosion. Un clic sur le point la libère ; tenir le clic donne le reste."
                 : " Verrouillé, l'appui vaut " + share + " de la vitesse, depuis n'importe quel onglet.";
@@ -250,13 +283,8 @@ final class DarkMatterPage extends VBox {
                 + (game.darkAutoExpansionShare() > 0
                         ? " Elle grossit aussi seule, à " + ElementText.percent(game.darkAutoExpansionShare())
                                 + " de cette vitesse." : "")));
-        mockNotice.setVisible(Detail.shown());
-        mockNotice.setManaged(Detail.shown());
 
         milestoneLabel.setText(milestones(size));
-        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")");
-        tree.refresh();
-        challenges.refresh();
     }
 
     /**

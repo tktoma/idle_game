@@ -157,6 +157,10 @@ final class DebugBar extends VBox {
                 tool("Astre suivant", this::formNextBody),
                 tool("Tous les astres", () -> {
                     while (formNextBody()) { }
+                }),
+                tool("Former la galaxie", () -> {
+                    while (formNextBody()) { }
+                    game.formGalaxy();
                 }));
 
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");

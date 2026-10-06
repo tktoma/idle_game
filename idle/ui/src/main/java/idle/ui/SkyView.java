@@ -47,9 +47,18 @@ final class SkyView extends Canvas {
     /** Nombre d'astres dessinés à la dernière image, et de lignes qu'ils occupaient. */
     private int drawn = 0;
     private int rows = 0;
+    /**
+     * Une image sur {@link #EVERY} seulement est dessinée tant que rien ne change : les astres flottent
+     * de moins d'un pixel par seconde. Un astre de plus, ou un ciel qui change de taille, et l'image
+     * suivante est dessinée sans attendre.
+     */
+    private static final int EVERY = 2;
+    private int beat = 0;
+    private double drawnWidth = -1;
+    private double drawnHeight = -1;
 
     SkyView(Game game) {
-        super(600, 250);
+        super(600, 330);
         this.game = game;
     }
 
@@ -61,6 +70,11 @@ final class SkyView extends Canvas {
             case ASTEROID -> 15;
             case MOON -> 24;
             case PLANET -> body.look() == Body.Look.BANDED || body.look() == Body.Look.RINGED ? 54 : 40;
+            // Une naine brune dépasse à peine une géante gazeuse ; une géante, rouge ou bleue, écrase le Soleil.
+            case STAR -> body.id().equals("brown_dwarf") ? 30 : body.id().endsWith("_giant") ? 48 : body.id().equals("red_dwarf") ? 34 : 40;
+            case REMNANT -> 12;
+            case BLACK_HOLE -> 15;
+            case CORE -> 21;
         };
     }
 
@@ -86,9 +100,19 @@ final class SkyView extends Canvas {
      */
     void frame(double elapsed) {
         time += elapsed;
+        beat++;
+        boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.bodiesFormed() != drawn;
+        if (!changed && beat % EVERY != 0) return;
+        redraw();
+    }
+
+    /** Dessine le ciel tel qu'il est à cet instant. */
+    private void redraw() {
         double w = getWidth();
         double h = getHeight();
         if (w <= 0 || h <= 0) return;
+        drawnWidth = w;
+        drawnHeight = h;
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         g.setGlobalAlpha(1);

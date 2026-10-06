@@ -72,7 +72,9 @@ final class Notifier {
             // Tout vient de repartir de zéro : on reprend ses repères, pour que la partie suivante s'annonce comme la première.
             int count = game.bigBangs();
             snapshot();
-            news.add(count > 1 ? "Big Bang n° " + count + " : tout repart du premier générateur. Vos succès restent."
+            news.add(game.isDarkMatterUnlocked()
+                    ? "Big Bang n° " + count + " : tout repart du premier générateur, mais l'arbre de matière noire est resté."
+                    : count > 1 ? "Big Bang n° " + count + " : tout repart du premier générateur. Vos succès restent."
                     : "Big Bang : tout repart du premier générateur. Vos succès restent, et l'onglet Big Bang s'ouvre.");
             return news;
         }
@@ -183,10 +185,13 @@ final class Notifier {
     /** Retient l'état du jeu, pour le comparer au prochain relevé. */
     private void snapshot() {
         started = game.isStarted();
-        elements = new HashSet<>(game.state().elements().keySet());
+        // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
+        java.util.Set<Integer> owned = game.state().elements().keySet();
+        if (!elements.equals(owned)) elements = new HashSet<>(owned);
         setStrengths.clear();
         for (ElementSet set : game.elementSets()) setStrengths.put(set.id(), game.setStrength(set));
-        automations = new HashSet<>(game.state().ownedAutomations());
+        java.util.Set<String> bought = game.state().ownedAutomations();
+        if (!automations.equals(bought)) automations = new HashSet<>(bought);
         tableUnlocked = game.isPeriodicTableUnlocked();
         synthesisUnlocked = game.isSynthesisAutomationUnlocked();
         canExplode = game.canExplode();

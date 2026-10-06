@@ -54,8 +54,8 @@ final class Format {
         long total = (long) Math.floor(seconds);
         long days = total / 86_400, hours = total % 86_400 / 3_600, minutes = total % 3_600 / 60, rest = total % 60;
         if (days > 0) return days + " j " + hours + " h";
-        if (hours > 0) return hours + " h " + String.format(Locale.ROOT, "%02d", minutes) + " min";
-        return minutes + " min " + String.format(Locale.ROOT, "%02d", rest) + " s";
+        if (hours > 0) return hours + " h " + (minutes < 10 ? "0" : "") + minutes + " min";
+        return minutes + " min " + (rest < 10 ? "0" : "") + rest + " s";
     }
 
     /**
@@ -109,8 +109,7 @@ final class Format {
     /** Multiplicateur : « ×2 », « ×1.25 », puis en notation scientifique. */
     static String multiplier(BigNum value) {
         if (!value.lt(THOUSAND)) return "×" + big(value);
-        String text = String.format(Locale.ROOT, "%.2f", value.toDouble());
-        return "×" + text.replaceAll("0+$", "").replaceAll("\\.$", "");
+        return "×" + ElementText.number(value.toDouble());
     }
 
     /** Quantité qui peut être fractionnaire : « 1 », « 2.35 », puis en notation scientifique. */

@@ -52,11 +52,33 @@ public final class GameState {
     private final Map<String, Double> darkAutomationTimers = new HashMap<>();
     private int bigBangs = 0;
     private final Map<String, Integer> molecules = new HashMap<>();
-    private final List<String> moleculeLog = new ArrayList<>();
+    /**
+     * Les molécules dans l'ordre de leur création, par suites : la sorte de chaque suite, et le rang
+     * où elle finit. Une création ajoute des centaines de molécules d'un coup ; on ne garde donc pas
+     * une entrée par molécule.
+     */
+    private final List<String> logKinds = new ArrayList<>();
+    private int[] logEnds = new int[16];
+    private final List<String> moleculeLog = new MoleculeLog();
     private int moleculesVersion = 0;
     private final Set<String> substances = new java.util.LinkedHashSet<>();
     private final Set<String> assemblies = new java.util.LinkedHashSet<>();
     private final Set<String> bodies = new java.util.LinkedHashSet<>();
+    /**
+     * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
+     * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
+     */
+    /** Vrai une fois la galaxie formée ({@link Game#formGalaxy()}). */
+    private boolean galaxy;
+    /** Vrai tant que l'appui automatique sur la matière noire est en marche, une fois acquis ({@link Game#isAutoHolding()}). */
+    private boolean autoHold = true;
+    /** Vrai tant que la création automatique des molécules est en marche, une fois acquise ({@link Game#isAutoCreatingMolecules()}). */
+    private boolean autoMolecules = true;
+    /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
+    private final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
+    private List<String> substancesSeen;
+    private List<String> assembliesSeen;
+    private List<String> bodiesSeen;
     private final Set<String> spaceUpgrades = new java.util.LinkedHashSet<>();
     private BigNum space = BigNum.ZERO;
     private GameStats stats = new GameStats();
@@ -323,9 +345,23 @@ public final class GameState {
 
     /** Ajoute une molécule de cette sorte, à la suite de celles déjà créées. */
     public void addMolecule(String moleculeId) {
+        addMolecules(moleculeId, 1);
+    }
+
+    /** Ajoute d'un coup {@code count} molécules de cette sorte, à la suite de celles déjà créées. */
+    public void addMolecules(String moleculeId, int count) {
         if (moleculeId == null || moleculeId.isBlank()) throw new IllegalArgumentException("Molécule sans identifiant");
-        molecules.merge(moleculeId, 1, Integer::sum);
-        moleculeLog.add(moleculeId);
+        if (count < 0) throw new IllegalArgumentException("Nombre de molécules négatif : " + count);
+        if (count == 0) return;
+        molecules.merge(moleculeId, count, Integer::sum);
+        int last = logKinds.size() - 1;
+        if (last >= 0 && logKinds.get(last).equals(moleculeId)) {
+            logEnds[last] += count;
+        } else {
+            if (logKinds.size() == logEnds.length) logEnds = java.util.Arrays.copyOf(logEnds, logEnds.length * 2);
+            logEnds[logKinds.size()] = (last >= 0 ? logEnds[last] : 0) + count;
+            logKinds.add(moleculeId);
+        }
         moleculesVersion++;
     }
 
@@ -335,12 +371,40 @@ public final class GameState {
      */
     public void setMoleculeCount(String moleculeId, int count) {
         if (count < 0) throw new IllegalArgumentException("Nombre de molécules négatif : " + count);
-        while (moleculeCount(moleculeId) < count) addMolecule(moleculeId);
-        while (moleculeCount(moleculeId) > count) {
-            moleculeLog.remove(moleculeLog.lastIndexOf(moleculeId));
-            if (molecules.merge(moleculeId, -1, Integer::sum) == 0) molecules.remove(moleculeId);
-            moleculesVersion++;
+        int owned = moleculeCount(moleculeId);
+        if (count >= owned) {
+            addMolecules(moleculeId, count - owned);
+            return;
         }
+        int extra = owned - count;
+        // Les suites de cette sorte rétrécissent en partant de la fin, puis la liste des suites est refaite.
+        int runs = logKinds.size();
+        int[] lengths = new int[runs];
+        for (int run = 0; run < runs; run++) lengths[run] = logEnds[run] - (run == 0 ? 0 : logEnds[run - 1]);
+        for (int run = runs - 1; run >= 0 && extra > 0; run--) {
+            if (!logKinds.get(run).equals(moleculeId)) continue;
+            int taken = Math.min(extra, lengths[run]);
+            lengths[run] -= taken;
+            extra -= taken;
+        }
+        List<String> kinds = new ArrayList<>(logKinds);
+        logKinds.clear();
+        int end = 0;
+        for (int run = 0; run < runs; run++) {
+            if (lengths[run] == 0) continue;
+            end += lengths[run];
+            int last = logKinds.size() - 1;
+            // Deux suites de la même sorte qui se retrouvent voisines n'en font plus qu'une.
+            if (last >= 0 && logKinds.get(last).equals(kinds.get(run))) {
+                logEnds[last] = end;
+            } else {
+                logEnds[logKinds.size()] = end;
+                logKinds.add(kinds.get(run));
+            }
+        }
+        if (count == 0) molecules.remove(moleculeId);
+        else molecules.put(moleculeId, count);
+        moleculesVersion++;
     }
 
     /** Vue en lecture seule des molécules créées (identifiant → nombre), pour la sauvegarde. */
@@ -353,7 +417,51 @@ public final class GameState {
      * dans lequel elles ont pris place dans l'espace.
      */
     public List<String> moleculeLog() {
-        return Collections.unmodifiableList(moleculeLog);
+        return moleculeLog;
+    }
+
+    /** Les molécules créées vues une à une, alors qu'elles sont gardées par suites. En lecture seule. */
+    private final class MoleculeLog extends java.util.AbstractList<String> {
+
+        @Override
+        public int size() {
+            return logKinds.isEmpty() ? 0 : logEnds[logKinds.size() - 1];
+        }
+
+        @Override
+        public String get(int index) {
+            if (index < 0 || index >= size()) throw new IndexOutOfBoundsException("Molécule n° " + index + " sur " + size());
+            // La première suite qui finit après ce rang.
+            int low = 0;
+            int high = logKinds.size() - 1;
+            while (low < high) {
+                int middle = (low + high) >>> 1;
+                if (logEnds[middle] > index) high = middle;
+                else low = middle + 1;
+            }
+            return logKinds.get(low);
+        }
+
+        @Override
+        public java.util.Iterator<String> iterator() {
+            return new java.util.Iterator<>() {
+                private int run = 0;
+                private int index = 0;
+
+                @Override
+                public boolean hasNext() {
+                    return index < size();
+                }
+
+                @Override
+                public String next() {
+                    if (!hasNext()) throw new java.util.NoSuchElementException();
+                    while (logEnds[run] <= index) run++;
+                    index++;
+                    return logKinds.get(run);
+                }
+            };
+        }
     }
 
     /**
@@ -366,12 +474,16 @@ public final class GameState {
 
     /** Note les molécules de cette sorte comme rassemblées. */
     public void addSubstance(String moleculeId) {
-        if (substances.add(moleculeId)) moleculesVersion++;
+        if (substances.add(moleculeId)) {
+            moleculesVersion++;
+            substancesSeen = null;
+        }
     }
 
     /** Les sortes de molécules rassemblées, dans l'ordre où elles l'ont été. */
     public List<String> substances() {
-        return List.copyOf(substances);
+        if (substancesSeen == null || substancesSeen.size() != substances.size()) substancesSeen = List.copyOf(substances);
+        return substancesSeen;
     }
 
     /** Vrai si cet assemblage est formé. Ni l'explosion ni le Big Bang ne le défont. */
@@ -381,12 +493,16 @@ public final class GameState {
 
     /** Note un assemblage comme formé. */
     public void addAssembly(String assemblyId) {
-        if (assemblies.add(assemblyId)) moleculesVersion++;
+        if (assemblies.add(assemblyId)) {
+            moleculesVersion++;
+            assembliesSeen = null;
+        }
     }
 
     /** Les assemblages formés, dans l'ordre où ils l'ont été. */
     public List<String> assemblies() {
-        return List.copyOf(assemblies);
+        if (assembliesSeen == null || assembliesSeen.size() != assemblies.size()) assembliesSeen = List.copyOf(assemblies);
+        return assembliesSeen;
     }
 
     /** Vrai si cet astre est formé. Ni l'explosion ni le Big Bang ne le défont. */
@@ -396,12 +512,64 @@ public final class GameState {
 
     /** Note un astre comme formé. */
     public void addBody(String bodyId) {
-        if (bodies.add(bodyId)) moleculesVersion++;
+        if (bodies.add(bodyId)) {
+            moleculesVersion++;
+            bodiesSeen = null;
+        }
     }
 
     /** Les astres formés, dans l'ordre où ils l'ont été. */
     public List<String> bodies() {
-        return List.copyOf(bodies);
+        if (bodiesSeen == null || bodiesSeen.size() != bodies.size()) bodiesSeen = List.copyOf(bodies);
+        return bodiesSeen;
+    }
+
+    /** Vrai si l'appui automatique est en marche (il ne sert qu'une fois acquis). Ni l'explosion ni le Big Bang ne le coupent. */
+    public boolean autoHold() {
+        return autoHold;
+    }
+
+    /** Met en marche ou coupe l'appui automatique. */
+    public void setAutoHold(boolean enabled) {
+        autoHold = enabled;
+    }
+
+    /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
+    public boolean autoMolecules() {
+        return autoMolecules;
+    }
+
+    /** Met en marche ou coupe la création automatique des molécules. */
+    public void setAutoMolecules(boolean enabled) {
+        autoMolecules = enabled;
+    }
+
+    /** Vue en lecture seule des sortes que la création automatique entretient, dans l'ordre où elles ont été choisies. */
+    public List<String> automatedMolecules() {
+        return List.copyOf(automatedMolecules);
+    }
+
+    /** Vrai si la création automatique entretient cette sorte. */
+    public boolean isMoleculeAutomated(String moleculeId) {
+        return automatedMolecules.contains(moleculeId);
+    }
+
+    /** Confie une sorte à la création automatique, ou la lui retire. Ni l'explosion ni le Big Bang ne changent ce choix. */
+    public void setMoleculeAutomated(String moleculeId, boolean automated) {
+        if (moleculeId == null || moleculeId.isBlank()) throw new IllegalArgumentException("Molécule sans identifiant");
+        if (automated) automatedMolecules.add(moleculeId);
+        else automatedMolecules.remove(moleculeId);
+    }
+
+    /** Vrai si la galaxie est formée. Ni l'explosion ni le Big Bang ne la défont. */
+    public boolean hasGalaxy() {
+        return galaxy;
+    }
+
+    /** Note la galaxie comme formée, ou défaite. */
+    public void setGalaxy(boolean formed) {
+        if (galaxy != formed) moleculesVersion++;
+        galaxy = formed;
     }
 
     /** Vrai si cette amélioration d'espace est acquise. Ni l'explosion ni le Big Bang ne la reprennent. */
@@ -593,10 +761,17 @@ public final class GameState {
         achievements.clear();
         bigBangs = 0;
         molecules.clear();
-        moleculeLog.clear();
+        logKinds.clear();
         substances.clear();
         assemblies.clear();
         bodies.clear();
+        substancesSeen = null;
+        assembliesSeen = null;
+        bodiesSeen = null;
+        galaxy = false;
+        autoHold = true;
+        autoMolecules = true;
+        automatedMolecules.clear();
         spaceUpgrades.clear();
         moleculesVersion++;
         space = BigNum.ZERO;
@@ -624,6 +799,22 @@ public final class GameState {
         activeChallenge = null;
         completedChallenges.clear();
         enabledDarkAutomations.clear();
+        darkAutomationTimers.clear();
+    }
+
+    /**
+     * Comme {@link #clearDarkMatter()}, mais l'arbre reste : ses cases, la matière noire qu'elles
+     * ont coûté, ses automatismes et les réglages qu'il avait ouverts. Partent la réserve, la
+     * taille, la masse du tableau, le nombre d'explosions et les défis réussis. C'est ce que fait
+     * un Big Bang une fois atteint le palier qui garde l'arbre.
+     */
+    public void clearDarkMatterKeepingTree() {
+        darkMatter = BigNum.ZERO;
+        darkMatterSize = Game.DARK_MATTER_START_SIZE;
+        explosions = 0;
+        tableWeightLevel = 0;
+        activeChallenge = null;
+        completedChallenges.clear();
         darkAutomationTimers.clear();
     }
 

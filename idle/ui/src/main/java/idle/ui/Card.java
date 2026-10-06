@@ -73,7 +73,9 @@ final class Card extends VBox {
     /** Un dessin posé entre l'en-tête et le titre, ou {@code null}. */
     private javafx.scene.Node picture = null;
     /** L'apparence déjà appliquée (état, survol, cliquable), pour ne pas la recalculer à chaque image. */
-    private String painted = "";
+    private int painted = 0;
+    /** La clé du dernier remplissage ({@link #filledWith(long)}). */
+    private long filled = Long.MIN_VALUE;
 
     /** @param accent couleur de la carte, celle de son onglet ou de sa branche (« #9fd0ff ») */
     Card(String accent) {
@@ -132,7 +134,7 @@ final class Card extends VBox {
         if (this.picture != null) getChildren().remove(this.picture);
         this.picture = picture;
         if (picture != null) getChildren().add(1, picture);
-        painted = "";
+        painted = 0;
         paint();
     }
 
@@ -192,6 +194,19 @@ final class Card extends VBox {
     }
 
     /**
+     * Pour une liste de cartes dont les textes coûtent à composer : l'appelant résume en un nombre
+     * tout ce dont dépend le contenu de la carte, et demande ici si elle a déjà été remplie avec ce
+     * même nombre. Si oui, il n'a rien à recomposer.
+     *
+     * @return vrai si la clé est celle du dernier appel ; sinon elle est retenue
+     */
+    boolean filledWith(long key) {
+        if (filled == key) return true;
+        filled = key;
+        return false;
+    }
+
+    /**
      * Remplit la carte. Toute chaîne vide ou {@code null} fait disparaître sa ligne.
      *
      * @param corner en haut à gauche : le niveau, ou un rang
@@ -243,8 +258,8 @@ final class Card extends VBox {
     private void paint() {
         boolean lit = hovered && isClickable();
         // Rien n'a changé depuis le dernier passage : les styles sont déjà les bons.
-        String look = state.name() + (lit ? "+" : "-") + (isClickable() ? "c" : "");
-        if (look.equals(painted)) return;
+        int look = 1 + 4 * state.ordinal() + (lit ? 2 : 0) + (isClickable() ? 1 : 0);
+        if (look == painted) return;
         painted = look;
         // Le fond, la bordure, puis les encres : le nom, le texte courant et le texte discret.
         String background;

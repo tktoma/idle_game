@@ -34,6 +34,29 @@ public record SpaceUpgrade(String id, String name, BigNum space, String requires
     /** Ouvre les astres : des amas de roches aux planètes, faits d'assemblages, de matière et de molécules. */
     public record OpenBodies() implements Effect {}
 
+    /**
+     * Donne l'automatisme « Appui automatique » : la matière noire grossit comme si le joueur
+     * tenait le clic sur elle, sans qu'il ait à le faire ({@link Game#isAutoHolding()}). Il se
+     * règle dans l'onglet Automatisation.
+     */
+    public record AutoHold() implements Effect {}
+
+    /**
+     * Multiplie pour de bon une grandeur du jeu : les atomes de chaque fusion, les particules de
+     * chaque création, ou l'espace que l'expansion ajoute chaque seconde
+     * ({@link Game#spaceUpgradeBoost(Molecule.Stat)}). Les premières rendent court le chemin du Big
+     * Bang suivant, que le joueur doit refaire depuis un seul générateur.
+     *
+     * @param stat   la grandeur multipliée
+     * @param factor ce par quoi elle l'est (2 = le double)
+     */
+    public record Boost(Molecule.Stat stat, double factor) implements Effect {
+        public Boost {
+            if (stat == null) throw new IllegalArgumentException("Amélioration sans grandeur");
+            if (!(factor > 1)) throw new IllegalArgumentException("Facteur invalide : " + factor);
+        }
+    }
+
     public SpaceUpgrade {
         if (id == null || id.isBlank()) throw new IllegalArgumentException("Amélioration d'espace sans identifiant");
         if (space == null || space.sign() <= 0) throw new IllegalArgumentException("Espace demandé par " + id + " invalide : " + space);

@@ -74,6 +74,11 @@ final class AutomationPage extends VBox {
 
     // Les automatismes de matière noire.
     private final Label darkTitle = new Label("Automatismes de matière noire");
+    // L'automatisme acquis avec l'espace, après un Big Bang : une carte qui sert d'interrupteur.
+    private final Label spaceTitle = new Label("Automatisme du Big Bang");
+    private final Card holdCard = new Card(GameApp.BIG_BANG_COLOR);
+    private final Card moleculesCard = new Card(GameApp.BIG_BANG_COLOR);
+    private final TileGrid spaceGrid = new TileGrid(230, 2, 8);
     private final Label darkHint = new Label();
     private final Map<DarkAutomation, Card> darkCards = new LinkedHashMap<>();
     private final TileGrid darkGrid = new TileGrid(230, 2, 8);
@@ -195,6 +200,34 @@ final class AutomationPage extends VBox {
         getChildren().add(darkGrid);
         wrapped(darkNext, "-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
         getChildren().add(darkNext);
+
+        // L'appui automatique : acquis dans les améliorations du Big Bang, réglé ici.
+        spaceTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
+                + GameApp.BIG_BANG_COLOR + ";");
+        holdCard.setOnAction(() -> {
+            game.setAutoHoldEnabled(!game.isAutoHoldEnabled());
+            refresh();
+        });
+        spaceGrid.add(holdCard);
+        // La création automatique des molécules : acquise avec un palier de Big Bang, réglée ici.
+        moleculesCard.setOnAction(() -> {
+            game.setMoleculeAutomationEnabled(!game.isMoleculeAutomationEnabled());
+            refresh();
+        });
+        spaceGrid.add(moleculesCard);
+        spaceGrid.setMaxWidth(778);
+        getChildren().add(spaceTitle);
+        getChildren().add(spaceGrid);
+    }
+
+    /** La carte de l'appui automatique : pour les vérifications. */
+    Card holdCard() {
+        return holdCard;
+    }
+
+    /** La carte de la création automatique des molécules : pour les vérifications. */
+    Card moleculesCard() {
+        return moleculesCard;
     }
 
     /**
@@ -233,7 +266,8 @@ final class AutomationPage extends VBox {
      * débloqué, ou la première matière noire a été obtenue (l'onglet ne disparaît alors plus).
      */
     static boolean hasContent(Game game) {
-        if (game.isAutomationUnlocked() || game.isDarkMatterUnlocked()) return true;
+        if (game.isAutomationUnlocked() || game.isDarkMatterUnlocked() || game.isAutoHoldUnlocked()
+                || game.isMoleculeAutomationUnlocked()) return true;
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id())) return true;
         }
@@ -330,6 +364,42 @@ final class AutomationPage extends VBox {
         show(darkTitle, anyDark);
         show(darkHint, anyDark && Detail.shown());
         show(darkGrid, anyDark);
+        // L'appui automatique, une fois acquis avec l'espace : il attend la matière noire s'il n'y en a pas encore.
+        boolean hold = game.isAutoHoldUnlocked();
+        boolean creation = game.isMoleculeAutomationUnlocked();
+        show(spaceTitle, hold || creation);
+        show(spaceGrid, hold || creation);
+        spaceTitle.setText(hold && creation ? "Automatismes du Big Bang" : "Automatisme du Big Bang");
+        spaceGrid.show(holdCard, hold);
+        spaceGrid.show(moleculesCard, creation);
+        if (creation) {
+            boolean on = game.isMoleculeAutomationEnabled();
+            int chosen = game.automatedMolecules();
+            boolean waiting = on && chosen == 0;
+            moleculesCard.show(on ? Card.State.ON : Card.State.OFF, "", waiting ? "en attente" : on ? "en marche" : "coupé",
+                    "Création automatique", chosen == 0 ? "Aucun amas ne lui est confié"
+                            : chosen + (chosen > 1 ? " amas confiés" : " amas confié"),
+                    "Une création dans chaque amas confié, au même prix qu'à la main : la formule, prise dans le tableau "
+                            + "périodique, où il reste toujours un exemplaire de chaque élément. Quand l'espace manque pour "
+                            + "tous, le premier servi change à chaque passage. Les amas se confient un à un, d'un clic sur "
+                            + "leur carte, dans la sous-page États de la matière du Big Bang. Acquis au deuxième Big Bang, "
+                            + "il traverse les explosions et les Big Bangs."
+                            + (waiting ? " Il attend qu'un amas lui soit confié." : "")
+                            + " Un clic " + (on ? "le coupe." : "le remet en marche."),
+                    "", "toutes les " + ElementText.number(Game.MOLECULE_AUTOMATION_SECONDS) + " s");
+        }
+        if (hold) {
+            boolean on = game.isAutoHoldEnabled();
+            boolean waiting = on && !game.isAutoHolding();
+            holdCard.show(on ? Card.State.ON : Card.State.OFF, "", waiting ? "en attente" : on ? "en marche" : "coupé",
+                    "Appui automatique", "Tient l'appui sur la matière noire",
+                    "La matière noire grossit comme si vous teniez le clic sur son point, à pleine vitesse d'appui et "
+                            + "depuis n'importe quel onglet ; avec le verrou de l'arbre, il fournit ce que le verrou laisse. "
+                            + "Acquis avec l'espace, il traverse les explosions et les Big Bangs."
+                            + (waiting ? " Il attend la première explosion : sans matière noire, rien à faire grossir." : "")
+                            + " Un clic " + (on ? "le coupe." : "le remet en marche."),
+                    "", waiting ? "après la première explosion" : "");
+        }
         // La suite n'est annoncée qu'à qui connaît déjà la matière noire.
         boolean announce = next != null && game.isDarkMatterUnlocked();
         show(darkNext, announce);
@@ -464,7 +534,6 @@ final class AutomationPage extends VBox {
 
     /** 4.0 → « 4 s », 0.5 → « 0.5 s », 1.333 → « 1.33 s ». */
     static String seconds(double value) {
-        String text = String.format(Locale.ROOT, "%.2f", value);
-        return text.replaceAll("0+$", "").replaceAll("\\.$", "") + " s";
+        return ElementText.number(value) + " s";
     }
 }

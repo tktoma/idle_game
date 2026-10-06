@@ -92,13 +92,15 @@ public final class Game {
     public static final double SPACE_PER_SECOND = 1;
 
     /**
-     * Espace qu'occupe une molécule, par proton : une molécule d'eau (10 protons) en prend 100, soit
-     * cent secondes d'expansion après le premier Big Bang ; une molécule de quinine, 1 740.
+     * Espace qu'occupe une molécule, par proton, avant ce que son état y ajoute
+     * ({@link Molecule.State#spaceFactor()}) : une molécule de quartz (30 protons, un cristal) en
+     * prend 300, une molécule d'eau (10 protons, un liquide) 200, une molécule de dihydrogène
+     * (2 protons, un gaz) 400.
      */
     public static final double SPACE_PER_PROTON = 10;
 
-    /** Ce par quoi le prix en éléments d'une molécule est multiplié chaque fois qu'on en crée une de la même sorte. */
-    public static final int MOLECULE_COST_GROWTH = 2;
+    /** Nombre de molécules qu'une même sorte ne dépasse jamais : de quoi rester loin des limites de la machine. */
+    public static final int MAX_MOLECULES = 1_000_000_000;
 
     /** Nombre de molécules d'une même sorte qu'il faut avoir créées pour les rassembler dans le lieu de leur état. */
     public static final int SUBSTANCE_MOLECULES = 3;
@@ -250,6 +252,12 @@ public final class Game {
     private final Map<String, SpaceUpgrade> spaceUpgrades = new LinkedHashMap<>();
     private final Map<String, Assembly> assemblies = new LinkedHashMap<>();
     private final Map<String, Body> bodies = new LinkedHashMap<>();
+    /** Pour chaque assemblage : l'astre qui est fait de lui. */
+    private final Map<String, Body> bodyByAssembly = new java.util.HashMap<>();
+    /** Les catalogues en listes, faites une fois : ils ne changent pas après la construction, et sont demandés à chaque image. */
+    private List<SpaceUpgrade> spaceUpgradeList;
+    private List<Assembly> assemblyList;
+    private List<Body> bodyList;
     /** Le nombre de molécules rassemblées dans chaque état, recalculé seulement quand leur liste change. */
     private final Map<Molecule.State, Integer> gatheredByState = new java.util.EnumMap<>(Molecule.State.class);
     private int gatheredByStateVersion = -1;
@@ -262,6 +270,8 @@ public final class Game {
     private final Map<Molecule.Stat, Double> moleculeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
     private final Map<Integer, Integer> elementUncaps = new java.util.HashMap<>();
     private int moleculeBonusesVersion = -1;
+    /** Ce par quoi les améliorations d'espace acquises multiplient chaque grandeur, recalculé avec les bonus des molécules. */
+    private final Map<Molecule.Stat, Double> upgradeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
     private final Map<String, DarkAutomation> darkAutomations = new LinkedHashMap<>();
     private final Map<String, Achievement> achievements = new LinkedHashMap<>();
     /** Les succès obtenus depuis le dernier appel à {@link #takeNewAchievements()}, pour les annoncer. */
@@ -377,6 +387,10 @@ public final class Game {
             }
             for (String needed : body.assemblies()) {
                 if (!assemblies.containsKey(needed)) throw new IllegalArgumentException(body.id() + " demande un assemblage inconnu : " + needed);
+                // Un assemblage entre dans un seul astre : c'est ce qui permet à l'astre de s'en faire un corps.
+                if (bodyByAssembly.put(needed, body) != null) {
+                    throw new IllegalArgumentException("L'assemblage " + needed + " est utilisé par deux astres, dont " + body.id());
+                }
             }
             for (String needed : body.molecules().keySet()) {
                 if (!molecules.containsKey(needed)) throw new IllegalArgumentException(body.id() + " demande une molécule inconnue : " + needed);
@@ -438,8 +452,11 @@ public final class Game {
         if (autoShare > 0) expandDarkMatter(dt * autoShare);
         // L'appui verrouillé : elle grossit comme si le joueur tenait le clic, quel que soit l'onglet affiché.
         if (isHoldLocked()) growDarkMatter(dt * HOLD_LOCK_SHARE);
+        // L'appui automatique, acquis avec l'espace : il tient le clic en entier, ou ce que le verrou laisse.
+        if (isAutoHolding()) growDarkMatter(dt * (isHoldLocked() ? 1 - HOLD_LOCK_SHARE : 1));
 
         expandSpace(dt);
+        runMoleculeAutomation(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -602,6 +619,14 @@ public final class Game {
                 case HOLD_TIME -> stats.holdTime();
                 case LANDMARKS -> landmarksReached();
                 case ACHIEVEMENTS -> achievementCount();
+                case SPACE -> isBigBangUnlocked() ? power(state.space()) : Double.NaN;
+                case SPACE_USED -> isBigBangUnlocked() ? power(usedSpace()) : Double.NaN;
+                case MOLECULES -> moleculesCreated();
+                case MOLECULE_SPACE -> Math.log10(moleculeBoost(Molecule.Stat.SPACE));
+                case MOLECULE_PARTICLES -> Math.log10(moleculeBoost(Molecule.Stat.PARTICLES));
+                case MOLECULE_ATOMS -> Math.log10(moleculeBoost(Molecule.Stat.ATOMS));
+                case MOLECULE_DARK -> Math.log10(moleculeBoost(Molecule.Stat.DARK_GROWTH));
+                case SKY -> assembliesFormed() + bodiesFormed() + (hasGalaxy() ? 1 : 0);
             };
         }
         return values;
@@ -1593,6 +1618,43 @@ public final class Game {
         return true;
     }
 
+    /**
+     * Vrai une fois acquise l'amélioration d'espace « Appui automatique » ({@link SpaceUpgrade.AutoHold}).
+     * Comme toute amélioration d'espace, ni l'explosion ni le Big Bang ne la reprennent.
+     */
+    public boolean isAutoHoldUnlocked() {
+        if (!isBigBangUnlocked()) return false;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.AutoHold && state.ownsSpaceUpgrade(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Vrai si l'appui automatique est en marche (il ne sert qu'une fois acquis). */
+    public boolean isAutoHoldEnabled() {
+        return state.autoHold();
+    }
+
+    /**
+     * Met en marche ou coupe l'appui automatique.
+     *
+     * @return {@code true} s'il a pris l'état demandé ; faux s'il n'est pas acquis
+     */
+    public boolean setAutoHoldEnabled(boolean enabled) {
+        if (!isAutoHoldUnlocked()) return false;
+        state.setAutoHold(enabled);
+        return true;
+    }
+
+    /**
+     * Vrai si la matière noire grossit toute seule en ce moment, à pleine vitesse d'appui : l'appui
+     * automatique est acquis, en marche, et la matière noire existe (il faut une première explosion
+     * depuis le dernier Big Bang). Tenir le clic n'ajoute alors rien : c'est déjà fait.
+     */
+    public boolean isAutoHolding() {
+        return isAutoHoldUnlocked() && state.autoHold() && isDarkMatterUnlocked();
+    }
+
     /** Vrai si le défi en cours a déjà été réussi : on le rejoue pour son temps, sans rien y gagner d'autre. */
     public boolean isChallengeReplay() {
         Challenge challenge = activeChallenge();
@@ -1607,7 +1669,10 @@ public final class Game {
         return isChallengeReplay() ? BigNum.ZERO : darkMatterPerExplosion();
     }
 
-    /** Matière noire que laisse une explosion : {@link #DARK_MATTER_PER_EXPLOSION}, plus ce qu'ajoute l'arbre. */
+    /**
+     * Matière noire que laisse une explosion : {@link #DARK_MATTER_PER_EXPLOSION}, plus ce qu'ajoute
+     * l'arbre, le tout multiplié par les paliers de Big Bang ({@link #bigBangDarkMatterFactor()}).
+     */
     public BigNum darkMatterPerExplosion() {
         BigNum amount = DARK_MATTER_PER_EXPLOSION;
         for (DarkUpgrade dark : darkUpgrades.values()) {
@@ -1615,12 +1680,16 @@ public final class Game {
                 amount = amount.add(BigNum.of(add.perLevel() * state.darkLevelOf(dark.id())));
             }
         }
-        return amount;
+        double factor = bigBangDarkMatterFactor();
+        return factor == 1 ? amount : amount.multiply(factor);
     }
 
-    /** Vrai une fois la première explosion déclenchée : la matière noire existe. */
+    /**
+     * Vrai une fois la première explosion déclenchée : la matière noire existe. Vrai aussi dès le
+     * début d'une partie quand l'arbre a traversé le Big Bang ({@link #bigBangKeepsDarkTree()}).
+     */
     public boolean isDarkMatterUnlocked() {
-        return state.explosions() > 0;
+        return state.explosions() > 0 || state.darkMatterSpent().sign() > 0;
     }
 
     /**
@@ -1766,19 +1835,224 @@ public final class Game {
      * générateur, comme au premier jour. Restent les succès et leurs bonus, les records des
      * défis, le temps de jeu, les statistiques, et le nombre de Big Bangs ({@link #bigBangs()}).
      *
-     * <p>L'acte que le Big Bang ouvre n'existe pas encore : pour l'instant il ne laisse que ce
-     * compteur.
+     * <p>Reste aussi tout ce qui appartient à l'acte que le Big Bang ouvre : l'espace et ses
+     * améliorations, les molécules, leurs rassemblements, les assemblages, les astres et la galaxie.
+     * Chaque Big Bang accélère l'expansion ({@link #spacePerSecond()}) ; en échange le tableau
+     * périodique est vide, et il faut le regarnir avant de créer de nouvelles molécules.
+     *
+     * <p>À partir du Big Bang qui atteint le palier voulu ({@link #bigBangKeepsDarkTree()}), l'arbre
+     * de matière noire reste aussi, avec ses automatismes : seuls partent la réserve, la taille, la
+     * masse du tableau et les défis réussis.
      *
      * @return {@code true} si le Big Bang a eu lieu
      */
     public boolean bigBang() {
         if (!canBigBang()) return false;
         state.stats().noteProduction(productionAtFusion());
+        boolean keepsTree = bigBangKeepsDarkTree();
         state.clearMatter();
-        state.clearDarkMatter();
+        if (keepsTree) state.clearDarkMatterKeepingTree();
+        else state.clearDarkMatter();
         state.setBigBangs(state.bigBangs() + 1);
         state.stats().restartRun();
         return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Les paliers de Big Bang
+    // ------------------------------------------------------------------
+
+    /** Les paliers de Big Bang, du premier au cinquième ({@link BigBangMilestones}). */
+    public List<BigBangMilestone> bigBangMilestones() {
+        return BigBangMilestones.DEFAULT;
+    }
+
+    /** Vrai si ce palier est atteint : assez de Big Bangs ont été déclenchés. Il agit dès cet instant, sans rien acheter. */
+    public boolean isBigBangMilestoneReached(BigBangMilestone milestone) {
+        return state.bigBangs() >= milestone.bigBangs();
+    }
+
+    /** Nombre de paliers de Big Bang atteints. */
+    public int bigBangMilestonesReached() {
+        int reached = 0;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (isBigBangMilestoneReached(milestone)) reached++;
+        }
+        return reached;
+    }
+
+    /** Le prochain palier de Big Bang, ou {@code null} quand ils sont tous atteints. */
+    public BigBangMilestone nextBigBangMilestone() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) return milestone;
+        }
+        return null;
+    }
+
+    /** Ce par quoi les paliers de Big Bang atteints multiplient une grandeur ({@link BigBangMilestone.Boost}). Vaut 1 sans aucun. */
+    public double bigBangMilestoneBoost(Molecule.Stat stat) {
+        double factor = 1;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.Boost boost && boost.stat() == stat) factor *= boost.factor();
+            }
+        }
+        return factor;
+    }
+
+    /**
+     * Ce par quoi la matière noire en réserve multiplie l'expansion, une fois atteint le palier qui
+     * le permet ({@link BigBangMilestone.DarkMatterSpace}) : {@code 1 + part × √(matière noire)}.
+     * Avec 100 de matière noire et une part de 0,1 : le double ; avec 2 500 : six fois. Vaut 1 avant
+     * le palier, et après un Big Bang tant que la matière noire n'est pas revenue.
+     */
+    public double darkMatterSpaceBoost() {
+        double perRoot = 0;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.DarkMatterSpace dark) perRoot += dark.perRoot();
+            }
+        }
+        if (perRoot == 0) return 1;
+        return 1 + perRoot * Math.sqrt(Math.max(0, state.darkMatter().toDouble()));
+    }
+
+    // ------------------------------------------------------------------
+    // La création automatique des molécules
+    // ------------------------------------------------------------------
+
+    /** Secondes entre deux passages de la création automatique : à chaque passage, une création par amas choisi. */
+    public static final double MOLECULE_AUTOMATION_SECONDS = 5;
+
+    /** Nombre de passages qu'un seul appel à {@link #tick(double)} rattrape au plus : un long temps hors-ligne ne bloque pas le jeu. */
+    private static final int MOLECULE_AUTOMATION_CATCH_UP = 20;
+
+    private double moleculeAutomationTimer = 0;
+    private int moleculeAutomationTurn = 0;
+
+    /**
+     * Vrai si le prochain Big Bang laissera l'arbre de matière noire en place
+     * ({@link BigBangMilestone.KeepDarkTree}) : le palier qui le donne est atteint, ou ce Big Bang
+     * l'atteindra. Ce Big Bang-là en profite donc déjà.
+     */
+    public boolean bigBangKeepsDarkTree() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (milestone.bigBangs() > state.bigBangs() + 1) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.KeepDarkTree) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Vrai une fois atteint le palier de Big Bang qui donne la création automatique ({@link BigBangMilestone.AutoMolecules}). */
+    public boolean isMoleculeAutomationUnlocked() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.AutoMolecules) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Vrai si la création automatique est réglée sur « en marche » ; elle l'est par défaut dès qu'elle est acquise. */
+    public boolean isMoleculeAutomationEnabled() {
+        return state.autoMolecules();
+    }
+
+    /**
+     * Met en marche ou coupe la création automatique.
+     *
+     * @return {@code true} si le réglage a été pris en compte (il faut l'avoir acquise)
+     */
+    public boolean setMoleculeAutomationEnabled(boolean enabled) {
+        if (!isMoleculeAutomationUnlocked()) return false;
+        state.setAutoMolecules(enabled);
+        return true;
+    }
+
+    /** Vrai si la création automatique entretient cette sorte. */
+    public boolean isMoleculeAutomated(String moleculeId) {
+        return state.isMoleculeAutomated(molecule(moleculeId).id());
+    }
+
+    /**
+     * Confie un amas à la création automatique, ou le lui retire. Seule une sorte rassemblée peut
+     * lui être confiée : c'est là qu'une création ajoute plusieurs molécules.
+     *
+     * @return {@code true} si le choix a été pris en compte
+     */
+    public boolean setMoleculeAutomated(String moleculeId, boolean automated) {
+        Molecule molecule = molecule(moleculeId);
+        if (!isMoleculeAutomationUnlocked()) return false;
+        if (automated && !state.hasSubstance(molecule.id())) return false;
+        state.setMoleculeAutomated(molecule.id(), automated);
+        return true;
+    }
+
+    /** Nombre d'amas confiés à la création automatique. */
+    public int automatedMolecules() {
+        return state.automatedMolecules().size();
+    }
+
+    /** Vrai si la création automatique agit en ce moment : acquise, en marche, et au moins un amas lui est confié. */
+    public boolean isAutoCreatingMolecules() {
+        return isMoleculeAutomationUnlocked() && state.autoMolecules() && !state.automatedMolecules().isEmpty();
+    }
+
+    /**
+     * Fait passer le temps de la création automatique : toutes les {@link #MOLECULE_AUTOMATION_SECONDS}
+     * secondes, une création dans chaque amas choisi qui peut en recevoir une, au même prix qu'à la
+     * main ({@link #createMolecule(String)}). Quand l'espace manque pour tous, le premier servi
+     * change à chaque passage : aucun amas n'est oublié.
+     */
+    private void runMoleculeAutomation(double dt) {
+        if (dt <= 0 || !state.started() || !isAutoCreatingMolecules()) {
+            moleculeAutomationTimer = 0;
+            return;
+        }
+        moleculeAutomationTimer += dt;
+        int rounds = (int) Math.min(MOLECULE_AUTOMATION_CATCH_UP, Math.floor(moleculeAutomationTimer / MOLECULE_AUTOMATION_SECONDS + 1e-9));
+        if (rounds <= 0) return;
+        moleculeAutomationTimer = Math.max(0, Math.min(MOLECULE_AUTOMATION_SECONDS,
+                moleculeAutomationTimer - rounds * MOLECULE_AUTOMATION_SECONDS));
+        List<String> chosen = state.automatedMolecules();
+        for (int round = 0; round < rounds; round++) {
+            boolean created = false;
+            int first = Math.floorMod(moleculeAutomationTurn++, chosen.size());
+            for (int offset = 0; offset < chosen.size(); offset++) {
+                String id = chosen.get((first + offset) % chosen.size());
+                if (molecules.containsKey(id)) created |= createMolecule(id);
+            }
+            if (!created) break;
+        }
+    }
+
+    /** Ce par quoi les paliers atteints multiplient la matière noire de chaque explosion ({@link BigBangMilestone.DarkMatter}). */
+    public double bigBangDarkMatterFactor() {
+        double factor = 1;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.DarkMatter dark) factor *= dark.factor();
+            }
+        }
+        return factor;
+    }
+
+    /** Ce par quoi les paliers atteints multiplient ce qu'un amas attire à chaque création ({@link BigBangMilestone.Accretion}). */
+    public double accretionFactor() {
+        double factor = 1;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.Accretion accretion) factor *= accretion.factor();
+            }
+        }
+        return factor;
     }
 
     /** Vrai une fois le premier Big Bang déclenché : l'acte suivant existe. */
@@ -1823,40 +2097,38 @@ public final class Game {
     }
 
     /**
-     * Ce que demande la prochaine molécule de cette sorte : numéro atomique → exemplaires à y
-     * mettre, dans l'ordre de la formule. La première demande la formule une fois, et chaque
-     * molécule créée double le prix de la suivante ({@link #MOLECULE_COST_GROWTH}) : une fois,
-     * deux fois, quatre fois. C'est ce qui borne le nombre de molécules d'une même sorte.
+     * Ce que demande une création dans cette sorte : numéro atomique → exemplaires à y mettre, dans
+     * l'ordre de la formule. C'est la formule, une fois, quel que soit le nombre de molécules déjà
+     * créées : ce qui limite une sorte, c'est l'espace qu'elle occupe ({@link #moleculeVolume(String)}),
+     * et le tableau périodique qu'il faut regarnir entre deux créations.
      */
     public Map<Integer, Integer> nextMoleculeCost(String moleculeId) {
-        Molecule molecule = molecule(moleculeId);
-        // Au-delà de vingt molécules d'une sorte, le prix dépasse de toute façon tout ce qu'un tableau peut contenir.
-        int times = (int) Math.pow(MOLECULE_COST_GROWTH, Math.min(20, state.moleculeCount(molecule.id())));
-        Map<Integer, Integer> cost = new LinkedHashMap<>();
-        for (Map.Entry<Integer, Integer> atom : molecule.recipe().entrySet()) {
-            cost.put(atom.getKey(), atom.getValue() * times);
-        }
-        return cost;
+        return molecule(moleculeId).recipe();
     }
 
     /**
-     * Espace qu'occupe une molécule de cette sorte : {@link #SPACE_PER_PROTON} par proton. Plus elle
-     * a d'atomes, et plus ils sont lourds, plus elle prend de place. Ce volume ne change pas d'une
-     * molécule à la suivante : seul le prix en éléments double.
+     * Espace qu'occupe une molécule de cette sorte : {@link #SPACE_PER_PROTON} par proton, multiplié
+     * par ce que demande son état ({@link Molecule.State#spaceFactor()}). Plus elle a d'atomes, et
+     * plus ils sont lourds, plus elle prend de place ; et un gaz en prend vingt fois plus qu'un
+     * cristal du même poids.
      */
     public BigNum moleculeVolume(String moleculeId) {
-        return BigNum.of(SPACE_PER_PROTON * molecule(moleculeId).protons());
+        return BigNum.of(volumeOf(molecule(moleculeId)));
+    }
+
+    private static double volumeOf(Molecule molecule) {
+        return SPACE_PER_PROTON * molecule.protons() * (molecule.hasState() ? molecule.state().spaceFactor() : 1);
     }
 
     /** Espace qu'occupent toutes les molécules créées. */
     public BigNum occupiedSpace() {
         if (occupiedSpaceVersion != state.moleculesVersion()) {
-            double protons = 0;
-            for (String id : state.moleculeLog()) {
-                Molecule molecule = molecules.get(id);
-                if (molecule != null) protons += molecule.protons();
+            double volume = 0;
+            for (Molecule molecule : moleculeList) {
+                int count = state.moleculeCount(molecule.id());
+                if (count > 0) volume += count * volumeOf(molecule);
             }
-            occupiedSpace = BigNum.of(SPACE_PER_PROTON * protons);
+            occupiedSpace = BigNum.of(volume);
             occupiedSpaceVersion = state.moleculesVersion();
         }
         return occupiedSpace;
@@ -1914,10 +2186,9 @@ public final class Game {
     }
 
     /**
-     * Vrai si la prochaine molécule de cette sorte peut se payer un jour avec le nombre
-     * d'exemplaires par élément que le joueur a le droit de posséder en ce moment
-     * ({@link #maxCopiesOf(Element)}). Faux : il faut d'abord les Isotopes de l'arbre, ou
-     * cette sorte a atteint son maximum.
+     * Vrai si une molécule de cette sorte peut se payer un jour avec le nombre d'exemplaires par
+     * élément que le joueur a le droit de posséder en ce moment ({@link #maxCopiesOf(Element)}).
+     * Faux : il faut d'abord les Isotopes de l'arbre, ou relever le plafond d'un de ses éléments.
      */
     public boolean isMoleculeWithinReach(String moleculeId) {
         for (Map.Entry<Integer, Integer> atom : nextMoleculeCost(moleculeId).entrySet()) {
@@ -1946,6 +2217,7 @@ public final class Game {
      */
     public boolean canCreateMolecule(String moleculeId) {
         return state.started() && isMoleculeKindUnlocked(molecule(moleculeId).kind())
+                && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES
                 && hasElementsForMolecule(moleculeId) && hasSpaceForMolecule(moleculeId);
     }
 
@@ -1989,32 +2261,78 @@ public final class Game {
      * possible. La molécule, elle, est définitive : ni l'explosion ni le Big Bang ne la reprennent,
      * et l'espace qu'elle occupe ne se libère pas.
      *
+     * <p>Dans une sorte rassemblée, l'amas attire en plus de la matière : la création y ajoute
+     * {@link #moleculesPerCreation(String)} molécules pour le même prix, dans la limite de l'espace
+     * libre. C'est ce qui permet de réunir les milliers de molécules que demande un astre.
+     *
      * @return {@code true} si la molécule a été créée
      */
     public boolean createMolecule(String moleculeId) {
         if (!canCreateMolecule(moleculeId)) return false;
         Molecule molecule = molecule(moleculeId);
+        int created = moleculesNextCreation(moleculeId);
         for (Map.Entry<Integer, Integer> atom : nextMoleculeCost(moleculeId).entrySet()) {
             state.setElementCount(atom.getKey(), state.elementCount(atom.getKey()) - atom.getValue());
         }
-        state.addMolecule(molecule.id());
+        state.addMolecules(molecule.id(), created);
         return true;
     }
 
     /**
-     * Ce par quoi les molécules créées multiplient une grandeur : {@code 1 + la somme} de leurs
-     * bonus sur cette grandeur ({@link Molecule.Boost}), chacun compté autant de fois que sa
-     * molécule a été créée, plus ce que donnent leurs rassemblements, les assemblages formés
-     * ({@link Assembly#boost()}) et les astres formés ({@link Body#boost()}). Vaut 1 sans molécule.
+     * Nombre de molécules qu'une création ajoute à cette sorte quand la place ne manque pas : une
+     * seule tant que la sorte n'est pas rassemblée ; ensuite une, plus la racine carrée du nombre
+     * de molécules de l'amas (4 pour un amas de 9, 11 pour un amas de 100, 101 pour un amas de
+     * 10 000). Plus un amas est gros, plus il attire ; et le palier du troisième Big Bang double
+     * cette racine ({@link #accretionFactor()}).
      */
-    public double moleculeBoost(Molecule.Stat stat) {
-        refreshMoleculeBonuses();
-        return 1 + moleculeBoosts.getOrDefault(stat, 0.0);
+    public int moleculesPerCreation(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        int count = state.moleculeCount(molecule.id());
+        if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return 1;
+        int drawn = 1 + (int) Math.floor(accretionFactor() * Math.sqrt(count) + 1e-9);
+        return Math.max(1, Math.min(drawn, MAX_MOLECULES - count));
     }
 
     /**
-     * Nombre d'exemplaires que les molécules créées ajoutent au maximum de cet élément : un par
-     * molécule dont c'est le bonus ({@link Molecule.Uncap}).
+     * Nombre de molécules que la prochaine création ajouterait vraiment : {@link #moleculesPerCreation(String)},
+     * ou moins si l'espace libre ne suffit pas à toutes. Au moins une, même quand il n'y a de place pour aucune :
+     * c'est {@link #canCreateMolecule(String)} qui dit si la création est possible.
+     */
+    public int moleculesNextCreation(String moleculeId) {
+        int drawn = moleculesPerCreation(moleculeId);
+        if (drawn == 1) return 1;
+        // Même marge infime que pour l'espace libre : ce qui tient tout juste doit tenir.
+        double room = state.space().multiply(1 + 1e-9).subtract(usedSpace()).toDouble() / volumeOf(molecule(moleculeId));
+        return (int) Math.max(1, Math.min(drawn, Math.floor(room)));
+    }
+
+    /**
+     * Ce par quoi l'acte du Big Bang multiplie une grandeur : {@code 1 + la somme} des bonus des
+     * molécules sur cette grandeur ({@link Molecule.Boost}), chaque sorte comptée pour
+     * {@link #effectiveMolecules(String)}, plus ce que donnent leurs rassemblements, les
+     * assemblages formés ({@link Assembly#boost()}) et les astres formés ({@link Body#boost()}) ;
+     * le tout multiplié par les améliorations d'espace qui portent sur cette grandeur
+     * ({@link #spaceUpgradeBoost(Molecule.Stat)}) et par les paliers de Big Bang atteints
+     * ({@link #bigBangMilestoneBoost(Molecule.Stat)}). Vaut 1 sans molécule, amélioration ni palier.
+     */
+    public double moleculeBoost(Molecule.Stat stat) {
+        refreshMoleculeBonuses();
+        return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * upgradeBoosts.getOrDefault(stat, 1.0)
+                * bigBangMilestoneBoost(stat);
+    }
+
+    /**
+     * Ce par quoi les améliorations d'espace acquises multiplient une grandeur
+     * ({@link SpaceUpgrade.Boost}) : leurs facteurs se multiplient entre eux. Vaut 1 sans aucune.
+     */
+    public double spaceUpgradeBoost(Molecule.Stat stat) {
+        refreshMoleculeBonuses();
+        return upgradeBoosts.getOrDefault(stat, 1.0);
+    }
+
+    /**
+     * Nombre d'exemplaires que les molécules créées ajoutent au maximum de cet élément : la partie
+     * entière de ce pour quoi compte chaque sorte dont c'est le bonus ({@link Molecule.Uncap}).
      */
     public int elementUncap(int atomicNumber) {
         refreshMoleculeBonuses();
@@ -2024,14 +2342,20 @@ public final class Game {
     /**
      * Recalcule ce que donnent les molécules, rassemblées ou non, quand leur liste a changé. Une
      * sorte de molécule compte pour {@link #effectiveMolecules(String)} : un plafond relevé prend
-     * la partie entière de ce nombre. Chaque molécule rassemblée ajoute en plus les particules et
-     * les atomes de son état.
+     * la partie entière de ce nombre. Une sorte rassemblée ajoute en plus les particules et les
+     * atomes de son état, comptés de la même façon.
      */
     private void refreshMoleculeBonuses() {
         if (moleculeBonusesVersion == state.moleculesVersion()) return;
         moleculeBonusesVersion = state.moleculesVersion();
         moleculeBoosts.clear();
         elementUncaps.clear();
+        upgradeBoosts.clear();
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.Boost boost && state.ownsSpaceUpgrade(upgrade.id())) {
+                upgradeBoosts.merge(boost.stat(), boost.factor(), (a, b) -> a * b);
+            }
+        }
         for (String id : state.molecules().keySet()) {
             Molecule molecule = molecules.get(id);
             if (molecule == null) continue;
@@ -2041,11 +2365,10 @@ public final class Game {
                 case Molecule.Uncap uncap -> elementUncaps.merge(uncap.element(), (int) Math.floor(count + 1e-9), Integer::sum);
                 case null -> { }
             }
-            int gathered = gatheredMolecules(id);
-            if (gathered > 0) {
+            if (gatheredMolecules(id) > 0) {
                 Molecule.State matter = molecule.state();
-                if (matter.particles() > 0) moleculeBoosts.merge(Molecule.Stat.PARTICLES, matter.particles() * gathered, Double::sum);
-                if (matter.atoms() > 0) moleculeBoosts.merge(Molecule.Stat.ATOMS, matter.atoms() * gathered, Double::sum);
+                if (matter.particles() > 0) moleculeBoosts.merge(Molecule.Stat.PARTICLES, matter.particles() * count, Double::sum);
+                if (matter.atoms() > 0) moleculeBoosts.merge(Molecule.Stat.ATOMS, matter.atoms() * count, Double::sum);
             }
         }
         // Les assemblages formés ajoutent chacun leur part à la grandeur de leur famille, et les astres à la leur.
@@ -2057,6 +2380,10 @@ public final class Game {
             Body body = bodies.get(id);
             if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule(), Double::sum);
         }
+        // La galaxie augmente toutes les grandeurs à la fois.
+        if (state.hasGalaxy()) {
+            for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, GALAXY_GAIN, Double::sum);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -2065,7 +2392,8 @@ public final class Game {
 
     /** Toutes les améliorations liées à l'espace, dans l'ordre du catalogue. */
     public List<SpaceUpgrade> spaceUpgrades() {
-        return List.copyOf(spaceUpgrades.values());
+        if (spaceUpgradeList == null) spaceUpgradeList = List.copyOf(spaceUpgrades.values());
+        return spaceUpgradeList;
     }
 
     private SpaceUpgrade spaceUpgrade(String spaceUpgradeId) {
@@ -2132,16 +2460,16 @@ public final class Game {
 
     /**
      * Espace que réserve le lieu où se rassemblent les molécules de cette sorte : le volume des
-     * {@link #SUBSTANCE_MOLECULES} molécules qu'il faut pour l'ouvrir, multiplié par ce que
-     * demande leur état ({@link Molecule.State#spaceFactor()}, trois fois pour un gaz). Il se
-     * paie une seule fois, et ne grandit pas avec le nombre de molécules rassemblées.
+     * {@link #SUBSTANCE_MOLECULES} molécules qu'il faut pour l'ouvrir ({@link #moleculeVolume(String)},
+     * donc bien plus pour un gaz que pour un cristal). Il se paie une seule fois, et ne grandit pas
+     * avec le nombre de molécules rassemblées.
      *
      * @throws IllegalArgumentException si ces molécules ne se rassemblent pas
      */
     public BigNum substanceSpace(String moleculeId) {
         Molecule molecule = molecule(moleculeId);
         if (!molecule.hasState()) throw new IllegalArgumentException(moleculeId + " ne forme pas de substance");
-        return BigNum.of(SPACE_PER_PROTON * molecule.protons() * SUBSTANCE_MOLECULES * molecule.state().spaceFactor());
+        return BigNum.of(volumeOf(molecule) * SUBSTANCE_MOLECULES);
     }
 
     /**
@@ -2163,10 +2491,11 @@ public final class Game {
      * il réserve un lieu dans l'espace ({@link #substanceSpace(String)}), et toutes les molécules
      * de la sorte s'y rangent, celles d'aujourd'hui comme celles qui seront créées ensuite.
      *
-     * <p>Aucune molécule n'est consommée : elles gardent leur place et leur prix. Ce que donne le
-     * rassemblement dépend du nombre de molécules possédées : leur bonus les compte à l'exposant
-     * de leur état ({@link #effectiveMolecules(String)}), et chacune ajoute sa part de particules
-     * ou d'atomes. Le rassemblement est définitif.
+     * <p>Aucune molécule n'est consommée : elles gardent leur place. Le rassemblement fait trois
+     * choses. La sorte compte davantage dans les bonus, à l'exposant de son état
+     * ({@link #effectiveMolecules(String)}) ; elle ajoute sa part de particules ou d'atomes ; et
+     * son amas attire la matière : chaque création y ajoute plus d'une molécule
+     * ({@link #moleculesPerCreation(String)}). Le rassemblement est définitif.
      *
      * @return {@code true} si les molécules ont été rassemblées
      */
@@ -2183,15 +2512,26 @@ public final class Game {
     }
 
     /**
-     * Pour combien de molécules cette sorte compte dans les bonus : leur nombre, élevé à la
-     * puissance de leur état quand elles sont rassemblées. Trois molécules d'un liquide (exposant
-     * 1,25) comptent pour 3,95 ; dix, pour 17,78.
+     * Pour combien cette sorte compte dans les bonus : le nombre de fois qu'elle a doublé
+     * ({@link #doublings(int)}), élevé à la puissance de son état quand elle est rassemblée. Trois
+     * molécules d'un liquide (deux doublements, exposant 1,25) comptent pour 2,38 ; mille (dix
+     * doublements), pour 17,7. Les premières molécules d'une sorte comptent donc beaucoup, les
+     * suivantes de moins en moins : il vaut mieux beaucoup de sortes qu'une seule énorme.
      */
     public double effectiveMolecules(String moleculeId) {
         Molecule molecule = molecule(moleculeId);
-        int count = state.moleculeCount(molecule.id());
-        if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return count;
-        return Math.pow(count, molecule.state().exponent());
+        double doublings = doublings(state.moleculeCount(molecule.id()));
+        if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return doublings;
+        return Math.pow(doublings, molecule.state().exponent());
+    }
+
+    /**
+     * Le nombre de doublements d'un amas de {@code count} molécules : 1 pour une molécule, 2 pour
+     * trois, 3 pour sept, 4 pour quinze, et ainsi de suite ; entre deux, la valeur glisse de l'un à
+     * l'autre. C'est le logarithme en base deux de {@code count + 1}.
+     */
+    public static double doublings(int count) {
+        return count <= 0 ? 0 : Math.log1p(count) / Math.log(2);
     }
 
     /** Nombre de sortes de molécules rassemblées dans le lieu de leur état. */
@@ -2214,7 +2554,8 @@ public final class Game {
 
     /** Tous les assemblages, dans l'ordre du catalogue ({@link Assemblies}). */
     public List<Assembly> assemblies() {
-        return List.copyOf(assemblies.values());
+        if (assemblyList == null) assemblyList = List.copyOf(assemblies.values());
+        return assemblyList;
     }
 
     /**
@@ -2305,7 +2646,8 @@ public final class Game {
 
     /** Tous les astres, du plus petit au plus grand ({@link Bodies}). */
     public List<Body> bodies() {
-        return List.copyOf(bodies.values());
+        if (bodyList == null) bodyList = List.copyOf(bodies.values());
+        return bodyList;
     }
 
     /**
@@ -2327,6 +2669,14 @@ public final class Game {
     /** Nombre d'astres formés. */
     public int bodiesFormed() {
         return state.bodies().size();
+    }
+
+    /**
+     * L'astre dont cet assemblage fait partie : celui qui en est fait, dans le catalogue. Il n'y en
+     * a qu'un, ou aucun ({@code null}). L'astre peut ne pas être formé encore ({@link #hasBody(String)}).
+     */
+    public Body bodyOf(String assemblyId) {
+        return bodyByAssembly.get(assembly(assemblyId).id());
     }
 
     /**
@@ -2366,8 +2716,9 @@ public final class Game {
 
     /**
      * Vrai si cet astre peut être formé maintenant : les astres sont ouverts, il n'est pas déjà
-     * formé, et toutes ses conditions sont réunies ({@link #bodyConditionsMet(String)}) : ses
-     * astres plus petits et ses assemblages sont formés, sa matière est rassemblée, ses molécules sont créées.
+     * formé, et toutes ses conditions sont réunies ({@link #bodyConditionsMet(String)}) : les
+     * assemblages dont il est fait et ses astres plus petits sont formés, sa matière est rassemblée,
+     * ses molécules sont créées.
      */
     public boolean canFormBody(String bodyId) {
         Body body = body(bodyId);
@@ -2376,10 +2727,11 @@ public final class Game {
     }
 
     /**
-     * Forme un astre : c'est un achat unique. Rien n'est consommé ni réservé : ce qu'il demande
-     * reste là, et peut servir à d'autres astres. Une fois formé, il augmente sa grandeur de ce que
-     * vaut son échelle ({@link Body#boost()}). Il est définitif : ni l'explosion ni le Big Bang ne
-     * le défont.
+     * Forme un astre : c'est un achat unique. Ses assemblages entrent dans l'astre et en font le
+     * corps ({@link #bodyOf(String)}) ; ils restent formés et gardent leur bonus. Le reste de ce
+     * qu'il demande n'est ni consommé ni réservé, et peut servir à d'autres astres. Une fois formé,
+     * il augmente sa grandeur de ce que vaut son échelle ({@link Body#boost()}). Il est définitif :
+     * ni l'explosion ni le Big Bang ne le défont.
      *
      * @return {@code true} si l'astre a été formé
      */
@@ -2390,16 +2742,88 @@ public final class Game {
     }
 
     // ------------------------------------------------------------------
+    // La galaxie : tous les astres, rassemblés autour du trou noir supermassif
+    // ------------------------------------------------------------------
+
+    /** Ce que la galaxie ajoute à chacune des grandeurs une fois formée (1 024 = +102 400 %) : le double du trou noir supermassif. */
+    public static final double GALAXY_GAIN = 1024;
+
+    /** Nombre d'astres de cette échelle dans le catalogue. */
+    public int bodiesIn(Body.Tier tier) {
+        int count = 0;
+        for (Body body : bodies.values()) {
+            if (body.tier() == tier) count++;
+        }
+        return count;
+    }
+
+    /** Nombre d'astres formés de cette échelle. */
+    public int bodiesFormed(Body.Tier tier) {
+        int count = 0;
+        for (String id : state.bodies()) {
+            Body body = bodies.get(id);
+            if (body != null && body.tier() == tier) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Vrai une fois la galaxie en vue : les astres sont ouverts et une première étoile est formée,
+     * ou la galaxie l'est déjà.
+     */
+    public boolean isGalaxyUnlocked() {
+        if (!isBodiesUnlocked()) return false;
+        if (state.hasGalaxy()) return true;
+        for (String id : state.bodies()) {
+            Body body = bodies.get(id);
+            if (body != null && body.tier().ordinal() >= Body.Tier.STAR.ordinal()) return true;
+        }
+        return false;
+    }
+
+    /** Vrai si la galaxie est formée. */
+    public boolean hasGalaxy() {
+        return state.hasGalaxy();
+    }
+
+    /**
+     * Vrai si la galaxie peut être formée maintenant : les astres sont ouverts, elle ne l'est pas
+     * déjà, et tous les astres du catalogue sont formés, du premier amas de roches au trou noir
+     * supermassif.
+     */
+    public boolean canFormGalaxy() {
+        return state.started() && isBodiesUnlocked() && !state.hasGalaxy() && state.bodies().size() == bodies.size();
+    }
+
+    /**
+     * Forme la galaxie : tout ce que le joueur a créé, molécules, amas, assemblages et astres, se
+     * met à tourner autour du trou noir supermassif. C'est un achat unique, qui ne consomme rien :
+     * les astres restent formés et gardent leur bonus. La galaxie ajoute {@link #GALAXY_GAIN} à
+     * chacune des grandeurs que les molécules augmentent, et rien ne la défait, ni l'explosion ni
+     * le Big Bang.
+     *
+     * @return {@code true} si la galaxie a été formée
+     */
+    public boolean formGalaxy() {
+        if (!canFormGalaxy()) return false;
+        state.setGalaxy(true);
+        return true;
+    }
+
+    // ------------------------------------------------------------------
     // L'expansion de la matière
     // ------------------------------------------------------------------
 
     /**
      * Espace que l'expansion de la matière ajoute chaque seconde : {@link #SPACE_PER_SECOND} par
-     * Big Bang déclenché, augmenté par les molécules qui l'accélèrent. Nul avant le premier Big Bang.
+     * Big Bang déclenché, augmenté par les molécules, les assemblages et les astres qui
+     * l'accélèrent, par les améliorations d'inflation, par les paliers de Big Bang, et, une fois le
+     * palier atteint, par la matière noire en réserve ({@link #darkMatterSpaceBoost()}). Nul avant le
+     * premier Big Bang.
      */
     public BigNum spacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
-        return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE));
+        return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost());
     }
 
     /**

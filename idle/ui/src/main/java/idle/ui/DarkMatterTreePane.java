@@ -258,7 +258,7 @@ final class DarkMatterTreePane extends Pane {
                     oneTime ? "" : level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : ""),
                     !maxed ? "" : oneTime ? "acquise" : "max",
                     upgrade.name(), DarkText.brief(upgrade.effect(), game),
-                    DarkText.describe(upgrade.effect(), game) + ".",
+                    Detail.shown() ? DarkText.describe(upgrade.effect(), game) + "." : "",
                     maxed ? "" : price(upgrade, available), "");
 
             // Le trait qui mène à la case s'allume quand elle est accessible.
@@ -284,14 +284,21 @@ final class DarkMatterTreePane extends Pane {
                 + "de tout défi : les particules et les atomes sont ceux de la partie en cours (une seconde de "
                 + "production compte comme des particules en main), la matière noire est celle qui reste à "
                 + "dépenser. Une explosion reprend particules et atomes : mieux vaut couper l'explosion "
-                + "automatique le temps de les réunir. Le Big Bang efface tout, jusqu'à la matière noire, son "
-                + "arbre, ses automatismes et les défis réussis ; il ne laisse que les succès, les records des "
-                + "défis, le temps de jeu et les statistiques. L'acte qu'il ouvre n'existe pas encore.";
+                + "automatique le temps de les réunir. "
+                + (game.bigBangKeepsDarkTree()
+                        ? "Le Big Bang efface les particules, les atomes, les éléments, la matière noire en réserve, "
+                                + "sa taille et les défis réussis. Cet arbre et ses automatismes restent : c'est le "
+                                + "palier du cinquième Big Bang. "
+                        : "Le Big Bang efface tout, jusqu'à la matière noire, son arbre, ses automatismes et les "
+                                + "défis réussis. ")
+                + "Restent les succès, les records des défis, le temps de jeu et les statistiques"
+                + (game.bigBangs() == 0 ? ". Il ouvre l'onglet Big Bang." : ", et tout ce que contient l'onglet Big Bang.");
         int count = game.bigBangs();
         String aside = count == 0 ? "" : "déjà " + count + (count > 1 ? " déclenchés" : " déclenché");
         if (armedFor > 0) {
             bang.show(Card.State.ARMED, "", (int) Math.ceil(armedFor) + " s", "Big Bang", lines.toString(), detail,
-                    "Cliquer encore : tout repart du premier générateur", aside);
+                    game.bigBangKeepsDarkTree() ? "Cliquer encore : tout repart du premier générateur, sauf cet arbre"
+                            : "Cliquer encore : tout repart du premier générateur", aside);
         } else if (ready) {
             bang.show(Card.State.READY, "", "prêt", "Big Bang", lines.toString(), detail, "Déclencher", aside);
         } else {

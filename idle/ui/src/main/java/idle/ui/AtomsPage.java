@@ -81,9 +81,19 @@ final class AtomsPage extends VBox {
         orbsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
         hintLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
-        atomTab.setOnAction(event -> select(0));
-        upgradesTab.setOnAction(event -> select(1));
-        tableTab.setOnAction(event -> select(2));
+        // Une sous-page n'est recopiée que lorsqu'elle est affichée : elle l'est donc dès qu'on la choisit.
+        atomTab.setOnAction(event -> {
+            select(0);
+            refresh();
+        });
+        upgradesTab.setOnAction(event -> {
+            select(1);
+            refresh();
+        });
+        tableTab.setOnAction(event -> {
+            select(2);
+            refresh();
+        });
         HBox subTabs = new HBox(atomTab, upgradesTab, tableTab);
         subTabs.setAlignment(Pos.CENTER);
 
@@ -149,7 +159,28 @@ final class AtomsPage extends VBox {
 
     /** Recopie l'état du jeu dans les textes et les boutons. */
     void refresh() {
+        refresh(true);
+    }
+
+    /**
+     * Recopie l'état du jeu dans la page : son en-tête, et la sous-page affichée.
+     *
+     * @param visible faux quand l'onglet « Atomes » n'est pas à l'écran : rien n'est alors recopié. Seul
+     *                continue ce qui a une mémoire, le nombre d'orbes de l'atome et le suivi du tableau
+     *                périodique, pour que la page soit au retour comme si elle était restée affichée.
+     */
+    void refresh(boolean visible) {
         BigNum atoms = game.state().atoms();
+        // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
+        // un atome dépensé quitte le visuel.
+        int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
+        atomView.setOrbs(orbs);
+        // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
+        boolean tableUnlocked = game.isPeriodicTableUnlocked();
+        if (!tableUnlocked && selected == 2) select(0);
+        tablePage.refresh(visible && selected == 2);
+        if (!visible) return;
+
         BigNum created = game.state().totalAtoms();
         // Le plafond n'est rappelé que lorsqu'il a bougé : après une explosion, le tableau est plus lourd.
         boolean heavier = game.tableWeight().gt(BigNum.ONE) && !game.isAtomCapLifted();
@@ -160,20 +191,14 @@ final class AtomsPage extends VBox {
                 + " particules   |   chaque fusion donne " + Format.amount(perFusion)
                 + (perFusion.gt(BigNum.ONE) ? " atomes" : " atome"));
 
-        // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
-        // un atome dépensé quitte le visuel.
-        int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
-        atomView.setOrbs(orbs);
+        tableTab.setVisible(tableUnlocked);
+        tableTab.setManaged(tableUnlocked);
+        if (selected == 1) upgradeCards.forEach(this::show);
+        if (selected != 0) return;
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
                 + (atoms.gt(Game.MAX_ATOMS) ? " (l'atome n'en montre pas plus)" : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
-        // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
-        boolean tableUnlocked = game.isPeriodicTableUnlocked();
-        tableTab.setVisible(tableUnlocked);
-        tableTab.setManaged(tableUnlocked);
-        if (!tableUnlocked && selected == 2) select(0);
-        tablePage.refresh();
         hintLabel.setText(game.isAtomCapReached()
                 ? (tableUnlocked && !game.isPeriodicTableComplete()
                         ? "Maximum atteint : dépensez des atomes ou synthétisez un élément."
@@ -181,8 +206,6 @@ final class AtomsPage extends VBox {
                 : tableUnlocked ? Detail.only("Fusionnez les générateurs pour créer un atome de plus.")
                 : "Automatisation et tableau périodique à " + Format.count(Game.UNLOCK_TOTAL_ATOMS)
                         + " atomes créés (vous : " + Format.count(created) + ")");
-
-        upgradeCards.forEach(this::show);
     }
 
     /** Remplit la carte d'une amélioration : niveau, valeur actuelle, effet, prix, fusions restantes. */
@@ -292,8 +315,7 @@ final class AtomsPage extends VBox {
 
     /** Écrit 2.0 comme « 2 » et 2.5 comme « 2.5 ». */
     private static String trim(double value) {
-        String text = String.format(Locale.ROOT, "%.2f", value);
-        return text.contains(".") ? text.replaceAll("0+$", "").replaceAll("\\.$", "") : text;
+        return ElementText.number(value);
     }
 
     /** Un atome vient d'être créé : l'atome grossit d'un coup puis reprend sa taille. */

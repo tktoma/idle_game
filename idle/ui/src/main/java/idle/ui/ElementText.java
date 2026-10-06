@@ -124,9 +124,24 @@ final class ElementText {
 
     /** Deux décimales au plus, sans zéros inutiles : 2.0 → « 2 », 1.25 → « 1.25 ». */
     static String number(double value) {
+        // Les mêmes nombres reviennent d'une image à l'autre : chacun n'est mis en forme qu'une fois.
+        Double key = value;
+        String known = NUMBERS.get(key);
+        if (known != null) return known;
         String text = String.format(Locale.ROOT, "%.2f", value);
-        return text.replaceAll("0+$", "").replaceAll("\\.$", "");
+        // Les zéros de la fin, puis le point s'il ne reste rien derrière.
+        int end = text.length();
+        while (end > 0 && text.charAt(end - 1) == '0') end--;
+        if (end > 0 && text.charAt(end - 1) == '.') end--;
+        text = text.substring(0, end);
+        if (NUMBERS.size() >= REMEMBERED) NUMBERS.clear();
+        NUMBERS.put(key, text);
+        return text;
     }
+
+    /** Les nombres déjà mis en forme par {@link #number(double)}, jusqu'à {@link #REMEMBERED} : au-delà, on repart de rien. */
+    private static final java.util.Map<Double, String> NUMBERS = new java.util.HashMap<>();
+    private static final int REMEMBERED = 4096;
 
     private ElementText() {}
 }

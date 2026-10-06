@@ -64,10 +64,13 @@ public final class SizeScale {
     public static final List<Landmark> MILESTONES = LANDMARKS.stream()
             .filter(landmark -> landmark.size().gt(START_SIZE)).toList();
 
+    /** Les sortes de bonus, dans leur ordre : gardées une fois, car {@code values()} recopie son tableau à chaque appel. */
+    private static final Bonus[] BONUSES = Bonus.values();
+
     /** Le bonus du palier de rang {@code index} dans {@link #MILESTONES} : particules, atomes, croissance, et ainsi de suite. */
     public static Bonus bonusOf(int index) {
         if (index < 0 || index >= MILESTONES.size()) throw new IllegalArgumentException("Palier inconnu : " + index);
-        return Bonus.values()[index % Bonus.values().length];
+        return BONUSES[index % BONUSES.length];
     }
 
     /** Nombre de paliers atteints ou dépassés par cette taille. */
