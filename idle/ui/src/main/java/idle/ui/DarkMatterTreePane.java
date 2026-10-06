@@ -1,5 +1,6 @@
 package idle.ui;
 
+import idle.core.BigBangCondition;
 import idle.core.BigNum;
 import idle.core.DarkUpgrade;
 import idle.core.Game;
@@ -9,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -28,13 +28,20 @@ import javafx.scene.text.TextAlignment;
  *   <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas
  *       les unes des autres : au lieu de s'enchaîner, elles partent toutes d'un même tronc.</li>
  * </ul>
- * Une case est un bouton : un clic achète un niveau. Un trait s'allume quand la case qu'il mène
- * est accessible.
+ * Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle
+ * fait en quelques mots et son prix ; l'explication complète, avec la valeur actuelle, vient en
+ * mode détails ({@link Detail}), et les cases grandissent alors toutes ensemble. Un trait
+ * s'allume quand la case qu'il mène est accessible.
  *
  * <p>L'arbre est construit d'après le catalogue du jeu ({@link Game#darkUpgrades()}) : ajouter
  * une case dans core suffit à la faire apparaître ici. La zone place elle-même ses cases et ses
  * traits : ils suivent la largeur de la fenêtre. Dans une fenêtre étroite, les branches ne
  * tiennent plus côte à côte : elles se rangent en deux étages de deux, reliés par le tronc.
+ *
+ * <p>Tout en bas, là où les branches se rejoignent, la case du Big Bang ({@link Game#bigBang()}).
+ * Elle se paie avec les trois ressources à la fois et demande des succès et tous les défis : elle
+ * liste ses cinq conditions, avec ce que le joueur en a. Comme elle efface tout, elle demande un
+ * second clic dans les cinq secondes.
  */
 final class DarkMatterTreePane extends Pane {
 
@@ -59,13 +66,19 @@ final class DarkMatterTreePane extends Pane {
     private static final double TWO_FLOORS_BELOW = 700;
     /** Retrait des cases d'une branche en éventail, pour laisser passer son tronc à leur gauche. */
     private static final double FAN_INDENT = 18;
-    private static final String CARD_STYLE = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-background-radius: 8;"
-            + " -fx-border-radius: 8;";
+    /** Hauteur minimale d'une case : même presque vide, elle garde l'allure d'une carte. */
+    private static final double MIN_CARD_HEIGHT = 84;
+    /** Largeur maximale de la case du Big Bang : plus large qu'une case, elle porte cinq lignes. */
+    private static final double BANG_WIDTH = 380;
+    /** Temps laissé pour le second clic sur le Big Bang, en secondes. */
+    private static final double CONFIRM_SECONDS = 5;
+    private static final String CARD_STYLE = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-background-radius: 6;"
+            + " -fx-border-radius: 6;";
 
-    /** Une case de l'arbre : l'amélioration, son bouton, sa place et les traits qui y mènent. */
+    /** Une case de l'arbre : l'amélioration, sa carte, sa place et les traits qui y mènent. */
     private static final class Cell {
         final DarkUpgrade upgrade;
-        final Button card = new Button();
+        final Card card;
         /** Ligne dans sa colonne, 0 en haut. */
         final int row;
         /** La case du dessus dont elle dépend, ou {@code null} si elle part de l'en-tête de sa branche. */
@@ -78,6 +91,7 @@ final class DarkMatterTreePane extends Pane {
         Cell(DarkUpgrade upgrade, int row) {
             this.upgrade = upgrade;
             this.row = row;
+            this.card = new Card(COLORS.get(upgrade.branch()));
         }
     }
 
@@ -94,8 +108,19 @@ final class DarkMatterTreePane extends Pane {
     private final Map<DarkUpgrade.Branch, Boolean> fans = new EnumMap<>(DarkUpgrade.Branch.class);
     private final List<DarkUpgrade.Branch> branches = new ArrayList<>();
     private final List<Cell> cells = new ArrayList<>();
-    private double cardHeight = 136;
+    /** Hauteur commune des cases : celle de la plus haute, mesurée à chaque mise en page. */
+    private double cardHeight = MIN_CARD_HEIGHT;
+    /** La largeur de case et le mode (détails ou non) pour lesquels {@link #cardHeight} a été mesurée. */
+    private double measuredWidth = -1;
+    private boolean measuredDetail = false;
     private double totalHeight = 0;
+    /** La case du Big Bang, et les traits par lesquels les branches du dernier étage y descendent. */
+    private final Card bang = new Card(GameApp.BIG_BANG_COLOR);
+    private final Map<DarkUpgrade.Branch, Line> tails = new EnumMap<>(DarkUpgrade.Branch.class);
+    private final Line gather = new Line();
+    private final Line stem = new Line();
+    /** Secondes qu'il reste pour confirmer le Big Bang ; 0 quand aucun premier clic n'attend. */
+    private double armedFor = 0;
 
     DarkMatterTreePane(Game game) {
         this.game = game;
@@ -133,6 +158,14 @@ final class DarkMatterTreePane extends Pane {
             drops.put(branch, drop);
             getChildren().add(drop);
         }
+        for (DarkUpgrade.Branch branch : branches) tails.put(branch, new Line());
+        List<Line> toBang = new ArrayList<>(tails.values());
+        toBang.add(gather);
+        toBang.add(stem);
+        for (Line line : toBang) {
+            line.setStrokeWidth(2);
+            getChildren().add(line);
+        }
         for (Cell cell : cells) {
             cell.link.setStrokeWidth(2);
             cell.elbow.setStrokeWidth(2);
@@ -156,30 +189,48 @@ final class DarkMatterTreePane extends Pane {
             getChildren().add(header);
         }
         for (Cell cell : cells) {
-            cell.card.setWrapText(true);
-            cell.card.setTextAlignment(TextAlignment.CENTER);
-            // Sans cela, un clic donne le focus à la case ; dès qu'elle se grise, le focus saute à la
-            // case suivante du catalogue, souvent tout en haut, et la vue défile jusqu'à elle.
-            cell.card.setFocusTraversable(false);
-            cell.card.setOnAction(event -> {
+            cell.card.setOnAction(() -> {
                 game.buyDark(cell.upgrade.id());
                 refresh();
             });
             getChildren().add(cell.card);
         }
+        bang.setOnAction(this::clickBang);
+        getChildren().add(bang);
         setPrefSize(720, 600);
     }
 
-    /**
-     * Hauteur d'une case selon sa largeur : plus elle est étroite, plus son texte passe à la
-     * ligne. Les valeurs viennent de mesures du plus long texte de l'arbre, avec une marge.
-     */
-    private static double cardHeightFor(double width) {
-        return width >= 213 ? 136 : width >= 183 ? 152 : width >= 153 ? 170 : width >= 138 ? 204
-                : width >= 123 ? 222 : width >= 108 ? 270 : width >= 93 ? 304 : 370;
+    /** Premier clic : la case s'arme. Second clic dans les cinq secondes : le Big Bang a lieu. */
+    private void clickBang() {
+        if (armedFor > 0) {
+            armedFor = 0;
+            game.bigBang();
+        } else if (game.canBigBang()) {
+            armedFor = CONFIRM_SECONDS;
+        }
+        refresh();
     }
 
-    /** Recopie l'état du jeu dans l'arbre : textes, couleurs, et boutons actifs seulement si l'achat est possible. */
+    /**
+     * Fait passer le temps de la confirmation du Big Bang : sans second clic, elle s'annule.
+     *
+     * @param elapsed secondes écoulées depuis l'image précédente
+     */
+    void frame(double elapsed) {
+        if (armedFor > 0) armedFor = Math.max(0, armedFor - elapsed);
+    }
+
+    /** L'arbre n'est plus affiché : une confirmation en attente est oubliée. */
+    void release() {
+        armedFor = 0;
+    }
+
+    /** La case du Big Bang : pour les vérifications. */
+    Card bangCard() {
+        return bang;
+    }
+
+    /** Recopie l'état du jeu dans l'arbre : textes, couleurs, et cases cliquables seulement si l'achat est possible. */
     void refresh() {
         BigNum earned = game.darkMatterEarned();
         root.setText("Matière noire : " + Format.count(earned) + (earned.gt(BigNum.ONE) ? " gagnées" : " gagnée"));
@@ -199,45 +250,85 @@ final class DarkMatterTreePane extends Pane {
             boolean available = game.isDarkAvailable(upgrade.id());
             boolean affordable = game.canBuyDark(upgrade.id());
             String color = COLORS.get(upgrade.branch());
+            boolean oneTime = upgrade.maxLevel() == 1;
 
-            cell.card.setText(title(upgrade, level, maxed) + "\n" + DarkText.describe(upgrade.effect(), game)
-                    + (maxed ? "" : "\n" + price(upgrade, available)));
-            cell.card.setDisable(!affordable);
-            // Acquise : couleur pleine. Achetable : bordure vive. Trop chère ou verrouillée : éteinte.
-            cell.card.setStyle(CARD_STYLE + (maxed
-                    ? " -fx-text-fill: #10151f; -fx-background-color: " + color + "; -fx-border-color: #ffffff; -fx-opacity: 1;"
-                    : affordable
-                    ? " -fx-cursor: hand; -fx-text-fill: #ffffff; -fx-background-color: " + color + "44; -fx-border-color: " + color + ";"
-                    : level > 0
-                    ? " -fx-text-fill: #ffffff; -fx-background-color: " + color + "33; -fx-border-color: " + color + "88; -fx-opacity: 1;"
-                    : " -fx-text-fill: " + color + "; -fx-background-color: #10151f; -fx-border-color: " + color + "44;"));
+            // Acquise : couleur pleine. À portée : éclairée. Entamée : teintée. Trop chère ou verrouillée : éteinte.
+            cell.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY
+                            : !available ? Card.State.LOCKED : level > 0 ? Card.State.STARTED : Card.State.WAITING,
+                    oneTime ? "" : level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : ""),
+                    !maxed ? "" : oneTime ? "acquise" : "max",
+                    upgrade.name(), DarkText.brief(upgrade.effect(), game),
+                    DarkText.describe(upgrade.effect(), game) + ".",
+                    maxed ? "" : price(upgrade, available), "");
 
             // Le trait qui mène à la case s'allume quand elle est accessible.
             Color stroke = Color.web(available ? color : OFF);
             cell.link.setStroke(stroke);
             cell.elbow.setStroke(stroke);
         }
+        refreshBang();
     }
 
-    private static String title(DarkUpgrade upgrade, int level, boolean maxed) {
-        if (upgrade.maxLevel() == 1) return upgrade.name() + (maxed ? " (acquise)" : "");
-        return upgrade.name() + " (niveau " + level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : "") + ")";
+    /** La case du Big Bang : ses cinq conditions, et ce qu'un clic fera. */
+    private void refreshBang() {
+        boolean ready = game.canBigBang();
+        if (!ready) armedFor = 0;     // une condition vient de tomber : une explosion a repris les atomes, par exemple
+        int met = game.bigBangConditionsMet();
+        int all = BigBangCondition.values().length;
+        StringBuilder lines = new StringBuilder();
+        for (BigBangCondition condition : BigBangCondition.values()) {
+            if (lines.length() > 0) lines.append('\n');
+            lines.append(game.isBigBangConditionMet(condition) ? "● " : "○ ").append(condition(condition));
+        }
+        String detail = "Le passage à l'acte suivant. Les cinq conditions doivent être réunies au même moment, hors "
+                + "de tout défi : les particules et les atomes sont ceux de la partie en cours (une seconde de "
+                + "production compte comme des particules en main), la matière noire est celle qui reste à "
+                + "dépenser. Une explosion reprend particules et atomes : mieux vaut couper l'explosion "
+                + "automatique le temps de les réunir. Le Big Bang efface tout, jusqu'à la matière noire, son "
+                + "arbre, ses automatismes et les défis réussis ; il ne laisse que les succès, les records des "
+                + "défis, le temps de jeu et les statistiques. L'acte qu'il ouvre n'existe pas encore.";
+        int count = game.bigBangs();
+        String aside = count == 0 ? "" : "déjà " + count + (count > 1 ? " déclenchés" : " déclenché");
+        if (armedFor > 0) {
+            bang.show(Card.State.ARMED, "", (int) Math.ceil(armedFor) + " s", "Big Bang", lines.toString(), detail,
+                    "Cliquer encore : tout repart du premier générateur", aside);
+        } else if (ready) {
+            bang.show(Card.State.READY, "", "prêt", "Big Bang", lines.toString(), detail, "Déclencher", aside);
+        } else {
+            bang.show(met > 0 ? Card.State.STARTED : Card.State.WAITING, "", "", "Big Bang", lines.toString(), detail,
+                    met == all ? "Pas pendant un défi" : met + (met > 1 ? " conditions sur " : " condition sur ") + all, aside);
+        }
+        Color stroke = Color.web(ready ? GameApp.BIG_BANG_COLOR : OFF);
+        for (Line tail : tails.values()) tail.setStroke(stroke);
+        gather.setStroke(stroke);
+        stem.setStroke(stroke);
     }
 
-    /** Le prix du prochain niveau, avec ce que le joueur possède en face. */
+    /** Une condition du Big Bang : ce qu'il faut, et entre parenthèses ce que le joueur a. */
+    private String condition(BigBangCondition condition) {
+        return switch (condition) {
+            case PARTICLES -> Format.count(Game.BIG_BANG_PARTICLES) + " particules ("
+                    + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")";
+            case ATOMS -> Format.count(Game.BIG_BANG_ATOMS) + " atomes (" + Format.count(game.state().atoms()) + ")";
+            case DARK_MATTER -> Format.count(Game.BIG_BANG_DARK_MATTER) + " matières noires en réserve ("
+                    + Format.count(game.state().darkMatter()) + ")";
+            case ACHIEVEMENTS -> Game.BIG_BANG_ACHIEVEMENTS + " succès (" + game.achievementCount() + ")";
+            case CHALLENGES -> "Les " + game.challenges().size() + " défis réussis (" + game.completedChallenges() + ")";
+        };
+    }
+
+    /** Le prix du prochain niveau, ou ce qu'il faut pour que la case s'ouvre. Ce que le joueur possède est dans l'en-tête. */
     private String price(DarkUpgrade upgrade, boolean available) {
         if (!game.hasDarkMatterFor(upgrade.id())) {
-            return "Demande " + upgrade.darkMatter() + " matières noires gagnées (vous : "
-                    + Format.count(game.darkMatterEarned()) + ")";
+            return "À " + upgrade.darkMatter() + " matières noires gagnées";
         }
-        if (!available) return "Demande la case du dessus";
+        if (!available) return "Après la case du dessus";
         BigNum cost = game.darkCostOf(upgrade.id());
-        BigNum owned = game.darkBalance(upgrade.branch());
         return switch (upgrade.branch()) {
-            case PARTICLES -> "Coût : " + Format.count(cost) + " particules (vous : " + Format.count(owned) + ")";
-            case ATOMS -> "Coût : " + Format.count(cost) + " atomes (vous : " + Format.count(owned) + ")";
-            case SIZE -> "Taille à atteindre : " + Format.length(cost) + " (actuelle : " + Format.length(owned) + ")";
-            case DARK_MATTER -> "Coût : " + Format.count(cost) + (cost.gt(BigNum.ONE) ? " matières noires" : " matière noire");
+            case PARTICLES -> Format.count(cost) + " particules";
+            case ATOMS -> Format.count(cost) + " atomes";
+            case SIZE -> "Taille " + Format.length(cost);
+            case DARK_MATTER -> Format.count(cost) + (cost.gt(BigNum.ONE) ? " matières noires" : " matière noire");
         };
     }
 
@@ -250,8 +341,18 @@ final class DarkMatterTreePane extends Pane {
         int floors = (branches.size() + perFloor - 1) / perFloor;
         double columnWidth = width / perFloor;
         double cardWidth = Math.max(96, Math.min(250, columnWidth - 14));
-        // Les cases en éventail, en retrait, sont les plus étroites : ce sont elles qui décident de la hauteur.
-        cardHeight = cardHeightFor(fans.containsValue(true) ? cardWidth - FAN_INDENT : cardWidth);
+        // Toutes les cases ont la hauteur de la plus haute, mesurée à la largeur qu'elle aura. Tant que
+        // ni la largeur ni le mode ne changent, la hauteur ne fait que grandir : un prix qui s'allonge
+        // d'un chiffre ne doit pas faire trembler tout l'arbre.
+        if (cardWidth != measuredWidth || Detail.shown() != measuredDetail) {
+            measuredWidth = cardWidth;
+            measuredDetail = Detail.shown();
+            cardHeight = MIN_CARD_HEIGHT;
+        }
+        for (Cell cell : cells) {
+            double room = fans.get(cell.upgrade.branch()) ? cardWidth - FAN_INDENT : cardWidth;
+            cardHeight = Math.max(cardHeight, Math.ceil(cell.card.prefHeight(room)));
+        }
 
         double rootWidth = Math.min(260, width - 16);
         root.resizeRelocate(Math.floor((width - rootWidth) / 2), TOP, rootWidth, ROOT_HEIGHT);
@@ -306,6 +407,28 @@ final class DarkMatterTreePane extends Pane {
                 place(cell.link, centerX, top - ROW_GAP, centerX, top);
             }
         }
+
+        // Sous le dernier étage : ses branches descendent jusqu'à un trait commun, d'où part la case du Big Bang.
+        double gatherY = y + ROW_GAP / 2;
+        int firstOfLast = (floors - 1) * perFloor;
+        for (int index = 0; index < branches.size(); index++) {
+            DarkUpgrade.Branch branch = branches.get(index);
+            Line tail = tails.get(branch);
+            tail.setVisible(index >= firstOfLast);
+            if (index < firstOfLast) continue;
+            double centerX = centers.get(branch);
+            double bottom = headerYs.get(branch) + HEADER_HEIGHT + rowCounts.get(branch) * (ROW_GAP + cardHeight);
+            place(tail, centerX, bottom, centerX, gatherY);
+        }
+        double firstCenter = centers.get(branches.get(firstOfLast));
+        double lastCenter = centers.get(branches.get(branches.size() - 1));
+        place(gather, Math.min(firstCenter, width / 2), gatherY, Math.max(lastCenter, width / 2), gatherY);
+        double bangTop = gatherY + ROW_GAP;
+        place(stem, width / 2, gatherY, width / 2, bangTop);
+        double bangWidth = Math.max(96, Math.min(BANG_WIDTH, width - 16));
+        double bangHeight = Math.max(MIN_CARD_HEIGHT, Math.ceil(bang.prefHeight(bangWidth)));
+        bang.resizeRelocate(Math.floor((width - bangWidth) / 2), bangTop, bangWidth, bangHeight);
+        y = bangTop + bangHeight;
 
         // La hauteur de l'arbre dépend de la largeur : la zone qui défile autour doit la connaître.
         if (y + 8 != totalHeight) {

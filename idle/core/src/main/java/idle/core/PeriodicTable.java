@@ -22,6 +22,9 @@ import java.util.List;
  *   <li><b>gaz nobles</b> et <b>actinides</b> : uniques, les plus puissants.</li>
  * </ul>
  *
+ * <p>Les familles et les périodes forment des ensembles, qui donnent un bonus de plus une fois
+ * réunis ({@link ElementSets}).
+ *
  * <p>Les effets qui accélèrent la synthèse elle-même (cadence des automatismes, atomes par
  * fusion, prix de la synthèse) sont volontairement modestes : ce sont eux qui décident de la
  * durée du tableau. Plus forts, la seconde moitié du tableau se remplirait en une heure.
@@ -34,7 +37,7 @@ public final class PeriodicTable {
             new Element(2, "He", "Hélium", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.PARTICLES, 2.00)),
             new Element(3, "Li", "Lithium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.SPEED_UPGRADES, 0.12)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.SPEED_UPGRADES, 0.09)),
             new Element(4, "Be", "Béryllium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.015)),
             new Element(5, "B", "Bore", ElementCategory.METALLOID,
@@ -50,7 +53,7 @@ public final class PeriodicTable {
             new Element(10, "Ne", "Néon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.SPEED, 1.50)),
             new Element(11, "Na", "Sodium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.GENERATORS, 0.12)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.GENERATORS, 0.09)),
             new Element(12, "Mg", "Magnésium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.02)),
             new Element(13, "Al", "Aluminium", ElementCategory.POST_TRANSITION_METAL,
@@ -66,7 +69,7 @@ public final class PeriodicTable {
             new Element(18, "Ar", "Argon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.Multiply(ElementEffect.Stat.ATOMS, 1.15)),
             new Element(19, "K", "Potassium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.FUSION, 0.12)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.FUSION, 0.09)),
             new Element(20, "Ca", "Calcium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.025)),
             new Element(21, "Sc", "Scandium", ElementCategory.TRANSITION_METAL,
@@ -100,9 +103,9 @@ public final class PeriodicTable {
             new Element(35, "Br", "Brome", ElementCategory.HALOGEN,
                     new ElementEffect.DoubleDraw(0.10)),
             new Element(36, "Kr", "Krypton", ElementCategory.NOBLE_GAS,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.50)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.40)),
             new Element(37, "Rb", "Rubidium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.SYNTHESIS, 0.12)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.SYNTHESIS, 0.09)),
             new Element(38, "Sr", "Strontium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.03)),
             new Element(39, "Y", "Yttrium", ElementCategory.TRANSITION_METAL,
@@ -138,7 +141,7 @@ public final class PeriodicTable {
             new Element(54, "Xe", "Xénon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.CostReduction(ElementEffect.CostTarget.SYNTHESIS, 0.50)),
             new Element(55, "Cs", "Césium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.08)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.06)),
             new Element(56, "Ba", "Baryum", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.04)),
             new Element(57, "La", "Lanthane", ElementCategory.LANTHANIDE,
@@ -202,7 +205,7 @@ public final class PeriodicTable {
             new Element(86, "Rn", "Radon", ElementCategory.NOBLE_GAS,
                     new ElementEffect.DoubleDraw(0.25)),
             new Element(87, "Fr", "Francium", ElementCategory.ALKALI_METAL,
-                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.15)),
+                    new ElementEffect.AutomationSpeed(ElementEffect.AutomationTarget.ALL, 0.11)),
             new Element(88, "Ra", "Radium", ElementCategory.ALKALINE_EARTH_METAL,
                     new ElementEffect.Add(ElementEffect.Stat.ATOMS, 0.05)),
             new Element(89, "Ac", "Actinium", ElementCategory.ACTINIDE,
@@ -266,6 +269,18 @@ public final class PeriodicTable {
             new Element(118, "Og", "Oganesson", ElementCategory.NOBLE_GAS,
                     new ElementEffect.MultiplyEverything(1.25)));
 
+    /**
+     * L'élément qui porte ce symbole (« Fe »).
+     *
+     * @throws IllegalArgumentException si aucun élément ne le porte
+     */
+    public static Element bySymbol(String symbol) {
+        for (Element element : ELEMENTS) {
+            if (element.symbol().equals(symbol)) return element;
+        }
+        throw new IllegalArgumentException("Symbole inconnu : " + symbol);
+    }
+
     /** L'élément de numéro atomique donné, de 1 à 118. */
     public static Element element(int number) {
         if (number < 1 || number > ELEMENTS.size()) {
@@ -277,6 +292,30 @@ public final class PeriodicTable {
     /** Les éléments d'une famille, par numéro atomique croissant. */
     public static List<Element> elements(ElementCategory category) {
         return ELEMENTS.stream().filter(element -> element.category() == category).toList();
+    }
+
+    /** Nombre de périodes (de lignes) du tableau. */
+    public static final int PERIODS = 7;
+
+    /** Dernier numéro atomique de chaque période : 2, 10, 18, 36, 54, 86, 118. */
+    private static final int[] PERIOD_ENDS = {2, 10, 18, 36, 54, 86, 118};
+
+    /**
+     * Période d'un élément, de 1 à 7 : sa ligne dans le vrai tableau périodique. Les lanthanides
+     * appartiennent à la 6ᵉ et les actinides à la 7ᵉ, même si on les dessine à part.
+     */
+    public static int period(int number) {
+        element(number);   // refuse un numéro inconnu
+        for (int period = 1; period <= PERIODS; period++) {
+            if (number <= PERIOD_ENDS[period - 1]) return period;
+        }
+        throw new IllegalStateException("Période introuvable pour l'élément " + number);
+    }
+
+    /** Les éléments d'une période (de 1 à 7), par numéro atomique croissant. */
+    public static List<Element> elementsOfPeriod(int period) {
+        if (period < 1 || period > PERIODS) throw new IllegalArgumentException("Période inconnue : " + period);
+        return ELEMENTS.stream().filter(element -> period(element.number()) == period).toList();
     }
 
     private PeriodicTable() {}

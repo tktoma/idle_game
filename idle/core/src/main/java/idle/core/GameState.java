@@ -32,14 +32,29 @@ public final class GameState {
     private final Map<Integer, Integer> elements = new TreeMap<>();
     private int elementsVersion = 0;
     private int synthesisCount = 0;
+    private ElementCategory synthesisTarget = null;
+    private int synthesisTries = 0;
     private BigNum darkMatter = BigNum.ZERO;
     private BigNum darkMatterSpent = BigNum.ZERO;
     private BigNum darkMatterSize = Game.DARK_MATTER_START_SIZE;
     private int explosions = 0;
+    private int tableWeightLevel = 0;
     private final Map<String, Integer> darkUpgradeLevels = new HashMap<>();
     private int fusionThreshold = 0;
+    private BigNum synthesisReserve = BigNum.ZERO;
+    private boolean holdLocked = false;
+    private String activeChallenge = null;
+    private final Set<String> completedChallenges = new HashSet<>();
+    private final Map<String, Double> challengeTimes = new HashMap<>();
+    private double decayDebt = 0;
+    private final Set<String> achievements = new java.util.LinkedHashSet<>();
     private final Set<String> enabledDarkAutomations = new HashSet<>();
     private final Map<String, Double> darkAutomationTimers = new HashMap<>();
+    private int bigBangs = 0;
+    private final Map<String, Integer> molecules = new HashMap<>();
+    private final List<String> moleculeLog = new ArrayList<>();
+    private int moleculesVersion = 0;
+    private BigNum space = BigNum.ZERO;
     private GameStats stats = new GameStats();
 
     /** Les statistiques de la partie : des compteurs pour l'affichage, que les règles ne lisent pas. */
@@ -222,6 +237,25 @@ public final class GameState {
         this.synthesisCount = synthesisCount;
     }
 
+    /** Famille visée par la synthèse ciblée, ou {@code null} quand la synthèse tire au hasard. */
+    public ElementCategory synthesisTarget() {
+        return synthesisTarget;
+    }
+
+    public void setSynthesisTarget(ElementCategory synthesisTarget) {
+        this.synthesisTarget = synthesisTarget;
+    }
+
+    /** Synthèses déjà payées pour la synthèse ciblée en cours, sans avoir encore rien donné. */
+    public int synthesisTries() {
+        return synthesisTries;
+    }
+
+    public void setSynthesisTries(int synthesisTries) {
+        if (synthesisTries < 0) throw new IllegalArgumentException("Nombre d'essais négatif");
+        this.synthesisTries = synthesisTries;
+    }
+
     /** Matière noire possédée : la troisième ressource, laissée par chaque explosion du tableau périodique. */
     public BigNum darkMatter() {
         return darkMatter;
@@ -266,6 +300,94 @@ public final class GameState {
     }
 
     /**
+     * Nombre de fois où le tableau périodique s'est alourdi : une par explosion, sauf celles qui
+     * terminent un défi déjà réussi. Aucune explosion ne le remet à zéro.
+     */
+    public int tableWeightLevel() {
+        return tableWeightLevel;
+    }
+
+    public void setTableWeightLevel(int tableWeightLevel) {
+        if (tableWeightLevel < 0) throw new IllegalArgumentException("Masse du tableau négative");
+        this.tableWeightLevel = tableWeightLevel;
+    }
+
+    /** Nombre de molécules de cette sorte créées. Ni l'explosion ni le Big Bang ne les reprennent. */
+    public int moleculeCount(String moleculeId) {
+        return molecules.getOrDefault(moleculeId, 0);
+    }
+
+    /** Ajoute une molécule de cette sorte, à la suite de celles déjà créées. */
+    public void addMolecule(String moleculeId) {
+        if (moleculeId == null || moleculeId.isBlank()) throw new IllegalArgumentException("Molécule sans identifiant");
+        molecules.merge(moleculeId, 1, Integer::sum);
+        moleculeLog.add(moleculeId);
+        moleculesVersion++;
+    }
+
+    /**
+     * Fixe le nombre de molécules d'une sorte : celles qui manquent sont ajoutées à la suite, celles
+     * en trop sont retirées en commençant par les dernières créées.
+     */
+    public void setMoleculeCount(String moleculeId, int count) {
+        if (count < 0) throw new IllegalArgumentException("Nombre de molécules négatif : " + count);
+        while (moleculeCount(moleculeId) < count) addMolecule(moleculeId);
+        while (moleculeCount(moleculeId) > count) {
+            moleculeLog.remove(moleculeLog.lastIndexOf(moleculeId));
+            if (molecules.merge(moleculeId, -1, Integer::sum) == 0) molecules.remove(moleculeId);
+            moleculesVersion++;
+        }
+    }
+
+    /** Vue en lecture seule des molécules créées (identifiant → nombre), pour la sauvegarde. */
+    public Map<String, Integer> molecules() {
+        return Map.copyOf(molecules);
+    }
+
+    /**
+     * Les molécules créées, une entrée par molécule, dans l'ordre de leur création : c'est l'ordre
+     * dans lequel elles ont pris place dans l'espace.
+     */
+    public List<String> moleculeLog() {
+        return Collections.unmodifiableList(moleculeLog);
+    }
+
+    /** Nombre de sortes de molécules différentes créées. */
+    public int moleculeKinds() {
+        return molecules.size();
+    }
+
+    /** Change à chaque molécule ajoutée ou retirée : permet de ne recalculer ce qui en dépend que lorsqu'il le faut. */
+    public int moleculesVersion() {
+        return moleculesVersion;
+    }
+
+    /** Vrai si aucune molécule n'a été créée. */
+    public boolean hasNoMolecule() {
+        return molecules.isEmpty();
+    }
+
+    /** Espace : ce que l'expansion de la matière accumule avec le temps, depuis le premier Big Bang. */
+    public BigNum space() {
+        return space;
+    }
+
+    public void setSpace(BigNum space) {
+        if (space.sign() < 0) throw new IllegalArgumentException("Espace négatif : " + space);
+        this.space = space;
+    }
+
+    /** Nombre de Big Bangs déclenchés. Aucun Big Bang ne le remet à zéro. */
+    public int bigBangs() {
+        return bigBangs;
+    }
+
+    public void setBigBangs(int bigBangs) {
+        if (bigBangs < 0) throw new IllegalArgumentException("Nombre de Big Bangs négatif : " + bigBangs);
+        this.bigBangs = bigBangs;
+    }
+
+    /**
      * Nombre de générateurs que la fusion automatique attend avant de fusionner, choisi par le
      * joueur ; 0 tant qu'il n'a rien réglé. C'est un réglage : aucune explosion ne l'efface.
      */
@@ -276,6 +398,75 @@ public final class GameState {
     public void setFusionThreshold(int fusionThreshold) {
         if (fusionThreshold < 0) throw new IllegalArgumentException("Seuil négatif");
         this.fusionThreshold = fusionThreshold;
+    }
+
+    /**
+     * Atomes que la synthèse automatique laisse toujours au joueur. C'est un réglage : ni la
+     * fusion ni l'explosion ne le changent.
+     */
+    public BigNum synthesisReserve() {
+        return synthesisReserve;
+    }
+
+    public void setSynthesisReserve(BigNum synthesisReserve) {
+        if (synthesisReserve.sign() < 0) throw new IllegalArgumentException("Réserve négative");
+        this.synthesisReserve = synthesisReserve;
+    }
+
+    /** Vrai si l'appui sur la matière noire est verrouillé : elle grossit sans que le joueur tienne le clic. */
+    public boolean holdLocked() {
+        return holdLocked;
+    }
+
+    public void setHoldLocked(boolean holdLocked) {
+        this.holdLocked = holdLocked;
+    }
+
+    /** Identifiant du défi en cours, ou {@code null} en partie ordinaire. */
+    public String activeChallenge() {
+        return activeChallenge;
+    }
+
+    public void setActiveChallenge(String activeChallenge) {
+        this.activeChallenge = activeChallenge;
+    }
+
+    /** Vue en lecture seule des défis réussis. */
+    public Set<String> completedChallenges() {
+        return Collections.unmodifiableSet(completedChallenges);
+    }
+
+    public void addCompletedChallenge(String challengeId) {
+        completedChallenges.add(challengeId);
+    }
+
+    /** Meilleur temps de chaque défi réussi, en secondes de jeu (identifiant → durée de la partie). */
+    public Map<String, Double> challengeTimes() {
+        return Collections.unmodifiableMap(challengeTimes);
+    }
+
+    public void setChallengeTime(String challengeId, double seconds) {
+        if (seconds < 0 || Double.isNaN(seconds)) throw new IllegalArgumentException("Durée invalide : " + seconds);
+        challengeTimes.put(challengeId, seconds);
+    }
+
+    /** Vue en lecture seule des succès obtenus, dans l'ordre où ils l'ont été. Aucune explosion ne les reprend. */
+    public Set<String> achievements() {
+        return Collections.unmodifiableSet(achievements);
+    }
+
+    /** @return {@code true} si le succès vient d'être ajouté, faux s'il était déjà obtenu */
+    public boolean addAchievement(String achievementId) {
+        return achievements.add(achievementId);
+    }
+
+    /** Fraction d'exemplaire qui attend de se désintégrer, pendant le défi de la désintégration. */
+    public double decayDebt() {
+        return decayDebt;
+    }
+
+    public void setDecayDebt(double decayDebt) {
+        this.decayDebt = Math.max(0, decayDebt);
     }
 
     /** Vrai si le joueur a mis cet automatisme de matière noire en marche. Aucune explosion ne le coupe. */
@@ -322,22 +513,46 @@ public final class GameState {
     }
 
     /**
-     * Efface absolument tout, matière noire et statistiques comprises : l'état redevient celui
-     * d'une partie jamais commencée.
+     * Efface absolument tout, matière noire, succès, Big Bangs et statistiques compris : l'état
+     * redevient celui d'une partie jamais commencée.
      */
     public void reset() {
         clearMatter();
+        clearDarkMatter();
         started = false;
         timePlayed = 0;
+        challengeTimes.clear();
+        achievements.clear();
+        bigBangs = 0;
+        molecules.clear();
+        moleculeLog.clear();
+        moleculesVersion++;
+        space = BigNum.ZERO;
+        stats = new GameStats();
+    }
+
+    /**
+     * Efface tout ce qui vient de l'explosion : la matière noire, gagnée comme dépensée, sa taille,
+     * son arbre, ses automatismes, la masse du tableau, le nombre d'explosions et les défis
+     * réussis, avec les réglages que l'arbre avait ouverts. Les records des défis restent, comme
+     * les succès, le temps de jeu et les statistiques, et ce qui appartient à l'acte du Big Bang :
+     * les molécules et l'espace. C'est ce que fait un Big Bang, en plus de
+     * {@link #clearMatter()}.
+     */
+    public void clearDarkMatter() {
         darkMatter = BigNum.ZERO;
         darkMatterSpent = BigNum.ZERO;
         darkMatterSize = Game.DARK_MATTER_START_SIZE;
         explosions = 0;
+        tableWeightLevel = 0;
         darkUpgradeLevels.clear();
         fusionThreshold = 0;
+        synthesisReserve = BigNum.ZERO;
+        holdLocked = false;
+        activeChallenge = null;
+        completedChallenges.clear();
         enabledDarkAutomations.clear();
         darkAutomationTimers.clear();
-        stats = new GameStats();
     }
 
     /**
@@ -359,6 +574,9 @@ public final class GameState {
         elements.clear();
         elementsVersion++;
         synthesisCount = 0;
+        synthesisTarget = null;
+        synthesisTries = 0;
+        decayDebt = 0;
     }
 
     /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */

@@ -10,6 +10,8 @@ import java.util.Map;
  * la collection ne change pas. {@link Game} y lit les bonus au lieu de reparcourir le tableau
  * périodique à chaque instant.
  *
+ * <p>Les ensembles complets ({@link ElementSets}) y ajoutent leur bonus.
+ *
  * <p>La force d'un élément est la racine carrée de son nombre d'exemplaires : 1 pour le
  * premier, 2 pour quatre, 3 pour neuf. Un nouvel élément rapporte donc toujours plus qu'un doublon.
  */
@@ -32,13 +34,32 @@ final class ElementBonuses {
     private final List<SynergyTerm> synergies = new ArrayList<>();
     private double doubleDraw = 0;
     private double luck = 0;
+    private int completedSets = 0;
+    private int halfSets = 0;
 
     /** Cumule les effets des éléments possédés (numéro atomique → exemplaires). */
     static ElementBonuses of(Map<Integer, Integer> owned) {
+        return of(owned, 1);
+    }
+
+    /**
+     * Comme {@link #of(Map)}, avec une force des éléments multipliée par {@code elementStrength}
+     * (1.15 = tous les éléments agissent 15 % plus fort). Les ensembles n'en profitent pas.
+     */
+    static ElementBonuses of(Map<Integer, Integer> owned, double elementStrength) {
         ElementBonuses bonuses = new ElementBonuses();
         for (Map.Entry<Integer, Integer> entry : owned.entrySet()) {
             if (entry.getValue() <= 0) continue;
-            bonuses.apply(PeriodicTable.element(entry.getKey()).effect(), Math.sqrt(entry.getValue()));
+            bonuses.apply(PeriodicTable.element(entry.getKey()).effect(), Math.sqrt(entry.getValue()) * elementStrength);
+        }
+        // Les ensembles : leur bonus s'ajoute à ceux des éléments, au quart de sa force dès la
+        // moitié réunie, à pleine force une fois complets.
+        for (ElementSet set : ElementSets.DEFAULT) {
+            double strength = set.strength(owned);
+            if (strength <= 0) continue;
+            bonuses.apply(set.effect(), strength);
+            if (strength >= 1) bonuses.completedSets++;
+            else bonuses.halfSets++;
         }
         return bonuses;
     }
@@ -113,6 +134,16 @@ final class ElementBonuses {
     /** Chance qu'une synthèse donne un second élément, entre 0 et 1. */
     double doubleDrawChance() {
         return Math.min(1, doubleDraw);
+    }
+
+    /** Nombre d'ensembles complets dans la collection. */
+    int completedSets() {
+        return completedSets;
+    }
+
+    /** Nombre d'ensembles à moitié réunis, sans être complets. */
+    int halfSets() {
+        return halfSets;
     }
 
     /** Multiplicateur de la chance des familles rares. */

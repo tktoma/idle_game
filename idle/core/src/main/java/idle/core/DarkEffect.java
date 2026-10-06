@@ -35,9 +35,6 @@ public sealed interface DarkEffect {
     /** L'explosion ne détruit plus les éléments uniques déjà obtenus : la synthèse automatique reste débloquée. */
     record KeepUniqueElementsOnExplosion() implements DarkEffect {}
 
-    /** L'explosion devient possible dès que tous les éléments sont découverts, sans attendre tous les exemplaires. */
-    record ExplodeWhenDiscovered() implements DarkEffect {}
-
     /**
      * Repousse le maximum d'exemplaires des éléments non uniques : leur force maximale (la racine
      * du nombre d'exemplaires) gagne {@code perLevel} par niveau. Un maximum de 9 passe à 16, puis 25.
@@ -139,4 +136,10 @@ public sealed interface DarkEffect {
      * des atomes à dépenser.
      */
     record HeadStartByDarkMatter(double perUnit) implements DarkEffect {}
+
+    /**
+     * Ouvre la synthèse ciblée du tableau périodique : le joueur peut viser une famille, au prix
+     * de plusieurs synthèses ({@link ElementCategory#targetTries()}).
+     */
+    record TargetedSynthesis() implements DarkEffect {}
 }

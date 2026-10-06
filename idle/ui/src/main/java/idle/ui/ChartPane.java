@@ -39,6 +39,8 @@ final class ChartPane extends Pane {
     static final String ORANGE = "#d95926";
     static final String YELLOW = "#c98500";
     static final String VIOLET = "#9085e9";
+    static final String GREEN = "#3aa76d";
+    static final String TEAL = "#2a9d8f";
 
     private static final String SURFACE = "#121821";
     private static final String GRID = "#232d3b";

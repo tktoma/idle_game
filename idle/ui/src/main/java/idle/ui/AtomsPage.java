@@ -14,7 +14,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -28,8 +27,11 @@ import javafx.util.Duration;
  * <ul>
  *   <li>« Atome » : le grand atome animé, qui porte une orbe par atome disponible.
  *       Dépenser un atome lui retire donc une orbe ;</li>
- *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, sous forme de
- *       cartes rangées en colonnes selon la largeur de la fenêtre ;</li>
+ *   <li>« Améliorations » : ce qu'on peut acheter en dépensant des atomes, une {@link Card}
+ *       chacune, rangées en colonnes selon la largeur de la fenêtre. Chaque carte dit le
+ *       niveau, ce que l'amélioration vaut déjà, ce qu'elle fait en quelques mots, son prix
+ *       et le nombre de fusions qu'il reste à faire ; l'explication complète vient en mode
+ *       détails ({@link Detail}) ;</li>
  *   <li>« Tableau périodique » : la synthèse d'éléments et leurs effets ({@link PeriodicTablePage}).
  *       Cette sous-page n'apparaît qu'une fois assez d'atomes créés, comme l'automatisation.</li>
  * </ul>
@@ -38,9 +40,6 @@ final class AtomsPage extends VBox {
 
     private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
             + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
-    private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-padding: 10 16; -fx-cursor: hand;"
-            + " -fx-text-fill: #ffe9c2; -fx-background-color: #2a2113; -fx-background-radius: 8;"
-            + " -fx-border-color: #6b5a33; -fx-border-radius: 8;";
 
     private final Game game;
     private final Label balanceLabel = new Label();
@@ -61,9 +60,9 @@ final class AtomsPage extends VBox {
     private final VBox atomPane = new VBox(10, atomHolder, orbsLabel, hintLabel);
 
     // Sous-page « Améliorations »
-    private final Map<Upgrade, Button> upgradeButtons = new LinkedHashMap<>();
-    private final FlowPane upgradeCards = new FlowPane(12, 12);
-    private final ScrollPane upgradesPane = new ScrollPane(upgradeCards);
+    private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
+    private final TileGrid upgradeGrid = new TileGrid(200, 4, 10);
+    private final ScrollPane upgradesPane = new ScrollPane(upgradeGrid);
 
     // Sous-page « Tableau périodique »
     private final PeriodicTablePage tablePage;
@@ -96,8 +95,7 @@ final class AtomsPage extends VBox {
         bonusLabel.setTextAlignment(TextAlignment.CENTER);
 
         // Les cartes passent à la ligne selon la largeur ; si elles dépassent en hauteur, on fait défiler.
-        upgradeCards.setAlignment(Pos.TOP_CENTER);
-        upgradeCards.setPadding(new Insets(12, 0, 0, 0));
+        upgradeGrid.setPadding(new Insets(12, 0, 12, 0));
         upgradesPane.setFitToWidth(true);
         upgradesPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         upgradesPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
@@ -107,20 +105,13 @@ final class AtomsPage extends VBox {
 
         // Une carte par amélioration payée en atomes : en ajouter une dans core suffit à la faire apparaître.
         for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
-            Button button = new Button();
-            button.setPrefWidth(350);
-            button.setPrefHeight(112);
-            button.setWrapText(true);
-            button.setTextAlignment(TextAlignment.CENTER);
-            button.setStyle(UPGRADE_STYLE);
-            // Une carte qui garde le focus puis se grise le passe à la suivante, et la page défile toute seule.
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
+            Card card = new Card(GameApp.ATOMS_COLOR);
+            card.setOnAction(() -> {
                 game.buy(upgrade.id());
                 refresh();
             });
-            upgradeButtons.put(upgrade, button);
-            upgradeCards.getChildren().add(button);
+            upgradeCards.put(upgrade, card);
+            upgradeGrid.add(card);
         }
 
         // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
@@ -160,7 +151,9 @@ final class AtomsPage extends VBox {
     void refresh() {
         BigNum atoms = game.state().atoms();
         BigNum created = game.state().totalAtoms();
-        balanceLabel.setText(Format.count(atoms)
+        // Le plafond n'est rappelé que lorsqu'il a bougé : après une explosion, le tableau est plus lourd.
+        boolean heavier = game.tableWeight().gt(BigNum.ONE) && !game.isAtomCapLifted();
+        balanceLabel.setText(Format.count(atoms) + (heavier ? " / " + Format.count(game.atomCap()) : "")
                 + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
         BigNum perFusion = game.atomsPerFusion();
         bonusLabel.setText("Chaque création donne " + Format.amount(game.particlesPerCreation())
@@ -172,7 +165,7 @@ final class AtomsPage extends VBox {
         int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
         atomView.setOrbs(orbs);
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
-                + (atoms.gt(Game.MAX_ATOMS) ? " (le plafond d'atomes est levé, pas celui des orbes)" : "")
+                + (atoms.gt(Game.MAX_ATOMS) ? " (l'atome n'en montre pas plus)" : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
         // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
@@ -183,33 +176,68 @@ final class AtomsPage extends VBox {
         tablePage.refresh();
         hintLabel.setText(game.isAtomCapReached()
                 ? (tableUnlocked && !game.isPeriodicTableComplete()
-                        ? "Maximum atteint : dépensez des atomes ou synthétisez un élément dans le tableau périodique."
-                        : "Maximum atteint : dépensez des atomes pour pouvoir fusionner de nouveau.")
-                : "Fusionnez les " + game.generatorsPerAtom() + " générateurs pour créer un atome de plus."
-                        + (tableUnlocked ? "" : "\nL'automatisation et le tableau périodique se débloquent à "
-                                + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " atomes créés (vous : "
-                                + Format.count(created) + ")."));
+                        ? "Maximum atteint : dépensez des atomes ou synthétisez un élément."
+                        : "Maximum atteint : dépensez des atomes pour fusionner de nouveau.")
+                : tableUnlocked ? Detail.only("Fusionnez les générateurs pour créer un atome de plus.")
+                : "Automatisation et tableau périodique à " + Format.count(Game.UNLOCK_TOTAL_ATOMS)
+                        + " atomes créés (vous : " + Format.count(created) + ")");
 
-        upgradeButtons.forEach((upgrade, button) -> {
-            button.setText(describe(upgrade));
-            button.setDisable(!game.canBuy(upgrade.id()));
-        });
+        upgradeCards.forEach(this::show);
     }
 
-    /** Texte d'une carte : nom et niveau, effet avec sa valeur actuelle, coût. */
+    /** Remplit la carte d'une amélioration : niveau, valeur actuelle, effet, prix, fusions restantes. */
+    private void show(Upgrade upgrade, Card card) {
+        String id = upgrade.id();
+        int level = game.levelOf(id);
+        boolean oneTime = upgrade.maxLevel() == 1;
+        boolean maxed = game.isMaxed(id);
+        String corner = oneTime ? "" : level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : "");
+        String mark = oneTime ? (maxed ? "acquis" : "") : level > 0 ? current(upgrade) : "";
+        if (maxed) {
+            card.show(Card.State.DONE, corner, mark, upgrade.name(), brief(upgrade), describe(upgrade), "", "");
+            return;
+        }
+        BigNum cost = game.costOf(id);
+        card.show(game.canBuy(id) ? Card.State.READY : level > 0 ? Card.State.STARTED : Card.State.WAITING,
+                corner, mark, upgrade.name(), brief(upgrade), describe(upgrade),
+                Format.count(cost) + (cost.gt(BigNum.ONE) ? " atomes" : " atome"), remaining(cost));
+    }
+
+    /** Ce que l'amélioration vaut déjà, en un nombre : « ×8 », « +3 points », « −27 % ». */
+    private String current(Upgrade upgrade) {
+        int level = game.levelOf(upgrade.id());
+        return switch (upgrade.effect()) {
+            case Effect.StrengthenSpeed strengthen -> "+" + trim(game.speedExtraPerLevel() * 100) + " pts";
+            case Effect.DiscountGenerators discount -> "−" + trim((1 - game.generatorCostFactor()) * 100) + " %";
+            case Effect.MultiplyAtomsByProduction byProduction -> Format.multiplier(BigNum.of(game.fusionYield()));
+            case Effect.KeepUpgradesOnFusion keep -> "";
+            default -> Format.multiplier(game.particlesMultiplier(upgrade.id(), level));
+        };
+    }
+
+    /** Ce que fait l'amélioration, en quelques mots : la ligne de sa carte. */
+    private String brief(Upgrade upgrade) {
+        return switch (upgrade.effect()) {
+            case Effect.MultiplyParticles multiply -> "Particules ×" + trim(multiply.perLevel()) + " par niveau";
+            case Effect.MultiplyByAtoms byAtoms -> "+" + trim(byAtoms.perAtom() * 100) + " % de particules par atome créé";
+            case Effect.MultiplyByRunTime byTime -> "Plus de particules avec le temps";
+            case Effect.StrengthenSpeed strengthen ->
+                    "Vitesse : +" + trim(strengthen.extraPerLevel() * 100) + " point par niveau";
+            case Effect.DiscountGenerators discount ->
+                    "Générateurs −" + trim((1 - discount.factorPerLevel()) * 100) + " % par niveau";
+            case Effect.KeepUpgradesOnFusion keep -> "La fusion garde vitesse et couplage";
+            case Effect.Overload overload -> "Particules ×" + trim(overload.perLevel()) + " par niveau, sans limite";
+            case Effect.MultiplyByGenerators coupling -> "Chaque générateur renforce les autres";
+            case Effect.MultiplyAtomsByProduction byProduction ->
+                    "+" + trim(game.fusionYieldPerDecade(byProduction) * 100) + " % d'atomes par ×10 de production";
+            case Effect.MultiplySpeed speed -> "Accélère la création";
+            case Effect.AddGenerator generator -> "Ajoute un générateur";
+        };
+    }
+
+    /** L'explication complète d'une amélioration, avec sa valeur actuelle : pour le mode détails. */
     private String describe(Upgrade upgrade) {
         int level = game.levelOf(upgrade.id());
-        boolean oneTime = upgrade.maxLevel() == 1;
-        boolean maxed = game.isMaxed(upgrade.id());
-
-        String title = upgrade.name();
-        if (oneTime) {
-            if (maxed) title += " (acquis)";
-        } else if (upgrade.hasLimit()) {
-            title += " (niveau " + level + "/" + upgrade.maxLevel() + ")";
-        } else {
-            title += " (niveau " + level + ")";
-        }
 
         // Pour un bonus pas encore acheté, on montre ce qu'il donnerait tout de suite.
         String value = Format.multiplier(game.particlesMultiplier(upgrade.id(), Math.max(level, 1)));
@@ -231,15 +259,19 @@ final class AtomsPage extends VBox {
                     "Générateurs " + trim((1 - discount.factorPerLevel()) * 100) + " % moins chers, à chaque niveau. "
                             + (level > 0 ? "Actuellement −" + trim((1 - game.generatorCostFactor()) * 100) + " %" : "");
             case Effect.KeepUpgradesOnFusion keep ->
-                    "La fusion ne remet plus à zéro « Vitesse de création ». "
+                    "La fusion ne remet plus à zéro les améliorations payées en particules (vitesse, couplage). "
                             + "Les générateurs, eux, fusionnent toujours.";
+            case Effect.Overload overload ->
+                    "Multiplie par " + trim(overload.perLevel()) + " les particules créées, à chaque niveau, sans "
+                            + "limite de niveau. " + (level > 0 ? now : "");
+            case Effect.MultiplyByGenerators coupling -> "Chaque générateur renforce les autres.";
             case Effect.MultiplyAtomsByProduction byProduction -> {
                 // Pas encore acheté : ce qu'il donnerait avec la production actuelle.
                 double perDecade = game.fusionYieldPerDecade(byProduction);
                 double decades = Math.max(0, game.productionAtFusion().divide(byProduction.threshold()).log10());
                 double multiplier = level > 0 ? game.fusionYield() : 1 + perDecade * decades;
                 yield "+" + trim(perDecade * 100) + " % d'atomes par fusion chaque fois que la production est "
-                        + "multipliée par 10, à partir de " + Format.count(BigNum.of(byProduction.threshold()))
+                        + "multipliée par 10, à partir de " + Format.whole(Math.round(byProduction.threshold()))
                         + " particules par seconde. " + (level > 0 ? "Actuellement " : "Donnerait ")
                         + Format.multiplier(BigNum.of(multiplier));
             }
@@ -247,10 +279,15 @@ final class AtomsPage extends VBox {
             case Effect.AddGenerator generator -> "Ajoute un générateur.";
         };
 
-        if (maxed) return title + "\n" + effect.trim();
-        BigNum cost = game.costOf(upgrade.id());
-        return title + "\n" + effect.trim() + "\nCoût : " + Format.count(cost)
-                + (cost.gt(BigNum.ONE) ? " atomes" : " atome");
+        return effect.trim();
+    }
+
+    /** Ce qu'il reste à attendre avant de pouvoir payer {@code cost} atomes : un nombre de fusions, ou rien. */
+    private String remaining(BigNum cost) {
+        long fusions = game.fusionsUntilAtoms(cost);
+        if (fusions == 0) return "";
+        if (fusions < 0) return "au-dessus du plafond";
+        return Format.whole(fusions) + (fusions > 1 ? " fusions" : " fusion");
     }
 
     /** Écrit 2.0 comme « 2 » et 2.5 comme « 2.5 ». */

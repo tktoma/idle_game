@@ -49,6 +49,8 @@ public final class GameStats {
     private long syntheses = 0;
     private long elementsObtained = 0;
     private long doubleDraws = 0;
+    private long targetTries = 0;
+    private long targetedSyntheses = 0;
 
     // ----- Matière noire -----
     private double holdTime = 0;
@@ -165,6 +167,16 @@ public final class GameStats {
         return doubleDraws;
     }
 
+    /** Synthèses payées pour préparer une synthèse ciblée, depuis le début du jeu. */
+    public long targetTries() {
+        return targetTries;
+    }
+
+    /** Synthèses ciblées abouties depuis le début du jeu. */
+    public long targetedSyntheses() {
+        return targetedSyntheses;
+    }
+
     /** Temps passé à maintenir la matière noire appuyée (ou verrouillée), en secondes. */
     public double holdTime() {
         return holdTime;
@@ -279,8 +291,27 @@ public final class GameStats {
         if (doubleDraw) doubleDraws++;
     }
 
+    /** Une synthèse payée pour une synthèse ciblée, qui n'a encore rien donné. */
+    void noteSynthesisTry() {
+        syntheses++;
+        targetTries++;
+    }
+
+    /** Une synthèse ciblée vient d'aboutir. */
+    void noteTargetedSynthesis() {
+        targetedSyntheses++;
+    }
+
     void addHoldTime(double seconds) {
         holdTime += seconds;
+    }
+
+    /** La partie recommence sans explosion (défi commencé ou abandonné) : ses compteurs repartent de zéro. */
+    void restartRun() {
+        runTime = 0;
+        runParticlesCreated = BigNum.ZERO;
+        runFusions = 0;
+        runHistory.clear();
     }
 
     /** Une explosion vient d'avoir lieu : note sa durée et remet à zéro les compteurs de la partie. */

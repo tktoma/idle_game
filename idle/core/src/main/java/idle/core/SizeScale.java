@@ -43,6 +43,42 @@ public final class SizeScale {
             new Landmark("superamas de la Vierge", BigNum.of(1, 24)),
             new Landmark("univers observable", BigNum.of(8.8, 26)));
 
+    /** Taille de départ de la matière noire, en mètres : celle d'un proton ({@link Game#DARK_MATTER_START_SIZE}). */
+    static final BigNum START_SIZE = BigNum.of(1, -15);
+
+    /** Ce que rapporte un palier de taille. */
+    public enum Bonus {
+        /** Particules de chaque création multipliées. */
+        PARTICLES,
+        /** Atomes de chaque fusion augmentés. */
+        ATOMS,
+        /** Croissance de la matière noire multipliée. */
+        EXPANSION
+    }
+
+    /**
+     * Les paliers de taille : tous les repères plus grands que la taille de départ de la matière
+     * noire (le proton n'en est pas un, elle part de là). Chacun, une fois atteint, donne un
+     * bonus définitif ; les trois sortes de bonus alternent le long de l'échelle.
+     */
+    public static final List<Landmark> MILESTONES = LANDMARKS.stream()
+            .filter(landmark -> landmark.size().gt(START_SIZE)).toList();
+
+    /** Le bonus du palier de rang {@code index} dans {@link #MILESTONES} : particules, atomes, croissance, et ainsi de suite. */
+    public static Bonus bonusOf(int index) {
+        if (index < 0 || index >= MILESTONES.size()) throw new IllegalArgumentException("Palier inconnu : " + index);
+        return Bonus.values()[index % Bonus.values().length];
+    }
+
+    /** Nombre de paliers atteints ou dépassés par cette taille. */
+    public static int milestonesReached(BigNum size) {
+        int reached = 0;
+        for (Landmark landmark : MILESTONES) {
+            if (landmark.size().lte(size)) reached++;
+        }
+        return reached;
+    }
+
     /** Le plus grand repère atteint ou dépassé par cette taille, ou {@code null} si elle est plus petite que tous. */
     public static Landmark reached(BigNum size) {
         Landmark reached = null;

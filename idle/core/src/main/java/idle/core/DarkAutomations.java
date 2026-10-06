@@ -21,14 +21,14 @@ public final class DarkAutomations {
             // Les automatismes ordinaires, offerts dès le début de chaque partie ; la synthèse
             // automatique, une fois les autres à leur cadence maximale et le tableau ouvert.
             new DarkAutomation("dark_auto_start", "Automatismes offerts", DarkAutomation.Kind.GRANT_AUTOMATIONS,
-                    BigNum.of(2), 1),
-            new DarkAutomation("dark_auto_atoms", "Améliorations en atomes", DarkAutomation.Kind.ATOM_UPGRADES,
                     BigNum.of(3), 1),
+            new DarkAutomation("dark_auto_atoms", "Améliorations en atomes", DarkAutomation.Kind.ATOM_UPGRADES,
+                    BigNum.of(5), 1),
             new DarkAutomation("dark_auto_machines", "Achat des automatismes", DarkAutomation.Kind.AUTOMATIONS,
-                    BigNum.of(4), 1),
+                    BigNum.of(8), 1),
             // Le dernier : avec lui, les explosions s'enchaînent toutes seules.
             new DarkAutomation("dark_auto_explosion", "Explosion", DarkAutomation.Kind.EXPLOSION,
-                    BigNum.of(6), 1));
+                    BigNum.of(14), 1));
 
     private DarkAutomations() {}
 }

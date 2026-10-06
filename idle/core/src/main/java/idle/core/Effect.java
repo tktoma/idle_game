@@ -9,14 +9,62 @@ package idle.core;
  */
 public sealed interface Effect {
 
-    /** Multiplie la vitesse de création de chaque générateur par {@code perLevel} à chaque niveau. */
-    record MultiplySpeed(double perLevel) implements Effect {}
+    /**
+     * Multiplie la vitesse de création de chaque générateur par {@code perLevel} à chaque niveau.
+     *
+     * <p>Avec des paliers ({@code milestoneEvery > 0}), tous les {@code milestoneEvery} niveaux
+     * les particules de chaque création sont en plus multipliées par {@code milestoneFactor}.
+     * Le palier agit sur les particules et non sur la vitesse : l'animation des générateurs
+     * reste lisible.
+     */
+    record MultiplySpeed(double perLevel, int milestoneEvery, double milestoneFactor) implements Effect {
+        public MultiplySpeed {
+            if (milestoneEvery < 0) throw new IllegalArgumentException("Écart entre paliers négatif");
+            if (milestoneFactor < 1) throw new IllegalArgumentException("Un palier ne peut pas réduire la production");
+        }
+
+        /** Sans palier. */
+        public MultiplySpeed(double perLevel) {
+            this(perLevel, 0, 1);
+        }
+
+        public boolean hasMilestones() {
+            return milestoneEvery > 0 && milestoneFactor > 1;
+        }
+
+        /** Nombre de paliers atteints avec {@code level} niveaux. */
+        public int milestonesAt(int level) {
+            return hasMilestones() ? Math.max(0, level) / milestoneEvery : 0;
+        }
+    }
+
+    /**
+     * Chaque générateur renforce les autres : multiplie les particules de chaque création par
+     * {@code 1 + perGenerator × niveau × (générateurs − 1)}. Sans effet avec un seul générateur,
+     * au plus fort juste avant la fusion.
+     */
+    record MultiplyByGenerators(double perGenerator) implements Effect {
+        public MultiplyByGenerators {
+            if (perGenerator < 0) throw new IllegalArgumentException("Bonus négatif");
+        }
+    }
 
     /** Ajoute un générateur par niveau, qui forme ses particules en parallèle des autres. */
     record AddGenerator() implements Effect {}
 
     /** Multiplie les particules obtenues à chaque création par {@code perLevel} à chaque niveau. */
     record MultiplyParticles(double perLevel) implements Effect {}
+
+    /**
+     * Multiplie les particules par {@code perLevel} à chaque niveau, comme
+     * {@link MultiplyParticles}, mais sans qu'aucun élément ne vienne le renforcer : c'est le
+     * puits d'atomes de la fin de partie, il doit rester prévisible.
+     */
+    record Overload(double perLevel) implements Effect {
+        public Overload {
+            if (perLevel < 1) throw new IllegalArgumentException("La surcharge ne peut pas réduire la production");
+        }
+    }
 
     /**
      * Multiplie les particules par {@code 1 + perAtom × atomes créés depuis le début du jeu}.

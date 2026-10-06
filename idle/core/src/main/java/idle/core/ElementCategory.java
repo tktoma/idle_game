@@ -10,43 +10,48 @@ package idle.core;
  * chance profite aux autres. Les deux familles les plus rares sont uniques : chacun de leurs
  * éléments ne s'obtient qu'une fois, et le premier obtenu débloque la synthèse automatique.
  *
+ * <p>Chaque famille peut être visée par une synthèse ciblée, qui coûte plusieurs synthèses
+ * ({@link #targetTries()}).
+ *
  * <p>Les maximums sont des carrés, parce que la force d'un élément est la racine carrée de son
  * nombre d'exemplaires : 9 exemplaires comptent pour 3, 4 pour 2.
  */
 public enum ElementCategory {
 
-    TRANSITION_METAL("Métaux de transition", 0.30, 9, false,
+    TRANSITION_METAL("Métaux de transition", 0.30, 9, false, 3,
             "Chacun multiplie les particules ou la vitesse d'un seul générateur, celui de sa colonne"),
-    POST_TRANSITION_METAL("Métaux pauvres", 0.15, 9, false,
+    POST_TRANSITION_METAL("Métaux pauvres", 0.15, 9, false, 3,
             "Réduisent les prix : vitesse de création, améliorations en atomes, synthèse"),
-    NONMETAL("Non-métaux", 0.12, 9, false,
+    NONMETAL("Non-métaux", 0.12, 9, false, 3,
             "Chacun renforce une amélioration existante"),
-    ALKALI_METAL("Métaux alcalins", 0.09, 9, false,
+    ALKALI_METAL("Métaux alcalins", 0.09, 9, false, 4,
             "Chacun accélère un automatisme"),
-    ALKALINE_EARTH_METAL("Métaux alcalino-terreux", 0.09, 9, false,
+    ALKALINE_EARTH_METAL("Métaux alcalino-terreux", 0.09, 9, false, 4,
             "Plus d'atomes à chaque fusion"),
-    METALLOID("Métalloïdes", 0.08, 9, false,
+    METALLOID("Métalloïdes", 0.08, 9, false, 4,
             "Synergies : des bonus qui grandissent avec le reste du jeu"),
-    HALOGEN("Halogènes", 0.06, 9, false,
+    HALOGEN("Halogènes", 0.06, 9, false, 5,
             "Améliorent la synthèse : tirages doubles et familles rares plus fréquentes"),
-    LANTHANIDE("Lanthanides", 0.06, 4, true,
+    LANTHANIDE("Lanthanides", 0.06, 4, true, 6,
             "Multiplicateurs : ils se multiplient entre eux au lieu de s'additionner"),
-    NOBLE_GAS("Gaz nobles", 0.03, 1, true,
+    NOBLE_GAS("Gaz nobles", 0.03, 1, true, 8,
             "Uniques. Chacun apporte un bonus majeur"),
-    ACTINIDE("Actinides", 0.02, 1, true,
+    ACTINIDE("Actinides", 0.02, 1, true, 10,
             "Uniques. Chacun double à la fois les particules et la vitesse");
 
     private final String label;
     private final double chance;
     private final int maxCopies;
     private final boolean rare;
+    private final int targetTries;
     private final String description;
 
-    ElementCategory(String label, double chance, int maxCopies, boolean rare, String description) {
+    ElementCategory(String label, double chance, int maxCopies, boolean rare, int targetTries, String description) {
         this.label = label;
         this.chance = chance;
         this.maxCopies = maxCopies;
         this.rare = rare;
+        this.targetTries = targetTries;
         this.description = description;
     }
 
@@ -73,6 +78,15 @@ public enum ElementCategory {
     /** Vrai pour les familles dont la chance est augmentée par les effets {@link ElementEffect.Luck}. */
     public boolean rare() {
         return rare;
+    }
+
+    /**
+     * Nombre de synthèses que coûte une synthèse ciblée sur cette famille : les premières ne
+     * donnent rien, la dernière donne un élément de la famille. Plus la famille est rare, plus
+     * c'est cher : trois synthèses pour un métal de transition, dix pour un actinide.
+     */
+    public int targetTries() {
+        return targetTries;
     }
 
     /** Ce que fait la famille, en une phrase, pour la légende. */

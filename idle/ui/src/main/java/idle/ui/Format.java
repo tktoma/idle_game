@@ -59,6 +59,16 @@ final class Format {
     }
 
     /**
+     * Attente avant un achat : « 42 s », « 3 min 05 s », « 2 h 10 min ». Arrondie à la seconde
+     * supérieure, pour ne pas annoncer « 0 s » quand il manque encore une fraction de seconde, et
+     * bornée : au-delà d'un mois, le nombre n'apprend plus rien.
+     */
+    static String wait(double seconds) {
+        if (Double.isNaN(seconds) || seconds > 30 * 86_400.0) return "plus d'un mois";
+        return duration(Math.ceil(Math.max(0, seconds)));
+    }
+
+    /**
      * Durée courte, pour les graduations d'un graphique : « 30 s », « 12 min », « 12 min 05 »,
      * « 2 h », « 2 h 30 », « 1 j », « 1 j 4 h ».
      */

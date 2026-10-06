@@ -16,19 +16,32 @@ import java.util.List;
  *
  * <p>Chaque case demande en plus d'avoir <b>gagné</b> un certain nombre de matières noires
  * ({@link Game#darkMatterEarned()}), sans les dépenser : c'est ce qui étale l'arbre sur
- * plusieurs explosions au lieu de le laisser s'acheter d'un coup.
+ * plusieurs explosions au lieu de le laisser s'acheter d'un coup. Ces seuils vont de 1 à 60.
+ * Jusqu'à 16, chaque explosion ne rapporte qu'une matière noire, et chaque matière noire ouvre
+ * quelque chose : une case, un automatisme ({@link DarkAutomations}) ou un défi
+ * ({@link Challenges}). À 16, la Condensation porte l'explosion à onze matières noires, et les
+ * dernières cases (20, 24, 32, 40, 60) tombent en quelques explosions.
  *
- * <p>Hors de l'arbre, quatre améliorations se paient en matière noire
+ * <p>Hors de l'arbre, cinq améliorations se paient en matière noire
  * ({@link DarkUpgrade.Branch#DARK_MATTER}). La matière noire dépensée reste comptée comme gagnée,
  * et leur effet grandit avec toute la matière noire gagnée : chaque explosion les renforce.
  *
- * <p>Réglage vérifié par simulation (joueur qui achète tout dès que possible et garde l'appui
- * 5 % du temps, 15 % une fois le Verrou acquis) : les parties durent environ 24 h, 8 h, 2 h 30,
- * 2 h, 30 min, 15 min, 10 min, puis quelques minutes ; l'arbre est complet vers la douzième
- * explosion, après 36 à 39 h de jeu. Les deux premières cases (Densité à 1 000 particules, Noyau
- * lourd à 10 atomes) sont volontairement bon marché : avec la première amélioration payée en
- * matière noire, ce sont elles qui rendent la deuxième partie trois fois plus courte que la
- * première.
+ * <p>Réglage vérifié par simulation, avec le tableau qui s'alourdit à chaque explosion
+ * ({@link Game#TABLE_WEIGHT_GROWTH}, dix fois au plus) : après la première explosion (environ
+ * 24 h), les parties durent 7 à 9 h, puis 2 à 3 h, puis entre vingt minutes et deux heures
+ * pendant six ou sept explosions. Quand le tableau cesse de s'alourdir, deux parties de deux à
+ * trois heures et demie, puis des parties de plus en plus courtes jusqu'à la Condensation ;
+ * quelques minutes pour finir. L'arbre est complet après 18 à 23 h de plus si les défis sont
+ * tentés dès leur ouverture (ils raccourcissent le chemin), 29 à 31 h s'ils sont gardés pour la
+ * fin : le deuxième acte dure à peu près autant que le premier. Les deux premières cases
+ * (Densité à 1 000 particules, Noyau lourd à 10 atomes) sont volontairement bon marché : avec
+ * la première amélioration payée en matière noire, ce sont elles qui rendent la deuxième partie
+ * trois fois plus courte que la première.
+ *
+ * <p>Ce qui allonge ou raccourcit le deuxième acte : le seuil de la Condensation (chaque
+ * matière noire de plus avant elle ajoute une partie d'une heure environ) et
+ * {@link Game#TABLE_WEIGHT_MAX_LEVEL} (un niveau de plus double à peu près les parties du
+ * milieu : à onze, l'une d'elles dépasse huit heures).
  */
 public final class DarkUpgrades {
 
@@ -48,23 +61,23 @@ public final class DarkUpgrades {
                     new DarkEffect.FusionThreshold()),
             // +1 générateur au départ par niveau, jusqu'à repartir avec les dix.
             new DarkUpgrade("dark_seeds", "Germes", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 30), 1e12, 9, "dark_threshold", 3,
+                    BigNum.of(1, 30), 1e12, 9, "dark_threshold", 4,
                     new DarkEffect.StartingGenerators(1)),
             // +10 niveaux de vitesse offerts par niveau, cinq niveaux.
             new DarkUpgrade("dark_priming", "Amorçage", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 40), 1e10, 5, "dark_seeds", 4,
+                    BigNum.of(1, 40), 1e10, 5, "dark_seeds", 6,
                     new DarkEffect.StartingSpeedLevels(10)),
             // Particules ×2 pour chaque matière noire possédée.
             new DarkUpgrade("dark_mass", "Masse sombre", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 60), 1, 1, "dark_priming", 6,
+                    BigNum.of(1, 60), 1, 1, "dark_priming", 11,
                     new DarkEffect.ParticlesByDarkMatter(2)),
             // Délai minimal des automatismes : 0,05 s au lieu de 0,1 s.
             new DarkUpgrade("dark_reflexes", "Automatismes vifs", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 80), 1, 1, "dark_mass", 7,
+                    BigNum.of(1, 80), 1, 1, "dark_mass", 13,
                     new DarkEffect.FasterAutomations(0.05)),
             // Particules × (taille en années-lumière)².
             new DarkUpgrade("dark_resonance", "Résonance", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 100), 1, 1, "dark_reflexes", 8,
+                    BigNum.of(1, 100), 1, 1, "dark_reflexes", 40,
                     new DarkEffect.ParticlesByLightYears(2)),
 
             // ----- Atomes -----
@@ -78,25 +91,21 @@ public final class DarkUpgrades {
                     new DarkEffect.AddElementsPerSynthesis(1)),
             // Élément unique garanti à la 3ᵉ synthèse au lieu de la 8ᵉ.
             new DarkUpgrade("dark_luck", "Coup de pouce", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(100), 1, 1, "dark_multisynthesis", 3,
+                    BigNum.of(100), 1, 1, "dark_multisynthesis", 4,
                     new DarkEffect.EarlierGuaranteedUnique(3)),
             new DarkUpgrade("dark_machines", "Mémoire des machines", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(118), 1, 1, "dark_luck", 5,
+                    BigNum.of(118), 1, 1, "dark_luck", 10,
                     new DarkEffect.KeepAutomationsOnExplosion()),
             // Les éléments uniques survivent à l'explosion.
             new DarkUpgrade("dark_relics", "Tableau entamé", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(118), 1, 1, "dark_machines", 7,
+                    BigNum.of(118), 1, 1, "dark_machines", 20,
                     new DarkEffect.KeepUniqueElementsOnExplosion()),
             new DarkUpgrade("dark_memory", "Mémoire de la matière", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(118), 1, 1, "dark_relics", 8,
+                    BigNum.of(118), 1, 1, "dark_relics", 32,
                     new DarkEffect.KeepUpgradesOnExplosion()),
-            // Explosion possible dès les 118 éléments découverts. Il faut avoir levé le plafond d'atomes.
-            new DarkUpgrade("dark_chain", "Réaction en chaîne", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(500), 1, 1, "dark_memory", 9,
-                    new DarkEffect.ExplodeWhenDiscovered()),
             // Maximum d'exemplaires 9 → 16 → 25 (et 4 → 9 → 16 pour les lanthanides).
             new DarkUpgrade("dark_isotopes", "Isotopes", DarkUpgrade.Branch.ATOMS,
-                    BigNum.of(2000), 5, 2, "dark_chain", 10,
+                    BigNum.of(2000), 5, 2, "dark_memory", 60,
                     new DarkEffect.IncreaseMaxCopies(1)),
 
             // ----- Taille de la matière noire -----
@@ -112,32 +121,37 @@ public final class DarkUpgrades {
                     new DarkEffect.HoldLock()),
             // Chaque fusion vaut 0,2 s d'appui. À atteindre : 1 mètre.
             new DarkUpgrade("dark_wave", "Onde de fusion", DarkUpgrade.Branch.SIZE,
-                    BigNum.ONE, 1, 1, "dark_lock", 3,
+                    BigNum.ONE, 1, 1, "dark_lock", 4,
                     new DarkEffect.FusionPulse(0.2)),
             // Grossit seule : 0,1 %, puis 1 %, puis 10 % de la vitesse d'appui. À atteindre : 1, 100, 10 000 années-lumière.
             new DarkUpgrade("dark_spontaneous", "Expansion spontanée", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR, 100, 3, "dark_wave", 4,
+                    SizeScale.LIGHT_YEAR, 100, 3, "dark_wave", 7,
                     new DarkEffect.AutoExpansion(0.001, 10)),
             // +1 matière noire par explosion et par niveau, dix niveaux. À atteindre : 1 000 années-lumière, puis ×1 000.
             new DarkUpgrade("dark_condensation", "Condensation", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e3), 1e3, 10, "dark_spontaneous", 5,
+                    SizeScale.LIGHT_YEAR.multiply(1e3), 1e3, 10, "dark_spontaneous", 16,
                     new DarkEffect.AddDarkMatterPerExplosion(1)),
             // Plus de plafond d'atomes. À atteindre : 100 000 années-lumière, la taille de la Voie lactée.
             new DarkUpgrade("dark_overflow", "Débordement", DarkUpgrade.Branch.SIZE,
-                    SizeScale.LIGHT_YEAR.multiply(1e5), 1, 1, "dark_condensation", 6,
+                    SizeScale.LIGHT_YEAR.multiply(1e5), 1, 1, "dark_condensation", 24,
                     new DarkEffect.UncapAtoms()),
 
             // ----- Améliorations payées en matière noire (hors de l'arbre) -----
             // La matière noire est dépensée, mais reste comptée comme gagnée : leur effet grandit
             // avec tout ce que le joueur a gagné depuis le début, pas avec ce qui lui reste.
 
-            // Atomes par fusion +20 % par matière noire gagnée et par niveau. Prix : 1, 2, 4, 8, 16.
+            // Les deux premières n'ont pas de niveau maximal : leur prix double à chaque niveau, leur
+            // effet ne fait que s'additionner. La matière noire garde ainsi toujours un usage, sans que
+            // rien s'emballe : dix niveaux coûtent 1 023 matières noires.
+
+            // Atomes par fusion +20 % par matière noire gagnée et par niveau. Prix : 1, 2, 4, 8, 16…
             new DarkUpgrade("dark_shop_atoms", "Noyaux sombres", DarkUpgrade.Branch.DARK_MATTER,
-                    BigNum.ONE, 2, 5, null, 0,
+                    BigNum.ONE, 2, Upgrade.NO_LIMIT, null, 0,
                     new DarkEffect.AtomsByDarkMatter(0.2)),
-            // Automatismes ordinaires +10 % de cadence par matière noire gagnée et par niveau. Prix : 1, 2, 4.
+            // Automatismes ordinaires +10 % de cadence par matière noire gagnée et par niveau. Prix : 1, 2, 4…
+            // Leur délai ne descend de toute façon jamais sous le minimum du jeu.
             new DarkUpgrade("dark_shop_cadence", "Rouages sombres", DarkUpgrade.Branch.DARK_MATTER,
-                    BigNum.ONE, 2, 3, null, 0,
+                    BigNum.ONE, 2, Upgrade.NO_LIMIT, null, 0,
                     new DarkEffect.AutomationsByDarkMatter(0.1)),
             // Prix de la synthèse divisé par 1 + 10 % par matière noire gagnée et par niveau. Prix : 2, 4, 8.
             new DarkUpgrade("dark_shop_synthesis", "Synthèse sombre", DarkUpgrade.Branch.DARK_MATTER,
@@ -147,7 +161,12 @@ public final class DarkUpgrades {
             // 6 matières noires, l'automatisation et le tableau périodique sont ouverts d'entrée.
             new DarkUpgrade("dark_shop_start", "Départ lancé", DarkUpgrade.Branch.DARK_MATTER,
                     BigNum.of(2), 1, 1, null, 0,
-                    new DarkEffect.HeadStartByDarkMatter(5)));
+                    new DarkEffect.HeadStartByDarkMatter(5)),
+            // Ouvre la synthèse ciblée. Elle coûte cher en synthèses : elle n'a d'intérêt que lorsque
+            // les atomes ne manquent plus, donc après la première explosion.
+            new DarkUpgrade("dark_shop_target", "Synthèse ciblée", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.of(2), 1, 1, null, 0,
+                    new DarkEffect.TargetedSynthesis()));
 
     private DarkUpgrades() {}
 }

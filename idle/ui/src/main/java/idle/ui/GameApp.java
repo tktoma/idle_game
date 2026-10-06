@@ -1,9 +1,12 @@
 package idle.ui;
 
 import idle.core.BigNum;
+import idle.core.Challenge;
+import idle.core.Effect;
 import idle.core.Game;
 import idle.core.Resource;
 import idle.core.Upgrade;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -21,88 +24,123 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 /**
- * Aperçu minimal du jeu : les générateurs animés, le compteur de particules,
- * la production, et un bouton par amélioration.
+ * La fenêtre du jeu : les générateurs animés, le compteur de particules,
+ * la production, et une carte par amélioration.
  *
  * <p>Une partie neuve s'ouvre sur un écran de démarrage : un fond de poussières et un
  * bouton qui crée le premier générateur. Quand tous les générateurs sont débloqués,
  * un bouton permet de les fusionner en un atome.
  *
- * <p>En haut de la fenêtre, des onglets. Trois sont là dès le début : « Particules » (les
- * générateurs et leurs améliorations), « Statistiques » ({@link StatsPage}) et « Réglages »
- * ({@link SettingsPage}). Les autres apparaissent avec la partie : « Atomes » ({@link AtomsPage})
+ * <p>En haut de la fenêtre, des onglets. Quatre sont là dès le début : « Particules » (les
+ * générateurs et leurs améliorations), « Succès » ({@link AchievementsPage}), « Statistiques »
+ * ({@link StatsPage}) et « Réglages » ({@link SettingsPage}). Les autres apparaissent avec la partie : « Atomes » ({@link AtomsPage})
  * au premier atome, « Automatisation » ({@link AutomationPage}) dès qu'un automatisme est
  * débloqué. Le jeu continue de tourner quel que soit l'onglet affiché, sauf en pause.
  *
- * <p>Quand le tableau périodique est complet, un bouton apparaît au-dessus des onglets : il
+ * <p>Quand les 118 éléments du tableau périodique sont découverts, un bouton apparaît au-dessus des onglets : il
  * déclenche une explosion qui remet toute la partie à zéro et fait apparaître l'onglet
- * « Matière noire » ({@link DarkMatterPage}).
+ * « Matière noire » ({@link DarkMatterPage}). Au bout de son arbre, le Big Bang efface tout de
+ * nouveau et fait apparaître l'onglet « Big Bang » ({@link BigBangPage}).
  *
  * <p>Lancé avec l'argument {@code --test} (tâche Gradle {@code runTest}), le jeu affiche en
  * plus une {@link DebugBar} pour accélérer le temps et s'ajouter des ressources.
+ *
+ * <p>Les améliorations payées en particules s'achètent par un, par dix ou « au maximum »
+ * (réglage sous le compteur), au clic ou au clavier : voir {@link #onKey(KeyCode)}. Chacune est
+ * une {@link Card} : son niveau, sa touche, ce qu'elle rapporte en quelques mots, son prix et le
+ * temps qu'il reste à attendre.
+ *
+ * <p>Partout dans le jeu, les explications complètes n'apparaissent qu'en mode détails
+ * ({@link Detail}) : tant que le joueur tient la touche de détail, réglable ({@link Settings#detailKey()}).
+ * Un rappel de cette touche reste affiché sous les onglets.
+ *
+ * <p>Sous les onglets, une ligne rappelle l'objectif du moment ({@link Goals}). Par-dessus tout
+ * le reste, les notifications ({@link ToastPane}) annoncent ce que {@link Notifier} a repéré :
+ * nouvel élément, succès, déblocage. Toute la fenêtre passe par {@link ScaledPane} (la taille de
+ * l'interface) et, pour le thème clair, par {@link LightTheme}.
  *
  * <p>La fenêtre ne contient aucune règle : elle appelle {@code game.tick()},
  * affiche l'état, et transmet les clics à {@code game.buy()}.
  */
 public final class GameApp extends Application {
 
-    private static final double BUTTON_WIDTH = 420;
+    /** Largeur maximale de la rangée des améliorations, et de la carte de fusion en dessous. */
+    private static final double UPGRADES_WIDTH = 760;
+    private static final double FUSE_WIDTH = 380;
+    /** Style des trois boutons de quantité ; celui qui est choisi est éclairé. */
+    private static final String AMOUNT_STYLE = "-fx-font-size: 12px; -fx-padding: 3 12; -fx-cursor: hand;"
+            + " -fx-background-radius: 6; -fx-border-radius: 6;";
     /** Nombre maximal de générateurs dessinés ; les suivants produisent sans être affichés. */
     private static final int MAX_VISIBLE_GENERATORS = 30;
 
     /** Style commun aux onglets ; la couleur dépend de l'onglet et de son état, les marges de la largeur de la fenêtre. */
     private static final String TAB_STYLE = "-fx-cursor: hand; -fx-background-radius: 0; -fx-border-width: 0 0 2 0;";
-    private static final String WIDE_TAB = " -fx-font-size: 14px; -fx-padding: 10 14;";
+    private static final String WIDE_TAB = " -fx-font-size: 14px; -fx-padding: 10 11;";
     private static final String NARROW_TAB = " -fx-font-size: 12px; -fx-padding: 8 10;";
     /** En dessous de cette largeur de fenêtre, les onglets se resserrent pour tenir sur une ligne. */
     private static final double NARROW_WINDOW = 780;
-    private static final String PARTICLES_COLOR = "#9fd0ff";
-    private static final String ATOMS_COLOR = "#ffd27f";
-    private static final String AUTOMATION_COLOR = "#9be7a8";
+    /** La même limite une fois l'onglet « Big Bang » apparu : huit onglets au lieu de sept. */
+    private static final double NARROW_WINDOW_WITH_BIG_BANG = 920;
+    static final String PARTICLES_COLOR = "#9fd0ff";
+    static final String ATOMS_COLOR = "#ffd27f";
+    static final String AUTOMATION_COLOR = "#9be7a8";
     static final String DARK_MATTER_COLOR = "#c9a6ff";
-    private static final String STATS_COLOR = "#7fe0d4";
+    /** La couleur du Big Bang : le blanc chaud d'un éclair, à part des quatre couleurs de ressources. */
+    static final String BIG_BANG_COLOR = "#fff1c9";
+    static final String ACHIEVEMENTS_COLOR = "#ff9eb5";
+    static final String STATS_COLOR = "#7fe0d4";
     private static final String SETTINGS_COLOR = "#d6dde6";
     /** Temps laissé pour le second clic qui confirme l'explosion, en secondes. */
     private static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, STATS, SETTINGS }
+    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, BIG_BANG, ACHIEVEMENTS, STATS, SETTINGS }
 
     private final Game game = new Game();
     private final Settings settings = Settings.load();
     private final GeneratorPane generators = new GeneratorPane();
     private final Label particlesLabel = new Label();
     private final Label productionLabel = new Label();
-    private final Button fuseButton = new Button();
+    private final Card fuseCard = new Card(ATOMS_COLOR);
 
     // Les onglets, visibles à partir du premier atome.
     private final Button particlesTab = new Button("Particules");
     private final Button atomsTab = new Button();
     private final Button automationTab = new Button("Automatisation");
     private final Button darkMatterTab = new Button();
+    private final Button bigBangTab = new Button("Big Bang");
+    private final Button achievementsTab = new Button("Succès");
     private final Button statsTab = new Button("Statistiques");
     private final Button settingsTab = new Button("Réglages");
     private final AtomView atomsTabIcon = new AtomView(22);
-    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab, darkMatterTab, statsTab, settingsTab);
+    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab, darkMatterTab, bigBangTab,
+            achievementsTab, statsTab, settingsTab);
     private final BorderPane particlesPage = new BorderPane();
     private final AtomsPage atomsPage = new AtomsPage(game);
     private final AutomationPage automationPage = new AutomationPage(game);
     private final DarkMatterPage darkMatterPage = new DarkMatterPage(game);
+    private final BigBangPage bigBangPage = new BigBangPage(game);
+    private final AchievementsPage achievementsPage = new AchievementsPage(game);
     private final StatsPage statsPage = new StatsPage(game);
-    private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame);
+    private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance);
     /** La page des automatismes défile quand la fenêtre est trop basse pour toutes ses cartes. */
     private final ScrollPane automationScroll = new ScrollPane(automationPage);
     private final ScrollPane settingsScroll = new ScrollPane(settingsPage);
+    private final ScrollPane achievementsScroll = new ScrollPane(achievementsPage);
     /** Le centre de l'onglet « Particules » : les générateurs, et le bouton de démarrage tant que la partie n'a pas commencé. */
     private final StackPane center = new StackPane(generators);
     /** Le compteur et les améliorations, sous les générateurs. */
@@ -114,6 +152,20 @@ public final class GameApp extends Application {
 
     // L'explosion : le bouton au-dessus des onglets, et ce qui recouvre la fenêtre pendant qu'elle a lieu.
     private final Button explosionButton = new Button();
+    /** Rappel du défi en cours, entre le bouton d'explosion et les onglets. */
+    private final Label challengeLabel = new Label();
+    /** L'objectif du moment, sous les onglets. */
+    private final Label goalLabel = new Label();
+    /** Le rappel de la touche de détail, à droite de l'objectif. */
+    private final Label detailHint = new Label();
+    /** Vrai tant que la touche de détail est enfoncée : pour ne pas basculer à chaque répétition du clavier. */
+    private boolean detailKeyDown = false;
+    // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
+    private final ToastPane toasts = new ToastPane();
+    private final Notifier notifier = new Notifier(game);
+    // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
+    private ScaledPane scaled;
+    private LightTheme lightTheme;
     private final StackPane flash = new StackPane();
     private final Circle shockwave = new Circle(24, Color.web(DARK_MATTER_COLOR));
     private final StackPane blast = new StackPane(flash, shockwave);
@@ -122,9 +174,18 @@ public final class GameApp extends Application {
     private double explosionArmed = 0;
     /** Atomes créés à la dernière image, pour repérer l'arrivée d'un nouvel atome ; −1 avant la première image. */
     private double lastTotalAtoms = -1;
+    /** Le nombre de Big Bangs au dernier affichage, pour remarquer qu'il vient d'y en avoir un ; −1 avant le premier affichage. */
+    private int lastBigBangs = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
     private DebugBar debugBar;
-    private final Map<Upgrade, Button> upgradeButtons = new LinkedHashMap<>();
+    private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
+    /** Les améliorations côte à côte ; dans une fenêtre étroite, elles se rangent sur plusieurs rangées. */
+    private final TileGrid upgradeGrid = new TileGrid(170, 4, 8);
+    /** Les trois quantités d'achat : ×1, ×10, max. */
+    private final Map<Settings.BuyAmount, Button> amountButtons = new EnumMap<>(Settings.BuyAmount.class);
+    /** Touche du clavier → amélioration payée en particules qu'elle achète. */
+    private final Map<KeyCode, Upgrade> upgradeKeys = new LinkedHashMap<>();
+    private final Label shortcutsLabel = new Label();
 
     @Override
     public void start(Stage stage) {
@@ -134,22 +195,46 @@ public final class GameApp extends Application {
         // En bas : le compteur et les améliorations. Cachés tant que la partie n'a pas démarré,
         // mais leur place est réservée pour que rien ne bouge à leur apparition.
         controls.setVisible(game.isStarted());
-        controls.setPadding(new Insets(12, 24, 24, 24));
+        controls.setPadding(new Insets(8, 24, 12, 24));
+        controls.setSpacing(8);
         controls.setAlignment(Pos.TOP_CENTER);
 
-        // Un bouton par amélioration payée en particules : en ajouter une dans core suffit à la faire apparaître.
-        for (Upgrade upgrade : game.upgrades(Resource.PARTICLES)) {
-            Button button = new Button();
-            button.setPrefWidth(BUTTON_WIDTH);
-            button.setMinWidth(0);               // dans une fenêtre étroite, le bouton rétrécit avec elle
+        // La quantité achetée à chaque clic : un niveau, dix, ou tout ce qui est à portée.
+        Label amountLabel = new Label("Quantité par achat :");
+        amountLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        HBox amounts = new HBox(6, amountLabel);
+        amounts.setAlignment(Pos.CENTER);
+        for (Settings.BuyAmount amount : Settings.BuyAmount.values()) {
+            Button button = new Button(amount.label());
+            button.setFocusTraversable(false);
             button.setOnAction(event -> {
-                game.buy(upgrade.id());
+                settings.setBuyAmount(amount);
                 refresh();
             });
-            upgradeButtons.put(upgrade, button);
-            controls.getChildren().add(button);
+            amountButtons.put(amount, button);
+            amounts.getChildren().add(button);
         }
-        controls.getChildren().add(fuseButton());
+        controls.getChildren().add(amounts);
+
+        // Une carte par amélioration payée en particules : en ajouter une dans core suffit à la faire apparaître.
+        for (Upgrade upgrade : game.upgrades(Resource.PARTICLES)) {
+            Card card = new Card(PARTICLES_COLOR);
+            card.setOnAction(() -> {
+                game.buy(upgrade.id(), settings.buyAmount().count());
+                refresh();
+            });
+            upgradeCards.put(upgrade, card);
+            upgradeGrid.add(card);
+            KeyCode key = keyOf(upgrade);
+            if (key != null) upgradeKeys.putIfAbsent(key, upgrade);
+        }
+        upgradeGrid.setMaxWidth(UPGRADES_WIDTH);
+        controls.getChildren().add(upgradeGrid);
+        controls.getChildren().add(fuseCard());
+        shortcutsLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #6f8296;");
+        shortcutsLabel.setWrapText(true);
+        shortcutsLabel.setTextAlignment(TextAlignment.CENTER);
+        controls.getChildren().add(shortcutsLabel);
 
         // Au centre : les générateurs, qui occupent toute la place restante.
         if (!game.isStarted()) showStartButton();
@@ -165,11 +250,17 @@ public final class GameApp extends Application {
         settingsScroll.setFitToWidth(true);
         settingsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         settingsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, statsPage, settingsScroll);
+        achievementsScroll.setFitToWidth(true);
+        achievementsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, bigBangPage,
+                achievementsScroll, statsPage, settingsScroll);
         particlesTab.setOnAction(event -> selectTab(Tab.PARTICLES));
         atomsTab.setOnAction(event -> selectTab(Tab.ATOMS));
         automationTab.setOnAction(event -> selectTab(Tab.AUTOMATION));
         darkMatterTab.setOnAction(event -> selectTab(Tab.DARK_MATTER));
+        bigBangTab.setOnAction(event -> selectTab(Tab.BIG_BANG));
+        achievementsTab.setOnAction(event -> selectTab(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> selectTab(Tab.STATS));
         settingsTab.setOnAction(event -> selectTab(Tab.SETTINGS));
         atomsTab.setGraphic(atomsTabIcon);
@@ -177,13 +268,29 @@ public final class GameApp extends Application {
         selectTab(Tab.PARTICLES);
 
         // En haut : la barre d'onglets, et au-dessus la barre du profil de test si le jeu est lancé avec --test.
-        // Au-dessus des onglets : le bouton d'explosion, quand le tableau périodique est complet.
+        // Au-dessus des onglets : le bouton d'explosion, quand tous les éléments sont découverts.
         explosionButton.setMaxWidth(Double.MAX_VALUE);
         explosionButton.setWrapText(true);
         explosionButton.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 20; -fx-cursor: hand;"
                 + " -fx-text-fill: #1a0f2e; -fx-background-color: " + DARK_MATTER_COLOR + "; -fx-background-radius: 0;");
         explosionButton.setOnAction(event -> requestExplosion());
-        VBox top = new VBox(explosionButton, tabBar);
+        challengeLabel.setMaxWidth(Double.MAX_VALUE);
+        challengeLabel.setWrapText(true);
+        challengeLabel.setAlignment(Pos.CENTER);
+        challengeLabel.setTextAlignment(TextAlignment.CENTER);
+        challengeLabel.setStyle("-fx-font-size: 12px; -fx-padding: 5 16; -fx-text-fill: #efe4ff; -fx-background-color: #2a2040;");
+        goalLabel.setMaxWidth(Double.MAX_VALUE);
+        goalLabel.setMinWidth(0);
+        goalLabel.setWrapText(true);
+        goalLabel.setAlignment(Pos.CENTER);
+        goalLabel.setTextAlignment(TextAlignment.CENTER);
+        goalLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #8fa3b8;");
+        HBox.setHgrow(goalLabel, Priority.ALWAYS);
+        // Sous les onglets : l'objectif du moment, et à droite le rappel de la touche de détail.
+        HBox infoBar = new HBox(10, goalLabel, detailHint);
+        infoBar.setAlignment(Pos.CENTER);
+        infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
+        VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar);
         boolean testProfile = getParameters().getRaw().contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
@@ -198,7 +305,10 @@ public final class GameApp extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = new StackPane(root, blast);
+        StackPane window = new StackPane(root, blast, toasts);
+        StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
+        scaled = new ScaledPane(window);
+        lightTheme = new LightTheme(window);
 
         // Boucle de jeu : appelée à chaque image (~60 fois par seconde) sur le thread JavaFX.
         new AnimationTimer() {
@@ -215,6 +325,7 @@ public final class GameApp extends Application {
                 }
                 explosionArmed = Math.max(0, explosionArmed - dt);
                 if (selectedTab == Tab.SETTINGS) settingsPage.frame(dt);
+                announce(dt);
                 refresh();
             }
         }.start();
@@ -222,9 +333,22 @@ public final class GameApp extends Application {
         animate(0);
         refresh();
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
-        stage.setScene(new Scene(window, 800, 600));
+        Scene scene = new Scene(scaled, 800, 640);
+        applyAppearance();
+        // Les touches sont lues avant les boutons : sinon, Espace irait d'abord au bouton qui a le focus.
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (keyPressed(event.getCode())) event.consume();
+        });
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
+            if (keyReleased(event.getCode())) event.consume();
+        });
+        // La fenêtre perd la main touche enfoncée : le relâchement ne viendra jamais, on l'anticipe.
+        stage.focusedProperty().addListener((observable, before, focused) -> {
+            if (!focused) releaseDetailKey();
+        });
+        stage.setScene(scene);
         stage.setMinWidth(480);
-        stage.setMinHeight(420);
+        stage.setMinHeight(460);
         stage.show();
     }
 
@@ -280,12 +404,15 @@ public final class GameApp extends Application {
      */
     private void resetGame() {
         game.reset();
+        toasts.clear();
         exploding = false;
         explosionArmed = 0;
         blast.setVisible(false);
         lastTotalAtoms = -1;
         generators.setCount(0);
         darkMatterPage.reset();
+        bigBangPage.reset();
+        lastBigBangs = 0;
         controls.setVisible(false);
         showStartButton();
         selectTab(Tab.PARTICLES);
@@ -293,18 +420,15 @@ public final class GameApp extends Application {
     }
 
     /**
-     * Bouton de fusion : il n'apparaît que lorsque tous les générateurs sont débloqués.
+     * Carte de fusion : elle n'apparaît que lorsque tous les générateurs sont débloqués.
      * Les générateurs se regroupent au centre, puis le jeu applique la fusion.
      */
-    private Button fuseButton() {
-        fuseButton.setPrefWidth(BUTTON_WIDTH);
-        fuseButton.setMinWidth(0);
-        fuseButton.setStyle("-fx-font-size: 14px; -fx-padding: 8 16; -fx-text-fill: #ffd27f;"
-                + " -fx-background-color: #2a2113; -fx-background-radius: 8;"
-                + " -fx-border-color: #ffd27f; -fx-border-radius: 8; -fx-cursor: hand;");
-        fuseButton.setVisible(false); // sa place reste réservée pour que rien ne bouge à son apparition
+    private Card fuseCard() {
+        fuseCard.setPrefWidth(FUSE_WIDTH);
+        fuseCard.setMaxWidth(FUSE_WIDTH);
+        fuseCard.setVisible(false); // sa place reste réservée pour que rien ne bouge à son apparition
 
-        ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.1), fuseButton);
+        ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.1), fuseCard);
         pulse.setFromX(1);
         pulse.setFromY(1);
         pulse.setToX(1.04);
@@ -313,15 +437,102 @@ public final class GameApp extends Application {
         pulse.setCycleCount(Animation.INDEFINITE);
         pulse.play();
 
-        fuseButton.setOnAction(event -> {
-            if (!game.canFuse()) return;
-            generators.fuse(() -> {
-                game.fuse(); // un seul générateur renaît à l'image suivante, là où les autres ont fusionné
-                refresh();   // fait apparaître les onglets si c'est le premier atome
-            });
+        fuseCard.setOnAction(this::fuse);
+        return fuseCard;
+    }
+
+    /** La fusion demandée par le joueur, au bouton ou au clavier : les générateurs se regroupent, puis le jeu fusionne. */
+    private void fuse() {
+        if (!game.canFuse() || generators.isFusing()) return;
+        if (selectedTab != Tab.PARTICLES) {
+            game.fuse();     // l'onglet n'est pas affiché : personne ne verrait l'animation
             refresh();
+            return;
+        }
+        generators.fuse(() -> {
+            game.fuse(); // un seul générateur renaît à l'image suivante, là où les autres ont fusionné
+            refresh();   // fait apparaître les onglets si c'est le premier atome
         });
-        return fuseButton;
+        refresh();
+    }
+
+    /** Touche du clavier qui achète cette amélioration, ou {@code null} si elle n'en a pas. */
+    private static KeyCode keyOf(Upgrade upgrade) {
+        return switch (upgrade.effect()) {
+            case Effect.MultiplySpeed speed -> KeyCode.V;
+            case Effect.MultiplyByGenerators coupling -> KeyCode.C;
+            case Effect.AddGenerator generator -> KeyCode.G;
+            default -> null;
+        };
+    }
+
+    /**
+     * Une touche vient d'être enfoncée. Dans l'ordre : la page des réglages l'attend peut-être
+     * pour en faire la touche de détail ; sinon c'est la touche de détail elle-même ; sinon un
+     * raccourci.
+     *
+     * @return vrai si la touche a servi à l'interface et ne doit pas aller plus loin
+     */
+    private boolean keyPressed(KeyCode code) {
+        if (settingsPage.isCapturing()) {
+            settingsPage.capture(code, isShortcut(code));
+            return true;
+        }
+        if (code == settings.detailKey()) {
+            // Tenue, la touche se répète : seul le premier appui compte.
+            if (!detailKeyDown) {
+                detailKeyDown = true;
+                Detail.set(settings.detailToggle() ? !Detail.shown() : true);
+                refresh();
+            }
+            return true;
+        }
+        onKey(code);
+        return false;
+    }
+
+    /** Une touche vient d'être relâchée : si c'est la touche de détail et qu'elle se tient, les détails se referment. */
+    private boolean keyReleased(KeyCode code) {
+        if (code != settings.detailKey()) return false;
+        releaseDetailKey();
+        return true;
+    }
+
+    private void releaseDetailKey() {
+        detailKeyDown = false;
+        if (!settings.detailToggle() && Detail.shown()) {
+            Detail.set(false);
+            refresh();
+        }
+    }
+
+    /** Vrai si cette touche est déjà un raccourci du jeu : elle ne peut pas devenir la touche de détail. */
+    private boolean isShortcut(KeyCode code) {
+        return code == KeyCode.P || code == KeyCode.F || code == KeyCode.M || upgradeKeys.containsKey(code);
+    }
+
+    /**
+     * Les raccourcis clavier, actifs depuis n'importe quel onglet : une touche par amélioration
+     * payée en particules (elle achète la quantité choisie), F pour fusionner, M pour tout
+     * acheter, P pour la pause.
+     */
+    private void onKey(KeyCode code) {
+        if (!settings.shortcuts() || exploding) return;
+        if (code == KeyCode.P) {
+            settings.setPaused(!settings.paused());
+            settingsPage.refresh();
+        } else if (!game.isStarted()) {
+            return;
+        } else if (code == KeyCode.F) {
+            fuse();
+        } else if (code == KeyCode.M) {
+            game.buyAllWithParticles();
+        } else if (upgradeKeys.containsKey(code)) {
+            game.buy(upgradeKeys.get(code).id(), settings.buyAmount().count());
+        } else {
+            return;
+        }
+        refresh();
     }
 
     /**
@@ -388,6 +599,40 @@ public final class GameApp extends Application {
         bang.play();
     }
 
+    /** Applique la taille de l'interface et le thème choisis dans les réglages. */
+    private void applyAppearance() {
+        if (scaled == null) return;      // la fenêtre n'est pas encore construite
+        scaled.setScale(settings.scale().factor());
+        lightTheme.apply(settings.theme() == Settings.Theme.LIGHT);
+    }
+
+    /**
+     * Annonce ce qui vient de se passer dans le jeu, et fait vieillir les messages déjà affichés.
+     * Coupées dans les réglages, les notifications sont tout de même relevées, pour ne pas toutes
+     * tomber d'un coup le jour où on les rallume.
+     */
+    private void announce(double dt) {
+        List<String> news = notifier.poll();
+        if (settings.notifications()) {
+            for (String text : news) toasts.show(text, noticeColor(text));
+        } else if (toasts.count() > 0) {
+            toasts.clear();
+        }
+        toasts.frame(dt);
+    }
+
+    /** La couleur du liseré d'une notification : celle de l'onglet dont elle parle. */
+    private static String noticeColor(String text) {
+        if (text.startsWith("Big Bang") || text.startsWith("Molécules")) return BIG_BANG_COLOR;
+        if (text.startsWith("Succès")) return ACHIEVEMENTS_COLOR;
+        if (text.startsWith("Explosion") || text.startsWith("Défi") || text.startsWith("Nouveau défi")
+                || text.contains("matière noire") || text.startsWith("Palier de taille") || text.contains("paliers de taille")
+                || text.contains("exploser")) return DARK_MATTER_COLOR;
+        if (text.contains("utomatis")) return AUTOMATION_COLOR;
+        if (text.startsWith("Palier de vitesse")) return PARTICLES_COLOR;
+        return ATOMS_COLOR;
+    }
+
     /** Affiche un onglet et masque les autres. */
     private void selectTab(Tab tab) {
         selectedTab = tab;
@@ -397,6 +642,8 @@ public final class GameApp extends Application {
         atomsPage.setVisible(tab == Tab.ATOMS);
         automationScroll.setVisible(tab == Tab.AUTOMATION);
         darkMatterPage.setVisible(tab == Tab.DARK_MATTER);
+        bigBangPage.setVisible(tab == Tab.BIG_BANG);
+        achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
         settingsScroll.setVisible(tab == Tab.SETTINGS);
         styleTabs();
@@ -408,9 +655,11 @@ public final class GameApp extends Application {
         atomsTab.setStyle(tabStyle(ATOMS_COLOR, selectedTab == Tab.ATOMS));
         automationTab.setStyle(tabStyle(AUTOMATION_COLOR, selectedTab == Tab.AUTOMATION));
         darkMatterTab.setStyle(tabStyle(DARK_MATTER_COLOR, selectedTab == Tab.DARK_MATTER));
+        bigBangTab.setStyle(tabStyle(BIG_BANG_COLOR, selectedTab == Tab.BIG_BANG));
+        achievementsTab.setStyle(tabStyle(ACHIEVEMENTS_COLOR, selectedTab == Tab.ACHIEVEMENTS));
         statsTab.setStyle(tabStyle(STATS_COLOR, selectedTab == Tab.STATS));
         settingsTab.setStyle(tabStyle(SETTINGS_COLOR, selectedTab == Tab.SETTINGS));
-        // Six onglets ne tiennent pas en toutes lettres dans une fenêtre étroite.
+        // Sept ou huit onglets ne tiennent pas en toutes lettres dans une fenêtre étroite.
         automationTab.setText(narrow ? "Auto." : "Automatisation");
         statsTab.setText(narrow ? "Stats" : "Statistiques");
     }
@@ -454,6 +703,9 @@ public final class GameApp extends Application {
         if (selectedTab == Tab.DARK_MATTER) {
             darkMatterPage.frame(dt, timeFactor());
         }
+        if (selectedTab == Tab.BIG_BANG) {
+            bigBangPage.frame(dt);
+        }
         if (selectedTab != Tab.PARTICLES) {
             return;
         }
@@ -474,11 +726,14 @@ public final class GameApp extends Application {
     /** Recopie l'état du jeu dans les composants. */
     private void refresh() {
         // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
-        boolean nowNarrow = root.getWidth() > 0 && root.getWidth() < NARROW_WINDOW;
+        // Avec l'onglet « Big Bang » ils sont huit : la fenêtre de 800 px ne suffit plus aux noms entiers.
+        boolean bigBang = game.isBigBangUnlocked();
+        boolean nowNarrow = root.getWidth() > 0 && root.getWidth() < (bigBang ? NARROW_WINDOW_WITH_BIG_BANG : NARROW_WINDOW);
         if (nowNarrow != narrow) {
             narrow = nowNarrow;
             styleTabs();
         }
+        if (debugBar != null) debugBar.refresh();
 
         BigNum particles = game.state().particles();
         particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
@@ -492,23 +747,34 @@ public final class GameApp extends Application {
         productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m"
                 + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
 
-        upgradeButtons.forEach((upgrade, button) -> {
-            button.setText(label(upgrade));
-            button.setDisable(!game.canBuy(upgrade.id()));
-        });
+        upgradeCards.forEach(this::show);
+        amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
+                ? " -fx-text-fill: #0b0e14; -fx-background-color: " + PARTICLES_COLOR + "; -fx-border-color: #ffffff;"
+                : " -fx-text-fill: " + PARTICLES_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
+        // Les autres raccourcis, ceux qui ne sont écrits sur aucune carte : en mode détails seulement.
+        boolean keys = settings.shortcuts() && Detail.shown();
+        shortcutsLabel.setText(shortcutsHint());
+        shortcutsLabel.setVisible(keys);
+        shortcutsLabel.setManaged(keys);
 
-        // Au plafond d'atomes, le bouton reste affiché mais grisé, pour expliquer pourquoi rien ne se passe.
+        // Au plafond d'atomes, la carte reste affichée mais éteinte, pour expliquer pourquoi rien ne se passe.
         boolean capped = game.isAtomCapReached();
-        fuseButton.setText(capped
-                ? "Maximum de " + Format.count(Game.MAX_ATOMS) + " atomes atteint : dépensez-en"
-                        + (game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete()
-                                ? " ou synthétisez un élément" : " pour fusionner")
-                : (game.generatorCount() > game.generatorsPerAtom()
-                        ? "Fusionner " + game.generatorCount() + " générateurs : +"
-                        : "Fusionner les " + game.generatorsPerAtom() + " générateurs : +")
-                        + Format.amount(game.atomsPerFusion()) + (game.atomsPerFusion().gt(BigNum.ONE) ? " atomes" : " atome"));
-        fuseButton.setDisable(capped);
-        fuseButton.setVisible(game.hasAllGenerators() && !generators.isFusing());
+        boolean table = game.isPeriodicTableUnlocked() && !game.isPeriodicTableComplete();
+        BigNum gain = game.atomsPerFusion();
+        fuseCard.show(capped ? Card.State.WAITING : Card.State.READY,
+                String.valueOf(game.generatorCount()), settings.shortcuts() ? "F" : "",
+                game.generatorCount() > game.generatorsPerAtom()
+                        ? "Fusionner " + game.generatorCount() + " générateurs"
+                        : "Fusionner les " + game.generatorsPerAtom() + " générateurs",
+                capped ? "Maximum de " + Format.count(game.atomCap()) + " atomes atteint"
+                        : "+" + Format.amount(gain) + (gain.gt(BigNum.ONE) ? " atomes" : " atome"),
+                capped ? "Dépensez des atomes" + (table ? " ou synthétisez un élément" : "") + " pour fusionner de nouveau."
+                        : "Les générateurs fusionnent : il n'en reste qu'un, et les particules repartent de zéro. "
+                                + (game.keepsUpgradesOnFusion()
+                                        ? "Les améliorations payées en particules sont gardées (Persistance)."
+                                        : "Les améliorations payées en particules aussi."),
+                "", "");
+        fuseCard.setVisible(game.hasAllGenerators() && !generators.isFusing());
 
         // Un atome de plus qu'à l'image précédente, par fusion manuelle ou automatique.
         double totalAtoms = game.state().totalAtoms().toDouble();
@@ -538,33 +804,154 @@ public final class GameApp extends Application {
         darkMatterTab.setText((narrow ? "M. noire (" : "Matière noire (") + Format.count(game.state().darkMatter()) + ")");
         darkMatterPage.refresh();
 
-        // Les statistiques ne se recalculent que lorsqu'on les regarde.
+        // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
+        // comme une explosion mène à l'onglet « Matière noire ».
+        bigBangTab.setVisible(bigBang);
+        bigBangTab.setManaged(bigBang);
+        bigBangTab.setText(narrow ? "Big Bang" : "Big Bang (" + game.bigBangs() + ")");
+        if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) selectTab(Tab.BIG_BANG);
+        lastBigBangs = game.bigBangs();
+        if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
+
+        // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
+        // n'existe que si le jeu en a.
+        boolean achievements = !game.achievements().isEmpty();
+        achievementsTab.setVisible(achievements);
+        achievementsTab.setManaged(achievements);
+        if (selectedTab == Tab.ACHIEVEMENTS) achievementsPage.refresh();
         if (selectedTab == Tab.STATS) statsPage.refresh();
         settingsTab.setText(!settings.paused() ? "Réglages" : narrow ? "En pause" : "Réglages (pause)");
 
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
-                || (selectedTab == Tab.DARK_MATTER && !darkMatter)) {
+                || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)) {
             selectTab(Tab.PARTICLES);
         }
 
-        // Le bouton d'explosion n'apparaît que lorsque le tableau périodique est complet.
+        // Le bouton d'explosion n'apparaît que lorsque les 118 éléments sont découverts.
+        Challenge challenge = game.activeChallenge();
         explosionButton.setText(explosionArmed > 0
                 ? "Cliquer encore pour confirmer l'explosion : tout repart de zéro (" + (int) Math.ceil(explosionArmed) + " s)"
-                : "Faire exploser le tableau périodique : tout repart de zéro, +"
-                        + Format.count(game.darkMatterPerExplosion()) + " matière noire");
+                : game.isChallengeReplay()
+                ? "Terminer le défi « " + challenge.name() + " » en " + Format.duration(game.stats().runTime())
+                        + Detail.only(". Déjà réussi, il ne compte que pour son temps : ni matière noire, ni tableau plus lourd.")
+                : "Faire exploser le tableau : +" + Format.count(game.nextExplosionDarkMatter()) + " matière noire"
+                        + (challenge == null ? "" : ", défi « " + challenge.name() + " » réussi")
+                        + Detail.only(". Tout repart de zéro : particules, atomes, éléments. "
+                                + (game.state().tableWeightLevel() < Game.TABLE_WEIGHT_MAX_LEVEL
+                                        ? "Le tableau suivant sera " + ElementText.number(Game.TABLE_WEIGHT_GROWTH)
+                                                + " fois plus lourd : plafond d'atomes et prix maximal d'une synthèse. "
+                                        : "Le tableau a atteint sa masse maximale : il ne s'alourdira plus. ")
+                                + "Rien n'oblige à attendre les exemplaires manquants : ils renforcent les éléments, "
+                                + "pas l'explosion."));
+        // Le thème clair suit la taille de la fenêtre.
+        if (settings.theme() == Settings.Theme.LIGHT) lightTheme.fit();
+        // L'objectif du moment, sous les onglets. Caché, il laisse sa place vide : le rappel reste à droite.
+        boolean goal = settings.showGoal() && game.isStarted();
+        goalLabel.setText(goal ? "Objectif : " + Goals.withEstimate(game, game.stats()) : "");
+        String detailKey = Detail.keyName(settings.detailKey());
+        detailHint.setText(Detail.shown()
+                ? (settings.detailToggle() ? detailKey + " : cacher les détails" : "Détails affichés")
+                : detailKey + " : détails");
+        detailHint.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 1 8; -fx-background-radius: 3;"
+                + " -fx-border-radius: 3;" + (Detail.shown()
+                ? " -fx-text-fill: #0b0e14; -fx-background-color: " + SETTINGS_COLOR + "; -fx-border-color: #ffffff;"
+                : " -fx-text-fill: " + SETTINGS_COLOR + "; -fx-background-color: transparent; -fx-border-color: #3a4a5e;"));
+        if (selectedTab == Tab.SETTINGS) settingsPage.refresh();
+        // Le défi en cours reste sous les yeux, quel que soit l'onglet.
+        challengeLabel.setVisible(challenge != null);
+        challengeLabel.setManaged(challenge != null);
+        if (challenge != null) {
+            challengeLabel.setText("Défi « " + challenge.name() + " » depuis " + Format.duration(game.stats().runTime())
+                    + " : " + (Detail.shown() ? ChallengesPane.rule(challenge) : ChallengesPane.shortRule(challenge)));
+        }
         boolean canExplode = game.canExplode() && !exploding;
         explosionButton.setVisible(canExplode);
         explosionButton.setManaged(canExplode);
     }
 
-    private String label(Upgrade upgrade) {
-        int level = game.levelOf(upgrade.id());
-        if (game.isMaxed(upgrade.id())) {
-            return upgrade.name() + " (maximum atteint)";
+    /**
+     * Remplit la carte d'une amélioration payée en particules : son niveau, sa touche, ce qu'elle
+     * rapporte, ce que le clic achèterait et à quel prix, et le temps qu'il reste à attendre.
+     */
+    private void show(Upgrade upgrade, Card card) {
+        String id = upgrade.id();
+        KeyCode key = settings.shortcuts() ? keyOf(upgrade) : null;
+        boolean generator = upgrade.effect() instanceof Effect.AddGenerator;
+        // Les générateurs se comptent : c'est leur nombre qui décide de la fusion.
+        String level = generator ? game.generatorCount() + "/" + game.maxGeneratorCount()
+                : game.levelOf(id) + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : "");
+        String mark = key == null ? "" : key.getName();
+        if (game.isMaxed(id)) {
+            card.show(Card.State.DONE, level, "max", upgrade.name(), effectOf(upgrade), detailOf(upgrade), "", "");
+            return;
         }
-        String levelText = upgrade.hasLimit() ? level + "/" + upgrade.maxLevel() : String.valueOf(level);
-        return upgrade.name() + " (niveau " + levelText + ") : "
-                + Format.count(game.costOf(upgrade.id())) + " particules";
+        // Ce que le clic achèterait : la quantité choisie, ramenée à ce qui est à portée, un niveau au moins.
+        int count = Math.max(1, game.affordableLevels(id, settings.buyAmount().count()));
+        BigNum cost = game.costOf(id, count);
+        double wait = game.secondsUntilParticles(cost);
+        boolean affordable = game.canBuy(id);
+        card.show(affordable ? Card.State.READY : game.levelOf(id) > 0 ? Card.State.STARTED : Card.State.WAITING,
+                level, mark, upgrade.name(), effectOf(upgrade), detailOf(upgrade),
+                (count > 1 ? "×" + count + " pour " : "") + Format.count(cost)
+                        + (cost.gt(BigNum.ONE) ? " particules" : " particule"),
+                wait <= 0 || Double.isInfinite(wait) ? "" : Format.wait(wait));
+    }
+
+    /** Ce que rapporte une amélioration payée en particules, en quelques mots. */
+    private String effectOf(Upgrade upgrade) {
+        return switch (upgrade.effect()) {
+            case Effect.MultiplySpeed speed -> {
+                String text = "+" + percent(speed.perLevel() - 1 + game.speedExtraPerLevel()) + " % de vitesse";
+                if (!speed.hasMilestones()) yield text;
+                int left = game.nextSpeedMilestone(upgrade.id()) - game.speedLevels(upgrade.id());
+                yield text + "\nPalier " + Format.multiplier(BigNum.of(game.speedMilestoneFactor(upgrade.id())))
+                        + " dans " + left + (left > 1 ? " niveaux" : " niveau");
+            }
+            case Effect.MultiplyByGenerators coupling -> {
+                int level = game.levelOf(upgrade.id());
+                yield "+" + percent(coupling.perGenerator()) + " % par autre générateur"
+                        + (level > 0 ? "\nActuellement " + Format.multiplier(game.particlesMultiplier(upgrade.id(), level)) : "");
+            }
+            case Effect.AddGenerator generator -> game.generatorCount() < game.generatorsPerAtom()
+                    ? "Il en faut " + game.generatorsPerAtom() + " pour fusionner"
+                    : game.isMaxed(upgrade.id()) ? "Tous réunis : prêts à fusionner"
+                    : "Chaque groupe de " + game.generatorsPerAtom() + " compte à la fusion";
+            default -> "";
+        };
+    }
+
+    /** L'explication complète d'une amélioration payée en particules, pour le mode détails. */
+    private String detailOf(Upgrade upgrade) {
+        return switch (upgrade.effect()) {
+            case Effect.MultiplySpeed speed -> {
+                String text = "Chaque niveau accélère tous les générateurs.";
+                if (!speed.hasMilestones()) yield text;
+                yield text + " Tous les " + speed.milestoneEvery() + " niveaux, un palier multiplie les particules créées par "
+                        + ElementText.number(game.speedMilestoneFactor(upgrade.id())) + ". Paliers atteints : "
+                        + game.speedMilestones() + ", particules " + Format.multiplier(game.speedMilestoneMultiplier()) + ".";
+            }
+            case Effect.MultiplyByGenerators coupling ->
+                    "Chaque niveau ajoute " + percent(coupling.perGenerator()) + " % de particules par autre générateur "
+                            + "possédé : plus il y a de générateurs, plus chaque niveau compte.";
+            case Effect.AddGenerator generator -> game.maxGeneratorCount() > game.generatorsPerAtom()
+                    ? "Chaque générateur crée des particules. La fusion rapporte ses atomes une fois par groupe de "
+                            + game.generatorsPerAtom() + ", avec une prime par groupe au-delà du premier."
+                    : "Chaque générateur crée des particules. Réunis, les " + game.generatorsPerAtom()
+                            + " générateurs fusionnent en atomes.";
+            default -> "";
+        };
+    }
+
+    /** 0.1 → « 10 », 0.125 → « 12.5 ». */
+    private static String percent(double fraction) {
+        String text = String.format(Locale.ROOT, "%.1f", fraction * 100);
+        return text.endsWith(".0") ? text.substring(0, text.length() - 2) : text;
+    }
+
+    /** La ligne qui rappelle les raccourcis qu'aucune carte ne porte, sous les cartes. */
+    private String shortcutsHint() {
+        return "Autres raccourcis : M achète tout ce qui est à portée, P met en pause. "
+                + "Les touches des cartes achètent la quantité choisie, depuis n'importe quel onglet.";
     }
 }
