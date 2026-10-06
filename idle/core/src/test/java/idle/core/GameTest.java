@@ -6063,8 +6063,18 @@ class GameTest {
         private static final String SALT = "NaCl";
         private static final String GLUCOSE = "C6H12O6";
 
-        /** Le vrai jeu, après un premier Big Bang, tableau plein et de l'espace à revendre. */
+        /**
+         * Le vrai jeu, après un premier Big Bang, tableau plein, de l'espace à revendre, et toutes les
+         * améliorations d'espace déjà là (rayons ouverts, fusion ouverte) sans qu'elles aient rien coûté.
+         */
         private Game gameAfterBigBang() {
+            Game game = bareGameAfterBigBang();
+            for (SpaceUpgrade upgrade : SpaceUpgrades.DEFAULT) game.state().addSpaceUpgrade(upgrade.id());
+            return game;
+        }
+
+        /** Le même, sans aucune amélioration d'espace : seules les petites molécules sont ouvertes. */
+        private Game bareGameAfterBigBang() {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
@@ -6151,18 +6161,8 @@ class GameTest {
         }
 
         @Test
-        void lesPaliersDEspaceVontCroissant() {
-            Molecule.Kind[] kinds = Molecule.Kind.values();
-            assertEquals(0.0, Molecule.Kind.SIMPLE.space(), 0);
-            for (int index = 1; index < kinds.length; index++) {
-                assertTrue(kinds[index].space() > kinds[index - 1].space(), kinds[index] + " devrait demander plus d'espace");
-            }
-        }
-
-        @Test
         void seulesLesPetitesMoleculesSontLaAuPremierBigBang() {
-            Game game = gameAfterBigBang();
-            game.state().setSpace(BigNum.ZERO);
+            Game game = bareGameAfterBigBang();
             assertTrue(game.isMoleculeKindUnlocked(Molecule.Kind.SIMPLE));
             assertEquals(1, game.moleculeKindsUnlocked());
             assertEquals(Molecule.Kind.ACID, game.nextMoleculeKind());
@@ -6181,59 +6181,18 @@ class GameTest {
         }
 
         @Test
-        void chaquePalierDEspaceOuvreSonRayon() {
-            Game game = gameAfterBigBang();
-            Molecule.Kind[] kinds = Molecule.Kind.values();
-            for (int index = 1; index < kinds.length; index++) {
-                game.state().setSpace(BigNum.of(kinds[index].space() - 1));
-                assertFalse(game.isMoleculeKindUnlocked(kinds[index]), kinds[index] + " ouvert trop tot");
-                assertEquals(index, game.moleculeKindsUnlocked());
-                assertEquals(kinds[index], game.nextMoleculeKind());
-                game.state().setSpace(BigNum.of(kinds[index].space()));
-                assertTrue(game.isMoleculeKindUnlocked(kinds[index]), kinds[index] + " devrait etre ouvert");
-                assertEquals(index + 1, game.moleculeKindsUnlocked());
-            }
-            assertTrue(game.nextMoleculeKind() == null);
-        }
-
-        @Test
         void unRayonFermeNeSeCreePas() {
-            Game game = gameAfterBigBang();
-            // Le sel occupe 280 unités : il y a la place et les éléments, mais son rayon attend 10 000 d'espace créé.
-            game.state().setSpace(BigNum.of(9_999));
+            Game game = bareGameAfterBigBang();
+            // Le sel a la place et les éléments qu'il lui faut, mais son rayon n'est pas ouvert.
             assertTrue(game.hasElementsForMolecule(SALT));
             assertTrue(game.hasSpaceForMolecule(SALT));
             assertFalse(game.canCreateMolecule(SALT));
             assertFalse(game.createMolecule(SALT));
             assertTrue(game.canCreateMolecule(WATER));
-            game.state().setSpace(BigNum.of(10_000));
+            game.state().addSpaceUpgrade("space_acid");
+            assertFalse(game.canCreateMolecule(SALT));     // les acides ne sont pas les sels
+            game.state().addSpaceUpgrade("space_salt");
             assertTrue(game.createMolecule(SALT));
-        }
-
-        @Test
-        void remplirLEspaceNeRefermeAucunRayon() {
-            Game game = gameAfterBigBang();
-            game.state().setSpace(BigNum.of(2_000));
-            game.state().setMoleculeCount("S8", 1);
-            game.state().setMoleculeCount("I2", 1);     // 1 280 + 1 060 : l'espace est plein
-            assertTrue(game.freeSpace().isZero());
-            assertTrue(game.isMoleculeKindUnlocked(Molecule.Kind.ACID));
-        }
-
-        @Test
-        void lExpansionOuvreLeDeuxiemeRayonEnUneDemiHeure() {
-            Game game = gameAfterBigBang();
-            game.state().setSpace(BigNum.ZERO);
-            assertEquals(2_000.0, game.secondsUntilSpace(Molecule.Kind.ACID.space()), 1e-9);
-            game.tick(1_999);
-            assertFalse(game.isMoleculeKindUnlocked(Molecule.Kind.ACID));
-            assertEquals(1.0, game.secondsUntilSpace(Molecule.Kind.ACID.space()), 1e-6);
-            game.tick(1);
-            assertTrue(game.isMoleculeKindUnlocked(Molecule.Kind.ACID));
-            assertEquals(0.0, game.secondsUntilSpace(Molecule.Kind.ACID.space()), 0);
-            // Deux Big Bangs : deux fois plus vite.
-            game.state().setBigBangs(2);
-            assertEquals(4_000.0, game.secondsUntilSpace(Molecule.Kind.SALT.space()), 1e-6);
         }
 
         @Test
@@ -6388,36 +6347,74 @@ class GameTest {
         }
 
         @Test
-        void seulesLesPetitesMoleculesDonnentQuelqueChose() {
+        void chaqueMoleculeDonneQuelqueChose() {
+            int boosts = 0, uncaps = 0;
             for (Molecule molecule : Molecules.DEFAULT) {
-                assertEquals(molecule.kind() == Molecule.Kind.SIMPLE, molecule.hasBonus(), molecule.id());
+                assertTrue(molecule.hasBonus(), molecule.id());
+                if (molecule.bonus() instanceof Molecule.Boost) boosts++;
+                else uncaps++;
             }
+            assertEquals(26 + 251, boosts);
+            assertEquals(15 + 138, uncaps);
+        }
+
+        @Test
+        void unBonusGranditAvecLaTailleDeLaMolecule() {
+            // Dans un même rayon : 4 % sous 30 protons, puis 6, 8, 10, 12 et 15 %, plus un point par rayon.
+            assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.04), molecule("HCl").bonus());       // 18 protons
+            assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.06), molecule("H2SO4").bonus());     // 50
+            assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.10), molecule("C6H8O7").bonus());    // 100
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.17), molecule("C20H24N2O2").bonus());    // 174, au rayon du vivant
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.20), molecule("C10H16N5O13P3").bonus()); // 260
+        }
+
+        private Molecule molecule(String id) {
+            return Molecules.DEFAULT.stream().filter(each -> each.id().equals(id)).findFirst().orElseThrow();
         }
 
         @Test
         void lesBonusSontLegers() {
             for (Molecule molecule : Molecules.DEFAULT) {
                 if (molecule.bonus() instanceof Molecule.Boost boost) {
-                    assertTrue(boost.perMolecule() >= 0.02 && boost.perMolecule() <= 0.10, molecule.id() + " : " + boost.perMolecule());
+                    // 2 à 10 % pour les petites molécules, jusqu'à 20 % pour les plus grosses des derniers rayons.
+                    double most = molecule.kind() == Molecule.Kind.SIMPLE ? 0.10 : 0.20;
+                    assertTrue(boost.perMolecule() >= 0.02 && boost.perMolecule() <= most + 1e-12, molecule.id() + " : " + boost.perMolecule());
                 }
             }
+            // Chaque grandeur a ses molécules, parmi les petites comme dans le reste du catalogue.
             for (Molecule.Stat stat : Molecule.Stat.values()) {
-                assertTrue(Molecules.DEFAULT.stream().anyMatch(molecule -> molecule.bonus() instanceof Molecule.Boost boost
-                        && boost.stat() == stat), "aucune molecule pour " + stat);
+                for (boolean small : new boolean[] {true, false}) {
+                    assertTrue(Molecules.DEFAULT.stream().anyMatch(molecule -> (molecule.kind() == Molecule.Kind.SIMPLE) == small
+                            && molecule.bonus() instanceof Molecule.Boost boost && boost.stat() == stat), "aucune molecule pour " + stat);
+                }
             }
         }
 
         @Test
         void unPlafondReleveEstToujoursCeluiDUnElementDeLaFormule() {
-            java.util.Set<Integer> raised = new java.util.HashSet<>();
+            Map<Molecule.Kind, java.util.Set<Integer>> raised = new EnumMap<>(Molecule.Kind.class);
             for (Molecule molecule : Molecules.DEFAULT) {
                 if (molecule.bonus() instanceof Molecule.Uncap uncap) {
                     assertTrue(molecule.recipe().containsKey(uncap.element()), molecule.id());
-                    assertTrue(raised.add(uncap.element()), "deux molecules relevent le plafond de l'element " + uncap.element());
+                    assertFalse(PeriodicTable.element(uncap.element()).category().unique(), molecule.id());
+                    // Dans un rayon, un élément n'a qu'une molécule qui relève son plafond.
+                    assertTrue(raised.computeIfAbsent(molecule.kind(), each -> new java.util.HashSet<>()).add(uncap.element()),
+                            molecule.kind() + " : deux molecules relevent le plafond de l'element " + uncap.element());
+                    // Hors des petites molécules, c'est toujours un métal ou un métalloïde.
+                    if (molecule.kind() != Molecule.Kind.SIMPLE) {
+                        ElementCategory family = PeriodicTable.element(uncap.element()).category();
+                        assertTrue(family != ElementCategory.NONMETAL && family != ElementCategory.HALOGEN, molecule.id());
+                    }
                 }
             }
-            assertEquals(15, raised.size());
-            assertTrue(raised.contains(H) && raised.contains(C) && raised.contains(O));
+            java.util.Set<Integer> simple = raised.get(Molecule.Kind.SIMPLE);
+            assertEquals(15, simple.size());
+            assertTrue(simple.contains(H) && simple.contains(C) && simple.contains(O));
+            // La chimie du carbone et le vivant n'ont pas de métal : aucun plafond relevé.
+            assertFalse(raised.containsKey(Molecule.Kind.ORGANIC));
+            assertFalse(raised.containsKey(Molecule.Kind.LIFE));
+            assertEquals(8, raised.get(Molecule.Kind.ACID).size());
+            assertTrue(raised.get(Molecule.Kind.MINERAL).contains(24));    // la chromite, pour le chrome
         }
 
         @Test
@@ -6483,18 +6480,21 @@ class GameTest {
         }
 
         @Test
-        void lesMoleculesDesAutresRayonsNeDonnentRien() {
+        void lesMoleculesDesAutresRayonsDonnentAussi() {
             Game game = gameAfterBigBang();
-            double particles = game.particlesPerCreation().log10();
-            double synthesis = game.synthesisCost().toDouble();
             int copies = game.maxTotalCopies();
-            for (Molecule molecule : game.molecules()) {
-                if (molecule.kind() != Molecule.Kind.SIMPLE) game.state().setMoleculeCount(molecule.id(), 2);
-            }
-            assertEquals(particles, game.particlesPerCreation().log10(), 1e-12);
-            assertEquals(synthesis, game.synthesisCost().toDouble(), 1e-9);
+            game.state().setMoleculeCount("H2SO4", 2);
+            assertEquals(1 + 2 * 0.06, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            game.state().setMoleculeCount("C20H24N2O2", 1);
+            assertEquals(1 + 0.17, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            // Le sel de table et la soude relèvent tous deux le plafond du sodium, chacun dans son rayon.
+            game.state().setMoleculeCount("NaCl", 1);
+            assertEquals(1, game.elementUncap(11));
+            game.state().setMoleculeCount("NaOH", 2);
+            assertEquals(3, game.elementUncap(11));
+            assertEquals(12, game.maxCopiesOf(PeriodicTable.element(11)));
+            assertEquals(copies + 3, game.maxTotalCopies());
             assertValue(1, game.spacePerSecond());
-            assertEquals(copies, game.maxTotalCopies());
         }
 
         @Test
@@ -6607,6 +6607,933 @@ class GameTest {
             assertThrows(IllegalArgumentException.class, () -> game.moleculeCount("phlogistique"));
             assertThrows(IllegalArgumentException.class, () -> game.moleculeVolume("phlogistique"));
             assertThrows(IllegalArgumentException.class, () -> game.state().setMoleculeCount(WATER, -1));
+        }
+    }
+
+    @Nested
+    class AmeliorationsDEspace {
+
+        private Game game(double space) {
+            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            game.start();
+            game.state().setBigBangs(1);
+            game.state().setSpace(BigNum.of(space));
+            return game;
+        }
+
+        @Test
+        void leCatalogueOuvreChaqueRayonEtLaFusion() {
+            List<SpaceUpgrade> upgrades = SpaceUpgrades.DEFAULT;
+            assertEquals(10, upgrades.size());
+            assertEquals(10, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenBodies).count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenStates).count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenAssemblies).count());
+            for (Molecule.Kind kind : Molecule.Kind.values()) {
+                long opening = upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenKind open
+                        && open.kind() == kind).count();
+                assertEquals(kind == Molecule.Kind.SIMPLE ? 0 : 1, opening, "ameliorations qui ouvrent " + kind);
+            }
+        }
+
+        @Test
+        void lesRayonsSOuvrentDansLOrdreEtDePlusEnPlusLoin() {
+            Game game = game(0);
+            SpaceUpgrade previous = null;
+            for (Molecule.Kind kind : Molecule.Kind.values()) {
+                if (kind == Molecule.Kind.SIMPLE) continue;
+                SpaceUpgrade upgrade = game.spaceUpgrades().stream()
+                        .filter(each -> each.effect() instanceof SpaceUpgrade.OpenKind open && open.kind() == kind)
+                        .findFirst().orElseThrow();
+                assertEquals(previous == null ? null : previous.id(), upgrade.requires(), kind.toString());
+                if (previous != null) assertTrue(upgrade.space().gt(previous.space()), kind + " devrait demander plus d'espace");
+                previous = upgrade;
+            }
+        }
+
+        @Test
+        void rienNeSAcheteAvantLePremierBigBang() {
+            Game game = game(1e9);
+            game.state().setBigBangs(0);
+            assertFalse(game.isSpaceUpgradeAvailable("space_acid"));
+            assertFalse(game.buySpaceUpgrade("space_acid"));
+        }
+
+        @Test
+        void uneAmeliorationNeDepenseRien() {
+            Game game = game(2_500);
+            assertTrue(game.canBuySpaceUpgrade("space_acid"));
+            assertTrue(game.buySpaceUpgrade("space_acid"));
+            assertTrue(game.ownsSpaceUpgrade("space_acid"));
+            assertTrue(game.reservedSpace().isZero());
+            assertValue(2_500, game.freeSpace());               // tout l'espace reste libre
+            assertValue(2_500, game.state().space());
+            assertTrue(game.isMoleculeKindUnlocked(Molecule.Kind.ACID));
+            assertEquals(Molecule.Kind.SALT, game.nextMoleculeKind());
+            // Elle ne se prend qu'une fois.
+            assertFalse(game.canBuySpaceUpgrade("space_acid"));
+            assertFalse(game.buySpaceUpgrade("space_acid"));
+        }
+
+        @Test
+        void cEstLEspaceGagneQuiCompteEtPasCeluiQuiReste() {
+            Game game = game(1_999);
+            assertFalse(game.canBuySpaceUpgrade("space_acid"));
+            game.state().setSpace(BigNum.of(2_000));
+            assertTrue(game.canBuySpaceUpgrade("space_acid"));
+            // L'espace est plein de molécules, et un rassemblement en réserve : l'amélioration se prend quand même.
+            game.state().setMoleculeCount("S8", 1);                   // 1 280
+            game.state().setMoleculeCount("H2", 27);                  // 27 × 20
+            game.state().addSubstance("H2");                          // un lieu de 180 pour le gaz
+            assertValue(1_820, game.occupiedSpace());
+            assertValue(180, game.reservedSpace());
+            assertTrue(game.freeSpace().isZero());
+            assertTrue(game.canBuySpaceUpgrade("space_acid"));
+            assertTrue(game.buySpaceUpgrade("space_acid"));
+            assertValue(180, game.reservedSpace());
+            assertValue(1_820, game.occupiedSpace());
+        }
+
+        @Test
+        void unRayonAttendCeluiDAvant() {
+            Game game = game(1e9);
+            assertTrue(game.isSpaceUpgradeAvailable("space_acid"));
+            assertTrue(game.isSpaceUpgradeAvailable("space_states"));
+            assertFalse(game.isSpaceUpgradeAvailable("space_salt"));
+            assertFalse(game.buySpaceUpgrade("space_salt"));
+            assertTrue(game.buySpaceUpgrade("space_acid"));
+            assertTrue(game.buySpaceUpgrade("space_salt"));
+            assertEquals(3, game.moleculeKindsUnlocked());
+            assertTrue(game.reservedSpace().isZero());
+        }
+
+        @Test
+        void unMillionDEspaceGagneOuvreToutLeCatalogue() {
+            Game game = game(999_999);
+            assertFalse(game.isSpaceUpgradeAvailable("space_rare"));
+            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
+                if (!upgrade.id().equals("space_rare")) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
+            }
+            assertFalse(game.buySpaceUpgrade("space_rare"));
+            assertEquals(Molecule.Kind.RARE, game.nextMoleculeKind());
+            game.state().setSpace(BigNum.of(1_000_000));
+            assertTrue(game.buySpaceUpgrade("space_rare"));
+            assertTrue(game.reservedSpace().isZero());
+            assertValue(1_000_000, game.freeSpace());
+        }
+
+        @Test
+        void toutPrendreOuvreToutLeCatalogue() {
+            Game game = game(1e9);
+            for (SpaceUpgrade upgrade : game.spaceUpgrades()) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
+            assertEquals(Molecule.Kind.values().length, game.moleculeKindsUnlocked());
+            assertTrue(game.nextMoleculeKind() == null);
+            assertTrue(game.isStatesUnlocked());
+            assertTrue(game.reservedSpace().isZero());
+        }
+
+        @Test
+        void lExpansionFinitParLesOuvrir() {
+            Game game = game(500);
+            assertEquals(1_500.0, game.secondsUntilSpace(BigNum.of(2_000)), 1e-6);
+            game.tick(1_499);
+            assertFalse(game.canBuySpaceUpgrade("space_acid"));
+            game.tick(1);
+            assertEquals(0.0, game.secondsUntilSpace(BigNum.of(2_000)), 1e-9);
+            assertTrue(game.buySpaceUpgrade("space_acid"));
+            // Les molécules créées en route ne retardent rien : seul l'espace gagné compte.
+            game.state().setMoleculeCount("H2O", 3);
+            assertEquals(8_000.0, game.secondsUntilSpace(BigNum.of(10_000)), 1e-6);
+            // Deux Big Bangs : deux fois plus vite.
+            game.state().setBigBangs(2);
+            assertEquals(4_000.0, game.secondsUntilSpace(BigNum.of(10_000)), 1e-6);
+        }
+
+        @Test
+        void lesAmeliorationsSurviventALExplosionEtAuBigBang() {
+            Game game = game(1e9);
+            assertTrue(game.buySpaceUpgrade("space_acid"));
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+            assertTrue(game.explode());
+            assertTrue(game.ownsSpaceUpgrade("space_acid"));
+            game.state().setParticles(Game.BIG_BANG_PARTICLES);
+            game.state().setAtoms(Game.BIG_BANG_ATOMS);
+            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            assertTrue(game.bigBang());
+            assertTrue(game.ownsSpaceUpgrade("space_acid"));
+            game.reset();
+            assertFalse(game.state().ownsSpaceUpgrade("space_acid"));
+            assertTrue(game.reservedSpace().isZero());
+        }
+
+        @Test
+        void uneAmeliorationInconnueEstRefusee() {
+            Game game = game(1e9);
+            assertThrows(IllegalArgumentException.class, () -> game.buySpaceUpgrade("space_nowhere"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> new SpaceUpgrade("x", "X", BigNum.ZERO, null, new SpaceUpgrade.OpenStates()));
+        }
+    }
+
+    @Nested
+    class EtatsDeLaMatiere {
+
+        private static final String WATER = "H2O";
+
+        /** Après un premier Big Bang, rassemblement ouvert, beaucoup d'espace, et {@code count} molécules de chaque sorte demandée. */
+        private Game game(int count, String... moleculeIds) {
+            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            game.start();
+            game.state().setBigBangs(1);
+            game.state().setSpace(BigNum.of(1, 9));
+            game.state().addSpaceUpgrade("space_states");
+            for (String id : moleculeIds) game.state().setMoleculeCount(id, count);
+            return game;
+        }
+
+        @Test
+        void chaqueMoleculeAUnEtat() {
+            Map<Molecule.State, Integer> all = new EnumMap<>(Molecule.State.class);
+            Map<Molecule.State, Integer> small = new EnumMap<>(Molecule.State.class);
+            for (Molecule molecule : Molecules.DEFAULT) {
+                assertTrue(molecule.hasState(), molecule.id());
+                all.merge(molecule.state(), 1, Integer::sum);
+                if (molecule.kind() == Molecule.Kind.SIMPLE) small.merge(molecule.state(), 1, Integer::sum);
+                // Les minéraux sont tous des cristaux, et rien de vivant n'est un métal.
+                if (molecule.kind() == Molecule.Kind.MINERAL) assertEquals(Molecule.State.CRYSTAL, molecule.state(), molecule.id());
+                if (molecule.kind() == Molecule.Kind.LIFE || molecule.kind() == Molecule.Kind.ORGANIC) {
+                    assertTrue(molecule.state() != Molecule.State.METAL && molecule.state() != Molecule.State.CRYSTAL, molecule.id());
+                }
+            }
+            assertEquals(Map.of(Molecule.State.GAS, 27, Molecule.State.LIQUID, 8, Molecule.State.SOLID, 6), small);
+            assertEquals(Map.of(Molecule.State.GAS, 45, Molecule.State.LIQUID, 61, Molecule.State.SOLID, 85,
+                    Molecule.State.CRYSTAL, 227, Molecule.State.METAL, 12), all);
+            assertEquals(Molecule.State.LIQUID, state(WATER));
+            assertEquals(Molecule.State.GAS, state("C3H8"));
+            assertEquals(Molecule.State.LIQUID, state("C2H5OH"));
+            assertEquals(Molecule.State.SOLID, state("C6H12O6"));
+            assertEquals(Molecule.State.CRYSTAL, state("NaCl"));
+            assertEquals(Molecule.State.CRYSTAL, state("SiO2"));
+            assertEquals(Molecule.State.METAL, state("NiTi"));
+            assertEquals(Molecule.State.METAL, state("Nd2Fe14B"));
+        }
+
+        private Molecule.State state(String id) {
+            return Molecules.DEFAULT.stream().filter(each -> each.id().equals(id)).findFirst().orElseThrow().state();
+        }
+
+        @Test
+        void unCristalEtUnMetalSeRassemblentCommeLesAutres() {
+            Game game = game(3, "NaCl", "NiTi");
+            assertValue(3 * 280, game.substanceSpace("NaCl"));               // cristal : juste la place de ses molécules
+            assertValue(3 * 500 * 0.75, game.substanceSpace("NiTi"));        // métal : les trois quarts
+            assertTrue(game.formSubstance("NaCl"));
+            assertTrue(game.formSubstance("NiTi"));
+            assertEquals(Math.pow(3, 1.40), game.effectiveMolecules("NaCl"), 1e-12);
+            assertEquals(Math.pow(3, 1.45), game.effectiveMolecules("NiTi"), 1e-12);
+            // Le sel relève le plafond du sodium : 3^1,4 = 4,65, donc quatre exemplaires au lieu de trois.
+            assertEquals(4, game.elementUncap(11));
+            assertEquals(4, game.elementUncap(28));                          // nitinol : 3^1,45 = 4,92
+            // Trois molécules de cristal : 3 % de particules et 5 % d'atomes chacune ; trois de métal : 8 % d'atomes.
+            assertEquals(1 + 3 * 0.03, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 3 * 0.05 + 3 * 0.08, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            assertEquals(List.of("NaCl", "NiTi"), game.state().substances());
+        }
+
+        @Test
+        void lExposantDUnEtatEstPetit() {
+            for (Molecule.State matter : Molecule.State.values()) {
+                assertTrue(matter.exponent() > 1 && matter.exponent() <= 1.5, matter + " : " + matter.exponent());
+                assertTrue(matter.particles() + matter.atoms() > 0, matter + " n'ajoute ni particules ni atomes");
+            }
+            assertTrue(Molecule.State.METAL.exponent() > Molecule.State.CRYSTAL.exponent());
+            assertTrue(Molecule.State.CRYSTAL.exponent() > Molecule.State.SOLID.exponent());
+            assertTrue(Molecule.State.METAL.spaceFactor() < Molecule.State.CRYSTAL.spaceFactor());
+            assertTrue(Molecule.State.SOLID.exponent() > Molecule.State.LIQUID.exponent());
+            assertTrue(Molecule.State.LIQUID.exponent() > Molecule.State.GAS.exponent());
+            assertTrue(Molecule.State.GAS.spaceFactor() > Molecule.State.LIQUID.spaceFactor());
+        }
+
+        @Test
+        void pasDeRassemblementSansLAmeliorationDEspace() {
+            Game game = game(3, WATER);
+            assertTrue(game.isStatesUnlocked());
+            assertTrue(game.canFormSubstance(WATER));
+            Game closed = game(3, WATER);
+            closed.reset();
+            closed.start();
+            closed.state().setBigBangs(1);
+            closed.state().setSpace(BigNum.of(1, 9));
+            closed.state().setMoleculeCount(WATER, 3);
+            assertFalse(closed.isStatesUnlocked());
+            assertFalse(closed.canFormSubstance(WATER));
+            assertFalse(closed.formSubstance(WATER));
+            assertFalse(closed.hasSubstance(WATER));
+        }
+
+        @Test
+        void troisMoleculesDEauSeRassemblentEnLiquide() {
+            Game game = game(3, WATER);
+            assertValue(300, game.occupiedSpace());
+            assertValue(450, game.substanceSpace(WATER));           // 3 × 100, une fois et demie pour un liquide
+            assertFalse(game.hasSubstance(WATER));
+            assertEquals(0, game.gatheredMolecules(WATER));
+            assertTrue(game.formSubstance(WATER));
+            assertTrue(game.hasSubstance(WATER));
+            assertEquals(1, game.substancesFormed());
+            assertEquals(List.of(WATER), game.state().substances());
+            // Aucune molécule n'est consommée : elles sont toutes dans leur lieu, et gardent leur place.
+            assertEquals(3, game.moleculeCount(WATER));
+            assertEquals(3, game.gatheredMolecules(WATER));
+            assertEquals(3, game.state().moleculeLog().size());
+            assertValue(300, game.occupiedSpace());
+            assertValue(450, game.reservedSpace());
+            assertValue(750, game.usedSpace());
+            assertValue(1e9 - 750, game.freeSpace());
+        }
+
+        @Test
+        void ilFautTroisMolecules() {
+            Game game = game(2, WATER);
+            assertFalse(game.canFormSubstance(WATER));
+            assertFalse(game.formSubstance(WATER));
+            assertFalse(game.hasSubstance(WATER));
+            game.state().setMoleculeCount(WATER, 3);
+            assertTrue(game.formSubstance(WATER));
+        }
+
+        @Test
+        void cEstUnAchatUnique() {
+            Game game = game(3, WATER);
+            assertTrue(game.formSubstance(WATER));
+            assertFalse(game.canFormSubstance(WATER));
+            assertFalse(game.formSubstance(WATER));
+            // Dix molécules de plus : toujours un seul rassemblement, et le lieu ne demande rien de plus.
+            game.state().setMoleculeCount(WATER, 13);
+            assertFalse(game.canFormSubstance(WATER));
+            assertFalse(game.formSubstance(WATER));
+            assertEquals(1, game.substancesFormed());
+            assertValue(450, game.reservedSpace());
+            assertValue(450, game.substanceSpace(WATER));
+        }
+
+        @Test
+        void leLieuDemandeDeLEspaceLibre() {
+            Game game = game(3, WATER);
+            // Les trois molécules occupent 300 et leur lieu en réserve 450 : il faut 750 en tout.
+            game.state().setSpace(BigNum.of(749));
+            assertFalse(game.canFormSubstance(WATER));
+            assertFalse(game.formSubstance(WATER));
+            game.state().setSpace(BigNum.of(750));
+            assertTrue(game.formSubstance(WATER));
+            assertTrue(game.freeSpace().isZero());
+            assertFalse(game.hasSpaceForMolecule(WATER));
+        }
+
+        @Test
+        void unGazDemandeUnLieuPlusVasteQuUnSolide() {
+            Game game = game(3, "H2", "S8", WATER);
+            assertValue(3 * 20 * 3, game.substanceSpace("H2"));              // gaz : trois fois ses molécules
+            assertValue(3 * 1_280, game.substanceSpace("S8"));               // solide : juste leur place
+            assertValue(3 * 100 * 1.5, game.substanceSpace(WATER));
+            assertTrue(game.formSubstance("H2"));
+            assertTrue(game.formSubstance("S8"));
+            assertTrue(game.formSubstance(WATER));
+            assertValue(180 + 3_840 + 450, game.reservedSpace());
+            assertEquals(List.of("H2", "S8", WATER), game.state().substances());
+        }
+
+        @Test
+        void lePrixEnElementsNeChangePas() {
+            Game game = game(3, WATER);
+            assertEquals(Map.of(1, 16, 8, 8), game.nextMoleculeCost(WATER));
+            assertTrue(game.formSubstance(WATER));
+            assertEquals(Map.of(1, 16, 8, 8), game.nextMoleculeCost(WATER));
+            assertValue(100, game.moleculeVolume(WATER));
+        }
+
+        @Test
+        void lesMoleculesRassembleesComptentUnPeuPlusQuElles() {
+            Game game = game(3, WATER);
+            assertEquals(3.0, game.effectiveMolecules(WATER), 1e-12);
+            assertEquals(1.15, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertTrue(game.formSubstance(WATER));
+            double gathered = Math.pow(3, 1.25);                      // 3,95 molécules au lieu de 3
+            assertEquals(gathered, game.effectiveMolecules(WATER), 1e-12);
+            // Le bonus des molécules, à l'exposant du liquide, plus les particules et les atomes de trois molécules de liquide.
+            assertEquals(1 + 0.05 * gathered + 3 * 0.05, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 3 * 0.02, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+        }
+
+        @Test
+        void leRassemblementSuitLeNombreDExemplaires() {
+            Game game = game(3, WATER);
+            assertTrue(game.formSubstance(WATER));
+            double before = game.moleculeBoost(Molecule.Stat.PARTICLES);
+            // Les molécules créées ensuite rejoignent le lieu d'elles-mêmes.
+            game.state().setElementCount(1, 17);
+            game.state().setElementCount(8, 9);
+            assertTrue(game.createMolecule(WATER));
+            assertEquals(4, game.gatheredMolecules(WATER));
+            assertEquals(Math.pow(4, 1.25), game.effectiveMolecules(WATER), 1e-12);
+            assertEquals(1 + 0.05 * Math.pow(4, 1.25) + 4 * 0.05, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 4 * 0.02, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            assertTrue(game.moleculeBoost(Molecule.Stat.PARTICLES) > before);
+            // Dix molécules d'eau rassemblées comptent pour 17,78.
+            game.state().setMoleculeCount(WATER, 10);
+            assertEquals(17.78, game.effectiveMolecules(WATER), 0.005);
+            // Sans molécule, le lieu est vide et ne donne rien.
+            game.state().setMoleculeCount(WATER, 0);
+            assertTrue(game.hasSubstance(WATER));
+            assertEquals(0, game.gatheredMolecules(WATER));
+            assertEquals(0.0, game.effectiveMolecules(WATER), 0);
+            assertEquals(1.0, game.moleculeBoost(Molecule.Stat.PARTICLES), 0);
+            assertEquals(1.0, game.moleculeBoost(Molecule.Stat.ATOMS), 0);
+        }
+
+        @Test
+        void seulesLesMoleculesRassembleesProfitentDeLExposant() {
+            Game game = game(5, WATER, "H2O2");
+            assertTrue(game.formSubstance(WATER));
+            assertEquals(Math.pow(5, 1.25), game.effectiveMolecules(WATER), 1e-12);
+            assertEquals(5.0, game.effectiveMolecules("H2O2"), 0);
+            assertEquals(5, game.gatheredMolecules(WATER));
+            assertEquals(0, game.gatheredMolecules("H2O2"));
+        }
+
+        @Test
+        void unGazAjouteDesParticulesUnSolideDesAtomes() {
+            Game gas = game(3, "CO2");
+            assertTrue(gas.formSubstance("CO2"));
+            assertEquals(1 + 0.05 * Math.pow(3, 1.15), gas.moleculeBoost(Molecule.Stat.SPACE), 1e-12);
+            assertEquals(1 + 3 * 0.08, gas.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1.0, gas.moleculeBoost(Molecule.Stat.ATOMS), 0);
+
+            Game solid = game(3, "P4O10");
+            assertTrue(solid.formSubstance("P4O10"));
+            assertEquals(1 + 0.10 * Math.pow(3, 1.35), solid.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 3 * 0.05, solid.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+        }
+
+        @Test
+        void unGazDeDihydrogeneReleveUnPeuPlusLePlafond() {
+            Game game = game(3, "H2");
+            Element hydrogen = PeriodicTable.element(1);
+            assertEquals(12, game.maxCopiesOf(hydrogen));
+            assertTrue(game.formSubstance("H2"));
+            assertEquals(3, game.elementUncap(1));                    // 3^1,15 = 3,54 : toujours trois
+            assertEquals(12, game.maxCopiesOf(hydrogen));
+            game.state().setMoleculeCount("H2", 5);
+            assertEquals(6, game.elementUncap(1));                    // 5^1,15 = 6,36 : six, un de plus que cinq
+            game.state().setMoleculeCount("H2", 6);
+            assertEquals(7, game.elementUncap(1));                    // 6^1,15 = 7,85
+            assertEquals(16, game.maxCopiesOf(hydrogen));
+        }
+
+        @Test
+        void rassemblerNeFaitJamaisRienPerdre() {
+            for (Molecule molecule : Molecules.DEFAULT) {
+                if (!molecule.hasState()) continue;
+                Game game = game(3, molecule.id());
+                double[] before = new double[Molecule.Stat.values().length];
+                for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.moleculeBoost(stat);
+                int copies = game.maxTotalCopies();
+                assertTrue(game.formSubstance(molecule.id()), molecule.id());
+                assertEquals(3, game.moleculeCount(molecule.id()), molecule.id());
+                for (Molecule.Stat stat : Molecule.Stat.values()) {
+                    assertTrue(game.moleculeBoost(stat) >= before[stat.ordinal()] - 1e-12, molecule.id() + " perd sur " + stat);
+                }
+                assertTrue(game.maxTotalCopies() >= copies, molecule.id() + " perd un plafond");
+                assertTrue(game.moleculeBoost(Molecule.Stat.PARTICLES) + game.moleculeBoost(Molecule.Stat.ATOMS)
+                        > before[Molecule.Stat.PARTICLES.ordinal()] + before[Molecule.Stat.ATOMS.ordinal()], molecule.id() + " n'ajoute rien");
+            }
+        }
+
+        @Test
+        void uneMoleculeSansEtatNeSeRassemblePas() {
+            // Toutes celles du catalogue en ont un ; une molécule décrite sans état n'en a pas.
+            Molecule bare = Molecule.of(Molecule.Kind.SALT, "Sel de table", "NaCl");
+            assertFalse(bare.hasState());
+            assertTrue(bare.crystal().hasState());
+            assertEquals(Molecule.State.METAL, bare.metal().state());
+            Game game = game(3, "NaCl");
+            assertThrows(IllegalArgumentException.class, () -> game.formSubstance("phlogistique"));
+            assertThrows(IllegalArgumentException.class, () -> game.hasSubstance("phlogistique"));
+            assertThrows(IllegalArgumentException.class, () -> game.substanceSpace("phlogistique"));
+        }
+
+        @Test
+        void lesRassemblementsSurviventALExplosionEtAuBigBang() {
+            Game game = game(3, WATER);
+            assertTrue(game.formSubstance(WATER));
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+            assertTrue(game.explode());
+            assertTrue(game.hasSubstance(WATER));
+            game.state().setParticles(Game.BIG_BANG_PARTICLES);
+            game.state().setAtoms(Game.BIG_BANG_ATOMS);
+            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            assertTrue(game.bigBang());
+            assertTrue(game.hasSubstance(WATER));
+            assertEquals(3, game.gatheredMolecules(WATER));
+            assertValue(450, game.reservedSpace());
+            assertTrue(game.isStatesUnlocked());
+            game.reset();
+            assertFalse(game.state().hasSubstance(WATER));
+            assertTrue(game.reservedSpace().isZero());
+            assertEquals(1.0, game.moleculeBoost(Molecule.Stat.PARTICLES), 0);
+        }
+    }
+
+    @Nested
+    class LesAssemblages {
+
+        /** Après un premier Big Bang, rassemblements et assemblages ouverts, beaucoup d'espace. */
+        private Game game() {
+            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            game.start();
+            game.state().setBigBangs(1);
+            game.state().setSpace(BigNum.of(1, 12));
+            game.state().addSpaceUpgrade("space_states");
+            game.state().addSpaceUpgrade("space_assemblies");
+            return game;
+        }
+
+        /** Donne au joueur {@code count} molécules rassemblées de la sorte {@code id}. */
+        private void give(Game game, String id, int count) {
+            game.state().setMoleculeCount(id, count);
+            game.state().addSubstance(id);
+        }
+
+        @Test
+        void leCatalogueEstFaitDeMoleculesQuiExistentEtRienDeVivant() {
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            Map<Assembly.Family, Integer> families = new EnumMap<>(Assembly.Family.class);
+            for (Assembly assembly : Assemblies.DEFAULT) {
+                assertTrue(ids.add(assembly.id()), assembly.id() + " en double");
+                families.merge(assembly.family(), 1, Integer::sum);
+                assertTrue(assembly.ingredients().size() >= 2, assembly.id());
+                for (String ingredient : assembly.ingredients().keySet()) {
+                    Molecule molecule = Molecules.DEFAULT.stream().filter(each -> each.id().equals(ingredient)).findFirst()
+                            .orElseThrow(() -> new AssertionError(assembly.id() + " : molecule inconnue " + ingredient));
+                    assertTrue(molecule.hasState(), assembly.id() + " : " + ingredient);
+                    assertTrue(molecule.kind() != Molecule.Kind.LIFE, assembly.id() + " contient du vivant : " + ingredient);
+                }
+            }
+            assertEquals(44, Assemblies.DEFAULT.size());
+            assertEquals(Assembly.Family.values().length, families.size());
+            assertEquals(10, families.get(Assembly.Family.ROCK));
+            assertEquals(8, families.get(Assembly.Family.ORE));
+            assertEquals(9, families.get(Assembly.Family.WATER));
+        }
+
+        @Test
+        void unAssemblageDemandeBeaucoupDeMolecules() {
+            for (Assembly assembly : Assemblies.DEFAULT) {
+                assertTrue(assembly.size() >= 150 && assembly.size() <= 450, assembly.id() + " : " + assembly.size());
+            }
+            Assembly granite = new Game().assembly("granitic_rock");
+            assertEquals("Roche granitique", granite.name());
+            assertEquals(Map.of("SiO2", 120, "KAlSi3O8", 90, "NaAlSi3O8", 60), granite.ingredients());
+            assertEquals(270, granite.size());
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 1.35), granite.boost());      // 270 molécules : +135 %
+            // Des pierres précieuses : presque rien que leur cristal, et les traces qui les colorent.
+            Assembly gems = new Game().assembly("corundum_gems");
+            assertEquals(300, gems.ingredients().get("Al2O3"));
+            assertEquals(4, gems.ingredients().get("Cr2O3"));
+            assertEquals(Molecule.Stat.DARK_GROWTH, gems.boost().stat());
+        }
+
+        @Test
+        void pasDAssemblageSansLAmeliorationDEspace() {
+            Game game = game();
+            give(game, "N2", 312);
+            give(game, "O2", 84);
+            give(game, "CO2", 4);
+            assertTrue(game.isAssembliesUnlocked());
+            assertTrue(game.canFormAssembly("air"));
+            Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            closed.start();
+            closed.state().setBigBangs(1);
+            closed.state().addSpaceUpgrade("space_states");
+            give(closed, "N2", 312);
+            give(closed, "O2", 84);
+            give(closed, "CO2", 4);
+            assertFalse(closed.isAssembliesUnlocked());
+            assertFalse(closed.canFormAssembly("air"));
+            assertFalse(closed.formAssembly("air"));
+            assertFalse(closed.hasAssembly("air"));
+            // L'amélioration vient après celle des états de la matière, à 20 000 d'espace créé.
+            closed.reset();
+            closed.start();
+            closed.state().setBigBangs(1);
+            closed.state().setSpace(BigNum.of(20_000));
+            assertFalse(closed.isSpaceUpgradeAvailable("space_assemblies"));
+            assertTrue(closed.buySpaceUpgrade("space_states"));
+            assertTrue(closed.buySpaceUpgrade("space_assemblies"));
+            assertTrue(closed.isAssembliesUnlocked());
+        }
+
+        @Test
+        void ilFautChaqueIngredientRassembleEtEnNombre() {
+            Game game = game();
+            give(game, "N2", 312);
+            give(game, "O2", 84);
+            game.state().setMoleculeCount("CO2", 4);                  // créé, mais pas rassemblé
+            assertFalse(game.canFormAssembly("air"));
+            game.state().addSubstance("CO2");
+            assertTrue(game.canFormAssembly("air"));
+            game.state().setMoleculeCount("O2", 83);                  // il en manque une
+            assertFalse(game.canFormAssembly("air"));
+            assertFalse(game.formAssembly("air"));
+            game.state().setMoleculeCount("O2", 84);
+            assertTrue(game.formAssembly("air"));
+            assertTrue(game.hasAssembly("air"));
+            assertEquals(1, game.assembliesFormed());
+            assertEquals(List.of("air"), game.state().assemblies());
+        }
+
+        @Test
+        void rienNEstConsommeEtCEstUnAchatUnique() {
+            Game game = game();
+            give(game, "N2", 320);
+            give(game, "O2", 84);
+            give(game, "CO2", 4);
+            BigNum occupied = game.occupiedSpace();
+            double uncapBefore = game.elementUncap(7);
+            assertTrue(game.formAssembly("air"));
+            assertEquals(320, game.moleculeCount("N2"));
+            assertEquals(320, game.gatheredMolecules("N2"));          // elles comptent toujours pour leur sorte
+            assertEquals(uncapBefore, game.elementUncap(7), 0);
+            assertValue(occupied.toDouble(), game.occupiedSpace());
+            // 312 diazotes sont dans le bloc d'air, 8 restent dans leur amas.
+            assertEquals(312, game.assembledMolecules("N2"));
+            assertEquals(8, game.spareMolecules("N2"));
+            assertEquals(0, game.spareMolecules("O2"));
+            assertFalse(game.canFormAssembly("air"));
+            assertFalse(game.formAssembly("air"));
+            assertEquals(1, game.assembliesFormed());
+        }
+
+        @Test
+        void deuxAssemblagesNeSePartagentPasLesMemesMolecules() {
+            Game game = game();
+            // Les rubis et saphirs demandent 300 corindons, le minerai d'aluminium 30 : il en faut 330 pour les deux.
+            for (Map.Entry<String, Integer> ingredient : game.assembly("corundum_gems").ingredients().entrySet()) {
+                give(game, ingredient.getKey(), ingredient.getValue());
+            }
+            for (Map.Entry<String, Integer> ingredient : game.assembly("aluminium_ore").ingredients().entrySet()) {
+                if (!ingredient.getKey().equals("Al2O3") && !ingredient.getKey().equals("TiO2")) give(game, ingredient.getKey(), ingredient.getValue());
+            }
+            give(game, "TiO2", 12);                                   // deux pour les pierres, dix pour le minerai
+            assertTrue(game.canFormAssembly("corundum_gems"));
+            assertTrue(game.canFormAssembly("aluminium_ore"));
+            assertTrue(game.formAssembly("corundum_gems"));
+            assertEquals(0, game.spareMolecules("Al2O3"));
+            assertFalse(game.canFormAssembly("aluminium_ore"));
+            game.state().setMoleculeCount("Al2O3", 329);
+            assertFalse(game.canFormAssembly("aluminium_ore"));
+            game.state().setMoleculeCount("Al2O3", 330);
+            assertTrue(game.formAssembly("aluminium_ore"));
+            assertEquals(330, game.assembledMolecules("Al2O3"));
+            assertEquals(12, game.assembledMolecules("TiO2"));
+            assertEquals(2, game.assembliesFormed());
+        }
+
+        @Test
+        void rienDeFabriqueDansLeCatalogue() {
+            Game game = game();
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            for (Assembly assembly : game.assemblies()) {
+                ids.add(assembly.id());
+                assertTrue(assembly.ingredients().size() >= 3 && assembly.ingredients().size() <= 8, assembly.id());
+                // Un alliage ou un carbure conducteur ne se trouve pas dans la nature : aucun métal dans un assemblage.
+                for (String ingredient : assembly.ingredients().keySet()) {
+                    assertTrue(game.molecule(ingredient).state() != Molecule.State.METAL, assembly.id() + " : " + ingredient);
+                }
+            }
+            for (String made : List.of("batteries", "glass", "concrete", "alloys", "magnets", "plastics", "medicines", "solvents")) {
+                assertFalse(ids.contains(made), made + " est fabrique");
+            }
+            assertTrue(ids.containsAll(List.of("granitic_rock", "copper_ore", "corundum_gems", "salt_water", "air", "petroleum")));
+        }
+
+        @Test
+        void unAssemblageAugmenteLaGrandeurDeSaFamille() {
+            Game game = game();
+            give(game, "N2", 312);
+            give(game, "O2", 84);
+            give(game, "CO2", 4);
+            double before = game.moleculeBoost(Molecule.Stat.SPACE);
+            double atoms = game.moleculeBoost(Molecule.Stat.ATOMS);
+            BigNum rate = game.spacePerSecond();
+            assertTrue(game.formAssembly("air"));
+            assertEquals(before + 2.0, game.moleculeBoost(Molecule.Stat.SPACE), 1e-9);     // 400 molécules : +200 %
+            assertEquals(atoms, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            assertTrue(game.spacePerSecond().gt(rate));
+        }
+
+        @Test
+        void lesAssemblagesSurviventALExplosionEtAuBigBang() {
+            Game game = game();
+            give(game, "N2", 312);
+            give(game, "O2", 84);
+            give(game, "CO2", 4);
+            assertTrue(game.formAssembly("air"));
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+            assertTrue(game.explode());
+            assertTrue(game.hasAssembly("air"));
+            game.state().setParticles(Game.BIG_BANG_PARTICLES);
+            game.state().setAtoms(Game.BIG_BANG_ATOMS);
+            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            assertTrue(game.bigBang());
+            assertTrue(game.hasAssembly("air"));
+            assertTrue(game.isAssembliesUnlocked());
+            game.reset();
+            assertFalse(game.state().hasAssembly("air"));
+            assertEquals(0, game.assembliesFormed());
+            assertEquals(1.0, game.moleculeBoost(Molecule.Stat.SPACE), 0);
+        }
+
+        @Test
+        void unAssemblageInconnuEstRefuse() {
+            Game game = game();
+            assertThrows(IllegalArgumentException.class, () -> game.formAssembly("phlogistique"));
+            assertThrows(IllegalArgumentException.class, () -> game.hasAssembly("phlogistique"));
+            assertThrows(IllegalArgumentException.class, () -> Assembly.of(Assembly.Family.ROCK, "x", "X", "rouge"));
+            assertThrows(IllegalArgumentException.class, () -> Assembly.of(Assembly.Family.ROCK, "x", "X", "#aabbcc").with("SiO2", 0));
+            assertThrows(IllegalArgumentException.class,
+                    () -> Assembly.of(Assembly.Family.ROCK, "x", "X", "#aabbcc").with("SiO2", 3).with("SiO2", 4));
+        }
+    }
+
+    @Nested
+    class LesAstres {
+
+        /** Après un premier Big Bang, tout ouvert jusqu'aux astres, beaucoup d'espace. */
+        private Game game() {
+            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            game.start();
+            game.state().setBigBangs(1);
+            game.state().setSpace(BigNum.of(1, 12));
+            for (SpaceUpgrade upgrade : game.spaceUpgrades()) game.state().addSpaceUpgrade(upgrade.id());
+            return game;
+        }
+
+        /** Donne au joueur tout ce que demande cet astre, sauf les astres plus petits : assemblages, matière, molécules. */
+        private void supply(Game game, String bodyId) {
+            Body body = game.body(bodyId);
+            for (String assembly : body.assemblies()) game.state().addAssembly(assembly);
+            for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
+                game.state().setMoleculeCount(molecule.getKey(), Math.max(game.moleculeCount(molecule.getKey()), molecule.getValue()));
+            }
+            for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
+                // De la matière dans un état : des molécules rassemblées de la première sorte du catalogue qui a cet état.
+                Molecule molecule = game.molecules().stream().filter(each -> each.state() == matter.getKey()).findFirst().orElseThrow();
+                game.state().addSubstance(molecule.id());
+                int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
+            }
+        }
+
+        /** Forme cet astre, et d'abord ceux dont il part. */
+        private void form(Game game, String bodyId) {
+            for (String smaller : game.body(bodyId).bodies()) {
+                if (!game.hasBody(smaller)) form(game, smaller);
+            }
+            supply(game, bodyId);
+            assertTrue(game.formBody(bodyId), bodyId);
+        }
+
+        @Test
+        void leCatalogueVaDeLAmasALaPlanete() {
+            Map<Body.Tier, Integer> tiers = new EnumMap<>(Body.Tier.class);
+            java.util.Set<String> ids = new java.util.HashSet<>();
+            Game game = game();
+            for (Body body : Bodies.DEFAULT) {
+                assertTrue(ids.add(body.id()), body.id() + " en double");
+                tiers.merge(body.tier(), 1, Integer::sum);
+                // Un cumul : des assemblages, de la matière et des molécules, toujours les trois.
+                assertFalse(body.assemblies().isEmpty(), body.id());
+                assertFalse(body.matter().isEmpty(), body.id());
+                assertFalse(body.molecules().isEmpty(), body.id());
+                // Au-delà des amas, un astre part d'au moins un astre de l'échelle juste en dessous.
+                if (body.tier() == Body.Tier.RUBBLE) {
+                    assertTrue(body.bodies().isEmpty(), body.id());
+                } else {
+                    Body.Tier below = Body.Tier.values()[body.tier().ordinal() - 1];
+                    assertTrue(body.bodies().stream().anyMatch(each -> game.body(each).tier() == below), body.id());
+                }
+            }
+            assertEquals(21, Bodies.DEFAULT.size());
+            assertEquals(Map.of(Body.Tier.RUBBLE, 4, Body.Tier.COMET, 3, Body.Tier.ASTEROID, 4, Body.Tier.MOON, 4,
+                    Body.Tier.PLANET, 6), tiers);
+        }
+
+        @Test
+        void plusUnAstreEstGrosPlusIlDemandeEtPlusIlDonne() {
+            Game game = game();
+            int[] least = new int[Body.Tier.values().length];
+            int[] most = new int[Body.Tier.values().length];
+            java.util.Arrays.fill(least, Integer.MAX_VALUE);
+            for (Body body : game.bodies()) {
+                int asked = 0;
+                for (int count : body.matter().values()) asked += count;
+                least[body.tier().ordinal()] = Math.min(least[body.tier().ordinal()], asked);
+                most[body.tier().ordinal()] = Math.max(most[body.tier().ordinal()], asked);
+                assertEquals(body.tier().gain(), body.boost().perMolecule(), 0);
+            }
+            for (int tier = 1; tier < least.length; tier++) {
+                assertTrue(least[tier] > most[tier - 1] * 0.9, Body.Tier.values()[tier] + " : " + least[tier] + " contre " + most[tier - 1]);
+                assertEquals(2 * Body.Tier.values()[tier - 1].gain(), Body.Tier.values()[tier].gain(), 0);
+            }
+            assertTrue(least[0] >= 300, "un amas demande des centaines de molecules : " + least[0]);
+            assertTrue(least[4] >= 4000, "une planete en demande des milliers : " + least[4]);
+        }
+
+        @Test
+        void pasDAstreSansLAmeliorationDEspace() {
+            Game game = game();
+            supply(game, "rocky_rubble");
+            assertTrue(game.isBodiesUnlocked());
+            assertTrue(game.canFormBody("rocky_rubble"));
+            Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(42));
+            closed.start();
+            closed.state().setBigBangs(1);
+            closed.state().setSpace(BigNum.of(100_000));
+            closed.state().addSpaceUpgrade("space_states");
+            supply(closed, "rocky_rubble");
+            assertFalse(closed.isBodiesUnlocked());
+            assertFalse(closed.canFormBody("rocky_rubble"));
+            assertFalse(closed.formBody("rocky_rubble"));
+            // L'amélioration vient après celle des assemblages, à 100 000 d'espace créé.
+            assertFalse(closed.isSpaceUpgradeAvailable("space_bodies"));
+            assertTrue(closed.buySpaceUpgrade("space_assemblies"));
+            assertTrue(closed.buySpaceUpgrade("space_bodies"));
+            assertTrue(closed.formBody("rocky_rubble"));
+        }
+
+        @Test
+        void ilFautLesAssemblagesLaMatiereEtLesMolecules() {
+            Game game = game();
+            Body rubble = game.body("rocky_rubble");
+            assertEquals(5, rubble.conditions());                     // trois assemblages, une matière, une molécule
+            assertEquals(0, game.bodyConditionsMet("rocky_rubble"));
+            for (String assembly : rubble.assemblies()) game.state().addAssembly(assembly);
+            assertEquals(3, game.bodyConditionsMet("rocky_rubble"));
+            assertFalse(game.canFormBody("rocky_rubble"));
+            // 250 quartz créés mais pas rassemblés : la molécule y est, la matière non.
+            game.state().setMoleculeCount("SiO2", 250);
+            assertEquals(4, game.bodyConditionsMet("rocky_rubble"));
+            assertEquals(0, game.gatheredInState(Molecule.State.CRYSTAL));
+            game.state().addSubstance("SiO2");
+            assertEquals(250, game.gatheredInState(Molecule.State.CRYSTAL));
+            assertFalse(game.canFormBody("rocky_rubble"));
+            // La matière compte toutes les sortes de cristaux rassemblés : 150 sels de table font le compte.
+            game.state().setMoleculeCount("NaCl", 149);
+            game.state().addSubstance("NaCl");
+            assertFalse(game.canFormBody("rocky_rubble"));
+            game.state().setMoleculeCount("NaCl", 150);
+            assertEquals(400, game.gatheredInState(Molecule.State.CRYSTAL));
+            assertTrue(game.canFormBody("rocky_rubble"));
+            assertTrue(game.formBody("rocky_rubble"));
+            assertTrue(game.hasBody("rocky_rubble"));
+        }
+
+        @Test
+        void uneCometePartDUnAmas() {
+            Game game = game();
+            supply(game, "icy_comet");
+            assertEquals(game.body("icy_comet").conditions() - 1, game.bodyConditionsMet("icy_comet"));
+            assertFalse(game.canFormBody("icy_comet"));               // il manque l'amas glacé
+            supply(game, "icy_rubble");
+            assertTrue(game.formBody("icy_rubble"));
+            assertTrue(game.canFormBody("icy_comet"));
+            assertTrue(game.formBody("icy_comet"));
+            assertEquals(List.of("icy_rubble", "icy_comet"), game.state().bodies());
+        }
+
+        @Test
+        void rienNEstConsommeEtCEstUnAchatUnique() {
+            Game game = game();
+            supply(game, "rocky_rubble");
+            int quartz = game.moleculeCount("SiO2");
+            int crystals = game.gatheredInState(Molecule.State.CRYSTAL);
+            assertTrue(game.formBody("rocky_rubble"));
+            assertEquals(quartz, game.moleculeCount("SiO2"));
+            assertEquals(crystals, game.gatheredInState(Molecule.State.CRYSTAL));
+            assertTrue(game.hasAssembly("granitic_rock"));
+            assertFalse(game.canFormBody("rocky_rubble"));
+            assertFalse(game.formBody("rocky_rubble"));
+            assertEquals(1, game.bodiesFormed());
+            // Ce qui a servi à l'amas rocheux sert encore à la comète poussiéreuse : rien n'est réservé.
+            form(game, "dusty_comet");
+            assertEquals(3, game.bodiesFormed());
+        }
+
+        @Test
+        void unAstreAugmenteSaGrandeurDeCeQueVautSonEchelle() {
+            Game game = game();
+            supply(game, "rocky_rubble");
+            double atoms = game.moleculeBoost(Molecule.Stat.ATOMS);
+            assertTrue(game.formBody("rocky_rubble"));
+            assertEquals(atoms + 2, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-9);            // un amas : +200 %
+            assertEquals(32, game.body("ocean_planet").boost().perMolecule(), 0);             // une planète : +3 200 %
+        }
+
+        @Test
+        void toutLeCatalogueSeFormeDuPlusPetitAuPlusGrand() {
+            Game game = game();
+            for (Body body : game.bodies()) {
+                if (!game.hasBody(body.id())) form(game, body.id());
+            }
+            assertEquals(21, game.bodiesFormed());
+            assertTrue(game.hasBody("gas_giant_planet"));
+            assertTrue(game.moleculeBoost(Molecule.Stat.SPACE) > 60);
+        }
+
+        @Test
+        void lesAstresSurviventALExplosionEtAuBigBang() {
+            Game game = game();
+            form(game, "icy_comet");
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+            assertTrue(game.explode());
+            assertTrue(game.hasBody("icy_comet"));
+            game.state().setParticles(Game.BIG_BANG_PARTICLES);
+            game.state().setAtoms(Game.BIG_BANG_ATOMS);
+            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            assertTrue(game.bigBang());
+            assertTrue(game.hasBody("icy_comet"));
+            assertTrue(game.isBodiesUnlocked());
+            game.reset();
+            assertEquals(0, game.bodiesFormed());
+            assertFalse(game.state().hasBody("icy_comet"));
+        }
+
+        @Test
+        void unAstreInconnuEstRefuse() {
+            Game game = game();
+            assertThrows(IllegalArgumentException.class, () -> game.formBody("phlogistique"));
+            assertThrows(IllegalArgumentException.class, () -> game.hasBody("phlogistique"));
+            Body bare = Body.of(Body.Tier.MOON, "x", "X", Body.Look.ROCKY, "#aabbcc", "#112233", Molecule.Stat.ATOMS);
+            assertEquals(0, bare.conditions());
+            assertThrows(IllegalArgumentException.class, () -> bare.matter(Molecule.State.GAS, 0));
+            assertThrows(IllegalArgumentException.class, () -> bare.molecules("H2O", 3).molecules("H2O", 4));
+            assertThrows(IllegalArgumentException.class,
+                    () -> Body.of(Body.Tier.MOON, "x", "X", Body.Look.ROCKY, "gris", "#112233", Molecule.Stat.ATOMS));
         }
     }
 

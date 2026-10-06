@@ -136,7 +136,28 @@ final class DebugBar extends VBox {
                     for (Molecule molecule : game.molecules()) game.state().setMoleculeCount(molecule.id(), 0);
                 }),
                 tool("+1 000 d'espace", () -> game.state().setSpace(game.state().space().add(BigNum.of(1000)))),
-                tool("Espace ×10", () -> game.state().setSpace(game.state().space().max(BigNum.of(100)).multiply(10))));
+                tool("Espace ×10", () -> game.state().setSpace(game.state().space().max(BigNum.of(100)).multiply(10))),
+                tool("Améliorations d'espace", () -> {
+                    for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) game.state().addSpaceUpgrade(upgrade.id());
+                }),
+                tool("Trois de chaque petite molécule", () -> {
+                    for (Molecule molecule : game.molecules()) {
+                        if (molecule.kind() == Molecule.Kind.SIMPLE) game.state().setMoleculeCount(molecule.id(), Game.SUBSTANCE_MOLECULES);
+                    }
+                }),
+                tool("Tout rassembler", () -> {
+                    for (Molecule molecule : game.molecules()) {
+                        if (molecule.hasState() && game.moleculeCount(molecule.id()) > 0) game.state().addSubstance(molecule.id());
+                    }
+                }),
+                tool("Assemblage suivant", this::formNextAssembly),
+                tool("Tout assembler", () -> {
+                    while (formNextAssembly()) { }
+                }),
+                tool("Astre suivant", this::formNextBody),
+                tool("Tous les astres", () -> {
+                    while (formNextBody()) { }
+                }));
 
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
         header.getChildren().add(status);
@@ -345,6 +366,73 @@ final class DebugBar extends VBox {
      * d'atomes et de matière noire, les succès et les défis. Un défi en cours est arrêté, sans
      * être compté comme réussi.
      */
+    /**
+     * Forme le premier assemblage du catalogue qui ne l'est pas encore, en donnant au joueur ce
+     * qu'il demande : les améliorations d'espace, les molécules qui manquent, rassemblées, et la
+     * place de les loger.
+     *
+     * @return {@code false} s'ils sont tous formés
+     */
+    private boolean formNextAssembly() {
+        for (idle.core.Assembly assembly : game.assemblies()) {
+            if (!game.hasAssembly(assembly.id())) return form(assembly);
+        }
+        return false;
+    }
+
+    /** Forme cet assemblage, en donnant au joueur ce qu'il demande. */
+    private boolean form(idle.core.Assembly assembly) {
+        GameState state = game.state();
+        if (state.bigBangs() == 0) state.setBigBangs(1);
+        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
+        for (java.util.Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+            state.addSubstance(ingredient.getKey());
+            int missing = ingredient.getValue() - game.spareMolecules(ingredient.getKey());
+            if (missing > 0) state.setMoleculeCount(ingredient.getKey(), game.moleculeCount(ingredient.getKey()) + missing);
+        }
+        // Trois fois l'espace utilisé : de quoi voir le bloc au milieu d'un espace encore vide autour.
+        state.setSpace(state.space().max(game.usedSpace().multiply(3)));
+        return game.formAssembly(assembly.id());
+    }
+
+    /**
+     * Forme le premier astre du catalogue qui ne l'est pas encore, en donnant au joueur ce qu'il
+     * demande : ses assemblages, ses molécules, et de quoi faire le compte de sa matière. Le
+     * catalogue va du plus petit au plus grand : les astres dont il part sont donc déjà formés.
+     *
+     * @return {@code false} s'ils sont tous formés
+     */
+    private boolean formNextBody() {
+        GameState state = game.state();
+        for (idle.core.Body body : game.bodies()) {
+            if (game.hasBody(body.id())) continue;
+            if (state.bigBangs() == 0) state.setBigBangs(1);
+            for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
+            for (String assembly : body.assemblies()) {
+                if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
+            }
+            for (java.util.Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
+                int missing = molecule.getValue() - game.moleculeCount(molecule.getKey());
+                if (missing > 0) state.setMoleculeCount(molecule.getKey(), game.moleculeCount(molecule.getKey()) + missing);
+                state.addSubstance(molecule.getKey());
+            }
+            for (java.util.Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
+                int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                if (missing <= 0) continue;
+                // De la matière dans un état : des molécules de plus de la première sorte du catalogue qui a cet état.
+                for (Molecule molecule : game.molecules()) {
+                    if (molecule.state() != matter.getKey()) continue;
+                    state.addSubstance(molecule.id());
+                    state.setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
+                    break;
+                }
+            }
+            state.setSpace(state.space().max(game.usedSpace().multiply(3)));
+            return game.formBody(body.id());
+        }
+        return false;
+    }
+
     private void readyForBigBang() {
         GameState state = game.state();
         if (state.explosions() == 0) state.setExplosions(1);

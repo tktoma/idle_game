@@ -100,6 +100,9 @@ public final class Game {
     /** Ce par quoi le prix en éléments d'une molécule est multiplié chaque fois qu'on en crée une de la même sorte. */
     public static final int MOLECULE_COST_GROWTH = 2;
 
+    /** Nombre de molécules d'une même sorte qu'il faut avoir créées pour les rassembler dans le lieu de leur état. */
+    public static final int SUBSTANCE_MOLECULES = 3;
+
     /**
      * Ce par quoi chaque explosion multiplie la masse du tableau périodique : le plafond d'atomes
      * et le prix maximal d'une synthèse ({@link #atomCap()}). Sans cela, chaque partie demanderait
@@ -244,9 +247,17 @@ public final class Game {
     private final Map<String, DarkUpgrade> darkUpgrades = new LinkedHashMap<>();
     private final Map<String, Molecule> molecules = new LinkedHashMap<>();
     private final List<Molecule> moleculeList = Molecules.DEFAULT;
+    private final Map<String, SpaceUpgrade> spaceUpgrades = new LinkedHashMap<>();
+    private final Map<String, Assembly> assemblies = new LinkedHashMap<>();
+    private final Map<String, Body> bodies = new LinkedHashMap<>();
+    /** Le nombre de molécules rassemblées dans chaque état, recalculé seulement quand leur liste change. */
+    private final Map<Molecule.State, Integer> gatheredByState = new java.util.EnumMap<>(Molecule.State.class);
+    private int gatheredByStateVersion = -1;
     /** L'espace occupé par les molécules, recalculé seulement quand leur liste change. */
     private BigNum occupiedSpace = BigNum.ZERO;
     private int occupiedSpaceVersion = -1;
+    private BigNum reservedSpace = BigNum.ZERO;
+    private int reservedSpaceVersion = -1;
     /** Ce que donnent les molécules créées, recalculé seulement quand leur liste change. */
     private final Map<Molecule.Stat, Double> moleculeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
     private final Map<Integer, Integer> elementUncaps = new java.util.HashMap<>();
@@ -329,10 +340,48 @@ public final class Game {
         for (DarkAutomation automation : DarkAutomations.DEFAULT) {
             darkAutomations.put(automation.id(), automation);
         }
+        for (SpaceUpgrade upgrade : SpaceUpgrades.DEFAULT) {
+            if (upgrade.requires() != null && !spaceUpgrades.containsKey(upgrade.requires())) {
+                throw new IllegalArgumentException("Amélioration d'espace sans celle dont elle dépend : " + upgrade.id());
+            }
+            if (spaceUpgrades.put(upgrade.id(), upgrade) != null) {
+                throw new IllegalArgumentException("Amélioration d'espace en double : " + upgrade.id());
+            }
+        }
         for (Molecule molecule : Molecules.DEFAULT) {
             if (molecules.put(molecule.id(), molecule) != null) {
                 throw new IllegalArgumentException("Molécule en double : " + molecule.id());
             }
+        }
+        for (Assembly assembly : Assemblies.DEFAULT) {
+            if (assembly.ingredients().size() < 2) {
+                throw new IllegalArgumentException("Un assemblage réunit au moins deux sortes de molécules : " + assembly.id());
+            }
+            for (String ingredient : assembly.ingredients().keySet()) {
+                Molecule molecule = molecules.get(ingredient);
+                if (molecule == null) throw new IllegalArgumentException(assembly.id() + " demande une molécule inconnue : " + ingredient);
+                if (!molecule.hasState()) throw new IllegalArgumentException(assembly.id() + " demande une molécule qui ne se rassemble pas : " + ingredient);
+            }
+            if (assemblies.put(assembly.id(), assembly) != null) {
+                throw new IllegalArgumentException("Assemblage en double : " + assembly.id());
+            }
+        }
+        for (Body body : Bodies.DEFAULT) {
+            // Un astre part d'astres plus petits, déjà décrits : le catalogue va donc du plus petit au plus grand.
+            for (String needed : body.bodies()) {
+                Body smaller = bodies.get(needed);
+                if (smaller == null) throw new IllegalArgumentException(body.id() + " demande un astre inconnu ou décrit après lui : " + needed);
+                if (smaller.tier().compareTo(body.tier()) >= 0) {
+                    throw new IllegalArgumentException(body.id() + " demande un astre qui n'est pas plus petit que lui : " + needed);
+                }
+            }
+            for (String needed : body.assemblies()) {
+                if (!assemblies.containsKey(needed)) throw new IllegalArgumentException(body.id() + " demande un assemblage inconnu : " + needed);
+            }
+            for (String needed : body.molecules().keySet()) {
+                if (!molecules.containsKey(needed)) throw new IllegalArgumentException(body.id() + " demande une molécule inconnue : " + needed);
+            }
+            if (bodies.put(body.id(), body) != null) throw new IllegalArgumentException("Astre en double : " + body.id());
         }
         for (DarkUpgrade dark : darkCatalog) {
             if (dark.requires() != null && !darkUpgrades.containsKey(dark.requires())) {
@@ -1813,10 +1862,55 @@ public final class Game {
         return occupiedSpace;
     }
 
-    /** Espace encore libre : celui que l'expansion a créé, moins celui que les molécules occupent. Jamais négatif. */
+    /**
+     * Espace que réservent les lieux de rassemblement ouverts : la somme de ce qu'a demandé chaque
+     * gaz, liquide ou solide formé ({@link #substanceSpace(String)}).
+     */
+    public BigNum reservedSpace() {
+        if (reservedSpaceVersion != state.moleculesVersion()) {
+            BigNum reserved = BigNum.ZERO;
+            for (String id : state.substances()) {
+                Molecule molecule = molecules.get(id);
+                if (molecule != null && molecule.hasState()) reserved = reserved.add(substanceSpace(id));
+            }
+            reservedSpace = reserved;
+            reservedSpaceVersion = state.moleculesVersion();
+        }
+        return reservedSpace;
+    }
+
+    /** Espace utilisé : celui que les molécules occupent, et celui que réservent les lieux de rassemblement. */
+    public BigNum usedSpace() {
+        return occupiedSpace().add(reservedSpace());
+    }
+
+    /** Espace encore libre : celui que l'expansion a créé, moins celui qui est utilisé ({@link #usedSpace()}). Jamais négatif. */
     public BigNum freeSpace() {
-        BigNum occupied = occupiedSpace();
-        return state.space().gt(occupied) ? state.space().subtract(occupied) : BigNum.ZERO;
+        BigNum used = usedSpace();
+        return state.space().gt(used) ? state.space().subtract(used) : BigNum.ZERO;
+    }
+
+    /** Vrai s'il reste au moins {@code amount} unités d'espace libre. */
+    private boolean hasFreeSpace(BigNum amount) {
+        // Comparé du côté des additions, avec une marge infime : 120 − 100 ne vaut pas tout à fait 20 en virgule flottante.
+        return state.space().multiply(1 + 1e-9).gte(usedSpace().add(amount));
+    }
+
+    /**
+     * Secondes de jeu avant que l'expansion ait créé {@code total} unités d'espace en tout : 0 si
+     * c'est déjà fait, l'infini avant le premier Big Bang.
+     */
+    public double secondsUntilSpace(BigNum total) {
+        if (hasCreatedSpace(total)) return 0;
+        double missing = total.subtract(state.space()).toDouble();
+        double rate = spacePerSecond().toDouble();
+        return rate > 0 ? Math.max(0, missing) / rate : Double.POSITIVE_INFINITY;
+    }
+
+    /** Vrai si l'expansion a créé au moins {@code total} unités d'espace depuis le premier Big Bang, libres ou non. */
+    private boolean hasCreatedSpace(BigNum total) {
+        // Même marge infime que pour l'espace libre : 2 000 secondes d'expansion doivent donner 2 000 d'espace.
+        return state.space().multiply(1 + 1e-9).gte(total);
     }
 
     /**
@@ -1842,8 +1936,7 @@ public final class Game {
 
     /** Vrai s'il reste assez d'espace libre pour une molécule de cette sorte. */
     public boolean hasSpaceForMolecule(String moleculeId) {
-        // Comparé du côté des additions, avec une marge infime : 120 − 100 ne vaut pas tout à fait 20 en virgule flottante.
-        return state.space().multiply(1 + 1e-9).gte(occupiedSpace().add(moleculeVolume(moleculeId)));
+        return hasFreeSpace(moleculeVolume(moleculeId));
     }
 
     /**
@@ -1857,14 +1950,19 @@ public final class Game {
     }
 
     /**
-     * Vrai si ce rayon du catalogue est ouvert : le premier Big Bang a eu lieu, et l'expansion a
-     * créé autant d'espace que le palier du rayon ({@link Molecule.Kind#space()}). Les petites
-     * molécules, dont le palier est nul, sont ouvertes dès le premier Big Bang. L'espace ne
-     * diminue jamais : un rayon ouvert le reste.
+     * Vrai si ce rayon du catalogue est ouvert : le premier Big Bang a eu lieu, et le joueur
+     * possède l'amélioration d'espace qui l'ouvre ({@link SpaceUpgrade.OpenKind}). Les petites
+     * molécules n'en demandent aucune.
      */
     public boolean isMoleculeKindUnlocked(Molecule.Kind kind) {
-        // Même marge infime que pour l'espace libre : 2 000 secondes d'expansion doivent ouvrir le rayon à 2 000.
-        return isBigBangUnlocked() && state.space().multiply(1 + 1e-9).gte(BigNum.of(kind.space()));
+        if (!isBigBangUnlocked()) return false;
+        if (kind == Molecule.Kind.SIMPLE) return true;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.OpenKind open && open.kind() == kind) {
+                return state.ownsSpaceUpgrade(upgrade.id());
+            }
+        }
+        return false;
     }
 
     /** Nombre de rayons du catalogue ouverts. */
@@ -1876,24 +1974,12 @@ public final class Game {
         return unlocked;
     }
 
-    /** Le prochain rayon à s'ouvrir, celui du plus petit palier pas encore atteint, ou {@code null} s'ils sont tous ouverts. */
+    /** Le premier rayon encore fermé, dans l'ordre du catalogue, ou {@code null} s'ils sont tous ouverts. */
     public Molecule.Kind nextMoleculeKind() {
-        Molecule.Kind next = null;
         for (Molecule.Kind kind : Molecule.Kind.values()) {
-            if (!isMoleculeKindUnlocked(kind) && (next == null || kind.space() < next.space())) next = kind;
+            if (!isMoleculeKindUnlocked(kind)) return kind;
         }
-        return next;
-    }
-
-    /**
-     * Secondes de jeu avant que l'expansion atteigne {@code space} unités d'espace créé : 0 si
-     * c'est déjà fait, l'infini avant le premier Big Bang.
-     */
-    public double secondsUntilSpace(double space) {
-        double missing = space - state.space().toDouble();
-        if (missing <= 0) return 0;
-        double rate = spacePerSecond().toDouble();
-        return rate > 0 ? missing / rate : Double.POSITIVE_INFINITY;
+        return null;
     }
 
     /**
@@ -1918,7 +2004,8 @@ public final class Game {
     /**
      * Ce par quoi les molécules créées multiplient une grandeur : {@code 1 + la somme} de leurs
      * bonus sur cette grandeur ({@link Molecule.Boost}), chacun compté autant de fois que sa
-     * molécule a été créée. Vaut 1 sans molécule.
+     * molécule a été créée, plus ce que donnent leurs rassemblements, les assemblages formés
+     * ({@link Assembly#boost()}) et les astres formés ({@link Body#boost()}). Vaut 1 sans molécule.
      */
     public double moleculeBoost(Molecule.Stat stat) {
         refreshMoleculeBonuses();
@@ -1934,22 +2021,372 @@ public final class Game {
         return elementUncaps.getOrDefault(atomicNumber, 0);
     }
 
-    /** Recalcule ce que donnent les molécules, quand leur liste a changé. */
+    /**
+     * Recalcule ce que donnent les molécules, rassemblées ou non, quand leur liste a changé. Une
+     * sorte de molécule compte pour {@link #effectiveMolecules(String)} : un plafond relevé prend
+     * la partie entière de ce nombre. Chaque molécule rassemblée ajoute en plus les particules et
+     * les atomes de son état.
+     */
     private void refreshMoleculeBonuses() {
         if (moleculeBonusesVersion == state.moleculesVersion()) return;
         moleculeBonusesVersion = state.moleculesVersion();
         moleculeBoosts.clear();
         elementUncaps.clear();
-        for (Map.Entry<String, Integer> created : state.molecules().entrySet()) {
-            Molecule molecule = molecules.get(created.getKey());
+        for (String id : state.molecules().keySet()) {
+            Molecule molecule = molecules.get(id);
             if (molecule == null) continue;
-            int count = created.getValue();
+            double count = effectiveMolecules(id);
             switch (molecule.bonus()) {
                 case Molecule.Boost boost -> moleculeBoosts.merge(boost.stat(), boost.perMolecule() * count, Double::sum);
-                case Molecule.Uncap uncap -> elementUncaps.merge(uncap.element(), count, Integer::sum);
+                case Molecule.Uncap uncap -> elementUncaps.merge(uncap.element(), (int) Math.floor(count + 1e-9), Integer::sum);
                 case null -> { }
             }
+            int gathered = gatheredMolecules(id);
+            if (gathered > 0) {
+                Molecule.State matter = molecule.state();
+                if (matter.particles() > 0) moleculeBoosts.merge(Molecule.Stat.PARTICLES, matter.particles() * gathered, Double::sum);
+                if (matter.atoms() > 0) moleculeBoosts.merge(Molecule.Stat.ATOMS, matter.atoms() * gathered, Double::sum);
+            }
         }
+        // Les assemblages formés ajoutent chacun leur part à la grandeur de leur famille, et les astres à la leur.
+        for (String id : state.assemblies()) {
+            Assembly assembly = assemblies.get(id);
+            if (assembly != null) moleculeBoosts.merge(assembly.boost().stat(), assembly.boost().perMolecule(), Double::sum);
+        }
+        for (String id : state.bodies()) {
+            Body body = bodies.get(id);
+            if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule(), Double::sum);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Les améliorations d'espace
+    // ------------------------------------------------------------------
+
+    /** Toutes les améliorations liées à l'espace, dans l'ordre du catalogue. */
+    public List<SpaceUpgrade> spaceUpgrades() {
+        return List.copyOf(spaceUpgrades.values());
+    }
+
+    private SpaceUpgrade spaceUpgrade(String spaceUpgradeId) {
+        SpaceUpgrade upgrade = spaceUpgrades.get(spaceUpgradeId);
+        if (upgrade == null) throw new IllegalArgumentException("Amélioration d'espace inconnue : " + spaceUpgradeId);
+        return upgrade;
+    }
+
+    /** Vrai si cette amélioration d'espace est acquise. */
+    public boolean ownsSpaceUpgrade(String spaceUpgradeId) {
+        return state.ownsSpaceUpgrade(spaceUpgrade(spaceUpgradeId).id());
+    }
+
+    /**
+     * Vrai si cette amélioration peut se prendre dès que l'espace créé suffit : le premier Big Bang
+     * a eu lieu, et celle dont elle dépend est déjà acquise.
+     */
+    public boolean isSpaceUpgradeAvailable(String spaceUpgradeId) {
+        SpaceUpgrade upgrade = spaceUpgrade(spaceUpgradeId);
+        return isBigBangUnlocked() && (upgrade.requires() == null || state.ownsSpaceUpgrade(upgrade.requires()));
+    }
+
+    /**
+     * Vrai si cette amélioration peut être prise maintenant : elle est accessible, pas encore
+     * acquise, et l'expansion a créé en tout autant d'espace qu'elle en demande
+     * ({@link SpaceUpgrade#space()}). L'espace libre n'entre pas en compte.
+     */
+    public boolean canBuySpaceUpgrade(String spaceUpgradeId) {
+        SpaceUpgrade upgrade = spaceUpgrade(spaceUpgradeId);
+        return state.started() && isSpaceUpgradeAvailable(spaceUpgradeId) && !state.ownsSpaceUpgrade(upgrade.id())
+                && hasCreatedSpace(upgrade.space());
+    }
+
+    /**
+     * Prend une amélioration d'espace. Rien n'est dépensé : c'est l'espace gagné qui l'ouvre, et il
+     * reste entièrement disponible pour les molécules et leurs rassemblements. Elle est définitive, ni
+     * l'explosion ni le Big Bang ne la reprennent.
+     *
+     * @return {@code true} si l'amélioration a été prise
+     */
+    public boolean buySpaceUpgrade(String spaceUpgradeId) {
+        if (!canBuySpaceUpgrade(spaceUpgradeId)) return false;
+        state.addSpaceUpgrade(spaceUpgrade(spaceUpgradeId).id());
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Les états de la matière : gaz, liquides, solides
+    // ------------------------------------------------------------------
+
+    /** Vrai une fois acquise l'amélioration d'espace qui ouvre le rassemblement des molécules ({@link SpaceUpgrade.OpenStates}). */
+    public boolean isStatesUnlocked() {
+        if (!isBigBangUnlocked()) return false;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.OpenStates && state.ownsSpaceUpgrade(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Vrai si les molécules de cette sorte sont rassemblées en leur substance : un gaz, un liquide ou un solide. */
+    public boolean hasSubstance(String moleculeId) {
+        return state.hasSubstance(molecule(moleculeId).id());
+    }
+
+    /**
+     * Espace que réserve le lieu où se rassemblent les molécules de cette sorte : le volume des
+     * {@link #SUBSTANCE_MOLECULES} molécules qu'il faut pour l'ouvrir, multiplié par ce que
+     * demande leur état ({@link Molecule.State#spaceFactor()}, trois fois pour un gaz). Il se
+     * paie une seule fois, et ne grandit pas avec le nombre de molécules rassemblées.
+     *
+     * @throws IllegalArgumentException si ces molécules ne se rassemblent pas
+     */
+    public BigNum substanceSpace(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        if (!molecule.hasState()) throw new IllegalArgumentException(moleculeId + " ne forme pas de substance");
+        return BigNum.of(SPACE_PER_PROTON * molecule.protons() * SUBSTANCE_MOLECULES * molecule.state().spaceFactor());
+    }
+
+    /**
+     * Vrai si les molécules de cette sorte peuvent être rassemblées maintenant : le rassemblement
+     * est ouvert, elles ont un état, elles ne sont pas déjà rassemblées, le joueur en possède
+     * {@link #SUBSTANCE_MOLECULES}, et l'espace libre suffit à leur lieu ({@link #substanceSpace(String)}).
+     */
+    public boolean canFormSubstance(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        if (!state.started() || !isStatesUnlocked() || !molecule.hasState()) return false;
+        if (state.hasSubstance(molecule.id())) return false;
+        if (state.moleculeCount(molecule.id()) < SUBSTANCE_MOLECULES) return false;
+        return hasFreeSpace(substanceSpace(moleculeId));
+    }
+
+    /**
+     * Rassemble les molécules d'une sorte en leur substance : un gaz, un liquide ou un solide,
+     * selon la molécule ({@link Molecule#state()}). C'est un achat unique par sorte de molécule :
+     * il réserve un lieu dans l'espace ({@link #substanceSpace(String)}), et toutes les molécules
+     * de la sorte s'y rangent, celles d'aujourd'hui comme celles qui seront créées ensuite.
+     *
+     * <p>Aucune molécule n'est consommée : elles gardent leur place et leur prix. Ce que donne le
+     * rassemblement dépend du nombre de molécules possédées : leur bonus les compte à l'exposant
+     * de leur état ({@link #effectiveMolecules(String)}), et chacune ajoute sa part de particules
+     * ou d'atomes. Le rassemblement est définitif.
+     *
+     * @return {@code true} si les molécules ont été rassemblées
+     */
+    public boolean formSubstance(String moleculeId) {
+        if (!canFormSubstance(moleculeId)) return false;
+        state.addSubstance(molecule(moleculeId).id());
+        return true;
+    }
+
+    /** Nombre de molécules de cette sorte rangées dans leur lieu de rassemblement : toutes si elles sont rassemblées, aucune sinon. */
+    public int gatheredMolecules(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        return molecule.hasState() && state.hasSubstance(molecule.id()) ? state.moleculeCount(molecule.id()) : 0;
+    }
+
+    /**
+     * Pour combien de molécules cette sorte compte dans les bonus : leur nombre, élevé à la
+     * puissance de leur état quand elles sont rassemblées. Trois molécules d'un liquide (exposant
+     * 1,25) comptent pour 3,95 ; dix, pour 17,78.
+     */
+    public double effectiveMolecules(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        int count = state.moleculeCount(molecule.id());
+        if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return count;
+        return Math.pow(count, molecule.state().exponent());
+    }
+
+    /** Nombre de sortes de molécules rassemblées dans le lieu de leur état. */
+    public int substancesFormed() {
+        return state.substances().size();
+    }
+
+    // ------------------------------------------------------------------
+    // Les assemblages : roches, minerais, pierres précieuses, eaux, gaz, hydrocarbures
+    // ------------------------------------------------------------------
+
+    /** Vrai une fois acquise l'amélioration d'espace qui ouvre les assemblages ({@link SpaceUpgrade.OpenAssemblies}). */
+    public boolean isAssembliesUnlocked() {
+        if (!isBigBangUnlocked()) return false;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.OpenAssemblies && state.ownsSpaceUpgrade(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Tous les assemblages, dans l'ordre du catalogue ({@link Assemblies}). */
+    public List<Assembly> assemblies() {
+        return List.copyOf(assemblies.values());
+    }
+
+    /**
+     * L'assemblage de cet identifiant.
+     *
+     * @throws IllegalArgumentException si l'identifiant est inconnu
+     */
+    public Assembly assembly(String assemblyId) {
+        Assembly assembly = assemblies.get(assemblyId);
+        if (assembly == null) throw new IllegalArgumentException("Assemblage inconnu : " + assemblyId);
+        return assembly;
+    }
+
+    /** Vrai si cet assemblage est formé. */
+    public boolean hasAssembly(String assemblyId) {
+        return state.hasAssembly(assembly(assemblyId).id());
+    }
+
+    /** Nombre d'assemblages formés. */
+    public int assembliesFormed() {
+        return state.assemblies().size();
+    }
+
+    /**
+     * Nombre de molécules de cette sorte entrées dans des assemblages : la somme de ce qu'en
+     * demande chaque assemblage formé. Elles ne sont plus dans l'amas de leur sorte, et aucun
+     * autre assemblage ne peut compter dessus.
+     */
+    public int assembledMolecules(String moleculeId) {
+        String id = molecule(moleculeId).id();
+        int assembled = 0;
+        for (String formed : state.assemblies()) {
+            Assembly assembly = assemblies.get(formed);
+            if (assembly != null) assembled += assembly.ingredients().getOrDefault(id, 0);
+        }
+        return assembled;
+    }
+
+    /**
+     * Nombre de molécules rassemblées de cette sorte qui ne sont dans aucun assemblage : ce qui
+     * reste dans leur amas, et ce qu'un nouvel assemblage peut prendre. Nul si elles ne sont pas rassemblées.
+     */
+    public int spareMolecules(String moleculeId) {
+        return Math.max(0, gatheredMolecules(moleculeId) - assembledMolecules(moleculeId));
+    }
+
+    /**
+     * Vrai si cet assemblage peut être formé maintenant : les assemblages sont ouverts, il n'est
+     * pas déjà formé, et chacun de ses ingrédients est rassemblé, avec assez de molécules encore
+     * hors de tout assemblage ({@link #spareMolecules(String)}).
+     */
+    public boolean canFormAssembly(String assemblyId) {
+        Assembly assembly = assembly(assemblyId);
+        if (!state.started() || !isAssembliesUnlocked() || state.hasAssembly(assembly.id())) return false;
+        for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+            if (spareMolecules(ingredient.getKey()) < ingredient.getValue()) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Forme un assemblage : c'est un achat unique, qui ne consomme rien. Les molécules qu'il
+     * demande quittent l'amas de leur sorte pour entrer dans son bloc ; elles comptent toujours
+     * comme des molécules de leur sorte, avec leur bonus et celui de leur rassemblement. En plus,
+     * l'assemblage augmente la grandeur de sa famille ({@link Assembly#boost()}). Il est
+     * définitif : ni l'explosion ni le Big Bang ne le défont.
+     *
+     * @return {@code true} si l'assemblage a été formé
+     */
+    public boolean formAssembly(String assemblyId) {
+        if (!canFormAssembly(assemblyId)) return false;
+        state.addAssembly(assembly(assemblyId).id());
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Les astres : amas de roches, comètes, astéroïdes, lunes, planètes
+    // ------------------------------------------------------------------
+
+    /** Vrai une fois acquise l'amélioration d'espace qui ouvre les astres ({@link SpaceUpgrade.OpenBodies}). */
+    public boolean isBodiesUnlocked() {
+        if (!isBigBangUnlocked()) return false;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.OpenBodies && state.ownsSpaceUpgrade(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Tous les astres, du plus petit au plus grand ({@link Bodies}). */
+    public List<Body> bodies() {
+        return List.copyOf(bodies.values());
+    }
+
+    /**
+     * L'astre de cet identifiant.
+     *
+     * @throws IllegalArgumentException si l'identifiant est inconnu
+     */
+    public Body body(String bodyId) {
+        Body body = bodies.get(bodyId);
+        if (body == null) throw new IllegalArgumentException("Astre inconnu : " + bodyId);
+        return body;
+    }
+
+    /** Vrai si cet astre est formé. */
+    public boolean hasBody(String bodyId) {
+        return state.hasBody(body(bodyId).id());
+    }
+
+    /** Nombre d'astres formés. */
+    public int bodiesFormed() {
+        return state.bodies().size();
+    }
+
+    /**
+     * Nombre de molécules rassemblées dans cet état, toutes sortes confondues, qu'elles soient
+     * dans leur amas ou dans un assemblage : c'est la matière que demande un astre ({@link Body#matter()}).
+     */
+    public int gatheredInState(Molecule.State matter) {
+        if (gatheredByStateVersion != state.moleculesVersion()) {
+            gatheredByStateVersion = state.moleculesVersion();
+            gatheredByState.clear();
+            for (String id : state.substances()) {
+                Molecule molecule = molecules.get(id);
+                if (molecule != null && molecule.hasState()) gatheredByState.merge(molecule.state(), state.moleculeCount(id), Integer::sum);
+            }
+        }
+        return gatheredByState.getOrDefault(matter, 0);
+    }
+
+    /** Nombre de conditions de cet astre déjà réunies, sur {@link Body#conditions()}. */
+    public int bodyConditionsMet(String bodyId) {
+        Body body = body(bodyId);
+        int met = 0;
+        for (String needed : body.bodies()) {
+            if (state.hasBody(needed)) met++;
+        }
+        for (String needed : body.assemblies()) {
+            if (state.hasAssembly(needed)) met++;
+        }
+        for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+            if (gatheredInState(needed.getKey()) >= needed.getValue()) met++;
+        }
+        for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+            if (state.moleculeCount(needed.getKey()) >= needed.getValue()) met++;
+        }
+        return met;
+    }
+
+    /**
+     * Vrai si cet astre peut être formé maintenant : les astres sont ouverts, il n'est pas déjà
+     * formé, et toutes ses conditions sont réunies ({@link #bodyConditionsMet(String)}) : ses
+     * astres plus petits et ses assemblages sont formés, sa matière est rassemblée, ses molécules sont créées.
+     */
+    public boolean canFormBody(String bodyId) {
+        Body body = body(bodyId);
+        return state.started() && isBodiesUnlocked() && !state.hasBody(body.id())
+                && bodyConditionsMet(bodyId) == body.conditions();
+    }
+
+    /**
+     * Forme un astre : c'est un achat unique. Rien n'est consommé ni réservé : ce qu'il demande
+     * reste là, et peut servir à d'autres astres. Une fois formé, il augmente sa grandeur de ce que
+     * vaut son échelle ({@link Body#boost()}). Il est définitif : ni l'explosion ni le Big Bang ne
+     * le défont.
+     *
+     * @return {@code true} si l'astre a été formé
+     */
+    public boolean formBody(String bodyId) {
+        if (!canFormBody(bodyId)) return false;
+        state.addBody(body(bodyId).id());
+        return true;
     }
 
     // ------------------------------------------------------------------
@@ -1968,7 +2405,8 @@ public final class Game {
     /**
      * Fait passer le temps de l'expansion : l'espace grandit de {@link #spacePerSecond()} par
      * seconde de jeu, quoi que fasse le joueur. Rien ne le reprend, ni l'explosion ni le Big Bang ;
-     * les molécules en occupent une part ({@link #occupiedSpace()}).
+     * les molécules en occupent une part ({@link #occupiedSpace()}), leurs lieux de rassemblement en réservent une autre
+     * ({@link #reservedSpace()}).
      */
     private void expandSpace(double dt) {
         if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;

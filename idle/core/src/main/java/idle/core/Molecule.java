@@ -13,10 +13,10 @@ import java.util.Map;
  * molécule créée occupe de l'espace ({@link #protons()}). Plus une molécule est complexe ou faite
  * d'éléments lourds, plus elle demande des deux.
  *
- * <p>Certaines molécules donnent quelque chose en retour ({@link Bonus}), autant de fois qu'elles
- * ont été créées : un léger bonus sur une grandeur du jeu, ou un exemplaire de plus au maximum
- * d'un de leurs éléments dans le tableau périodique. Pour l'instant, seules les petites molécules
- * en ont un ; les autres n'en portent pas ({@code bonus} vaut {@code null}).
+ * <p>Une molécule donne quelque chose en retour ({@link Bonus}), autant de fois qu'elle a été
+ * créée : un léger bonus sur une grandeur du jeu, ou un exemplaire de plus au maximum d'un de ses
+ * éléments dans le tableau périodique. Toutes celles du catalogue en ont un ({@link Molecules}) ;
+ * une molécule peut ne pas en porter ({@code bonus} vaut {@code null}).
  *
  * @param id      identifiant stable (sert de clé dans la sauvegarde) : la formule en clair, « H2O »
  * @param name    nom affiché
@@ -24,8 +24,11 @@ import java.util.Map;
  * @param recipe  numéro atomique → nombre d'atomes dans une molécule, dans l'ordre de la formule
  * @param kind    le rayon du catalogue où elle est rangée
  * @param bonus   ce que donne chaque molécule créée, ou {@code null} si elle ne donne rien
+ * @param state   l'état de la substance que forment ces molécules une fois réunies, ou {@code null}
+ *                si elles ne se rassemblent pas (toutes celles du catalogue en ont un)
  */
-public record Molecule(String id, String name, String formula, Map<Integer, Integer> recipe, Kind kind, Bonus bonus) {
+public record Molecule(String id, String name, String formula, Map<Integer, Integer> recipe, Kind kind, Bonus bonus,
+                       State state) {
 
     /** Les grandeurs qu'une molécule peut augmenter. */
     public enum Stat {
@@ -70,29 +73,71 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
 
     /**
      * Les rayons du catalogue, du plus simple au plus rare. Seules les petites molécules sont là
-     * dès le premier Big Bang : chaque rayon suivant s'ouvre quand l'expansion de la matière a créé
-     * assez d'espace ({@link #space()}), dans l'ordre de l'énumération.
-     *
-     * <p>À une unité d'espace par seconde, le deuxième rayon s'ouvre après une demi-heure, le
-     * quatrième après huit heures ; les derniers demandent plusieurs Big Bangs, puisque chacun
-     * accélère l'expansion. C'est un premier réglage, pas encore passé par la simulation.
+     * dès le premier Big Bang : chaque rayon suivant s'ouvre avec une amélioration, quand l'expansion a
+     * créé assez d'espace ({@link SpaceUpgrades}), dans l'ordre de l'énumération.
      */
     public enum Kind {
-        SIMPLE("Petites molécules", 0),
-        ACID("Acides et bases", 2_000),
-        SALT("Sels", 10_000),
-        MINERAL("Minéraux", 30_000),
-        MATERIAL("Matériaux", 80_000),
-        ORGANIC("Chimie organique", 200_000),
-        LIFE("Vivant", 500_000),
-        RARE("Terres rares et éléments lourds", 1_000_000);
+        SIMPLE("Petites molécules"),
+        ACID("Acides et bases"),
+        SALT("Sels"),
+        MINERAL("Minéraux"),
+        MATERIAL("Matériaux"),
+        ORGANIC("Chimie organique"),
+        LIFE("Vivant"),
+        RARE("Terres rares et éléments lourds");
 
         private final String label;
-        private final double space;
 
-        Kind(String label, double space) {
+        Kind(String label) {
             this.label = label;
-            this.space = space;
+        }
+
+        /** Nom affiché au joueur. */
+        public String label() {
+            return label;
+        }
+    }
+
+    /**
+     * L'état que prend une substance quand ses molécules se rassemblent, à température ambiante :
+     * c'est ce que donne {@link Game#formSubstance(String)}. Chaque état a son lieu dans l'espace,
+     * où toutes les molécules de la sorte vont se ranger.
+     *
+     * <p>Chaque état a son exposant : le nombre de molécules rassemblées est compté à cette
+     * puissance dans leur bonus, donc pour un peu plus qu'elles-mêmes. Plus l'état est serré, plus
+     * il les compte : un métal davantage qu'un cristal, un cristal davantage qu'un solide, et
+     * ainsi jusqu'au gaz, qui demande en plus le lieu le plus vaste. Chaque molécule rassemblée
+     * ajoute enfin sa part de particules ou d'atomes.
+     *
+     * <p>Les trois états solides se distinguent par ce qui tient la matière ensemble : des
+     * molécules entières posées les unes contre les autres (solide : le sucre, l'iode), un réseau
+     * d'ions ou d'atomes liés de proche en proche (cristal : le sel, le quartz), ou des électrons
+     * mis en commun (métal : les alliages, les carbures conducteurs).
+     */
+    public enum State {
+        /** Demande un lieu de trois fois la place de ses molécules, et ajoute des particules. */
+        GAS("Gaz", 1.15, 3, 0.08, 0),
+        /** Entre les deux : un peu de particules, un peu d'atomes. */
+        LIQUID("Liquide", 1.25, 1.5, 0.05, 0.02),
+        /** Un solide fait de molécules entières : tient dans la place de ses molécules, et ajoute des atomes. */
+        SOLID("Solide", 1.35, 1, 0, 0.05),
+        /** Un réseau d'ions ou d'atomes : tient dans la place de ses molécules, ajoute des atomes et un peu de particules. */
+        CRYSTAL("Cristal", 1.40, 1, 0.03, 0.05),
+        /** Le plus serré : tient dans les trois quarts de la place de ses molécules, et ajoute le plus d'atomes. */
+        METAL("Métal", 1.45, 0.75, 0, 0.08);
+
+        private final String label;
+        private final double exponent;
+        private final double spaceFactor;
+        private final double particles;
+        private final double atoms;
+
+        State(String label, double exponent, double spaceFactor, double particles, double atoms) {
+            this.label = label;
+            this.exponent = exponent;
+            this.spaceFactor = spaceFactor;
+            this.particles = particles;
+            this.atoms = atoms;
         }
 
         /** Nom affiché au joueur. */
@@ -100,13 +145,24 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
             return label;
         }
 
-        /**
-         * Le palier d'espace du rayon : l'espace que l'expansion doit avoir créé en tout pour qu'il
-         * s'ouvre. C'est l'espace créé qui compte, pas l'espace libre : remplir l'espace de
-         * molécules ne referme rien.
-         */
-        public double space() {
-            return space;
+        /** La puissance à laquelle est compté le nombre de molécules rassemblées, un peu au-dessus de 1. */
+        public double exponent() {
+            return exponent;
+        }
+
+        /** Espace que demande le lieu du rassemblement, en multiples du volume des molécules qu'il faut pour l'ouvrir. */
+        public double spaceFactor() {
+            return spaceFactor;
+        }
+
+        /** Ce que chaque molécule rassemblée ajoute aux particules de chaque création (0.08 = +8 %). */
+        public double particles() {
+            return particles;
+        }
+
+        /** Ce que chaque molécule rassemblée ajoute aux atomes de chaque fusion de générateurs (0.05 = +5 %). */
+        public double atoms() {
+            return atoms;
         }
     }
 
@@ -141,12 +197,12 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
         Map<Integer, Integer> recipe = new LinkedHashMap<>();
         int end = parse(plainFormula, 0, 1, recipe, plainFormula);
         if (end != plainFormula.length()) throw new IllegalArgumentException("Formule illisible : " + plainFormula);
-        return new Molecule(plainFormula, name, subscripts(plainFormula), recipe, kind, null);
+        return new Molecule(plainFormula, name, subscripts(plainFormula), recipe, kind, null, null);
     }
 
     /** La même molécule, qui augmente une grandeur de {@code perMolecule} par molécule créée (0.05 = +5 %). */
     public Molecule boosting(Stat stat, double perMolecule) {
-        return new Molecule(id, name, formula, recipe, kind, new Boost(stat, perMolecule));
+        return new Molecule(id, name, formula, recipe, kind, new Boost(stat, perMolecule), state);
     }
 
     /**
@@ -156,7 +212,37 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
      * @throws IllegalArgumentException si la molécule ne contient pas cet élément
      */
     public Molecule uncapping(String symbol) {
-        return new Molecule(id, name, formula, recipe, kind, new Uncap(PeriodicTable.bySymbol(symbol).number()));
+        return new Molecule(id, name, formula, recipe, kind, new Uncap(PeriodicTable.bySymbol(symbol).number()), state);
+    }
+
+    /** La même molécule, dont la substance est un gaz à température ambiante. */
+    public Molecule gas() {
+        return new Molecule(id, name, formula, recipe, kind, bonus, State.GAS);
+    }
+
+    /** La même molécule, dont la substance est un liquide à température ambiante. */
+    public Molecule liquid() {
+        return new Molecule(id, name, formula, recipe, kind, bonus, State.LIQUID);
+    }
+
+    /** La même molécule, dont la substance est un solide fait de molécules entières à température ambiante. */
+    public Molecule solid() {
+        return new Molecule(id, name, formula, recipe, kind, bonus, State.SOLID);
+    }
+
+    /** La même molécule, dont la substance est un cristal : un réseau d'ions ou d'atomes, comme le sel ou le quartz. */
+    public Molecule crystal() {
+        return new Molecule(id, name, formula, recipe, kind, bonus, State.CRYSTAL);
+    }
+
+    /** La même molécule, dont la substance est un métal : un alliage ou un composé qui conduit comme un métal. */
+    public Molecule metal() {
+        return new Molecule(id, name, formula, recipe, kind, bonus, State.METAL);
+    }
+
+    /** Vrai si ces molécules peuvent se rassembler en une substance. */
+    public boolean hasState() {
+        return state != null;
     }
 
     /** Vrai si chaque molécule créée de cette sorte donne quelque chose. */

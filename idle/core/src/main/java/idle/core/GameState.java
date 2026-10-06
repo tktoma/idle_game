@@ -54,6 +54,10 @@ public final class GameState {
     private final Map<String, Integer> molecules = new HashMap<>();
     private final List<String> moleculeLog = new ArrayList<>();
     private int moleculesVersion = 0;
+    private final Set<String> substances = new java.util.LinkedHashSet<>();
+    private final Set<String> assemblies = new java.util.LinkedHashSet<>();
+    private final Set<String> bodies = new java.util.LinkedHashSet<>();
+    private final Set<String> spaceUpgrades = new java.util.LinkedHashSet<>();
     private BigNum space = BigNum.ZERO;
     private GameStats stats = new GameStats();
 
@@ -352,6 +356,70 @@ public final class GameState {
         return Collections.unmodifiableList(moleculeLog);
     }
 
+    /**
+     * Vrai si les molécules de cette sorte sont rassemblées en leur substance (gaz, liquide ou
+     * solide). Ni l'explosion ni le Big Bang ne défont un rassemblement.
+     */
+    public boolean hasSubstance(String moleculeId) {
+        return substances.contains(moleculeId);
+    }
+
+    /** Note les molécules de cette sorte comme rassemblées. */
+    public void addSubstance(String moleculeId) {
+        if (substances.add(moleculeId)) moleculesVersion++;
+    }
+
+    /** Les sortes de molécules rassemblées, dans l'ordre où elles l'ont été. */
+    public List<String> substances() {
+        return List.copyOf(substances);
+    }
+
+    /** Vrai si cet assemblage est formé. Ni l'explosion ni le Big Bang ne le défont. */
+    public boolean hasAssembly(String assemblyId) {
+        return assemblies.contains(assemblyId);
+    }
+
+    /** Note un assemblage comme formé. */
+    public void addAssembly(String assemblyId) {
+        if (assemblies.add(assemblyId)) moleculesVersion++;
+    }
+
+    /** Les assemblages formés, dans l'ordre où ils l'ont été. */
+    public List<String> assemblies() {
+        return List.copyOf(assemblies);
+    }
+
+    /** Vrai si cet astre est formé. Ni l'explosion ni le Big Bang ne le défont. */
+    public boolean hasBody(String bodyId) {
+        return bodies.contains(bodyId);
+    }
+
+    /** Note un astre comme formé. */
+    public void addBody(String bodyId) {
+        if (bodies.add(bodyId)) moleculesVersion++;
+    }
+
+    /** Les astres formés, dans l'ordre où ils l'ont été. */
+    public List<String> bodies() {
+        return List.copyOf(bodies);
+    }
+
+    /** Vrai si cette amélioration d'espace est acquise. Ni l'explosion ni le Big Bang ne la reprennent. */
+    public boolean ownsSpaceUpgrade(String spaceUpgradeId) {
+        return spaceUpgrades.contains(spaceUpgradeId);
+    }
+
+    /** Note une amélioration d'espace comme acquise. */
+    public void addSpaceUpgrade(String spaceUpgradeId) {
+        spaceUpgrades.add(spaceUpgradeId);
+        moleculesVersion++;
+    }
+
+    /** Vue en lecture seule des améliorations d'espace acquises, pour la sauvegarde. */
+    public Set<String> spaceUpgrades() {
+        return Set.copyOf(spaceUpgrades);
+    }
+
     /** Nombre de sortes de molécules différentes créées. */
     public int moleculeKinds() {
         return molecules.size();
@@ -526,6 +594,10 @@ public final class GameState {
         bigBangs = 0;
         molecules.clear();
         moleculeLog.clear();
+        substances.clear();
+        assemblies.clear();
+        bodies.clear();
+        spaceUpgrades.clear();
         moleculesVersion++;
         space = BigNum.ZERO;
         stats = new GameStats();
@@ -536,7 +608,7 @@ public final class GameState {
      * son arbre, ses automatismes, la masse du tableau, le nombre d'explosions et les défis
      * réussis, avec les réglages que l'arbre avait ouverts. Les records des défis restent, comme
      * les succès, le temps de jeu et les statistiques, et ce qui appartient à l'acte du Big Bang :
-     * les molécules et l'espace. C'est ce que fait un Big Bang, en plus de
+     * les molécules, les substances, les assemblages, les astres, l'espace et ses améliorations. C'est ce que fait un Big Bang, en plus de
      * {@link #clearMatter()}.
      */
     public void clearDarkMatter() {
