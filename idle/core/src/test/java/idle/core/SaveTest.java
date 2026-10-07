@@ -94,6 +94,27 @@ class SaveTest {
         state.setAutoMolecules(false);
         state.setMoleculeAutomated("H2O", true);
         state.setMoleculeAutomated("CO2", true);
+        state.setAutomationPaused(true);
+        state.setAutoGather(false);
+        state.setAutoForm(false);
+        state.setAutoMoleculeReserve(0.25);
+        state.setExplosionRecord(431.5);
+        state.setCometWait(512.25);
+        state.setCometVisible(12.5);
+        state.setCometBoost(88.75);
+        state.setCometsCaught(7);
+        state.setRecord("FIRST_FUSION", 2280.5);
+        state.setRecord("GALAXY", 231_456.75);
+        state.setActiveBangChallenge("FORGOTTEN");
+        state.addCompletedBangChallenge("VOID");
+        state.setBangChallengeTime("VOID", 3120.5);
+        state.setBangChallengeStarted(190_000.25);
+        state.setAtomUpgradeOrder(List.of("atom_mass", "atom_double"));
+        state.setAtomUpgradeOrdered(true);
+        state.setAutomationOrder(List.of("auto_fusion", "auto_speed"));
+        state.setAutomationOrdered(true);
+        state.setMoleculeFavorite("CO2", true);
+        state.setMoleculeFavorite("H2O", true);
         state.addSpaceUpgrade("space_b");
         state.addSpaceUpgrade("space_a");
         state.setSpace(BigNum.of(5.17, 10));
@@ -108,6 +129,7 @@ class SaveTest {
         stats.noteFusion(BigNum.of(11), 12.25);
         stats.noteAutomationAction();
         stats.noteDarkAutomationAction();
+        stats.noteSpeedPrime();
         stats.noteDarkAutomationAction();
         stats.noteSynthesis(2, true);
         stats.noteSynthesisTry();
@@ -567,10 +589,11 @@ class SaveTest {
             state.addAssembly("assemblage_disparu");
             state.addBody("astre_disparu");
             state.addSpaceUpgrade("espace_disparu");
+            state.setMoleculeFavorite("XxYy", true);
             int known = state.upgradeLevels().size() - 1;
 
             Game reloaded = play(copy(state), 1);
-            assertEquals(14, reloaded.restored());
+            assertEquals(15, reloaded.restored());
             GameState kept = reloaded.state();
             assertEquals(known, kept.upgradeLevels().size());
             assertFalse(kept.ownsAutomation("automatisme_disparu"));
@@ -583,6 +606,7 @@ class SaveTest {
             assertTrue(kept.moleculeLog().isEmpty());
             assertFalse(kept.hasSubstance("XxYy"));
             assertFalse(kept.isMoleculeAutomated("XxYy"));
+            assertFalse(kept.isMoleculeFavorite("XxYy"));
             assertFalse(kept.hasAssembly("assemblage_disparu"));
             assertFalse(kept.hasBody("astre_disparu"));
             assertFalse(kept.ownsSpaceUpgrade("espace_disparu"));

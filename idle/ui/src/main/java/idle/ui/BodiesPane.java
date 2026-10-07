@@ -40,6 +40,8 @@ final class BodiesPane extends VBox {
     private final Runnable changed;
     private final SkyView sky;
     private final Label intro = new Label();
+    /** Le geste groupé, une fois acquis : former d'un clic tous les astres prêts. */
+    private final javafx.scene.control.Button formAll = new javafx.scene.control.Button();
     private final Map<Body.Tier, Label> tierTitles = new EnumMap<>(Body.Tier.class);
     private final Map<Body.Tier, TileGrid> tierGrids = new EnumMap<>(Body.Tier.class);
     private final Map<Body, Card> cards = new LinkedHashMap<>();
@@ -85,7 +87,16 @@ final class BodiesPane extends VBox {
         scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
+        formAll.setStyle("-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand; -fx-background-radius: 4; -fx-border-radius: 4;"
+                + " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;");
+        formAll.setFocusTraversable(false);
+        formAll.setOnAction(event -> {
+            game.formAllBodies();
+            Readiness.of(game).compute();
+            this.changed.run();
+        });
         getChildren().add(intro);
+        getChildren().add(formAll);
         getChildren().add(skyPane);
         getChildren().add(scroll);
     }
@@ -105,8 +116,14 @@ final class BodiesPane extends VBox {
         sky.frame(elapsed);
     }
 
+    /** Le bouton « Former les astres prêts » : pour les vérifications. */
+    javafx.scene.control.Button formAllButton() {
+        return formAll;
+    }
+
     /** Recopie l'état du jeu dans les cartes. */
     void refresh() {
+        BigBangPage.showBulk(formAll, game.isBulkFormUnlocked(), "Former les astres prêts", game.bodiesReady());
         Map<Body.Tier, int[]> tiers = new EnumMap<>(Body.Tier.class);     // par échelle : cartes montrées, astres formés
         for (Body body : game.bodies()) {
             boolean formed = game.hasBody(body.id());
@@ -234,6 +251,6 @@ final class BodiesPane extends VBox {
 
     /** Un état, comme on compte sa matière : « gaz rassemblés », « cristaux rassemblés ». */
     private static String matterName(Molecule.State matter) {
-        return BigBangPage.placeTitle(matter).toLowerCase() + " rassemblés";
+        return MatterText.plural(matter) + " rassemblés";
     }
 }

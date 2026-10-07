@@ -1,10 +1,10 @@
 package idle.core;
 
 /**
- * Une amélioration liée à l'espace : elle se prend quand l'expansion de la matière a créé assez
- * d'espace en tout ({@link Game#buySpaceUpgrade(String)}). C'est l'espace gagné depuis le premier
- * Big Bang qui compte, pas celui qui reste libre : la prendre ne dépense rien, et remplir l'espace
- * de molécules ne l'éloigne pas.
+ * Une amélioration liée à l'espace : elle est acquise d'elle-même dès que l'expansion de la
+ * matière a créé assez d'espace en tout. C'est l'espace gagné depuis le premier Big Bang qui
+ * compte, pas celui qui reste libre : elle ne dépense rien, et remplir l'espace de molécules ne
+ * l'éloigne pas.
  *
  * @param id       identifiant stable (sert de clé dans la sauvegarde)
  * @param name     nom affiché
@@ -40,6 +40,44 @@ public record SpaceUpgrade(String id, String name, BigNum space, String requires
      * règle dans l'onglet Automatisation.
      */
     public record AutoHold() implements Effect {}
+
+    /**
+     * Tenir le clic sur une molécule répète sa création, tant que les éléments et l'espace suivent
+     * ({@link Game#isHoldCreateUnlocked()}). L'effet est dans l'interface.
+     */
+    public record HoldCreate() implements Effect {}
+
+    /**
+     * Donne les gestes groupés : tout rassembler, tout assembler, former tous les astres prêts, d'un
+     * seul clic chacun ({@link Game#formAllSubstances()}, {@link Game#formAllAssemblies()},
+     * {@link Game#formAllBodies()}).
+     */
+    public record BulkForm() implements Effect {}
+
+    /**
+     * Donne l'automatisme « Rassemblement automatique » : toute sorte qui atteint le nombre de
+     * molécules voulu se rassemble d'elle-même, si l'espace libre suffit
+     * ({@link Game#isAutoGathering()}). Il se règle dans l'onglet Automatisation.
+     */
+    public record AutoGather() implements Effect {}
+
+    /**
+     * Donne l'automatisme « Formation automatique » : les assemblages et les astres dont tout est
+     * réuni se forment d'eux-mêmes ({@link Game#isAutoForming()}). Les échelles du cosmos (galaxie,
+     * amas de galaxies, univers) restent au joueur. Il se règle dans l'onglet Automatisation.
+     */
+    public record AutoForm() implements Effect {}
+
+    /**
+     * Raccourcit le délai de la création automatique des molécules ({@link Game#moleculeAutomationInterval()}).
+     *
+     * @param seconds le nouveau délai entre deux passages, en secondes
+     */
+    public record CreationPace(double seconds) implements Effect {
+        public CreationPace {
+            if (!(seconds > 0)) throw new IllegalArgumentException("Délai invalide : " + seconds);
+        }
+    }
 
     /**
      * Multiplie pour de bon une grandeur du jeu : les atomes de chaque fusion, les particules de

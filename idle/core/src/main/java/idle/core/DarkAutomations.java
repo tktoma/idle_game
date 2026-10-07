@@ -12,8 +12,9 @@ import java.util.List;
  * automatismes ordinaires n'achètent pas (améliorations en atomes, cadences), et le dernier
  * déclenche l'explosion.
  *
- * <p>Avec les quatre en marche, le jeu enchaîne les explosions sans aucun clic ; seules restent
- * au joueur la croissance de la matière noire et ses améliorations.
+ * <p>Avec les quatre premiers en marche, le jeu enchaîne les explosions sans aucun clic ; seules
+ * restent au joueur la croissance de la matière noire et ses améliorations. Le cinquième n'existe
+ * qu'après un premier Big Bang : il rachète l'arbre, que le joueur a déjà parcouru une fois.
  */
 public final class DarkAutomations {
 
@@ -28,7 +29,10 @@ public final class DarkAutomations {
                     BigNum.of(8), 1),
             // Le dernier : avec lui, les explosions s'enchaînent toutes seules.
             new DarkAutomation("dark_auto_explosion", "Explosion", DarkAutomation.Kind.EXPLOSION,
-                    BigNum.of(14), 1));
+                    BigNum.of(14), 1),
+            // Après un premier Big Bang seulement : l'arbre, que le joueur a déjà fait une fois, se rachète tout seul.
+            new DarkAutomation("dark_auto_tree", "Arbre de matière noire", DarkAutomation.Kind.DARK_TREE,
+                    BigNum.ONE, 1));
 
     private DarkAutomations() {}
 }

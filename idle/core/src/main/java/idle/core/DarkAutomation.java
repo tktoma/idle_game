@@ -32,7 +32,13 @@ public record DarkAutomation(String id, String name, Kind kind, BigNum darkMatte
         /** Achète les automatismes ordinaires et leurs niveaux de cadence, le moins cher d'abord. */
         AUTOMATIONS,
         /** Fait exploser le tableau périodique dès que c'est possible. */
-        EXPLOSION
+        EXPLOSION,
+        /**
+         * Rachète l'arbre de matière noire, la case la moins chère d'abord, et les améliorations
+         * payées en matière noire qui ont un nombre de niveaux limité. Il ne vient qu'après un
+         * premier Big Bang : c'est en refaisant l'arbre qu'il sert.
+         */
+        DARK_TREE
     }
 
     public DarkAutomation {

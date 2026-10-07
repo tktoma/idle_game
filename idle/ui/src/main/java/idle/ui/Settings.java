@@ -105,12 +105,18 @@ final class Settings {
     private static final String SCALE = "scale";
     private static final String NOTIFICATIONS = "notifications";
     private static final String SHOW_GOAL = "showGoal";
+    private static final String STATE_SIGNS = "stateSigns";
+    private static final String CHRONO = "chrono";
     private static final String BUY_AMOUNT = "buyAmount";
     private static final String SHORTCUTS = "shortcuts";
     private static final String EFFECTS = "effects";
     private static final String CONFIRM_EXPLOSION = "confirmExplosion";
     private static final String DETAIL_KEY = "detailKey";
     private static final String DETAIL_TOGGLE = "detailToggle";
+    private static final String CONFIRM_BIG_BANG = "confirmBigBang";
+    private static final String CONFIRM_CHALLENGE = "confirmChallenge";
+    /** Préfixe des touches choisies par le joueur : une préférence par raccourci. */
+    private static final String KEY_PREFIX = "key.";
     private static final String WINDOW = "window";
     private static final String LAST_TAB = "lastTab";
     /**
@@ -131,8 +137,13 @@ final class Settings {
     private Scale scale = Scale.NORMAL;
     private boolean notifications = true;
     private boolean showGoal = true;
+    private boolean stateSigns = true;
+    private boolean chrono = true;
     private KeyCode detailKey = DEFAULT_DETAIL_KEY;
     private boolean detailToggle = false;
+    private boolean confirmBigBang = true;
+    private boolean confirmChallenge = true;
+    private final java.util.Map<Shortcuts.Action, KeyCode> keys = new java.util.EnumMap<>(Shortcuts.Action.class);
 
     /** Réglages relus dans les préférences de l'utilisateur, ou ceux par défaut si elles sont illisibles. */
     static Settings load() {
@@ -173,13 +184,32 @@ final class Settings {
                 settings.detailToggle = store.getBoolean(DETAIL_TOGGLE, false);
                 settings.notifications = store.getBoolean(NOTIFICATIONS, true);
                 settings.showGoal = store.getBoolean(SHOW_GOAL, true);
+                settings.stateSigns = store.getBoolean(STATE_SIGNS, true);
+                settings.chrono = store.getBoolean(CHRONO, true);
                 settings.shortcuts = store.getBoolean(SHORTCUTS, true);
                 settings.effects = store.getBoolean(EFFECTS, true);
                 settings.confirmExplosion = store.getBoolean(CONFIRM_EXPLOSION, true);
+                settings.confirmBigBang = store.getBoolean(CONFIRM_BIG_BANG, true);
+                settings.confirmChallenge = store.getBoolean(CONFIRM_CHALLENGE, true);
             } catch (RuntimeException unreadable) {
                 // on garde les valeurs par défaut
             }
+            for (Shortcuts.Action action : Shortcuts.Action.values()) {
+                try {
+                    KeyCode key = KeyCode.valueOf(store.get(KEY_PREFIX + action.name(), action.defaultKey().name()));
+                    // Une touche déjà prise (préférences modifiées à la main) : le raccourci garde celle d'origine, ou aucune.
+                    if (Shortcuts.bindable(key) && key != settings.detailKey && !settings.keys.containsValue(key)) settings.keys.put(action, key);
+                } catch (RuntimeException unknown) {
+                    // touche inconnue : celle d'origine sera reprise ci-dessous si elle est libre
+                }
+            }
         }
+        for (Shortcuts.Action action : Shortcuts.Action.values()) {
+            KeyCode key = action.defaultKey();
+            if (!settings.keys.containsKey(action) && key != settings.detailKey && !settings.keys.containsValue(key)) settings.keys.put(action, key);
+        }
+        Confirm.set(settings.confirmBigBang, settings.confirmChallenge);
+        Card.setSigns(settings.stateSigns);
         Format.setNotation(settings.notation);
         return settings;
     }
@@ -216,6 +246,78 @@ final class Settings {
     void setConfirmExplosion(boolean confirmExplosion) {
         this.confirmExplosion = confirmExplosion;
         save(CONFIRM_EXPLOSION, String.valueOf(confirmExplosion));
+    }
+
+    /** Vrai si le Big Bang demande un second clic de confirmation. */
+    boolean confirmBigBang() {
+        return confirmBigBang;
+    }
+
+    void setConfirmBigBang(boolean confirm) {
+        confirmBigBang = confirm;
+        Confirm.set(confirmBigBang, confirmChallenge);
+        save(CONFIRM_BIG_BANG, String.valueOf(confirm));
+    }
+
+    /** Vrai si commencer ou abandonner un défi demande un second clic de confirmation. */
+    boolean confirmChallenge() {
+        return confirmChallenge;
+    }
+
+    void setConfirmChallenge(boolean confirm) {
+        confirmChallenge = confirm;
+        Confirm.set(confirmBigBang, confirmChallenge);
+        save(CONFIRM_CHALLENGE, String.valueOf(confirm));
+    }
+
+    /** La touche d'un raccourci, ou {@code null} s'il n'en a pas (la sienne a été donnée à un autre). */
+    KeyCode key(Shortcuts.Action action) {
+        return keys.get(action);
+    }
+
+    /** Le raccourci que porte cette touche, ou {@code null}. */
+    Shortcuts.Action actionOf(KeyCode key) {
+        for (java.util.Map.Entry<Shortcuts.Action, KeyCode> entry : keys.entrySet()) {
+            if (entry.getValue() == key) return entry.getKey();
+        }
+        return null;
+    }
+
+    /**
+     * Donne une touche à un raccourci.
+     *
+     * @return faux, sans rien changer, si la touche ne peut pas porter de raccourci, si c'est la
+     *         touche de détail, ou si un autre raccourci l'a déjà
+     */
+    boolean setKey(Shortcuts.Action action, KeyCode key) {
+        if (!Shortcuts.bindable(key) || key == detailKey) return false;
+        Shortcuts.Action holder = actionOf(key);
+        if (holder != null && holder != action) return false;
+        keys.put(action, key);
+        save(KEY_PREFIX + action.name(), key.name());
+        return true;
+    }
+
+    /** Vrai si au moins un raccourci n'a plus sa touche d'origine. */
+    boolean hasCustomKeys() {
+        for (Shortcuts.Action action : Shortcuts.Action.values()) {
+            if (keys.get(action) != action.defaultKey()) return true;
+        }
+        return false;
+    }
+
+    /** Rend à chaque raccourci sa touche d'origine, sauf à celui dont la touche sert de touche de détail. */
+    void resetKeys() {
+        keys.clear();
+        for (Shortcuts.Action action : Shortcuts.Action.values()) {
+            if (action.defaultKey() != detailKey) keys.put(action, action.defaultKey());
+            if (store == null) continue;
+            try {
+                store.remove(KEY_PREFIX + action.name());
+            } catch (RuntimeException unwritable) {
+                // tant pis : la touche d'origine vaut au moins jusqu'à la fermeture du jeu
+            }
+        }
     }
 
     /** Quantité achetée à chaque clic sur une amélioration payée en particules. */
@@ -274,6 +376,27 @@ final class Settings {
     void setShowGoal(boolean showGoal) {
         this.showGoal = showGoal;
         save(SHOW_GOAL, String.valueOf(showGoal));
+    }
+
+    /** Vrai si la ligne d'objectif dit l'écart au record sur la prochaine étape, quand il y a un record. */
+    boolean chrono() {
+        return chrono;
+    }
+
+    void setChrono(boolean chrono) {
+        this.chrono = chrono;
+        save(CHRONO, String.valueOf(chrono));
+    }
+
+    /** Vrai si les cartes écrivent le signe de leur état devant leur nom, pour le reconnaître sans la couleur. */
+    boolean stateSigns() {
+        return stateSigns;
+    }
+
+    void setStateSigns(boolean stateSigns) {
+        this.stateSigns = stateSigns;
+        Card.setSigns(stateSigns);
+        save(STATE_SIGNS, String.valueOf(stateSigns));
     }
 
     /** La touche qui fait apparaître les explications complètes des cartes et des pages. */

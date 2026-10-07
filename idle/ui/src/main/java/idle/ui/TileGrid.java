@@ -25,6 +25,8 @@ final class TileGrid extends VBox {
     private static final double WIDEN_MARGIN = 24;
 
     private final List<Region> tiles = new ArrayList<>();
+    /** Les tuiles dans l'ordre où elles ont été ajoutées : celui que {@link #unsort()} rétablit. */
+    private final List<Region> added = new ArrayList<>();
     private final java.util.Set<Region> hidden = new java.util.HashSet<>();
     private final double tileWidth;
     private final int maxColumns;
@@ -53,7 +55,33 @@ final class TileGrid extends VBox {
         tile.setPrefWidth(tileWidth);          // même largeur de départ : la place en trop se partage alors à égalité
         tile.setMaxWidth(Double.MAX_VALUE);
         tiles.add(tile);
+        added.add(tile);
         arrange();
+    }
+
+    /** Range les tuiles dans un autre ordre, jusqu'au prochain tri ou à {@link #unsort()}. À égalité, l'ordre d'ajout est gardé. */
+    void sort(java.util.Comparator<Region> order) {
+        tiles.clear();
+        tiles.addAll(added);
+        tiles.sort(order);
+        arrange();
+    }
+
+    /** Remet les tuiles dans l'ordre où elles ont été ajoutées. */
+    void unsort() {
+        if (tiles.equals(added)) return;
+        tiles.clear();
+        tiles.addAll(added);
+        arrange();
+    }
+
+    /** Les tuiles affichées, dans l'ordre où elles sont rangées : pour les vérifications. */
+    List<Region> shownTiles() {
+        List<Region> shown = new ArrayList<>();
+        for (Region tile : tiles) {
+            if (!hidden.contains(tile)) shown.add(tile);
+        }
+        return shown;
     }
 
     /** Affiche ou cache une tuile ; cachée, elle ne prend pas de place dans la grille. */

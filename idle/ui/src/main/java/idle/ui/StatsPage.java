@@ -198,6 +198,7 @@ final class StatsPage extends VBox {
         periodicTable();
         darkMatter();
         bigBang();
+        journal();
 
         VBox.setVgrow(stack, Priority.ALWAYS);
         getChildren().add(title);
@@ -525,6 +526,10 @@ final class StatsPage extends VBox {
                 + Format.count(game.atomCap()) + " atomes");
         row("Défis réussis", () -> game.completedChallenges() + " / " + game.challenges().size());
         row("Défi en cours", () -> game.activeChallenge().name(), game::inChallenge);
+        row("Primes de vitesse touchées", () -> Format.whole(stats().speedPrimes()), () -> game.explosionRecord() > 0 || stats().speedPrimes() > 0);
+        row("Prime de vitesse : exploser en moins de", () -> Format.duration(game.speedPrimeTime())
+                + (game.earnsSpeedPrime() ? " (encore " + Format.wait(Math.max(1, game.speedPrimeLeft())) + ")" : " (trop tard pour cette partie)"),
+                () -> game.explosionRecord() > 0);
 
         section("Taille");
         charted("Taille de la matière noire", row("Taille actuelle", () -> Format.length(game.state().darkMatterSize())));
@@ -773,6 +778,10 @@ final class StatsPage extends VBox {
         row("Création automatique des molécules", () -> (game.isMoleculeAutomationEnabled() ? "en marche, " : "coupée, ")
                 + game.automatedMolecules() + (game.automatedMolecules() > 1 ? " amas confiés" : " amas confié"),
                 game::isMoleculeAutomationUnlocked);
+        row("Réserve d'espace de la création automatique", () -> game.autoMoleculeReserve() <= 0 ? "aucune"
+                : ElementText.percent(game.autoMoleculeReserve()), game::isMoleculeAutomationUnlocked);
+        row("Rassemblement automatique", () -> game.isAutoGatherEnabled() ? "en marche" : "coupé", game::isAutoGatherUnlocked);
+        row("Formation automatique", () -> game.isAutoFormEnabled() ? "en marche" : "coupée", game::isAutoFormUnlocked);
         charted("Expansion multipliée par la matière noire", row("Expansion multipliée par la matière noire",
                 () -> multiplier(game.darkMatterSpaceBoost()), () -> game.darkMatterSpaceBoost() > 1));
 
@@ -788,6 +797,26 @@ final class StatsPage extends VBox {
         for (GameStats.Step step : GameStats.Step.values()) {
             row(step.label(), () -> reached(step), () -> stats().reached(step));
         }
+
+        section("Records, toutes parties confondues");
+        for (GameStats.Step step : GameStats.Step.values()) {
+            row("Record : " + step.label(), () -> Format.duration(game.recordOf(step)), () -> !Double.isNaN(game.recordOf(step)));
+        }
+        row("Écart sur la prochaine étape", () -> {
+            double gap = game.recordGap();
+            return gap <= 0 ? Format.duration(-gap) + " d'avance" : Format.duration(gap) + " de retard";
+        }, () -> !Double.isNaN(game.recordGap()));
+
+        section("Collections, comètes et défis");
+        row("Collections à moitié réunies", () -> game.collectionsAt(1) + " / " + game.collections().size());
+        row("Collections complètes", () -> game.collectionsAt(2) + " / " + game.collections().size());
+        row("Comètes saisies", () -> Format.whole(game.cometsCaught()));
+        row("Sillage de comète", () -> "espace " + multiplier(game.cometBoost()) + ", encore " + Format.wait(game.cometBoostLeft()),
+                () -> game.cometBoost() > 1);
+        row("Défis de Big Bang réussis", () -> game.completedBangChallenges() + " / " + game.bangChallenges().size(),
+                game::isBangChallengesUnlocked);
+        row("Défi de Big Bang en cours", () -> game.activeBangChallenge().label() + ", depuis " + Format.duration(game.bangChallengeTime()),
+                () -> game.activeBangChallenge() != null);
 
         section("Ce que donnent les paliers");
         row("Matière noire des explosions", () -> multiplier(game.bigBangDarkMatterFactor()), () -> game.bigBangDarkMatterFactor() > 1);
@@ -808,6 +837,9 @@ final class StatsPage extends VBox {
         row("Améliorations d'espace", () -> multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)));
         row("Paliers", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)));
         row("Matière noire en réserve", () -> multiplier(game.darkMatterSpaceBoost()), this::darkSpace);
+        row("Collections", () -> multiplier(game.collectionBoost(Molecule.Stat.SPACE)), () -> game.collectionBoost(Molecule.Stat.SPACE) > 1);
+        row("Défis de Big Bang", () -> multiplier(game.bangReward(idle.core.BangChallenge.Reward.SPACE)),
+                () -> game.bangReward(idle.core.BangChallenge.Reward.SPACE) > 1);
 
         section("Molécules");
         charted("Molécules créées", row("Molécules créées", () -> Format.whole(game.moleculesCreated())));
@@ -962,6 +994,65 @@ final class StatsPage extends VBox {
     // Construction et affichage
     // ------------------------------------------------------------------
 
+    /** Nombre d'annonces du journal affichées : pour les vérifications. */
+    int journalRows() {
+        return journalList.getChildren().size();
+    }
+
+    /** Le texte d'une ligne du journal, la plus récente d'abord : pour les vérifications. */
+    String journalRow(int index) {
+        HBox box = (HBox) journalList.getChildren().get(index);
+        return ((Label) box.getChildren().get(0)).getText() + " | " + ((Label) box.getChildren().get(1)).getText();
+    }
+
+    /** Ouvre la sous-page du journal : pour les vérifications. */
+    void openJournal() {
+        select(pages.get(pages.size() - 1));
+        refresh();
+    }
+
+    private final VBox journalList = new VBox(3);
+    private final Label journalNote = new Label();
+    private int journalVersion = -1;
+
+    /**
+     * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
+     * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
+     */
+    private void journal() {
+        page("Journal", STATS_COLOR, () -> true, "");
+        section("Les " + EventLog.CAPACITY + " dernières annonces");
+        journalNote.setStyle(NAME_STYLE);
+        journalNote.setWrapText(true);
+        journalNote.setMaxWidth(MAX_WIDTH);
+        journalList.setMaxWidth(MAX_WIDTH);
+        building.content.getChildren().add(journalNote);
+        building.content.getChildren().add(journalList);
+        building.updaters.add(() -> {
+            EventLog log = EventLog.of(game);
+            if (log.version() == journalVersion) return;
+            journalVersion = log.version();
+            journalNote.setText(log.size() == 0
+                    ? "Rien pour l'instant. Tout ce que le jeu annonce (palier, succès, explosion, amélioration acquise) "
+                            + "viendra se noter ici, même si les notifications sont coupées."
+                    : "La plus récente en haut. Le journal dure le temps d'un lancement : il n'est pas sauvegardé.");
+            journalList.getChildren().clear();
+            for (EventLog.Entry entry : log.entries()) {
+                Label when = new Label(entry.clock() + "  ·  " + Format.duration(entry.played()) + " de jeu");
+                when.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+                when.setMinWidth(170);
+                Label text = new Label(entry.text());
+                text.setStyle(NAME_STYLE);
+                text.setWrapText(true);
+                HBox.setHgrow(text, Priority.ALWAYS);
+                HBox line = new HBox(10, when, text);
+                line.setStyle(ROW_STYLE);
+                line.setMaxWidth(MAX_WIDTH);
+                journalList.getChildren().add(line);
+            }
+        });
+    }
+
     private void page(String name, String color, BooleanSupplier unlocked, String howToUnlock) {
         SubPage page = new SubPage(name, color, unlocked, howToUnlock);
         page.content.setAlignment(Pos.TOP_CENTER);
@@ -1105,6 +1196,19 @@ final class StatsPage extends VBox {
         box.setOnMouseExited(event -> box.setStyle(ROW_STYLE + " -fx-cursor: hand;"));
         box.setOnMouseClicked(event -> show(page, graph));
         Tooltip.install(box, new Tooltip("Voir la courbe : " + graph));
+    }
+
+    /** Passe à la sous-page ouverte suivante ou précédente, en boucle. */
+    void step(int direction) {
+        int index = pages.indexOf(selected);
+        for (int tries = 0; tries < pages.size(); tries++) {
+            index = Math.floorMod(index + direction, pages.size());
+            if (pages.get(index).unlocked.getAsBoolean()) {
+                select(pages.get(index));
+                refresh();
+                return;
+            }
+        }
     }
 
     private void select(SubPage page) {

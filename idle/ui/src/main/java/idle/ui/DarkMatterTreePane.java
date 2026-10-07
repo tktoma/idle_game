@@ -200,9 +200,12 @@ final class DarkMatterTreePane extends Pane {
         setPrefSize(720, 600);
     }
 
-    /** Premier clic : la case s'arme. Second clic dans les cinq secondes : le Big Bang a lieu. */
+    /**
+     * Premier clic : la case s'arme. Second clic dans les cinq secondes : le Big Bang a lieu. Sans
+     * la confirmation ({@link Confirm#bigBang()}), le premier clic suffit.
+     */
     private void clickBang() {
-        if (armedFor > 0) {
+        if (armedFor > 0 || (!Confirm.bigBang() && game.canBigBang())) {
             armedFor = 0;
             game.bigBang();
         } else if (game.canBigBang()) {
@@ -286,13 +289,18 @@ final class DarkMatterTreePane extends Pane {
                 + "dépenser. Une explosion reprend particules et atomes : mieux vaut couper l'explosion "
                 + "automatique le temps de les réunir. "
                 + (game.bigBangKeepsDarkTree()
-                        ? "Le Big Bang efface les particules, les atomes, les éléments, la matière noire en réserve, "
-                                + "sa taille et les défis réussis. Cet arbre et ses automatismes restent : c'est le "
-                                + "palier du cinquième Big Bang. "
+                        ? "Le Big Bang efface les particules, les atomes, les éléments, la matière noire en réserve "
+                                + "et sa taille. Cet arbre, ses automatismes et les défis réussis restent : ce sont "
+                                + "les paliers du troisième et du cinquième Big Bang. "
+                        : game.bigBangKeepsChallenges()
+                        ? "Le Big Bang efface tout, jusqu'à la matière noire, son arbre et ses automatismes. Les "
+                                + "défis réussis restent : c'est le palier du troisième Big Bang. "
                         : "Le Big Bang efface tout, jusqu'à la matière noire, son arbre, ses automatismes et les "
                                 + "défis réussis. ")
                 + "Restent les succès, les records des défis, le temps de jeu et les statistiques"
                 + (game.bigBangs() == 0 ? ". Il ouvre l'onglet Big Bang." : ", et tout ce que contient l'onglet Big Bang.");
+        // Ce qu'il rapportera, juste sous ses conditions : une remise à zéro se lit d'abord par ce qu'elle donne.
+        lines.append('\n').append(NextReset.bigBangGives(game));
         int count = game.bigBangs();
         String aside = count == 0 ? "" : "déjà " + count + (count > 1 ? " déclenchés" : " déclenché");
         if (armedFor > 0) {

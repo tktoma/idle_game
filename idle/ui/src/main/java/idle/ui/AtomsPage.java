@@ -41,9 +41,15 @@ final class AtomsPage extends VBox {
     private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
             + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
 
+    private static final String AMOUNT_STYLE = "-fx-font-size: 12px; -fx-padding: 3 12; -fx-cursor: hand;"
+            + " -fx-background-radius: 6; -fx-border-radius: 6;";
+
     private final Game game;
+    private final Settings settings;
     private final Label balanceLabel = new Label();
     private final Label bonusLabel = new Label();
+    /** Au survol : d'où viennent les atomes d'une fusion, un facteur par ligne. */
+    private final Breakdown bonusBreakdown;
 
     private final Button atomTab = new Button("Atome");
     private final Button upgradesTab = new Button("Améliorations");
@@ -62,16 +68,23 @@ final class AtomsPage extends VBox {
     // Sous-page « Améliorations »
     private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
     private final TileGrid upgradeGrid = new TileGrid(200, 4, 10);
-    private final ScrollPane upgradesPane = new ScrollPane(upgradeGrid);
+    /** La quantité achetée à chaque clic, une fois l'achat groupé acquis : la même que pour les particules. */
+    private final Map<Settings.BuyAmount, Button> amountButtons = new java.util.EnumMap<>(Settings.BuyAmount.class);
+    private final HBox amountRow = new HBox(6);
+    private final Label amountHint = new Label();
+    private final VBox upgradesBox = new VBox(8, amountRow, amountHint, upgradeGrid);
+    private final ScrollPane upgradesPane = new ScrollPane(upgradesBox);
 
     // Sous-page « Tableau périodique »
     private final PeriodicTablePage tablePage;
     private final ScrollPane tablePane;
 
-    AtomsPage(Game game) {
+    AtomsPage(Game game, Settings settings) {
         super(10);
         this.game = game;
+        this.settings = settings;
         this.tablePage = new PeriodicTablePage(game);
+        this.bonusBreakdown = Breakdown.attach(bonusLabel, game, Breakdown.Of.ATOMS);
         this.tablePane = new ScrollPane(tablePage);
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 24, 24));
@@ -105,7 +118,26 @@ final class AtomsPage extends VBox {
         bonusLabel.setTextAlignment(TextAlignment.CENTER);
 
         // Les cartes passent à la ligne selon la largeur ; si elles dépassent en hauteur, on fait défiler.
-        upgradeGrid.setPadding(new Insets(12, 0, 12, 0));
+        upgradeGrid.setPadding(new Insets(4, 0, 12, 0));
+        upgradesBox.setAlignment(Pos.TOP_CENTER);
+        upgradesBox.setPadding(new Insets(10, 0, 0, 0));
+        Label amountLabel = new Label("Quantité par achat :");
+        amountLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        amountRow.getChildren().add(amountLabel);
+        amountRow.setAlignment(Pos.CENTER);
+        for (Settings.BuyAmount amount : Settings.BuyAmount.values()) {
+            Button button = new Button(amount.label());
+            button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                settings.setBuyAmount(amount);
+                refresh();
+            });
+            amountButtons.put(amount, button);
+            amountRow.getChildren().add(button);
+        }
+        amountHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        amountHint.setWrapText(true);
+        amountHint.setTextAlignment(TextAlignment.CENTER);
         upgradesPane.setFitToWidth(true);
         upgradesPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         upgradesPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
@@ -117,7 +149,7 @@ final class AtomsPage extends VBox {
         for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
             Card card = new Card(GameApp.ATOMS_COLOR);
             card.setOnAction(() -> {
-                game.buy(upgrade.id());
+                game.buy(upgrade.id(), amount());
                 refresh();
             });
             upgradeCards.put(upgrade, card);
@@ -136,6 +168,23 @@ final class AtomsPage extends VBox {
     }
 
     /** Affiche une sous-page : 0 = atome, 1 = améliorations, 2 = tableau périodique. */
+    /** Niveaux demandés à chaque clic : la quantité choisie une fois l'achat groupé acquis, un seul sinon. */
+    private int amount() {
+        return game.isBulkAtomBuyUnlocked() ? settings.buyAmount().count() : 1;
+    }
+
+    /** Passe à la sous-page suivante ou précédente, en boucle ; le tableau périodique seulement s'il est ouvert. */
+    void step(int direction) {
+        int count = game.isPeriodicTableUnlocked() ? 3 : 2;
+        select(Math.floorMod(selected + direction, count));
+        refresh();
+    }
+
+    /** La sous-page affichée : 0 l'atome, 1 les améliorations, 2 le tableau périodique. Pour les vérifications. */
+    int selected() {
+        return selected;
+    }
+
     private void select(int index) {
         selected = index;
         atomPane.setVisible(index == 0);
@@ -190,10 +239,26 @@ final class AtomsPage extends VBox {
         bonusLabel.setText("Chaque création donne " + Format.amount(game.particlesPerCreation())
                 + " particules   |   chaque fusion donne " + Format.amount(perFusion)
                 + (perFusion.gt(BigNum.ONE) ? " atomes" : " atome"));
+        bonusBreakdown.refresh();
 
         tableTab.setVisible(tableUnlocked);
         tableTab.setManaged(tableUnlocked);
-        if (selected == 1) upgradeCards.forEach(this::show);
+        if (selected == 1) {
+            boolean bulk = game.isBulkAtomBuyUnlocked();
+            amountRow.setVisible(bulk);
+            amountRow.setManaged(bulk);
+            amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
+                    ? " -fx-text-fill: #0b0e14; -fx-background-color: " + GameApp.ATOMS_COLOR + "; -fx-border-color: #ffffff;"
+                    : " -fx-text-fill: " + GameApp.ATOMS_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
+            // Tant que l'achat groupé n'est pas acquis, une ligne dit où le trouver, à qui a déjà de la matière noire.
+            String hint = bulk ? Detail.only("La quantité choisie vaut aussi pour les améliorations payées en particules.")
+                    : game.isDarkMatterUnlocked() ? "L'achat par dix ou « max » s'ouvre avec « Achat groupé », dans les améliorations payées en matière noire."
+                    : "";
+            amountHint.setText(hint);
+            amountHint.setVisible(!hint.isEmpty());
+            amountHint.setManaged(!hint.isEmpty());
+            upgradeCards.forEach(this::show);
+        }
         if (selected != 0) return;
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
                 + (atoms.gt(Game.MAX_ATOMS) ? " (l'atome n'en montre pas plus)" : "")
@@ -220,10 +285,13 @@ final class AtomsPage extends VBox {
             card.show(Card.State.DONE, corner, mark, upgrade.name(), brief(upgrade), describe(upgrade), "", "");
             return;
         }
-        BigNum cost = game.costOf(id);
+        // Ce que le clic achèterait : la quantité choisie, ramenée à ce qui est à portée, un niveau au moins.
+        int count = Math.max(1, game.affordableLevels(id, amount()));
+        BigNum cost = game.costOf(id, count);
         card.show(game.canBuy(id) ? Card.State.READY : level > 0 ? Card.State.STARTED : Card.State.WAITING,
                 corner, mark, upgrade.name(), brief(upgrade), describe(upgrade),
-                Format.count(cost) + (cost.gt(BigNum.ONE) ? " atomes" : " atome"), remaining(cost));
+                (count > 1 ? "×" + count + " pour " : "") + Format.count(cost) + (cost.gt(BigNum.ONE) ? " atomes" : " atome"),
+                remaining(cost));
     }
 
     /** Ce que l'amélioration vaut déjà, en un nombre : « ×8 », « +3 points », « −27 % ». */

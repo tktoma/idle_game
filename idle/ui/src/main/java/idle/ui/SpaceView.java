@@ -2307,8 +2307,9 @@ final class SpaceView extends Canvas {
         }
         for (int place = 0; place < PLACES.length; place++) {
             if (gathered[place] == 0) continue;
+            // Chaque état a sa forme, pour se reconnaître sans la couleur : la même que son signe dans les pages.
             g.setFill(placeColor(PLACES[place]));
-            g.fillOval(10, y - 8, 8, 8);
+            stateShape(g, PLACES[place], 14, y - 4);
             g.setFill(TEXT);
             g.fillText(BigBangPage.placeTitle(PLACES[place]) + " : " + gathered[place], 24, y);
             y += 16;
@@ -2316,6 +2317,28 @@ final class SpaceView extends Canvas {
         if (perDot > 1) {
             g.setFill(TEXT);
             g.fillText("1 point = " + perDot + " molécules", 10, y);
+        }
+    }
+
+    /**
+     * La forme d'un état dans la légende, centrée en ({@code x}, {@code y}) : trois points pour un
+     * gaz, deux vagues pour un liquide, un carré pour un solide, un losange pour un cristal, un
+     * triangle pour un métal ({@link MatterText#sign}). La couleur est celle du remplissage en cours.
+     */
+    static void stateShape(GraphicsContext g, Molecule.State state, double x, double y) {
+        switch (state) {
+            case GAS -> {
+                g.fillOval(x - 1.5, y - 5, 3, 3);
+                g.fillOval(x - 5, y + 1, 3, 3);
+                g.fillOval(x + 2, y + 1, 3, 3);
+            }
+            case LIQUID -> {
+                g.fillRect(x - 5, y - 3, 10, 2);
+                g.fillRect(x - 5, y + 1, 10, 2);
+            }
+            case SOLID -> g.fillRect(x - 4, y - 4, 8, 8);
+            case CRYSTAL -> g.fillPolygon(new double[] {x, x + 5, x, x - 5}, new double[] {y - 5, y, y + 5, y}, 4);
+            case METAL -> g.fillPolygon(new double[] {x, x + 5, x - 5}, new double[] {y - 5, y + 4, y + 4}, 3);
         }
     }
 

@@ -22,7 +22,7 @@ import java.util.List;
  * ({@link Challenges}). À 16, la Condensation porte l'explosion à onze matières noires, et les
  * dernières cases (20, 24, 32, 40, 60) tombent en quelques explosions.
  *
- * <p>Hors de l'arbre, cinq améliorations se paient en matière noire
+ * <p>Hors de l'arbre, six améliorations se paient en matière noire
  * ({@link DarkUpgrade.Branch#DARK_MATTER}). La matière noire dépensée reste comptée comme gagnée,
  * et leur effet grandit avec toute la matière noire gagnée : chaque explosion les renforce.
  *
@@ -166,7 +166,11 @@ public final class DarkUpgrades {
             // les atomes ne manquent plus, donc après la première explosion.
             new DarkUpgrade("dark_shop_target", "Synthèse ciblée", DarkUpgrade.Branch.DARK_MATTER,
                     BigNum.of(2), 1, 1, null, 0,
-                    new DarkEffect.TargetedSynthesis()));
+                    new DarkEffect.TargetedSynthesis()),
+            // Ouvre l'achat par dix et « max » des améliorations en atomes : un confort, pour une matière noire.
+            new DarkUpgrade("dark_shop_bulk", "Achat groupé", DarkUpgrade.Branch.DARK_MATTER,
+                    BigNum.ONE, 1, 1, null, 0,
+                    new DarkEffect.BulkAtomUpgrades()));
 
     private DarkUpgrades() {}
 }

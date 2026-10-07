@@ -80,6 +80,37 @@ public final class GameState {
     private List<String> assembliesSeen;
     private List<String> bodiesSeen;
     private final Set<String> spaceUpgrades = new java.util.LinkedHashSet<>();
+    /** Vrai tant que le joueur a coupé d'un geste tous les automatismes : aucun n'agit, et chacun garde son propre réglage. */
+    private boolean automationPaused = false;
+    /** Vrai tant que le rassemblement automatique est en marche, une fois acquis ({@link Game#isAutoGathering()}). */
+    private boolean autoGather = true;
+    /** Vrai tant que la formation automatique des assemblages et des astres est en marche, une fois acquise ({@link Game#isAutoForming()}). */
+    private boolean autoForm = true;
+    /** Part de l'espace créé que la création automatique laisse toujours libre (0,25 pour un quart). */
+    private double autoMoleculeReserve = 0;
+    /** Durée de l'explosion la plus rapide qui a valu une prime depuis le dernier Big Bang, en secondes ; 0 tant qu'il n'y en a pas. */
+    private double explosionRecord = 0;
+    // La comète : le temps avant la prochaine, le temps qu'elle reste à l'écran, le temps que dure encore son sillage.
+    private double cometWait = 0;
+    private double cometVisible = 0;
+    private double cometBoost = 0;
+    private int cometsCaught = 0;
+    /** Les records du joueur, étape par étape : le temps de jeu le plus court auquel chacune a été atteinte. La remise à zéro les garde. */
+    private final Map<String, Double> records = new HashMap<>();
+    // Les défis de Big Bang : celui en cours, ceux qui sont réussis, et leur meilleur temps.
+    private String activeBangChallenge = null;
+    private final Set<String> completedBangChallenges = new HashSet<>();
+    private final Map<String, Double> bangChallengeTimes = new HashMap<>();
+    /** Le temps de jeu auquel le défi de Big Bang en cours a commencé. */
+    private double bangChallengeStarted = 0;
+    /** L'ordre dans lequel l'automatisme achète les améliorations en atomes, quand le joueur a choisi le sien. */
+    private final List<String> atomUpgradeOrder = new ArrayList<>();
+    private boolean atomUpgradeOrdered = false;
+    /** L'ordre dans lequel l'automatisme achète les automatismes ordinaires et leurs cadences, quand le joueur a choisi le sien. */
+    private final List<String> automationOrder = new ArrayList<>();
+    private boolean automationOrdered = false;
+    /** Les molécules épinglées par le joueur, dans l'ordre où il les a choisies. */
+    private final Set<String> favoriteMolecules = new java.util.LinkedHashSet<>();
     private BigNum space = BigNum.ZERO;
     private GameStats stats = new GameStats();
 
@@ -594,6 +625,201 @@ public final class GameState {
         moleculesVersion++;
     }
 
+    /** Nombre d'améliorations d'espace acquises. */
+    public int spaceUpgradeCount() {
+        return spaceUpgrades.size();
+    }
+
+    /** Vrai tant que tous les automatismes sont coupés d'un geste ({@link Game#setAutomationPaused(boolean)}). Aucune remise à zéro ne change ce réglage. */
+    public boolean automationPaused() {
+        return automationPaused;
+    }
+
+    public void setAutomationPaused(boolean paused) {
+        automationPaused = paused;
+    }
+
+    /** Vrai si le rassemblement automatique est en marche (il ne sert qu'une fois acquis). Aucune remise à zéro ne le coupe. */
+    public boolean autoGather() {
+        return autoGather;
+    }
+
+    public void setAutoGather(boolean enabled) {
+        autoGather = enabled;
+    }
+
+    /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). Aucune remise à zéro ne la coupe. */
+    public boolean autoForm() {
+        return autoForm;
+    }
+
+    public void setAutoForm(boolean enabled) {
+        autoForm = enabled;
+    }
+
+    /** Part de l'espace créé que la création automatique laisse toujours libre, de 0 à 1. C'est un réglage. */
+    public double autoMoleculeReserve() {
+        return autoMoleculeReserve;
+    }
+
+    /** Durée de l'explosion qui sert de record depuis le dernier Big Bang, en secondes ; 0 tant qu'aucune n'a eu lieu. */
+    public double explosionRecord() {
+        return explosionRecord;
+    }
+
+    public void setExplosionRecord(double seconds) {
+        explosionRecord = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes de jeu avant la prochaine comète ; 0 tant qu'aucune n'est attendue. */
+    public double cometWait() {
+        return cometWait;
+    }
+
+    public void setCometWait(double seconds) {
+        cometWait = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes pendant lesquelles la comète reste encore à l'écran ; 0 quand il n'y en a pas. */
+    public double cometVisible() {
+        return cometVisible;
+    }
+
+    public void setCometVisible(double seconds) {
+        cometVisible = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes pendant lesquelles le sillage de la dernière comète saisie accélère encore l'expansion. */
+    public double cometBoost() {
+        return cometBoost;
+    }
+
+    public void setCometBoost(double seconds) {
+        cometBoost = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Nombre de comètes saisies depuis le début du jeu. */
+    public int cometsCaught() {
+        return cometsCaught;
+    }
+
+    public void setCometsCaught(int count) {
+        cometsCaught = Math.max(0, count);
+    }
+
+    /** Les records du joueur : nom d'une étape → temps de jeu le plus court auquel elle a été atteinte. */
+    public Map<String, Double> records() {
+        return Collections.unmodifiableMap(records);
+    }
+
+    /** Note un record ; un temps négatif ou qui n'est pas un nombre est refusé. */
+    public void setRecord(String step, double seconds) {
+        if (step == null || step.isBlank() || Double.isNaN(seconds) || seconds < 0) return;
+        records.put(step, seconds);
+    }
+
+    /** Oublie tous les records : la seule chose que la remise à zéro du jeu ne fait pas d'elle-même. */
+    public void clearRecords() {
+        records.clear();
+    }
+
+    /** Le défi de Big Bang en cours, ou {@code null}. */
+    public String activeBangChallenge() {
+        return activeBangChallenge;
+    }
+
+    public void setActiveBangChallenge(String challenge) {
+        activeBangChallenge = challenge == null || challenge.isBlank() ? null : challenge;
+    }
+
+    /** Les défis de Big Bang réussis. */
+    public Set<String> completedBangChallenges() {
+        return Collections.unmodifiableSet(completedBangChallenges);
+    }
+
+    public void addCompletedBangChallenge(String challenge) {
+        if (challenge != null && !challenge.isBlank()) completedBangChallenges.add(challenge);
+    }
+
+    /** Le meilleur temps de chaque défi de Big Bang réussi, en secondes. */
+    public Map<String, Double> bangChallengeTimes() {
+        return Collections.unmodifiableMap(bangChallengeTimes);
+    }
+
+    /** Le temps de jeu auquel le défi de Big Bang en cours a commencé, en secondes. */
+    public double bangChallengeStarted() {
+        return bangChallengeStarted;
+    }
+
+    public void setBangChallengeStarted(double timePlayed) {
+        bangChallengeStarted = Double.isNaN(timePlayed) ? 0 : Math.max(0, timePlayed);
+    }
+
+    public void setBangChallengeTime(String challenge, double seconds) {
+        if (challenge == null || challenge.isBlank() || Double.isNaN(seconds) || seconds < 0) return;
+        bangChallengeTimes.put(challenge, seconds);
+    }
+
+    public void setAutoMoleculeReserve(double share) {
+        if (!(share >= 0 && share < 1)) throw new IllegalArgumentException("Part invalide : " + share);
+        autoMoleculeReserve = share;
+    }
+
+    /** L'ordre d'achat choisi par le joueur pour les améliorations en atomes : des identifiants, du premier au dernier. */
+    public List<String> atomUpgradeOrder() {
+        return List.copyOf(atomUpgradeOrder);
+    }
+
+    public void setAtomUpgradeOrder(List<String> order) {
+        atomUpgradeOrder.clear();
+        atomUpgradeOrder.addAll(order);
+    }
+
+    /** Vrai si l'automatisme suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
+    public boolean atomUpgradeOrdered() {
+        return atomUpgradeOrdered;
+    }
+
+    public void setAtomUpgradeOrdered(boolean ordered) {
+        atomUpgradeOrdered = ordered;
+    }
+
+    /** L'ordre d'achat choisi par le joueur pour les automatismes ordinaires : des identifiants, du premier au dernier. */
+    public List<String> automationOrder() {
+        return List.copyOf(automationOrder);
+    }
+
+    public void setAutomationOrder(List<String> order) {
+        automationOrder.clear();
+        automationOrder.addAll(order);
+    }
+
+    /** Vrai si l'automatisme suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
+    public boolean automationOrdered() {
+        return automationOrdered;
+    }
+
+    public void setAutomationOrdered(boolean ordered) {
+        automationOrdered = ordered;
+    }
+
+    /** Vrai si le joueur a épinglé cette molécule. */
+    public boolean isMoleculeFavorite(String moleculeId) {
+        return favoriteMolecules.contains(moleculeId);
+    }
+
+    /** Épingle une molécule, ou la retire des favorites. Ni l'explosion ni le Big Bang ne changent ce choix. */
+    public void setMoleculeFavorite(String moleculeId, boolean favorite) {
+        if (moleculeId == null || moleculeId.isBlank()) throw new IllegalArgumentException("Molécule sans identifiant");
+        if (favorite) favoriteMolecules.add(moleculeId);
+        else favoriteMolecules.remove(moleculeId);
+    }
+
+    /** Vue en lecture seule des molécules épinglées, dans l'ordre où elles l'ont été. */
+    public List<String> favoriteMolecules() {
+        return List.copyOf(favoriteMolecules);
+    }
+
     /** Vue en lecture seule des améliorations d'espace acquises, pour la sauvegarde. */
     public Set<String> spaceUpgrades() {
         return Set.copyOf(spaceUpgrades);
@@ -766,6 +992,9 @@ public final class GameState {
     public void reset() {
         clearMatter();
         clearDarkMatter();
+        fusionThreshold = 0;
+        holdLocked = false;
+        enabledDarkAutomations.clear();
         started = false;
         timePlayed = 0;
         challengeTimes.clear();
@@ -784,6 +1013,25 @@ public final class GameState {
         autoMolecules = true;
         automatedMolecules.clear();
         spaceUpgrades.clear();
+        automationPaused = false;
+        favoriteMolecules.clear();
+        autoGather = true;
+        autoForm = true;
+        autoMoleculeReserve = 0;
+        explosionRecord = 0;
+        cometWait = 0;
+        cometVisible = 0;
+        cometBoost = 0;
+        cometsCaught = 0;
+        // Les records restent : ils sont ce que le joueur cherche à battre à la partie suivante.
+        activeBangChallenge = null;
+        completedBangChallenges.clear();
+        bangChallengeTimes.clear();
+        bangChallengeStarted = 0;
+        atomUpgradeOrder.clear();
+        atomUpgradeOrdered = false;
+        automationOrder.clear();
+        automationOrdered = false;
         moleculesVersion++;
         space = BigNum.ZERO;
         stats = new GameStats();
@@ -791,8 +1039,11 @@ public final class GameState {
 
     /**
      * Efface tout ce qui vient de l'explosion : la matière noire, gagnée comme dépensée, sa taille,
-     * son arbre, ses automatismes, la masse du tableau, le nombre d'explosions et les défis
-     * réussis, avec les réglages que l'arbre avait ouverts. Les records des défis restent, comme
+     * son arbre, la masse du tableau, le nombre d'explosions et les défis réussis. Les réglages du
+     * joueur restent, pour resservir dès que l'arbre les rouvre : les automatismes de matière noire
+     * qu'il avait mis en marche, le verrou de l'appui, le seuil de fusion. Seule la réserve de la
+     * synthèse automatique repart de zéro : sous le plafond d'atomes revenu, elle la bloquerait.
+     * Les records des défis restent, comme
      * les succès, le temps de jeu et les statistiques, et ce qui appartient à l'acte du Big Bang :
      * les molécules, les substances, les assemblages, les astres, l'espace et ses améliorations. C'est ce que fait un Big Bang, en plus de
      * {@link #clearMatter()}.
@@ -804,12 +1055,9 @@ public final class GameState {
         explosions = 0;
         tableWeightLevel = 0;
         darkUpgradeLevels.clear();
-        fusionThreshold = 0;
         synthesisReserve = BigNum.ZERO;
-        holdLocked = false;
         activeChallenge = null;
         completedChallenges.clear();
-        enabledDarkAutomations.clear();
         darkAutomationTimers.clear();
     }
 
@@ -916,6 +1164,25 @@ public final class GameState {
         data.put("autoMolecules", autoMolecules);
         data.putList("automatedMolecules", automatedMolecules);
         data.putList("spaceUpgrades", spaceUpgrades);
+        data.put("automationPaused", automationPaused);
+        data.putList("favoriteMolecules", favoriteMolecules);
+        data.put("autoGather", autoGather);
+        data.put("autoForm", autoForm);
+        data.put("autoMoleculeReserve", autoMoleculeReserve);
+        data.put("explosionRecord", explosionRecord);
+        data.put("cometWait", cometWait);
+        data.put("cometVisible", cometVisible);
+        data.put("cometBoost", cometBoost);
+        data.put("cometsCaught", cometsCaught);
+        data.putDoubles("records", new TreeMap<>(records));
+        data.put("activeBangChallenge", activeBangChallenge == null ? null : SaveData.escape(activeBangChallenge));
+        data.putList("completedBangChallenges", new java.util.TreeSet<>(completedBangChallenges));
+        data.putDoubles("bangChallengeTimes", new TreeMap<>(bangChallengeTimes));
+        data.put("bangChallengeStarted", bangChallengeStarted);
+        data.putList("atomUpgradeOrder", atomUpgradeOrder);
+        data.put("atomUpgradeOrdered", atomUpgradeOrdered);
+        data.putList("automationOrder", automationOrder);
+        data.put("automationOrdered", automationOrdered);
         data.put("space", space);
         stats.save(data, "stats.");
     }
@@ -980,6 +1247,27 @@ public final class GameState {
         autoMolecules = data.flag("autoMolecules", true);
         automatedMolecules.addAll(data.list("automatedMolecules"));
         spaceUpgrades.addAll(data.list("spaceUpgrades"));
+        automationPaused = data.flag("automationPaused", false);
+        favoriteMolecules.addAll(data.list("favoriteMolecules"));
+        autoGather = data.flag("autoGather", true);
+        autoForm = data.flag("autoForm", true);
+        setAutoMoleculeReserve(data.real("autoMoleculeReserve", 0));
+        setExplosionRecord(data.real("explosionRecord", 0));
+        setCometWait(data.real("cometWait", 0));
+        setCometVisible(data.real("cometVisible", 0));
+        setCometBoost(data.real("cometBoost", 0));
+        setCometsCaught(data.whole("cometsCaught", 0));
+        records.clear();
+        data.doubles("records").forEach(this::setRecord);
+        String bangChallenge = data.text("activeBangChallenge", null);
+        setActiveBangChallenge(bangChallenge == null ? null : SaveData.unescape(bangChallenge));
+        data.list("completedBangChallenges").forEach(this::addCompletedBangChallenge);
+        data.doubles("bangChallengeTimes").forEach(this::setBangChallengeTime);
+        setBangChallengeStarted(data.real("bangChallengeStarted", 0));
+        atomUpgradeOrder.addAll(data.list("atomUpgradeOrder"));
+        atomUpgradeOrdered = data.flag("atomUpgradeOrdered", false);
+        automationOrder.addAll(data.list("automationOrder"));
+        automationOrdered = data.flag("automationOrdered", false);
         setSpace(data.big("space", BigNum.ZERO));
         stats.load(data, "stats.");
         substancesSeen = null;
@@ -1008,7 +1296,11 @@ public final class GameState {
      */
     int retainKnown(Known known) {
         int before = identifiers();
-        if (!known.upgrades().isEmpty()) upgradeLevels.keySet().retainAll(known.upgrades());
+        if (!known.upgrades().isEmpty()) {
+            upgradeLevels.keySet().retainAll(known.upgrades());
+            atomUpgradeOrder.retainAll(known.upgrades());
+        }
+        if (!known.automations().isEmpty()) automationOrder.retainAll(known.automations());
         if (!known.automations().isEmpty()) {
             ownedAutomations.retainAll(known.automations());
             enabledAutomations.retainAll(known.automations());
@@ -1033,6 +1325,7 @@ public final class GameState {
             }
             substances.retainAll(known.molecules());
             automatedMolecules.retainAll(known.molecules());
+            favoriteMolecules.retainAll(known.molecules());
         }
         if (!known.assemblies().isEmpty()) assemblies.retainAll(known.assemblies());
         if (!known.bodies().isEmpty()) bodies.retainAll(known.bodies());
@@ -1050,7 +1343,7 @@ public final class GameState {
                 + automationTimers.size() + elements.size() + darkUpgradeLevels.size() + enabledDarkAutomations.size()
                 + darkAutomationTimers.size() + (activeChallenge == null ? 0 : 1) + completedChallenges.size()
                 + challengeTimes.size() + achievements.size() + molecules.size() + substances.size()
-                + automatedMolecules.size() + assemblies.size() + bodies.size() + spaceUpgrades.size();
+                + automatedMolecules.size() + favoriteMolecules.size() + atomUpgradeOrder.size() + automationOrder.size() + assemblies.size() + bodies.size() + spaceUpgrades.size();
     }
 
     /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */

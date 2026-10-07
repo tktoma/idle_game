@@ -46,6 +46,7 @@ public final class GameStats {
     // ----- Automatisation -----
     private long automationActions = 0;
     private long darkAutomationActions = 0;
+    private long speedPrimes = 0;
 
     // ----- Tableau périodique -----
     private long syntheses = 0;
@@ -89,6 +90,8 @@ public final class GameStats {
 
     /** Les grandes premières du troisième acte, dont le jeu retient l'instant ({@link #reachedAt(Step)}). */
     public enum Step {
+        FIRST_FUSION("Première fusion"),
+        FIRST_EXPLOSION("Première explosion"),
         FIRST_BIG_BANG("Premier Big Bang"),
         FIRST_MOLECULE("Première molécule"),
         FIRST_GATHERING("Premier rassemblement"),
@@ -192,6 +195,11 @@ public final class GameStats {
     /** Actions faites par les automatismes de matière noire. */
     public long darkAutomationActions() {
         return darkAutomationActions;
+    }
+
+    /** Nombre de primes de vitesse touchées : des explosions qui ont battu le record de la marge voulue. */
+    public long speedPrimes() {
+        return speedPrimes;
     }
 
     /** Synthèses faites depuis le début du jeu. */
@@ -365,6 +373,7 @@ public final class GameStats {
         data.put(prefix + "atomUpgradesBought", atomUpgradesBought);
         data.put(prefix + "automationActions", automationActions);
         data.put(prefix + "darkAutomationActions", darkAutomationActions);
+        data.put(prefix + "speedPrimes", speedPrimes);
         data.put(prefix + "syntheses", syntheses);
         data.put(prefix + "elementsObtained", elementsObtained);
         data.put(prefix + "doubleDraws", doubleDraws);
@@ -413,6 +422,7 @@ public final class GameStats {
         atomUpgradesBought = data.count(prefix + "atomUpgradesBought", 0);
         automationActions = data.count(prefix + "automationActions", 0);
         darkAutomationActions = data.count(prefix + "darkAutomationActions", 0);
+        speedPrimes = data.count(prefix + "speedPrimes", 0);
         syntheses = data.count(prefix + "syntheses", 0);
         elementsObtained = data.count(prefix + "elementsObtained", 0);
         doubleDraws = data.count(prefix + "doubleDraws", 0);
@@ -537,6 +547,10 @@ public final class GameStats {
 
     void noteDarkAutomationAction() {
         darkAutomationActions++;
+    }
+
+    void noteSpeedPrime() {
+        speedPrimes++;
     }
 
     void noteSynthesis(int elements, boolean doubleDraw) {

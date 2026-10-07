@@ -97,6 +97,9 @@ final class DarkText {
             case DarkEffect.TargetedSynthesis targeted ->
                     "Ouvre la synthèse ciblée dans le tableau périodique : choisir la famille de l'élément à venir. "
                             + "Viser coûte plusieurs synthèses, de 3 pour les familles courantes à 10 pour les actinides";
+            case DarkEffect.BulkAtomUpgrades bulk ->
+                    "Ouvre l'achat groupé dans l'onglet Atomes : les améliorations payées en atomes s'achètent par un, "
+                            + "par dix ou « au maximum », comme celles payées en particules";
         };
     }
 
@@ -138,6 +141,7 @@ final class DarkText {
             case DarkEffect.HeadStartByDarkMatter by ->
                     ElementText.number(by.perUnit()) + " atomes d'avance par matière noire";
             case DarkEffect.TargetedSynthesis targeted -> "Choisir la famille à synthétiser";
+            case DarkEffect.BulkAtomUpgrades bulk -> "Atomes : acheter par 10 ou max";
         };
     }
 

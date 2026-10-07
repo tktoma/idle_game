@@ -2405,6 +2405,8 @@ class GameTest {
             game.explode();
             assertFalse(game.explode());                      // le tableau est vide : pas de seconde explosion
             fillTable(game);
+            // Sans battre le record de la première : pas de prime de vitesse, une matière noire de plus.
+            game.state().stats().addTime(game.explosionRecord() + 1);
             assertTrue(game.explode());
             assertValue(2, game.state().darkMatter());
             assertEquals(2, game.state().explosions());
@@ -2656,9 +2658,9 @@ class GameTest {
             assertEquals(8, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
             assertEquals(7, count.get(DarkUpgrade.Branch.ATOMS).intValue());
             assertEquals(6, count.get(DarkUpgrade.Branch.SIZE).intValue());
-            assertEquals(5, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
-            assertEquals(26, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
-            assertEquals(26, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
+            assertEquals(6, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
+            assertEquals(27, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
+            assertEquals(27, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
         }
 
         @Test
@@ -3745,10 +3747,10 @@ class GameTest {
         }
 
         @Test
-        void ellesSontCinqEtHorsDeLArbre() {
+        void ellesSontSixEtHorsDeLArbre() {
             Game game = gameWithDarkMatter(1);
             List<DarkUpgrade> shop = game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER);
-            assertEquals(5, shop.size());
+            assertEquals(6, shop.size());
             for (DarkUpgrade dark : shop) {
                 assertFalse(dark.branch().inTree());
                 assertEquals(null, dark.requires());
@@ -3892,7 +3894,7 @@ class GameTest {
         @Test
         void ilsSeDebloquentAvecLaMatiereNoireSansLaDepenser() {
             Game game = gameWithDarkMatter(1);
-            assertEquals(4, game.darkAutomations().size());
+            assertEquals(5, game.darkAutomations().size());
             for (DarkAutomation automation : game.darkAutomations()) {
                 assertFalse(game.isDarkAutomationUnlocked(automation.id()));
                 assertFalse(game.setDarkAutomationEnabled(automation.id(), true));
@@ -3907,8 +3909,12 @@ class GameTest {
             assertValue(3, game.state().darkMatter());
             game.state().setDarkMatter(BigNum.of(14));
             for (DarkAutomation automation : game.darkAutomations()) {
-                assertTrue(game.isDarkAutomationUnlocked(automation.id()));
+                // Celui qui rachète l'arbre attend un premier Big Bang.
+                assertEquals(automation.kind() != DarkAutomation.Kind.DARK_TREE, game.isDarkAutomationUnlocked(automation.id()), automation.id());
             }
+            game.state().setBigBangs(1);
+            assertTrue(game.isDarkAutomationUnlocked("dark_auto_tree"));
+            game.state().setBigBangs(0);
             assertThrows(IllegalArgumentException.class, () -> game.isDarkAutomationUnlocked("inconnu"));
         }
 
@@ -5016,7 +5022,7 @@ class GameTest {
         }
 
         @Test
-        void lExplosionLibereLeVerrou() {
+        void lExplosionGardeLeVerrou() {
             Game game = darkGame();
             game.state().setDarkLevel("dark_lock", 1);
             game.setHoldLocked(true);
@@ -5024,7 +5030,11 @@ class GameTest {
                 game.state().setElementCount(element.number(), element.category().maxCopies());
             }
             assertTrue(game.explode());
-            assertFalse(game.isHoldLocked());
+            // Le verrou est un réglage du joueur : la partie suivante repart verrouillée.
+            assertTrue(game.isHoldLocked());
+            BigNum size = game.state().darkMatterSize();
+            game.tick(10);
+            assertTrue(game.state().darkMatterSize().gt(size));
         }
     }
 
@@ -5479,9 +5489,9 @@ class GameTest {
 
         @Test
         void leCatalogueCompteCinquanteSuccesDontAuMoinsVingtAvecUnBonusPropre() {
-            assertEquals(50, Achievements.DEFAULT.size());
-            assertEquals(50, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
-            assertEquals(50, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
+            assertEquals(66, Achievements.DEFAULT.size());
+            assertEquals(66, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
+            assertEquals(66, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
             long withBonus = Achievements.DEFAULT.stream().filter(Achievement::hasBonus).count();
             assertTrue(withBonus >= 20, "succès d'action : " + withBonus);
             for (Achievement achievement : Achievements.DEFAULT) {
@@ -5766,7 +5776,7 @@ class GameTest {
         @Test
         void leJeuCompletASesSucces() {
             Game game = new Game();
-            assertEquals(50, game.achievements().size());
+            assertEquals(66, game.achievements().size());
         }
     }
 
@@ -6021,8 +6031,11 @@ class GameTest {
             assertValue(1, game.tableWeight());
             assertEquals(0, game.darkLevelOf("dark_density"));
             assertFalse(game.isAtomCapLifted());
-            assertFalse(game.state().isDarkAutomationEnabled("dark_auto_explosion"));
-            assertFalse(game.state().holdLocked());
+            // Les réglages du joueur restent, mais ne servent plus tant que l'arbre ne les a pas rouverts.
+            assertTrue(game.state().isDarkAutomationEnabled("dark_auto_explosion"));
+            assertFalse(game.isDarkAutomationEnabled("dark_auto_explosion"));
+            assertTrue(game.state().holdLocked());
+            assertFalse(game.isHoldLocked());
             assertEquals(0, game.completedChallenges());
             assertFalse(game.canBigBang());
         }
@@ -6162,12 +6175,13 @@ class GameTest {
             // La matière noire existe donc dès le début de la partie, sans attendre une explosion.
             assertTrue(game.isDarkMatterUnlocked());
 
-            // Le reste repart : la réserve, la taille, la masse du tableau, les explosions, les défis, et toute la matière.
+            // Le reste repart : la réserve, la taille, la masse du tableau, les explosions, et toute la matière.
             assertTrue(game.state().darkMatter().isZero());
             assertValue(Game.DARK_MATTER_START_SIZE.toDouble(), game.state().darkMatterSize());
             assertEquals(0, game.state().explosions());
             assertEquals(0, game.state().tableWeightLevel());
-            assertEquals(0, game.completedChallenges());
+            // Les défis, eux, restent réussis depuis le palier du troisième Big Bang.
+            assertEquals(game.challenges().size(), game.completedChallenges());
             assertEquals(1, game.generatorCount());
             assertEquals(0, game.levelOf("speed"));
             assertEquals(0, game.discoveredElements());
@@ -6191,6 +6205,37 @@ class GameTest {
             assertFalse(game.isDarkMatterUnlocked());
             // Le suivant, lui, la gardera.
             assertTrue(game.bigBangKeepsDarkTree());
+        }
+
+        @Test
+        void leTroisiemeBigBangGardeLesDefisReussis() {
+            Game game = readyGame();
+            game.state().setBigBangs(2);
+            // Le palier se gagne au troisième Big Bang, et ce Big Bang-là en profite déjà.
+            assertTrue(game.bigBangKeepsChallenges());
+            assertFalse(game.bigBangKeepsDarkTree());
+            assertTrue(game.bigBang());
+            assertEquals(3, game.bigBangs());
+            assertEquals(game.challenges().size(), game.completedChallenges());
+            for (Challenge challenge : game.challenges()) assertTrue(game.isChallengeCompleted(challenge.id()), challenge.id());
+            // L'arbre, lui, est encore repris : il attend le cinquième.
+            assertFalse(game.isDarkMatterUnlocked());
+            assertTrue(game.bigBangKeepsChallenges());
+        }
+
+        @Test
+        void avantLeTroisiemeLeBigBangReprendLesDefis() {
+            Game game = readyGame();
+            assertFalse(game.bigBangKeepsChallenges());
+            assertTrue(game.bigBang());
+            assertEquals(0, game.completedChallenges());
+            assertFalse(game.bigBangKeepsChallenges());             // le deuxième non plus
+            game.state().setBigBangs(2);
+            assertTrue(game.bigBangKeepsChallenges());
+            // Recommencer de zéro oublie les défis, palier ou non.
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            game.reset();
+            assertEquals(0, game.completedChallenges());
         }
 
         @Test
@@ -6850,13 +6895,18 @@ class GameTest {
         @Test
         void leCatalogueOuvreChaqueRayonEtLaFusion() {
             List<SpaceUpgrade> upgrades = SpaceUpgrades.DEFAULT;
-            assertEquals(15, upgrades.size());
-            assertEquals(15, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
+            assertEquals(23, upgrades.size());
+            assertEquals(23, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoGather).count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoForm).count());
+            assertEquals(2, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.CreationPace).count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.HoldCreate).count());
+            assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.BulkForm).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoHold).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenBodies).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenStates).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenAssemblies).count());
-            assertEquals(4, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.Boost).count());
+            assertEquals(6, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.Boost).count());
             for (Molecule.Kind kind : Molecule.Kind.values()) {
                 long opening = upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.OpenKind open
                         && open.kind() == kind).count();
@@ -6919,8 +6969,8 @@ class GameTest {
         @Test
         void lesPaliersVontJusquAuCinquiemeBigBang() {
             List<BigBangMilestone> milestones = BigBangMilestones.DEFAULT;
-            // Six paliers sur cinq Big Bangs : le deuxième en donne deux, et aucun ne demande plus de cinq Big Bangs.
-            assertEquals(6, milestones.size());
+            // Sept paliers sur cinq Big Bangs : le deuxième et le troisième en donnent deux, et aucun ne demande plus de cinq Big Bangs.
+            assertEquals(7, milestones.size());
             int previous = 1;
             for (BigBangMilestone milestone : milestones) {
                 assertTrue(milestone.bigBangs() >= previous && milestone.bigBangs() <= 5, milestone.name());
@@ -6928,15 +6978,17 @@ class GameTest {
                 previous = milestone.bigBangs();
             }
             assertEquals(2, milestones.stream().filter(milestone -> milestone.bigBangs() == 2).count());
+            assertEquals(2, milestones.stream().filter(milestone -> milestone.bigBangs() == 3).count());
+            assertEquals(List.of(new BigBangMilestone.KeepChallenges()), milestones.get(4).effects());
             // Le cinquième donne deux choses : l'expansion triplée, et l'arbre de matière noire qui traverse le Big Bang.
             assertEquals(List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3), new BigBangMilestone.KeepDarkTree()),
-                    milestones.get(5).effects());
+                    milestones.get(6).effects());
             Game game = game(0);
             game.state().setBigBangs(0);
             assertEquals(milestones, game.bigBangMilestones());
             assertEquals(0, game.bigBangMilestonesReached());
             assertEquals(milestones.get(0), game.nextBigBangMilestone());
-            int[] reached = {0, 1, 3, 4, 5, 6};
+            int[] reached = {0, 1, 3, 5, 6, 7};
             for (int bigBangs = 1; bigBangs <= 5; bigBangs++) {
                 game.state().setBigBangs(bigBangs);
                 assertEquals(reached[bigBangs], game.bigBangMilestonesReached());
@@ -6945,7 +6997,7 @@ class GameTest {
             // Au-delà du cinquième, plus de palier : rien de plus qu'à cinq.
             double space = game.bigBangMilestoneBoost(Molecule.Stat.SPACE);
             game.state().setBigBangs(9);
-            assertEquals(6, game.bigBangMilestonesReached());
+            assertEquals(7, game.bigBangMilestonesReached());
             assertEquals(space, game.bigBangMilestoneBoost(Molecule.Stat.SPACE), 0);
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(0, "Rien", List.of(new BigBangMilestone.DarkMatter(2))));
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(1, "Rien", List.of()));
@@ -7026,7 +7078,8 @@ class GameTest {
 
         @Test
         void lesCreationsDeMoleculesSeComptent() {
-            Game game = game(1e9);
+            // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
+            Game game = game(90_000);
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             GameStats stats = game.stats();
@@ -7095,7 +7148,8 @@ class GameTest {
 
         @Test
         void leDeuxiemeBigBangDonneLaCreationAutomatique() {
-            Game game = game(1e9);
+            // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
+            Game game = game(90_000);
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setMoleculeCount("H2O", 3);
@@ -7263,6 +7317,8 @@ class GameTest {
             Game game = game(999_999);
             assertFalse(game.isSpaceUpgradeAvailable("space_rare"));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
+                // Les améliorations de fin de partie (au-delà du million) attendent bien plus d'espace.
+                if (upgrade.space().gt(BigNum.of(1_000_000))) continue;
                 if (!upgrade.id().equals("space_rare")) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
             }
             assertFalse(game.buySpaceUpgrade("space_rare"));
@@ -7275,7 +7331,7 @@ class GameTest {
 
         @Test
         void toutPrendreOuvreToutLeCatalogue() {
-            Game game = game(1e9);
+            Game game = game(1e10);
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
             assertEquals(Molecule.Kind.values().length, game.moleculeKindsUnlocked());
             assertTrue(game.nextMoleculeKind() == null);
@@ -7289,9 +7345,12 @@ class GameTest {
             assertEquals(1_500.0, game.secondsUntilSpace(BigNum.of(2_000)), 1e-6);
             game.tick(1_499);
             assertFalse(game.canBuySpaceUpgrade("space_acid"));
+            assertFalse(game.ownsSpaceUpgrade("space_acid"));
             game.tick(1);
             assertEquals(0.0, game.secondsUntilSpace(BigNum.of(2_000)), 1e-9);
-            assertTrue(game.buySpaceUpgrade("space_acid"));
+            // Le seuil atteint, l'amélioration est acquise d'elle-même : il n'y a rien à cliquer.
+            assertTrue(game.ownsSpaceUpgrade("space_acid"));
+            assertFalse(game.buySpaceUpgrade("space_acid"));
             // Les molécules créées en route ne retardent rien : seul l'espace gagné compte.
             game.state().setMoleculeCount("H2O", 3);
             assertEquals(8_000.0, game.secondsUntilSpace(BigNum.of(10_000)), 1e-6);
@@ -8002,6 +8061,12 @@ class GameTest {
                 game.state().addSubstance(molecule.id());
                 game.state().setMoleculeCount(molecule.id(), (int) Math.ceil(need.getValue() * share));
             }
+            // La variété : avec toute la matière viennent aussi les sortes rassemblées que l'échelle demande.
+            if (share < 1) return;
+            for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
+                game.molecules().stream().filter(each -> each.state() == need.getKey()).limit(need.getValue())
+                        .forEach(each -> game.state().addSubstance(each.id()));
+            }
         }
 
         @Test
@@ -8027,8 +8092,8 @@ class GameTest {
             assertFalse(game.isCosmosUnlocked(Cosmos.CLUSTER));
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
-            assertEquals(5, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la matière y est, pas la galaxie
-            assertEquals(6, game.cosmosConditions(Cosmos.CLUSTER));
+            assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));    // la matière et la variété y sont, pas la galaxie
+            assertEquals(11, game.cosmosConditions(Cosmos.CLUSTER));       // la galaxie, cinq quantités, cinq nombres de sortes
             assertEquals(game.bodies().size(), game.cosmosConditions(Cosmos.GALAXY));
 
             // La galaxie formée, l'amas de galaxies s'ouvre ; il lui faut chaque état en nombre.
@@ -8038,12 +8103,12 @@ class GameTest {
             assertTrue(game.hasCosmos(Cosmos.GALAXY));
             assertEquals(Cosmos.CLUSTER, game.nextCosmos());
             assertTrue(game.isCosmosUnlocked(Cosmos.CLUSTER) && !game.isCosmosUnlocked(Cosmos.UNIVERSE));
-            assertEquals(1, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la galaxie et les sortes ; la moitié de la matière ne suffit pas
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
             gather(game, Cosmos.CLUSTER, 1);
             Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS) - 1);    // il en manque une
-            assertEquals(5, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS));
             assertTrue(game.canFormCosmos(Cosmos.CLUSTER));
@@ -8064,14 +8129,14 @@ class GameTest {
 
             // L'univers : dix fois plus, et c'est la fin.
             assertEquals(Cosmos.UNIVERSE, game.nextCosmos());
-            assertEquals(1, game.cosmosConditionsMet(Cosmos.UNIVERSE));
+            assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));    // l'amas et les sortes, réunies plus haut
             gather(game, Cosmos.UNIVERSE, 1);
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
             game.state().setTimePlayed(9000);
             assertTrue(game.formCosmos(Cosmos.UNIVERSE));
             assertEquals(3, game.cosmosFormed());
             assertTrue(game.nextCosmos() == null);
-            assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));
+            assertEquals(11, game.cosmosConditionsMet(Cosmos.UNIVERSE));
             assertEquals(9000, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
             for (Molecule.Stat stat : Molecule.Stat.values()) {
                 assertEquals(before[stat.ordinal()] + 4096, game.matterBoost(stat), 1e-6, stat.name());

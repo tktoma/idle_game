@@ -32,7 +32,7 @@ import javafx.scene.text.TextAlignment;
  * </ul>
  *
  * <p>Le verrou de l'appui est un état du jeu, pas de cette page : une fois posé, la matière noire
- * grossit depuis n'importe quel onglet, jusqu'à la prochaine explosion.
+ * grossit depuis n'importe quel onglet, et le verrou tient d'une partie à l'autre.
  *
  * <p>Les automatismes de matière noire sont avec les autres, dans l'onglet « Automatisation ».
  *
@@ -45,6 +45,8 @@ final class DarkMatterPage extends VBox {
 
     private final Game game;
     private final Label balanceLabel = new Label();
+    /** Au survol : d'où vient la matière noire d'une explosion. */
+    private final Breakdown balanceBreakdown;
 
     private final Button pointTab = new Button("Matière noire");
     private final Button treeTab = new Button("Arbre");
@@ -79,6 +81,7 @@ final class DarkMatterPage extends VBox {
         super(8);
         this.game = game;
         this.tree = new DarkMatterTreePane(game);
+        this.balanceBreakdown = Breakdown.attach(balanceLabel, game, Breakdown.Of.DARK_MATTER);
         this.challenges = new ChallengesPane(game);
         this.challengesScroll = new ScrollPane(challenges);
         setAlignment(Pos.TOP_CENTER);
@@ -163,6 +166,29 @@ final class DarkMatterPage extends VBox {
     }
 
     /** Affiche une sous-page : 0 = le point, 1 = l'arbre, 2 = les défis. */
+    /** Passe à la sous-page suivante ou précédente, en boucle. */
+    void step(int direction) {
+        select(Math.floorMod(selected + direction, 3));
+        refresh();
+    }
+
+    /** La sous-page affichée : 0 le point, 1 l'arbre, 2 les défis. Pour les vérifications. */
+    int selected() {
+        return selected;
+    }
+
+    /**
+     * Le raccourci du Big Bang : la page montre l'arbre et presse sa dernière case, comme un clic.
+     * Avec la confirmation, un premier appui l'arme et le second déclenche.
+     */
+    void pressBigBang() {
+        if (selected != 1) select(1);
+        // L'arbre n'est recopié que lorsqu'il est affiché : sa case doit d'abord savoir que tout est réuni.
+        tree.refresh();
+        tree.bangCard().click();
+        refresh();
+    }
+
     private void select(int index) {
         selected = index;
         pressed = false;
@@ -238,10 +264,13 @@ final class DarkMatterPage extends VBox {
         balanceLabel.setText(Format.count(darkMatter) + " matière noire"
                 + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
                 + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
+        balanceBreakdown.refresh();
 
         mockNotice.setVisible(Detail.shown());
         mockNotice.setManaged(Detail.shown());
-        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")");
+        Readiness ready = Readiness.of(game);
+        treeTab.setText("Arbre" + Readiness.dot(ready.tree()));
+        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")" + Readiness.dot(ready.challenges()));
         if (selected == 1) tree.refresh();
         if (selected == 2) challenges.refresh();
         if (selected != 0) return;
@@ -269,7 +298,7 @@ final class DarkMatterPage extends VBox {
                         + "n'importe quel onglet ; il se coupe dans l'onglet Automatisation."
                 : !game.isHoldLockUnlocked() ? ""
                 : locked ? " Verrouillée, elle grossit seule à " + share + " de cette vitesse, depuis n'importe quel "
-                        + "onglet, jusqu'à la prochaine explosion. Un clic sur le point la libère ; tenir le clic donne le reste."
+                        + "onglet, et le verrou tient d'une partie à l'autre. Un clic sur le point la libère ; tenir le clic donne le reste."
                 : " Verrouillé, l'appui vaut " + share + " de la vitesse, depuis n'importe quel onglet.";
         speedLabel.setText(how + speed + " par seconde" + Detail.only(" d'appui." + more + "\n"
                 + "Élan : " + ElementText.percent(Game.DARK_MATTER_GROWTH_PER_UNIT) + " × " + Format.count(earned)

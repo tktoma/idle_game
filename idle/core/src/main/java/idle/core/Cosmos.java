@@ -13,23 +13,28 @@ import java.util.Map;
  * <p>La galaxie demande tous les astres du catalogue ({@link Bodies}). Les deux suivantes
  * demandent la précédente et de la matière rassemblée, comptée par état comme pour un astre
  * ({@link Game#gatheredInState(Molecule.State)}) : la matière de plusieurs galaxies pour un amas,
- * dix fois plus encore pour l'univers. La galaxie formée multiplie tout par mille, et un amas de
+ * dix fois plus encore pour l'univers ; et de la variété : un nombre de sortes rassemblées dans
+ * chaque état ({@link #sorts()}), pour que la fin de partie ne se joue pas avec quatre molécules. La galaxie formée multiplie tout par mille, et un amas de
  * molécules attire d'autant plus qu'il est gros : ces nombres, très au-dessus de ceux d'une étoile,
  * sont passés par la simulation du troisième acte. Un joueur présent forme l'amas de galaxies
  * deux heures après la galaxie et l'univers cinq heures et demie après l'amas : c'est l'espace, que
  * les gaz dévorent, qui fixe ces durées.
  */
 public enum Cosmos {
-    GALAXY("Galaxie", "la galaxie", 1024, matter(0, 0, 0, 0, 0)),
-    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2048, matter(10_000_000, 1_000_000, 200_000, 2_000_000, 100_000)),
-    UNIVERSE("Univers", "l'univers", 4096, matter(100_000_000, 10_000_000, 2_000_000, 20_000_000, 1_000_000));
+    GALAXY("Galaxie", "la galaxie", 1024, matter(0, 0, 0, 0, 0), matter(0, 0, 0, 0, 0)),
+    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2048, matter(10_000_000, 1_000_000, 200_000, 2_000_000, 100_000),
+            matter(25, 35, 30, 120, 4)),
+    UNIVERSE("Univers", "l'univers", 4096, matter(100_000_000, 10_000_000, 2_000_000, 20_000_000, 1_000_000),
+            matter(32, 45, 45, 150, 8));
 
     private final String label;
     private final String phrase;
     private final double gain;
     private final Map<Molecule.State, Integer> matter;
+    private final Map<Molecule.State, Integer> sorts;
 
-    Cosmos(String label, String phrase, double gain, Map<Molecule.State, Integer> matter) {
+    Cosmos(String label, String phrase, double gain, Map<Molecule.State, Integer> matter, Map<Molecule.State, Integer> sorts) {
+        this.sorts = sorts;
         this.label = label;
         this.phrase = phrase;
         this.gain = gain;
@@ -64,6 +69,16 @@ public enum Cosmos {
     /** La matière rassemblée qu'elle demande, par état, dans l'ordre des états. Vide pour la galaxie, qui demande les astres. */
     public Map<Molecule.State, Integer> matter() {
         return matter;
+    }
+
+    /**
+     * Le nombre de sortes rassemblées qu'elle demande dans chaque état ({@link Game#sortsInState}) :
+     * la variété, à côté de la quantité. Vide pour la galaxie. À la galaxie, un joueur qui n'a créé
+     * que ce que demandaient les astres a rassemblé 22 gaz, 29 liquides, 20 solides, 109 cristaux et
+     * 2 métaux : l'amas de galaxies en demande un peu plus, l'univers nettement plus.
+     */
+    public Map<Molecule.State, Integer> sorts() {
+        return sorts;
     }
 
     /** L'échelle qu'il faut avoir formée avant celle-ci, ou {@code null} pour la galaxie. */

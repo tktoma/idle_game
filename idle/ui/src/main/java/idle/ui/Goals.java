@@ -64,7 +64,7 @@ final class Goals {
 
     /**
      * Le prochain pas du troisième acte, celui qui s'ouvre au premier Big Bang et que ni l'explosion
-     * ni le Big Bang n'effacent : une amélioration d'espace à prendre, une première molécule, un
+     * ni le Big Bang n'effacent : une première molécule, un
      * premier rassemblement, un premier assemblage, le prochain astre, la galaxie, l'amas de galaxies, l'univers. Vide avant le
      * premier Big Bang.
      */
@@ -73,14 +73,10 @@ final class Goals {
         idle.core.Cosmos scale = game.nextCosmos();
         if (scale == null) return "l'univers est formé";
         if (game.canFormCosmos(scale)) return "former " + scale.phrase();
-        // Une amélioration que l'espace créé permet déjà de prendre : elle ne coûte rien, elle passe d'abord.
-        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) {
-            if (game.canBuySpaceUpgrade(upgrade.id())) return "prendre l'amélioration « " + upgrade.name() + " »";
-        }
         // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
         if (scale != idle.core.Cosmos.GALAXY) {
             return "réunir la matière de " + scale.phrase() + " (" + game.cosmosConditionsMet(scale) + "/"
-                    + game.cosmosConditions(scale) + " conditions)";
+                    + game.cosmosConditions(scale) + " conditions)" + spaceWait(game);
         }
         if (game.moleculesCreated() == 0) {
             // Après un Big Bang le tableau périodique est vide : il faut d'abord le regarnir, et laisser l'espace grandir.
@@ -92,16 +88,11 @@ final class Goals {
             return elements ? "attendre l'espace d'une première molécule"
                     : "regarnir le tableau périodique pour créer une première molécule";
         }
-        if (game.isBodiesUnlocked()) {
-            // Le prochain astre : le premier du catalogue qui n'est pas formé et dont les astres de départ le sont.
-            for (idle.core.Body body : game.bodies()) {
-                if (game.hasBody(body.id())) continue;
-                boolean reachable = true;
-                for (String smaller : body.bodies()) reachable &= game.hasBody(smaller);
-                if (!reachable) continue;
-                return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + body.conditions()
-                        + " conditions)";
-            }
+        // Le prochain astre : celui que vise aussi la liste de courses, à portée et le plus avancé.
+        idle.core.Body body = game.nextBody();
+        if (body != null) {
+            return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + body.conditions()
+                    + " conditions)" + spaceWait(game);
         }
         if (game.isAssembliesUnlocked() && game.assembliesFormed() == 0) return "former un premier assemblage";
         if (game.isStatesUnlocked() && game.substancesFormed() == 0) {
@@ -121,8 +112,40 @@ final class Goals {
         return game.isAssembliesUnlocked() ? "former d'autres assemblages" : "créer d'autres molécules";
     }
 
+    /**
+     * « , assez d'espace dans 12 min environ » : le temps d'expansion qu'il faut encore à la liste
+     * de courses du prochain pas ({@link Game#secondsUntilShopping()}). Vide quand l'espace suffit
+     * déjà, ou qu'il ne grandit pas. C'est un minimum : il reste à regarnir le tableau périodique.
+     */
+    static String spaceWait(Game game) {
+        double wait = game.secondsUntilShopping();
+        return wait <= 0 || Double.isInfinite(wait) || Double.isNaN(wait) ? "" : ", assez d'espace dans " + about(wait);
+    }
+
+    /** « 12 min environ », ou « plus d'un mois » : une attente estimée, sans « environ » quand elle n'est déjà qu'un ordre de grandeur. */
+    static String about(double seconds) {
+        String wait = Format.wait(seconds);
+        return wait.startsWith("plus") ? wait : wait + " environ";
+    }
+
+    /**
+     * Le mode chrono : « Chrono : première explosion, record 23 h 50, 2 h 10 d'avance ». L'écart au
+     * record sur la prochaine étape datée ({@link Game#recordGap()}). Vide tant qu'il n'y a pas de
+     * record à battre : à la première partie, donc.
+     */
+    static String chrono(Game game) {
+        GameStats.Step next = game.nextStep();
+        if (next == null) return "";
+        double record = game.recordOf(next);
+        double gap = game.recordGap();
+        if (Double.isNaN(record) || Double.isNaN(gap)) return "";
+        String label = Character.toLowerCase(next.label().charAt(0)) + next.label().substring(1);
+        return "Chrono : " + label + ", record " + Format.duration(record) + ", "
+                + (gap <= 0 ? Format.duration(-gap) + " d'avance" : Format.duration(gap) + " de retard");
+    }
+
     /** « un amas rocheux », « une comète glacée », « le Soleil » : le nom d'un astre avec son article. */
-    private static String article(String name) {
+    static String article(String name) {
         if (name.equals("Soleil")) return "le Soleil";
         String lower = name.toLowerCase(java.util.Locale.ROOT);
         boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")

@@ -3,9 +3,10 @@ package idle.core;
 import java.util.List;
 
 /**
- * Catalogue des succès : cinquante, dont vingt et un récompensent une action précise et portent
- * un petit bonus à eux. Les vingt-neuf autres jalonnent la progression, du premier générateur
- * au premier défi.
+ * Catalogue des succès : soixante-six. Les cinquante premiers vont du premier générateur à la
+ * dixième explosion ; vingt et un d'entre eux récompensent une action précise et portent un petit
+ * bonus à eux. Les seize derniers jalonnent le troisième acte, de la première molécule à l'univers,
+ * et trois d'entre eux portent un bonus.
  *
  * <p>Tous donnent en plus le bonus commun, +1 % de particules chacun. Les bonus propres sont
  * volontairement petits : réunis, ceux qu'on peut obtenir avant la première explosion valent
@@ -202,7 +203,57 @@ public final class Achievements {
                     game -> game.state().explosions() >= 10),
             Achievement.step("step_fusions_10000", "Dix mille fusions", "10 000 fusions",
                     "Fusionner dix mille fois.",
-                    game -> game.state().stats().fusions() >= 10_000));
+                    game -> game.state().stats().fusions() >= 10_000),
+
+            // ----- Le troisième acte : du premier Big Bang à l'univers -----
+            Achievement.step("step_first_molecule", "Première liaison", "1 molécule",
+                    "Créer une première molécule.",
+                    game -> game.moleculesCreated() >= 1),
+            Achievement.step("step_first_gathering", "Premier amas", "1 sorte rassemblée",
+                    "Rassembler une sorte de molécules dans le lieu de son état.",
+                    game -> game.substancesFormed() >= 1),
+            Achievement.step("step_second_bang", "Encore !", "2 Big Bangs",
+                    "Déclencher un deuxième Big Bang.",
+                    game -> game.bigBangs() >= 2),
+            Achievement.step("step_fifty_kinds", "Chimiste", "50 sortes de molécules",
+                    "Créer au moins une molécule de cinquante sortes.",
+                    game -> game.moleculeKindsCreated() >= 50),
+            Achievement.step("step_first_assembly", "Première pierre", "1 assemblage",
+                    "Former un premier assemblage.",
+                    game -> game.assembliesFormed() >= 1),
+            Achievement.step("step_first_body", "Premier astre", "1 astre",
+                    "Former un premier astre.",
+                    game -> game.bodiesFormed() >= 1),
+            Achievement.feat("feat_comet", "Attrapée au vol", "Saisir une comète",
+                    "Saisir une comète pendant qu'elle traverse l'expansion de la matière.",
+                    Achievement.Bonus.ATOMS, 0.01, game -> game.cometsCaught() >= 1),
+            Achievement.step("step_half_collection", "Demi-rayon", "La moitié d'un rayon",
+                    "Créer au moins une molécule de la moitié des sortes d'un rayon.",
+                    game -> game.collectionsAt(1) >= 1),
+            Achievement.step("step_ten_bodies", "Petit système", "10 astres",
+                    "Former dix astres.",
+                    game -> game.bodiesFormed() >= 10),
+            Achievement.step("step_five_bangs", "Univers mûr", "5 Big Bangs",
+                    "Déclencher un cinquième Big Bang : tous les paliers sont atteints.",
+                    game -> game.bigBangs() >= 5),
+            Achievement.step("step_first_star", "Que la lumière soit", "1 étoile",
+                    "Former une première étoile.",
+                    game -> game.bodiesFormed(Body.Tier.STAR) >= 1),
+            Achievement.step("step_galaxy", "Voie lactée", "La galaxie",
+                    "Former la galaxie.",
+                    game -> game.hasGalaxy()),
+            Achievement.feat("feat_full_collection", "Rayon complet", "Un rayon entier",
+                    "Créer au moins une molécule de chaque sorte d'un rayon.",
+                    Achievement.Bonus.ATOMS, 0.02, game -> game.collectionsAt(2) >= 1),
+            Achievement.feat("feat_bang_challenge", "Sous contrainte", "1 défi de Big Bang",
+                    "Réussir un défi de Big Bang.",
+                    Achievement.Bonus.AUTOMATION, 0.02, game -> game.completedBangChallenges() >= 1),
+            Achievement.step("step_cluster", "Superamas", "L'amas de galaxies",
+                    "Former l'amas de galaxies.",
+                    game -> game.hasCosmos(Cosmos.CLUSTER)),
+            Achievement.step("step_universe", "Tout ce qui est", "L'univers",
+                    "Former l'univers.",
+                    game -> game.hasCosmos(Cosmos.UNIVERSE)));
 
     /** Vrai si le joueur possède au moins {@code level} niveaux d'une amélioration de ce type. */
     private static boolean owns(Game game, Class<? extends Effect> type, int level) {

@@ -453,6 +453,17 @@ public final class Game {
         achievementBonusesFor = -1;
         elementBonusesVersion = -1;
         newAchievements.clear();
+        newSpaceUpgrades.clear();
+        newRecords.clear();
+        cometAppeared = false;
+        speedPrimePaid = false;
+        kindCountsVersion = -1;
+        sortsByStateVersion = -1;
+        autoFormed.clear();
+        autoGathered = 0;
+        autoFormTimer = 0;
+        shoppingVersion = -1;
+        shoppingSpaceKey = -1;
         achievementTimer = 0;
         moleculeAutomationTimer = 0;
         moleculeAutomationTurn = 0;
@@ -518,7 +529,10 @@ public final class Game {
         if (isAutoHolding()) growDarkMatter(dt * (isHoldLocked() ? 1 - HOLD_LOCK_SHARE : 1));
 
         expandSpace(dt);
+        takeSpaceUpgrades();
+        runComet(dt);
         runMoleculeAutomation(dt);
+        runAutoForm(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -831,7 +845,33 @@ public final class Game {
         return true;
     }
 
+    /**
+     * Vrai tant que le joueur a coupé d'un geste tous les automatismes : ceux de l'onglet
+     * Automatisation, ceux de matière noire, l'appui automatique et la création automatique.
+     * Aucun n'agit, mais chacun garde son propre réglage et reprend quand la coupure est levée.
+     * Le verrou de l'appui n'est pas un automatisme : il continue.
+     */
+    public boolean isAutomationPaused() {
+        return state.automationPaused();
+    }
+
+    /** Coupe ou relance d'un geste tous les automatismes. Aucune remise à zéro ne change ce réglage. */
+    public void setAutomationPaused(boolean paused) {
+        state.setAutomationPaused(paused);
+    }
+
+    /** Vrai si le joueur a au moins un automatisme, de quelque sorte que ce soit : il y a alors quelque chose à couper. */
+    public boolean hasAnyAutomation() {
+        if (!state.ownedAutomations().isEmpty() || isAutoHoldUnlocked() || isMoleculeAutomationUnlocked()
+                || isAutoGatherUnlocked() || isAutoFormUnlocked()) return true;
+        for (DarkAutomation automation : darkAutomations.values()) {
+            if (isDarkAutomationUnlocked(automation.id())) return true;
+        }
+        return false;
+    }
+
     private boolean hasActiveAutomation() {
+        if (state.automationPaused()) return false;
         for (Automation automation : automations.values()) {
             if (isAutomationEnabled(automation.id())) return true;
         }
@@ -1163,6 +1203,11 @@ public final class Game {
         return hasDark(DarkEffect.TargetedSynthesis.class);
     }
 
+    /** Vrai une fois acquis l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à portée. */
+    public boolean isBulkAtomBuyUnlocked() {
+        return hasDark(DarkEffect.BulkAtomUpgrades.class);
+    }
+
     /** Synthèses déjà payées pour la synthèse ciblée en cours. */
     public int synthesisTries() {
         return state.synthesisTries();
@@ -1371,6 +1416,15 @@ public final class Game {
         if (!canExplode()) return false;
         BigNum reward = nextExplosionDarkMatter();
         boolean replay = isChallengeReplay();
+        // La prime de vitesse : la première explosion depuis le Big Bang pose le record, les suivantes le battent de la marge ou non.
+        boolean primed = earnsSpeedPrime();
+        double duration = state.stats().runTime();
+        if (!replay && (primed || state.explosionRecord() <= 0)) state.setExplosionRecord(duration);
+        if (primed) {
+            speedPrimePaid = true;
+            state.stats().noteSpeedPrime();
+        }
+        boolean firstExplosion = state.stats().timedExplosions() == 0;
         // Un défi en cours est réussi : il laisse sa récompense, et son meilleur temps est noté.
         Challenge challenge = activeChallenge();
         if (challenge != null) {
@@ -1390,10 +1444,10 @@ public final class Game {
         state.setExplosions(state.explosions() + 1);
         // Un défi rejoué ne compte que pour son temps : ni matière noire, ni tableau plus lourd.
         if (!replay) state.setTableWeightLevel(state.tableWeightLevel() + 1);
-        // L'appui verrouillé ne survit pas à l'explosion : il faut le remettre à chaque partie.
-        state.setHoldLocked(false);
+        // L'appui verrouillé est un réglage du joueur : l'explosion ne le défait pas.
         clearRun();
         state.stats().endRun();
+        if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
         return true;
     }
 
@@ -1698,7 +1752,8 @@ public final class Game {
     }
 
     /**
-     * Verrouille ou libère l'appui. Le verrou tient jusqu'à la prochaine explosion.
+     * Verrouille ou libère l'appui. C'est un réglage : ni l'explosion ni le Big Bang ne le changent,
+     * et il ressert dès que la case « Verrou » de l'arbre est de nouveau acquise.
      *
      * @return {@code true} si le verrou a pris l'état demandé ; faux s'il n'est pas débloqué
      */
@@ -1743,7 +1798,8 @@ public final class Game {
      * depuis le dernier Big Bang). Tenir le clic n'ajoute alors rien : c'est déjà fait.
      */
     public boolean isAutoHolding() {
-        return isAutoHoldUnlocked() && state.autoHold() && isDarkMatterUnlocked();
+        return isAutoHoldUnlocked() && state.autoHold() && isDarkMatterUnlocked() && !state.automationPaused()
+                && !bangRuled(BangChallenge.BY_HAND);
     }
 
     /** Vrai si le défi en cours a déjà été réussi : on le rejoue pour son temps, sans rien y gagner d'autre. */
@@ -1757,7 +1813,54 @@ public final class Game {
      * ou rien si elle termine un défi déjà réussi.
      */
     public BigNum nextExplosionDarkMatter() {
-        return isChallengeReplay() ? BigNum.ZERO : darkMatterPerExplosion();
+        if (isChallengeReplay()) return BigNum.ZERO;
+        return earnsSpeedPrime() ? darkMatterPerExplosion().add(speedPrime()) : darkMatterPerExplosion();
+    }
+
+    /**
+     * Part du record qu'il faut battre pour toucher la prime de vitesse : exploser en moins de
+     * 90 % du temps de la dernière explosion primée. Sans cette marge, une explosion automatique
+     * qui gagne une fraction de seconde à chaque fois toucherait la prime sans fin.
+     */
+    public static final double SPEED_PRIME_MARGIN = 0.9;
+    /** La prime de vitesse, avant les paliers de Big Bang : une matière noire de plus. */
+    public static final BigNum SPEED_PRIME = BigNum.ONE;
+    private boolean speedPrimePaid = false;
+
+    /**
+     * Le temps à battre pour la prime de vitesse, en secondes : {@link #SPEED_PRIME_MARGIN} du
+     * record ({@link #explosionRecord()}). 0 tant qu'aucune explosion n'a eu lieu depuis le dernier
+     * Big Bang : la première pose le record, sans prime.
+     */
+    public double speedPrimeTime() {
+        return state.explosionRecord() * SPEED_PRIME_MARGIN;
+    }
+
+    /** Durée de l'explosion qui sert de record depuis le dernier Big Bang, en secondes ; 0 s'il n'y en a pas encore. */
+    public double explosionRecord() {
+        return state.explosionRecord();
+    }
+
+    /** Vrai si une explosion déclenchée maintenant toucherait la prime de vitesse : le record est battu de la marge voulue, hors défi rejoué. */
+    public boolean earnsSpeedPrime() {
+        return !isChallengeReplay() && state.explosionRecord() > 0 && state.stats().runTime() <= speedPrimeTime();
+    }
+
+    /** Secondes qu'il reste pour toucher la prime de vitesse ; 0 quand il est trop tard ou qu'il n'y a pas de record. */
+    public double speedPrimeLeft() {
+        return state.explosionRecord() > 0 ? Math.max(0, speedPrimeTime() - state.stats().runTime()) : 0;
+    }
+
+    /** Ce que vaut la prime de vitesse : {@link #SPEED_PRIME}, multipliée comme la matière noire d'une explosion. */
+    public BigNum speedPrime() {
+        return SPEED_PRIME.multiply(bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER));
+    }
+
+    /** Vrai si la dernière explosion a touché la prime de vitesse : pour l'annoncer. Remis à faux à chaque lecture. */
+    public boolean takeSpeedPrime() {
+        boolean paid = speedPrimePaid;
+        speedPrimePaid = false;
+        return paid;
     }
 
     /**
@@ -1771,7 +1874,7 @@ public final class Game {
                 amount = amount.add(BigNum.of(add.perLevel() * state.darkLevelOf(dark.id())));
             }
         }
-        double factor = bigBangDarkMatterFactor();
+        double factor = bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER);
         return factor == 1 ? amount : amount.multiply(factor);
     }
 
@@ -1932,8 +2035,9 @@ public final class Game {
      * périodique est vide, et il faut le regarnir avant de créer de nouvelles molécules.
      *
      * <p>À partir du Big Bang qui atteint le palier voulu ({@link #bigBangKeepsDarkTree()}), l'arbre
-     * de matière noire reste aussi, avec ses automatismes : seuls partent la réserve, la taille, la
-     * masse du tableau et les défis réussis.
+     * de matière noire reste aussi, avec ses automatismes : seuls partent la réserve, la taille et
+     * la masse du tableau. Les défis réussis, eux, restent dès un palier plus tôt
+     * ({@link #bigBangKeepsChallenges()}).
      *
      * @return {@code true} si le Big Bang a eu lieu
      */
@@ -1941,15 +2045,130 @@ public final class Game {
         if (!canBigBang()) return false;
         noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
-        boolean keepsTree = bigBangKeepsDarkTree();
+        // Un défi de Big Bang en cours est réussi : sa récompense est acquise, son temps noté.
+        BangChallenge challenge = activeBangChallenge();
+        if (challenge != null) {
+            double time = bangChallengeTime();
+            Double best = state.bangChallengeTimes().get(challenge.name());
+            if (best == null || time < best) state.setBangChallengeTime(challenge.name(), time);
+            state.addCompletedBangChallenge(challenge.name());
+            state.setActiveBangChallenge(null);
+        }
+        boolean first = !state.stats().reached(GameStats.Step.FIRST_BIG_BANG);
         state.stats().noteBigBang(state.explosions(), state.timePlayed());
-        state.clearMatter();
-        if (keepsTree) state.clearDarkMatterKeepingTree();
-        else state.clearDarkMatter();
+        if (first) noteRecord(GameStats.Step.FIRST_BIG_BANG);
+        clearForBigBang();
         state.setBigBangs(state.bigBangs() + 1);
         state.stats().restartRun();
         return true;
     }
+
+    /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
+    private void clearForBigBang() {
+        boolean keepsTree = bigBangKeepsDarkTree();
+        java.util.Set<String> keptChallenges = bigBangKeepsChallenges()
+                ? new java.util.LinkedHashSet<>(state.completedChallenges()) : java.util.Set.of();
+        state.clearMatter();
+        if (keepsTree) state.clearDarkMatterKeepingTree();
+        else state.clearDarkMatter();
+        for (String kept : keptChallenges) state.addCompletedChallenge(kept);
+        // Le record d'explosion repart : après un Big Bang, la première explosion redemande des heures.
+        state.setExplosionRecord(0);
+    }
+
+    // ------------------------------------------------------------------
+    // Les défis de Big Bang
+    // ------------------------------------------------------------------
+
+    /** Les défis de Big Bang, dans l'ordre du catalogue. */
+    public List<BangChallenge> bangChallenges() {
+        return List.of(BangChallenge.values());
+    }
+
+    /** Vrai une fois tous les paliers de Big Bang atteints : les défis de Big Bang s'ouvrent, pour donner un sens aux Big Bangs suivants. */
+    public boolean isBangChallengesUnlocked() {
+        return bigBangMilestonesReached() == BigBangMilestones.DEFAULT.size();
+    }
+
+    /** Le défi de Big Bang en cours, ou {@code null}. */
+    public BangChallenge activeBangChallenge() {
+        String name = state.activeBangChallenge();
+        if (name == null) return null;
+        for (BangChallenge challenge : BangChallenge.values()) {
+            if (challenge.name().equals(name)) return challenge;
+        }
+        return null;
+    }
+
+    /** Vrai si ce défi de Big Bang a été réussi : sa récompense agit. */
+    public boolean isBangChallengeCompleted(BangChallenge challenge) {
+        return state.completedBangChallenges().contains(challenge.name());
+    }
+
+    /** Nombre de défis de Big Bang réussis. */
+    public int completedBangChallenges() {
+        int done = 0;
+        for (BangChallenge challenge : BangChallenge.values()) {
+            if (isBangChallengeCompleted(challenge)) done++;
+        }
+        return done;
+    }
+
+    /** Le meilleur temps d'un défi de Big Bang réussi, en secondes, ou {@code NaN} s'il ne l'a jamais été. */
+    public double bangChallengeBest(BangChallenge challenge) {
+        return state.bangChallengeTimes().getOrDefault(challenge.name(), Double.NaN);
+    }
+
+    /** Temps de jeu écoulé depuis le début du défi de Big Bang en cours, en secondes ; 0 hors défi. */
+    public double bangChallengeTime() {
+        return state.activeBangChallenge() == null ? 0 : Math.max(0, state.timePlayed() - state.bangChallengeStarted());
+    }
+
+    /** Vrai si un défi de Big Bang peut commencer : ils sont ouverts, aucun n'est en cours, et aucun défi d'explosion non plus. */
+    public boolean canStartBangChallenge() {
+        return state.started() && isBangChallengesUnlocked() && state.activeBangChallenge() == null && !inChallenge();
+    }
+
+    /**
+     * Commence un défi de Big Bang : la partie repart comme après un Big Bang (mêmes choses
+     * gardées), sans en compter un, et la contrainte tient jusqu'au Big Bang suivant.
+     *
+     * @return {@code true} si le défi a commencé
+     */
+    public boolean startBangChallenge(BangChallenge challenge) {
+        if (challenge == null || !canStartBangChallenge()) return false;
+        noteHeldPeaks();
+        clearForBigBang();
+        state.stats().restartRun();
+        state.setActiveBangChallenge(challenge.name());
+        state.setBangChallengeStarted(state.timePlayed());
+        return true;
+    }
+
+    /** Abandonne le défi de Big Bang en cours : la contrainte tombe, la partie continue, rien n'est gagné. */
+    public boolean abandonBangChallenge() {
+        if (state.activeBangChallenge() == null) return false;
+        state.setActiveBangChallenge(null);
+        return true;
+    }
+
+    /** Vrai si cette contrainte de défi de Big Bang s'applique en ce moment. */
+    private boolean bangRuled(BangChallenge challenge) {
+        return challenge.name().equals(state.activeBangChallenge());
+    }
+
+    /** Ce que les défis de Big Bang réussis multiplient pour cette récompense : 1 sans défi réussi. */
+    public double bangReward(BangChallenge.Reward reward) {
+        double factor = 1;
+        for (BangChallenge challenge : BangChallenge.values()) {
+            if (challenge.reward() == reward && isBangChallengeCompleted(challenge)) factor *= BANG_REWARDS.get(reward);
+        }
+        return factor;
+    }
+
+    /** Ce que vaut chaque récompense de défi de Big Bang. */
+    public static final Map<BangChallenge.Reward, Double> BANG_REWARDS = Map.of(
+            BangChallenge.Reward.SPACE, 2.0, BangChallenge.Reward.ACCRETION, 1.5, BangChallenge.Reward.DARK_MATTER, 2.0);
 
     // ------------------------------------------------------------------
     // Les paliers de Big Bang
@@ -1984,6 +2203,7 @@ public final class Game {
 
     /** Ce par quoi les paliers de Big Bang atteints multiplient une grandeur ({@link BigBangMilestone.Boost}). Vaut 1 sans aucun. */
     public double bigBangMilestoneBoost(Molecule.Stat stat) {
+        if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double factor = 1;
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
             if (!isBigBangMilestoneReached(milestone)) continue;
@@ -2001,6 +2221,7 @@ public final class Game {
      * le palier, et après un Big Bang tant que la matière noire n'est pas revenue.
      */
     public double darkMatterSpaceBoost() {
+        if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double perRoot = 0;
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
             if (!isBigBangMilestoneReached(milestone)) continue;
@@ -2024,6 +2245,20 @@ public final class Game {
 
     private double moleculeAutomationTimer = 0;
     private int moleculeAutomationTurn = 0;
+
+    /**
+     * Vrai si le prochain Big Bang laissera les défis réussis ({@link BigBangMilestone.KeepChallenges}) :
+     * le palier qui le donne est atteint, ou ce Big Bang l'atteindra. Ce Big Bang-là en profite donc déjà.
+     */
+    public boolean bigBangKeepsChallenges() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (milestone.bigBangs() > state.bigBangs() + 1) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.KeepChallenges) return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Vrai si le prochain Big Bang laissera l'arbre de matière noire en place
@@ -2093,7 +2328,8 @@ public final class Game {
 
     /** Vrai si la création automatique agit en ce moment : acquise, en marche, et au moins un amas lui est confié. */
     public boolean isAutoCreatingMolecules() {
-        return isMoleculeAutomationUnlocked() && state.autoMolecules() && !state.automatedMolecules().isEmpty();
+        return isMoleculeAutomationUnlocked() && state.autoMolecules() && !state.automatedMolecules().isEmpty()
+                && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
     }
 
     /**
@@ -2108,24 +2344,183 @@ public final class Game {
             return;
         }
         moleculeAutomationTimer += dt;
-        int rounds = (int) Math.min(MOLECULE_AUTOMATION_CATCH_UP, Math.floor(moleculeAutomationTimer / MOLECULE_AUTOMATION_SECONDS + 1e-9));
+        double interval = moleculeAutomationInterval();
+        int rounds = (int) Math.min(MOLECULE_AUTOMATION_CATCH_UP, Math.floor(moleculeAutomationTimer / interval + 1e-9));
         if (rounds <= 0) return;
-        moleculeAutomationTimer = Math.max(0, Math.min(MOLECULE_AUTOMATION_SECONDS,
-                moleculeAutomationTimer - rounds * MOLECULE_AUTOMATION_SECONDS));
+        moleculeAutomationTimer = Math.max(0, Math.min(interval, moleculeAutomationTimer - rounds * interval));
+        double reserve = state.autoMoleculeReserve();
         List<String> chosen = state.automatedMolecules();
         for (int round = 0; round < rounds; round++) {
             boolean created = false;
             int first = Math.floorMod(moleculeAutomationTurn++, chosen.size());
             for (int offset = 0; offset < chosen.size(); offset++) {
                 String id = chosen.get((first + offset) % chosen.size());
-                if (molecules.containsKey(id)) created |= createMolecule(id, true);
+                if (!molecules.containsKey(id)) continue;
+                // La réserve : la création n'a lieu que si elle laisse libre la part d'espace que le joueur veut garder.
+                if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                created |= createMolecule(id, true);
             }
             if (!created) break;
         }
     }
 
+    /** Vrai si créer cette molécule maintenant laisserait libre au moins cette part de l'espace créé. */
+    private boolean leavesReserve(String moleculeId, double share) {
+        BigNum cost = moleculeVolume(moleculeId).multiply(moleculesNextCreation(moleculeId));
+        return freeSpace().subtract(cost).gte(state.space().multiply(share));
+    }
+
+    /**
+     * Délai entre deux passages de la création automatique, en secondes :
+     * {@link #MOLECULE_AUTOMATION_SECONDS}, ou moins une fois acquise une amélioration d'espace qui
+     * le raccourcit ({@link SpaceUpgrade.CreationPace}).
+     */
+    public double moleculeAutomationInterval() {
+        double interval = MOLECULE_AUTOMATION_SECONDS;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (upgrade.effect() instanceof SpaceUpgrade.CreationPace pace && state.ownsSpaceUpgrade(upgrade.id())) {
+                interval = Math.min(interval, pace.seconds());
+            }
+        }
+        return interval;
+    }
+
+    /** Part de l'espace créé que la création automatique laisse toujours libre, de 0 à 1 : la création à la main n'en tient pas compte. */
+    public double autoMoleculeReserve() {
+        return state.autoMoleculeReserve();
+    }
+
+    /** Règle la part d'espace que la création automatique laisse libre ; ramenée entre 0 et 0,95. */
+    public void setAutoMoleculeReserve(double share) {
+        state.setAutoMoleculeReserve(Math.max(0, Math.min(0.95, Double.isNaN(share) ? 0 : share)));
+    }
+
+    /**
+     * Confie à la création automatique toutes les sortes rassemblées, ou les lui retire toutes.
+     *
+     * @return le nombre de sortes dont le réglage a changé ; 0 tant que l'automatisme n'est pas acquis
+     */
+    public int setAllMoleculesAutomated(boolean automated) {
+        if (!isMoleculeAutomationUnlocked()) return 0;
+        int changed = 0;
+        for (String id : automated ? state.substances() : state.automatedMolecules()) {
+            if (!molecules.containsKey(id) || state.isMoleculeAutomated(id) == automated) continue;
+            state.setMoleculeAutomated(id, automated);
+            changed++;
+        }
+        return changed;
+    }
+
+    // ------------------------------------------------------------------
+    // Le rassemblement et la formation automatiques
+    // ------------------------------------------------------------------
+
+    /** Délai entre deux passages du rassemblement et de la formation automatiques, en secondes. */
+    public static final double AUTO_FORM_SECONDS = 1;
+    private double autoFormTimer = 0;
+    private int autoGathered = 0;
+    private final List<String> autoFormed = new ArrayList<>();
+
+    /** Vrai une fois acquise l'amélioration d'espace « Rassemblement automatique » ({@link SpaceUpgrade.AutoGather}). */
+    public boolean isAutoGatherUnlocked() {
+        return ownsSpaceEffect(SpaceUpgrade.AutoGather.class);
+    }
+
+    /** Vrai si le rassemblement automatique est en marche (il ne sert qu'une fois acquis). */
+    public boolean isAutoGatherEnabled() {
+        return state.autoGather();
+    }
+
+    /** Met en marche ou coupe le rassemblement automatique ; faux s'il n'est pas acquis. */
+    public boolean setAutoGatherEnabled(boolean enabled) {
+        if (!isAutoGatherUnlocked()) return false;
+        state.setAutoGather(enabled);
+        return true;
+    }
+
+    /** Vrai si les sortes se rassemblent d'elles-mêmes en ce moment : l'automatisme est acquis, en marche, et rien n'est coupé. */
+    public boolean isAutoGathering() {
+        return isAutoGatherUnlocked() && state.autoGather() && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
+    }
+
+    /** Vrai une fois acquise l'amélioration d'espace « Formation automatique » ({@link SpaceUpgrade.AutoForm}). */
+    public boolean isAutoFormUnlocked() {
+        return ownsSpaceEffect(SpaceUpgrade.AutoForm.class);
+    }
+
+    /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). */
+    public boolean isAutoFormEnabled() {
+        return state.autoForm();
+    }
+
+    /** Met en marche ou coupe la formation automatique ; faux si elle n'est pas acquise. */
+    public boolean setAutoFormEnabled(boolean enabled) {
+        if (!isAutoFormUnlocked()) return false;
+        state.setAutoForm(enabled);
+        return true;
+    }
+
+    /** Vrai si les assemblages et les astres se forment d'eux-mêmes en ce moment. */
+    public boolean isAutoForming() {
+        return isAutoFormUnlocked() && state.autoForm() && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
+    }
+
+    /**
+     * Fait passer le temps du rassemblement et de la formation automatiques : une fois par
+     * seconde, tout ce qui peut être rassemblé l'est, puis tout assemblage et tout astre dont les
+     * conditions sont réunies est formé. Les échelles du cosmos restent au joueur.
+     */
+    private void runAutoForm(double dt) {
+        boolean gathering = isAutoGathering();
+        boolean forming = isAutoForming();
+        if (dt <= 0 || !state.started() || (!gathering && !forming)) {
+            autoFormTimer = 0;
+            return;
+        }
+        autoFormTimer += dt;
+        if (autoFormTimer < AUTO_FORM_SECONDS) return;
+        autoFormTimer = 0;
+        if (gathering) {
+            for (String id : state.molecules().keySet()) {
+                if (molecules.containsKey(id) && formSubstance(id)) autoGathered++;
+            }
+        }
+        if (!forming) return;
+        boolean again;
+        do {
+            again = false;
+            for (Assembly assembly : assemblies.values()) {
+                if (formAssembly(assembly.id())) {
+                    autoFormed.add(assembly.name());
+                    again = true;
+                }
+            }
+            for (Body body : bodies.values()) {
+                if (formBody(body.id())) {
+                    autoFormed.add(body.name());
+                    again = true;
+                }
+            }
+        } while (again);
+    }
+
+    /** Nombre de sortes que l'automatisme a rassemblées depuis le dernier appel : pour l'annoncer. Remis à zéro à chaque lecture. */
+    public int takeAutoGathered() {
+        int gathered = autoGathered;
+        autoGathered = 0;
+        return gathered;
+    }
+
+    /** Les noms des assemblages et des astres que l'automatisme a formés depuis le dernier appel, dans l'ordre. La liste est vidée à chaque lecture. */
+    public List<String> takeAutoFormed() {
+        List<String> formed = List.copyOf(autoFormed);
+        autoFormed.clear();
+        return formed;
+    }
+
     /** Ce par quoi les paliers atteints multiplient la matière noire de chaque explosion ({@link BigBangMilestone.DarkMatter}). */
     public double bigBangDarkMatterFactor() {
+        if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double factor = 1;
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
             if (!isBigBangMilestoneReached(milestone)) continue;
@@ -2138,7 +2533,9 @@ public final class Game {
 
     /** Ce par quoi les paliers atteints multiplient ce qu'un amas attire à chaque création ({@link BigBangMilestone.Accretion}). */
     public double accretionFactor() {
-        double factor = 1;
+        // La récompense d'un défi de Big Bang reste, même pendant celui qui fait taire les paliers.
+        double factor = bangReward(BangChallenge.Reward.ACCRETION);
+        if (bangRuled(BangChallenge.FORGOTTEN)) return factor;
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
             if (!isBigBangMilestoneReached(milestone)) continue;
             for (BigBangMilestone.Effect effect : milestone.effects()) {
@@ -2376,7 +2773,7 @@ public final class Game {
         }
         state.addMolecules(molecule.id(), created);
         state.stats().noteMoleculeCreation(created, elements, automatic);
-        state.stats().noteStep(GameStats.Step.FIRST_MOLECULE, state.timePlayed());
+        noteStep(GameStats.Step.FIRST_MOLECULE);
         return true;
     }
 
@@ -2419,8 +2816,7 @@ public final class Game {
      */
     public double moleculeBoost(Molecule.Stat stat) {
         refreshMoleculeBonuses();
-        return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * upgradeBoosts.getOrDefault(stat, 1.0)
-                * bigBangMilestoneBoost(stat);
+        return matterBoost(stat) * upgradeBoosts.getOrDefault(stat, 1.0) * bigBangMilestoneBoost(stat) * collectionBoost(stat);
     }
 
     /**
@@ -2429,8 +2825,76 @@ public final class Game {
      * ni les paliers de Big Bang. Vaut 1 tant que rien n'est créé.
      */
     public double matterBoost(Molecule.Stat stat) {
+        // Dans l'univers vide, la matière ne multiplie plus rien.
+        if (bangRuled(BangChallenge.VOID)) return 1;
         refreshMoleculeBonuses();
         return 1 + moleculeBoosts.getOrDefault(stat, 0.0);
+    }
+
+    // ------------------------------------------------------------------
+    // Les collections : la moitié d'un rayon, puis le rayon entier
+    // ------------------------------------------------------------------
+
+    private final Map<Molecule.Kind, int[]> kindCounts = new java.util.EnumMap<>(Molecule.Kind.class);
+    private int kindCountsVersion = -1;
+
+    private int[] kindCount(Molecule.Kind kind) {
+        if (kindCountsVersion != state.moleculesVersion()) {
+            kindCountsVersion = state.moleculesVersion();
+            kindCounts.clear();
+            for (Molecule molecule : molecules.values()) {
+                int[] count = kindCounts.computeIfAbsent(molecule.kind(), each -> new int[2]);
+                count[1]++;
+                if (state.moleculeCount(molecule.id()) > 0) count[0]++;
+            }
+        }
+        return kindCounts.getOrDefault(kind, new int[2]);
+    }
+
+    /** Les collections des rayons, dans l'ordre du catalogue ({@link KindCollections}). */
+    public List<KindCollection> collections() {
+        return KindCollections.DEFAULT;
+    }
+
+    /** Nombre de sortes de ce rayon dont le joueur a créé au moins une molécule. */
+    public int kindCreated(Molecule.Kind kind) {
+        return kindCount(kind)[0];
+    }
+
+    /** Nombre de sortes de ce rayon dans le catalogue. */
+    public int kindSize(Molecule.Kind kind) {
+        return kindCount(kind)[1];
+    }
+
+    /** Nombre de sortes à créer pour la moitié de la collection de ce rayon : la moitié du rayon, arrondie au-dessus. */
+    public int collectionHalf(Molecule.Kind kind) {
+        return (kindSize(kind) + 1) / 2;
+    }
+
+    /** Où en est la collection d'un rayon : 0 tant que la moitié n'y est pas, 1 à la moitié, 2 une fois complète. */
+    public int collectionLevel(Molecule.Kind kind) {
+        int size = kindSize(kind);
+        int created = kindCreated(kind);
+        if (size == 0 || !isBigBangUnlocked()) return 0;
+        return created >= size ? 2 : created >= collectionHalf(kind) ? 1 : 0;
+    }
+
+    /** Nombre de collections au moins à moitié réunies, et nombre de collections complètes. */
+    public int collectionsAt(int level) {
+        int count = 0;
+        for (KindCollection collection : KindCollections.DEFAULT) {
+            if (collectionLevel(collection.kind()) >= level) count++;
+        }
+        return count;
+    }
+
+    /** Ce par quoi les collections réunies multiplient une grandeur : leurs facteurs se multiplient entre eux. Vaut 1 sans aucune. */
+    public double collectionBoost(Molecule.Stat stat) {
+        double factor = 1;
+        for (KindCollection collection : KindCollections.DEFAULT) {
+            if (collection.stat() == stat) factor *= collection.factor(collectionLevel(collection.kind()));
+        }
+        return factor;
     }
 
     /**
@@ -2521,7 +2985,7 @@ public final class Game {
     }
 
     /**
-     * Vrai si cette amélioration peut se prendre dès que l'espace créé suffit : le premier Big Bang
+     * Vrai si cette amélioration sera acquise dès que l'espace créé suffira : le premier Big Bang
      * a eu lieu, et celle dont elle dépend est déjà acquise.
      */
     public boolean isSpaceUpgradeAvailable(String spaceUpgradeId) {
@@ -2530,7 +2994,7 @@ public final class Game {
     }
 
     /**
-     * Vrai si cette amélioration peut être prise maintenant : elle est accessible, pas encore
+     * Vrai si cette amélioration peut être acquise maintenant : elle est accessible, pas encore
      * acquise, et l'expansion a créé en tout autant d'espace qu'elle en demande
      * ({@link SpaceUpgrade#space()}). L'espace libre n'entre pas en compte.
      */
@@ -2540,12 +3004,448 @@ public final class Game {
                 && hasCreatedSpace(upgrade.space());
     }
 
+    /** Les améliorations d'espace acquises depuis le dernier appel de {@link #takeNewSpaceUpgrades()}. */
+    private final List<SpaceUpgrade> newSpaceUpgrades = new ArrayList<>();
+
     /**
-     * Prend une amélioration d'espace. Rien n'est dépensé : c'est l'espace gagné qui l'ouvre, et il
-     * reste entièrement disponible pour les molécules et leurs rassemblements. Elle est définitive, ni
-     * l'explosion ni le Big Bang ne la reprennent.
+     * Acquiert toutes les améliorations d'espace dont le seuil est atteint : elles ne coûtent rien,
+     * il n'y a donc rien à décider. Une amélioration peut en ouvrir une autre, déjà à portée : on
+     * recommence tant qu'il s'en prend.
+     */
+    private void takeSpaceUpgrades() {
+        if (!state.started() || !isBigBangUnlocked() || state.spaceUpgradeCount() >= spaceUpgrades.size()) return;
+        boolean taken;
+        do {
+            taken = false;
+            for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+                if (!canBuySpaceUpgrade(upgrade.id())) continue;
+                state.addSpaceUpgrade(upgrade.id());
+                newSpaceUpgrades.add(upgrade);
+                taken = true;
+            }
+        } while (taken);
+    }
+
+    /**
+     * Les améliorations d'espace que le temps a apportées depuis le dernier appel, dans l'ordre :
+     * l'interface s'en sert pour les annoncer. La liste est vidée à chaque lecture.
+     */
+    public List<SpaceUpgrade> takeNewSpaceUpgrades() {
+        List<SpaceUpgrade> taken = List.copyOf(newSpaceUpgrades);
+        newSpaceUpgrades.clear();
+        return taken;
+    }
+
+    private boolean ownsSpaceEffect(Class<? extends SpaceUpgrade.Effect> type) {
+        if (!isBigBangUnlocked()) return false;
+        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
+            if (type.isInstance(upgrade.effect()) && state.ownsSpaceUpgrade(upgrade.id())) return true;
+        }
+        return false;
+    }
+
+    /** Vrai une fois acquise l'amélioration d'espace « Création continue » : tenir le clic sur une molécule répète sa création. */
+    public boolean isHoldCreateUnlocked() {
+        return ownsSpaceEffect(SpaceUpgrade.HoldCreate.class);
+    }
+
+    /** Vrai une fois acquise l'amélioration d'espace « Gestes groupés » : tout rassembler, tout assembler, former tous les astres prêts. */
+    public boolean isBulkFormUnlocked() {
+        return ownsSpaceEffect(SpaceUpgrade.BulkForm.class);
+    }
+
+    /**
+     * Rassemble toutes les sortes de molécules qui peuvent l'être, dans l'ordre du catalogue, tant
+     * que l'espace libre suffit ({@link #formSubstance(String)}). Il faut les gestes groupés.
      *
-     * @return {@code true} si l'amélioration a été prise
+     * @return le nombre de sortes rassemblées
+     */
+    public int formAllSubstances() {
+        if (!isBulkFormUnlocked()) return 0;
+        int formed = 0;
+        for (Molecule molecule : moleculeList) {
+            if (formSubstance(molecule.id())) formed++;
+        }
+        return formed;
+    }
+
+    /**
+     * Forme tous les assemblages qui peuvent l'être, dans l'ordre du catalogue
+     * ({@link #formAssembly(String)}). Il faut les gestes groupés.
+     *
+     * @return le nombre d'assemblages formés
+     */
+    public int formAllAssemblies() {
+        if (!isBulkFormUnlocked()) return 0;
+        int formed = 0;
+        for (Assembly assembly : assemblies.values()) {
+            if (formAssembly(assembly.id())) formed++;
+        }
+        return formed;
+    }
+
+    /**
+     * Forme tous les astres qui peuvent l'être ({@link #formBody(String)}). Un astre formé peut en
+     * rendre un plus grand possible : on recommence tant qu'il s'en forme. Il faut les gestes groupés.
+     *
+     * @return le nombre d'astres formés
+     */
+    public int formAllBodies() {
+        if (!isBulkFormUnlocked()) return 0;
+        int formed = 0;
+        boolean again;
+        do {
+            again = false;
+            for (Body body : bodies.values()) {
+                if (formBody(body.id())) {
+                    formed++;
+                    again = true;
+                }
+            }
+        } while (again);
+        return formed;
+    }
+
+    /** Nombre de sortes qui peuvent être rassemblées en ce moment, chacune prise seule. */
+    public int substancesReady() {
+        if (!isStatesUnlocked()) return 0;
+        int ready = 0;
+        for (String id : state.molecules().keySet()) {
+            if (molecules.containsKey(id) && canFormSubstance(id)) ready++;
+        }
+        return ready;
+    }
+
+    /** Nombre d'assemblages qui peuvent être formés en ce moment. */
+    public int assembliesReady() {
+        if (!isAssembliesUnlocked()) return 0;
+        int ready = 0;
+        for (Assembly assembly : assemblies.values()) {
+            if (canFormAssembly(assembly.id())) ready++;
+        }
+        return ready;
+    }
+
+    /** Nombre d'astres qui peuvent être formés en ce moment. */
+    public int bodiesReady() {
+        if (!isBodiesUnlocked()) return 0;
+        int ready = 0;
+        for (Body body : bodies.values()) {
+            if (canFormBody(body.id())) ready++;
+        }
+        return ready;
+    }
+
+    // ------------------------------------------------------------------
+    // Les molécules favorites et la liste de courses
+    // ------------------------------------------------------------------
+
+    /** Vrai si le joueur a épinglé cette molécule. */
+    public boolean isMoleculeFavorite(String moleculeId) {
+        return state.isMoleculeFavorite(molecule(moleculeId).id());
+    }
+
+    /** Épingle une molécule du catalogue, ou la retire des favorites. */
+    public void setMoleculeFavorite(String moleculeId, boolean favorite) {
+        state.setMoleculeFavorite(molecule(moleculeId).id(), favorite);
+    }
+
+    /** Les molécules épinglées, dans l'ordre où elles l'ont été. */
+    public List<Molecule> favoriteMolecules() {
+        List<Molecule> favorites = new ArrayList<>();
+        for (String id : state.favoriteMolecules()) {
+            Molecule molecule = molecules.get(id);
+            if (molecule != null) favorites.add(molecule);
+        }
+        return favorites;
+    }
+
+    private ShoppingList shopping = ShoppingList.NONE;
+    private int shoppingVersion = -1;
+
+    /**
+     * Ce qu'il manque pour le prochain pas du troisième acte ({@link ShoppingList}) : l'astre à
+     * portée le plus avancé, l'assemblage le plus avancé tant que les astres ne sont pas ouverts,
+     * ou la prochaine échelle du cosmos une fois tous les astres formés.
+     */
+    public ShoppingList shoppingList() {
+        if (shoppingVersion != state.moleculesVersion()) {
+            shoppingVersion = state.moleculesVersion();
+            shopping = computeShoppingList();
+        }
+        return shopping;
+    }
+
+    private ShoppingList computeShoppingList() {
+        if (!state.started() || !isBigBangUnlocked()) return ShoppingList.NONE;
+        if (isBodiesUnlocked()) {
+            Body best = nextBody();
+            if (best != null) return shoppingFor(best);
+        } else if (isAssembliesUnlocked()) {
+            // L'assemblage entamé auquel il manque le moins d'ingrédients ; à défaut, le premier du catalogue.
+            Assembly best = null;
+            int bestMissing = Integer.MAX_VALUE;
+            for (Assembly assembly : assemblies.values()) {
+                if (state.hasAssembly(assembly.id())) continue;
+                int missing = 0;
+                boolean started = false;
+                for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+                    if (spareMolecules(ingredient.getKey()) < ingredient.getValue()) missing++;
+                    started |= state.moleculeCount(ingredient.getKey()) > 0;
+                }
+                if (best == null || (started && missing < bestMissing)) {
+                    best = assembly;
+                    bestMissing = started ? missing : Integer.MAX_VALUE;
+                }
+            }
+            if (best != null) {
+                Map<String, int[]> wanted = new LinkedHashMap<>();
+                Map<String, String> purposes = new java.util.HashMap<>();
+                wantAssembly(best, wanted, purposes);
+                return new ShoppingList(ShoppingList.Kind.ASSEMBLY, best.name(), canFormAssembly(best.id()),
+                        shoppingItems(wanted, purposes), Map.of(), canFormAssembly(best.id()) ? List.of(best) : List.of());
+            }
+        }
+        Cosmos next = nextCosmos();
+        if (next == null || !isCosmosUnlocked(next)) return ShoppingList.NONE;
+        Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+        for (Map.Entry<Molecule.State, Integer> need : next.matter().entrySet()) {
+            int missing = need.getValue() - gatheredInState(need.getKey());
+            if (missing > 0) matter.put(need.getKey(), missing);
+        }
+        Map<Molecule.State, Integer> sorts = new java.util.EnumMap<>(Molecule.State.class);
+        for (Map.Entry<Molecule.State, Integer> need : next.sorts().entrySet()) {
+            int missing = need.getValue() - sortsInState(need.getKey());
+            if (missing > 0) sorts.put(need.getKey(), missing);
+        }
+        return new ShoppingList(ShoppingList.Kind.COSMOS, next.phrase(), canFormCosmos(next), List.of(), matter, List.of(), sorts);
+    }
+
+    /**
+     * L'astre que le joueur a le plus de chances de former ensuite : parmi ceux qui sont à portée
+     * (leurs astres plus petits sont formés), celui auquel il manque le moins de conditions ; à
+     * égalité, le premier du catalogue. {@code null} avant l'ouverture des astres, ou une fois tous formés.
+     */
+    public Body nextBody() {
+        if (!state.started() || !isBodiesUnlocked()) return null;
+        Body best = null;
+        int bestMissing = Integer.MAX_VALUE;
+        for (Body body : bodies.values()) {
+            if (state.hasBody(body.id())) continue;
+            boolean reachable = true;
+            for (String smaller : body.bodies()) reachable &= state.hasBody(smaller);
+            if (!reachable) continue;
+            int missing = body.conditions() - bodyConditionsMet(body.id());
+            if (missing < bestMissing) {
+                best = body;
+                bestMissing = missing;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Espace que demande encore la liste de courses ({@link #shoppingList()}) : le volume des
+     * molécules qui manquent, celui des lieux de rassemblement à ouvrir, et, pour la matière qui
+     * manque dans un état, le volume de la plus petite molécule de cet état que le joueur peut
+     * créer. C'est une estimation par le bas : elle ne compte ni les exemplaires d'éléments à
+     * regarnir, ni les molécules plus grosses que le joueur choisirait.
+     */
+    public BigNum shoppingSpace() {
+        // Le calcul parcourt le catalogue : il n'est refait que lorsque les molécules ou les rayons ouverts ont changé.
+        long key = state.moleculesVersion() * 64L + state.spaceUpgradeCount();
+        if (key == shoppingSpaceKey && shoppingSpace != null) return shoppingSpace;
+        shoppingSpaceKey = key;
+        shoppingSpace = computeShoppingSpace();
+        return shoppingSpace;
+    }
+
+    private BigNum shoppingSpace = null;
+    private long shoppingSpaceKey = -1;
+
+    private BigNum computeShoppingSpace() {
+        ShoppingList list = shoppingList();
+        double space = 0;
+        Map<Molecule.State, Integer> covered = new java.util.EnumMap<>(Molecule.State.class);
+        for (ShoppingList.Item item : list.items()) {
+            Molecule molecule = item.molecule();
+            double volume = volumeOf(molecule);
+            space += item.missing() * volume;
+            if (item.gather() && molecule.hasState()) space += volume * SUBSTANCE_MOLECULES;
+            // Rassemblées, ces molécules compteront aussi dans la matière de leur état.
+            if (molecule.hasState() && (item.gather() || state.hasSubstance(molecule.id()))) {
+                covered.merge(molecule.state(), item.missing(), Integer::sum);
+            }
+        }
+        for (Map.Entry<Molecule.State, Integer> lacking : list.matter().entrySet()) {
+            int missing = lacking.getValue() - covered.getOrDefault(lacking.getKey(), 0);
+            if (missing > 0) space += missing * smallestVolume(lacking.getKey());
+        }
+        // Une sorte de plus à rassembler : ses premières molécules, et son lieu, qui en vaut autant.
+        for (Map.Entry<Molecule.State, Integer> lacking : list.sorts().entrySet()) {
+            space += lacking.getValue() * 2.0 * SUBSTANCE_MOLECULES * smallestVolume(lacking.getKey());
+        }
+        return BigNum.of(space);
+    }
+
+    /** Le volume de la plus petite molécule de cet état dans les rayons ouverts ; d'abord parmi les sortes déjà rassemblées. */
+    private double smallestVolume(Molecule.State matter) {
+        double gathered = Double.POSITIVE_INFINITY;
+        double any = Double.POSITIVE_INFINITY;
+        for (Molecule molecule : molecules.values()) {
+            if (!molecule.hasState() || molecule.state() != matter || !isMoleculeKindUnlocked(molecule.kind())) continue;
+            double volume = volumeOf(molecule);
+            any = Math.min(any, volume);
+            if (state.hasSubstance(molecule.id())) gathered = Math.min(gathered, volume);
+        }
+        return Double.isInfinite(gathered) ? (Double.isInfinite(any) ? 0 : any) : gathered;
+    }
+
+    /**
+     * Secondes d'expansion avant que l'espace libre suffise à la liste de courses
+     * ({@link #shoppingSpace()}) : 0 s'il suffit déjà ou s'il n'y a rien à viser, l'infini si
+     * l'espace ne grandit pas.
+     */
+    public double secondsUntilShopping() {
+        BigNum needed = shoppingSpace();
+        BigNum free = freeSpace();
+        if (needed.isZero() || free.gte(needed)) return 0;
+        double rate = spacePerSecond().toDouble();
+        return rate > 0 ? needed.subtract(free).toDouble() / rate : Double.POSITIVE_INFINITY;
+    }
+
+    // ------------------------------------------------------------------
+    // Le meilleur achat : ce qu'une création rapporte pour l'espace qu'elle prend
+    // ------------------------------------------------------------------
+
+    /** Pour combien compterait cette sorte avec {@code count} molécules, rassemblée ou non comme elle l'est aujourd'hui. */
+    private double effectiveAt(Molecule molecule, int count) {
+        double doublings = doublings(count);
+        if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return doublings;
+        return Math.pow(doublings, molecule.state().exponent());
+    }
+
+    /**
+     * Ce que la prochaine création dans cette sorte ajouterait aux grandeurs du jeu, en proportion
+     * de ce qu'elles valent : 0,02 pour « +2 % ». Les gains sur plusieurs grandeurs s'ajoutent (le
+     * bonus de la molécule, et ce que son état ajoute une fois rassemblée). Une molécule qui relève
+     * un plafond d'exemplaires ne multiplie rien : elle vaut 0 ici.
+     */
+    public double moleculeGain(String moleculeId) {
+        Molecule molecule = molecule(moleculeId);
+        int count = state.moleculeCount(molecule.id());
+        int after = count + moleculesPerCreation(moleculeId);
+        double more = effectiveAt(molecule, after) - effectiveAt(molecule, count);
+        if (more <= 0) return 0;
+        refreshMoleculeBonuses();
+        double gain = 0;
+        if (molecule.bonus() instanceof Molecule.Boost boost) {
+            gain += boost.perMolecule() * more / (1 + moleculeBoosts.getOrDefault(boost.stat(), 0.0));
+        }
+        if (molecule.hasState() && state.hasSubstance(molecule.id())) {
+            Molecule.State matter = molecule.state();
+            gain += matter.particles() * more / (1 + moleculeBoosts.getOrDefault(Molecule.Stat.PARTICLES, 0.0));
+            gain += matter.atoms() * more / (1 + moleculeBoosts.getOrDefault(Molecule.Stat.ATOMS, 0.0));
+        }
+        return gain;
+    }
+
+    /** Espace que prendrait la prochaine création dans cette sorte, quand la place ne manque pas : le volume de toutes les molécules qu'elle ajoute. */
+    public BigNum moleculeNextSpace(String moleculeId) {
+        return BigNum.of(volumeOf(molecule(moleculeId)) * moleculesPerCreation(moleculeId));
+    }
+
+    /**
+     * Le rendement d'une sorte : ce que sa prochaine création rapporte ({@link #moleculeGain(String)})
+     * par unité d'espace qu'elle prend ({@link #moleculeNextSpace(String)}). C'est ce qui permet
+     * de comparer deux molécules : la meilleure est celle dont le rendement est le plus haut.
+     */
+    public double moleculeYield(String moleculeId) {
+        double space = moleculeNextSpace(moleculeId).toDouble();
+        return space > 0 ? moleculeGain(moleculeId) / space : 0;
+    }
+
+    /**
+     * Le meilleur achat du moment : parmi les molécules qui peuvent être créées maintenant, celle
+     * dont le rendement ({@link #moleculeYield(String)}) est le plus haut. {@code null} si aucune
+     * création possible ne rapporte quoi que ce soit.
+     */
+    public Molecule bestMolecule() {
+        if (!state.started() || !isBigBangUnlocked()) return null;
+        Molecule best = null;
+        double bestYield = 0;
+        for (Molecule molecule : molecules.values()) {
+            if (!isMoleculeKindUnlocked(molecule.kind())) continue;
+            double yield = moleculeYield(molecule.id());
+            if (yield <= bestYield || !canCreateMolecule(molecule.id())) continue;
+            best = molecule;
+            bestYield = yield;
+        }
+        return best;
+    }
+
+    /** La liste de courses d'un astre : les ingrédients de ses assemblages pas encore formés, ses molécules, sa matière. */
+    private ShoppingList shoppingFor(Body body) {
+        Map<String, int[]> wanted = new LinkedHashMap<>();       // sorte → {à avoir en tout, 1 s'il faut la rassembler}
+        Map<String, String> purposes = new java.util.HashMap<>();
+        List<Assembly> ready = new ArrayList<>();
+        for (String id : body.assemblies()) {
+            if (state.hasAssembly(id)) continue;
+            Assembly assembly = assemblies.get(id);
+            if (canFormAssembly(id)) ready.add(assembly);
+            else wantAssembly(assembly, wanted, purposes);
+        }
+        for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+            int[] want = wanted.computeIfAbsent(needed.getKey(), each -> new int[2]);
+            want[0] = Math.max(want[0], needed.getValue());
+            purposes.putIfAbsent(needed.getKey(), "");
+        }
+        Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+        for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+            int missing = needed.getValue() - gatheredInState(needed.getKey());
+            if (missing > 0) matter.put(needed.getKey(), missing);
+        }
+        return new ShoppingList(ShoppingList.Kind.BODY, body.name(), canFormBody(body.id()), shoppingItems(wanted, purposes), matter, ready);
+    }
+
+    /**
+     * Ajoute à la liste ce que demande un assemblage : chaque ingrédient doit être rassemblé, et
+     * il en faut le nombre demandé hors de tout autre assemblage, donc en plus de ce que les
+     * assemblages déjà formés (et ceux déjà comptés dans cette liste) ont pris.
+     */
+    private void wantAssembly(Assembly assembly, Map<String, int[]> wanted, Map<String, String> purposes) {
+        for (Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
+            String id = ingredient.getKey();
+            int[] want = wanted.computeIfAbsent(id, each -> new int[] {assembledMolecules(each), 0});
+            want[0] = Math.max(want[0], assembledMolecules(id)) + ingredient.getValue();
+            want[0] = Math.max(want[0], SUBSTANCE_MOLECULES);
+            want[1] = 1;
+            purposes.merge(id, assembly.name(), (before, name) -> before.isEmpty() || before.contains(name) ? name : before + ", " + name);
+        }
+    }
+
+    private List<ShoppingList.Item> shoppingItems(Map<String, int[]> wanted, Map<String, String> purposes) {
+        List<ShoppingList.Item> items = new ArrayList<>();
+        for (Map.Entry<String, int[]> want : wanted.entrySet()) {
+            Molecule molecule = molecules.get(want.getKey());
+            if (molecule == null) continue;
+            int owned = state.moleculeCount(molecule.id());
+            boolean gather = want.getValue()[1] == 1 && !state.hasSubstance(molecule.id());
+            if (owned >= want.getValue()[0] && !gather) continue;
+            items.add(new ShoppingList.Item(molecule, owned, Math.max(owned, want.getValue()[0]), gather,
+                    purposes.getOrDefault(molecule.id(), "")));
+        }
+        return items;
+    }
+
+    /**
+     * Acquiert une amélioration d'espace dont le seuil est atteint. Le jeu le fait de lui-même à
+     * chaque {@link #tick(double)} : cette méthode ne sert qu'à l'acquérir sans attendre. Rien n'est
+     * dépensé : c'est l'espace gagné qui l'ouvre, et il reste entièrement disponible pour les
+     * molécules et leurs rassemblements. Elle est définitive, ni l'explosion ni le Big Bang ne la
+     * reprennent.
+     *
+     * @return {@code true} si l'amélioration vient d'être acquise
      */
     public boolean buySpaceUpgrade(String spaceUpgradeId) {
         if (!canBuySpaceUpgrade(spaceUpgradeId)) return false;
@@ -2615,7 +3515,7 @@ public final class Game {
     public boolean formSubstance(String moleculeId) {
         if (!canFormSubstance(moleculeId)) return false;
         state.addSubstance(molecule(moleculeId).id());
-        state.stats().noteStep(GameStats.Step.FIRST_GATHERING, state.timePlayed());
+        noteStep(GameStats.Step.FIRST_GATHERING);
         return true;
     }
 
@@ -2742,7 +3642,7 @@ public final class Game {
     public boolean formAssembly(String assemblyId) {
         if (!canFormAssembly(assemblyId)) return false;
         state.addAssembly(assembly(assemblyId).id());
-        state.stats().noteStep(GameStats.Step.FIRST_ASSEMBLY, state.timePlayed());
+        noteStep(GameStats.Step.FIRST_ASSEMBLY);
         return true;
     }
 
@@ -2853,7 +3753,7 @@ public final class Game {
     public boolean formBody(String bodyId) {
         if (!canFormBody(bodyId)) return false;
         state.addBody(body(bodyId).id());
-        state.stats().noteStep(GameStats.Step.FIRST_BODY, state.timePlayed());
+        noteStep(GameStats.Step.FIRST_BODY);
         return true;
     }
 
@@ -2963,7 +3863,26 @@ public final class Game {
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
             if (gatheredInState(need.getKey()) < need.getValue()) return false;
         }
+        for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
+            if (sortsInState(need.getKey()) < need.getValue()) return false;
+        }
         return true;
+    }
+
+    private final Map<Molecule.State, Integer> sortsByState = new java.util.EnumMap<>(Molecule.State.class);
+    private int sortsByStateVersion = -1;
+
+    /** Nombre de sortes de molécules rassemblées dans cet état : la variété que demandent l'amas de galaxies et l'univers ({@link Cosmos#sorts()}). */
+    public int sortsInState(Molecule.State matter) {
+        if (sortsByStateVersion != state.moleculesVersion()) {
+            sortsByStateVersion = state.moleculesVersion();
+            sortsByState.clear();
+            for (String id : state.substances()) {
+                Molecule molecule = molecules.get(id);
+                if (molecule != null && molecule.hasState()) sortsByState.merge(molecule.state(), 1, Integer::sum);
+            }
+        }
+        return sortsByState.getOrDefault(matter, 0);
     }
 
     /** Nombre de conditions de cette échelle déjà réunies, sur {@link #cosmosConditions(Cosmos)}. */
@@ -2973,12 +3892,15 @@ public final class Game {
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
             if (gatheredInState(need.getKey()) >= need.getValue()) met++;
         }
+        for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
+            if (sortsInState(need.getKey()) >= need.getValue()) met++;
+        }
         return met;
     }
 
     /** Nombre de conditions de cette échelle : les astres du catalogue pour la galaxie ; sinon l'échelle d'avant, plus un état de la matière par ligne. */
     public int cosmosConditions(Cosmos scale) {
-        return scale == Cosmos.GALAXY ? bodies.size() : 1 + scale.matter().size();
+        return scale == Cosmos.GALAXY ? bodies.size() : 1 + scale.matter().size() + scale.sorts().size();
     }
 
     /**
@@ -2991,11 +3913,11 @@ public final class Game {
     public boolean formCosmos(Cosmos scale) {
         if (!canFormCosmos(scale)) return false;
         state.setCosmosLevel(scale.ordinal() + 1);
-        state.stats().noteStep(switch (scale) {
+        noteStep(switch (scale) {
             case GALAXY -> GameStats.Step.GALAXY;
             case CLUSTER -> GameStats.Step.CLUSTER;
             case UNIVERSE -> GameStats.Step.UNIVERSE;
-        }, state.timePlayed());
+        });
         return true;
     }
 
@@ -3012,7 +3934,14 @@ public final class Game {
      */
     public BigNum spacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
-        return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost());
+        return steadySpacePerSecond().multiply(cometBoost());
+    }
+
+    /** L'espace par seconde sans le sillage d'une comète : ce que l'expansion donne en régime ordinaire. */
+    public BigNum steadySpacePerSecond() {
+        if (!isBigBangUnlocked()) return BigNum.ZERO;
+        return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
+                * bangReward(BangChallenge.Reward.SPACE));
     }
 
     /**
@@ -3023,7 +3952,188 @@ public final class Game {
      */
     private void expandSpace(double dt) {
         if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;
-        state.setSpace(state.space().add(spacePerSecond().multiply(dt)));
+        // Le sillage d'une comète ne compte que pour le temps qu'il lui reste, même si le pas de temps est plus long.
+        double boosted = Math.min(dt, state.cometBoost());
+        state.setSpace(state.space().add(steadySpacePerSecond().multiply(dt + boosted * (COMET_BOOST - 1))));
+    }
+
+    // ------------------------------------------------------------------
+    // La comète : un passage à saisir
+    // ------------------------------------------------------------------
+
+    /** Attente la plus courte et la plus longue entre deux comètes, en secondes de jeu. */
+    public static final double COMET_MIN_WAIT = 8 * 60;
+    public static final double COMET_MAX_WAIT = 16 * 60;
+    /** Temps pendant lequel une comète reste à saisir, en secondes. */
+    public static final double COMET_VISIBLE_SECONDS = 45;
+    /** Durée du sillage d'une comète saisie, en secondes, et ce par quoi il multiplie l'expansion. */
+    public static final double COMET_BOOST_SECONDS = 120;
+    public static final double COMET_BOOST = 2;
+    private boolean cometAppeared = false;
+
+    /**
+     * Fait passer le temps de la comète. Après le premier Big Bang, une comète traverse l'expansion
+     * de temps en temps ; elle reste {@link #COMET_VISIBLE_SECONDS} secondes, puis s'en va. Saisie
+     * ({@link #catchComet()}), elle laisse un sillage qui double l'expansion deux minutes. Qui
+     * n'est pas là n'y perd rien : elle n'enlève jamais quoi que ce soit.
+     */
+    private void runComet(double dt) {
+        if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;
+        state.setCometBoost(state.cometBoost() - dt);
+        double left = dt;
+        while (left > 1e-12) {
+            if (state.cometVisible() > 0) {
+                double used = Math.min(left, state.cometVisible());
+                state.setCometVisible(state.cometVisible() - used);
+                left -= used;
+                if (state.cometVisible() <= 1e-9) {
+                    state.setCometVisible(0);
+                    state.setCometWait(nextCometWait());
+                }
+            } else {
+                if (state.cometWait() <= 0) state.setCometWait(nextCometWait());
+                double used = Math.min(left, state.cometWait());
+                state.setCometWait(state.cometWait() - used);
+                left -= used;
+                if (state.cometWait() <= 1e-9) {
+                    state.setCometWait(0);
+                    state.setCometVisible(COMET_VISIBLE_SECONDS);
+                    cometAppeared = true;
+                }
+            }
+        }
+    }
+
+    /**
+     * L'attente avant la prochaine comète, entre {@link #COMET_MIN_WAIT} et {@link #COMET_MAX_WAIT}.
+     * Elle se déduit du temps de jeu et du nombre de comètes saisies, sans toucher au hasard du
+     * jeu : les tirages de la synthèse ne dépendent pas de ce que fait la comète.
+     */
+    private double nextCometWait() {
+        double mix = Math.sin(state.timePlayed() * 12.9898 + state.cometsCaught() * 78.233) * 43758.5453;
+        double share = mix - Math.floor(mix);
+        return COMET_MIN_WAIT + (COMET_MAX_WAIT - COMET_MIN_WAIT) * share;
+    }
+
+    /** Vrai tant qu'une comète traverse l'expansion et peut être saisie. */
+    public boolean isCometVisible() {
+        return isBigBangUnlocked() && state.cometVisible() > 0;
+    }
+
+    /** Secondes pendant lesquelles la comète reste encore à saisir ; 0 s'il n'y en a pas. */
+    public double cometVisibleFor() {
+        return isCometVisible() ? state.cometVisible() : 0;
+    }
+
+    /** Secondes de jeu avant la prochaine comète ; 0 pendant qu'une comète est là, ou avant le premier Big Bang. */
+    public double cometWait() {
+        return isBigBangUnlocked() && state.cometVisible() <= 0 ? state.cometWait() : 0;
+    }
+
+    /**
+     * Saisit la comète : son sillage multiplie l'expansion par {@link #COMET_BOOST} pendant
+     * {@link #COMET_BOOST_SECONDS} secondes. Une comète saisie pendant un sillage le relance pour sa durée entière.
+     *
+     * @return {@code true} s'il y avait une comète à saisir
+     */
+    public boolean catchComet() {
+        if (!isCometVisible()) return false;
+        state.setCometVisible(0);
+        state.setCometsCaught(state.cometsCaught() + 1);
+        state.setCometBoost(COMET_BOOST_SECONDS);
+        state.setCometWait(nextCometWait());
+        return true;
+    }
+
+    /** Ce par quoi le sillage d'une comète multiplie l'expansion en ce moment : {@link #COMET_BOOST}, ou 1. */
+    public double cometBoost() {
+        return state.cometBoost() > 0 ? COMET_BOOST : 1;
+    }
+
+    /** Secondes de sillage qu'il reste. */
+    public double cometBoostLeft() {
+        return state.cometBoost();
+    }
+
+    /** Nombre de comètes saisies depuis le début du jeu. */
+    public int cometsCaught() {
+        return state.cometsCaught();
+    }
+
+    /** Vrai si une comète vient d'apparaître depuis le dernier appel : pour l'annoncer. Remis à faux à chaque lecture. */
+    public boolean takeCometAppeared() {
+        boolean appeared = cometAppeared;
+        cometAppeared = false;
+        return appeared;
+    }
+
+    // ------------------------------------------------------------------
+    // Les records : le meilleur temps de chaque étape, d'une partie à l'autre
+    // ------------------------------------------------------------------
+
+    private final List<GameStats.Step> newRecords = new ArrayList<>();
+
+    /** Note qu'une étape vient d'être atteinte ; la première fois, son temps est comparé au record. */
+    private void noteStep(GameStats.Step step) {
+        boolean first = !state.stats().reached(step);
+        state.stats().noteStep(step, state.timePlayed());
+        if (first) noteRecord(step);
+    }
+
+    /** Retient le temps de jeu comme record de cette étape s'il bat le précédent, ou s'il n'y en avait pas. */
+    private void noteRecord(GameStats.Step step) {
+        double time = state.timePlayed();
+        Double best = state.records().get(step.name());
+        if (best == null || time < best) {
+            // Un premier record n'est pas une nouvelle : il n'y avait rien à battre.
+            if (best != null) newRecords.add(step);
+            state.setRecord(step.name(), time);
+        }
+    }
+
+    /**
+     * Le record d'une étape : le temps de jeu le plus court auquel elle a été atteinte, toutes
+     * parties confondues, en secondes. {@code NaN} si elle ne l'a jamais été. La remise à zéro du
+     * jeu garde les records : ce sont eux qu'on cherche à battre à la partie suivante.
+     */
+    public double recordOf(GameStats.Step step) {
+        return state.records().getOrDefault(step.name(), Double.NaN);
+    }
+
+    /** La prochaine étape datée que cette partie n'a pas encore atteinte, ou {@code null} quand elles le sont toutes. */
+    public GameStats.Step nextStep() {
+        for (GameStats.Step step : GameStats.Step.values()) {
+            if (state.stats().reached(step)) continue;
+            // Une sauvegarde d'avant ces deux étapes les a passées sans les dater : elles ne sont plus « à venir ».
+            if (step == GameStats.Step.FIRST_FUSION && state.stats().fusions() > 0) continue;
+            if (step == GameStats.Step.FIRST_EXPLOSION && state.stats().timedExplosions() > 0) continue;
+            return step;
+        }
+        return null;
+    }
+
+    /**
+     * L'écart au record sur la prochaine étape, en secondes : négatif tant que le joueur est en
+     * avance sur son record, positif une fois qu'il l'a dépassé. {@code NaN} quand il n'y a pas de
+     * prochaine étape, ou pas encore de record pour elle.
+     */
+    public double recordGap() {
+        GameStats.Step next = nextStep();
+        if (next == null) return Double.NaN;
+        double record = recordOf(next);
+        return Double.isNaN(record) ? Double.NaN : state.timePlayed() - record;
+    }
+
+    /** Oublie tous les records. */
+    public void clearRecords() {
+        state.clearRecords();
+    }
+
+    /** Les étapes dont le record vient d'être battu depuis le dernier appel : pour l'annoncer. Vidé à chaque lecture. */
+    public List<GameStats.Step> takeNewRecords() {
+        List<GameStats.Step> taken = new ArrayList<>(newRecords);
+        newRecords.clear();
+        return taken;
     }
 
     // ------------------------------------------------------------------
@@ -3037,13 +4147,22 @@ public final class Game {
 
     /** Vrai quand le joueur a gagné assez de matière noire pour cet automatisme. Rien n'est dépensé. */
     public boolean isDarkAutomationUnlocked(String darkAutomationId) {
-        return darkMatterEarned().gte(darkAutomation(darkAutomationId).darkMatter());
+        DarkAutomation automation = darkAutomation(darkAutomationId);
+        // Celui qui rachète l'arbre ne vient qu'après un premier Big Bang : avant, l'arbre se découvre à la main.
+        if (automation.kind() == DarkAutomation.Kind.DARK_TREE && state.bigBangs() == 0) return false;
+        return darkMatterEarned().gte(automation.darkMatter());
     }
 
     /** Vrai si cet automatisme de matière noire est débloqué et en marche. */
     public boolean isDarkAutomationEnabled(String darkAutomationId) {
         DarkAutomation automation = darkAutomation(darkAutomationId);
-        return state.isDarkAutomationEnabled(automation.id()) && isDarkAutomationUnlocked(darkAutomationId);
+        return state.isDarkAutomationEnabled(automation.id()) && isDarkAutomationUnlocked(darkAutomationId)
+                && !bangRuled(BangChallenge.BY_HAND);
+    }
+
+    /** Vrai si le défi de Big Bang en cours interdit les automatismes de matière noire et du troisième acte : leurs réglages restent, ils ne font rien. */
+    public boolean isHandOnly() {
+        return bangRuled(BangChallenge.BY_HAND);
     }
 
     /**
@@ -3057,13 +4176,13 @@ public final class Game {
         return true;
     }
 
-    /** Fait agir les automatismes de matière noire en marche dont le délai est écoulé : une action par délai. */
     /** Délai actuel entre deux actions de cet automatisme de matière noire, en secondes. */
     public double darkAutomationInterval(String darkAutomationId) {
         double interval = darkAutomation(darkAutomationId).interval();
         return ruled(Challenge.Rule.RUSTY_AUTOMATIONS) ? Math.max(RUSTY_MIN_INTERVAL, interval * RUSTY_FACTOR) : interval;
     }
 
+    /** Fait agir les automatismes de matière noire en marche dont le délai est écoulé : une action par délai. */
     private void runDarkAutomation(double dt) {
         for (DarkAutomation automation : darkAutomations.values()) {
             if (!isDarkAutomationEnabled(automation.id())) continue;
@@ -3086,7 +4205,24 @@ public final class Game {
             case ATOM_UPGRADES -> buyCheapestAtomUpgrade();
             case AUTOMATIONS -> buyCheapestAutomation();
             case EXPLOSION -> explode();
+            case DARK_TREE -> buyCheapestDarkUpgrade();
         };
+    }
+
+    /**
+     * Achète, dans l'ordre du catalogue, la première chose payable parmi : les cases de l'arbre de
+     * matière noire et les améliorations payées en matière noire dont le nombre de niveaux est limité.
+     * Une case sans dernier niveau n'est prise qu'à son premier niveau, celui qui ouvre la case du
+     * dessous : au-delà elle avalerait les particules et les atomes qu'il faut réunir pour le Big
+     * Bang. Les améliorations de la boutique sans limite restent entièrement au joueur.
+     */
+    private boolean buyCheapestDarkUpgrade() {
+        if (inChallenge()) return false;
+        for (DarkUpgrade upgrade : darkUpgrades.values()) {
+            if (!upgrade.hasLimit() && (!upgrade.branch().inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
+            if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;
+        }
+        return false;
     }
 
     /**
@@ -3120,8 +4256,70 @@ public final class Game {
         return true;
     }
 
-    /** Achète l'amélioration payée en atomes la moins chère que le joueur peut s'offrir. */
+    /**
+     * Les améliorations payées en atomes dans l'ordre où l'automatisme les achète quand le joueur a
+     * choisi le sien : son ordre, complété par celles qu'il n'a pas rangées, dans l'ordre du catalogue.
+     */
+    public List<Upgrade> atomUpgradeOrder() {
+        List<Upgrade> ordered = new ArrayList<>();
+        for (String id : state.atomUpgradeOrder()) {
+            Upgrade upgrade = upgrades.get(id);
+            if (upgrade != null && upgrade.resource() == Resource.ATOMS && !ordered.contains(upgrade)) ordered.add(upgrade);
+        }
+        for (Upgrade upgrade : upgrades.values()) {
+            if (upgrade.resource() == Resource.ATOMS && !ordered.contains(upgrade)) ordered.add(upgrade);
+        }
+        return ordered;
+    }
+
+    /** Vrai si l'automatisme « Améliorations en atomes » suit l'ordre du joueur plutôt que « la moins chère d'abord ». */
+    public boolean isAtomUpgradeOrdered() {
+        return state.atomUpgradeOrdered();
+    }
+
+    public void setAtomUpgradeOrdered(boolean ordered) {
+        state.setAtomUpgradeOrdered(ordered);
+    }
+
+    /**
+     * Fait monter ou descendre une amélioration d'un rang dans l'ordre d'achat.
+     *
+     * @param direction −1 pour la faire monter (achetée plus tôt), +1 pour la faire descendre
+     * @return vrai si elle a bougé ; faux au bout de la liste
+     */
+    public boolean moveAtomUpgrade(String upgradeId, int direction) {
+        List<String> ids = new ArrayList<>();
+        for (Upgrade upgrade : atomUpgradeOrder()) ids.add(upgrade.id());
+        if (!moved(ids, upgrade(upgradeId).id(), direction)) return false;
+        state.setAtomUpgradeOrder(ids);
+        return true;
+    }
+
+    private static boolean moved(List<String> ids, String id, int direction) {
+        int at = ids.indexOf(id);
+        int to = at + Integer.signum(direction);
+        if (at < 0 || to < 0 || to >= ids.size() || to == at) return false;
+        java.util.Collections.swap(ids, at, to);
+        return true;
+    }
+
+    /**
+     * Dans l'ordre du joueur : la première amélioration qui n'est pas au maximum est la seule
+     * achetée, et l'automatisme l'attend s'il le faut. Une amélioration dont le prix dépasse le
+     * plafond d'atomes est sautée : l'attendre bloquerait tout.
+     */
+    private boolean buyNextAtomUpgrade() {
+        for (Upgrade upgrade : atomUpgradeOrder()) {
+            if (isMaxed(upgrade.id())) continue;
+            if (!isAtomCapLifted() && costOf(upgrade.id()).gt(atomCap())) continue;
+            return canBuy(upgrade.id()) && buy(upgrade.id());
+        }
+        return false;
+    }
+
+    /** Achète l'amélioration payée en atomes la moins chère que le joueur peut s'offrir, ou la suivante dans son ordre s'il en a choisi un. */
     private boolean buyCheapestAtomUpgrade() {
+        if (state.atomUpgradeOrdered()) return buyNextAtomUpgrade();
         Upgrade cheapest = null;
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.resource() != Resource.ATOMS || !canBuy(upgrade.id())) continue;
@@ -3130,8 +4328,67 @@ public final class Game {
         return cheapest != null && buy(cheapest.id());
     }
 
-    /** Achète l'automatisme ordinaire, ou le niveau de cadence, le moins cher que le joueur peut s'offrir. */
+    /**
+     * Les automatismes ordinaires dans l'ordre où l'automatisme les achète quand le joueur a choisi
+     * le sien : son ordre, complété par ceux qu'il n'a pas rangés, dans l'ordre du catalogue.
+     */
+    public List<Automation> automationOrder() {
+        List<Automation> ordered = new ArrayList<>();
+        for (String id : state.automationOrder()) {
+            Automation automation = automations.get(id);
+            if (automation != null && !ordered.contains(automation)) ordered.add(automation);
+        }
+        for (Automation automation : automations.values()) {
+            if (!ordered.contains(automation)) ordered.add(automation);
+        }
+        return ordered;
+    }
+
+    /** Vrai si l'automatisme « Achat des automatismes » suit l'ordre du joueur plutôt que « le moins cher d'abord ». */
+    public boolean isAutomationOrdered() {
+        return state.automationOrdered();
+    }
+
+    public void setAutomationOrdered(boolean ordered) {
+        state.setAutomationOrdered(ordered);
+    }
+
+    /**
+     * Fait monter ou descendre un automatisme d'un rang dans l'ordre d'achat.
+     *
+     * @param direction −1 pour le faire monter (acheté plus tôt), +1 pour le faire descendre
+     * @return vrai s'il a bougé ; faux au bout de la liste
+     */
+    public boolean moveAutomation(String automationId, int direction) {
+        List<String> ids = new ArrayList<>();
+        for (Automation automation : automationOrder()) ids.add(automation.id());
+        if (!moved(ids, automation(automationId).id(), direction)) return false;
+        state.setAutomationOrder(ids);
+        return true;
+    }
+
+    /**
+     * Dans l'ordre du joueur : le premier automatisme qui n'est pas acheté, ou pas encore à sa
+     * cadence maximale, est le seul servi, et l'automatisme l'attend s'il le faut. Un automatisme
+     * pas encore débloqué, ou dont le prix dépasse le plafond d'atomes, est sauté.
+     */
+    private boolean buyNextAutomation() {
+        for (Automation automation : automationOrder()) {
+            String id = automation.id();
+            if (!isAutomationAvailable(id)) continue;
+            boolean owned = state.ownsAutomation(id);
+            if (owned && isAutomationMaxed(id)) continue;
+            BigNum cost = owned ? automationSpeedCost(id) : automation.cost();
+            if (!isAtomCapLifted() && cost.gt(atomCap())) continue;
+            if (!owned) return canBuyAutomation(id) && buyAutomation(id);
+            return canSpeedUpAutomation(id) && speedUpAutomation(id);
+        }
+        return false;
+    }
+
+    /** Achète l'automatisme ordinaire, ou le niveau de cadence, le moins cher que le joueur peut s'offrir, ou le suivant dans son ordre s'il en a choisi un. */
     private boolean buyCheapestAutomation() {
+        if (state.automationOrdered()) return buyNextAutomation();
         Automation cheapest = null;
         BigNum cheapestCost = null;
         for (Automation automation : automations.values()) {
@@ -3855,6 +5112,8 @@ public final class Game {
         BigNum gained = atomsPerFusion();
         noteFusionFeats();
         state.stats().noteFusion(gained, state.timeSinceFusion());
+        // La toute première fusion du jeu : une partie reprise d'une ancienne sauvegarde ne la date pas après coup.
+        if (state.stats().fusions() == 1) noteStep(GameStats.Step.FIRST_FUSION);
         BigNum atoms = state.atoms().add(gained);
         state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
         state.setTotalAtoms(state.totalAtoms().add(gained));

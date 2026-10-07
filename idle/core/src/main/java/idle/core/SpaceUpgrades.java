@@ -3,7 +3,7 @@ package idle.core;
 import java.util.List;
 
 /**
- * Catalogue des améliorations liées à l'espace : chacune se prend quand l'expansion a créé assez
+ * Catalogue des améliorations liées à l'espace : chacune est acquise d'elle-même quand l'expansion a créé assez
  * d'espace en tout, sans rien dépenser.
  *
  * <p>Quatre d'entre elles multiplient une grandeur pour de bon ({@link SpaceUpgrade.Boost}). Les
@@ -38,6 +38,11 @@ public final class SpaceUpgrades {
                     new SpaceUpgrade.Boost(Molecule.Stat.SPACE, 2)),
             new SpaceUpgrade("space_inflation_2", "Inflation II", BigNum.of(30_000), "space_inflation_1",
                     new SpaceUpgrade.Boost(Molecule.Stat.SPACE, 2)),
+            // Deux inflations tardives, pour la fin de partie : l'espace n'y achète plus que des molécules.
+            new SpaceUpgrade("space_inflation_3", "Inflation III", BigNum.of(100_000_000), "space_inflation_2",
+                    new SpaceUpgrade.Boost(Molecule.Stat.SPACE, 2)),
+            new SpaceUpgrade("space_inflation_4", "Inflation IV", BigNum.of(5_000_000_000L), "space_inflation_3",
+                    new SpaceUpgrade.Boost(Molecule.Stat.SPACE, 2)),
             new SpaceUpgrade("space_states", "États de la matière", BigNum.of(3_000), null,
                     new SpaceUpgrade.OpenStates()),
             new SpaceUpgrade("space_assemblies", "Assemblages", BigNum.of(40_000), "space_states",
@@ -46,6 +51,20 @@ public final class SpaceUpgrades {
                     new SpaceUpgrade.OpenBodies()),
             new SpaceUpgrade("space_auto_hold", "Appui automatique", BigNum.of(6_000), null,
                     new SpaceUpgrade.AutoHold()),
+            // Le confort : créer en tenant le clic, puis tout rassembler, assembler ou former d'un geste.
+            new SpaceUpgrade("space_hold_create", "Création continue", BigNum.of(800), null,
+                    new SpaceUpgrade.HoldCreate()),
+            new SpaceUpgrade("space_bulk_form", "Gestes groupés", BigNum.of(15_000), "space_states",
+                    new SpaceUpgrade.BulkForm()),
+            // Puis ce qui se fait tout seul : rassembler, créer plus souvent, assembler et former les astres.
+            new SpaceUpgrade("space_auto_gather", "Rassemblement automatique", BigNum.of(100_000), "space_bulk_form",
+                    new SpaceUpgrade.AutoGather()),
+            new SpaceUpgrade("space_creation_pace", "Cadence de création", BigNum.of(250_000), null,
+                    new SpaceUpgrade.CreationPace(2)),
+            new SpaceUpgrade("space_auto_form", "Formation automatique", BigNum.of(300_000), "space_auto_gather",
+                    new SpaceUpgrade.AutoForm()),
+            new SpaceUpgrade("space_creation_pace_2", "Cadence de création II", BigNum.of(20_000_000), "space_creation_pace",
+                    new SpaceUpgrade.CreationPace(1)),
             shelf("space_acid", Molecule.Kind.ACID, 2_000, null),
             shelf("space_salt", Molecule.Kind.SALT, 10_000, "space_acid"),
             shelf("space_mineral", Molecule.Kind.MINERAL, 20_000, "space_salt"),

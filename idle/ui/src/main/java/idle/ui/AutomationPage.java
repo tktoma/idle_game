@@ -4,7 +4,10 @@ import idle.core.Automation;
 import idle.core.BigNum;
 import idle.core.DarkAutomation;
 import idle.core.Game;
+import idle.core.Upgrade;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javafx.geometry.Insets;
@@ -50,6 +53,10 @@ final class AutomationPage extends VBox {
 
     private final Game game;
     private final Label balanceLabel = new Label();
+    /** Coupe ou relance tous les automatismes d'un geste, et le dit tant qu'ils sont coupés. */
+    private final Button pauseButton = new Button();
+    private final Label pauseNote = new Label("Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand "
+            + "vous les relancez. Le verrou de l'appui, lui, continue : ce n'est pas un automatisme.");
 
     // Les automatismes ordinaires.
     private final Label ordinaryHint = new Label();
@@ -78,6 +85,18 @@ final class AutomationPage extends VBox {
     private final Label spaceTitle = new Label("Automatisme du Big Bang");
     private final Card holdCard = new Card(GameApp.BIG_BANG_COLOR);
     private final Card moleculesCard = new Card(GameApp.BIG_BANG_COLOR);
+    private final Card gatherCard = new Card(GameApp.BIG_BANG_COLOR);
+    private final Card formCard = new Card(GameApp.BIG_BANG_COLOR);
+    // La part d'espace que la création automatique laisse libre, réglable dès qu'elle est acquise.
+    private final Button lessSpace = new Button("−");
+    private final Button moreSpace = new Button("+");
+    private final Label spaceReserveLabel = new Label();
+    private final HBox spaceReserveRow = new HBox(8, lessSpace, spaceReserveLabel, moreSpace);
+    /** Les parts d'espace proposées à la réserve de la création automatique. */
+    private static final double[] SPACE_RESERVES = {0, 0.10, 0.25, 0.50, 0.75, 0.90};
+    // L'ordre d'achat des deux automatismes de matière noire qui achètent : le moins cher d'abord, ou celui du joueur.
+    private final OrderPane upgradeOrder;
+    private final OrderPane automationOrder;
     private final TileGrid spaceGrid = new TileGrid(230, 2, 8);
     private final Label darkHint = new Label();
     private final Map<DarkAutomation, Card> darkCards = new LinkedHashMap<>();
@@ -98,7 +117,15 @@ final class AutomationPage extends VBox {
                 + "au-delà, seuls les éléments du tableau périodique réduisent encore le délai.");
         wrapped(ordinaryHint, HINT_STYLE);
         balanceLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffd27f;");
+        pauseButton.setFocusTraversable(false);
+        pauseButton.setOnAction(event -> {
+            game.setAutomationPaused(!game.isAutomationPaused());
+            refresh();
+        });
+        wrapped(pauseNote, "-fx-font-size: 13px; -fx-text-fill: #ffb4a8;");
         getChildren().add(title);
+        getChildren().add(pauseButton);
+        getChildren().add(pauseNote);
         getChildren().add(ordinaryHint);
         getChildren().add(balanceLabel);
 
@@ -198,6 +225,14 @@ final class AutomationPage extends VBox {
         }
         darkGrid.setMaxWidth(778);       // la largeur d'une carte ordinaire et de sa cadence réunies
         getChildren().add(darkGrid);
+        upgradeOrder = new OrderPane("Améliorations en atomes", "la moins chère d'abord",
+                game::isAtomUpgradeOrdered, game::setAtomUpgradeOrdered, this::upgradeEntries,
+                (id, direction) -> game.moveAtomUpgrade(id, direction), this::refresh);
+        automationOrder = new OrderPane("Achat des automatismes", "le moins cher d'abord",
+                game::isAutomationOrdered, game::setAutomationOrdered, this::automationEntries,
+                (id, direction) -> game.moveAutomation(id, direction), this::refresh);
+        getChildren().add(upgradeOrder);
+        getChildren().add(automationOrder);
         wrapped(darkNext, "-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
         getChildren().add(darkNext);
 
@@ -215,9 +250,101 @@ final class AutomationPage extends VBox {
             refresh();
         });
         spaceGrid.add(moleculesCard);
+        // Le rassemblement et la formation automatiques : deux améliorations d'espace, réglées ici.
+        gatherCard.setOnAction(() -> {
+            game.setAutoGatherEnabled(!game.isAutoGatherEnabled());
+            refresh();
+        });
+        spaceGrid.add(gatherCard);
+        formCard.setOnAction(() -> {
+            game.setAutoFormEnabled(!game.isAutoFormEnabled());
+            refresh();
+        });
+        spaceGrid.add(formCard);
         spaceGrid.setMaxWidth(778);
         getChildren().add(spaceTitle);
         getChildren().add(spaceGrid);
+        spaceReserveRow.setAlignment(Pos.CENTER);
+        wrapped(spaceReserveLabel, "-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
+        String spaceStyle = "-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 2 12; -fx-cursor: hand;"
+                + " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #101c2b; -fx-background-radius: 6;"
+                + " -fx-border-color: " + GameApp.BIG_BANG_COLOR + "; -fx-border-radius: 6;";
+        lessSpace.setStyle(spaceStyle);
+        moreSpace.setStyle(spaceStyle);
+        lessSpace.setFocusTraversable(false);
+        moreSpace.setFocusTraversable(false);
+        lessSpace.setOnAction(event -> {
+            game.setAutoMoleculeReserve(spaceReserveStep(game.autoMoleculeReserve(), false));
+            refresh();
+        });
+        moreSpace.setOnAction(event -> {
+            game.setAutoMoleculeReserve(spaceReserveStep(game.autoMoleculeReserve(), true));
+            refresh();
+        });
+        getChildren().add(spaceReserveRow);
+    }
+
+    /** La carte du rassemblement automatique : pour les vérifications. */
+    Card gatherCard() {
+        return gatherCard;
+    }
+
+    /** La carte de la formation automatique : pour les vérifications. */
+    Card formCard() {
+        return formCard;
+    }
+
+    /** L'ordre d'achat des améliorations en atomes : pour les vérifications. */
+    OrderPane upgradeOrder() {
+        return upgradeOrder;
+    }
+
+    /** L'ordre d'achat des automatismes : pour les vérifications. */
+    OrderPane automationOrder() {
+        return automationOrder;
+    }
+
+    /** Le texte de la réserve d'espace de la création automatique : pour les vérifications. */
+    String spaceReserveText() {
+        return spaceReserveRow.isVisible() ? spaceReserveLabel.getText() : "";
+    }
+
+    /** Clique le − ou le + de la réserve d'espace : pour les vérifications. */
+    void clickSpaceReserve(boolean more) {
+        (more ? moreSpace : lessSpace).fire();
+    }
+
+    /** La part d'espace suivante ou précédente parmi celles que la réserve propose. */
+    static double spaceReserveStep(double share, boolean up) {
+        if (up) {
+            for (double step : SPACE_RESERVES) {
+                if (step > share + 1e-9) return step;
+            }
+            return SPACE_RESERVES[SPACE_RESERVES.length - 1];
+        }
+        for (int i = SPACE_RESERVES.length - 1; i >= 0; i--) {
+            if (SPACE_RESERVES[i] < share - 1e-9) return SPACE_RESERVES[i];
+        }
+        return 0;
+    }
+
+    /** Les améliorations en atomes dans l'ordre du joueur ; finie, une ligne est au maximum. */
+    private List<OrderPane.Entry> upgradeEntries() {
+        List<OrderPane.Entry> entries = new ArrayList<>();
+        for (Upgrade upgrade : game.atomUpgradeOrder()) {
+            entries.add(new OrderPane.Entry(upgrade.id(), upgrade.name(), game.isMaxed(upgrade.id())));
+        }
+        return entries;
+    }
+
+    /** Les automatismes ordinaires dans l'ordre du joueur ; finie, une ligne est achetée et à sa cadence maximale. */
+    private List<OrderPane.Entry> automationEntries() {
+        List<OrderPane.Entry> entries = new ArrayList<>();
+        for (Automation automation : game.automationOrder()) {
+            String id = automation.id();
+            entries.add(new OrderPane.Entry(id, automation.name(), game.ownsAutomation(id) && game.isAutomationMaxed(id)));
+        }
+        return entries;
     }
 
     /** La carte de l'appui automatique : pour les vérifications. */
@@ -267,7 +394,7 @@ final class AutomationPage extends VBox {
      */
     static boolean hasContent(Game game) {
         if (game.isAutomationUnlocked() || game.isDarkMatterUnlocked() || game.isAutoHoldUnlocked()
-                || game.isMoleculeAutomationUnlocked()) return true;
+                || game.isMoleculeAutomationUnlocked() || game.isAutoGatherUnlocked() || game.isAutoFormUnlocked()) return true;
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id())) return true;
         }
@@ -278,6 +405,29 @@ final class AutomationPage extends VBox {
     void refresh() {
         BigNum atoms = game.state().atoms();
         balanceLabel.setText(Format.count(atoms) + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
+
+        // La coupure générale : le bouton n'existe que s'il y a quelque chose à couper.
+        boolean paused = game.isAutomationPaused();
+        show(pauseButton, game.hasAnyAutomation());
+        pauseButton.setText(paused ? "Relancer tous les automatismes" : "Couper tous les automatismes");
+        pauseButton.setStyle("-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + (paused ? " -fx-text-fill: #1a0a08; -fx-background-color: #ff8a75; -fx-border-color: #ffffff;"
+                : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
+        boolean handOnly = game.isHandOnly();
+        show(pauseNote, (paused || handOnly) && game.hasAnyAutomation());
+        pauseNote.setText(handOnly
+                ? "Défi de Big Bang « À la main » : les automatismes de matière noire et ceux du Big Bang ne font rien jusqu'au "
+                        + "prochain Big Bang. Leurs réglages restent."
+                : "Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand vous les relancez. Le verrou "
+                        + "de l'appui, lui, continue : ce n'est pas un automatisme.");
+        // Coupés, les automatismes s'estompent : leurs cartes disent toujours leur réglage, pas ce qu'ils font.
+        double shade = paused ? 0.45 : 1;
+        rows.values().forEach(row -> row.setOpacity(shade));
+        darkGrid.setOpacity(shade);
+        spaceGrid.setOpacity(shade);
+        upgradeOrder.setOpacity(shade);
+        automationOrder.setOpacity(shade);
+        spaceReserveRow.setOpacity(shade);
 
         boolean ordinary = game.isAutomationUnlocked();
 
@@ -344,10 +494,14 @@ final class AutomationPage extends VBox {
         // Les automatismes de matière noire : seulement ceux que la matière noire gagnée a débloqués.
         boolean anyDark = false;
         DarkAutomation next = null;
+        boolean ordersUpgrades = false;
+        boolean ordersAutomations = false;
         for (DarkAutomation automation : game.darkAutomations()) {
             Card card = darkCards.get(automation);
             boolean unlocked = game.isDarkAutomationUnlocked(automation.id());
             darkGrid.show(card, unlocked);
+            ordersUpgrades |= unlocked && automation.kind() == DarkAutomation.Kind.ATOM_UPGRADES;
+            ordersAutomations |= unlocked && automation.kind() == DarkAutomation.Kind.AUTOMATIONS;
             if (!unlocked) {
                 if (next == null) next = automation;
                 continue;
@@ -364,14 +518,54 @@ final class AutomationPage extends VBox {
         show(darkTitle, anyDark);
         show(darkHint, anyDark && Detail.shown());
         show(darkGrid, anyDark);
+        show(upgradeOrder, ordersUpgrades);
+        if (ordersUpgrades) upgradeOrder.refresh();
+        show(automationOrder, ordersAutomations);
+        if (ordersAutomations) automationOrder.refresh();
         // L'appui automatique, une fois acquis avec l'espace : il attend la matière noire s'il n'y en a pas encore.
         boolean hold = game.isAutoHoldUnlocked();
         boolean creation = game.isMoleculeAutomationUnlocked();
-        show(spaceTitle, hold || creation);
-        show(spaceGrid, hold || creation);
-        spaceTitle.setText(hold && creation ? "Automatismes du Big Bang" : "Automatisme du Big Bang");
+        boolean gather = game.isAutoGatherUnlocked();
+        boolean form = game.isAutoFormUnlocked();
+        int spaceCount = (hold ? 1 : 0) + (creation ? 1 : 0) + (gather ? 1 : 0) + (form ? 1 : 0);
+        show(spaceTitle, spaceCount > 0);
+        show(spaceGrid, spaceCount > 0);
+        spaceTitle.setText(spaceCount > 1 ? "Automatismes du Big Bang" : "Automatisme du Big Bang");
         spaceGrid.show(holdCard, hold);
         spaceGrid.show(moleculesCard, creation);
+        spaceGrid.show(gatherCard, gather);
+        spaceGrid.show(formCard, form);
+        show(spaceReserveRow, creation);
+        if (creation) {
+            double share = game.autoMoleculeReserve();
+            spaceReserveLabel.setText(share <= 0
+                    ? "Réserve d'espace de la création automatique : aucune"
+                            + Detail.only(". Elle prend tout l'espace libre dès qu'elle le peut.")
+                    : "Réserve d'espace de la création automatique : " + ElementText.percent(share)
+                            + Detail.only(". Elle ne crée que si " + ElementText.percent(share) + " de tout l'espace créé reste "
+                                    + "libre ensuite : cette part attend vos rassemblements et vos créations à la main."));
+            lessSpace.setDisable(share <= 0);
+            moreSpace.setDisable(share >= SPACE_RESERVES[SPACE_RESERVES.length - 1] - 1e-9);
+        }
+        if (gather) {
+            boolean on = game.isAutoGatherEnabled();
+            gatherCard.show(on ? Card.State.ON : Card.State.OFF, "", on ? "en marche" : "coupé",
+                    "Rassemblement automatique", "Rassemble chaque sorte dès qu'elle est prête",
+                    "Dès qu'une sorte compte " + Game.SUBSTANCE_MOLECULES + " molécules et que l'espace libre suffit, elle "
+                            + "se rassemble d'elle-même, au même prix qu'à la main. Acquis avec l'espace, il traverse les "
+                            + "explosions et les Big Bangs. Un clic " + (on ? "le coupe." : "le remet en marche."),
+                    "", "toutes les " + seconds(Game.AUTO_FORM_SECONDS));
+        }
+        if (form) {
+            boolean on = game.isAutoFormEnabled();
+            formCard.show(on ? Card.State.ON : Card.State.OFF, "", on ? "en marche" : "coupé",
+                    "Formation automatique", "Forme les assemblages et les astres prêts",
+                    "Tout assemblage et tout astre dont les conditions sont réunies se forme de lui-même, et une "
+                            + "notification l'annonce. La galaxie, l'amas de galaxies et l'univers restent à vous. Acquise "
+                            + "avec l'espace, elle traverse les explosions et les Big Bangs. Un clic "
+                            + (on ? "la coupe." : "la remet en marche."),
+                    "", "toutes les " + seconds(Game.AUTO_FORM_SECONDS));
+        }
         if (creation) {
             boolean on = game.isMoleculeAutomationEnabled();
             int chosen = game.automatedMolecules();
@@ -381,12 +575,13 @@ final class AutomationPage extends VBox {
                             : chosen + (chosen > 1 ? " amas confiés" : " amas confié"),
                     "Une création dans chaque amas confié, au même prix qu'à la main : la formule, prise dans le tableau "
                             + "périodique, où il reste toujours un exemplaire de chaque élément. Quand l'espace manque pour "
-                            + "tous, le premier servi change à chaque passage. Les amas se confient un à un, d'un clic sur "
-                            + "leur carte, dans la sous-page États de la matière du Big Bang. Acquis au deuxième Big Bang, "
+                            + "tous, le premier servi change à chaque passage. Les amas se confient d'un clic sur leur "
+                            + "carte, ou tous d'un coup, dans la sous-page États de la matière du Big Bang. Sa réserve "
+                            + "d'espace se règle sous ces cartes. Acquis au deuxième Big Bang, "
                             + "il traverse les explosions et les Big Bangs."
                             + (waiting ? " Il attend qu'un amas lui soit confié." : "")
                             + " Un clic " + (on ? "le coupe." : "le remet en marche."),
-                    "", "toutes les " + ElementText.number(Game.MOLECULE_AUTOMATION_SECONDS) + " s");
+                    "", "toutes les " + seconds(game.moleculeAutomationInterval()));
         }
         if (hold) {
             boolean on = game.isAutoHoldEnabled();
@@ -517,6 +712,7 @@ final class AutomationPage extends VBox {
             case ATOM_UPGRADES -> "Achète les améliorations en atomes";
             case AUTOMATIONS -> "Achète automatismes et cadences";
             case EXPLOSION -> "Fait exploser le tableau";
+            case DARK_TREE -> "Achète l'arbre de matière noire";
         };
     }
 
@@ -529,6 +725,10 @@ final class AutomationPage extends VBox {
             case ATOM_UPGRADES -> "Achète les améliorations en atomes, la moins chère d'abord";
             case AUTOMATIONS -> "Achète les automatismes ordinaires et leur cadence, le moins cher d'abord";
             case EXPLOSION -> "Fait exploser le tableau périodique dès que c'est possible";
+            case DARK_TREE -> "Achète les cases de l'arbre de matière noire et les améliorations de la boutique qui "
+                    + "ont un dernier niveau, dans l'ordre de l'arbre. Une case sans dernier niveau n'est prise qu'une "
+                    + "fois, pour ouvrir la suivante : au-delà elle reste à votre main, comme les améliorations sans "
+                    + "limite de la boutique. Rien n'est acheté pendant un défi";
         };
     }
 

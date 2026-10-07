@@ -55,9 +55,12 @@ final class ChallengesPane extends VBox {
         getChildren().add(grid);
     }
 
-    /** Premier clic : la carte s'arme. Second clic dans les cinq secondes : le défi commence, ou est abandonné. */
+    /**
+     * Premier clic : la carte s'arme. Second clic dans les cinq secondes : le défi commence, ou est
+     * abandonné. Sans la confirmation ({@link Confirm#challenge()}), le premier clic suffit.
+     */
     private void click(Challenge challenge) {
-        if (armed == challenge && armedFor > 0) {
+        if ((armed == challenge && armedFor > 0) || !Confirm.challenge()) {
             armed = null;
             armedFor = 0;
             Challenge active = game.activeChallenge();

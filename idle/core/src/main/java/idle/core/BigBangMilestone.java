@@ -74,11 +74,18 @@ public record BigBangMilestone(int bigBangs, String name, List<Effect> effects) 
     /**
      * L'arbre de matière noire traverse le Big Bang ({@link Game#bigBangKeepsDarkTree()}) : ses
      * cases, ses automatismes et leurs réglages restent, avec la matière noire déjà dépensée, celle
-     * qui ouvre les cases et les défis. Le Big Bang ne reprend plus que la réserve, la taille, la
-     * masse du tableau et les défis réussis. Cela vaut dès le Big Bang qui atteint le palier : c'est
-     * lui qui s'en trouve raccourci, et tous les suivants.
+     * qui ouvre les cases et les défis. Le Big Bang ne reprend plus que la réserve, la taille et la
+     * masse du tableau (les défis réussis, eux, sont gardés depuis {@link KeepChallenges}). Cela vaut
+     * dès le Big Bang qui atteint le palier : c'est lui qui s'en trouve raccourci, et tous les suivants.
      */
     public record KeepDarkTree() implements Effect {}
+
+    /**
+     * Les défis réussis traversent le Big Bang ({@link Game#bigBangKeepsChallenges()}) : ils restent
+     * réussis, avec leurs récompenses, et la condition du Big Bang suivant est déjà remplie. Cela
+     * vaut dès le Big Bang qui atteint le palier.
+     */
+    public record KeepChallenges() implements Effect {}
 
     public BigBangMilestone {
         if (bigBangs <= 0) throw new IllegalArgumentException("Un palier demande au moins un Big Bang");

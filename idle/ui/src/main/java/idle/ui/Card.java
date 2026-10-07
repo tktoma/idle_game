@@ -52,6 +52,32 @@ final class Card extends VBox {
     }
 
     private static final String DARK = "#10151f";
+    /** Vrai si chaque carte écrit le signe de son état devant son nom ({@link #sign(State)}) : un réglage, commun à toutes. */
+    private static boolean signs = true;
+
+    /** Affiche ou cache le signe d'état devant le nom des cartes ; les cartes le prennent à leur prochain remplissage. */
+    static void setSigns(boolean shown) {
+        signs = shown;
+    }
+
+    /**
+     * Le signe d'un état, pour le reconnaître sans la couleur : un rond plein pour ce qui est à
+     * portée, un rond vide pour ce qui attend, un demi-rond pour ce qui est entamé, une flèche
+     * pour ce qui est en marche, un carré vide pour ce qui est coupé, une coche pour ce qui est
+     * acquis, une croix pour ce qui est fermé, un point d'exclamation pour ce qui attend un second clic.
+     */
+    static String sign(State state) {
+        return switch (state) {
+            case READY -> "●";
+            case WAITING -> "○";
+            case STARTED -> "◐";
+            case ON -> "▶";
+            case OFF -> "□";
+            case DONE -> "✓";
+            case LOCKED -> "×";
+            case ARMED -> "!";
+        };
+    }
 
     private final String accent;
     private final Label corner = new Label();
@@ -76,6 +102,22 @@ final class Card extends VBox {
     private int painted = 0;
     /** La clé du dernier remplissage ({@link #filledWith(long)}). */
     private long filled = Long.MIN_VALUE;
+    /** Vrai si tenir le clic répète l'action ({@link #setRepeats(boolean)}). */
+    private boolean repeats = false;
+    /** L'épingle en haut de la carte : ce que fait un clic dessus, ou {@code null} pour une carte sans épingle. */
+    private Runnable pinAction = null;
+    private final Label pin = new Label();
+    private boolean pinned = false;
+
+    // Le clic tenu : une seule carte à la fois peut l'être, celle sous la souris.
+    /** Délai avant la première répétition, puis entre deux répétitions, en secondes. */
+    private static final double REPEAT_DELAY = 0.4;
+    private static final double REPEAT_EVERY = 0.1;
+    private static Card held = null;
+    private static double heldFor = 0;
+    private static double nextRepeat = 0;
+    /** Vrai si le clic en cours a déjà répété l'action : son relâchement ne compte alors pas pour un clic de plus. */
+    private static boolean heldRepeated = false;
 
     /** @param accent couleur de la carte, celle de son onglet ou de sa branche (« #9fd0ff ») */
     Card(String accent) {
@@ -85,7 +127,16 @@ final class Card extends VBox {
         setMinWidth(0);
         setAlignment(Pos.TOP_LEFT);
 
-        head = new HBox(6, corner, spacer(), mark);
+        head = new HBox(6, corner, spacer(), pin, mark);
+        pin.setVisible(false);
+        pin.setManaged(false);
+        pin.setMinWidth(Region.USE_PREF_SIZE);
+        // Un clic sur l'épingle épingle ; il ne va pas jusqu'à la carte.
+        pin.setOnMouseClicked(event -> {
+            event.consume();
+            if (pinAction != null) pinAction.run();
+        });
+        pin.setOnMousePressed(event -> event.consume());
         head.setAlignment(Pos.CENTER_LEFT);
         foot = new HBox(6, price, spacer(), aside);
         foot.setAlignment(Pos.CENTER_LEFT);
@@ -108,13 +159,29 @@ final class Card extends VBox {
         getChildren().add(gap);
         getChildren().add(foot);
 
-        setOnMouseClicked(event -> click());
+        setOnMouseClicked(event -> {
+            // Le relâchement d'un clic tenu qui a déjà répété l'action n'en ajoute pas une.
+            boolean repeated = heldRepeated;
+            heldRepeated = false;
+            if (!repeated) click();
+        });
+        setOnMousePressed(event -> {
+            heldRepeated = false;
+            if (!repeats || !isClickable()) return;
+            held = this;
+            heldFor = 0;
+            nextRepeat = REPEAT_DELAY;
+        });
+        setOnMouseReleased(event -> {
+            if (held == this) held = null;
+        });
         setOnMouseEntered(event -> {
             hovered = true;
             paint();
         });
         setOnMouseExited(event -> {
             hovered = false;
+            if (held == this) held = null;
             paint();
         });
         paint();
@@ -146,6 +213,78 @@ final class Card extends VBox {
     /** Une carte acquise reste cliquable : pour ce qui se refait, comme un défi déjà réussi. */
     void setDoneClickable(boolean doneClickable) {
         this.doneClickable = doneClickable;
+    }
+
+    /**
+     * Tenir le clic sur la carte répète son action, plusieurs fois par seconde, tant qu'elle reste à
+     * portée : pour ce qui s'achète en grand nombre. Un clic simple agit toujours une seule fois.
+     */
+    void setRepeats(boolean repeats) {
+        this.repeats = repeats;
+        if (!repeats && held == this) held = null;
+    }
+
+    /** Vrai si tenir le clic répète l'action : pour les vérifications. */
+    boolean repeats() {
+        return repeats;
+    }
+
+    /**
+     * Fait passer le temps du clic tenu : après un court délai, l'action de la carte tenue se
+     * répète. À appeler à chaque image.
+     *
+     * @param elapsed secondes écoulées depuis l'image précédente
+     * @return le nombre de fois où l'action a été répétée pendant cette image
+     */
+    static int repeatHeld(double elapsed) {
+        if (held == null) return 0;
+        heldFor += elapsed;
+        int repeated = 0;
+        // Une image très longue ne déclenche pas une rafale : cinq répétitions au plus.
+        while (held != null && heldFor >= nextRepeat && repeated < 5) {
+            if (!held.repeats || !held.isClickable()) {
+                held = null;
+                break;
+            }
+            held.action.run();
+            heldRepeated = true;
+            nextRepeat += REPEAT_EVERY;
+            repeated++;
+        }
+        return repeated;
+    }
+
+    /** La carte dont le clic est tenu en ce moment, ou {@code null} : pour les vérifications. */
+    static Card held() {
+        return held;
+    }
+
+    /**
+     * Donne une épingle à la carte, en haut à droite : un clic dessus appelle {@code toggle}, sans
+     * cliquer la carte. {@code null} la retire.
+     */
+    void setPin(Runnable toggle) {
+        pinAction = toggle;
+        pin.setVisible(toggle != null);
+        pin.setManaged(toggle != null);
+        showPin(pinned);
+    }
+
+    /** Montre l'épingle pleine (épinglée) ou creuse. */
+    void showPin(boolean pinned) {
+        this.pinned = pinned;
+        pin.setText(pinned ? "★" : "☆");
+        pin.setStyle("-fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 0 2; -fx-text-fill: " + (pinned ? "#ffd27f" : "#8fa3b8") + ";");
+    }
+
+    /** Vrai si l'épingle est pleine : pour les vérifications. */
+    boolean pinned() {
+        return pinned;
+    }
+
+    /** Clique sur l'épingle : pour les vérifications. */
+    void clickPin() {
+        if (pinAction != null) pinAction.run();
     }
 
     /** Clique sur la carte : sans effet si elle n'est ni à portée ni un interrupteur. */
@@ -221,12 +360,12 @@ final class Card extends VBox {
         this.state = state;
         set(this.corner, corner);
         set(this.mark, mark);
-        set(this.title, title);
+        set(this.title, signs && !empty(title) ? sign(state) + " " + title : title);
         set(this.line, line);
         set(this.detail, Detail.shown() ? detail : "");
         set(this.price, price);
         set(this.aside, aside);
-        visible(head, !empty(corner) || !empty(mark));
+        visible(head, !empty(corner) || !empty(mark) || pinAction != null);
         visible(foot, !empty(price) || !empty(aside));
         paint();
     }
@@ -327,7 +466,8 @@ final class Card extends VBox {
         }
         if (picture != null) picture.setOpacity(state == State.LOCKED ? 0.35 : state == State.WAITING ? 0.7 : 1);
         setStyle("-fx-background-color: " + background + "; -fx-background-radius: 6; -fx-border-radius: 6;"
-                + " -fx-border-color: " + border + ";" + (isClickable() ? " -fx-cursor: hand;" : ""));
+                + " -fx-border-color: " + border + ";" + (state == State.LOCKED ? " -fx-border-style: dashed;" : "")
+                + (isClickable() ? " -fx-cursor: hand;" : ""));
         corner.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiet + ";");
         mark.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 0 6; -fx-background-radius: 3;"
                 + " -fx-border-radius: 3; -fx-text-fill: " + quiet + "; -fx-border-color: " + quiet + "66;");

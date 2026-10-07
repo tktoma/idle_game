@@ -163,13 +163,26 @@ final class GalaxyPane extends VBox {
         lines.append('\n').append(open ? "● " : "○ ").append(scale.previous().label());
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
             int have = Math.min(game.gatheredInState(need.getKey()), need.getValue());
-            lines.append('\n').append(formed || have >= need.getValue() ? "● " : "○ ").append(BigBangPage.placeTitle(need.getKey())).append(' ')
+            lines.append('\n').append(formed || have >= need.getValue() ? "● " : "○ ").append(MatterText.signed(need.getKey())).append(' ')
                     .append(Format.whole(formed ? need.getValue() : have)).append(" / ").append(Format.whole(need.getValue()));
+        }
+        // La variété : un nombre de sortes rassemblées dans chaque état, sur une seule ligne.
+        if (!scale.sorts().isEmpty()) {
+            boolean all5 = true;
+            StringBuilder sorts = new StringBuilder();
+            for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
+                int have = Math.min(game.sortsInState(need.getKey()), need.getValue());
+                all5 &= formed || have >= need.getValue();
+                if (sorts.length() > 0) sorts.append("  ");
+                sorts.append(MatterText.sign(need.getKey())).append(' ').append(formed ? need.getValue() : have).append('/').append(need.getValue());
+            }
+            lines.append('\n').append(all5 ? "● " : "○ ").append("Sortes rassemblées : ").append(sorts);
         }
         cards.get(scale).show(formed ? Card.State.DONE : ready ? Card.State.READY : open ? Card.State.STARTED : Card.State.LOCKED,
                 formed ? "" : met + "/" + all, formed ? "formé" : ready ? "prêt" : "", scale.label(), lines.toString(),
                 story + "Un achat unique, qui ne consomme rien, et que ni l'explosion ni le Big Bang ne défont. Il double ce que "
-                        + "donnait l'échelle d'avant.",
+                        + "donnait l'échelle d'avant. Il demande de la quantité, état par état, et de la variété : un nombre de "
+                        + "sortes rassemblées dans chaque état, chacune comptant dès qu'elle est rassemblée.",
                 formed ? "" : ready ? "Former " + scale.phrase() : !open ? "Après " + scale.previous().phrase()
                         : "Il manque " + (all - met) + (all - met > 1 ? " conditions" : " condition"), "");
     }

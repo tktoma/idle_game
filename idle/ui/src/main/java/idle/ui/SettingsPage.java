@@ -21,8 +21,8 @@ import javafx.scene.text.TextAlignment;
  *   <li><b>Thème</b> sombre ou clair, et <b>taille de l'interface</b> ;</li>
  *   <li><b>Notifications</b> et <b>objectif du moment</b> : affichés ou non ;</li>
  *   <li><b>Effets visuels</b> : l'éclair de l'explosion, le fond animé, l'onglet qui bat ;</li>
- *   <li><b>Confirmation</b> avant l'explosion du tableau périodique ;</li>
- *   <li><b>Raccourcis clavier</b> : actifs ou coupés, avec leur liste ;</li>
+ *   <li><b>Confirmations</b> : avant l'explosion, avant le Big Bang, avant un défi, chacune à part ;</li>
+ *   <li><b>Raccourcis clavier</b> : actifs ou coupés, avec leur liste ; un clic sur une touche la change ;</li>
  *   <li><b>Touche de détail</b> : laquelle, et s'il faut la tenir ou si elle bascule ;</li>
  *   <li><b>Pause</b> : le temps ne passe plus ;</li>
  *   <li><b>Sauvegarde</b> : où elle en est, sauvegarder tout de suite, exporter la partie dans le
@@ -74,6 +74,12 @@ final class SettingsPage extends VBox {
 
         /** Copie le rapport de bug dans le presse-papiers. */
         String copyBugReport();
+
+        /** Les records du joueur, en une phrase : combien d'étapes en ont un. */
+        String records();
+
+        /** Oublie tous les records. */
+        void clearRecords();
     }
 
     private final Settings settings;
@@ -99,11 +105,24 @@ final class SettingsPage extends VBox {
     private final Map<Settings.Scale, Button> scaleButtons = new EnumMap<>(Settings.Scale.class);
     private final Button notificationsButton = new Button();
     private final Button goalButton = new Button();
+    private final Button signsButton = new Button();
+    private final Button chronoButton = new Button();
+    private final Button clearRecordsButton = new Button("Effacer les records");
+    private final Label recordsLabel = new Label();
     private final Map<Settings.Notation, Button> notationButtons = new EnumMap<>(Settings.Notation.class);
     private final Label notationExample = new Label();
     private final Button effectsButton = new Button();
     private final Button confirmButton = new Button();
+    private final Button confirmBigBangButton = new Button();
+    private final Button confirmChallengeButton = new Button();
     private final Button shortcutsButton = new Button();
+    /** Une ligne par raccourci : ce qu'il fait, et le bouton qui porte sa touche. */
+    private final Map<Shortcuts.Action, Button> keyButtons = new EnumMap<>(Shortcuts.Action.class);
+    private final VBox keyList = new VBox(4);
+    private final Button resetKeysButton = new Button("Remettre les touches d'origine");
+    private final Label keyNote = new Label();
+    /** Le raccourci dont la page attend la nouvelle touche ; {@code null} quand c'est la touche de détail qu'elle attend. */
+    private Shortcuts.Action capturingAction = null;
     private final Button detailKeyButton = new Button();
     private final Button detailModeButton = new Button();
     /** Vrai tant que la page attend la touche qui deviendra la touche de détail. */
@@ -202,6 +221,15 @@ final class SettingsPage extends VBox {
         });
         getChildren().add(goalButton);
 
+        block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
+                + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée. Les "
+                + "états de la matière ont aussi le leur : ∴ gaz, ≈ liquides, ■ solides, ◆ cristaux, ▲ métaux.");
+        signsButton.setOnAction(event -> {
+            settings.setStateSigns(!settings.stateSigns());
+            refresh();
+        });
+        getChildren().add(signsButton);
+
         block("Effets visuels",
                 "L'éclair blanc de l'explosion, le fond animé derrière les générateurs et l'onglet qui bat à chaque "
                         + "nouvel atome. Coupés, l'explosion a lieu sans éclair : à préférer si les flashs vous gênent.");
@@ -211,29 +239,74 @@ final class SettingsPage extends VBox {
         });
         getChildren().add(effectsButton);
 
-        block("Confirmation avant l'explosion",
-                "L'explosion remet toute la partie à zéro. Avec la confirmation, il faut cliquer deux fois sur son bouton.");
+        block("Confirmations",
+                "L'explosion, le Big Bang et les défis remettent la partie à zéro. Avec la confirmation, il faut cliquer "
+                        + "deux fois : le premier clic arme, le second, dans les cinq secondes, déclenche. Chacune se "
+                        + "règle à part.");
         confirmButton.setOnAction(event -> {
             settings.setConfirmExplosion(!settings.confirmExplosion());
             refresh();
         });
-        getChildren().add(confirmButton);
+        confirmBigBangButton.setOnAction(event -> {
+            settings.setConfirmBigBang(!settings.confirmBigBang());
+            refresh();
+        });
+        confirmChallengeButton.setOnAction(event -> {
+            settings.setConfirmChallenge(!settings.confirmChallenge());
+            refresh();
+        });
+        HBox confirmRow = new HBox(8, confirmButton, confirmBigBangButton, confirmChallengeButton);
+        confirmRow.setAlignment(Pos.CENTER);
+        getChildren().add(confirmRow);
 
         block("Raccourcis clavier",
-                "V : vitesse de création · C : couplage · G : nouveau générateur · F : fusion · M : tout acheter avec "
-                        + "les particules · P : pause. Les trois premiers achètent la quantité choisie dans l'onglet "
-                        + "Particules (×1, ×10 ou max). Ils marchent depuis n'importe quel onglet.");
+                "Ils marchent depuis n'importe quel onglet. Les trois premiers achètent la quantité choisie dans l'onglet "
+                        + "Particules (×1, ×10 ou max). Un clic sur une touche permet de la changer : appuyez ensuite sur "
+                        + "la nouvelle, ou sur Échap pour annuler. Deux raccourcis ne peuvent pas partager une touche.");
         shortcutsButton.setOnAction(event -> {
             settings.setShortcuts(!settings.shortcuts());
             refresh();
         });
         getChildren().add(shortcutsButton);
+        keyList.setAlignment(Pos.CENTER);
+        for (Shortcuts.Action action : Shortcuts.Action.values()) {
+            Label name = new Label(action.label());
+            name.setStyle("-fx-font-size: 13px; -fx-text-fill: #b7c4d2;");
+            name.setMinWidth(300);
+            name.setPrefWidth(300);
+            Button key = new Button();
+            key.setMinWidth(150);
+            key.setOnAction(event -> {
+                // Un second clic sur la même touche annule l'attente.
+                boolean same = capturing && capturingAction == action;
+                capturing = !same;
+                capturingAction = same ? null : action;
+                captureProblem = "";
+                refresh();
+            });
+            keyButtons.put(action, key);
+            HBox row = new HBox(10, name, key);
+            row.setAlignment(Pos.CENTER);
+            keyList.getChildren().add(row);
+        }
+        getChildren().add(keyList);
+        note(keyNote);
+        resetKeysButton.setStyle(OFF_STYLE);
+        resetKeysButton.setOnAction(event -> {
+            settings.resetKeys();
+            capturing = false;
+            capturingAction = null;
+            captureProblem = "";
+            refresh();
+        });
+        getChildren().add(resetKeysButton);
 
         block("Touche de détail", "Les cartes et les pages s'en tiennent à l'essentiel. Cette touche fait apparaître "
                 + "leurs explications complètes : ce que fait chaque amélioration, d'où vient chaque nombre. "
                 + "On peut la tenir enfoncée, ou la faire basculer d'un appui.");
         detailKeyButton.setOnAction(event -> {
-            capturing = !capturing;
+            capturing = !(capturing && capturingAction == null);
+            capturingAction = null;
             captureProblem = "";
             refresh();
         });
@@ -286,10 +359,29 @@ final class SettingsPage extends VBox {
         getChildren().add(saveRow);
         note(saveNote);
 
+        block("Chrono et records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
+                + "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte. Avec le chrono, "
+                + "la ligne d'objectif dit l'avance ou le retard sur le record de la prochaine étape. Les records "
+                + "traversent la remise à zéro du jeu : c'est à la partie suivante qu'ils servent.");
+        chronoButton.setOnAction(event -> {
+            settings.setChrono(!settings.chrono());
+            refresh();
+        });
+        clearRecordsButton.setStyle(OFF_STYLE);
+        clearRecordsButton.setFocusTraversable(false);
+        clearRecordsButton.setOnAction(event -> {
+            saves.clearRecords();
+            refresh();
+        });
+        HBox recordsRow = new HBox(8, chronoButton, clearRecordsButton);
+        recordsRow.setAlignment(Pos.CENTER);
+        getChildren().add(recordsRow);
+        note(recordsLabel);
+
         block("Recommencer de zéro",
                 "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
-                        + "sauvegarde comprise. Les réglages sont gardés. C'est définitif : exportez d'abord la partie si "
-                        + "vous voulez pouvoir y revenir.");
+                        + "sauvegarde comprise. Les réglages et les records sont gardés. C'est définitif : exportez d'abord "
+                        + "la partie si vous voulez pouvoir y revenir.");
         resetButton.setOnAction(event -> {
             if (resetArmed > 0) {
                 resetArmed = 0;
@@ -344,22 +436,35 @@ final class SettingsPage extends VBox {
     }
 
     /**
-     * La touche pressée pendant que la page en attendait une. Échap annule ; une touche déjà prise
-     * par un raccourci est refusée, et la page continue d'attendre.
-     *
-     * @param taken vrai si la touche sert déjà de raccourci
+     * La touche pressée pendant que la page en attendait une, pour la touche de détail ou pour un
+     * raccourci. Échap annule ; une touche déjà prise est refusée, et la page continue d'attendre.
      */
-    void capture(KeyCode key, boolean taken) {
+    void capture(KeyCode key) {
         if (!capturing) return;
+        Shortcuts.Action holder = settings.actionOf(key);
         if (key == KeyCode.ESCAPE) {
             capturing = false;
             captureProblem = "";
-        } else if (taken) {
-            captureProblem = "« " + Detail.keyName(key) + " » est déjà un raccourci : choisissez une autre touche.";
+        } else if (capturingAction == null) {
+            // La touche de détail : n'importe laquelle, sauf celle d'un raccourci.
+            if (holder != null) {
+                captureProblem = "« " + Shortcuts.name(key) + " » sert déjà à : " + holder.label().toLowerCase() + ". Choisissez une autre touche.";
+            } else {
+                settings.setDetailKey(key);
+                Detail.set(false);
+                capturing = false;
+                captureProblem = "";
+            }
+        } else if (key == settings.detailKey()) {
+            captureProblem = "« " + Shortcuts.name(key) + " » est la touche de détail. Choisissez une autre touche.";
+        } else if (!Shortcuts.bindable(key)) {
+            captureProblem = "« " + Shortcuts.name(key) + " » ne peut pas porter un raccourci. Choisissez une autre touche.";
+        } else if (holder != null && holder != capturingAction) {
+            captureProblem = "« " + Shortcuts.name(key) + " » sert déjà à : " + holder.label().toLowerCase() + ". Choisissez une autre touche.";
         } else {
-            settings.setDetailKey(key);
-            Detail.set(false);
+            settings.setKey(capturingAction, key);
             capturing = false;
+            capturingAction = null;
             captureProblem = "";
         }
         refresh();
@@ -392,6 +497,7 @@ final class SettingsPage extends VBox {
         saveMessage = "";
         bugMessage = "";
         capturing = false;
+        capturingAction = null;
         captureProblem = "";
     }
 
@@ -411,20 +517,41 @@ final class SettingsPage extends VBox {
         notificationsButton.setStyle(settings.notifications() ? ON_STYLE : OFF_STYLE);
         goalButton.setText(settings.showGoal() ? "Objectif : affiché" : "Objectif : caché");
         goalButton.setStyle(settings.showGoal() ? ON_STYLE : OFF_STYLE);
+        signsButton.setText(settings.stateSigns() ? "Signes d'état : affichés" : "Signes d'état : cachés");
+        signsButton.setStyle(settings.stateSigns() ? ON_STYLE : OFF_STYLE);
+        chronoButton.setText(settings.chrono() ? "Chrono : affiché" : "Chrono : caché");
+        chronoButton.setStyle(settings.chrono() ? ON_STYLE : OFF_STYLE);
+        recordsLabel.setText(saves.records());
         effectsButton.setText(settings.effects() ? "Effets visuels : affichés" : "Effets visuels : coupés");
         effectsButton.setStyle(settings.effects() ? ON_STYLE : OFF_STYLE);
-        confirmButton.setText(settings.confirmExplosion() ? "Confirmation : demandée" : "Confirmation : non demandée");
+        confirmButton.setText(settings.confirmExplosion() ? "Explosion : demandée" : "Explosion : non demandée");
         confirmButton.setStyle(settings.confirmExplosion() ? ON_STYLE : OFF_STYLE);
+        confirmBigBangButton.setText(settings.confirmBigBang() ? "Big Bang : demandée" : "Big Bang : non demandée");
+        confirmBigBangButton.setStyle(settings.confirmBigBang() ? ON_STYLE : OFF_STYLE);
+        confirmChallengeButton.setText(settings.confirmChallenge() ? "Défis : demandée" : "Défis : non demandée");
+        confirmChallengeButton.setStyle(settings.confirmChallenge() ? ON_STYLE : OFF_STYLE);
+        // La liste des raccourcis : chaque touche est un bouton, éclairé pendant qu'il attend la nouvelle.
+        keyList.setVisible(settings.shortcuts());
+        keyList.setManaged(settings.shortcuts());
+        keyButtons.forEach((action, button) -> {
+            boolean waiting = capturing && capturingAction == action;
+            KeyCode bound = settings.key(action);
+            button.setText(waiting ? "Appuyez sur une touche…" : bound == null ? "(aucune)" : Shortcuts.name(bound));
+            button.setStyle(waiting ? ON_STYLE : OFF_STYLE);
+        });
+        boolean custom = settings.shortcuts() && settings.hasCustomKeys();
+        resetKeysButton.setVisible(custom);
+        resetKeysButton.setManaged(custom);
+        show(keyNote, capturingAction != null ? captureProblem : "");
         shortcutsButton.setText(settings.shortcuts() ? "Raccourcis clavier : actifs" : "Raccourcis clavier : coupés");
         shortcutsButton.setStyle(settings.shortcuts() ? ON_STYLE : OFF_STYLE);
         String key = Detail.keyName(settings.detailKey());
-        detailKeyButton.setText(capturing ? "Appuyez sur une touche… (Échap annule)" : "Touche : " + key + " (changer)");
-        detailKeyButton.setStyle(capturing ? ON_STYLE : OFF_STYLE);
+        boolean detailWaiting = capturing && capturingAction == null;
+        detailKeyButton.setText(detailWaiting ? "Appuyez sur une touche… (Échap annule)" : "Touche : " + key + " (changer)");
+        detailKeyButton.setStyle(detailWaiting ? ON_STYLE : OFF_STYLE);
         detailModeButton.setText(settings.detailToggle() ? "Un appui bascule" : "À tenir enfoncée");
         detailModeButton.setStyle(OFF_STYLE);
-        detailKeyNote.setText(captureProblem);
-        detailKeyNote.setVisible(!captureProblem.isEmpty());
-        detailKeyNote.setManaged(!captureProblem.isEmpty());
+        show(detailKeyNote, capturingAction == null ? captureProblem : "");
         // Les explications, comme partout : seulement en mode détails.
         for (Label explanation : explanations) {
             explanation.setVisible(Detail.shown());

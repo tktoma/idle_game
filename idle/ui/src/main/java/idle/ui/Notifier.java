@@ -52,6 +52,9 @@ final class Notifier {
     private int weightLevel;
     private int bigBangs;
     private int moleculeKinds;
+    private final Map<Molecule.Kind, Integer> collections = new java.util.EnumMap<>(Molecule.Kind.class);
+    private int bangChallengesDone;
+    private idle.core.BangChallenge bangChallenge;
 
     Notifier(Game game) {
         this.game = game;
@@ -66,6 +69,12 @@ final class Notifier {
     List<String> poll() {
         List<String> news = new ArrayList<>();
         List<Achievement> achievements = game.takeNewAchievements();
+        List<idle.core.SpaceUpgrade> spaceUpgrades = game.takeNewSpaceUpgrades();
+        int gathered = game.takeAutoGathered();
+        List<String> formed = game.takeAutoFormed();
+        boolean comet = game.takeCometAppeared();
+        boolean prime = game.takeSpeedPrime();
+        List<idle.core.GameStats.Step> records = game.takeNewRecords();
         // Premier relevé, ou partie remise à zéro : on prend ses repères sans rien annoncer.
         if (!primed || (started && !game.isStarted())) {
             snapshot();
@@ -76,6 +85,10 @@ final class Notifier {
         if (game.bigBangs() > bigBangs) {
             // Tout vient de repartir de zéro : on reprend ses repères, pour que la partie suivante s'annonce comme la première.
             int count = game.bigBangs();
+            if (game.completedBangChallenges() > bangChallengesDone && bangChallenge != null) {
+                news.add("Défi de Big Bang « " + bangChallenge.label() + " » réussi : " + lower(bangChallenge.rewardText()));
+            }
+            for (idle.core.GameStats.Step step : records) news.add("Record battu : " + step.label());
             snapshot();
             news.add(game.isDarkMatterUnlocked()
                     ? "Big Bang n° " + count + " : tout repart du premier générateur, mais l'arbre de matière noire est resté."
@@ -93,10 +106,50 @@ final class Notifier {
             }
         }
 
+        // Les améliorations d'espace que le temps vient d'apporter ; l'ouverture d'un rayon s'annonce déjà ci-dessus.
+        for (idle.core.SpaceUpgrade upgrade : spaceUpgrades) {
+            if (upgrade.effect() instanceof idle.core.SpaceUpgrade.OpenKind) continue;
+            news.add("Espace : « " + upgrade.name() + " » est acquise");
+        }
+
+        // Un défi de Big Bang vient de commencer : tout est reparti, comme après un Big Bang.
+        if (game.activeBangChallenge() != null && game.activeBangChallenge() != bangChallenge) {
+            idle.core.BangChallenge started = game.activeBangChallenge();
+            snapshot();
+            news.add("Défi de Big Bang « " + started.label() + " » : tout repart du premier générateur.");
+            return news;
+        }
+        bangChallenge = game.activeBangChallenge();
+        if (comet) {
+            news.add("Une comète traverse l'expansion : " + (int) Game.COMET_VISIBLE_SECONDS + " secondes pour la saisir (Big Bang, Expansion de la matière)");
+        }
+        for (idle.core.GameStats.Step step : records) news.add("Record battu : " + step.label());
+        // Une collection vient de passer la moitié de son rayon, ou d'être complétée.
+        for (idle.core.KindCollection collection : game.collections()) {
+            int level = game.collectionLevel(collection.kind());
+            if (level > collections.getOrDefault(collection.kind(), 0)) {
+                news.add("Collection " + collection.kind().label() + (level >= 2 ? " complète : " : " à moitié réunie : ")
+                        + lower(BigBangPage.what(collection.stat())) + " ×" + ElementText.number(collection.factor(level)));
+            }
+            collections.put(collection.kind(), level);
+        }
+
+        // Ce que le rassemblement et la formation automatiques viennent de faire sans le joueur.
+        if (gathered > 0) {
+            news.add("Rassemblement automatique : " + gathered + (gathered > 1 ? " sortes rassemblées" : " sorte rassemblée"));
+        }
+        if (formed.size() > 3) {
+            news.add("Formation automatique : " + formed.size() + " formés, dont « " + formed.get(formed.size() - 1) + " »");
+        } else {
+            for (String name : formed) news.add("Formation automatique : « " + name + " »");
+        }
+
         if (game.state().explosions() > explosions) {
             // Une explosion qui compte alourdit le tableau ; celle d'un défi rejoué ne change rien.
             news.add(game.state().tableWeightLevel() > weightLevel
-                    ? "Explosion : +" + Format.count(game.darkMatterPerExplosion()) + " matière noire"
+                    ? "Explosion : +" + Format.count(prime ? game.darkMatterPerExplosion().add(game.speedPrime())
+                                    : game.darkMatterPerExplosion()) + " matière noire"
+                            + (prime ? ", prime de vitesse comprise" : "")
                             + (game.state().tableWeightLevel() <= Game.TABLE_WEIGHT_MAX_LEVEL
                                     ? ", tableau " + Format.multiplier(game.tableWeight()) + " plus lourd qu'au début" : "")
                     : "Explosion : défi rejoué, sans matière noire");
@@ -216,5 +269,14 @@ final class Notifier {
         weightLevel = game.state().tableWeightLevel();
         bigBangs = game.bigBangs();
         moleculeKinds = game.moleculeKindsUnlocked();
+        for (idle.core.KindCollection collection : game.collections()) {
+            collections.put(collection.kind(), game.collectionLevel(collection.kind()));
+        }
+        bangChallengesDone = game.completedBangChallenges();
+        bangChallenge = game.activeBangChallenge();
+    }
+
+    private static String lower(String text) {
+        return text.isEmpty() ? text : Character.toLowerCase(text.charAt(0)) + text.substring(1);
     }
 }

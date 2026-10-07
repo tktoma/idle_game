@@ -142,4 +142,11 @@ public sealed interface DarkEffect {
      * de plusieurs synthèses ({@link ElementCategory#targetTries()}).
      */
     record TargetedSynthesis() implements DarkEffect {}
+
+    /**
+     * Ouvre l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à
+     * portée, comme pour celles payées en particules ({@link Game#isBulkAtomBuyUnlocked()}).
+     * L'effet est dans l'interface.
+     */
+    record BulkAtomUpgrades() implements DarkEffect {}
 }
