@@ -341,6 +341,115 @@ public final class GameStats {
     }
 
     // ------------------------------------------------------------------
+    // Sauvegarde
+    // ------------------------------------------------------------------
+
+    /**
+     * Range tous les compteurs dans une sauvegarde, sous ce préfixe. Tout champ ajouté à cette
+     * classe doit être écrit ici et relu dans {@link #load(SaveData, String)}.
+     */
+    void save(SaveData data, String prefix) {
+        data.put(prefix + "particlesCreated", particlesCreated);
+        data.put(prefix + "particlesSpent", particlesSpent);
+        data.put(prefix + "bestProduction", bestProduction);
+        data.put(prefix + "particleUpgradesBought", particleUpgradesBought);
+        data.put(prefix + "generatorsBought", generatorsBought);
+        data.put(prefix + "runParticlesCreated", runParticlesCreated);
+        data.put(prefix + "fusions", fusions);
+        data.put(prefix + "runFusions", runFusions);
+        data.put(prefix + "atomsCreated", atomsCreated);
+        data.put(prefix + "atomsSpent", atomsSpent);
+        data.put(prefix + "bestAtomsPerFusion", bestAtomsPerFusion);
+        data.put(prefix + "lastFusionTime", lastFusionTime);
+        data.put(prefix + "fastestFusionTime", fastestFusionTime);
+        data.put(prefix + "atomUpgradesBought", atomUpgradesBought);
+        data.put(prefix + "automationActions", automationActions);
+        data.put(prefix + "darkAutomationActions", darkAutomationActions);
+        data.put(prefix + "syntheses", syntheses);
+        data.put(prefix + "elementsObtained", elementsObtained);
+        data.put(prefix + "doubleDraws", doubleDraws);
+        data.put(prefix + "targetTries", targetTries);
+        data.put(prefix + "targetedSyntheses", targetedSyntheses);
+        data.put(prefix + "holdTime", holdTime);
+        data.put(prefix + "runTime", runTime);
+        data.put(prefix + "lastExplosionTime", lastExplosionTime);
+        data.put(prefix + "fastestExplosionTime", fastestExplosionTime);
+        data.put(prefix + "timedExplosions", timedExplosions);
+        data.putDoubleList(prefix + "explosionTimes", explosionTimes);
+        data.put(prefix + "bigBangTime", bigBangTime);
+        data.put(prefix + "lastBigBangTime", lastBigBangTime);
+        data.put(prefix + "fastestBigBangTime", fastestBigBangTime);
+        data.put(prefix + "timedBigBangs", timedBigBangs);
+        data.put(prefix + "lastBigBangExplosions", lastBigBangExplosions);
+        data.putDoubleList(prefix + "bigBangTimes", bigBangTimes);
+        data.put(prefix + "moleculeCreations", moleculeCreations);
+        data.put(prefix + "autoMoleculeCreations", autoMoleculeCreations);
+        data.put(prefix + "moleculesAttracted", moleculesAttracted);
+        data.put(prefix + "biggestCreation", biggestCreation);
+        data.put(prefix + "moleculeElementsSpent", moleculeElementsSpent);
+        Map<String, Double> reached = new java.util.LinkedHashMap<>();
+        steps.forEach((step, time) -> reached.put(step.name(), time));
+        data.putDoubles(prefix + "steps", reached);
+        data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
+        history.save(data, prefix + "history.");
+        runHistory.save(data, prefix + "runHistory.");
+    }
+
+    /** Relit les compteurs d'une sauvegarde. Une clé absente laisse le compteur à zéro ; une première inconnue est ignorée. */
+    void load(SaveData data, String prefix) {
+        particlesCreated = data.big(prefix + "particlesCreated", BigNum.ZERO);
+        particlesSpent = data.big(prefix + "particlesSpent", BigNum.ZERO);
+        bestProduction = data.big(prefix + "bestProduction", BigNum.ZERO);
+        particleUpgradesBought = data.count(prefix + "particleUpgradesBought", 0);
+        generatorsBought = data.count(prefix + "generatorsBought", 0);
+        runParticlesCreated = data.big(prefix + "runParticlesCreated", BigNum.ZERO);
+        fusions = data.count(prefix + "fusions", 0);
+        runFusions = data.count(prefix + "runFusions", 0);
+        atomsCreated = data.big(prefix + "atomsCreated", BigNum.ZERO);
+        atomsSpent = data.big(prefix + "atomsSpent", BigNum.ZERO);
+        bestAtomsPerFusion = data.big(prefix + "bestAtomsPerFusion", BigNum.ZERO);
+        lastFusionTime = data.real(prefix + "lastFusionTime", 0);
+        fastestFusionTime = data.real(prefix + "fastestFusionTime", 0);
+        atomUpgradesBought = data.count(prefix + "atomUpgradesBought", 0);
+        automationActions = data.count(prefix + "automationActions", 0);
+        darkAutomationActions = data.count(prefix + "darkAutomationActions", 0);
+        syntheses = data.count(prefix + "syntheses", 0);
+        elementsObtained = data.count(prefix + "elementsObtained", 0);
+        doubleDraws = data.count(prefix + "doubleDraws", 0);
+        targetTries = data.count(prefix + "targetTries", 0);
+        targetedSyntheses = data.count(prefix + "targetedSyntheses", 0);
+        holdTime = data.real(prefix + "holdTime", 0);
+        runTime = data.real(prefix + "runTime", 0);
+        lastExplosionTime = data.real(prefix + "lastExplosionTime", 0);
+        fastestExplosionTime = data.real(prefix + "fastestExplosionTime", 0);
+        timedExplosions = data.count(prefix + "timedExplosions", 0);
+        explosionTimes.clear();
+        explosionTimes.addAll(data.doubleList(prefix + "explosionTimes"));
+        bigBangTime = data.real(prefix + "bigBangTime", 0);
+        lastBigBangTime = data.real(prefix + "lastBigBangTime", 0);
+        fastestBigBangTime = data.real(prefix + "fastestBigBangTime", 0);
+        timedBigBangs = data.count(prefix + "timedBigBangs", 0);
+        lastBigBangExplosions = data.count(prefix + "lastBigBangExplosions", 0);
+        bigBangTimes.clear();
+        bigBangTimes.addAll(data.doubleList(prefix + "bigBangTimes"));
+        moleculeCreations = data.count(prefix + "moleculeCreations", 0);
+        autoMoleculeCreations = data.count(prefix + "autoMoleculeCreations", 0);
+        moleculesAttracted = data.count(prefix + "moleculesAttracted", 0);
+        biggestCreation = data.whole(prefix + "biggestCreation", 0);
+        moleculeElementsSpent = data.count(prefix + "moleculeElementsSpent", 0);
+        steps.clear();
+        data.doubles(prefix + "steps").forEach((name, time) -> {
+            for (Step step : Step.values()) {
+                if (step.name().equals(name)) steps.put(step, time);
+            }
+        });
+        unlockedOnce.clear();
+        unlockedOnce.addAll(data.list(prefix + "unlockedOnce"));
+        history.load(data, prefix + "history.");
+        runHistory.load(data, prefix + "runHistory.");
+    }
+
+    // ------------------------------------------------------------------
     // Écriture, réservée à Game
     // ------------------------------------------------------------------
 

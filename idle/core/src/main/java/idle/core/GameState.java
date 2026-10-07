@@ -11,7 +11,7 @@ import java.util.TreeMap;
 
 /**
  * Tout ce qui change pendant une partie, et rien d'autre.
- * C'est cet objet qui sera écrit dans la sauvegarde.
+ * C'est cet objet qui est écrit dans la sauvegarde ({@link SaveCodec}).
  *
  * <p>Aucune règle du jeu ici : les règles sont dans {@link Game}.
  */
@@ -851,6 +851,206 @@ public final class GameState {
         synthesisTarget = null;
         synthesisTries = 0;
         decayDebt = 0;
+    }
+
+    // ------------------------------------------------------------------
+    // Sauvegarde
+    // ------------------------------------------------------------------
+
+    /**
+     * Range toute la partie dans une sauvegarde. Ce qui se recalcule (les compteurs de version,
+     * les listes gardées pour aller vite) n'y est pas ; les ensembles sans ordre sont triés, pour
+     * que deux parties identiques donnent le même texte.
+     *
+     * <p>Tout champ ajouté à cette classe doit être écrit ici et relu dans {@link #load(SaveData)} :
+     * un test compare champ par champ une partie à sa copie relue, et échoue sinon.
+     */
+    void save(SaveData data) {
+        data.put("started", started);
+        data.put("particles", particles);
+        data.put("atoms", atoms);
+        data.put("totalAtoms", totalAtoms);
+        data.put("timeSinceFusion", timeSinceFusion);
+        data.putDoubleList("formations", formations);
+        data.put("timePlayed", timePlayed);
+        data.putInts("upgradeLevels", new TreeMap<>(upgradeLevels));
+        data.putList("ownedAutomations", new java.util.TreeSet<>(ownedAutomations));
+        data.putList("enabledAutomations", new java.util.TreeSet<>(enabledAutomations));
+        data.putInts("automationSpeedLevels", new TreeMap<>(automationSpeedLevels));
+        data.putDoubles("automationTimers", new TreeMap<>(automationTimers));
+        Map<String, Integer> copies = new java.util.LinkedHashMap<>();
+        elements.forEach((number, count) -> copies.put(String.valueOf(number), count));
+        data.putInts("elements", copies);
+        data.put("synthesisCount", synthesisCount);
+        data.put("synthesisTarget", synthesisTarget == null ? null : synthesisTarget.name());
+        data.put("synthesisTries", synthesisTries);
+        data.put("darkMatter", darkMatter);
+        data.put("darkMatterSpent", darkMatterSpent);
+        data.put("darkMatterSize", darkMatterSize);
+        data.put("explosions", explosions);
+        data.put("tableWeightLevel", tableWeightLevel);
+        data.putInts("darkUpgradeLevels", new TreeMap<>(darkUpgradeLevels));
+        data.put("fusionThreshold", fusionThreshold);
+        data.put("synthesisReserve", synthesisReserve);
+        data.put("holdLocked", holdLocked);
+        data.put("activeChallenge", activeChallenge == null ? null : SaveData.escape(activeChallenge));
+        data.putList("completedChallenges", new java.util.TreeSet<>(completedChallenges));
+        data.putDoubles("challengeTimes", new TreeMap<>(challengeTimes));
+        data.put("decayDebt", decayDebt);
+        data.putList("achievements", achievements);
+        data.putList("enabledDarkAutomations", new java.util.TreeSet<>(enabledDarkAutomations));
+        data.putDoubles("darkAutomationTimers", new TreeMap<>(darkAutomationTimers));
+        data.put("bigBangs", bigBangs);
+        // Les molécules, par suites dans l'ordre de leur création : « sorte:nombre ». Le total par sorte s'en déduit.
+        StringBuilder log = new StringBuilder();
+        for (int run = 0; run < logKinds.size(); run++) {
+            if (run > 0) log.append(',');
+            log.append(SaveData.escape(logKinds.get(run))).append(':').append(logEnds[run] - (run == 0 ? 0 : logEnds[run - 1]));
+        }
+        data.put("moleculeLog", log.toString());
+        data.putList("substances", substances);
+        data.putList("assemblies", assemblies);
+        data.putList("bodies", bodies);
+        data.put("cosmos", cosmos);
+        data.put("autoHold", autoHold);
+        data.put("autoMolecules", autoMolecules);
+        data.putList("automatedMolecules", automatedMolecules);
+        data.putList("spaceUpgrades", spaceUpgrades);
+        data.put("space", space);
+        stats.save(data, "stats.");
+    }
+
+    /**
+     * Remplace toute la partie par celle d'une sauvegarde. Une clé absente laisse la valeur d'une
+     * partie neuve : une sauvegarde plus ancienne que le jeu se relit donc sans rien casser.
+     *
+     * @throws RuntimeException si une valeur est illisible ou impossible (nombre négatif, texte à la
+     *                          place d'un nombre) : l'état est alors à moitié rempli, et ne doit pas servir
+     */
+    void load(SaveData data) {
+        reset();
+        started = data.flag("started", false);
+        setParticles(data.big("particles", BigNum.ZERO));
+        setAtoms(data.big("atoms", BigNum.ZERO));
+        setTotalAtoms(data.big("totalAtoms", BigNum.ZERO));
+        setTimeSinceFusion(data.real("timeSinceFusion", 0));
+        List<Double> made = data.doubleList("formations");
+        for (int generator = 0; generator < made.size(); generator++) setFormation(generator, made.get(generator));
+        timePlayed = Math.max(0, data.real("timePlayed", 0));
+        data.ints("upgradeLevels").forEach(this::setLevel);
+        ownedAutomations.addAll(data.list("ownedAutomations"));
+        enabledAutomations.addAll(data.list("enabledAutomations"));
+        data.ints("automationSpeedLevels").forEach(this::setAutomationSpeedLevel);
+        data.doubles("automationTimers").forEach(this::setAutomationTimer);
+        data.ints("elements").forEach((number, count) -> setElementCount(Integer.parseInt(number), count));
+        setSynthesisCount(data.whole("synthesisCount", 0));
+        String target = data.text("synthesisTarget", null);
+        synthesisTarget = target == null ? null : ElementCategory.valueOf(target);
+        setSynthesisTries(data.whole("synthesisTries", 0));
+        setDarkMatter(data.big("darkMatter", BigNum.ZERO));
+        setDarkMatterSpent(data.big("darkMatterSpent", BigNum.ZERO));
+        setDarkMatterSize(data.big("darkMatterSize", Game.DARK_MATTER_START_SIZE));
+        setExplosions(data.whole("explosions", 0));
+        setTableWeightLevel(data.whole("tableWeightLevel", 0));
+        data.ints("darkUpgradeLevels").forEach(this::setDarkLevel);
+        setFusionThreshold(data.whole("fusionThreshold", 0));
+        setSynthesisReserve(data.big("synthesisReserve", BigNum.ZERO));
+        holdLocked = data.flag("holdLocked", false);
+        String challenge = data.text("activeChallenge", null);
+        activeChallenge = challenge == null ? null : SaveData.unescape(challenge);
+        completedChallenges.addAll(data.list("completedChallenges"));
+        data.doubles("challengeTimes").forEach(this::setChallengeTime);
+        setDecayDebt(data.real("decayDebt", 0));
+        achievements.addAll(data.list("achievements"));
+        enabledDarkAutomations.addAll(data.list("enabledDarkAutomations"));
+        data.doubles("darkAutomationTimers").forEach(this::setDarkAutomationTimer);
+        setBigBangs(data.whole("bigBangs", 0));
+        String log = data.text("moleculeLog", "");
+        if (!log.isEmpty()) {
+            for (String run : log.split(",", -1)) {
+                int colon = run.lastIndexOf(':');
+                addMolecules(SaveData.unescape(run.substring(0, colon)), Integer.parseInt(run.substring(colon + 1)));
+            }
+        }
+        substances.addAll(data.list("substances"));
+        assemblies.addAll(data.list("assemblies"));
+        bodies.addAll(data.list("bodies"));
+        setCosmosLevel(data.whole("cosmos", 0));
+        autoHold = data.flag("autoHold", true);
+        autoMolecules = data.flag("autoMolecules", true);
+        automatedMolecules.addAll(data.list("automatedMolecules"));
+        spaceUpgrades.addAll(data.list("spaceUpgrades"));
+        setSpace(data.big("space", BigNum.ZERO));
+        stats.load(data, "stats.");
+        substancesSeen = null;
+        assembliesSeen = null;
+        bodiesSeen = null;
+        elementsVersion++;
+        moleculesVersion++;
+    }
+
+    /**
+     * Ce que le jeu connaît : les identifiants de ses catalogues. Une sauvegarde écrite par une autre
+     * version du jeu peut en nommer d'autres ; {@link #retainKnown(Known)} les oublie.
+     * Un catalogue vide n'écarte rien : c'est celui d'une partie de test, qui n'en a pas.
+     */
+    record Known(Set<String> upgrades, Set<String> automations, Set<String> darkUpgrades, Set<String> darkAutomations,
+                 Set<String> challenges, Set<String> achievements, Set<String> molecules, Set<String> assemblies,
+                 Set<String> bodies, Set<String> spaceUpgrades, int elements) {
+    }
+
+    /**
+     * Oublie tout ce qui porte un identifiant que le jeu ne connaît pas : après une mise à jour,
+     * une sauvegarde peut nommer une amélioration ou une molécule disparue, et les règles ne
+     * sauraient qu'en faire.
+     *
+     * @return le nombre d'identifiants oubliés
+     */
+    int retainKnown(Known known) {
+        int before = identifiers();
+        if (!known.upgrades().isEmpty()) upgradeLevels.keySet().retainAll(known.upgrades());
+        if (!known.automations().isEmpty()) {
+            ownedAutomations.retainAll(known.automations());
+            enabledAutomations.retainAll(known.automations());
+            automationSpeedLevels.keySet().retainAll(known.automations());
+            automationTimers.keySet().retainAll(known.automations());
+        }
+        if (elements.keySet().removeIf(number -> number < 1 || number > known.elements())) elementsVersion++;
+        if (!known.darkUpgrades().isEmpty()) darkUpgradeLevels.keySet().retainAll(known.darkUpgrades());
+        if (!known.darkAutomations().isEmpty()) {
+            enabledDarkAutomations.retainAll(known.darkAutomations());
+            darkAutomationTimers.keySet().retainAll(known.darkAutomations());
+        }
+        if (!known.challenges().isEmpty()) {
+            if (activeChallenge != null && !known.challenges().contains(activeChallenge)) activeChallenge = null;
+            completedChallenges.retainAll(known.challenges());
+            challengeTimes.keySet().retainAll(known.challenges());
+        }
+        if (!known.achievements().isEmpty()) achievements.retainAll(known.achievements());
+        if (!known.molecules().isEmpty()) {
+            for (String id : List.copyOf(molecules.keySet())) {
+                if (!known.molecules().contains(id)) setMoleculeCount(id, 0);
+            }
+            substances.retainAll(known.molecules());
+            automatedMolecules.retainAll(known.molecules());
+        }
+        if (!known.assemblies().isEmpty()) assemblies.retainAll(known.assemblies());
+        if (!known.bodies().isEmpty()) bodies.retainAll(known.bodies());
+        if (!known.spaceUpgrades().isEmpty()) spaceUpgrades.retainAll(known.spaceUpgrades());
+        substancesSeen = null;
+        assembliesSeen = null;
+        bodiesSeen = null;
+        moleculesVersion++;
+        return before - identifiers();
+    }
+
+    /** Nombre d'identifiants que porte la partie, tous catalogues confondus. */
+    private int identifiers() {
+        return upgradeLevels.size() + ownedAutomations.size() + enabledAutomations.size() + automationSpeedLevels.size()
+                + automationTimers.size() + elements.size() + darkUpgradeLevels.size() + enabledDarkAutomations.size()
+                + darkAutomationTimers.size() + (activeChallenge == null ? 0 : 1) + completedChallenges.size()
+                + challengeTimes.size() + achievements.size() + molecules.size() + substances.size()
+                + automatedMolecules.size() + assemblies.size() + bodies.size() + spaceUpgrades.size();
     }
 
     /** Vue en lecture seule des éléments possédés (numéro atomique → exemplaires), par numéro croissant. */

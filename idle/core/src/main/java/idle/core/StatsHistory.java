@@ -292,4 +292,116 @@ public final class StatsHistory {
         nextTime = 0;
         java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
     }
+
+    // ------------------------------------------------------------------
+    // Sauvegarde
+    // ------------------------------------------------------------------
+
+    /**
+     * Range l'historique dans une sauvegarde, sous ce préfixe : les instants des relevés, puis une
+     * ligne par statistique et une par automatisme, où les valeurs qui se répètent d'un relevé au
+     * suivant ne sont écrites qu'une fois ({@code 3*12} pour douze fois 3).
+     *
+     * <p>Les statistiques sont écrites sous leur nom : en ajouter une à {@link Stat} ne dérange pas
+     * les sauvegardes existantes, sa courbe commence simplement plus tard.
+     *
+     * <p>Les valeurs des courbes sont arrondies à sept chiffres : c'est bien plus fin que ce qu'un
+     * graphique montre, et la sauvegarde en est deux fois plus légère. Les instants, eux, sont exacts.
+     */
+    void save(SaveData data, String prefix) {
+        data.put(prefix + "interval", interval);
+        data.put(prefix + "nextTime", nextTime);
+        Map<String, Double> tops = new java.util.LinkedHashMap<>();
+        for (Stat stat : Stat.values()) {
+            if (peaks[stat.ordinal()] != Double.NEGATIVE_INFINITY) tops.put(stat.name(), peaks[stat.ordinal()]);
+        }
+        data.putDoubles(prefix + "peaks", tops);
+        List<Double> times = new ArrayList<>(samples.size());
+        java.util.Set<String> automations = new java.util.TreeSet<>();
+        for (Sample sample : samples) {
+            times.add(sample.time());
+            automations.addAll(sample.delays().keySet());
+        }
+        data.putDoubleList(prefix + "times", times);
+        double[] column = new double[samples.size()];
+        for (Stat stat : Stat.values()) {
+            for (int i = 0; i < column.length; i++) column[i] = samples.get(i).value(stat);
+            data.put(prefix + "v." + stat.name(), pack(column));
+        }
+        for (String automation : automations) {
+            for (int i = 0; i < column.length; i++) column[i] = samples.get(i).delay(automation);
+            data.put(prefix + "d." + SaveData.escape(automation), pack(column));
+        }
+    }
+
+    /** Relit un historique. Une statistique absente de la sauvegarde n'a aucune valeur ({@code NaN}) dans les relevés relus. */
+    void load(SaveData data, String prefix) {
+        clear();
+        interval = Math.max(FIRST_INTERVAL, data.real(prefix + "interval", FIRST_INTERVAL));
+        nextTime = data.real(prefix + "nextTime", 0);
+        data.doubles(prefix + "peaks").forEach((name, value) -> {
+            for (Stat stat : Stat.values()) {
+                if (stat.name().equals(name)) peaks[stat.ordinal()] = value;
+            }
+        });
+        List<Double> times = data.doubleList(prefix + "times");
+        int count = times.size();
+        double[][] values = new double[count][Stat.values().length];
+        for (Stat stat : Stat.values()) {
+            double[] column = unpack(data.text(prefix + "v." + stat.name(), ""), count);
+            for (int i = 0; i < count; i++) values[i][stat.ordinal()] = column[i];
+        }
+        List<Map<String, Double>> delays = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) delays.add(new java.util.HashMap<>());
+        String delayPrefix = prefix + "d.";
+        for (String key : data.keys(delayPrefix)) {
+            String automation = SaveData.unescape(key.substring(delayPrefix.length()));
+            double[] column = unpack(data.text(key, ""), count);
+            for (int i = 0; i < count; i++) {
+                if (!Double.isNaN(column[i])) delays.get(i).put(automation, column[i]);
+            }
+        }
+        for (int i = 0; i < count; i++) samples.add(new Sample(times.get(i), values[i], delays.get(i)));
+    }
+
+    /** Une colonne de valeurs en texte : les valeurs séparées par {@code ;}, une suite de valeurs égales écrite {@code valeur*nombre}. */
+    static String pack(double[] column) {
+        StringBuilder text = new StringBuilder();
+        int i = 0;
+        while (i < column.length) {
+            String value = compact(column[i]);
+            int run = 1;
+            while (i + run < column.length && compact(column[i + run]).equals(value)) run++;
+            if (i > 0) text.append(';');
+            text.append(value);
+            if (run > 1) text.append('*').append(run);
+            i += run;
+        }
+        return text.toString();
+    }
+
+    /** Relit une colonne écrite par {@link #pack(double[])} ; ce qui manque pour atteindre {@code count} valeurs reste sans valeur. */
+    static double[] unpack(String text, int count) {
+        double[] column = new double[count];
+        java.util.Arrays.fill(column, Double.NaN);
+        if (text.isEmpty()) return column;
+        int i = 0;
+        for (String token : text.split(";", -1)) {
+            int star = token.indexOf('*');
+            double value = SaveData.parse(star < 0 ? token : token.substring(0, star));
+            int run = star < 0 ? 1 : Integer.parseInt(token.substring(star + 1));
+            for (int k = 0; k < run && i < count; k++) column[i++] = value;
+        }
+        return column;
+    }
+
+    /** Une valeur de courbe en peu de caractères : un entier tel quel, sinon sept chiffres significatifs. */
+    private static String compact(double value) {
+        if (Double.isNaN(value)) return "";
+        if (Double.isInfinite(value)) return Double.toString(value);
+        if (value == Math.rint(value) && Math.abs(value) < 1e15) return Long.toString((long) value);
+        float rounded = (float) value;
+        if (Float.isInfinite(rounded) || rounded == 0) return Double.toString(value);
+        return Float.toString(rounded);
+    }
 }

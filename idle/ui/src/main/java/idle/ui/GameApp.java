@@ -1,10 +1,12 @@
 package idle.ui;
 
+import idle.core.Absence;
 import idle.core.BigNum;
 import idle.core.Challenge;
 import idle.core.Effect;
 import idle.core.Game;
 import idle.core.Resource;
+import idle.core.SaveCodec;
 import idle.core.Upgrade;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -24,6 +26,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -34,6 +38,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -72,6 +77,11 @@ import javafx.util.Duration;
  * le reste, les notifications ({@link ToastPane}) annoncent ce que {@link Notifier} a repéré :
  * nouvel élément, succès, déblocage. Toute la fenêtre passe par {@link ScaledPane} (la taille de
  * l'interface) et, pour le thème clair, par {@link LightTheme}.
+ *
+ * <p>La partie est sauvegardée dans un fichier ({@link SaveStore}) : relue au lancement, écrite
+ * toutes les trente secondes et à la fermeture. Au retour du joueur, une part du temps passé jeu
+ * fermé est rejouée ({@link Absence}), sous un panneau qui en montre l'avancée puis le bilan
+ * ({@link AbsencePane}). La fenêtre retrouve aussi sa place, sa taille et son onglet.
  *
  * <p>La fenêtre ne contient aucune règle : elle appelle {@code game.tick()},
  * affiche l'état, et transmet les clics à {@code game.buy()}.
@@ -112,6 +122,12 @@ public final class GameApp extends Application {
 
     private final Game game = new Game();
     private final Settings settings = Settings.load();
+    /**
+     * Le fichier de sauvegarde. Celui que désignent les arguments du jeu n'est connu qu'au
+     * lancement ({@link #start(Stage)}) : d'ici là, rien ne s'écrit. Déclaré avant les pages, qui
+     * l'interrogent dès leur construction.
+     */
+    private SaveStore store = SaveStore.of(List.of("--sans-sauvegarde"));
     private final GeneratorPane generators = new GeneratorPane();
     private final Label particlesLabel = new Label();
     private final Label productionLabel = new Label();
@@ -136,7 +152,7 @@ public final class GameApp extends Application {
     private final BigBangPage bigBangPage = new BigBangPage(game);
     private final AchievementsPage achievementsPage = new AchievementsPage(game);
     private final StatsPage statsPage = new StatsPage(game);
-    private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance);
+    private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
     /** La page des automatismes défile quand la fenêtre est trop basse pour toutes ses cartes. */
     private final ScrollPane automationScroll = new ScrollPane(automationPage);
     private final ScrollPane settingsScroll = new ScrollPane(settingsPage);
@@ -178,6 +194,13 @@ public final class GameApp extends Application {
     private int lastBigBangs = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
     private DebugBar debugBar;
+    // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
+    private double sinceSave = 0;
+    private final AbsencePane absencePane = new AbsencePane(this::save);
+    /** Temps réel donné au rattrapage d'une absence à chaque image, en nanosecondes : assez peu pour que la fenêtre reste vive. */
+    private static final long CATCH_UP_NANOS = 10_000_000;
+    private Stage stage;
+    private boolean closed = false;
     private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
     /** Les améliorations côte à côte ; dans une fenêtre étroite, elles se rangent sur plusieurs rangées. */
     private final TileGrid upgradeGrid = new TileGrid(170, 4, 8);
@@ -189,6 +212,17 @@ public final class GameApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        this.stage = stage;
+        // Une erreur imprévue ne ferme pas le jeu : elle est gardée pour le rapport de bug, et écrite dans la console.
+        Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
+            Crash.note(error);
+            error.printStackTrace();
+        });
+        // La partie sauvegardée est reprise avant que rien ne s'affiche.
+        List<String> arguments = getParameters().getRaw();
+        store = SaveStore.of(arguments);
+        SaveStore.Loaded loaded = store.load(game);
+
         particlesLabel.setStyle("-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;");
         productionLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #8fa3b8;");
 
@@ -291,7 +325,7 @@ public final class GameApp extends Application {
         infoBar.setAlignment(Pos.CENTER);
         infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
         VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar);
-        boolean testProfile = getParameters().getRaw().contains("--test");
+        boolean testProfile = arguments.contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
             top.getChildren().add(0, debugBar);
@@ -305,7 +339,7 @@ public final class GameApp extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = new StackPane(root, blast, toasts);
+        StackPane window = new StackPane(root, blast, toasts, absencePane);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         scaled = new ScaledPane(window);
         lightTheme = new LightTheme(window);
@@ -318,6 +352,13 @@ public final class GameApp extends Application {
             public void handle(long now) {
                 double dt = previous == 0 ? 0 : (now - previous) / 1e9; // nanosecondes → secondes
                 previous = now;
+                // Au retour d'une absence, le jeu rattrape d'abord le temps perdu : rien d'autre n'avance.
+                if (absencePane.isCatchingUp()) {
+                    catchUp();
+                    return;
+                }
+                sinceSave += dt;
+                if (sinceSave >= SaveStore.EVERY_SECONDS) save();
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
                 if (!settings.paused()) {
                     game.tick(dt * timeFactor());
@@ -330,8 +371,19 @@ public final class GameApp extends Application {
             }
         }.start();
 
+        // L'onglet de la dernière fois, s'il existe encore dans cette partie : sinon refresh() revient aux particules.
+        try {
+            if (loaded.found() && !settings.lastTab().isEmpty()) selectTab(Tab.valueOf(settings.lastTab()));
+        } catch (IllegalArgumentException unknown) {
+            // un onglet d'une autre version du jeu : on reste sur le premier
+        }
         animate(0);
         refresh();
+        if (!loaded.notice().isEmpty()) toasts.show(loaded.notice(), SETTINGS_COLOR);
+        if (loaded.found()) {
+            Absence absence = new Absence(game, (System.currentTimeMillis() - loaded.savedAt()) / 1000.0);
+            if (!absence.isDone()) absencePane.open(absence);
+        }
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
         Scene scene = new Scene(scaled, 800, 640);
         applyAppearance();
@@ -352,7 +404,150 @@ public final class GameApp extends Application {
         stage.setScene(scene);
         stage.setMinWidth(480);
         stage.setMinHeight(460);
+        placeWindow();
+        stage.setOnCloseRequest(event -> closing());
         stage.show();
+    }
+
+    /** Le jeu se ferme : la partie et la place de la fenêtre sont écrites une dernière fois. */
+    @Override
+    public void stop() {
+        closing();
+    }
+
+    private void closing() {
+        if (closed) return;
+        closed = true;
+        save();
+        settings.setLastTab(selectedTab.name());
+        if (stage == null) return;
+        // Agrandie au maximum, la fenêtre garde en mémoire la place qu'elle avait avant.
+        double[] before = settings.window();
+        if (stage.isMaximized() && before != null) {
+            settings.setWindow(before[0], before[1], before[2], before[3], true);
+        } else {
+            settings.setWindow(stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight(), stage.isMaximized());
+        }
+    }
+
+    /** Remet la fenêtre où elle était à la dernière fermeture, si cet endroit est encore sur un écran. */
+    private void placeWindow() {
+        double[] place = settings.window();
+        if (place == null) return;
+        try {
+            if (Screen.getScreensForRectangle(place[0], place[1], place[2], place[3]).isEmpty()) return;
+        } catch (RuntimeException unavailable) {
+            return;     // pas d'écran à interroger : on garde la place par défaut
+        }
+        stage.setX(place[0]);
+        stage.setY(place[1]);
+        stage.setWidth(Math.max(480, place[2]));
+        stage.setHeight(Math.max(460, place[3]));
+        if (place[4] == 1) stage.setMaximized(true);
+    }
+
+    /** Écrit la partie dans son fichier. */
+    private void save() {
+        sinceSave = 0;
+        store.save(game);
+    }
+
+    /**
+     * Une image du rattrapage d'une absence : le jeu rejoue autant de temps qu'il peut sans figer
+     * la fenêtre. Ce qui se passe pendant ce temps n'est pas annoncé message par message : le
+     * panneau en fait le bilan à la fin.
+     */
+    private void catchUp() {
+        absencePane.absence().advanceFor(CATCH_UP_NANOS);
+        notifier.poll();
+        // Arrivé au bout, le panneau fait écrire la partie, et se ferme s'il n'a rien à annoncer.
+        absencePane.refresh();
+        refresh();
+    }
+
+    /**
+     * La partie vient d'être remplacée par une autre (importée) : la fenêtre oublie ce qu'elle
+     * avait retenu de la précédente, comme après une remise à zéro.
+     */
+    private void afterLoad() {
+        toasts.clear();
+        absencePane.close();
+        exploding = false;
+        explosionArmed = 0;
+        blast.setVisible(false);
+        lastTotalAtoms = -1;
+        lastBigBangs = -1;
+        generators.setCount(0);
+        darkMatterPage.reset();
+        bigBangPage.reset();
+        notifier.forget();
+        if (game.isStarted()) {
+            if (startButton != null) center.getChildren().remove(startButton);
+            startButton = null;
+            controls.setOpacity(1);
+            controls.setVisible(true);
+        } else {
+            controls.setVisible(false);
+            showStartButton();
+        }
+        refresh();
+    }
+
+    /** Ce que la page des réglages demande pour la sauvegarde : chaque geste rend la phrase qui dit ce qu'il a donné. */
+    private final class SaveActions implements SettingsPage.Saves {
+
+        @Override
+        public String status() {
+            return store.status();
+        }
+
+        @Override
+        public String saveNow() {
+            save();
+            return store.problem().isEmpty() ? (store.enabled() ? "Partie sauvegardée." : "Jeu lancé sans sauvegarde.")
+                    : "La sauvegarde a échoué : " + store.problem();
+        }
+
+        @Override
+        public String copyExport() {
+            String text = store.export(game);
+            return copy(text) ? "Partie copiée dans le presse-papiers (" + Format.whole(text.length()) + " caractères)."
+                    : "Le presse-papiers n'est pas accessible.";
+        }
+
+        @Override
+        public String pasteImport() {
+            String text;
+            try {
+                text = Clipboard.getSystemClipboard().getString();
+            } catch (RuntimeException unavailable) {
+                return "Le presse-papiers n'est pas accessible.";
+            }
+            try {
+                int dropped = store.importText(game, text);
+                afterLoad();
+                return "Partie importée : " + Format.duration(game.state().timePlayed()) + " de jeu."
+                        + (dropped > 0 ? " " + dropped + " chose(s) que ce jeu ne connaît pas ont été écartées." : "");
+            } catch (SaveCodec.Unreadable unreadable) {
+                return "Rien n'a changé. " + unreadable.getMessage();
+            }
+        }
+
+        @Override
+        public String copyBugReport() {
+            return copy(BugReport.of(game, store)) ? "Rapport de bug copié dans le presse-papiers : il n'y a plus qu'à le coller."
+                    : "Le presse-papiers n'est pas accessible.";
+        }
+
+        private boolean copy(String text) {
+            try {
+                ClipboardContent content = new ClipboardContent();
+                content.putString(text);
+                return Clipboard.getSystemClipboard().setContent(content);
+            } catch (RuntimeException unavailable) {
+                return false;
+            }
+        }
     }
 
     /**
@@ -407,6 +602,9 @@ public final class GameApp extends Application {
      */
     private void resetGame() {
         game.reset();
+        game.restored();
+        save();
+        absencePane.close();
         toasts.clear();
         exploding = false;
         explosionArmed = 0;

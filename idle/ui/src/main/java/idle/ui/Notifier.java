@@ -57,6 +57,11 @@ final class Notifier {
         this.game = game;
     }
 
+    /** La partie vient d'être remplacée par une autre : le prochain relevé reprend ses repères sans rien annoncer. */
+    void forget() {
+        primed = false;
+    }
+
     /** Ce qui s'est passé depuis le dernier appel, du plus ancien au plus récent. Vide la plupart du temps. */
     List<String> poll() {
         List<String> news = new ArrayList<>();

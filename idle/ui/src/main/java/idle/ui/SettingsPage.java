@@ -25,7 +25,11 @@ import javafx.scene.text.TextAlignment;
  *   <li><b>Raccourcis clavier</b> : actifs ou coupés, avec leur liste ;</li>
  *   <li><b>Touche de détail</b> : laquelle, et s'il faut la tenir ou si elle bascule ;</li>
  *   <li><b>Pause</b> : le temps ne passe plus ;</li>
- *   <li><b>Recommencer</b> : efface toute la partie, en deux clics.</li>
+ *   <li><b>Sauvegarde</b> : où elle en est, sauvegarder tout de suite, exporter la partie dans le
+ *       presse-papiers, en importer une (en deux clics : elle remplace la partie en cours) ;</li>
+ *   <li><b>Recommencer</b> : efface toute la partie, en deux clics ;</li>
+ *   <li><b>Rapport de bug</b> : copie de quoi reproduire un problème ;</li>
+ *   <li><b>Version</b> du jeu, et ses notes.</li>
  * </ul>
  * Chaque réglage s'applique tout de suite. Les règles du jeu ne changent pas : les réglages sont
  * dans {@link Settings}, pas dans core.
@@ -51,9 +55,46 @@ final class SettingsPage extends VBox {
     /** Nombres d'exemple pour montrer une notation. */
     private static final BigNum[] SAMPLES = {BigNum.of(1.2345, 7), BigNum.of(4.56, 21), BigNum.of(7.891, 44)};
 
+    /**
+     * Ce que la page demande à la fenêtre pour la sauvegarde. Chaque geste rend la phrase à
+     * afficher sous les boutons : ce qu'il a donné, ou pourquoi il n'a rien donné.
+     */
+    interface Saves {
+        /** Où en est la sauvegarde : depuis combien de temps, dans quel fichier. */
+        String status();
+
+        /** Écrit la partie tout de suite. */
+        String saveNow();
+
+        /** Copie la partie, sur une ligne, dans le presse-papiers. */
+        String copyExport();
+
+        /** Remplace la partie en cours par celle du presse-papiers. */
+        String pasteImport();
+
+        /** Copie le rapport de bug dans le presse-papiers. */
+        String copyBugReport();
+    }
+
     private final Settings settings;
     private final Runnable onReset;
     private final Runnable onAppearance;
+    private final Saves saves;
+    private final Label saveStatus = new Label();
+    private final Button saveButton = new Button("Sauvegarder maintenant");
+    private final Button exportButton = new Button("Exporter (copier)");
+    private final Button importButton = new Button();
+    /** Ce qu'a donné le dernier geste de sauvegarde, d'export ou d'import ; vide tant qu'il n'y en a pas eu. */
+    private String saveMessage = "";
+    private final Label saveNote = new Label();
+    /** Secondes restantes pour confirmer l'import ; 0 quand il n'est pas demandé. */
+    private double importArmed = 0;
+    private final Button bugButton = new Button("Copier le rapport de bug");
+    private String bugMessage = "";
+    private final Label bugNote = new Label();
+    private final Button notesButton = new Button();
+    private final Label notesLabel = new Label(Version.notes());
+    private boolean notesShown = false;
     private final Map<Settings.Theme, Button> themeButtons = new EnumMap<>(Settings.Theme.class);
     private final Map<Settings.Scale, Button> scaleButtons = new EnumMap<>(Settings.Scale.class);
     private final Button notificationsButton = new Button();
@@ -81,12 +122,14 @@ final class SettingsPage extends VBox {
      * @param settings les réglages à afficher et à modifier
      * @param onReset      ce qu'il faut faire quand le joueur a confirmé qu'il recommence de zéro
      * @param onAppearance ce qu'il faut faire quand le thème ou la taille de l'interface change
+     * @param saves        ce que la fenêtre sait faire de la sauvegarde
      */
-    SettingsPage(Settings settings, Runnable onReset, Runnable onAppearance) {
+    SettingsPage(Settings settings, Runnable onReset, Runnable onAppearance, Saves saves) {
         super(10);
         this.settings = settings;
         this.onReset = onReset;
         this.onAppearance = onAppearance;
+        this.saves = saves;
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(24));
 
@@ -212,9 +255,41 @@ final class SettingsPage extends VBox {
         });
         getChildren().add(pauseButton);
 
+        block("Sauvegarde", "La partie s'écrit toute seule toutes les " + (int) SaveStore.EVERY_SECONDS + " secondes et à la "
+                + "fermeture du jeu. Au retour, une part du temps d'absence est rejouée : 10 % avant la première explosion, "
+                + "40 % ensuite, 70 % après le premier Big Bang, 100 % une fois l'univers formé (vingt-quatre heures "
+                + "d'absence au plus). Exporter copie toute la partie dans le presse-papiers, sur une ligne : pour la "
+                + "garder ailleurs ou la reprendre sur une autre machine. Importer remplace la partie en cours par celle du "
+                + "presse-papiers.");
+        note(saveStatus);
+        saveButton.setStyle(OFF_STYLE);
+        saveButton.setOnAction(event -> {
+            saveMessage = saves.saveNow();
+            refresh();
+        });
+        exportButton.setStyle(OFF_STYLE);
+        exportButton.setOnAction(event -> {
+            saveMessage = saves.copyExport();
+            refresh();
+        });
+        importButton.setOnAction(event -> {
+            if (importArmed > 0) {
+                importArmed = 0;
+                saveMessage = saves.pasteImport();
+            } else {
+                importArmed = RESET_CONFIRM_SECONDS;
+            }
+            refresh();
+        });
+        HBox saveRow = new HBox(8, saveButton, exportButton, importButton);
+        saveRow.setAlignment(Pos.CENTER);
+        getChildren().add(saveRow);
+        note(saveNote);
+
         block("Recommencer de zéro",
-                "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques. "
-                        + "Les réglages sont gardés. C'est définitif.");
+                "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
+                        + "sauvegarde comprise. Les réglages sont gardés. C'est définitif : exportez d'abord la partie si "
+                        + "vous voulez pouvoir y revenir.");
         resetButton.setOnAction(event -> {
             if (resetArmed > 0) {
                 resetArmed = 0;
@@ -226,8 +301,28 @@ final class SettingsPage extends VBox {
         });
         getChildren().add(resetButton);
 
-        Label footer = new Label("Les réglages sont gardés d'un lancement à l'autre. La partie, elle, n'est pas "
-                + "sauvegardée : elle repart du début à chaque lancement du jeu.");
+        block("Rapport de bug", "Copie dans le presse-papiers de quoi reproduire un problème : la version du jeu, "
+                + "celle de Java et du système, la première erreur survenue s'il y en a eu une, et la partie elle-même. "
+                + "Rien n'est envoyé : c'est vous qui le collez où vous voulez.");
+        bugButton.setStyle(OFF_STYLE);
+        bugButton.setOnAction(event -> {
+            bugMessage = saves.copyBugReport();
+            refresh();
+        });
+        getChildren().add(bugButton);
+        note(bugNote);
+
+        block("Version " + Version.CURRENT, "Ce qui a changé, version après version.");
+        notesButton.setOnAction(event -> {
+            notesShown = !notesShown;
+            refresh();
+        });
+        getChildren().add(notesButton);
+        note(notesLabel);
+        notesLabel.setTextAlignment(TextAlignment.LEFT);
+
+        Label footer = new Label("Les réglages sont gardés d'un lancement à l'autre, sur cette machine. La partie est "
+                + "sauvegardée à part : l'exporter l'emporte, les réglages non.");
         note(footer);
         footer.setStyle("-fx-font-size: 12px; -fx-padding: 18 0 0 0; -fx-text-fill: #8fa3b8;");
         refresh();
@@ -284,14 +379,18 @@ final class SettingsPage extends VBox {
      * @param elapsed secondes écoulées depuis l'image précédente
      */
     void frame(double elapsed) {
-        if (resetArmed <= 0) return;
+        if (resetArmed <= 0 && importArmed <= 0) return;
         resetArmed = Math.max(0, resetArmed - elapsed);
+        importArmed = Math.max(0, importArmed - elapsed);
         refresh();
     }
 
     /** L'onglet n'est plus affiché : une remise à zéro ou une touche demandées mais pas confirmées sont oubliées. */
     void release() {
         resetArmed = 0;
+        importArmed = 0;
+        saveMessage = "";
+        bugMessage = "";
         capturing = false;
         captureProblem = "";
     }
@@ -337,5 +436,23 @@ final class SettingsPage extends VBox {
                 ? "Cliquer encore pour tout effacer (" + (int) Math.ceil(resetArmed) + " s)"
                 : "Recommencer de zéro");
         resetButton.setStyle(resetArmed > 0 ? DANGER_ARMED_STYLE : DANGER_STYLE);
+        saveStatus.setText(saves.status());
+        importButton.setText(importArmed > 0
+                ? "Cliquer encore : la partie en cours sera remplacée (" + (int) Math.ceil(importArmed) + " s)"
+                : "Importer (coller)");
+        importButton.setStyle(importArmed > 0 ? DANGER_ARMED_STYLE : DANGER_STYLE);
+        show(saveNote, saveMessage);
+        show(bugNote, bugMessage);
+        notesButton.setText(notesShown ? "Cacher les notes de version" : "Notes de version");
+        notesButton.setStyle(notesShown ? ON_STYLE : OFF_STYLE);
+        notesLabel.setVisible(notesShown);
+        notesLabel.setManaged(notesShown);
+    }
+
+    /** Affiche une phrase sous un bouton, ou retire sa place quand il n'y a rien à dire. */
+    private static void show(Label label, String text) {
+        label.setText(text);
+        label.setVisible(!text.isEmpty());
+        label.setManaged(!text.isEmpty());
     }
 }

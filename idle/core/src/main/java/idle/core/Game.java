@@ -435,6 +435,61 @@ public final class Game {
         state.reset();
     }
 
+    /**
+     * L'état de la partie vient d'être remplacé par celui d'une sauvegarde : tout ce que le jeu
+     * avait calculé d'avance est oublié, et ce que la sauvegarde nomme sans que le jeu le
+     * connaisse (une molécule disparue depuis) est écarté.
+     *
+     * @return le nombre d'identifiants inconnus écartés ; 0 pour une sauvegarde de cette version du jeu
+     */
+    public int restored() {
+        int dropped = state.retainKnown(new GameState.Known(upgrades.keySet(), automations.keySet(), darkUpgrades.keySet(),
+                darkAutomations.keySet(), challengeIds(), achievements.keySet(), molecules.keySet(), assemblies.keySet(),
+                bodies.keySet(), spaceUpgrades.keySet(), PeriodicTable.ELEMENTS.size()));
+        gatheredByStateVersion = -1;
+        occupiedSpaceVersion = -1;
+        reservedSpaceVersion = -1;
+        moleculeBonusesVersion = -1;
+        achievementBonusesFor = -1;
+        elementBonusesVersion = -1;
+        newAchievements.clear();
+        achievementTimer = 0;
+        moleculeAutomationTimer = 0;
+        moleculeAutomationTurn = 0;
+        return dropped;
+    }
+
+    private static java.util.Set<String> challengeIds() {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (Challenge challenge : Challenges.DEFAULT) ids.add(challenge.id());
+        return ids;
+    }
+
+    // ------------------------------------------------------------------
+    // L'absence
+    // ------------------------------------------------------------------
+
+    /** Part du temps d'absence qui compte au premier acte, avant la première explosion. */
+    public static final double OFFLINE_RATE_PARTICLES = 0.10;
+    /** Part du temps d'absence qui compte au deuxième acte, de la première explosion au premier Big Bang. */
+    public static final double OFFLINE_RATE_DARK_MATTER = 0.40;
+    /** Part du temps d'absence qui compte au troisième acte, du premier Big Bang à l'univers. */
+    public static final double OFFLINE_RATE_BIG_BANG = 0.70;
+    /** Part du temps d'absence qui compte une fois l'univers formé : tout. */
+    public static final double OFFLINE_RATE_UNIVERSE = 1.0;
+
+    /**
+     * Part du temps passé jeu fermé qui est rejouée au retour ({@link Absence}) : un dixième au
+     * début, et de plus en plus à mesure que les actes passent, jusqu'à tout le temps une fois
+     * l'univers formé. Le jeu fermé avance donc toujours moins vite que le jeu ouvert, sauf à la fin.
+     */
+    public double offlineRate() {
+        if (hasCosmos(Cosmos.UNIVERSE)) return OFFLINE_RATE_UNIVERSE;
+        if (state.bigBangs() > 0) return OFFLINE_RATE_BIG_BANG;
+        if (isDarkMatterUnlocked()) return OFFLINE_RATE_DARK_MATTER;
+        return OFFLINE_RATE_PARTICLES;
+    }
+
     // ------------------------------------------------------------------
     // Le temps
     // ------------------------------------------------------------------
@@ -446,8 +501,8 @@ public final class Game {
      * création en cours ({@link GameState#formation(int)}), et chaque fois qu'elle est
      * complète, {@link #particlesPerCreation(int)} particules sont ajoutées.
      *
-     * <p>Sert aussi à la progression hors-ligne : au chargement, on appelle
-     * {@code tick(secondesÉcoulées)}. Un seul gros tick donne le même résultat que
+     * <p>Sert aussi au retour après une absence ({@link Absence}), qui rejoue par morceaux
+     * une part du temps passé jeu fermé. Un seul gros tick donne le même résultat que
      * beaucoup de petits, à la seconde près quand un bonus dépend du temps.
      */
     public void tick(double dt) {

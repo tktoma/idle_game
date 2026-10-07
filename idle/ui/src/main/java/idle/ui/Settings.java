@@ -6,7 +6,8 @@ import javafx.scene.input.KeyCode;
 /**
  * Les réglages du joueur : ils ne changent rien aux règles, seulement à la façon dont le jeu
  * s'affiche et se pilote. Ils sont gardés d'un lancement à l'autre dans les préférences de
- * l'utilisateur ({@link Preferences}) ; la partie elle-même n'est pas sauvegardée ici.
+ * l'utilisateur ({@link Preferences}), avec la place de la fenêtre et l'onglet ouvert ; la partie
+ * elle-même est sauvegardée à part, dans un fichier ({@link SaveStore}).
  *
  * <p>La pause n'est pas gardée : le jeu repart toujours en marche.
  */
@@ -110,6 +111,8 @@ final class Settings {
     private static final String CONFIRM_EXPLOSION = "confirmExplosion";
     private static final String DETAIL_KEY = "detailKey";
     private static final String DETAIL_TOGGLE = "detailToggle";
+    private static final String WINDOW = "window";
+    private static final String LAST_TAB = "lastTab";
     /**
      * La touche de détail d'origine. Pas Maj, pourtant habituelle pour cet usage : sous Windows,
      * cinq appuis de suite ouvrent la fenêtre des « touches rémanentes ».
@@ -303,6 +306,45 @@ final class Settings {
 
     void setPaused(boolean paused) {
         this.paused = paused;
+    }
+
+    /**
+     * La place de la fenêtre à la dernière fermeture : {@code x, y, largeur, hauteur}, puis 1 si
+     * elle était agrandie au maximum, 0 sinon. {@code null} tant que le jeu n'a jamais été fermé,
+     * ou si ce qui est gardé est illisible.
+     */
+    double[] window() {
+        if (store == null) return null;
+        try {
+            String[] parts = store.get(WINDOW, "").split(",");
+            if (parts.length != 5) return null;
+            double[] place = new double[5];
+            for (int i = 0; i < 5; i++) {
+                place[i] = Double.parseDouble(parts[i]);
+                if (Double.isNaN(place[i]) || Double.isInfinite(place[i])) return null;
+            }
+            return place[2] >= 100 && place[3] >= 100 ? place : null;
+        } catch (RuntimeException unreadable) {
+            return null;
+        }
+    }
+
+    void setWindow(double x, double y, double width, double height, boolean maximized) {
+        save(WINDOW, x + "," + y + "," + width + "," + height + "," + (maximized ? 1 : 0));
+    }
+
+    /** Le nom de l'onglet affiché à la dernière fermeture, ou un texte vide. */
+    String lastTab() {
+        if (store == null) return "";
+        try {
+            return store.get(LAST_TAB, "");
+        } catch (RuntimeException unreadable) {
+            return "";
+        }
+    }
+
+    void setLastTab(String name) {
+        save(LAST_TAB, name);
     }
 
     private void save(String key, String value) {

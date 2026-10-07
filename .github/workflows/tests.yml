@@ -1,0 +1,38 @@
+# Lance les tests du jeu à chaque envoi sur GitHub.
+#
+# Ce fichier va à la RACINE du dépôt : .github/workflows/tests.yml (à côté du dossier idle/, pas dedans).
+# Le résultat se lit dans l'onglet « Actions » du dépôt : une coche verte si tout passe, une croix rouge sinon.
+
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: idle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # « sh » : gradlew n'est pas marqué exécutable dans le dépôt.
+      # « test » compile aussi l'interface et l'application : une erreur de compilation fait échouer l'envoi.
+      - name: Tests du cœur et compilation de l'interface
+        run: sh ./gradlew test --no-daemon
+
+      - name: Garder le rapport quand un test échoue
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-des-tests
+          path: idle/core/build/reports/tests/test
