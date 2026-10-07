@@ -3559,6 +3559,38 @@ class GameTest {
         }
 
         @Test
+        void leReleveGardeLeSommetDeCeQueLeJoueurAvaitEnMain() {
+            Game game = gameReadyToFuse();
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            List<StatsHistory.Sample> samples = game.stats().history().samples();
+            StatsHistory.Sample before = samples.get(samples.size() - 1);
+            // Sans remise à zéro, le relevé donne ce que le joueur a en main à cet instant.
+            assertEquals(game.state().particles().log10(), before.value(StatsHistory.Stat.PARTICLES), 1e-9);
+            assertTrue(Double.isNaN(before.value(StatsHistory.Stat.ATOMS)));           // pas encore d'atome
+            assertTrue(Double.isNaN(before.value(StatsHistory.Stat.DARK_MATTER)));
+            assertEquals(0, before.value(StatsHistory.Stat.ELEMENT_COPIES));
+
+            // Une fusion reprend les particules : le relevé suivant garde le sommet d'avant, pas le creux d'après.
+            double held = game.state().particles().log10();
+            assertTrue(game.fuse());
+            assertTrue(game.state().particles().log10() < held);
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            samples = game.stats().history().samples();
+            StatsHistory.Sample after = samples.get(samples.size() - 1);
+            assertTrue(after.value(StatsHistory.Stat.PARTICLES) >= held - 1e-9);
+            assertEquals(game.state().atoms().log10(), after.value(StatsHistory.Stat.ATOMS), 1e-9);
+            // Le sommet ne sert qu'une fois : le relevé d'après retrouve la valeur de l'instant.
+            game.tick(StatsHistory.FIRST_INTERVAL);
+            samples = game.stats().history().samples();
+            assertEquals(game.state().particles().log10(), samples.get(samples.size() - 1).value(StatsHistory.Stat.PARTICLES), 1e-9);
+
+            // Seules les quantités qu'une remise à zéro fait retomber retiennent un sommet.
+            assertTrue(StatsHistory.Stat.PARTICLES.peaks() && StatsHistory.Stat.ATOMS.peaks() && StatsHistory.Stat.DARK_MATTER.peaks()
+                    && StatsHistory.Stat.ELEMENT_COPIES.peaks() && StatsHistory.Stat.PRODUCTION.peaks());
+            assertFalse(StatsHistory.Stat.SPACE.peaks() || StatsHistory.Stat.MOLECULES.peaks() || StatsHistory.Stat.FUSIONS.peaks());
+        }
+
+        @Test
         void leDelaiDUnAutomatismeNEstReleveQueSIlEstPossede() {
             Game game = newGame();
             createEnoughAtoms(game);
@@ -6037,6 +6069,71 @@ class GameTest {
         }
 
         @Test
+        void leBigBangLaisseDansLeReleveLaMatiereNoireQuIlReprend() {
+            Game game = readyGame();
+            game.state().setElementCount(1, 3);
+            int copies = game.ownedCopies();
+            assertTrue(game.bigBang());
+            assertTrue(game.state().darkMatter().isZero());
+            game.tick(StatsHistory.FIRST_INTERVAL * 2);
+            List<StatsHistory.Sample> samples = game.stats().history().samples();
+            StatsHistory.Sample last = samples.get(samples.size() - 1);
+            assertEquals(Game.BIG_BANG_DARK_MATTER.log10(), last.value(StatsHistory.Stat.DARK_MATTER), 1e-9);
+            assertEquals(Game.BIG_BANG_ATOMS.log10(), last.value(StatsHistory.Stat.ATOMS), 1e-9);
+            assertEquals(Game.BIG_BANG_PARTICLES.log10(), last.value(StatsHistory.Stat.PARTICLES), 1e-6);
+            assertEquals(copies, last.value(StatsHistory.Stat.ELEMENT_COPIES));
+        }
+
+        @Test
+        void leBigBangNoteSaDureeEtSesExplosions() {
+            Game game = readyGame();
+            GameStats stats = game.stats();
+            assertEquals(0, stats.timedBigBangs());
+            assertEquals(0, stats.lastBigBangTime());
+            assertEquals(0, stats.fastestBigBangTime());
+            assertEquals(0, stats.lastBigBangExplosions());
+            assertTrue(stats.bigBangTimes().isEmpty());
+            assertFalse(stats.reached(GameStats.Step.FIRST_BIG_BANG));
+            assertTrue(Double.isNaN(stats.reachedAt(GameStats.Step.FIRST_BIG_BANG)));
+
+            // Avant le premier Big Bang, sa durée court depuis le début du jeu.
+            game.state().setExplosions(60);
+            game.state().setTimePlayed(5000);
+            double first = stats.bigBangTime();
+            assertTrue(game.bigBang());
+            assertTrue(stats == game.stats());                // les statistiques traversent le Big Bang
+            assertEquals(1, stats.timedBigBangs());
+            assertEquals(first, stats.lastBigBangTime(), 1e-9);
+            assertEquals(first, stats.fastestBigBangTime(), 1e-9);
+            assertEquals(60, stats.lastBigBangExplosions());
+            assertEquals(0, stats.bigBangTime(), 1e-9);
+            assertEquals(5000, stats.reachedAt(GameStats.Step.FIRST_BIG_BANG), 1e-9);
+
+            // Le suivant se compte depuis le précédent ; le premier garde son instant.
+            game.tick(40);
+            assertEquals(40, stats.bigBangTime(), 1e-6);
+            game.state().setExplosions(7);
+            game.state().setParticles(Game.BIG_BANG_PARTICLES);
+            game.state().setAtoms(Game.BIG_BANG_ATOMS);
+            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            assertTrue(game.bigBang());
+            assertEquals(2, stats.timedBigBangs());
+            assertEquals(40, stats.lastBigBangTime(), 1e-6);
+            assertEquals(Math.min(first, 40), stats.fastestBigBangTime(), 1e-6);
+            assertEquals(7, stats.lastBigBangExplosions());
+            assertEquals(2, stats.bigBangTimes().size());
+            assertEquals(first, stats.bigBangTimes().get(0), 1e-9);
+            assertEquals(40, stats.bigBangTimes().get(1), 1e-6);
+            assertEquals(5000, stats.reachedAt(GameStats.Step.FIRST_BIG_BANG), 1e-9);
+
+            // La remise à zéro du jeu oublie tout.
+            game.reset();
+            assertEquals(0, game.stats().timedBigBangs());
+            assertFalse(game.stats().reached(GameStats.Step.FIRST_BIG_BANG));
+        }
+
+        @Test
         void leCinquiemeBigBangGardeLArbreDeMatiereNoire() {
             Game game = readyGame();
             game.state().setBigBangs(4);
@@ -6928,6 +7025,75 @@ class GameTest {
         }
 
         @Test
+        void lesCreationsDeMoleculesSeComptent() {
+            Game game = game(1e9);
+            game.state().addSpaceUpgrade("space_states");
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameStats stats = game.stats();
+            assertEquals(0, stats.moleculeCreations());
+            assertEquals(0, stats.biggestCreation());
+            assertFalse(stats.reached(GameStats.Step.FIRST_MOLECULE));
+
+            // Une création à la main : une molécule, trois exemplaires d'éléments (deux hydrogènes, un oxygène).
+            game.state().setTimePlayed(500);
+            assertTrue(game.createMolecule("H2O"));
+            assertEquals(1, stats.moleculeCreations());
+            assertEquals(0, stats.autoMoleculeCreations());
+            assertEquals(0, stats.moleculesAttracted());
+            assertEquals(1, stats.biggestCreation());
+            assertEquals(3, stats.moleculeElementsSpent());
+            assertEquals(500, stats.reachedAt(GameStats.Step.FIRST_MOLECULE), 1e-9);
+
+            game.state().setTimePlayed(800);
+            assertTrue(game.createMolecule("H2O"));
+            assertTrue(game.createMolecule("H2O"));
+            assertFalse(stats.reached(GameStats.Step.FIRST_GATHERING));
+            assertTrue(game.formSubstance("H2O"));
+            assertEquals(800, stats.reachedAt(GameStats.Step.FIRST_GATHERING), 1e-9);
+            assertEquals(500, stats.reachedAt(GameStats.Step.FIRST_MOLECULE), 1e-9);     // seule la première fois compte
+
+            // L'amas attire : une création en ajoute deux, dont une « attirée ».
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            assertTrue(game.createMolecule("H2O"));
+            assertEquals(5, game.moleculeCount("H2O"));
+            assertEquals(4, stats.moleculeCreations());
+            assertEquals(1, stats.moleculesAttracted());
+            assertEquals(2, stats.biggestCreation());
+            assertEquals(12, stats.moleculeElementsSpent());
+
+            // L'automatisme : ses créations se comptent à part, et dans le total.
+            game.state().setBigBangs(2);
+            assertTrue(game.setMoleculeAutomated("H2O", true));
+            game.tick(Game.MOLECULE_AUTOMATION_SECONDS);
+            assertEquals(8, game.moleculeCount("H2O"));                // 1 + √5 : trois d'un coup
+            assertEquals(5, stats.moleculeCreations());
+            assertEquals(1, stats.autoMoleculeCreations());
+            assertEquals(3, stats.moleculesAttracted());
+            assertEquals(3, stats.biggestCreation());
+            assertEquals(15, stats.moleculeElementsSpent());
+            // Une création refusée ne compte pas.
+            game.state().setElementCount(1, 0);
+            assertFalse(game.createMolecule("H2O"));
+            assertEquals(5, stats.moleculeCreations());
+        }
+
+        @Test
+        void laPartDeLaMatiereSeLitSansLesAmeliorationsNiLesPaliers() {
+            Game game = game(1e9);
+            for (Molecule.Stat stat : Molecule.Stat.values()) assertEquals(1, game.matterBoost(stat), 0);
+            game.state().setBigBangs(2);                               // le palier du deuxième Big Bang : espace ×2
+            game.state().addSpaceUpgrade("space_inflation_1");         // l'inflation : espace ×2
+            assertEquals(1, game.matterBoost(Molecule.Stat.SPACE), 0);
+            assertEquals(4, game.moleculeBoost(Molecule.Stat.SPACE), 1e-12);
+            game.state().setMoleculeCount("H2O", 3);
+            for (Molecule.Stat stat : Molecule.Stat.values()) {
+                assertEquals(game.moleculeBoost(stat), game.matterBoost(stat) * game.spaceUpgradeBoost(stat)
+                        * game.bigBangMilestoneBoost(stat), 1e-9, stat.name());
+            }
+            assertTrue(game.matterBoost(Molecule.Stat.PARTICLES) > 1);
+        }
+
+        @Test
         void leDeuxiemeBigBangDonneLaCreationAutomatique() {
             Game game = game(1e9);
             game.state().addSpaceUpgrade("space_states");
@@ -7662,8 +7828,11 @@ class GameTest {
             game.state().setMoleculeCount("O2", 83);                  // il en manque une
             assertFalse(game.canFormAssembly("air"));
             assertFalse(game.formAssembly("air"));
+            assertFalse(game.stats().reached(GameStats.Step.FIRST_ASSEMBLY));
             game.state().setMoleculeCount("O2", 84);
+            game.state().setTimePlayed(4321);
             assertTrue(game.formAssembly("air"));
+            assertEquals(4321, game.stats().reachedAt(GameStats.Step.FIRST_ASSEMBLY), 1e-9);
             assertTrue(game.hasAssembly("air"));
             assertEquals(1, game.assembliesFormed());
             assertEquals(List.of("air"), game.state().assemblies());
@@ -7826,6 +7995,117 @@ class GameTest {
             assertTrue(game.formBody(bodyId), bodyId);
         }
 
+        /** Rassemble dans chaque état ce que demande cette échelle du cosmos, à cette part près. */
+        private void gather(Game game, Cosmos scale, double share) {
+            for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+                Molecule molecule = game.molecules().stream().filter(each -> each.state() == need.getKey()).findFirst().orElseThrow();
+                game.state().addSubstance(molecule.id());
+                game.state().setMoleculeCount(molecule.id(), (int) Math.ceil(need.getValue() * share));
+            }
+        }
+
+        @Test
+        void apresLaGalaxieViennentLAmasDeGalaxiesPuisLUnivers() {
+            Game game = game();
+            assertEquals(List.of(Cosmos.GALAXY, Cosmos.CLUSTER, Cosmos.UNIVERSE), List.of(Cosmos.values()));
+            assertEquals(Game.GALAXY_GAIN, Cosmos.GALAXY.gain(), 0);
+            // Chaque échelle double la précédente, et demande dix fois plus de matière que celle d'avant.
+            assertEquals(2 * Cosmos.GALAXY.gain(), Cosmos.CLUSTER.gain(), 0);
+            assertEquals(2 * Cosmos.CLUSTER.gain(), Cosmos.UNIVERSE.gain(), 0);
+            assertTrue(Cosmos.GALAXY.matter().isEmpty());
+            for (Molecule.State state : Molecule.State.values()) {
+                assertEquals(10L * Cosmos.CLUSTER.matter().get(state), (long) Cosmos.UNIVERSE.matter().get(state), state.name());
+            }
+            assertTrue(Cosmos.GALAXY.previous() == null);
+            assertEquals(Cosmos.CLUSTER, Cosmos.GALAXY.next());
+            assertTrue(Cosmos.UNIVERSE.next() == null);
+
+            // Rien n'est en vue avant la galaxie, même avec toute la matière du monde.
+            assertEquals(Cosmos.GALAXY, game.nextCosmos());
+            assertEquals(0, game.cosmosFormed());
+            gather(game, Cosmos.UNIVERSE, 1);
+            assertFalse(game.isCosmosUnlocked(Cosmos.CLUSTER));
+            assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
+            assertFalse(game.formCosmos(Cosmos.CLUSTER));
+            assertEquals(5, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la matière y est, pas la galaxie
+            assertEquals(6, game.cosmosConditions(Cosmos.CLUSTER));
+            assertEquals(game.bodies().size(), game.cosmosConditions(Cosmos.GALAXY));
+
+            // La galaxie formée, l'amas de galaxies s'ouvre ; il lui faut chaque état en nombre.
+            for (Body body : game.bodies()) game.state().addBody(body.id());
+            gather(game, Cosmos.CLUSTER, 0.5);
+            assertTrue(game.formGalaxy());
+            assertTrue(game.hasCosmos(Cosmos.GALAXY));
+            assertEquals(Cosmos.CLUSTER, game.nextCosmos());
+            assertTrue(game.isCosmosUnlocked(Cosmos.CLUSTER) && !game.isCosmosUnlocked(Cosmos.UNIVERSE));
+            assertEquals(1, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
+            gather(game, Cosmos.CLUSTER, 1);
+            Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
+            game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS) - 1);    // il en manque une
+            assertEquals(5, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertFalse(game.formCosmos(Cosmos.CLUSTER));
+            game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS));
+            assertTrue(game.canFormCosmos(Cosmos.CLUSTER));
+            assertFalse(game.canFormCosmos(Cosmos.UNIVERSE));             // pas d'univers sans l'amas
+            double[] before = new double[Molecule.Stat.values().length];
+            for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
+            int molecules = game.moleculesCreated();
+            game.state().setTimePlayed(7000);
+            assertTrue(game.formCosmos(Cosmos.CLUSTER));
+            assertFalse(game.formCosmos(Cosmos.CLUSTER));
+            // Rien n'est consommé, et toutes les grandeurs gagnent le double de la galaxie.
+            assertEquals(molecules, game.moleculesCreated());
+            for (Molecule.Stat stat : Molecule.Stat.values()) {
+                assertEquals(before[stat.ordinal()] + 2048, game.matterBoost(stat), 1e-6, stat.name());
+            }
+            assertEquals(7000, game.stats().reachedAt(GameStats.Step.CLUSTER), 1e-9);
+            assertFalse(game.stats().reached(GameStats.Step.UNIVERSE));
+
+            // L'univers : dix fois plus, et c'est la fin.
+            assertEquals(Cosmos.UNIVERSE, game.nextCosmos());
+            assertEquals(1, game.cosmosConditionsMet(Cosmos.UNIVERSE));
+            gather(game, Cosmos.UNIVERSE, 1);
+            for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
+            game.state().setTimePlayed(9000);
+            assertTrue(game.formCosmos(Cosmos.UNIVERSE));
+            assertEquals(3, game.cosmosFormed());
+            assertTrue(game.nextCosmos() == null);
+            assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));
+            assertEquals(9000, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
+            for (Molecule.Stat stat : Molecule.Stat.values()) {
+                assertEquals(before[stat.ordinal()] + 4096, game.matterBoost(stat), 1e-6, stat.name());
+            }
+            // Ni l'explosion ni le Big Bang ne les défont ; défaire la galaxie défait tout ce qui est au-dessus.
+            game.state().clearMatter();
+            game.state().clearDarkMatter();
+            assertEquals(3, game.cosmosFormed());
+            game.state().setGalaxy(false);
+            assertEquals(0, game.cosmosFormed());
+            assertFalse(game.hasGalaxy());
+            assertThrows(IllegalArgumentException.class, () -> game.state().setCosmosLevel(4));
+        }
+
+        @Test
+        void leNombreDeMoleculesAUnPlafondEnTout() {
+            Game game = game();
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            game.state().setSpace(BigNum.of(1, 30));
+            Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
+            Molecule liquid = game.molecules().stream().filter(each -> each.state() == Molecule.State.LIQUID).findFirst().orElseThrow();
+            game.state().addSubstance(gas.id());
+            game.state().addSubstance(liquid.id());
+            game.state().setMoleculeCount(gas.id(), Game.MAX_MOLECULES);
+            game.state().setMoleculeCount(liquid.id(), Game.MAX_TOTAL_MOLECULES - Game.MAX_MOLECULES - 5);
+            // Un amas d'un milliard attire des dizaines de milliers de molécules : il n'en entre que ce que le total permet.
+            assertEquals(5, game.moleculesPerCreation(liquid.id()));
+            assertTrue(game.createMolecule(liquid.id()));
+            assertEquals(Game.MAX_TOTAL_MOLECULES, game.moleculesCreated());
+            assertFalse(game.canCreateMolecule(liquid.id()));
+            assertFalse(game.createMolecule("H2O"));
+            assertEquals(Game.MAX_TOTAL_MOLECULES, game.gatheredInState(Molecule.State.GAS) + game.gatheredInState(Molecule.State.LIQUID));
+        }
+
         @Test
         void leCatalogueVaDeLAmasALaPlanete() {
             Map<Body.Tier, Integer> tiers = new EnumMap<>(Body.Tier.class);
@@ -7949,7 +8229,13 @@ class GameTest {
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.moleculeBoost(stat);
             int molecules = game.moleculesCreated();
+            assertFalse(game.stats().reached(GameStats.Step.GALAXY));
+            assertTrue(game.stats().reached(GameStats.Step.FIRST_BODY));
+            double firstBody = game.stats().reachedAt(GameStats.Step.FIRST_BODY);
+            game.state().setTimePlayed(firstBody + 9000);
             assertTrue(game.formGalaxy());
+            assertEquals(firstBody + 9000, game.stats().reachedAt(GameStats.Step.GALAXY), 1e-9);
+            assertEquals(firstBody, game.stats().reachedAt(GameStats.Step.FIRST_BODY), 1e-9);
             assertTrue(game.hasGalaxy() && !game.canFormGalaxy() && !game.formGalaxy());
             // Rien n'est consommé, et toutes les grandeurs gagnent autant : le double du trou noir supermassif.
             assertEquals(30, game.bodiesFormed());

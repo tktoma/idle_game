@@ -65,16 +65,22 @@ final class Goals {
     /**
      * Le prochain pas du troisième acte, celui qui s'ouvre au premier Big Bang et que ni l'explosion
      * ni le Big Bang n'effacent : une amélioration d'espace à prendre, une première molécule, un
-     * premier rassemblement, un premier assemblage, le prochain astre, la galaxie. Vide avant le
+     * premier rassemblement, un premier assemblage, le prochain astre, la galaxie, l'amas de galaxies, l'univers. Vide avant le
      * premier Big Bang.
      */
     static String act(Game game) {
         if (!game.isBigBangUnlocked()) return "";
-        if (game.hasGalaxy()) return "la galaxie est formée";
-        if (game.canFormGalaxy()) return "former la galaxie";
+        idle.core.Cosmos scale = game.nextCosmos();
+        if (scale == null) return "l'univers est formé";
+        if (game.canFormCosmos(scale)) return "former " + scale.phrase();
         // Une amélioration que l'espace créé permet déjà de prendre : elle ne coûte rien, elle passe d'abord.
         for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) {
             if (game.canBuySpaceUpgrade(upgrade.id())) return "prendre l'amélioration « " + upgrade.name() + " »";
+        }
+        // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
+        if (scale != idle.core.Cosmos.GALAXY) {
+            return "réunir la matière de " + scale.phrase() + " (" + game.cosmosConditionsMet(scale) + "/"
+                    + game.cosmosConditions(scale) + " conditions)";
         }
         if (game.moleculesCreated() == 0) {
             // Après un Big Bang le tableau périodique est vide : il faut d'abord le regarnir, et laisser l'espace grandir.

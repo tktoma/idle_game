@@ -130,7 +130,44 @@ public final class StatsHistory {
         MOLECULE_ATOMS,
         MOLECULE_DARK,
         /** Assemblages et astres formés, galaxie comprise. */
-        SKY
+        SKY,
+        /** Big Bangs déclenchés. */
+        BIG_BANGS,
+        /** Espace que l'expansion ajoute chaque seconde, en puissance de dix. */
+        SPACE_RATE,
+        /** Ce par quoi la matière noire en réserve multiplie l'expansion (1 sans le palier). */
+        DARK_SPACE,
+        /** Créations de molécules depuis le début du jeu, à la main ou automatiques. */
+        MOLECULE_CREATIONS,
+        /** Créations de molécules faites par l'automatisme, depuis le début du jeu. */
+        AUTO_MOLECULE_CREATIONS,
+        /** Sortes de molécules rassemblées. */
+        SUBSTANCES,
+
+        // ----- Ce que le joueur a en main -----
+        /**
+         * Particules en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé
+         * précédent, puisqu'une fusion, une explosion ou un Big Bang les reprennent.
+         */
+        PARTICLES,
+        /** Atomes en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé précédent. */
+        ATOMS,
+        /** Exemplaires d'éléments du tableau périodique : le plus qu'il y en a eu depuis le relevé précédent. */
+        ELEMENT_COPIES,
+        /**
+         * Matière noire gagnée depuis le dernier Big Bang, celle dépensée dans l'arbre comprise
+         * ({@link Game#darkMatterEarned()}), en puissance de dix : le plus qu'il y en a eu depuis le
+         * relevé précédent. La réserve seule retombe à zéro à chaque achat et ne dirait rien.
+         */
+        DARK_MATTER;
+
+        /**
+         * Vrai si le relevé retient le sommet atteint depuis le relevé précédent plutôt que la
+         * valeur de l'instant : ce sont les quantités qu'une remise à zéro fait retomber.
+         */
+        public boolean peaks() {
+            return this == PRODUCTION || this == PARTICLES || this == ATOMS || this == ELEMENT_COPIES || this == DARK_MATTER;
+        }
     }
 
     /**
@@ -184,8 +221,14 @@ public final class StatsHistory {
     private final List<Sample> samples = new ArrayList<>();
     private double interval = FIRST_INTERVAL;
     private double nextTime = 0;
-    /** La plus forte production vue depuis le dernier relevé, en puissance de dix. */
-    private double peakProduction = Double.NEGATIVE_INFINITY;
+    /** Le sommet vu depuis le dernier relevé, pour chaque statistique qui en retient un ({@link Stat#peaks()}). */
+    private final double[] peaks = noPeaks();
+
+    private static double[] noPeaks() {
+        double[] none = new double[Stat.values().length];
+        java.util.Arrays.fill(none, Double.NEGATIVE_INFINITY);
+        return none;
+    }
 
     /** Les relevés, du plus ancien au plus récent, en lecture seule. */
     public List<Sample> samples() {
@@ -204,16 +247,31 @@ public final class StatsHistory {
 
     /** Signale une production atteinte entre deux relevés (juste avant une fusion, par exemple). */
     void notePeak(double production) {
-        if (production > peakProduction) peakProduction = production;
+        notePeak(Stat.PRODUCTION, production);
+    }
+
+    /** Signale une valeur atteinte entre deux relevés, juste avant qu'elle ne retombe. Une valeur sans sens ({@code NaN}) est ignorée. */
+    void notePeak(Stat stat, double value) {
+        if (value > peaks[stat.ordinal()]) peaks[stat.ordinal()] = value;
     }
 
     /** La production à inscrire dans le prochain relevé : celle du moment, ou le pic atteint depuis le dernier s'il est plus haut. */
     double peak(double current) {
-        return Math.max(current, peakProduction);
+        return peak(Stat.PRODUCTION, current);
+    }
+
+    /**
+     * La valeur à inscrire dans le prochain relevé : celle du moment, ou le sommet atteint depuis
+     * le dernier s'il est plus haut. {@code NaN} seulement si ni l'une ni l'autre n'ont de sens.
+     */
+    double peak(Stat stat, double current) {
+        double peak = peaks[stat.ordinal()];
+        if (Double.isNaN(current)) return peak == Double.NEGATIVE_INFINITY ? Double.NaN : peak;
+        return Math.max(current, peak);
     }
 
     void add(Sample sample) {
-        peakProduction = Double.NEGATIVE_INFINITY;
+        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
         samples.add(sample);
         if (samples.size() >= CAPACITY) thin();
         nextTime = sample.time() + interval;
@@ -232,6 +290,6 @@ public final class StatsHistory {
         samples.clear();
         interval = FIRST_INTERVAL;
         nextTime = 0;
-        peakProduction = Double.NEGATIVE_INFINITY;
+        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
     }
 }

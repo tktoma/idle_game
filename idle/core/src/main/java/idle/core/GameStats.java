@@ -2,8 +2,10 @@ package idle.core;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -13,8 +15,8 @@ import java.util.Set;
  *
  * <p>Deux durées de vie :
  * <ul>
- *   <li>la plupart des compteurs courent <b>depuis le début du jeu</b> : ni la fusion ni
- *       l'explosion ne les remettent à zéro ;</li>
+ *   <li>la plupart des compteurs courent <b>depuis le début du jeu</b> : ni la fusion, ni
+ *       l'explosion, ni le Big Bang ne les remettent à zéro ;</li>
  *   <li>ceux dont le nom commence par {@code run} courent <b>depuis la dernière explosion</b>
  *       (depuis le début tant qu'il n'y en a pas eu) : {@link #endRun()} les remet à zéro.</li>
  * </ul>
@@ -60,6 +62,20 @@ public final class GameStats {
     private long timedExplosions = 0;
     private final List<Double> explosionTimes = new ArrayList<>();
 
+    // ----- Big Bang -----
+    private double bigBangTime = 0;
+    private double lastBigBangTime = 0;
+    private double fastestBigBangTime = 0;
+    private long timedBigBangs = 0;
+    private long lastBigBangExplosions = 0;
+    private final List<Double> bigBangTimes = new ArrayList<>();
+    private long moleculeCreations = 0;
+    private long autoMoleculeCreations = 0;
+    private long moleculesAttracted = 0;
+    private int biggestCreation = 0;
+    private long moleculeElementsSpent = 0;
+    private final Map<Step, Double> steps = new EnumMap<>(Step.class);
+
     // ----- Historique et mémoire des déblocages -----
     private final StatsHistory history = new StatsHistory();
     private final StatsHistory runHistory = new StatsHistory();
@@ -67,6 +83,32 @@ public final class GameStats {
 
     /** Nombre maximal de durées d'explosion gardées : au-delà, les plus anciennes sont oubliées. */
     public static final int MAX_EXPLOSION_TIMES = 60;
+
+    /** Nombre maximal de durées de Big Bang gardées : au-delà, les plus anciennes sont oubliées. */
+    public static final int MAX_BIG_BANG_TIMES = 60;
+
+    /** Les grandes premières du troisième acte, dont le jeu retient l'instant ({@link #reachedAt(Step)}). */
+    public enum Step {
+        FIRST_BIG_BANG("Premier Big Bang"),
+        FIRST_MOLECULE("Première molécule"),
+        FIRST_GATHERING("Premier rassemblement"),
+        FIRST_ASSEMBLY("Premier assemblage"),
+        FIRST_BODY("Premier astre"),
+        GALAXY("Galaxie formée"),
+        CLUSTER("Amas de galaxies formé"),
+        UNIVERSE("Univers formé");
+
+        private final String label;
+
+        Step(String label) {
+            this.label = label;
+        }
+
+        /** Nom affiché. */
+        public String label() {
+            return label;
+        }
+    }
 
     // ------------------------------------------------------------------
     // Lecture
@@ -210,6 +252,76 @@ public final class GameStats {
         return timedExplosions;
     }
 
+    // ----- Big Bang -----
+
+    /** Temps de jeu depuis le dernier Big Bang, en secondes (depuis le début du jeu tant qu'il n'y en a pas eu). */
+    public double bigBangTime() {
+        return bigBangTime;
+    }
+
+    /** Temps de jeu qu'a demandé le dernier Big Bang, en secondes (0 tant qu'il n'y en a pas eu). */
+    public double lastBigBangTime() {
+        return lastBigBangTime;
+    }
+
+    /** Temps de jeu qu'a demandé le Big Bang le plus rapide, en secondes (0 tant qu'il n'y en a pas eu). */
+    public double fastestBigBangTime() {
+        return fastestBigBangTime;
+    }
+
+    /**
+     * Temps de jeu qu'a demandé chacun des derniers Big Bangs, du plus ancien au plus récent, en
+     * secondes ({@link #MAX_BIG_BANG_TIMES} au plus).
+     */
+    public List<Double> bigBangTimes() {
+        return Collections.unmodifiableList(bigBangTimes);
+    }
+
+    /** Nombre de Big Bangs dont la durée a été notée : le dernier de {@link #bigBangTimes()} porte ce numéro. */
+    public long timedBigBangs() {
+        return timedBigBangs;
+    }
+
+    /** Nombre d'explosions qu'a demandé le dernier Big Bang (0 tant qu'il n'y en a pas eu). */
+    public long lastBigBangExplosions() {
+        return lastBigBangExplosions;
+    }
+
+    /** Créations de molécules depuis le début du jeu, à la main ou par l'automatisme : une création peut ajouter plusieurs molécules. */
+    public long moleculeCreations() {
+        return moleculeCreations;
+    }
+
+    /** Créations de molécules faites par l'automatisme « Création automatique ». */
+    public long autoMoleculeCreations() {
+        return autoMoleculeCreations;
+    }
+
+    /** Molécules qu'ont attirées les amas : tout ce qu'une création a ajouté au-delà de sa première molécule. */
+    public long moleculesAttracted() {
+        return moleculesAttracted;
+    }
+
+    /** Le plus de molécules jamais ajoutées par une seule création (0 tant qu'il n'y en a pas eu). */
+    public int biggestCreation() {
+        return biggestCreation;
+    }
+
+    /** Exemplaires d'éléments du tableau périodique employés à créer des molécules. */
+    public long moleculeElementsSpent() {
+        return moleculeElementsSpent;
+    }
+
+    /** Vrai une fois cette première atteinte. */
+    public boolean reached(Step step) {
+        return steps.containsKey(step);
+    }
+
+    /** Temps de jeu auquel cette première a été atteinte, en secondes ({@code NaN} tant qu'elle ne l'est pas). */
+    public double reachedAt(Step step) {
+        return steps.getOrDefault(step, Double.NaN);
+    }
+
     /** L'historique du jeu entier : ses instants sont comptés en temps de jeu depuis le début. */
     public StatsHistory history() {
         return history;
@@ -238,6 +350,39 @@ public final class GameStats {
 
     void addTime(double seconds) {
         runTime += seconds;
+        bigBangTime += seconds;
+    }
+
+    /** Une première du troisième acte vient d'être atteinte, à ce temps de jeu : seule la première fois compte. */
+    void noteStep(Step step, double timePlayed) {
+        steps.putIfAbsent(step, timePlayed);
+    }
+
+    /** Un Big Bang vient d'avoir lieu : note sa durée et le nombre d'explosions qu'il a demandé. */
+    void noteBigBang(long explosions, double timePlayed) {
+        timedBigBangs++;
+        lastBigBangTime = bigBangTime;
+        if (timedBigBangs == 1 || bigBangTime < fastestBigBangTime) fastestBigBangTime = bigBangTime;
+        bigBangTimes.add(bigBangTime);
+        if (bigBangTimes.size() > MAX_BIG_BANG_TIMES) bigBangTimes.remove(0);
+        lastBigBangExplosions = explosions;
+        bigBangTime = 0;
+        noteStep(Step.FIRST_BIG_BANG, timePlayed);
+    }
+
+    /**
+     * Une création de molécules vient d'avoir lieu.
+     *
+     * @param created   molécules ajoutées
+     * @param elements  exemplaires d'éléments employés
+     * @param automatic vrai si c'est l'automatisme qui l'a faite
+     */
+    void noteMoleculeCreation(int created, long elements, boolean automatic) {
+        moleculeCreations++;
+        if (automatic) autoMoleculeCreations++;
+        moleculesAttracted += Math.max(0, created - 1);
+        biggestCreation = Math.max(biggestCreation, created);
+        moleculeElementsSpent += elements;
     }
 
     void addParticles(BigNum created) {

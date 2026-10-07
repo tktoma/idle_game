@@ -161,6 +161,11 @@ final class DebugBar extends VBox {
                 tool("Former la galaxie", () -> {
                     while (formNextBody()) { }
                     game.formGalaxy();
+                }),
+                tool("Échelle suivante du cosmos", () -> {
+                    while (formNextBody()) { }
+                    idle.core.Cosmos next = game.nextCosmos();
+                    if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }));
 
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");

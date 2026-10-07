@@ -68,8 +68,8 @@ public final class GameState {
      * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
      * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
      */
-    /** Vrai une fois la galaxie formée ({@link Game#formGalaxy()}). */
-    private boolean galaxy;
+    /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link Cosmos} : 0 = aucune, 1 = la galaxie, 2 = l'amas de galaxies, 3 = l'univers. */
+    private int cosmos;
     /** Vrai tant que l'appui automatique sur la matière noire est en marche, une fois acquis ({@link Game#isAutoHolding()}). */
     private boolean autoHold = true;
     /** Vrai tant que la création automatique des molécules est en marche, une fois acquise ({@link Game#isAutoCreatingMolecules()}). */
@@ -563,13 +563,24 @@ public final class GameState {
 
     /** Vrai si la galaxie est formée. Ni l'explosion ni le Big Bang ne la défont. */
     public boolean hasGalaxy() {
-        return galaxy;
+        return cosmos >= 1;
     }
 
-    /** Note la galaxie comme formée, ou défaite. */
+    /** Note la galaxie comme formée, ou défaite : défaite, les échelles au-dessus le sont aussi. */
     public void setGalaxy(boolean formed) {
-        if (galaxy != formed) moleculesVersion++;
-        galaxy = formed;
+        setCosmosLevel(formed ? Math.max(cosmos, 1) : 0);
+    }
+
+    /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link Cosmos} : 0 = aucune, 3 = jusqu'à l'univers. */
+    public int cosmosLevel() {
+        return cosmos;
+    }
+
+    /** Fixe le nombre d'échelles du cosmos formées. */
+    public void setCosmosLevel(int level) {
+        if (level < 0 || level > Cosmos.values().length) throw new IllegalArgumentException("Échelle invalide : " + level);
+        if (cosmos != level) moleculesVersion++;
+        cosmos = level;
     }
 
     /** Vrai si cette amélioration d'espace est acquise. Ni l'explosion ni le Big Bang ne la reprennent. */
@@ -768,7 +779,7 @@ public final class GameState {
         substancesSeen = null;
         assembliesSeen = null;
         bodiesSeen = null;
-        galaxy = false;
+        cosmos = 0;
         autoHold = true;
         autoMolecules = true;
         automatedMolecules.clear();

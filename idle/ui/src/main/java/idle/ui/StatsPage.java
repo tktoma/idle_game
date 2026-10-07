@@ -1,10 +1,12 @@
 package idle.ui;
 
 import idle.core.Automation;
+import idle.core.BigBangMilestone;
 import idle.core.BigNum;
 import idle.core.SpaceUpgrade;
 import idle.core.Molecule;
 import idle.core.Body;
+import idle.core.Cosmos;
 import idle.core.DarkUpgrade;
 import idle.core.Element;
 import idle.core.ElementCategory;
@@ -212,8 +214,9 @@ final class StatsPage extends VBox {
 
     private void general() {
         page("Général", STATS_COLOR, () -> true, "");
-        // La vue d'ensemble : la courbe principale de chaque ressource, et les succès.
+        // La vue d'ensemble : toutes les ressources sur un même graphique, puis la courbe principale de chacune, et les succès.
         curves();
+        resources();
         production();
         atomsPerFusion();
         tableProgress();
@@ -221,6 +224,7 @@ final class StatsPage extends VBox {
         achievementCount();
         section("Temps");
         row("Temps de jeu", () -> Format.duration(game.state().timePlayed()));
+        row("Depuis le dernier Big Bang", () -> Format.duration(stats().bigBangTime()), game::isBigBangUnlocked);
         row("Depuis la dernière explosion", () -> Format.duration(stats().runTime()), this::exploded);
         row("Depuis la dernière fusion", () -> Format.duration(game.state().timeSinceFusion()), this::fused);
 
@@ -231,6 +235,9 @@ final class StatsPage extends VBox {
         charted("Avancement du tableau périodique", row("Éléments découverts",
                 () -> game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size(), this::tableSeen));
         row("Explosions", () -> Format.whole(game.state().explosions()), this::exploded);
+        row("Big Bangs", () -> Format.whole(game.bigBangs()), game::isBigBangUnlocked);
+        row("Molécules créées", () -> Format.whole(game.moleculesCreated()), () -> game.moleculesCreated() > 0);
+        row("Astres formés", () -> game.bodiesFormed() + " / " + game.bodies().size(), () -> game.bodiesFormed() > 0);
         charted("Succès obtenus", row("Succès", () -> game.achievementCount() + " / " + game.achievements().size(),
                 () -> !game.achievements().isEmpty()));
 
@@ -239,6 +246,7 @@ final class StatsPage extends VBox {
         row("Niveaux d'améliorations en atomes", () -> Format.whole(stats().atomUpgradesBought()), this::fused);
         row("Actions faites par les automatismes",
                 () -> Format.whole(stats().automationActions() + stats().darkAutomationActions()), this::automationSeen);
+        row("Créations de molécules", () -> Format.whole(stats().moleculeCreations()), () -> stats().moleculeCreations() > 0);
     }
 
     private void particles() {
@@ -384,6 +392,8 @@ final class StatsPage extends VBox {
         charted("Actions des automatismes",
                 row("Actions des automatismes ordinaires", () -> Format.whole(stats().automationActions())));
         row("Actions des automatismes de matière noire", () -> Format.whole(stats().darkAutomationActions()), this::exploded);
+        row("Créations automatiques de molécules", () -> Format.whole(stats().autoMoleculeCreations()),
+                game::isMoleculeAutomationUnlocked);
         row("Automatismes possédés", () -> game.state().ownedAutomations().size() + " / " + game.automations().size());
         row("Délai le plus court possible", () -> AutomationPage.seconds(game.minAutomationInterval()));
         row("Améliorations en matière noire", () -> "délais ÷" + ElementText.number(game.darkAutomationDivisor()), this::exploded);
@@ -557,6 +567,76 @@ final class StatsPage extends VBox {
     // Les courbes proposées sur plusieurs sous-pages : la principale de chaque ressource
     // ------------------------------------------------------------------
 
+    /**
+     * Toutes les ressources sur un même graphique : ce que le joueur a en main au fil du temps.
+     *
+     * <p>Les particules montent à 1e3000 quand les molécules se comptent en milliers : sur une
+     * échelle logarithmique ordinaire, tout sauf les particules serait écrasé en bas. L'échelle
+     * est donc logarithmique deux fois : la hauteur suit le logarithme de l'exposant, et les
+     * graduations vont de 1 à 10, 1000, 1e10, 1e100, 1e1000. Une ressource n'a sa courbe qu'à
+     * partir du moment où elle existe. Chaque relevé garde le plus haut atteint depuis le
+     * précédent : une fusion, une explosion ou un Big Bang n'y creusent donc un trou que s'ils
+     * durent. La matière noire est celle gagnée, dépensée ou non : la réserve seule retombe à
+     * zéro à chaque achat dans l'arbre.
+     */
+    private void resources() {
+        building.graphs.add(new Graph("Toutes les ressources", game::isStarted,
+                () -> new ChartPane("Toutes les ressources", "ce que vous avez en main, matière noire dépensée comprise · échelle "
+                        + "logarithmique double", true, Format::clock, StatsPage::doubleLog,
+                        false, 0, Double.NaN).withTicks(DOUBLE_LOG_TICKS).withHeight(340),
+                () -> {
+                    List<StatsHistory.Sample> samples = history().samples();
+                    List<ChartPane.Series> series = new ArrayList<>();
+                    for (Held each : RESOURCES) {
+                        double[] x = new double[samples.size()];
+                        double[] y = new double[samples.size()];
+                        boolean seen = false;
+                        for (int i = 0; i < x.length; i++) {
+                            x[i] = samples.get(i).time();
+                            double exponent = samples.get(i).value(each.stat());
+                            if (each.counted()) exponent = exponent >= 1 ? Math.log10(exponent) : Double.NaN;
+                            y[i] = Double.isNaN(exponent) ? Double.NaN : Math.log10(1 + Math.max(0, exponent));
+                            seen |= !Double.isNaN(y[i]);
+                        }
+                        // Une ressource qui n'existe pas encore n'encombre pas la légende.
+                        if (seen) series.add(new ChartPane.Series(each.name(), each.color(), x, y));
+                    }
+                    return series;
+                }, true));
+    }
+
+    /**
+     * Une ressource du graphique d'ensemble.
+     *
+     * @param counted vrai si le relevé garde un nombre (des molécules), faux s'il garde déjà une puissance de dix
+     */
+    private record Held(String name, String color, StatsHistory.Stat stat, boolean counted) {}
+
+    /** Les ressources du graphique d'ensemble, dans l'ordre où le jeu les fait découvrir. Les couleurs voisines restent distinctes. */
+    private static final List<Held> RESOURCES = List.of(
+            new Held("Particules", ChartPane.BLUE, StatsHistory.Stat.PARTICLES, false),
+            new Held("Atomes", ChartPane.YELLOW, StatsHistory.Stat.ATOMS, false),
+            new Held("Éléments", ChartPane.MAGENTA, StatsHistory.Stat.ELEMENT_COPIES, true),
+            new Held("Matière noire", ChartPane.VIOLET, StatsHistory.Stat.DARK_MATTER, false),
+            new Held("Espace", ChartPane.ORANGE, StatsHistory.Stat.SPACE, false),
+            new Held("Molécules", ChartPane.AQUA, StatsHistory.Stat.MOLECULES, true));
+
+    /** Graduations de l'échelle logarithmique double : 1, 10, 1000, 1e10, 1e30, 1e100, 1e300, 1e1000… */
+    private static final double[] DOUBLE_LOG_TICKS = doubleLogTicks(0, 1, 3, 10, 30, 100, 300, 1_000, 3_000, 10_000, 100_000, 1_000_000);
+
+    private static double[] doubleLogTicks(double... exponents) {
+        double[] ticks = new double[exponents.length];
+        for (int i = 0; i < ticks.length; i++) ticks[i] = Math.log10(1 + exponents[i]);
+        return ticks;
+    }
+
+    /** Une hauteur de l'échelle logarithmique double, écrite comme la quantité qu'elle représente : 0 → « 1 », 2 → « 1e99 ». */
+    private static String doubleLog(double height) {
+        double exponent = Math.pow(10, height) - 1;
+        if (Math.abs(exponent - Math.rint(exponent)) < 1e-6) exponent = Math.rint(exponent);
+        return power(exponent);
+    }
+
     private void production() {
         curve("Production de particules", game::isStarted,
                 () -> new ChartPane("Production de particules", "par seconde · échelle logarithmique",
@@ -646,8 +726,26 @@ final class StatsPage extends VBox {
         log("Espace créé", "par l'expansion de la matière", ChartPane.YELLOW, StatsHistory.Stat.SPACE, () -> true);
         log("Espace utilisé", "par les molécules et leurs lieux de rassemblement", ChartPane.ORANGE,
                 StatsHistory.Stat.SPACE_USED, () -> game.moleculesCreated() > 0);
+        // Une abscisse par Big Bang, et non par instant : cette courbe ne dépend pas de la période choisie.
+        building.graphs.add(new Graph("Durée de chaque Big Bang", () -> true,
+                () -> new ChartPane("Durée de chaque Big Bang", "temps de jeu entre deux Big Bangs · échelle logarithmique",
+                        false, value -> "n° " + Math.round(value), value -> Format.clock(Math.pow(10, value)),
+                        false, Double.NaN, Double.NaN).withTicks(DURATION_TICKS).withMarkers(),
+                this::bigBangSeries, false));
+        count("Big Bangs", "depuis le début du jeu", ChartPane.YELLOW, StatsHistory.Stat.BIG_BANGS, () -> true);
+        log("Espace par seconde", "ce que l'expansion ajoute chaque seconde", ChartPane.YELLOW, StatsHistory.Stat.SPACE_RATE, () -> true);
+        curve("Expansion multipliée par la matière noire", this::darkSpace,
+                () -> new ChartPane("Expansion multipliée par la matière noire", "selon la matière noire en réserve",
+                        true, Format::clock, StatsPage::multiplier, false, 1, Double.NaN),
+                new Line("Matière noire", ChartPane.VIOLET, sample -> sample.value(StatsHistory.Stat.DARK_SPACE)));
         count("Molécules créées", "", ChartPane.YELLOW, StatsHistory.Stat.MOLECULES, () -> game.moleculesCreated() > 0);
-        count("Assemblages et astres formés", "galaxie comprise", ChartPane.TEAL, StatsHistory.Stat.SKY,
+        curve("Créations de molécules", () -> stats().moleculeCreations() > 0,
+                () -> new ChartPane("Créations de molécules", "depuis le début du jeu, à la main et automatiques",
+                        true, Format::clock, value -> Format.whole(Math.round(value)), true, 0, Double.NaN),
+                new Line("Toutes", ChartPane.YELLOW, sample -> sample.value(StatsHistory.Stat.MOLECULE_CREATIONS)),
+                new Line("Automatiques", ChartPane.GREEN, sample -> sample.value(StatsHistory.Stat.AUTO_MOLECULE_CREATIONS)));
+        count("Sortes rassemblées", "", ChartPane.ORANGE, StatsHistory.Stat.SUBSTANCES, () -> game.substancesFormed() > 0);
+        count("Assemblages et astres formés", "galaxie, amas de galaxies et univers compris", ChartPane.TEAL, StatsHistory.Stat.SKY,
                 () -> game.assembliesFormed() > 0);
         curve("Ce que la matière multiplie : espace et matière noire", this::boosted,
                 () -> new ChartPane("Ce que la matière multiplie", "espace par seconde et croissance de la matière noire · échelle logarithmique",
@@ -662,7 +760,7 @@ final class StatsPage extends VBox {
 
         section("Avancée");
         row("Prochain pas", () -> Goals.act(game));
-        row("Big Bangs", () -> Format.whole(game.bigBangs()));
+        charted("Big Bangs", row("Big Bangs", () -> Format.whole(game.bigBangs())));
         row("Paliers de Big Bang", () -> game.bigBangMilestonesReached() + " / " + game.bigBangMilestones().size());
         row("Améliorations d'espace prises", () -> {
             int owned = 0;
@@ -675,18 +773,53 @@ final class StatsPage extends VBox {
         row("Création automatique des molécules", () -> (game.isMoleculeAutomationEnabled() ? "en marche, " : "coupée, ")
                 + game.automatedMolecules() + (game.automatedMolecules() > 1 ? " amas confiés" : " amas confié"),
                 game::isMoleculeAutomationUnlocked);
-        row("Expansion multipliée par la matière noire", () -> multiplier(game.darkMatterSpaceBoost()),
-                () -> game.darkMatterSpaceBoost() > 1);
+        charted("Expansion multipliée par la matière noire", row("Expansion multipliée par la matière noire",
+                () -> multiplier(game.darkMatterSpaceBoost()), () -> game.darkMatterSpaceBoost() > 1));
+
+        section("Big Bangs");
+        charted("Durée de chaque Big Bang", row("Durée du dernier", () -> Format.duration(stats().lastBigBangTime())));
+        row("Le plus rapide", () -> Format.duration(stats().fastestBigBangTime()));
+        row("Depuis le dernier Big Bang", () -> Format.duration(stats().bigBangTime()));
+        row("Explosions du dernier Big Bang", () -> Format.whole(stats().lastBigBangExplosions()));
+        row("Explosions depuis le dernier Big Bang", () -> Format.whole(game.state().explosions()));
+        row("Arbre de matière noire au prochain Big Bang", () -> game.bigBangKeepsDarkTree() ? "il reste" : "il repart de zéro");
+
+        section("Les premières");
+        for (GameStats.Step step : GameStats.Step.values()) {
+            row(step.label(), () -> reached(step), () -> stats().reached(step));
+        }
+
+        section("Ce que donnent les paliers");
+        row("Matière noire des explosions", () -> multiplier(game.bigBangDarkMatterFactor()), () -> game.bigBangDarkMatterFactor() > 1);
+        row("Espace par seconde", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)),
+                () -> game.bigBangMilestoneBoost(Molecule.Stat.SPACE) > 1);
+        row("Ce que les amas attirent", () -> multiplier(game.accretionFactor()), () -> game.accretionFactor() > 1);
 
         section("Expansion de la matière");
         charted("Espace créé", row("Espace créé", () -> Format.count(game.state().space())));
-        row("Espace par seconde", () -> "+" + Format.amount(game.spacePerSecond()));
+        charted("Espace par seconde", row("Espace par seconde", () -> "+" + Format.amount(game.spacePerSecond())));
         charted("Espace utilisé", row("Occupé par les molécules", () -> Format.count(game.occupiedSpace()), () -> game.moleculesCreated() > 0));
         row("Réservé aux rassemblements", () -> Format.count(game.reservedSpace()), () -> game.substancesFormed() > 0);
         row("Espace libre", () -> Format.count(game.freeSpace()));
 
+        section("D'où vient l'expansion");
+        row("Un par Big Bang", () -> "+" + ElementText.number(Game.SPACE_PER_SECOND * game.bigBangs()) + " par seconde");
+        row("Molécules, assemblages et astres", () -> multiplier(game.matterBoost(Molecule.Stat.SPACE)));
+        row("Améliorations d'espace", () -> multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)));
+        row("Paliers", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)));
+        row("Matière noire en réserve", () -> multiplier(game.darkMatterSpaceBoost()), this::darkSpace);
+
         section("Molécules");
         charted("Molécules créées", row("Molécules créées", () -> Format.whole(game.moleculesCreated())));
+        charted("Créations de molécules", row("Créations", () -> Format.whole(stats().moleculeCreations()),
+                () -> stats().moleculeCreations() > 0));
+        row("dont automatiques", () -> Format.whole(stats().autoMoleculeCreations()), game::isMoleculeAutomationUnlocked);
+        row("Molécules attirées par les amas", () -> Format.whole(stats().moleculesAttracted()),
+                () -> stats().moleculesAttracted() > 0);
+        row("La plus grosse création", () -> "×" + Format.whole(stats().biggestCreation()), () -> stats().biggestCreation() > 1);
+        row("Le plus gros amas", this::biggestGathering, () -> game.substancesFormed() > 0);
+        row("Exemplaires d'éléments employés", () -> Format.whole(stats().moleculeElementsSpent()),
+                () -> stats().moleculeElementsSpent() > 0);
         row("Sortes de molécules créées", () -> {
             int sorts = 0;
             for (Molecule molecule : game.molecules()) {
@@ -695,7 +828,7 @@ final class StatsPage extends VBox {
             return sorts + " / " + game.molecules().size();
         });
         row("Rayons ouverts", () -> game.moleculeKindsUnlocked() + " / " + Molecule.Kind.values().length);
-        row("Sortes rassemblées", () -> Format.whole(game.substancesFormed()), game::isStatesUnlocked);
+        charted("Sortes rassemblées", row("Sortes rassemblées", () -> Format.whole(game.substancesFormed()), game::isStatesUnlocked));
         for (Molecule.State state : Molecule.State.values()) {
             row(BigBangPage.placeTitle(state) + " rassemblés", () -> Format.whole(game.gatheredInState(state)),
                     () -> game.gatheredInState(state) > 0);
@@ -711,6 +844,11 @@ final class StatsPage extends VBox {
         }
         row("Galaxie", () -> game.hasGalaxy() ? "formée" : game.canFormGalaxy() ? "prête à être formée" : "pas encore",
                 game::isGalaxyUnlocked);
+        for (Cosmos scale : new Cosmos[] {Cosmos.CLUSTER, Cosmos.UNIVERSE}) {
+            row(scale.label(), () -> game.hasCosmos(scale) ? "formé" : game.canFormCosmos(scale) ? "prêt à être formé"
+                    : game.cosmosConditionsMet(scale) + " / " + game.cosmosConditions(scale) + " conditions",
+                    () -> game.isCosmosUnlocked(scale));
+        }
 
         section("Ce que la matière multiplie");
         row("Particules", () -> multiplier(game.moleculeBoost(Molecule.Stat.PARTICLES)), this::boosted);
@@ -720,6 +858,53 @@ final class StatsPage extends VBox {
         row("dont les améliorations d'espace", () -> "atomes " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.ATOMS))
                 + ", particules " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.PARTICLES))
                 + ", espace " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)), this::upgraded);
+    }
+
+    /** Vrai une fois atteint le palier qui fait dépendre l'expansion de la matière noire : il peut valoir ×1, réserve vide. */
+    private boolean darkSpace() {
+        for (BigBangMilestone milestone : game.bigBangMilestones()) {
+            if (!game.isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.DarkMatterSpace) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Quand une première du troisième acte a été atteinte : en temps de jeu, et comptée depuis le premier Big Bang. */
+    private String reached(GameStats.Step step) {
+        double at = stats().reachedAt(step);
+        double first = stats().reachedAt(GameStats.Step.FIRST_BIG_BANG);
+        String text = "après " + Format.duration(at) + " de jeu";
+        if (step == GameStats.Step.FIRST_BIG_BANG || Double.isNaN(first) || at < first) return text;
+        return text + " (" + Format.duration(at - first) + " après le premier Big Bang)";
+    }
+
+    /** La sorte rassemblée qui compte le plus de molécules : « Eau ×1 240 ». */
+    private String biggestGathering() {
+        Molecule biggest = null;
+        int most = 0;
+        for (Molecule molecule : game.molecules()) {
+            int gathered = game.gatheredMolecules(molecule.id());
+            if (gathered > most) {
+                most = gathered;
+                biggest = molecule;
+            }
+        }
+        return biggest == null ? "aucun" : biggest.name() + " ×" + Format.whole(most);
+    }
+
+    /** La durée de chaque Big Bang gardée, numérotée depuis le premier du jeu. */
+    private List<ChartPane.Series> bigBangSeries() {
+        List<Double> times = stats().bigBangTimes();
+        double[] x = new double[times.size()];
+        double[] y = new double[times.size()];
+        long first = stats().timedBigBangs() - times.size() + 1;
+        for (int i = 0; i < x.length; i++) {
+            x[i] = first + i;
+            y[i] = Math.log10(Math.max(0.1, times.get(i)));
+        }
+        return List.of(new ChartPane.Series("Durée", ChartPane.YELLOW, x, y));
     }
 
     /** Vrai dès que le troisième acte multiplie quelque chose : une molécule créée, ou une amélioration d'espace qui multiplie. */

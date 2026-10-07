@@ -398,6 +398,8 @@ final class SpaceView extends Canvas {
      * {@link #CLOSEST}. Revenue à la vue d'ensemble, elle se remet à suivre l'expansion.
      */
     void zoom(double factor) {
+        // De si loin, il n'y a ni à s'approcher ni à reculer : les boutons de vue changent d'échelle.
+        if (cosmosShown() != null) return;
         if (!(factor > 0) || Double.isNaN(scale)) return;
         double fit = fitScale();
         scale = Math.max(fit, Math.min(CLOSEST, scale * factor));
@@ -542,6 +544,58 @@ final class SpaceView extends Canvas {
     void showGalaxy(boolean galaxy) {
         asGalaxy = galaxy;
         moved = true;
+    }
+
+    /**
+     * L'échelle au-dessus de la galaxie que la vue montre : l'amas de galaxies, l'univers, ou
+     * {@code null} pour l'espace lui-même. Elle n'est montrée qu'une fois formée.
+     */
+    private idle.core.Cosmos far = null;
+    /** Les couleurs des points d'une galaxie vue de loin, celles des molécules du joueur, et la liste de molécules dont elles viennent. */
+    private final Color[] farColors = new Color[GalaxyView.DOTS];
+    private int farColored = -1;
+    private boolean farDrawn = false;
+
+    /**
+     * Recule la vue au-delà de la galaxie : {@link idle.core.Cosmos#CLUSTER} montre la galaxie du
+     * joueur au milieu des autres, {@link idle.core.Cosmos#UNIVERSE} la toile de l'univers. {@code null},
+     * ou la galaxie, ramène à l'espace. Une échelle qui n'est pas formée ne change rien à la vue.
+     */
+    void showCosmos(idle.core.Cosmos scale) {
+        far = scale == idle.core.Cosmos.GALAXY ? null : scale;
+        moved = true;
+    }
+
+    /** L'échelle au-dessus de la galaxie que la vue montre en ce moment, ou {@code null} si elle montre l'espace. */
+    idle.core.Cosmos cosmosShown() {
+        return far != null && game.hasCosmos(far) ? far : null;
+    }
+
+    /** Dessine l'amas de galaxies ou l'univers, à la place de l'espace, avec en haut à gauche ce que l'on regarde. */
+    private void drawFar(GraphicsContext g, double w, double h, idle.core.Cosmos scale) {
+        g.clearRect(0, 0, w, h);
+        g.setGlobalAlpha(1);
+        g.setFill(VOID);
+        g.fillRect(0, 0, w, h);
+        if (scale == idle.core.Cosmos.UNIVERSE) {
+            GalaxyView.universe(g, w, h);
+        } else {
+            if (farColored != game.state().moleculesVersion()) {
+                farColored = game.state().moleculesVersion();
+                GalaxyView.tint(game, farColors);
+            }
+            GalaxyView.cluster(g, w, h, time, farColors, game);
+        }
+        String title = scale == idle.core.Cosmos.UNIVERSE ? "Univers : votre amas de galaxies, entouré, parmi tous les autres"
+                : "Amas de galaxies : la vôtre au centre, et huit autres";
+        g.setGlobalAlpha(0.72);
+        g.setFill(VOID);
+        g.fillRoundRect(4, 4, 14 + title.length() * 5.6, 22, 8, 8);
+        g.setGlobalAlpha(1);
+        g.setFill(TEXT);
+        g.setFont(Font.font(11));
+        g.setTextAlign(TextAlignment.LEFT);
+        g.fillText(title, 10, 19);
     }
 
     /** Vrai si la vue montre la galaxie, ou la montrera dès qu'elle sera formée. */
@@ -1796,6 +1850,19 @@ final class SpaceView extends Canvas {
         // se remet en place que de loin en loin, sinon elle accrocherait à chaque passage.
         calm = stale && game.isAutoCreatingMolecules() && shapes.length >= CALM_FROM && sincePlaced < CALM_SECONDS;
         boolean changed = moved || getWidth() != drawnWidth || getHeight() != drawnHeight || (stale && !calm);
+        idle.core.Cosmos scale = cosmosShown();
+        if (scale != null) {
+            // L'amas de galaxies tourne lentement ; la toile de l'univers ne bouge pas.
+            boolean still = scale == idle.core.Cosmos.UNIVERSE && farDrawn;
+            if (!moved && getWidth() == drawnWidth && getHeight() == drawnHeight && (still || beat % EVERY != 0)) return;
+            redraw();
+            return;
+        }
+        if (farDrawn) {
+            // De retour dans l'espace : tout est à redessiner.
+            farDrawn = false;
+            changed = true;
+        }
         if (!changed && beat % EVERY != 0) return;
         redraw();
         calm = false;
@@ -1816,6 +1883,13 @@ final class SpaceView extends Canvas {
         moved = false;
         drawnWidth = w;
         drawnHeight = h;
+        // Au-delà de la galaxie, la vue ne montre plus l'espace : inutile d'y ranger les molécules.
+        idle.core.Cosmos beyond = cosmosShown();
+        if (beyond != null) {
+            farDrawn = true;
+            drawFar(getGraphicsContext2D(), w, h, beyond);
+            return;
+        }
         place();
         double fit = fitScale();
         if (Double.isNaN(scale) || following) scale = fit;

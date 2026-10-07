@@ -79,8 +79,8 @@ final class BigBangPage extends VBox {
     private final Button bodiesTab = new Button("Astres");
     /** Sous-page « Astres ». */
     private final BodiesPane bodiesPane;
-    /** Sous-page « Galaxie ». */
-    private final Button galaxyTab = new Button("Galaxie");
+    /** Sous-page « Univers » : la galaxie, l'amas de galaxies, l'univers. */
+    private final Button galaxyTab = new Button("Univers");
     /** Les paliers de Big Bang : rangé à côté des améliorations, mais numéroté après la galaxie ({@link #select(int)}). */
     private final Button milestonesTab = new Button("Paliers");
     private final GalaxyPane galaxyPane;
@@ -117,6 +117,9 @@ final class BigBangPage extends VBox {
     private final Button zoomAll = new Button("Tout voir");
     /** Une fois la galaxie formée : pour revoir la matière telle qu'elle était rangée, puis revenir à la galaxie. */
     private final Button viewToggle = new Button("Voir la matière");
+    /** Une fois l'amas de galaxies formé, puis l'univers : pour reculer la vue jusqu'à eux. */
+    private final Button clusterView = new Button("Voir l'amas de galaxies");
+    private final Button universeView = new Button("Voir l'univers");
 
     // Sous-page « Améliorations »
     private final VBox upgradesPane = new VBox(10);
@@ -156,7 +159,9 @@ final class BigBangPage extends VBox {
         this.spaceView = new SpaceView(game);
         this.bodiesPane = new BodiesPane(game, this::refresh);
         this.galaxyPane = new GalaxyPane(game, this::refresh, () -> {
+            // La plus grande échelle formée : la galaxie, ou plus loin, l'amas de galaxies, l'univers.
             spaceView.showGalaxy(true);
+            spaceView.showCosmos(game.cosmosFormed() >= 2 ? idle.core.Cosmos.values()[game.cosmosFormed() - 1] : null);
             spaceView.fit();
             select(1);
             refresh();
@@ -234,15 +239,30 @@ final class BigBangPage extends VBox {
         zoomIn.setOnAction(event -> spaceView.zoom(SpaceView.ZOOM_STEP));
         zoomAll.setOnAction(event -> spaceView.fit());
         viewToggle.setOnAction(event -> {
-            spaceView.showGalaxy(!spaceView.showsGalaxy());
+            // Depuis l'amas de galaxies ou l'univers, ce bouton ramène à la galaxie ; sinon il alterne galaxie et matière.
+            if (spaceView.cosmosShown() != null) {
+                spaceView.showCosmos(null);
+                spaceView.showGalaxy(true);
+            } else {
+                spaceView.showGalaxy(!spaceView.showsGalaxy());
+            }
             refresh();
         });
-        for (Button button : new Button[] {zoomOut, zoomIn, zoomAll, viewToggle}) {
+        clusterView.setOnAction(event -> {
+            spaceView.showCosmos(idle.core.Cosmos.CLUSTER);
+            refresh();
+        });
+        universeView.setOnAction(event -> {
+            spaceView.showCosmos(idle.core.Cosmos.UNIVERSE);
+            refresh();
+        });
+        for (Button button : new Button[] {zoomOut, zoomIn, zoomAll, viewToggle, clusterView, universeView}) {
             button.setStyle(ZOOM_STYLE);
             button.setFocusTraversable(false);
         }
-        HBox zoomRow = new HBox(6, zoomOut, zoomIn, zoomAll, viewToggle);
+        FlowPane zoomRow = new FlowPane(6, 6, zoomOut, zoomIn, zoomAll, viewToggle, clusterView, universeView);
         zoomRow.setAlignment(Pos.CENTER);
+        zoomRow.setPrefWrapLength(760);
         // La vue s'étire avec la fenêtre ; les textes gardent leur hauteur.
         CanvasPane viewPane = CanvasPane.filling(spaceView);
         VBox.setVgrow(viewPane, Priority.ALWAYS);
@@ -351,7 +371,8 @@ final class BigBangPage extends VBox {
 
     /**
      * Affiche une sous-page : 0 = les molécules, 1 = l'expansion de la matière, 2 = les améliorations,
-     * 3 = les états de la matière, 4 = les assemblages, 5 = les astres, 6 = la galaxie, 7 = les paliers de Big Bang.
+     * 3 = les états de la matière, 4 = les assemblages, 5 = les astres, 6 = l'univers (galaxie, amas de galaxies, univers),
+     * 7 = les paliers de Big Bang.
      */
     void select(int index) {
         selected = index;
@@ -562,7 +583,8 @@ final class BigBangPage extends VBox {
         boolean galaxy = game.isGalaxyUnlocked();
         galaxyTab.setVisible(galaxy);
         galaxyTab.setManaged(galaxy);
-        galaxyTab.setText(game.hasGalaxy() ? "Galaxie (formée)" : "Galaxie");
+        galaxyTab.setText(game.cosmosFormed() == 0 ? "Univers" : game.nextCosmos() == null ? "Univers (formé)"
+                : "Univers (" + game.cosmosFormed() + "/" + idle.core.Cosmos.values().length + ")");
         if (selected == 6 && !galaxy) select(0);
         switch (selected) {
             case 0 -> refreshMolecules();
@@ -1152,13 +1174,21 @@ final class BigBangPage extends VBox {
                         + "Celles d'une même sorte partagent un amas de leur couleur, cerné de celle de son état ; les "
                         + "amas se touchent sans se chevaucher. De très loin, la matière se fond en nuages de gaz. "
                         + "La molette ou les boutons rapprochent et éloignent : on ne recule pas plus loin que l'espace "
-                        + "créé. Tirer avec la souris déplace la vue."));
-        zoomOut.setDisable(spaceView.isFitted());
-        zoomAll.setDisable(spaceView.isFitted());
-        zoomIn.setDisable(spaceView.isClosest());
+                        + "créé. Tirer avec la souris déplace la vue. Une fois l'amas de galaxies formé, puis l'univers, "
+                        + "un bouton recule la vue jusqu'à eux."));
+        idle.core.Cosmos far = spaceView.cosmosShown();
+        zoomOut.setDisable(far != null || spaceView.isFitted());
+        zoomAll.setDisable(far != null || spaceView.isFitted());
+        zoomIn.setDisable(far != null || spaceView.isClosest());
         viewToggle.setVisible(game.hasGalaxy());
         viewToggle.setManaged(game.hasGalaxy());
-        viewToggle.setText(spaceView.showsGalaxy() ? "Voir la matière" : "Voir la galaxie");
+        viewToggle.setText(far != null ? "Voir la galaxie" : spaceView.showsGalaxy() ? "Voir la matière" : "Voir la galaxie");
+        boolean cluster = game.hasCosmos(idle.core.Cosmos.CLUSTER) && far != idle.core.Cosmos.CLUSTER;
+        clusterView.setVisible(cluster);
+        clusterView.setManaged(cluster);
+        boolean universe = game.hasCosmos(idle.core.Cosmos.UNIVERSE) && far != idle.core.Cosmos.UNIVERSE;
+        universeView.setVisible(universe);
+        universeView.setManaged(universe);
     }
 
     /** Ce que donne une sorte de molécule, en quelques mots : « Espace +5 % par doublement ». Vide si elle ne donne rien. */

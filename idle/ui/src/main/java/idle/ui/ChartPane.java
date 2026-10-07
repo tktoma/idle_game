@@ -41,6 +41,8 @@ final class ChartPane extends Pane {
     static final String VIOLET = "#9085e9";
     static final String GREEN = "#3aa76d";
     static final String TEAL = "#2a9d8f";
+    static final String MAGENTA = "#d55181";
+    static final String AQUA = "#199e70";
 
     private static final String SURFACE = "#121821";
     private static final String GRID = "#232d3b";
@@ -66,6 +68,8 @@ final class ChartPane extends Pane {
     record Series(String name, String color, double[] x, double[] y) {}
 
     private final Canvas canvas = new Canvas(MAX_WIDTH, HEIGHT);
+    /** Hauteur du dessin : {@link #HEIGHT}, ou plus pour un graphique chargé ({@link #withHeight(double)}). */
+    private double height = HEIGHT;
     private final String title;
     private final String subtitle;
     private final DoubleFunction<String> xLabel;
@@ -126,6 +130,15 @@ final class ChartPane extends Pane {
         return this;
     }
 
+    /** Donne au dessin une autre hauteur que l'ordinaire : pour un graphique qui porte beaucoup de courbes. */
+    ChartPane withHeight(double height) {
+        this.height = height;
+        canvas.setHeight(height);
+        setMinSize(0, height);
+        setPrefSize(MAX_WIDTH, height);
+        return this;
+    }
+
     /** Marque chaque point d'un rond, tant qu'il y en a peu : pour des valeurs comptées une à une, pas pour une courbe continue. */
     ChartPane withMarkers() {
         this.markers = true;
@@ -156,9 +169,9 @@ final class ChartPane extends Pane {
     private void draw() {
         double width = canvas.getWidth();
         GraphicsContext g = canvas.getGraphicsContext2D();
-        g.clearRect(0, 0, width, HEIGHT);
+        g.clearRect(0, 0, width, height);
         g.setFill(Color.web(SURFACE));
-        g.fillRect(0, 0, width, HEIGHT);
+        g.fillRect(0, 0, width, height);
 
         g.setTextAlign(TextAlignment.LEFT);
         g.setFill(Color.web(TEXT));
@@ -170,7 +183,7 @@ final class ChartPane extends Pane {
 
         double top = series.size() > 1 ? TOP_WITH_LEGEND : TOP_PLAIN;
         double plotWidth = width - LEFT - RIGHT;
-        double plotHeight = HEIGHT - top - BOTTOM;
+        double plotHeight = height - top - BOTTOM;
         if (plotWidth < 40) return;     // fenêtre trop étroite pour un graphique lisible
 
         // L'étendue des points.
@@ -234,7 +247,7 @@ final class ChartPane extends Pane {
         for (double value = Math.ceil(x0 / xStep - 1e-9) * xStep; value <= x1 + 1e-9; value += xStep) {
             double x = Math.floor(LEFT + (value - x0) / (x1 - x0) * plotWidth) + 0.5;
             g.strokeLine(x, top + plotHeight, x, top + plotHeight + 4);
-            g.fillText(xLabel.apply(value), x, HEIGHT - 8);
+            g.fillText(xLabel.apply(value), x, height - 8);
         }
 
         // La légende, seulement quand il y a plusieurs séries : sinon le titre suffit.
@@ -254,7 +267,8 @@ final class ChartPane extends Pane {
         // Les séries : un trait de 2 px, puis un point et la dernière valeur au bout.
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineJoin(StrokeLineJoin.ROUND);
-        double lastLabelY = Double.NaN;
+        List<double[]> ends = new java.util.ArrayList<>();
+        List<String> endTexts = new java.util.ArrayList<>();
         for (Series each : series) {
             g.setStroke(Color.web(each.color()));
             g.setLineWidth(2);
@@ -286,15 +300,28 @@ final class ChartPane extends Pane {
             double x = LEFT + (each.x()[last] - x0) / (x1 - x0) * plotWidth;
             double y = top + plotHeight - (clamp(each.y()[last], yMin, yMax) - yMin) / (yMax - yMin) * plotHeight;
             dot(g, x, y, each.color());
-            // Deux valeurs finales trop proches : la seconde se décale pour rester lisible.
-            double labelY = y + 4;
-            if (isFinite(lastLabelY) && Math.abs(labelY - lastLabelY) < 13) labelY = lastLabelY + (labelY >= lastLabelY ? 13 : -13);
-            lastLabelY = labelY;
-            g.setFill(Color.web(TEXT));
-            g.setTextAlign(TextAlignment.LEFT);
-            g.fillText(yLabel.apply(each.y()[last]), x + 9, labelY);
+            ends.add(new double[] {x + 9, y + 4});
+            endTexts.add(yLabel.apply(each.y()[last]));
         }
         g.setLineCap(StrokeLineCap.BUTT);
+        // Les dernières valeurs, au bout des courbes. Trop proches, elles s'écartent pour rester lisibles :
+        // de haut en bas, chacune au moins 13 px sous la précédente, puis le tout remonte s'il déborde en bas.
+        Integer[] order = new Integer[ends.size()];
+        for (int i = 0; i < order.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, java.util.Comparator.comparingDouble(i -> ends.get(i)[1]));
+        for (int i = 1; i < order.length; i++) {
+            double[] above = ends.get(order[i - 1]), here = ends.get(order[i]);
+            if (here[1] - above[1] < 13) here[1] = above[1] + 13;
+        }
+        double floor = top + plotHeight + 4;
+        for (int i = order.length - 1; i >= 0; i--) {
+            double[] here = ends.get(order[i]);
+            if (here[1] > floor) here[1] = floor;
+            floor = here[1] - 13;
+        }
+        g.setFill(Color.web(TEXT));
+        g.setTextAlign(TextAlignment.LEFT);
+        for (int i = 0; i < ends.size(); i++) g.fillText(endTexts.get(i), ends.get(i)[0], ends.get(i)[1]);
 
         if (isFinite(hover)) drawHover(g, x0, x1, yMin, yMax, top, plotWidth, plotHeight);
     }

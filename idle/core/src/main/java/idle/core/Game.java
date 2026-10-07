@@ -102,6 +102,13 @@ public final class Game {
     /** Nombre de molécules qu'une même sorte ne dépasse jamais : de quoi rester loin des limites de la machine. */
     public static final int MAX_MOLECULES = 1_000_000_000;
 
+    /**
+     * Nombre maximal de molécules en tout, toutes sortes confondues : au-delà, plus aucune création.
+     * Très au-dessus de ce que demande l'univers ({@link Cosmos}), il ne sert qu'à garder les
+     * comptes, qui sont des entiers, dans leurs limites.
+     */
+    public static final int MAX_TOTAL_MOLECULES = 2_000_000_000;
+
     /** Nombre de molécules d'une même sorte qu'il faut avoir créées pour les rassembler dans le lieu de leur état. */
     public static final int SUBSTANCE_MOLECULES = 3;
 
@@ -562,17 +569,34 @@ public final class Game {
         for (Automation automation : automations.values()) {
             if (ownsAutomation(automation.id())) delays.put(automation.id(), automationInterval(automation.id()));
         }
-        // La production est la seule valeur qui dépend de l'historique : chacun retient son propre sommet.
-        int production = StatsHistory.Stat.PRODUCTION.ordinal();
-        if (whole) {
-            double[] copy = values.clone();
-            copy[production] = stats.history().peak(values[production]);
-            stats.history().add(new StatsHistory.Sample(state.timePlayed(), copy, delays));
+        // Quelques valeurs dépendent de l'historique : chacun retient ses propres sommets.
+        if (whole) stats.history().add(new StatsHistory.Sample(state.timePlayed(), withPeaks(values, stats.history()), delays));
+        if (run) stats.runHistory().add(new StatsHistory.Sample(stats.runTime(), withPeaks(values, stats.runHistory()), delays));
+    }
+
+    /** Ces mesures, où chaque statistique qui retient un sommet ({@link StatsHistory.Stat#peaks()}) prend celui de cet historique. */
+    private static double[] withPeaks(double[] values, StatsHistory history) {
+        double[] copy = values.clone();
+        for (StatsHistory.Stat stat : StatsHistory.Stat.values()) {
+            if (stat.peaks()) copy[stat.ordinal()] = history.peak(stat, values[stat.ordinal()]);
         }
-        if (run) {
-            double[] copy = values.clone();
-            copy[production] = stats.runHistory().peak(values[production]);
-            stats.runHistory().add(new StatsHistory.Sample(stats.runTime(), copy, delays));
+        return copy;
+    }
+
+    /**
+     * Ce que le joueur a en main va retomber (fusion, explosion, défi, Big Bang) : les historiques
+     * retiennent le sommet que chaque quantité vient d'atteindre.
+     */
+    private void noteHeldPeaks() {
+        double particles = power(state.particles());
+        double atoms = power(state.atoms());
+        double darkMatter = power(darkMatterEarned());
+        double copies = ownedCopies();
+        for (StatsHistory history : List.of(state.stats().history(), state.stats().runHistory())) {
+            history.notePeak(StatsHistory.Stat.PARTICLES, particles);
+            history.notePeak(StatsHistory.Stat.ATOMS, atoms);
+            history.notePeak(StatsHistory.Stat.DARK_MATTER, darkMatter);
+            history.notePeak(StatsHistory.Stat.ELEMENT_COPIES, copies);
         }
     }
 
@@ -626,7 +650,17 @@ public final class Game {
                 case MOLECULE_PARTICLES -> Math.log10(moleculeBoost(Molecule.Stat.PARTICLES));
                 case MOLECULE_ATOMS -> Math.log10(moleculeBoost(Molecule.Stat.ATOMS));
                 case MOLECULE_DARK -> Math.log10(moleculeBoost(Molecule.Stat.DARK_GROWTH));
-                case SKY -> assembliesFormed() + bodiesFormed() + (hasGalaxy() ? 1 : 0);
+                case SKY -> assembliesFormed() + bodiesFormed() + state.cosmosLevel();
+                case BIG_BANGS -> state.bigBangs();
+                case SPACE_RATE -> isBigBangUnlocked() ? power(spacePerSecond()) : Double.NaN;
+                case DARK_SPACE -> darkMatterSpaceBoost();
+                case MOLECULE_CREATIONS -> state.stats().moleculeCreations();
+                case AUTO_MOLECULE_CREATIONS -> state.stats().autoMoleculeCreations();
+                case SUBSTANCES -> substancesFormed();
+                case PARTICLES -> power(state.particles());
+                case ATOMS -> power(state.atoms());
+                case ELEMENT_COPIES -> ownedCopies();
+                case DARK_MATTER -> power(darkMatterEarned());
             };
         }
         return values;
@@ -1291,6 +1325,7 @@ public final class Game {
             state.addCompletedChallenge(challenge.id());
             state.setActiveChallenge(null);
         }
+        noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
         // Une explosion rapide ne compte qu'à partir de la deuxième : la première n'a pas de précédente.
         if (state.explosions() >= 1 && state.stats().runTime() < Achievements.FAST_EXPLOSION_SECONDS) {
@@ -1403,6 +1438,7 @@ public final class Game {
         Challenge challenge = challenge(challengeId);
         if (!state.started() || !isChallengeUnlocked(challengeId) || state.activeChallenge() != null) return false;
         state.setActiveChallenge(challenge.id());
+        noteHeldPeaks();
         state.clearMatter();   // rien n'est gardé : ni automatismes, ni améliorations, ni éléments
         state.stats().restartRun();
         return true;
@@ -1848,8 +1884,10 @@ public final class Game {
      */
     public boolean bigBang() {
         if (!canBigBang()) return false;
+        noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
         boolean keepsTree = bigBangKeepsDarkTree();
+        state.stats().noteBigBang(state.explosions(), state.timePlayed());
         state.clearMatter();
         if (keepsTree) state.clearDarkMatterKeepingTree();
         else state.clearDarkMatter();
@@ -2025,7 +2063,7 @@ public final class Game {
             int first = Math.floorMod(moleculeAutomationTurn++, chosen.size());
             for (int offset = 0; offset < chosen.size(); offset++) {
                 String id = chosen.get((first + offset) % chosen.size());
-                if (molecules.containsKey(id)) created |= createMolecule(id);
+                if (molecules.containsKey(id)) created |= createMolecule(id, true);
             }
             if (!created) break;
         }
@@ -2217,7 +2255,7 @@ public final class Game {
      */
     public boolean canCreateMolecule(String moleculeId) {
         return state.started() && isMoleculeKindUnlocked(molecule(moleculeId).kind())
-                && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES
+                && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES && moleculesCreated() < MAX_TOTAL_MOLECULES
                 && hasElementsForMolecule(moleculeId) && hasSpaceForMolecule(moleculeId);
     }
 
@@ -2268,13 +2306,22 @@ public final class Game {
      * @return {@code true} si la molécule a été créée
      */
     public boolean createMolecule(String moleculeId) {
+        return createMolecule(moleculeId, false);
+    }
+
+    /** {@link #createMolecule(String)}, en notant pour les statistiques si c'est l'automatisme qui crée. */
+    private boolean createMolecule(String moleculeId, boolean automatic) {
         if (!canCreateMolecule(moleculeId)) return false;
         Molecule molecule = molecule(moleculeId);
         int created = moleculesNextCreation(moleculeId);
+        long elements = 0;
         for (Map.Entry<Integer, Integer> atom : nextMoleculeCost(moleculeId).entrySet()) {
             state.setElementCount(atom.getKey(), state.elementCount(atom.getKey()) - atom.getValue());
+            elements += atom.getValue();
         }
         state.addMolecules(molecule.id(), created);
+        state.stats().noteMoleculeCreation(created, elements, automatic);
+        state.stats().noteStep(GameStats.Step.FIRST_MOLECULE, state.timePlayed());
         return true;
     }
 
@@ -2290,7 +2337,7 @@ public final class Game {
         int count = state.moleculeCount(molecule.id());
         if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return 1;
         int drawn = 1 + (int) Math.floor(accretionFactor() * Math.sqrt(count) + 1e-9);
-        return Math.max(1, Math.min(drawn, MAX_MOLECULES - count));
+        return Math.max(1, Math.min(drawn, Math.min(MAX_MOLECULES - count, MAX_TOTAL_MOLECULES - moleculesCreated())));
     }
 
     /**
@@ -2319,6 +2366,16 @@ public final class Game {
         refreshMoleculeBonuses();
         return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * upgradeBoosts.getOrDefault(stat, 1.0)
                 * bigBangMilestoneBoost(stat);
+    }
+
+    /**
+     * La part de {@link #moleculeBoost(Molecule.Stat)} qui vient de la matière elle-même : les
+     * molécules créées, les assemblages, les astres et la galaxie, sans les améliorations d'espace
+     * ni les paliers de Big Bang. Vaut 1 tant que rien n'est créé.
+     */
+    public double matterBoost(Molecule.Stat stat) {
+        refreshMoleculeBonuses();
+        return 1 + moleculeBoosts.getOrDefault(stat, 0.0);
     }
 
     /**
@@ -2380,9 +2437,10 @@ public final class Game {
             Body body = bodies.get(id);
             if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule(), Double::sum);
         }
-        // La galaxie augmente toutes les grandeurs à la fois.
-        if (state.hasGalaxy()) {
-            for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, GALAXY_GAIN, Double::sum);
+        // La galaxie, l'amas de galaxies et l'univers augmentent chacun toutes les grandeurs à la fois.
+        for (Cosmos scale : Cosmos.values()) {
+            if (!hasCosmos(scale)) break;
+            for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, scale.gain(), Double::sum);
         }
     }
 
@@ -2502,6 +2560,7 @@ public final class Game {
     public boolean formSubstance(String moleculeId) {
         if (!canFormSubstance(moleculeId)) return false;
         state.addSubstance(molecule(moleculeId).id());
+        state.stats().noteStep(GameStats.Step.FIRST_GATHERING, state.timePlayed());
         return true;
     }
 
@@ -2628,6 +2687,7 @@ public final class Game {
     public boolean formAssembly(String assemblyId) {
         if (!canFormAssembly(assemblyId)) return false;
         state.addAssembly(assembly(assemblyId).id());
+        state.stats().noteStep(GameStats.Step.FIRST_ASSEMBLY, state.timePlayed());
         return true;
     }
 
@@ -2738,6 +2798,7 @@ public final class Game {
     public boolean formBody(String bodyId) {
         if (!canFormBody(bodyId)) return false;
         state.addBody(body(bodyId).id());
+        state.stats().noteStep(GameStats.Step.FIRST_BODY, state.timePlayed());
         return true;
     }
 
@@ -2746,7 +2807,7 @@ public final class Game {
     // ------------------------------------------------------------------
 
     /** Ce que la galaxie ajoute à chacune des grandeurs une fois formée (1 024 = +102 400 %) : le double du trou noir supermassif. */
-    public static final double GALAXY_GAIN = 1024;
+    public static final double GALAXY_GAIN = Cosmos.GALAXY.gain();
 
     /** Nombre d'astres de cette échelle dans le catalogue. */
     public int bodiesIn(Body.Tier tier) {
@@ -2805,8 +2866,81 @@ public final class Game {
      * @return {@code true} si la galaxie a été formée
      */
     public boolean formGalaxy() {
-        if (!canFormGalaxy()) return false;
-        state.setGalaxy(true);
+        return formCosmos(Cosmos.GALAXY);
+    }
+
+    // ------------------------------------------------------------------
+    // Le cosmos : la galaxie, l'amas de galaxies, l'univers
+    // ------------------------------------------------------------------
+
+    /** Vrai si cette échelle du cosmos est formée. */
+    public boolean hasCosmos(Cosmos scale) {
+        return state.cosmosLevel() > scale.ordinal();
+    }
+
+    /** Nombre d'échelles du cosmos formées : 0 avant la galaxie, 3 une fois l'univers formé. */
+    public int cosmosFormed() {
+        return state.cosmosLevel();
+    }
+
+    /** La prochaine échelle du cosmos à former, ou {@code null} une fois l'univers formé. */
+    public Cosmos nextCosmos() {
+        return state.cosmosLevel() >= Cosmos.values().length ? null : Cosmos.values()[state.cosmosLevel()];
+    }
+
+    /**
+     * Vrai une fois cette échelle en vue : la galaxie à la première étoile ({@link #isGalaxyUnlocked()}),
+     * les suivantes dès que la précédente est formée.
+     */
+    public boolean isCosmosUnlocked(Cosmos scale) {
+        return scale == Cosmos.GALAXY ? isGalaxyUnlocked() : hasCosmos(scale.previous());
+    }
+
+    /**
+     * Vrai si cette échelle peut être formée maintenant : la précédente l'est, elle ne l'est pas
+     * encore, et ce qu'elle demande est réuni. La galaxie demande tous les astres
+     * ({@link #canFormGalaxy()}) ; les suivantes, assez de matière rassemblée dans chaque état
+     * ({@link Cosmos#matter()}).
+     */
+    public boolean canFormCosmos(Cosmos scale) {
+        if (scale == Cosmos.GALAXY) return canFormGalaxy();
+        if (!state.started() || hasCosmos(scale) || !hasCosmos(scale.previous())) return false;
+        for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+            if (gatheredInState(need.getKey()) < need.getValue()) return false;
+        }
+        return true;
+    }
+
+    /** Nombre de conditions de cette échelle déjà réunies, sur {@link #cosmosConditions(Cosmos)}. */
+    public int cosmosConditionsMet(Cosmos scale) {
+        if (scale == Cosmos.GALAXY) return hasGalaxy() ? bodies.size() : state.bodies().size();
+        int met = hasCosmos(scale.previous()) ? 1 : 0;
+        for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+            if (gatheredInState(need.getKey()) >= need.getValue()) met++;
+        }
+        return met;
+    }
+
+    /** Nombre de conditions de cette échelle : les astres du catalogue pour la galaxie ; sinon l'échelle d'avant, plus un état de la matière par ligne. */
+    public int cosmosConditions(Cosmos scale) {
+        return scale == Cosmos.GALAXY ? bodies.size() : 1 + scale.matter().size();
+    }
+
+    /**
+     * Forme cette échelle du cosmos. C'est un achat unique, qui ne consomme rien : la matière reste
+     * rassemblée, les astres restent formés. Elle ajoute {@link Cosmos#gain()} à chacune des
+     * grandeurs que la matière augmente, et rien ne la défait, ni l'explosion ni le Big Bang.
+     *
+     * @return {@code true} si elle a été formée
+     */
+    public boolean formCosmos(Cosmos scale) {
+        if (!canFormCosmos(scale)) return false;
+        state.setCosmosLevel(scale.ordinal() + 1);
+        state.stats().noteStep(switch (scale) {
+            case GALAXY -> GameStats.Step.GALAXY;
+            case CLUSTER -> GameStats.Step.CLUSTER;
+            case UNIVERSE -> GameStats.Step.UNIVERSE;
+        }, state.timePlayed());
         return true;
     }
 
@@ -3658,6 +3792,7 @@ public final class Game {
         double pulse = darkFusionPulse();
         if (pulse > 0) expandDarkMatter(pulse);
         BigNum production = productionPerSecond();
+        noteHeldPeaks();
         state.stats().noteProduction(production);
         // La production va retomber : l'historique retient le sommet qu'elle vient d'atteindre.
         state.stats().history().notePeak(production.log10());

@@ -28,6 +28,8 @@ import java.util.List;
  * s'arrêtant au quatrième, dix-sept heures ; au troisième, vingt-six heures et demie ; au deuxième,
  * trente-sept heures et demie. Le cinquième Big Bang garde l'arbre de matière noire : il ne coûte
  * qu'un quart d'heure de chemin à refaire au lieu de trois heures, et c'est ce qui le rend rentable.
+ * Au-delà de la galaxie viennent l'amas de galaxies puis l'univers ({@link Cosmos}), à dix-huit et
+ * vingt-quatre heures du premier Big Bang.
  *
  * <p>Trois astres seulement augmentent l'espace : l'astéroïde glacé, la lune volcanique, et le trou
  * noir supermassif, tout à la fin. L'espace s'entretient lui-même : chaque astre de plus qui
