@@ -93,6 +93,9 @@ final class AtomsPage extends VBox {
         bonusLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
         orbsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
         hintLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+        // Ces deux lignes changent à chaque fusion : leur hauteur reste fixe pour que les sous-onglets ne bougent pas.
+        StableHeight.of(balanceLabel);
+        StableHeight.of(bonusLabel);
 
         // Une sous-page n'est recopiée que lorsqu'elle est affichée : elle l'est donc dès qu'on la choisit.
         atomTab.setOnAction(event -> {
@@ -302,6 +305,7 @@ final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount -> "−" + trim((1 - game.generatorCostFactor()) * 100) + " %";
             case Effect.MultiplyAtomsByProduction byProduction -> Format.multiplier(BigNum.of(game.fusionYield()));
             case Effect.KeepUpgradesOnFusion keep -> "";
+            case Effect.BulkAtomBuy bulk -> "";
             default -> Format.multiplier(game.particlesMultiplier(upgrade.id(), level));
         };
     }
@@ -317,6 +321,7 @@ final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount ->
                     "Générateurs −" + trim((1 - discount.factorPerLevel()) * 100) + " % par niveau";
             case Effect.KeepUpgradesOnFusion keep -> "La fusion garde vitesse et couplage";
+            case Effect.BulkAtomBuy bulk -> "Acheter par dix, ou tout d'un coup";
             case Effect.Overload overload -> "Particules ×" + trim(overload.perLevel()) + " par niveau, sans limite";
             case Effect.MultiplyByGenerators coupling -> "Chaque générateur renforce les autres";
             case Effect.MultiplyAtomsByProduction byProduction ->
@@ -349,6 +354,10 @@ final class AtomsPage extends VBox {
             case Effect.DiscountGenerators discount ->
                     "Générateurs " + trim((1 - discount.factorPerLevel()) * 100) + " % moins chers, à chaque niveau. "
                             + (level > 0 ? "Actuellement −" + trim((1 - game.generatorCostFactor()) * 100) + " %" : "");
+            case Effect.BulkAtomBuy bulk ->
+                    "Ouvre l'achat par dix et « max » des améliorations en atomes, comme pour celles en particules. "
+                            + "Il tient jusqu'à la prochaine explosion ; « Achat groupé » de la boutique de matière "
+                            + "noire le garde pour toujours.";
             case Effect.KeepUpgradesOnFusion keep ->
                     "La fusion ne remet plus à zéro les améliorations payées en particules (vitesse, couplage). "
                             + "Les générateurs, eux, fusionnent toujours.";

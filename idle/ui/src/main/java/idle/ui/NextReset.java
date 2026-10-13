@@ -101,11 +101,11 @@ final class NextReset {
      */
     static String bigBangProgress(Game game) {
         if (!game.isDarkMatterUnlocked() || game.canBigBang()) return "";
-        int all = BigBangCondition.values().length;
+        int all = game.bigBangConditions().size();
         int met = game.bigBangConditionsMet();
         if (met == all) return all + " conditions sur " + all + ", pas pendant un défi";
         List<String> missing = new ArrayList<>();
-        for (BigBangCondition condition : BigBangCondition.values()) {
+        for (BigBangCondition condition : game.bigBangConditions()) {
             if (!game.isBigBangConditionMet(condition)) missing.add(missing(game, condition));
         }
         StringBuilder text = new StringBuilder(met + (met > 1 ? " conditions sur " : " condition sur ") + all + ", il manque ");
@@ -129,6 +129,10 @@ final class NextReset {
             case CHALLENGES -> {
                 int lacking = Math.max(1, game.challenges().size() - game.completedChallenges());
                 yield lacking + (lacking > 1 ? " défis" : " défi");
+            }
+            case SKY -> {
+                int lacking = Math.max(1, game.bigBangSkyRequirement() - game.bodiesMature());
+                yield lacking + (lacking > 1 ? " astres mûrs" : " astre mûr");
             }
         };
     }

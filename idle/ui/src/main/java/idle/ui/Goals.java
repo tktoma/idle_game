@@ -91,7 +91,7 @@ final class Goals {
         // Le prochain astre : celui que vise aussi la liste de courses, à portée et le plus avancé.
         idle.core.Body body = game.nextBody();
         if (body != null) {
-            return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + body.conditions()
+            return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + game.bodyConditions(body.id())
                     + " conditions)" + spaceWait(game);
         }
         if (game.isAssembliesUnlocked() && game.assembliesFormed() == 0) return "former un premier assemblage";

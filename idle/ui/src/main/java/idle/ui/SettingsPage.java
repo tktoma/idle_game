@@ -112,6 +112,14 @@ final class SettingsPage extends VBox {
     private final Map<Settings.Notation, Button> notationButtons = new EnumMap<>(Settings.Notation.class);
     private final Label notationExample = new Label();
     private final Button effectsButton = new Button();
+    private final Button soundButton = new Button();
+    private final Button quieterButton = new Button("−");
+    private final Button louderButton = new Button("+");
+    private final Label volumeLabel = new Label();
+    private final java.util.Map<Settings.FrameRate, Button> frameRateButtons = new java.util.EnumMap<>(Settings.FrameRate.class);
+    private final Button energyButton = new Button();
+    /** Joue un son d'essai au volume réglé : branché par la fenêtre, qui possède les sons. */
+    private Runnable soundTest = () -> { };
     private final Button confirmButton = new Button();
     private final Button confirmBigBangButton = new Button();
     private final Button confirmChallengeButton = new Button();
@@ -238,6 +246,50 @@ final class SettingsPage extends VBox {
             refresh();
         });
         getChildren().add(effectsButton);
+
+        block("Sons",
+                "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, comète, défi "
+                        + "réussi. Tous sont fabriqués par le jeu, sans fichier. Un même son ne revient pas avant une "
+                        + "seconde, même quand les automatismes enchaînent tout. Changer le volume fait entendre un essai.");
+        soundButton.setOnAction(event -> {
+            settings.setSound(!settings.sound());
+            if (settings.sound()) soundTest.run();
+            refresh();
+        });
+        quieterButton.setOnAction(event -> changeVolume(-VOLUME_STEP));
+        louderButton.setOnAction(event -> changeVolume(VOLUME_STEP));
+        for (Button button : List.of(quieterButton, louderButton)) {
+            button.setStyle(OFF_STYLE);
+            button.setFocusTraversable(false);
+        }
+        volumeLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9d1d9; -fx-min-width: 110; -fx-alignment: center;");
+        HBox soundRow = new HBox(8, soundButton, quieterButton, volumeLabel, louderButton);
+        soundRow.setAlignment(Pos.CENTER);
+        getChildren().add(soundRow);
+
+        block("Images par seconde",
+                "Moins d'images, c'est moins de calcul et moins de batterie ; le jeu avance au même rythme, seule "
+                        + "l'animation est moins fluide. Avec l'économie d'énergie, la fenêtre passe à "
+                        + GameApp.BACKGROUND_FPS + " images par seconde quand une autre est au premier plan, et à "
+                        + GameApp.ICONIFIED_FPS + " quand elle est réduite.");
+        HBox rateRow = new HBox(8);
+        rateRow.setAlignment(Pos.CENTER);
+        for (Settings.FrameRate rate : Settings.FrameRate.values()) {
+            Button button = new Button();
+            button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                settings.setFrameRate(rate);
+                refresh();
+            });
+            frameRateButtons.put(rate, button);
+            rateRow.getChildren().add(button);
+        }
+        energyButton.setOnAction(event -> {
+            settings.setSaveEnergy(!settings.saveEnergy());
+            refresh();
+        });
+        rateRow.getChildren().add(energyButton);
+        getChildren().add(rateRow);
 
         block("Confirmations",
                 "L'explosion, le Big Bang et les défis remettent la partie à zéro. Avec la confirmation, il faut cliquer "
@@ -430,6 +482,20 @@ final class SettingsPage extends VBox {
         explanations.add(text);
     }
 
+    /** Pas du volume à chaque clic sur − ou + : dix crans de 0 à 100. */
+    static final int VOLUME_STEP = 10;
+
+    private void changeVolume(int step) {
+        settings.setVolume(settings.volume() + step);
+        soundTest.run();
+        refresh();
+    }
+
+    /** Branche le son d'essai, joué quand le joueur règle le volume ou rallume les sons. */
+    void setSoundTest(Runnable test) {
+        soundTest = test == null ? () -> { } : test;
+    }
+
     /** Vrai tant que la page attend la prochaine touche du clavier pour en faire la touche de détail. */
     boolean isCapturing() {
         return capturing;
@@ -523,6 +589,17 @@ final class SettingsPage extends VBox {
         chronoButton.setStyle(settings.chrono() ? ON_STYLE : OFF_STYLE);
         recordsLabel.setText(saves.records());
         effectsButton.setText(settings.effects() ? "Effets visuels : affichés" : "Effets visuels : coupés");
+        soundButton.setText(settings.sound() ? "Sons : activés" : "Sons : coupés");
+        soundButton.setStyle(settings.sound() ? ON_STYLE : OFF_STYLE);
+        volumeLabel.setText("Volume : " + settings.volume() + " %");
+        quieterButton.setDisable(!settings.sound() || settings.volume() <= 0);
+        louderButton.setDisable(!settings.sound() || settings.volume() >= 100);
+        for (Map.Entry<Settings.FrameRate, Button> entry : frameRateButtons.entrySet()) {
+            entry.getValue().setText(entry.getKey().label() + " images/s");
+            entry.getValue().setStyle(entry.getKey() == settings.frameRate() ? ON_STYLE : OFF_STYLE);
+        }
+        energyButton.setText(settings.saveEnergy() ? "Économie d'énergie : oui" : "Économie d'énergie : non");
+        energyButton.setStyle(settings.saveEnergy() ? ON_STYLE : OFF_STYLE);
         effectsButton.setStyle(settings.effects() ? ON_STYLE : OFF_STYLE);
         confirmButton.setText(settings.confirmExplosion() ? "Explosion : demandée" : "Explosion : non demandée");
         confirmButton.setStyle(settings.confirmExplosion() ? ON_STYLE : OFF_STYLE);

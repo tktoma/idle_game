@@ -19,6 +19,8 @@ class GameTest {
 
     /** Temps nécessaire pour former une particule au départ, en secondes. */
     private static final double ONE_PARTICLE = 1 / BASE;
+    /** De quoi créer une particule et laisser passer la vérification des succès, faite une fois par seconde. */
+    private static final double FIRST_CHECK = Math.max(ONE_PARTICLE, 1.25);
 
     // Catalogue fixe pour les tests : ils ne cassent pas quand le vrai catalogue change.
     private static final Upgrade SPEED = new Upgrade("speed", "Vitesse", Resource.PARTICLES,
@@ -886,7 +888,8 @@ class GameTest {
             game.tick(1);                   // achète les deux générateurs, puis fusionne
             assertValue(3, game.state().atoms());
             assertEquals(1, game.generatorCount());
-            assertEquals(BigNum.ZERO, game.state().particles());
+            // Il ne reste que ce que le générateur a créé depuis la fusion, en moins d'une seconde.
+            assertTrue(game.state().particles().lt(BigNum.of(BASE)));
         }
 
         @Test
@@ -937,10 +940,11 @@ class GameTest {
         void unGrosTickVautPlusieursPetits() {
             Game small = gameWithAutomation(10);
             small.buyAutomation("autoGen");
-            for (int i = 0; i < 20 * 600; i++) small.tick(0.05);   // 10 min à 20 ticks/s
+            int seconds = (int) (150 * ONE_PARTICLE);               // de quoi créer 150 particules : un générateur, pas deux
+            for (int i = 0; i < 20 * seconds; i++) small.tick(0.05);   // à 20 ticks/s
             Game big = gameWithAutomation(10);
             big.buyAutomation("autoGen");
-            big.tick(600);                                          // 10 min hors-ligne
+            big.tick(seconds);                                      // d'un seul coup, comme au retour d'une absence
             assertEquals(1, small.levelOf("gen"));
             assertEquals(1, big.levelOf("gen"));
             assertEquals(total(small), total(big), total(small) * 0.02);
@@ -1016,7 +1020,7 @@ class GameTest {
         void unAutomatismePretAttendDePouvoirPayer() {
             Game game = gameWithSlowAutomation(0);
             game.state().setParticles(BigNum.ZERO);
-            game.tick(30);                            // prêt depuis longtemps, mais sans particules
+            game.tick(9 * ONE_PARTICLE);              // prêt (délai de 4 s passé), mais 9 particules pour un prix de 10
             assertEquals(0, game.levelOf("speed"));
             game.state().setParticles(BigNum.of(1e9));
             game.tick(0.1);                           // achète tout de suite…
@@ -1106,15 +1110,15 @@ class GameTest {
 
         @Test
         void auPlusDixActionsParSecondeParAutomatisme() {
-            // Deux générateurs à racheter par partie, un achat par dixième de seconde :
-            // même avec des particules illimitées, cinq fusions par seconde au mieux.
+            // Les deux générateurs sont rachetés d'un coup, puis la fusion suit dans le même dixième de seconde :
+            // même avec des particules illimitées, dix fusions par seconde au mieux.
             Game game = fullyAutomatedGame();
             for (int i = 0; i < 100; i++) {          // 5 secondes à 20 ticks/s
                 game.state().setParticles(BigNum.of(1e9));
                 game.tick(0.05);
             }
             double atoms = game.state().atoms().toDouble();
-            assertTrue(atoms >= 20 && atoms <= 26, "fusions en 5 s : " + atoms);
+            assertTrue(atoms >= 45 && atoms <= 51, "fusions en 5 s : " + atoms);
         }
 
         @Test
@@ -1922,14 +1926,16 @@ class GameTest {
     @Nested
     class Rendement {
 
-        /** +50 % d'atomes par fusion pour chaque ×10 de production au-delà de 100 particules par seconde. */
+        /** Production d'un générateur à la vitesse de départ, particules doublées : l'unité de ces essais. */
+        private static final double UNIT = 2 * BASE;
+        /** +50 % d'atomes par fusion pour chaque ×10 de production au-delà de 200 fois cette unité. */
         private static final Upgrade YIELD = new Upgrade("yield", "Rendement", Resource.ATOMS,
-                BigNum.of(3), 1, 1, new Effect.MultiplyAtomsByProduction(100, 0.5));
+                BigNum.of(3), 1, 1, new Effect.MultiplyAtomsByProduction(200 * UNIT, 0.5));
         /** Vitesse ×10 par niveau, pour choisir la production à la puissance de dix près. */
         private static final Upgrade TENFOLD = new Upgrade("tenfold", "×10", Resource.PARTICLES,
                 BigNum.ONE, 1, Upgrade.NO_LIMIT, new Effect.MultiplySpeed(10));
 
-        /** Deux générateurs à 0,25 création par seconde : 0,5 particule par seconde une fois tous débloqués. */
+        /** Deux générateurs à la vitesse de départ : une fois tous débloqués et les particules doublées, deux unités par seconde. */
         private Game yieldGame() {
             Game game = new Game(new GameState(),
                     List.of(TENFOLD, new Upgrade("gen", "Générateur", Resource.PARTICLES, BigNum.ONE, 1, 1,
@@ -1940,7 +1946,7 @@ class GameTest {
             return game;
         }
 
-        /** Porte la production à la fusion à {@code 0,5 × 10^levels} particules par seconde. */
+        /** Porte la production à la fusion à {@code 10^levels} générateurs de départ ; le seuil du rendement est à 100 avec les particules doublées. */
         private void setSpeedLevels(Game game, int levels) {
             game.state().setLevel("tenfold", levels);
         }
@@ -1985,8 +1991,8 @@ class GameTest {
             game.buy("double");
             setSpeedLevels(game, 3);
             assertEquals(1, game.generatorCount());           // un seul générateur pour l'instant
-            assertValue(500, game.productionPerSecond());
-            assertValue(1000, game.productionAtFusion());     // mais deux au moment de fusionner
+            assertValue(1000 * UNIT, game.productionPerSecond());
+            assertValue(2000 * UNIT, game.productionAtFusion());     // mais deux au moment de fusionner
             assertEquals(1.5, game.fusionYield(), 1e-9);
         }
 
@@ -2043,12 +2049,12 @@ class GameTest {
         }
 
         @Test
-        void leRendementDuJeuDemarreACinquanteMillionsDeParticulesParSeconde() {
+        void leRendementDuJeuDemarreAQuatreCentsMillionsDeParticulesParSeconde() {
             Game game = new Game();
             game.start();
             Upgrade upgrade = game.upgrades().stream().filter(u -> u.id().equals("atom_yield")).findFirst().orElseThrow();
             assertEquals(Resource.ATOMS, upgrade.resource());
-            assertEquals(new Effect.MultiplyAtomsByProduction(50_000_000, 0.09), upgrade.effect());
+            assertEquals(new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09), upgrade.effect());
         }
     }
 
@@ -3329,10 +3335,10 @@ class GameTest {
         @Test
         void lesParticulesCreeesEtDepenseesSontComptees() {
             Game game = newGame();
-            game.tick(40);                                    // 0,25 par seconde : 10 particules
+            game.tick(10 * ONE_PARTICLE);                     // dix créations : 10 particules
             assertValue(10, game.stats().particlesCreated());
             assertValue(10, game.stats().runParticlesCreated());
-            assertEquals(40, game.stats().runTime(), 1e-9);
+            assertEquals(10 * ONE_PARTICLE, game.stats().runTime(), 1e-9);
             BigNum cost = game.costOf("speed");
             assertTrue(game.buy("speed"));
             assertEquals(cost, game.stats().particlesSpent());
@@ -3350,11 +3356,11 @@ class GameTest {
         @Test
         void leRecordDeProductionEstReleveALaLecture() {
             Game game = newGame();
-            assertValue(0.25, game.stats().bestProduction());
+            assertValue(BASE, game.stats().bestProduction());
             game.state().setLevel("gen", 2);
-            assertValue(0.75, game.stats().bestProduction());
+            assertValue(3 * BASE, game.stats().bestProduction());
             game.state().setLevel("gen", 0);                  // la production retombe, pas le record
-            assertValue(0.75, game.stats().bestProduction());
+            assertValue(3 * BASE, game.stats().bestProduction());
         }
 
         @Test
@@ -3369,7 +3375,7 @@ class GameTest {
             assertValue(1, stats.bestAtomsPerFusion());
             assertEquals(30, stats.lastFusionTime(), 1e-9);
             assertEquals(30, stats.fastestFusionTime(), 1e-9);
-            assertValue(1.5, stats.bestProduction());         // trois générateurs à vitesse doublée, relevée avant la remise à zéro
+            assertValue(6 * BASE, stats.bestProduction());    // trois générateurs à vitesse doublée, relevée avant la remise à zéro
 
             fuseAgain(game);                                  // tout de suite : une partie de zéro seconde
             assertEquals(2, stats.fusions());
@@ -3501,7 +3507,7 @@ class GameTest {
             assertEquals(3, samples.size());
             assertEquals(StatsHistory.FIRST_INTERVAL, samples.get(1).time() - samples.get(0).time(), 0.11);
             StatsHistory.Sample first = samples.get(0);
-            assertEquals(Math.log10(0.25), first.production(), 1e-9);   // un générateur, 0,25 particule par seconde
+            assertEquals(Math.log10(BASE), first.production(), 1e-9);   // un générateur, à la vitesse de départ
             assertEquals(0, first.atomsPerFusion(), 1e-9);              // un atome par fusion
             assertTrue(Double.isNaN(first.fusionTime()));               // aucune fusion encore
             assertEquals(0, first.elementsShare());
@@ -3518,7 +3524,7 @@ class GameTest {
             game.tick(StatsHistory.FIRST_INTERVAL);
             List<StatsHistory.Sample> samples = game.stats().history().samples();
             StatsHistory.Sample last = samples.get(samples.size() - 1);
-            assertEquals(30.5, last.fusionTime(), 1e-9);
+            assertEquals(30 + ONE_PARTICLE / 8, last.fusionTime(), 1e-9);   // gameReadyToFuse a déjà joué un instant
             assertEquals(2.0 / 118, last.elementsShare(), 1e-12);
             assertEquals(4.0 / Game.maxCopies(), last.copiesShare(), 1e-12);
             assertEquals(Math.log10(1.15), last.atomsPerFusion(), 1e-9);    // l'argon
@@ -3533,7 +3539,7 @@ class GameTest {
             assertEquals(1, first.value(StatsHistory.Stat.GENERATORS));
             assertEquals(0, first.value(StatsHistory.Stat.FUSIONS));
             assertEquals(0, first.value(StatsHistory.Stat.EXPLOSIONS));
-            assertEquals(Math.log10(0.25), first.value(StatsHistory.Stat.SPEED), 1e-9);
+            assertEquals(Math.log10(BASE), first.value(StatsHistory.Stat.SPEED), 1e-9);
             assertEquals(1, first.value(StatsHistory.Stat.FUSION_YIELD), 1e-9);
             // Ce qui n'a pas encore de sens n'a pas de valeur : la courbe ne commence qu'ensuite.
             assertTrue(Double.isNaN(first.value(StatsHistory.Stat.ATOMS_CREATED)));
@@ -3609,16 +3615,16 @@ class GameTest {
 
         @Test
         void leReleveGardeLeSommetDeProductionDAvantLaFusion() {
-            Game game = gameReadyToFuse();                        // trois générateurs à vitesse doublée : 1,5 par seconde
+            Game game = gameReadyToFuse();                        // trois générateurs à vitesse doublée
             game.tick(StatsHistory.FIRST_INTERVAL);
-            assertTrue(game.fuse());                              // la production retombe à 0,25
-            assertValue(0.25, game.productionPerSecond());
+            assertTrue(game.fuse());                              // la production retombe à celle d'un générateur
+            assertValue(BASE, game.productionPerSecond());
             game.tick(StatsHistory.FIRST_INTERVAL);
             List<StatsHistory.Sample> samples = game.stats().history().samples();
-            assertEquals(Math.log10(1.5), samples.get(samples.size() - 1).production(), 1e-9);
+            assertEquals(Math.log10(6 * BASE), samples.get(samples.size() - 1).production(), 1e-9);
             game.tick(StatsHistory.FIRST_INTERVAL);               // plus de fusion depuis : le relevé suivant dit la production du moment
             samples = game.stats().history().samples();
-            assertEquals(Math.log10(0.25), samples.get(samples.size() - 1).production(), 1e-9);
+            assertEquals(Math.log10(BASE), samples.get(samples.size() - 1).production(), 1e-9);
         }
 
         @Test
@@ -3730,7 +3736,7 @@ class GameTest {
             assertValue(1, game.atomsPerFusion());            // plus aucun bonus d'élément
 
             game.start();                                     // et la partie redémarre normalement
-            game.tick(40);
+            game.tick(10 * ONE_PARTICLE);
             assertValue(10, state.particles());
         }
     }
@@ -3787,9 +3793,9 @@ class GameTest {
 
         @Test
         void uneSecondeDeProductionPaieLaBrancheDesParticules() {
-            Game game = gameWithDarkMatter(3);                    // trois générateurs à vitesse doublée : 1,5 par seconde
+            Game game = gameWithDarkMatter(3);                    // trois générateurs à vitesse doublée
             game.state().setParticles(BigNum.ZERO);
-            assertValue(1.5, game.darkBalance(DarkUpgrade.Branch.PARTICLES));
+            assertValue(6 * BASE, game.darkBalance(DarkUpgrade.Branch.PARTICLES));
             game.state().setParticles(BigNum.of(40));
             assertValue(40, game.darkBalance(DarkUpgrade.Branch.PARTICLES));   // les particules en main, si elles valent plus
             assertFalse(game.canBuyDark("dark_density"));         // 1 000 particules : ni l'un ni l'autre n'y suffit
@@ -4398,37 +4404,38 @@ class GameTest {
 
         @Test
         void leTempsAvantUnAchatSuitLaProduction() {
-            Game game = newGame();                            // 0,25 particule par seconde
-            assertEquals(40, game.secondsUntilParticles(BigNum.of(10)), 1e-6);
+            Game game = newGame();                            // une particule toutes les ONE_PARTICLE secondes
+            assertEquals(10 * ONE_PARTICLE, game.secondsUntilParticles(BigNum.of(10)), 1e-6);
             game.state().setParticles(BigNum.of(5));
-            assertEquals(20, game.secondsUntilParticles(BigNum.of(10)), 1e-6);
+            assertEquals(5 * ONE_PARTICLE, game.secondsUntilParticles(BigNum.of(10)), 1e-6);
             game.state().setParticles(BigNum.of(10));
             assertEquals(0, game.secondsUntilParticles(BigNum.of(10)), 0);
         }
 
         @Test
         void lAttenteDiminueAvecLeTempsEtPasSeulementAChaqueParticule() {
-            Game game = newGame();                            // une particule toutes les 4 secondes
-            assertEquals(4, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
-            game.tick(1);                                     // un quart de la création est fait
-            assertEquals(3, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
-            game.tick(2.5);
-            assertEquals(0.5, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
-            assertEquals(4.5, game.secondsUntilParticles(BigNum.of(2)), 1e-6);   // la suivante, quatre secondes plus tard
-            game.tick(0.5);                                   // la particule arrive : rien ne saute
+            double one = ONE_PARTICLE;                        // le temps d'une création
+            Game game = newGame();
+            assertEquals(one, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
+            game.tick(one / 4);                               // un quart de la création est fait
+            assertEquals(0.75 * one, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
+            game.tick(0.625 * one);
+            assertEquals(0.125 * one, game.secondsUntilParticles(BigNum.of(1)), 1e-6);
+            assertEquals(1.125 * one, game.secondsUntilParticles(BigNum.of(2)), 1e-6);   // la suivante, une création plus tard
+            game.tick(0.125 * one);                           // la particule arrive : rien ne saute
             assertEquals(0, game.secondsUntilParticles(BigNum.of(1)), 0);
-            assertEquals(4, game.secondsUntilParticles(BigNum.of(2)), 1e-6);
+            assertEquals(one, game.secondsUntilParticles(BigNum.of(2)), 1e-6);
         }
 
         @Test
         void lAttenteCompteLesCreationsDeChaqueGenerateur() {
             Game game = gameWithParticles(1100);
             game.buy("gen", 2);                               // trois générateurs, plus rien en poche
-            game.tick(1);
-            // Trois créations en cours, toutes au quart : les trois particules arrivent ensemble dans 3 s,
-            // alors que la moyenne (2 particules manquantes à 0,75 par seconde) annoncerait 2,7 s.
-            assertEquals(3, game.secondsUntilParticles(BigNum.of(2)), 1e-6);
-            assertEquals(7, game.secondsUntilParticles(BigNum.of(4)), 1e-6);   // puis la fournée suivante
+            game.tick(ONE_PARTICLE / 4);
+            // Trois créations en cours, toutes au quart : les trois particules arrivent ensemble aux trois quarts
+            // d'une création, alors que la moyenne (2 particules manquantes, trois générateurs) annoncerait moins.
+            assertEquals(0.75 * ONE_PARTICLE, game.secondsUntilParticles(BigNum.of(2)), 1e-6);
+            assertEquals(1.75 * ONE_PARTICLE, game.secondsUntilParticles(BigNum.of(4)), 1e-6);   // puis la fournée suivante
         }
 
         @Test
@@ -5159,7 +5166,8 @@ class GameTest {
             assertEquals(BigNum.ZERO, game.state().totalAtoms());
             assertValue(8, game.particlesPerCreation());
             game.tick(30);
-            assertFalse(game.ownsAutomation("autoSpeed"));     // rien n'est offert pendant un défi
+            // Depuis la 0.47, l'automatisme qui offre les automatismes agit aussi pendant un défi.
+            assertTrue(game.ownsAutomation("autoSpeed"));
 
             game.abandonChallenge();                           // la partie ordinaire retrouve tout
             assertEquals(3, game.generatorCount());
@@ -5323,10 +5331,11 @@ class GameTest {
             double before = total(game);
             game.tick(1);
             // La moitié de ce que le joueur possédait a disparu ; le peu créé entre-temps ne change presque rien.
-            assertEquals(500, game.state().particles().toDouble(), 1);
+            double created = game.productionPerSecond().toDouble();     // au plus, en une seconde
+            assertEquals(500, game.state().particles().toDouble(), created);
             assertTrue(total(game) < before);
             game.tick(3);
-            assertEquals(1000 * Math.pow(0.5, 4), game.state().particles().toDouble(), 2);
+            assertEquals(1000 * Math.pow(0.5, 4), game.state().particles().toDouble(), 2 * created);
         }
 
         @Test
@@ -5516,7 +5525,7 @@ class GameTest {
         void lesSuccesDEtapeTombentTousSeuls() {
             Game game = gameWithAchievements();
             assertEquals(0, game.achievementCount());
-            game.tick(ONE_PARTICLE);                           // une particule, et plus d'une seconde de jeu
+            game.tick(FIRST_CHECK);                            // une particule, et plus d'une seconde de jeu
             assertTrue(game.hasAchievement("step_first_particle"));
             assertFalse(game.hasAchievement("step_all_generators"));
             game.state().setParticles(BigNum.of(1e9));
@@ -5575,7 +5584,7 @@ class GameTest {
         @Test
         void lesNouveauxSuccesSontAnnoncesUneSeuleFois() {
             Game game = gameWithAchievements();
-            game.tick(ONE_PARTICLE);
+            game.tick(FIRST_CHECK);
             List<Achievement> fresh = game.takeNewAchievements();
             assertEquals(1, fresh.size());
             assertEquals("step_first_particle", fresh.get(0).id());
@@ -5588,7 +5597,7 @@ class GameTest {
         void lExplosionGardeLesSuccesMaisPasLaRemiseAZero() {
             Game game = gameWithAchievements();
             unlock(game);
-            game.tick(ONE_PARTICLE);
+            game.tick(FIRST_CHECK);
             for (Element element : PeriodicTable.ELEMENTS) {
                 game.state().setElementCount(element.number(), element.category().maxCopies());
             }
@@ -5799,32 +5808,35 @@ class GameTest {
 
         /**
          * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit
-         * débloquer le dixième générateur en 30 à 45 minutes avec le catalogue du jeu.
+         * débloquer le dixième générateur en 3 min 30 à 6 minutes avec le catalogue du jeu
+         * (30 à 45 minutes avant le réglage du rythme, voir {@link Game#TEMPO}).
          * Si ce test échoue après un changement dans {@link Upgrades}, c'est que la durée
          * de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
          */
         @Test
-        void laPremierePartieDureEntre30Et45Minutes() {
+        void laPremierePartieDureEntre3Min30Et6Minutes() {
             Game game = new Game();
             game.start();
             double minutes = minutesUntilFusion(game);
 
             assertEquals(Upgrades.MAX_GENERATORS, game.maxGeneratorCount());
             assertTrue(game.canFuse());
-            assertTrue(minutes >= 30 && minutes <= 45, "durée de la première partie : " + minutes + " min");
-            // L'animation n'est lisible que sous 6 créations par seconde et par générateur.
-            assertTrue(game.speed().toDouble() < 6, "vitesse finale trop élevée : " + game.speed().format());
+            assertTrue(minutes >= 3.5 && minutes <= 6, "durée de la première partie : " + minutes + " min");
+            // L'animation se lit création par création sous 6 par seconde et par générateur ; au-delà,
+            // la particule reste pleine et palpite. Le rythme a multiplié la vitesse de départ : la
+            // première partie finit dans ce second mode, mais la vitesse ne doit pas s'envoler pour autant.
+            assertTrue(game.speed().toDouble() < 6 * Game.TEMPO, "vitesse finale trop élevée : " + game.speed().format());
         }
 
         /**
          * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
          * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
-         * économiser pour Persistance) doit créer son trentième atome entre 2 h 45 et 3 h 45.
-         * Plus tôt, le début perd son intérêt ; plus tard, il faut tout racheter à la main des
-         * dizaines de fois.
+         * économiser pour Persistance) doit créer son trentième atome entre 22 et 34 minutes
+         * (2 h 45 à 3 h 45 avant le réglage du rythme). Plus tôt, le début perd son intérêt ;
+         * plus tard, il faut tout racheter à la main des dizaines de fois.
          */
         @Test
-        void automatisationEtTableauArriventEntre2h45Et3h45() {
+        void automatisationEtTableauArriventEntre22Et34Minutes() {
             Game game = new Game();
             game.start();
             double minutes = 0;
@@ -5845,12 +5857,12 @@ class GameTest {
             assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
             assertEquals(0, game.levelOf("atom_keep"));
             assertValue(25, game.costOf("atom_keep"));
-            assertTrue(minutes >= 165 && minutes <= 225, "trentième atome créé après " + minutes + " min");
+            assertTrue(minutes >= 22 && minutes <= 34, "trentième atome créé après " + minutes + " min");
         }
 
         /**
          * Garde-fou sur les atomes : en dépensant ses atomes dès que possible, les parties
-         * raccourcissent, mais les dix premières durent encore plus de trois minutes.
+         * raccourcissent, mais les dix premières durent encore plus de 45 secondes.
          */
         @Test
         void lesAtomesRaccourcissentLesPartiesSansLesRendreInstantanees() {
@@ -5866,7 +5878,7 @@ class GameTest {
                 double minutes = minutesUntilFusion(game);
                 assertTrue(minutes <= previous + 0.5,
                         "la partie " + (fusion + 1) + " est plus longue que la précédente : " + minutes + " min");
-                assertTrue(minutes > 3, "la partie " + (fusion + 1) + " est trop courte : " + minutes + " min");
+                assertTrue(minutes > 0.75, "la partie " + (fusion + 1) + " est trop courte : " + minutes + " min");
                 previous = minutes;
             }
             assertTrue(previous < first / 3, "les atomes n'accélèrent pas assez : " + previous + " min");
@@ -6969,35 +6981,35 @@ class GameTest {
         @Test
         void lesPaliersVontJusquAuCinquiemeBigBang() {
             List<BigBangMilestone> milestones = BigBangMilestones.DEFAULT;
-            // Sept paliers sur cinq Big Bangs : le deuxième et le troisième en donnent deux, et aucun ne demande plus de cinq Big Bangs.
-            assertEquals(7, milestones.size());
+            // Onze paliers sur huit Big Bangs : le deuxième en donne deux, le troisième trois, et aucun ne demande plus de huit Big Bangs.
+            assertEquals(11, milestones.size());
             int previous = 1;
             for (BigBangMilestone milestone : milestones) {
-                assertTrue(milestone.bigBangs() >= previous && milestone.bigBangs() <= 5, milestone.name());
+                assertTrue(milestone.bigBangs() >= previous && milestone.bigBangs() <= 8, milestone.name());
                 assertFalse(milestone.effects().isEmpty());
                 previous = milestone.bigBangs();
             }
             assertEquals(2, milestones.stream().filter(milestone -> milestone.bigBangs() == 2).count());
-            assertEquals(2, milestones.stream().filter(milestone -> milestone.bigBangs() == 3).count());
+            assertEquals(3, milestones.stream().filter(milestone -> milestone.bigBangs() == 3).count());
             assertEquals(List.of(new BigBangMilestone.KeepChallenges()), milestones.get(4).effects());
             // Le cinquième donne deux choses : l'expansion triplée, et l'arbre de matière noire qui traverse le Big Bang.
             assertEquals(List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3), new BigBangMilestone.KeepDarkTree()),
-                    milestones.get(6).effects());
+                    milestones.get(7).effects());
             Game game = game(0);
             game.state().setBigBangs(0);
             assertEquals(milestones, game.bigBangMilestones());
             assertEquals(0, game.bigBangMilestonesReached());
             assertEquals(milestones.get(0), game.nextBigBangMilestone());
-            int[] reached = {0, 1, 3, 5, 6, 7};
-            for (int bigBangs = 1; bigBangs <= 5; bigBangs++) {
+            int[] reached = {0, 1, 3, 6, 7, 8, 9, 10, 11};
+            for (int bigBangs = 1; bigBangs <= 8; bigBangs++) {
                 game.state().setBigBangs(bigBangs);
                 assertEquals(reached[bigBangs], game.bigBangMilestonesReached());
-                assertEquals(bigBangs < 5 ? milestones.get(reached[bigBangs]) : null, game.nextBigBangMilestone());
+                assertEquals(bigBangs < 8 ? milestones.get(reached[bigBangs]) : null, game.nextBigBangMilestone());
             }
-            // Au-delà du cinquième, plus de palier : rien de plus qu'à cinq.
+            // Au-delà du huitième, plus de palier ; et depuis le cinquième, plus aucun multiplicateur.
             double space = game.bigBangMilestoneBoost(Molecule.Stat.SPACE);
             game.state().setBigBangs(9);
-            assertEquals(7, game.bigBangMilestonesReached());
+            assertEquals(11, game.bigBangMilestonesReached());
             assertEquals(space, game.bigBangMilestoneBoost(Molecule.Stat.SPACE), 0);
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(0, "Rien", List.of(new BigBangMilestone.DarkMatter(2))));
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(1, "Rien", List.of()));
@@ -7080,6 +7092,7 @@ class GameTest {
         void lesCreationsDeMoleculesSeComptent() {
             // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
             Game game = game(90_000);
+            game.state().setAutoFollowList(false);         // seulement les amas confiés : la liste de courses a son propre essai
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             GameStats stats = game.stats();
@@ -7150,6 +7163,7 @@ class GameTest {
         void leDeuxiemeBigBangDonneLaCreationAutomatique() {
             // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
             Game game = game(90_000);
+            game.state().setAutoFollowList(false);         // seulement les amas confiés : la liste de courses a son propre essai
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setMoleculeCount("H2O", 3);
@@ -8043,15 +8057,21 @@ class GameTest {
                 int missing = matter.getValue() - game.gatheredInState(matter.getKey());
                 if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
             }
+            // Une matière exotique attend le huitième Big Bang.
+            if (game.body(bodyId).tier() == Body.Tier.EXOTIC && game.state().bigBangs() < 8) game.state().setBigBangs(8);
+            // Le trou noir supermassif demande aussi le cœur de galaxie, un upsilon du collisionneur.
+            if (game.needsGalaxyCore(game.body(bodyId)) && game.state().hadrons(Hadron.UPSILON) == 0) game.state().setHadrons(Hadron.UPSILON, 1);
         }
 
         /** Forme cet astre, et d'abord ceux dont il part. */
         private void form(Game game, String bodyId) {
             for (String smaller : game.body(bodyId).bodies()) {
                 if (!game.hasBody(smaller)) form(game, smaller);
+                game.state().setMaturing(game.body(smaller).id(), 0);
             }
             supply(game, bodyId);
             assertTrue(game.formBody(bodyId), bodyId);
+            game.state().setMaturing(game.body(bodyId).id(), 0);          // mûr tout de suite : la maturation a ses propres essais
         }
 
         /** Rassemble dans chaque état ce que demande cette échelle du cosmos, à cette part près. */
@@ -8094,10 +8114,10 @@ class GameTest {
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
             assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));    // la matière et la variété y sont, pas la galaxie
             assertEquals(11, game.cosmosConditions(Cosmos.CLUSTER));       // la galaxie, cinq quantités, cinq nombres de sortes
-            assertEquals(game.bodies().size(), game.cosmosConditions(Cosmos.GALAXY));
+            assertEquals(game.bodies().size() + 1, game.cosmosConditions(Cosmos.GALAXY));   // les astres, et les systèmes solaires
 
             // La galaxie formée, l'amas de galaxies s'ouvre ; il lui faut chaque état en nombre.
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             gather(game, Cosmos.CLUSTER, 0.5);
             assertTrue(game.formGalaxy());
             assertTrue(game.hasCosmos(Cosmos.GALAXY));
@@ -8179,6 +8199,8 @@ class GameTest {
             for (Body body : Bodies.DEFAULT) {
                 assertTrue(ids.add(body.id()), body.id() + " en double");
                 tiers.merge(body.tier(), 1, Integer::sum);
+                // Les matières exotiques sont à part : sans assemblage, elles partent d'astres déjà formés (MaturationTest… et essais du lot 54).
+                if (body.tier() == Body.Tier.EXOTIC) continue;
                 // Un cumul : des assemblages, de la matière et des molécules, toujours les trois.
                 assertFalse(body.assemblies().isEmpty(), body.id());
                 assertFalse(body.matter().isEmpty(), body.id());
@@ -8187,13 +8209,14 @@ class GameTest {
                 if (body.tier() == Body.Tier.RUBBLE) {
                     assertTrue(body.bodies().isEmpty(), body.id());
                 } else {
-                    Body.Tier below = Body.Tier.values()[body.tier().ordinal() - 1];
+                    Body.Tier below = Body.Tier.values()[body.tier().ordinal() - (body.tier() == Body.Tier.CORE ? 2 : 1)];
                     assertTrue(body.bodies().stream().anyMatch(each -> game.body(each).tier() == below), body.id());
                 }
             }
-            assertEquals(30, Bodies.DEFAULT.size());
+            assertEquals(35, Bodies.DEFAULT.size());
             assertEquals(Map.of(Body.Tier.RUBBLE, 4, Body.Tier.COMET, 3, Body.Tier.ASTEROID, 4, Body.Tier.MOON, 4,
-                    Body.Tier.PLANET, 6, Body.Tier.STAR, 5, Body.Tier.REMNANT, 2, Body.Tier.BLACK_HOLE, 1, Body.Tier.CORE, 1), tiers);
+                    Body.Tier.PLANET, 6, Body.Tier.STAR, 5, Body.Tier.REMNANT, 2, Body.Tier.BLACK_HOLE, 1, Body.Tier.EXOTIC, 5,
+                    Body.Tier.CORE, 1), tiers);
             // Le catalogue finit par le trou noir supermassif, seul dans son échelle.
             assertEquals("supermassive_black_hole", Bodies.DEFAULT.get(Bodies.DEFAULT.size() - 1).id());
         }
@@ -8282,14 +8305,18 @@ class GameTest {
             assertEquals(6, game.bodiesFormed(Body.Tier.PLANET));
             // Il manque encore des astres : pas de galaxie, même avec le trou noir supermassif.
             for (Body body : game.bodies()) {
-                if (!body.id().equals("white_dwarf") && !body.id().equals("supermassive_black_hole") && !game.hasBody(body.id())) {
+                if (!List.of("white_dwarf", "planetary_nebula", "supermassive_black_hole").contains(body.id()) && !game.hasBody(body.id())) {
                     form(game, body.id());
                 }
             }
-            assertEquals(28, game.bodiesFormed());
+            assertEquals(32, game.bodiesFormed());
             assertFalse(game.canFormGalaxy());
             form(game, "supermassive_black_hole");
-            assertEquals(30, game.bodiesFormed());
+            form(game, "planetary_nebula");
+            assertEquals(35, game.bodiesFormed());
+            // Tous les astres, mais pas encore de systèmes solaires : pas de galaxie.
+            assertFalse(game.canFormGalaxy());
+            Systemes.trois(game);
             assertTrue(game.canFormGalaxy());
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.moleculeBoost(stat);
@@ -8303,10 +8330,15 @@ class GameTest {
             assertEquals(firstBody, game.stats().reachedAt(GameStats.Step.FIRST_BODY), 1e-9);
             assertTrue(game.hasGalaxy() && !game.canFormGalaxy() && !game.formGalaxy());
             // Rien n'est consommé, et toutes les grandeurs gagnent autant : le double du trou noir supermassif.
-            assertEquals(30, game.bodiesFormed());
+            assertEquals(35, game.bodiesFormed());
             assertEquals(molecules, game.moleculesCreated());
             assertEquals(2 * Body.Tier.CORE.gain(), Game.GALAXY_GAIN, 0);
             for (Molecule.Stat stat : Molecule.Stat.values()) {
+                // L'espace : la matière exotique a demandé le huitième Big Bang, dont les paliers multiplient aussi ce gain.
+                if (stat == Molecule.Stat.SPACE) {
+                    assertTrue(game.moleculeBoost(stat) - before[stat.ordinal()] >= Game.GALAXY_GAIN, stat.name());
+                    continue;
+                }
                 assertEquals(before[stat.ordinal()] + Game.GALAXY_GAIN, game.moleculeBoost(stat), 1e-6, stat.name());
             }
         }
@@ -8317,6 +8349,7 @@ class GameTest {
             for (Body body : game.bodies()) {
                 if (!game.hasBody(body.id())) form(game, body.id());
             }
+            Systemes.trois(game);
             int version = game.state().moleculesVersion();
             assertTrue(game.formGalaxy());
             assertTrue(game.state().moleculesVersion() != version, "la vue de l'espace doit se refaire");
@@ -8330,7 +8363,7 @@ class GameTest {
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
             assertTrue(game.hasGalaxy() && game.isGalaxyUnlocked());
-            assertEquals(30, game.bodiesFormed());
+            assertEquals(35, game.bodiesFormed());
             game.reset();
             assertFalse(game.hasGalaxy() || game.state().hasGalaxy());
         }
@@ -8370,7 +8403,7 @@ class GameTest {
             Game game = game();
             assertTrue(game.bodies() == game.bodies() && game.assemblies() == game.assemblies()
                     && game.spaceUpgrades() == game.spaceUpgrades());
-            assertEquals(30, game.bodies().size());
+            assertEquals(35, game.bodies().size());
             assertEquals(58, game.assemblies().size());
             assertThrows(UnsupportedOperationException.class, () -> game.bodies().remove(0));
             assertThrows(UnsupportedOperationException.class, () -> game.assemblies().remove(0));
@@ -8392,6 +8425,7 @@ class GameTest {
                     case STAR -> 1;
                     case COMET, ASTEROID, MOON, REMNANT, BLACK_HOLE -> 2;
                     case PLANET, CORE -> 3;
+                    case EXOTIC -> 0;                                       // les matières exotiques : sans assemblage
                 };
                 assertEquals(expected, body.assemblies().size(), body.id());
             }
@@ -8410,16 +8444,22 @@ class GameTest {
             int[] most = new int[Body.Tier.values().length];
             java.util.Arrays.fill(least, Integer.MAX_VALUE);
             for (Body body : game.bodies()) {
+                if (body.tier() == Body.Tier.EXOTIC) continue;                // à part : voir plus bas
                 int asked = 0;
                 for (int count : body.matter().values()) asked += count;
                 least[body.tier().ordinal()] = Math.min(least[body.tier().ordinal()], asked);
                 most[body.tier().ordinal()] = Math.max(most[body.tier().ordinal()], asked);
                 assertEquals(body.tier().gain(), body.boost().perMolecule(), 0);
             }
-            for (int tier = 1; tier < least.length; tier++) {
-                assertTrue(least[tier] > most[tier - 1] * 0.9, Body.Tier.values()[tier] + " : " + least[tier] + " contre " + most[tier - 1]);
-                assertEquals(2 * Body.Tier.values()[tier - 1].gain(), Body.Tier.values()[tier].gain(), 0);
+            List<Body.Tier> ladder = new java.util.ArrayList<>(List.of(Body.Tier.values()));
+            ladder.remove(Body.Tier.EXOTIC);
+            for (int at = 1; at < ladder.size(); at++) {
+                int tier = ladder.get(at).ordinal(), below = ladder.get(at - 1).ordinal();
+                assertTrue(least[tier] > most[below] * 0.9, ladder.get(at) + " : " + least[tier] + " contre " + most[below]);
+                assertEquals(2 * ladder.get(at - 1).gain(), ladder.get(at).gain(), 0);
             }
+            // Les matières exotiques : entre les trous noirs et le cœur, en gain comme en matière demandée.
+            assertTrue(Body.Tier.EXOTIC.gain() > Body.Tier.BLACK_HOLE.gain() && Body.Tier.EXOTIC.gain() < Body.Tier.CORE.gain());
             assertTrue(least[0] >= 300, "un amas demande des centaines de molecules : " + least[0]);
             assertTrue(least[4] >= 4000, "une planete en demande des milliers : " + least[4]);
         }
@@ -8482,7 +8522,10 @@ class GameTest {
             assertFalse(game.canFormBody("icy_comet"));               // il manque l'amas glacé
             supply(game, "icy_rubble");
             assertTrue(game.formBody("icy_rubble"));
-            assertTrue(game.canFormBody("icy_comet"));
+            assertFalse(game.canFormBody("icy_comet"), "l'amas glacé mûrit encore");
+            game.state().setMaturing("icy_rubble", 0);
+            assertTrue(game.isBodyMature("icy_rubble"));
+            assertTrue(game.canFormBody("icy_comet"), game.bodyConditionsMet("icy_comet") + "/" + game.bodyConditions("icy_comet"));
             assertTrue(game.formBody("icy_comet"));
             assertEquals(List.of("icy_rubble", "icy_comet"), game.state().bodies());
         }
@@ -8511,6 +8554,8 @@ class GameTest {
             supply(game, "rocky_rubble");
             double atoms = game.moleculeBoost(Molecule.Stat.ATOMS);
             assertTrue(game.formBody("rocky_rubble"));
+            assertEquals(atoms + 2 * Game.MATURING_SHARE, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-9);   // en maturation : un quart
+            game.state().setMaturing("rocky_rubble", 0);
             assertEquals(atoms + 2, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-9);            // un amas : +200 %
             assertEquals(32, game.body("ocean_planet").boost().perMolecule(), 0);             // une planète : +3 200 %
         }
@@ -8521,7 +8566,7 @@ class GameTest {
             for (Body body : game.bodies()) {
                 if (!game.hasBody(body.id())) form(game, body.id());
             }
-            assertEquals(30, game.bodiesFormed());
+            assertEquals(35, game.bodiesFormed());
             assertTrue(game.hasBody("gas_giant_planet") && game.hasBody("yellow_sun") && game.hasBody("supermassive_black_hole"));
             assertTrue(game.moleculeBoost(Molecule.Stat.SPACE) > 60);
         }

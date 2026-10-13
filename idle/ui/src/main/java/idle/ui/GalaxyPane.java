@@ -142,6 +142,11 @@ final class GalaxyPane extends VBox {
             lines.append('\n').append(formed || done == wanted ? "● " : "○ ").append(tier.label()).append(' ')
                     .append(formed ? wanted : done).append('/').append(wanted);
         }
+        int systems = game.solarSystemsComplete();
+        lines.append('\n').append(formed || systems >= Game.SYSTEMS_FOR_GALAXY ? "● " : "○ ").append("Systèmes solaires ")
+                .append(formed ? Game.SYSTEMS_FOR_GALAXY : Math.min(systems, Game.SYSTEMS_FOR_GALAXY)).append('/').append(Game.SYSTEMS_FOR_GALAXY)
+                .append(game.isSolarSystemsUnlocked() || formed ? "" : " (au 6e Big Bang)");
+        int mature = game.bodiesMature();
         cards.get(Cosmos.GALAXY).show(formed ? Card.State.DONE : ready ? Card.State.READY : have > 0 ? Card.State.STARTED : Card.State.WAITING,
                 formed ? "" : have + "/" + all, formed ? "formée" : ready ? "prête" : "", "Galaxie", lines.toString(),
                 "Tous les astres, du premier amas de roches au trou noir supermassif, se mettent "
@@ -149,7 +154,19 @@ final class GalaxyPane extends VBox {
                         + "les astres restent formés et gardent leur bonus. La galaxie augmente d'un coup les quatre "
                         + "grandeurs que la matière multiplie, du double de ce que donne le trou noir supermassif. Ni "
                         + "l'explosion ni le Big Bang ne la défont.",
-                formed ? "" : ready ? "Former la galaxie" : "Il manque " + (all - have) + (all - have > 1 ? " astres" : " astre"), "");
+                formed ? "" : ready ? "Former la galaxie" : missingForGalaxy(all, have, mature, systems), "");
+    }
+
+    /** Ce qui manque à la galaxie, en premier : des astres, leur maturation, puis les systèmes solaires. */
+    private String missingForGalaxy(int all, int have, int mature, int systems) {
+        if (have < all) {
+            return "Il manque " + (all - have) + (all - have > 1 ? " astres" : " astre")
+                    + (game.isExoticUnlocked() ? "" : ", dont les matières exotiques (au 8e Big Bang)");
+        }
+        if (mature < all) return (all - mature) + (all - mature > 1 ? " astres mûrissent" : " astre mûrit") + " encore";
+        int lacking = Game.SYSTEMS_FOR_GALAXY - systems;
+        return "Il manque " + lacking + (lacking > 1 ? " systèmes solaires" : " système solaire")
+                + (game.isSolarSystemsUnlocked() ? "" : " (au 6e Big Bang)");
     }
 
     /** La carte de l'amas de galaxies ou de l'univers : l'échelle d'avant, puis une ligne par état de la matière. */

@@ -43,7 +43,7 @@ public final class Bodies {
     private static final Molecule.State CRYSTAL = Molecule.State.CRYSTAL;
     private static final Molecule.State METAL = Molecule.State.METAL;
 
-    public static final List<Body> DEFAULT = List.of(
+    public static final List<Body> DEFAULT = longer(List.of(
             // Les amas de roches : des cailloux tenus ensemble, faits d'assemblages.
             Body.of(Body.Tier.RUBBLE, "rocky_rubble", "Amas rocheux", Body.Look.ROCKY, "#a79a94", "#6f655f", Molecule.Stat.ATOMS)
                     .made("sandy_rock").matter(CRYSTAL, 400).molecules("SiO2", 250),
@@ -142,10 +142,45 @@ public final class Bodies {
             Body.of(Body.Tier.BLACK_HOLE, "black_hole", "Trou noir", Body.Look.VOID, "#ff9a3a", "#ffe0a0", Molecule.Stat.DARK_GROWTH)
                     .from("neutron_star", "blue_giant").made("accretion_disc", "heavy_ashes").matter(GAS, 22000)
                     .matter(CRYSTAL, 6000).molecules("H2", 19000),
+            // Les matières exotiques (version 0.54), ouvertes au huitième Big Bang : sans assemblage, faites
+            // d'astres déjà formés et de beaucoup de matière rassemblée.
+            Body.of(Body.Tier.EXOTIC, "pulsar", "Pulsar", Body.Look.BEAMING, "#e6f0ff", "#9ac8ff", Molecule.Stat.PARTICLES)
+                    .from("neutron_star").matter(METAL, 900).matter(CRYSTAL, 18000),
+            Body.of(Body.Tier.EXOTIC, "planetary_nebula", "Nébuleuse planétaire", Body.Look.NEBULA, "#7ad8c8", "#e08ad0", Molecule.Stat.SPACE)
+                    .from("white_dwarf").matter(GAS, 54000).matter(LIQUID, 10000),
+            Body.of(Body.Tier.EXOTIC, "magnetar", "Magnétar", Body.Look.BEAMING, "#d0b8ff", "#ff8ad8", Molecule.Stat.DARK_GROWTH)
+                    .from("neutron_star", "red_giant").matter(METAL, 1200).matter(SOLID, 800),
+            Body.of(Body.Tier.EXOTIC, "emission_nebula", "Nébuleuse d'émission", Body.Look.NEBULA, "#ff7a9a", "#ffd0a0", Molecule.Stat.ATOMS)
+                    .from("blue_giant").matter(GAS, 63000).molecules("H2", 45000),
+            Body.of(Body.Tier.EXOTIC, "quasar", "Quasar", Body.Look.VOID, "#9ad8ff", "#ffffff", Molecule.Stat.SPACE)
+                    .from("black_hole").matter(GAS, 75000).matter(CRYSTAL, 21000).matter(METAL, 1500),
             Body.of(Body.Tier.CORE, "supermassive_black_hole", "Trou noir supermassif", Body.Look.VOID, "#ffb85a", "#fff0c8",
                             Molecule.Stat.SPACE)
                     .from("black_hole", "white_dwarf", "yellow_sun").made("galactic_core_gas", "bulge_dust", "stellar_wreckage")
-                    .matter(GAS, 30000).matter(CRYSTAL, 10000).matter(LIQUID, 6000).molecules("H2", 26000));
+                    .matter(GAS, 30000).matter(CRYSTAL, 10000).matter(LIQUID, 6000).molecules("H2", 26000)));
+
+    /**
+     * Ce que les astres demandent à partir des lunes, multiplié (version 0.54) : la route vers la
+     * galaxie s'allonge en création, pas en attente. Les matières exotiques ont déjà leurs nombres.
+     */
+    static final double LATER_BODIES = 1.5;
+
+    private static List<Body> longer(List<Body> catalog) {
+        List<Body> out = new java.util.ArrayList<>();
+        for (Body body : catalog) {
+            if (body.tier().ordinal() < Body.Tier.MOON.ordinal() || body.tier() == Body.Tier.EXOTIC) {
+                out.add(body);
+                continue;
+            }
+            java.util.Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
+            body.matter().forEach((state, count) -> matter.put(state, (int) Math.round(count * LATER_BODIES)));
+            java.util.Map<String, Integer> molecules = new java.util.LinkedHashMap<>();
+            body.molecules().forEach((id, count) -> molecules.put(id, (int) Math.round(count * LATER_BODIES)));
+            out.add(new Body(body.id(), body.name(), body.tier(), body.look(), body.tint(), body.accent(), body.stat(),
+                    body.bodies(), body.assemblies(), matter, molecules));
+        }
+        return List.copyOf(out);
+    }
 
     private Bodies() {}
 }

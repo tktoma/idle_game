@@ -6,9 +6,12 @@ import idle.core.BigNum;
 import idle.core.Game;
 import idle.core.Molecule;
 import idle.core.PeriodicTable;
+import idle.core.ShoppingList;
 import idle.core.SpaceUpgrade;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -87,10 +90,18 @@ final class BigBangPage extends VBox {
     private final Button bodiesTab = new Button("Astres");
     /** Sous-page « Astres ». */
     private final BodiesPane bodiesPane;
+    /** La page des astres défile d'un bloc : le ciel, puis toutes les familles d'astres. */
+    private final ScrollPane bodiesScroll;
     /** Sous-page « Univers » : la galaxie, l'amas de galaxies, l'univers. */
     private final Button galaxyTab = new Button("Univers");
     /** Les paliers de Big Bang : rangé à côté des améliorations, mais numéroté après la galaxie ({@link #select(int)}). */
     private final Button milestonesTab = new Button("Paliers");
+    private final Button probesTab = new Button("Sondes");
+    private final Button systemsTab = new Button("Systèmes solaires");
+    private final SystemsPane systemsPane;
+    private final ScrollPane systemsScroll;
+    private final ProbesPane probesPane;
+    private final ScrollPane probesScroll;
     private final GalaxyPane galaxyPane;
     private int selected = 0;
 
@@ -119,19 +130,32 @@ final class BigBangPage extends VBox {
     private final FilterBar.Group<Gives> givesFilter;
     private final FilterBar.Group<Use> useFilter;
     private final Label moleculesFound = new Label();
+    /** Crée le plus possible de chaque molécule que montrent les filtres (ou les favorites). */
+    private final Button createShownButton = new Button("Créer le maximum");
+    private final HBox foundRow = new HBox(10, moleculesFound, createShownButton);
     /** La collection du rayon affiché : où elle en est, et ce qu'elle rapporte. */
     private final Label collectionLabel = new Label();
     /** Les défis de Big Bang, sous les paliers. */
     private final BangChallengesPane bangChallenges;
     /** La comète : le bouton qui la saisit, montré le temps qu'elle traverse l'expansion. */
     private final Button cometButton = new Button();
+    /** L'impulsion, sur la page Expansion et au-dessus des molécules : deux boutons, la même action. */
+    private final Button pulseButton = pulseButton();
+    private final Button moleculesPulseButton = pulseButton();
     /** La liste de courses du prochain pas, au-dessus des assemblages, des astres et de l'univers. */
     private final ShoppingPane shoppingPane;
     // Le meilleur achat : la création qui rapporte le plus pour l'espace qu'elle prend, et le tri des cartes par rendement.
     private final Label bestLabel = new Label();
     private final Button bestButton = new Button("Créer");
     private final Button sortButton = new Button();
-    private final HBox bestBar = new HBox(8, bestLabel, bestButton, sortButton);
+    // Les boutons d'abord, le texte ensuite : le bouton « Créer » ne bouge plus quand le texte change de longueur,
+    // et peut se cliquer à la chaîne.
+    /** L'achat simple : une molécule du rayon affiché, tirée au hasard, utile au prochain pas d'abord. */
+    private final Button randomButton = new Button("Au hasard dans ce rayon");
+    private final HBox bestBar = new HBox(8, bestButton, randomButton, sortButton, bestLabel);
+    /** Ce que demande le prochain pas, rayon par rayon et état par état. */
+    private final Label needsLabel = new Label();
+    private final HBox pulseBar = new HBox(moleculesPulseButton);
     private boolean sortedByYield = false;
     private Molecule best = null;
     private Molecule bestHere = null;
@@ -203,6 +227,14 @@ final class BigBangPage extends VBox {
         this.rateBreakdown = Breakdown.attach(rateLabel, game, Breakdown.Of.SPACE);
         this.bangChallenges = new BangChallengesPane(game, this::refresh);
         this.bodiesPane = new BodiesPane(game, this::refresh);
+        this.bodiesScroll = new ScrollPane(bodiesPane);
+        transparent(bodiesScroll);
+        this.probesPane = new ProbesPane(game, this::refresh);
+        this.probesScroll = new ScrollPane(probesPane);
+        transparent(probesScroll);
+        this.systemsPane = new SystemsPane(game, this::refresh);
+        this.systemsScroll = new ScrollPane(systemsPane);
+        transparent(systemsScroll);
         this.galaxyPane = new GalaxyPane(game, this::refresh, () -> {
             // La plus grande échelle formée : la galaxie, ou plus loin, l'amas de galaxies, l'univers.
             spaceView.showGalaxy(true);
@@ -227,10 +259,18 @@ final class BigBangPage extends VBox {
         bodiesTab.setOnAction(event -> select(5));
         galaxyTab.setOnAction(event -> select(6));
         milestonesTab.setOnAction(event -> select(7));
-        for (Button tab : new Button[] {moleculesTab, expansionTab, upgradesTab, milestonesTab, statesTab, assembliesTab, bodiesTab, galaxyTab}) {
+        probesTab.setOnAction(event -> {
+            select(8);
+            refresh();
+        });
+        systemsTab.setOnAction(event -> {
+            select(9);
+            refresh();
+        });
+        for (Button tab : new Button[] {moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab}) {
             tab.setFocusTraversable(false);
         }
-        FlowPane subTabs = new FlowPane(0, 0, moleculesTab, expansionTab, upgradesTab, milestonesTab, statesTab, assembliesTab, bodiesTab, galaxyTab);
+        FlowPane subTabs = new FlowPane(0, 0, moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab);
         subTabs.setAlignment(Pos.CENTER);
 
         // Les molécules : une phrase, les rayons du catalogue, puis les cartes du rayon choisi.
@@ -276,12 +316,25 @@ final class BigBangPage extends VBox {
         gridHolder.setMaxWidth(900);
         moleculesPane.getChildren().add(moleculesIntro);
         moleculesPane.getChildren().add(moleculeFilter);
+        needsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+        needsLabel.setWrapText(true);
+        needsLabel.setMaxWidth(760);
+        needsLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        moleculesPane.getChildren().add(needsLabel);
         moleculesPane.getChildren().add(chips);
         bestLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffe9c2;");
         bestButton.setStyle(ZOOM_STYLE);
         bestButton.setFocusTraversable(false);
         bestButton.setOnAction(event -> {
             if (best != null) game.createMolecule(best.id());
+            bestAt = 0;
+            refresh();
+        });
+        randomButton.setStyle(ZOOM_STYLE);
+        randomButton.setFocusTraversable(false);
+        randomButton.setMinWidth(RANDOM_BUTTON_WIDTH);
+        randomButton.setOnAction(event -> {
+            game.createRandomMolecule(kind);
             bestAt = 0;
             refresh();
         });
@@ -292,11 +345,26 @@ final class BigBangPage extends VBox {
             sortShownGrid();
             refresh();
         });
-        bestBar.setAlignment(Pos.CENTER);
+        bestBar.setAlignment(Pos.TOP_LEFT);
+        bestBar.setMaxWidth(BEST_BAR_WIDTH);
+        bestButton.setMinWidth(BEST_BUTTON_WIDTH);
+        bestLabel.setWrapText(true);
+        bestLabel.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(bestLabel, Priority.ALWAYS);
+        StableHeight.of(bestBar);
         note(collectionLabel);
         moleculesPane.getChildren().add(collectionLabel);
+        pulseBar.setAlignment(Pos.CENTER);
+        moleculesPane.getChildren().add(pulseBar);
         moleculesPane.getChildren().add(bestBar);
-        moleculesPane.getChildren().add(moleculesFound);
+        createShownButton.setStyle(ZOOM_STYLE);
+        createShownButton.setFocusTraversable(false);
+        createShownButton.setOnAction(event -> {
+            createAllShown();
+            refresh();
+        });
+        foundRow.setAlignment(Pos.CENTER);
+        moleculesPane.getChildren().add(foundRow);
         moleculesPane.getChildren().add(nextKindLabel);
         moleculesPane.getChildren().add(gridHolder);
         transparent(moleculesScroll);
@@ -353,6 +421,7 @@ final class BigBangPage extends VBox {
         });
         expansionPane.getChildren().add(expansionNote);
         expansionPane.getChildren().add(cometButton);
+        expansionPane.getChildren().add(pulseButton);
         expansionPane.getChildren().add(viewPane);
         expansionPane.getChildren().add(zoomRow);
 
@@ -431,12 +500,12 @@ final class BigBangPage extends VBox {
         transparent(assembliesScroll);
 
         // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
-        StackPane pages = new StackPane(moleculesScroll, expansionPane, upgradesScroll, statesScroll, assembliesScroll, bodiesPane,
-                galaxyPane, milestonesScroll);
+        StackPane pages = new StackPane(moleculesScroll, expansionPane, upgradesScroll, statesScroll, assembliesScroll, bodiesScroll,
+                galaxyPane, milestonesScroll, probesScroll, systemsScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        getChildren().add(countLabel);
-        getChildren().add(sinceLabel);
+        getChildren().add(StableHeight.of(countLabel));
+        getChildren().add(StableHeight.of(sinceLabel));
         getChildren().add(subTabs);
         getChildren().add(shoppingPane);
         getChildren().add(pages);
@@ -474,8 +543,8 @@ final class BigBangPage extends VBox {
      * rangées à l'écran : les paliers viennent après les améliorations.
      */
     void step(int direction) {
-        int[] order = {0, 1, 2, 7, 3, 4, 5, 6};
-        Button[] tabs = {moleculesTab, expansionTab, upgradesTab, milestonesTab, statesTab, assembliesTab, bodiesTab, galaxyTab};
+        int[] order = {0, 1, 2, 7, 8, 3, 4, 5, 9, 6};
+        Button[] tabs = {moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab};
         int at = 0;
         for (int i = 0; i < order.length; i++) {
             if (order[i] == selected) at = i;
@@ -508,7 +577,7 @@ final class BigBangPage extends VBox {
     /**
      * Affiche une sous-page : 0 = les molécules, 1 = l'expansion de la matière, 2 = les améliorations,
      * 3 = les états de la matière, 4 = les assemblages, 5 = les astres, 6 = l'univers (galaxie, amas de galaxies, univers),
-     * 7 = les paliers de Big Bang.
+     * 7 = les paliers de Big Bang, 8 = les sondes, 9 = les systèmes solaires.
      */
     void select(int index) {
         selected = index;
@@ -520,8 +589,13 @@ final class BigBangPage extends VBox {
         statesScroll.setVisible(index == 3);
         assembliesScroll.setVisible(index == 4);
         bodiesPane.setVisible(index == 5);
+        bodiesScroll.setVisible(index == 5);
         galaxyPane.setVisible(index == 6);
         milestonesScroll.setVisible(index == 7);
+        probesScroll.setVisible(index == 8);
+        systemsScroll.setVisible(index == 9);
+        systemsTab.setStyle(subTabStyle(index == 9));
+        probesTab.setStyle(subTabStyle(index == 8));
         moleculesTab.setStyle(subTabStyle(index == 0));
         expansionTab.setStyle(subTabStyle(index == 1));
         upgradesTab.setStyle(subTabStyle(index == 2));
@@ -530,6 +604,11 @@ final class BigBangPage extends VBox {
         bodiesTab.setStyle(subTabStyle(index == 5));
         galaxyTab.setStyle(subTabStyle(index == 6));
         milestonesTab.setStyle(subTabStyle(index == 7));
+    }
+
+    /** Les sondes : pour les vérifications et le raccourci. */
+    ProbesPane probesPane() {
+        return probesPane;
     }
 
     /** La liste de courses : pour les vérifications. */
@@ -697,8 +776,12 @@ final class BigBangPage extends VBox {
 
     /** La ligne du meilleur achat, ou un texte vide quand elle est cachée : pour les vérifications. */
     String bestText() {
-        return bestLabel.isVisible() ? bestLabel.getText() : "";
+        return best == null ? "" : bestLabel.getText();
     }
+
+    /** Largeur de la barre du meilleur achat, et du bouton « Créer » : fixes pour que le bouton reste sous la souris. */
+    private static final double BEST_BAR_WIDTH = 760;
+    private static final double BEST_BUTTON_WIDTH = 96;
 
     /** Le meilleur achat du moment, tous rayons ouverts confondus : pour les vérifications. */
     Molecule best() {
@@ -862,6 +945,7 @@ final class BigBangPage extends VBox {
         if (selected == 5) bodiesPane.frame(elapsed);
         if (selected == 7) bangChallenges.frame(elapsed);
         if (selected == 6) galaxyPane.frame(elapsed);
+        if (selected == 8) probesPane.frame(elapsed);
     }
 
     /** Recopie l'état du jeu dans les textes. */
@@ -901,6 +985,20 @@ final class BigBangPage extends VBox {
         galaxyTab.setText((game.cosmosFormed() == 0 ? "Univers" : game.nextCosmos() == null ? "Univers (formé)"
                 : "Univers (" + game.cosmosFormed() + "/" + idle.core.Cosmos.values().length + ")") + Readiness.dot(ready.cosmos()));
         if (selected == 6 && !galaxy) select(0);
+        boolean probes = game.isProbesUnlocked();
+        probesTab.setVisible(probes);
+        probesTab.setManaged(probes);
+        int waiting = game.state().probeRewards().size();
+        probesTab.setText((waiting > 0 ? "Sondes (" + waiting + ")" : "Sondes") + Readiness.dot(ProbesPane.ready(game)));
+        if (selected == 8 && !probes) select(0);
+        boolean systems = game.isSolarSystemsUnlocked();
+        systemsTab.setVisible(systems);
+        systemsTab.setManaged(systems);
+        int complete = game.solarSystemsComplete();
+        systemsTab.setText("Systèmes solaires (" + complete + "/" + Game.SYSTEMS_FOR_GALAXY + ")"
+                + Readiness.dot(systems && complete < Game.SYSTEMS_FOR_GALAXY && !game.freeForSystems(idle.core.Body.Tier.PLANET).isEmpty()
+                        && (!game.state().solarSystems().isEmpty() || !game.freeForSystems(idle.core.Body.Tier.STAR).isEmpty())));
+        if (selected == 9 && !systems) select(0);
         // La liste de courses accompagne les trois sous-pages où l'on forme quelque chose.
         if (selected >= 4 && selected <= 6) {
             shoppingPane.refresh();
@@ -916,6 +1014,8 @@ final class BigBangPage extends VBox {
             case 4 -> refreshAssemblies();
             case 5 -> bodiesPane.refresh();
             case 6 -> galaxyPane.refresh();
+            case 8 -> probesPane.refresh();
+            case 9 -> systemsPane.refresh();
             default -> refreshMilestones();
         }
     }
@@ -927,7 +1027,7 @@ final class BigBangPage extends VBox {
         milestonesIntro.setText(next == null
                 ? "Les " + game.bigBangMilestones().size() + " paliers sont atteints. Un Big Bang de plus ajoute encore "
                         + ElementText.number(Game.SPACE_PER_SECOND) + " unité d'espace par seconde, rien d'autre."
-                : "Chaque Big Bang déclenché, jusqu'au cinquième, donne un gros bonus pour de bon, parfois deux (" + count
+                : "Chaque Big Bang déclenché, jusqu'au huitième, donne un gros bonus pour de bon, parfois plusieurs (" + count
                         + (count > 1 ? " Big Bangs déclenchés" : " Big Bang déclenché") + ")."
                         + Detail.only(" Rien à acheter : un palier agit dès que son Big Bang a eu lieu, et ni l'explosion ni un "
                                 + "autre Big Bang ne le reprennent. C'est ce qui paie le détour : après un Big Bang tout repart "
@@ -981,6 +1081,10 @@ final class BigBangPage extends VBox {
             case BigBangMilestone.AutoMolecules auto -> "Les amas choisis se créent tout seuls";
             case BigBangMilestone.KeepDarkTree keep -> "L'arbre de matière noire traverse le Big Bang";
             case BigBangMilestone.KeepChallenges keep -> "Les défis réussis le restent";
+            case BigBangMilestone.Probes probes -> "Les sondes : une nouvelle sous-page";
+            case BigBangMilestone.SolarSystems systems -> "Les systèmes solaires : la galaxie en demande " + Game.SYSTEMS_FOR_GALAXY;
+            case BigBangMilestone.MorePlaces more -> "+" + more.maturation() + " places de maturation, +" + more.probes() + " sonde en vol";
+            case BigBangMilestone.ExoticMatter exotic -> "Les matières exotiques : des astres de plus pour la galaxie";
         };
     }
 
@@ -1012,6 +1116,19 @@ final class BigBangPage extends VBox {
                     + "Automatisation. Dans la sous-page États de la matière, un clic sur un amas le lui confie : toutes les "
                     + ElementText.number(game.moleculeAutomationInterval()) + " secondes, il y fait une création, au même prix "
                     + "qu'à la main, tant que le tableau périodique et l'espace le permettent.";
+            case BigBangMilestone.SolarSystems systems -> "Une sous-page « Systèmes solaires » s'ouvre : autour d'une étoile mûre, "
+                    + "on range des planètes, de la plus proche à la plus lointaine, et des lunes. Un système est complet à "
+                    + Game.SYSTEM_MIN_PLANETS + " planètes, et la galaxie en demande " + Game.SYSTEMS_FOR_GALAXY + ". Chaque point "
+                    + "d'harmonie d'un système complet (une planète bien placée, une lune, une étoile géante, la zone habitable) "
+                    + "ajoute " + ElementText.percent(Game.SYSTEM_GAIN) + " à toutes les grandeurs.";
+            case BigBangMilestone.MorePlaces more -> "Trois astres mûrissaient à la fois : il en mûrit " + more.maturation()
+                    + " de plus. Et une sonde de plus peut voler, en plus du hangar.";
+            case BigBangMilestone.ExoticMatter exotic -> "Les matières exotiques s'ouvrent dans les astres : pulsar, magnétar, "
+                    + "nébuleuses, quasar. Ils ne demandent aucun assemblage, seulement des astres déjà formés et beaucoup de "
+                    + "matière rassemblée, et la galaxie les demande aussi.";
+            case BigBangMilestone.Probes probes -> "Une sous-page « Sondes » s'ouvre : une sonde part de 15 minutes à 8 heures "
+                    + "et rapporte des éléments d'un rayon, de l'espace, des sursauts d'expansion et des échantillons. Chaque "
+                    + "récompense se réclame d'un clic. Les échantillons paient les améliorations des sondes ; tout traverse le Big Bang.";
             case BigBangMilestone.KeepChallenges keep -> "Dès ce Big Bang-là, et à tous les suivants, les défis réussis "
                     + "traversent le Big Bang : ils restent réussis, avec leurs récompenses, et la condition « les "
                     + game.challenges().size() + " défis réussis » du Big Bang suivant est déjà remplie. Rien n'empêche de les "
@@ -1415,6 +1532,7 @@ final class BigBangPage extends VBox {
     }
 
     private void refreshMolecules() {
+        refreshPulse();
         moleculesIntro.setText("Une molécule se crée avec des exemplaires du tableau périodique et de l'espace libre ("
                 + Format.count(game.freeSpace()) + " en ce moment), et reste pour toujours."
                 + Detail.only(" Les exemplaires quittent le tableau avec ce qu'ils y apportaient ; un exemplaire de "
@@ -1442,11 +1560,12 @@ final class BigBangPage extends VBox {
         if (!game.isMoleculeKindUnlocked(kind)) selectKind(Molecule.Kind.SIMPLE);
         // Le meilleur achat, et le bouton qui range les cartes par rendement.
         findBest();
-        bestLabel.setVisible(best != null);
-        bestLabel.setManaged(best != null);
-        bestButton.setVisible(best != null);
-        bestButton.setManaged(best != null);
-        if (best != null) {
+        // La barre garde sa place même sans meilleur achat : rien ne saute sous la souris.
+        bestButton.setDisable(best == null);
+        if (best == null) {
+            bestLabel.setText("Meilleur achat : aucune création possible pour l'instant");
+            bestButton.setText("Créer");
+        } else {
             int lot = game.moleculesNextCreation(best.id());
             bestLabel.setText("Meilleur achat : " + best.name() + " " + best.formula()
                     + (best.kind() == kind ? "" : " (rayon " + best.kind().label() + ")") + ", " + gainText(game.moleculeGain(best.id()))
@@ -1465,10 +1584,17 @@ final class BigBangPage extends VBox {
         favoritesChip.setText("★ Favorites  " + pinned.size());
         favoritesChip.setVisible(!pinned.isEmpty());
         favoritesChip.setManaged(!pinned.isEmpty());
+        Map<Molecule.Kind, Integer> missing = game.missingByKind();
+        needsLabel.setText(needs(missing));
+        needsLabel.setVisible(!needsLabel.getText().isEmpty());
+        needsLabel.setManaged(needsLabel.isVisible());
+        randomButton.setDisable(favoritesShown || !game.canCreateInKind(kind));
         kindChips.forEach((each, chip) -> {
             int[] total = totals.getOrDefault(each, new int[3]);
             // Pendant une recherche, chaque rayon dit combien de ses molécules correspondent.
-            chip.setText(each.label() + "  " + (filtered ? total[2] + " sur " + total[1] : total[0] + "/" + total[1]));
+            int wanted = missing.getOrDefault(each, 0);
+            chip.setText(each.label() + "  " + (filtered ? total[2] + " sur " + total[1] : total[0] + "/" + total[1])
+                    + (wanted > 0 ? "  · " + wanted + " à créer" : ""));
             boolean open = game.isMoleculeKindUnlocked(each);
             chip.setVisible(open);
             chip.setManaged(open);
@@ -1490,6 +1616,15 @@ final class BigBangPage extends VBox {
                         + (favoritesShown ? " parmi les favorites" : " dans ce rayon"));
         moleculesFound.setVisible(filtered);
         moleculesFound.setManaged(filtered);
+        boolean batch = filtered || favoritesShown;
+        foundRow.setVisible(batch);
+        foundRow.setManaged(batch);
+        if (batch) {
+            boolean possible = false;
+            for (Molecule molecule : shownMolecules()) possible |= game.canCreateMolecule(molecule.id());
+            createShownButton.setDisable(!possible);
+            createShownButton.setText(possible ? "Créer le maximum de celles-ci" : "Rien à créer pour l'instant");
+        }
         if (favoritesShown) {
             // Les favorites : une carte par molécule épinglée, dans l'ordre où elles l'ont été ; les autres se retirent.
             java.util.List<Molecule> favorites = game.favoriteMolecules();
@@ -1516,6 +1651,70 @@ final class BigBangPage extends VBox {
             if (match) fill(molecule, card);
         });
     }
+
+    /**
+     * Le prochain pas en une ligne : ce qu'il manque, par rayon et par état. « Pour Amas rocheux : 3 à créer
+     * en Sels, 2 en Minéraux · 4 solides à rassembler. » Vide quand il n'y a rien à viser.
+     */
+    private String needs(Map<Molecule.Kind, Integer> missing) {
+        ShoppingList shopping = game.shoppingList();
+        if (shopping.kind() == ShoppingList.Kind.NONE) return "";
+        if (shopping.ready()) return "Pour " + shopping.target() + " : tout est réuni, il n'y a plus qu'à le former.";
+        List<String> parts = new ArrayList<>();
+        missing.forEach((each, count) -> parts.add(count + " en " + each.label()
+                + (game.isMoleculeKindUnlocked(each) ? "" : " (rayon à ouvrir dans les améliorations)")));
+        StringBuilder text = new StringBuilder("Pour " + shopping.target() + " : ");
+        if (!parts.isEmpty()) text.append(String.join(", ", parts).replaceFirst(" en ", " à créer en "));
+        List<String> matter = new ArrayList<>();
+        shopping.matter().forEach((state, count) -> matter.add(count + " " + MatterText.plural(state)));
+        shopping.sorts().forEach((state, count) -> matter.add(count + (count > 1 ? " sortes de " : " sorte de ") + MatterText.plural(state)));
+        if (!matter.isEmpty()) text.append(parts.isEmpty() ? "" : " · ").append(String.join(", ", matter)).append(" à rassembler");
+        if (parts.isEmpty() && matter.isEmpty()) text.append("il reste à rassembler ou à assembler ce qui est déjà créé");
+        return text.append(".").toString();
+    }
+
+    private static final double RANDOM_BUTTON_WIDTH = 190;
+
+    /** Les molécules à l'écran : les favorites ou le rayon affiché, filtres appliqués. */
+    List<Molecule> shownMolecules() {
+        boolean filtered = moleculeFilter.active();
+        List<Molecule> shown = new ArrayList<>();
+        if (favoritesShown) {
+            for (Molecule molecule : game.favoriteMolecules()) {
+                if (game.isMoleculeKindUnlocked(molecule.kind()) && (!filtered || shown(molecule))) shown.add(molecule);
+            }
+        } else {
+            for (Molecule molecule : game.molecules()) {
+                if (molecule.kind() == kind && (!filtered || shown(molecule))) shown.add(molecule);
+            }
+        }
+        return shown;
+    }
+
+    /**
+     * Crée tout ce qui peut l'être parmi les molécules à l'écran, une de chaque à tour de rôle, pour que
+     * l'espace et les éléments se partagent entre elles au lieu d'aller tous à la première.
+     *
+     * @return le nombre de créations faites
+     */
+    int createAllShown() {
+        List<Molecule> targets = shownMolecules();
+        int made = 0;
+        boolean any = true;
+        while (any && made < MAX_BATCH_CREATIONS) {
+            any = false;
+            for (Molecule molecule : targets) {
+                if (game.createMolecule(molecule.id())) {
+                    made++;
+                    any = true;
+                }
+            }
+        }
+        return made;
+    }
+
+    /** Garde-fou : le plus grand nombre de créations d'un seul clic sur « Créer le maximum ». */
+    static final int MAX_BATCH_CREATIONS = 5_000;
 
     /** Remplit la carte d'une molécule : ce qu'elle donne, ce qu'elle occupe, combien il y en a, ce que demande la suivante. */
     private void fill(Molecule molecule, Card card) {
@@ -1564,7 +1763,44 @@ final class BigBangPage extends VBox {
         return "";
     }
 
+    /** Un bouton d'impulsion : chaque clic dépense une charge pour dix secondes d'expansion d'un coup. */
+    private Button pulseButton() {
+        Button button = new Button();
+        button.setStyle(PULSE_STYLE);
+        button.setFocusTraversable(false);
+        button.setMinWidth(PULSE_WIDTH);
+        button.setVisible(false);       // jusqu'au premier Big Bang
+        button.setManaged(false);
+        button.setOnAction(event -> {
+            game.pulse();
+            refresh();
+        });
+        return button;
+    }
+
+    private static final String PULSE_STYLE = "-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 6 16; -fx-cursor: hand;"
+            + " -fx-background-radius: 6; -fx-border-radius: 6; -fx-text-fill: #10151f; -fx-background-color: "
+            + GameApp.BIG_BANG_COLOR + "; -fx-border-color: #ffffff;";
+    /** Largeur fixe : le texte change à chaque clic, le bouton reste sous la souris. */
+    private static final double PULSE_WIDTH = 420;
+
+    /** Recopie l'état de l'impulsion sur ses deux boutons. */
+    private void refreshPulse() {
+        boolean unlocked = game.isPulseUnlocked();
+        int charges = game.pulseCharges();
+        String text = charges > 0
+                ? "Impulsion : +" + Format.count(game.pulseGain()) + " d'espace  (" + charges + " / " + Game.PULSE_MAX_CHARGES + ")"
+                : "Impulsion : prochaine charge dans " + Format.wait(Math.max(0.1, game.secondsUntilPulse()));
+        for (Button button : List.of(pulseButton, moleculesPulseButton)) {
+            button.setVisible(unlocked);
+            button.setManaged(unlocked);
+            button.setText(text);
+            button.setDisable(charges == 0);
+        }
+    }
+
     private void refreshExpansion() {
+        refreshPulse();
         BigNum space = game.state().space();
         spaceLabel.setText(Format.count(space) + (space.gt(BigNum.ONE) ? " unités d'espace" : " unité d'espace"));
         BigNum reserved = game.reservedSpace();
@@ -1586,7 +1822,10 @@ final class BigBangPage extends VBox {
         String next = nextKind();
         expansionNote.setText("L'espace grandit avec le temps de jeu, et les molécules s'y logent."
                 + (next.isEmpty() ? " Tous les rayons de molécules sont ouverts." : " " + next)
-                + Detail.only(" Chaque Big Bang ajoute " + ElementText.number(Game.SPACE_PER_SECOND)
+                + Detail.only(" Une impulsion donne d'un coup " + (int) Game.PULSE_SECONDS + " secondes d'expansion ; une charge "
+                        + "revient toutes les " + (int) Game.PULSE_REFILL_SECONDS + " secondes, " + Game.PULSE_MAX_CHARGES
+                        + " au plus en réserve (raccourci : I, à tenir)."
+                        + " Chaque Big Bang ajoute " + ElementText.number(Game.SPACE_PER_SECOND)
                         + " unité par seconde, et les inflations, les molécules, les assemblages et les astres qui "
                         + "agissent sur l'espace multiplient le tout (par " + ElementText.number(game.moleculeBoost(Molecule.Stat.SPACE))
                         + " en ce moment). L'espace grandit quel que soit l'onglet affiché, sauf en pause ; ni "

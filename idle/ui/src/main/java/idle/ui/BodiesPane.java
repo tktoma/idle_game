@@ -11,9 +11,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -32,7 +30,7 @@ import javafx.scene.text.TextAlignment;
 final class BodiesPane extends VBox {
 
     /** Hauteur du ciel, en pixels : de quoi montrer les petits astres sur une ligne et les planètes sur une autre. */
-    private static final double SKY_HEIGHT = 330;
+    private static final double SKY_HEIGHT = 380;
     private static final double PICTURE_WIDTH = 150;
     private static final double PICTURE_HEIGHT = 64;
 
@@ -45,6 +43,12 @@ final class BodiesPane extends VBox {
     private final Map<Body.Tier, Label> tierTitles = new EnumMap<>(Body.Tier.class);
     private final Map<Body.Tier, TileGrid> tierGrids = new EnumMap<>(Body.Tier.class);
     private final Map<Body, Card> cards = new LinkedHashMap<>();
+    /** Les astres qui mûrissent : une ligne et un bouton « Accélérer » par place. */
+    private final Label maturationTitle = new Label();
+    private final VBox maturationBox = new VBox(6);
+    private final List<Label> maturingLabels = new java.util.ArrayList<>();
+    private final List<javafx.scene.control.Button> hastenButtons = new java.util.ArrayList<>();
+    private final List<String> maturingShown = new java.util.ArrayList<>();
 
     /**
      * @param changed ce qu'il faut refaire quand un astre vient d'être formé : rafraîchir toute la page
@@ -81,11 +85,8 @@ final class BodiesPane extends VBox {
             list.getChildren().add(title);
             list.getChildren().add(grid);
         }
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        VBox.setVgrow(scroll, Priority.ALWAYS);
+        // Pas de défilement propre à la liste : toute la page défile d'un bloc (BigBangPage), ciel compris.
+        // Avec un défilement sous un ciel de hauteur fixe, une petite fenêtre ne laissait plus de place à la liste.
 
         formAll.setStyle("-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand; -fx-background-radius: 4; -fx-border-radius: 4;"
                 + " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;");
@@ -95,10 +96,33 @@ final class BodiesPane extends VBox {
             Readiness.of(game).compute();
             this.changed.run();
         });
+        maturationTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+        maturationBox.getChildren().add(maturationTitle);
+        maturationBox.setAlignment(Pos.CENTER);
+        for (int i = 0; i < 5; i++) {
+            int place = i;
+            Label label = new Label();
+            label.setStyle("-fx-font-size: 13px; -fx-font-family: monospace; -fx-text-fill: #d6e4f0;");
+            label.setMinWidth(430);
+            javafx.scene.control.Button hasten = new javafx.scene.control.Button();
+            hasten.setStyle("-fx-font-size: 12px; -fx-padding: 4 10; -fx-cursor: hand; -fx-background-radius: 4; -fx-border-radius: 4;"
+                    + " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;");
+            hasten.setFocusTraversable(false);
+            hasten.setOnAction(event -> {
+                if (place < maturingShown.size()) game.hastenMaturation(maturingShown.get(place));
+                this.changed.run();
+            });
+            HBox row = new HBox(10, label, hasten);
+            row.setAlignment(Pos.CENTER);
+            maturingLabels.add(label);
+            hastenButtons.add(hasten);
+            maturationBox.getChildren().add(row);
+        }
         getChildren().add(intro);
+        getChildren().add(maturationBox);
         getChildren().add(formAll);
         getChildren().add(skyPane);
-        getChildren().add(scroll);
+        getChildren().add(list);
     }
 
     /** Le ciel : pour les vérifications. */
@@ -123,6 +147,7 @@ final class BodiesPane extends VBox {
 
     /** Recopie l'état du jeu dans les cartes. */
     void refresh() {
+        refreshMaturation();
         BigBangPage.showBulk(formAll, game.isBulkFormUnlocked(), "Former les astres prêts", game.bodiesReady());
         Map<Body.Tier, int[]> tiers = new EnumMap<>(Body.Tier.class);     // par échelle : cartes montrées, astres formés
         for (Body body : game.bodies()) {
@@ -130,6 +155,8 @@ final class BodiesPane extends VBox {
             // Un amas est montré d'emblée ; un astre plus gros, dès qu'un de ceux dont il part est formé.
             boolean visible = formed || body.bodies().isEmpty();
             for (String smaller : body.bodies()) visible |= game.hasBody(smaller);
+            // Les matières exotiques attendent leur palier, au huitième Big Bang.
+            if (body.tier() == Body.Tier.EXOTIC && !game.isExoticUnlocked() && !formed) visible = false;
             Card card = visible ? cardFor(body) : cards.get(body);
             if (card != null) tierGrids.get(body.tier()).show(card, visible);
             if (!visible) continue;
@@ -137,12 +164,14 @@ final class BodiesPane extends VBox {
             tier[0]++;
             if (formed) tier[1]++;
             boolean ready = game.canFormBody(body.id());
+            boolean maturing = game.isBodyMaturing(body.id());
             int met = game.bodyConditionsMet(body.id());
             String gain = BigBangPage.what(body.boost().stat()) + " +" + ElementText.percent(body.boost().perMolecule());
-            card.show(formed ? Card.State.DONE : ready ? Card.State.READY : met > 0 ? Card.State.STARTED : Card.State.WAITING,
-                    formed ? "" : met + "/" + body.conditions(), formed ? "formé" : "", body.name(),
+            card.show(maturing ? Card.State.STARTED : formed ? Card.State.DONE : ready ? Card.State.READY : met > 0 ? Card.State.STARTED : Card.State.WAITING,
+                    formed ? "" : met + "/" + game.bodyConditions(body.id()), maturing ? "mûrit" : formed ? "formé" : "", body.name(),
                     gain + "\n" + origin(body), Detail.shown() ? needs(body, formed) : "",
-                    formed ? "" : ready ? "Former" : missing(body), "");
+                    maturing ? "Mûrit encore " + ProbesPane.minutes(game.maturationLeft(body.id())) + " · bonus au quart en attendant"
+                            : formed ? "" : ready ? "Former" : missing(body), "");
         }
         int formedAll = 0;
         for (Body.Tier tier : Body.Tier.values()) {
@@ -194,6 +223,7 @@ final class BodiesPane extends VBox {
 
     /** De quoi un astre est fait, en une ligne : « Fait de roche sableuse » ou « Fait de glace de comète et eau de source ». */
     private String origin(Body body) {
+        if (body.assemblies().isEmpty()) return "Fait de matière rassemblée, sans assemblage";
         StringBuilder text = new StringBuilder("Fait de ");
         List<String> parts = body.assemblies();
         for (int index = 0; index < parts.size(); index++) {
@@ -207,6 +237,9 @@ final class BodiesPane extends VBox {
     private String missing(Body body) {
         for (String smaller : body.bodies()) {
             if (!game.hasBody(smaller)) return "Il faut former : " + game.body(smaller).name().toLowerCase();
+            if (game.isBodyMaturing(smaller)) {
+                return "Il faut que " + article(game.body(smaller).name()) + " mûrisse : " + ProbesPane.minutes(game.maturationLeft(smaller));
+            }
         }
         for (String assembly : body.assemblies()) {
             if (!game.hasAssembly(assembly)) return "Il faut assembler : " + game.assembly(assembly).name().toLowerCase();
@@ -219,6 +252,10 @@ final class BodiesPane extends VBox {
             int lacking = molecule.getValue() - game.moleculeCount(molecule.getKey());
             if (lacking > 0) return "Il manque " + lacking + " " + game.molecule(molecule.getKey()).formula();
         }
+        if (game.needsGalaxyCore(body) && !game.hasColliderMilestone(idle.core.ColliderMilestone.CORE)) {
+            return "Il faut le cœur de galaxie : un upsilon du collisionneur";
+        }
+        if (!game.hasMaturationPlace()) return "Les " + game.maturationPlaces() + " places de maturation sont prises";
         return "";
     }
 
@@ -226,7 +263,7 @@ final class BodiesPane extends VBox {
     private String needs(Body body, boolean formed) {
         StringBuilder text = new StringBuilder();
         for (String smaller : body.bodies()) {
-            line(text, formed || game.hasBody(smaller), game.body(smaller).name());
+            line(text, formed || game.isBodyMature(smaller), game.body(smaller).name() + (game.isBodyMaturing(smaller) ? " (mûrit)" : ""));
         }
         for (String assembly : body.assemblies()) {
             line(text, formed || game.hasAssembly(assembly), game.assembly(assembly).name());
@@ -241,7 +278,49 @@ final class BodiesPane extends VBox {
             line(text, formed || have >= molecule.getValue(), molecule.getValue() + " " + game.molecule(molecule.getKey()).formula()
                     + (formed || have >= molecule.getValue() ? "" : " (" + have + ")"));
         }
+        if (game.needsGalaxyCore(body)) {
+            line(text, formed || game.hasColliderMilestone(idle.core.ColliderMilestone.CORE), "Cœur de galaxie : 1 upsilon (collisionneur)");
+        }
         return text.toString();
+    }
+
+    /** Les astres qui mûrissent : une ligne chacun, avec ce qu'il reste et le bouton qui avance d'une minute. */
+    private void refreshMaturation() {
+        List<String> maturing = game.maturingBodies();
+        maturingShown.clear();
+        maturingShown.addAll(maturing);
+        boolean shown = game.bodiesFormed() > 0;
+        maturationBox.setVisible(shown);
+        maturationBox.setManaged(shown);
+        if (!shown) return;
+        int charges = (int) Math.floor(game.state().pulseCharges() + 1e-9);
+        maturationTitle.setText("Maturation : " + maturing.size() + "/" + game.maturationPlaces() + " places"
+                + (maturing.isEmpty() ? " · un astre formé mûrit avant de compter pour les plus gros et pour la galaxie" : ""));
+        for (int i = 0; i < maturingLabels.size(); i++) {
+            HBox row = (HBox) maturationBox.getChildren().get(i + 1);
+            boolean used = i < maturing.size();
+            row.setVisible(used);
+            row.setManaged(used);
+            if (!used) continue;
+            String id = maturing.get(i);
+            Body body = game.body(id);
+            double left = game.maturationLeft(id), total = game.maturationSeconds(body);
+            maturingLabels.get(i).setText(body.name() + " : encore " + ProbesPane.minutes(left) + "  " + ProbesPane.bar(1 - left / total));
+            javafx.scene.control.Button hasten = hastenButtons.get(i);
+            hasten.setVisible(game.isPulseUnlocked());
+            hasten.setText("Accélérer : 1 impulsion = 1 min (" + charges + ")");
+            hasten.setDisable(charges < 1);
+        }
+    }
+
+    /** « l'amas rocheux », « la comète glacée » : le nom avec son article, en minuscules. */
+    private static String article(String name) {
+        if (name.equals("Soleil")) return "le Soleil";
+        String lower = name.toLowerCase(java.util.Locale.ROOT);
+        if ("aeiouéèêhâ".indexOf(lower.charAt(0)) >= 0) return "l'" + lower;
+        boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")
+                || lower.startsWith("étoile") || lower.startsWith("naine") || lower.startsWith("géante") || lower.startsWith("ceinture");
+        return (feminine ? "la " : "le ") + lower;
     }
 
     private static void line(StringBuilder text, boolean met, String what) {

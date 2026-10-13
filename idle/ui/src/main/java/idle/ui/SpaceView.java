@@ -2181,7 +2181,7 @@ final class SpaceView extends Canvas {
             case ASTEROID -> 0.6;
             case MOON -> 0.72;
             case REMNANT -> 0.5;
-            case COMET, PLANET, STAR, BLACK_HOLE, CORE -> 1;
+            case COMET, PLANET, STAR, BLACK_HOLE, CORE, EXOTIC -> 1;
         };
     }
 

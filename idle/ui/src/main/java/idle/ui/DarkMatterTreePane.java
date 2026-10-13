@@ -277,13 +277,13 @@ final class DarkMatterTreePane extends Pane {
         boolean ready = game.canBigBang();
         if (!ready) armedFor = 0;     // une condition vient de tomber : une explosion a repris les atomes, par exemple
         int met = game.bigBangConditionsMet();
-        int all = BigBangCondition.values().length;
+        int all = game.bigBangConditions().size();
         StringBuilder lines = new StringBuilder();
-        for (BigBangCondition condition : BigBangCondition.values()) {
+        for (BigBangCondition condition : game.bigBangConditions()) {
             if (lines.length() > 0) lines.append('\n');
             lines.append(game.isBigBangConditionMet(condition) ? "● " : "○ ").append(condition(condition));
         }
-        String detail = "Le passage à l'acte suivant. Les cinq conditions doivent être réunies au même moment, hors "
+        String detail = "Le passage à l'acte suivant. Les conditions doivent être réunies au même moment, hors "
                 + "de tout défi : les particules et les atomes sont ceux de la partie en cours (une seconde de "
                 + "production compte comme des particules en main), la matière noire est celle qui reste à "
                 + "dépenser. Une explosion reprend particules et atomes : mieux vaut couper l'explosion "
@@ -329,6 +329,7 @@ final class DarkMatterTreePane extends Pane {
                     + Format.count(game.state().darkMatter()) + ")";
             case ACHIEVEMENTS -> Game.BIG_BANG_ACHIEVEMENTS + " succès (" + game.achievementCount() + ")";
             case CHALLENGES -> "Les " + game.challenges().size() + " défis réussis (" + game.completedChallenges() + ")";
+            case SKY -> game.bigBangSkyRequirement() + " astres mûrs (" + game.bodiesMature() + ")";
         };
     }
 

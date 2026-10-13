@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class SaveTest {
 
     /** Ce qui se recalcule et ne fait pas partie de la sauvegarde. */
-    private static final Set<String> DERIVED = Set.of("elementsVersion", "moleculesVersion", "substancesSeen",
+    private static final Set<String> DERIVED = Set.of("elementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
             "assembliesSeen", "bodiesSeen", "moleculeLog");
 
     // ------------------------------------------------------------------
@@ -58,6 +58,28 @@ class SaveTest {
         state.setElementCount(26, 1);
         state.setElementCount(118, 2);
         state.setSynthesisCount(77);
+        state.setDrySyntheses(1);
+        state.setPulseCharges(12.5);
+        state.setPulses(33);
+        state.setAutoFollowList(false);
+        state.setColliderEnergy(1234.5);
+        state.setQuarks(Quark.UP, 7);
+        state.setQuarks(Quark.CHARM, 2);
+        state.setHadrons(Hadron.PROTON, 4);
+        state.setHadrons(Hadron.UPSILON, 1);
+        state.setColliderAuto(false);
+        state.setProbes(List.of(new Probe(ProbeDestination.COMET, ProbeTrip.HOUR, 1200.5, 3240, 8)));
+        state.setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, "26", 6.25, ProbeDestination.ASTEROIDS, 7),
+                new ProbeReward(ProbeReward.Type.SPACE, "", 1, ProbeDestination.VOID)));
+        state.setProbeUpgradeLevel(ProbeUpgrade.LOOT, 3);
+        state.setProbeRuns(7);
+        state.setProbeLaunches(9);
+        state.setProbeSamples(42);
+        state.setProbeBoostLeft(90.5);
+        state.setCollisions(java.util.List.of(new Collision(CollisionTier.LOW, 12.25, true, true), new Collision(CollisionTier.HIGH, 900.5, false, false)));
+        state.setCollisionRuns(41);
+        state.setTopLeft(33.5);
+        state.setOverheatLeft(120.25);
         state.setSynthesisTarget(ElementCategory.values()[2]);
         state.setSynthesisTries(3);
         state.setDarkMatter(BigNum.of(17));
@@ -89,6 +111,10 @@ class SaveTest {
         state.addAssembly("ocean");
         state.addAssembly("atmosphere");
         state.addBody("planet");
+        state.setMaturing("planet", 612.5);
+        state.addBody("star");
+        state.addBody("moon");
+        state.setSolarSystems(List.of(new SolarSystem("star", List.of("planet"), List.of("moon"))));
         state.setCosmosLevel(2);
         state.setAutoHold(false);
         state.setAutoMolecules(false);

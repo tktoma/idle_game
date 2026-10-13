@@ -75,6 +75,8 @@ final class AutomationPage extends VBox {
     private final Button lessReserve = new Button("−");
     private final Button moreReserve = new Button("+");
     private final Label reserveLabel = new Label();
+    /** La création automatique suit la liste de courses, ou seulement les amas confiés. */
+    private final Button followButton = new Button();
     private final HBox reserveRow = new HBox(8, lessReserve, reserveLabel, moreReserve);
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     private static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
@@ -282,7 +284,19 @@ final class AutomationPage extends VBox {
             refresh();
         });
         getChildren().add(spaceReserveRow);
+        followButton.setStyle(spaceStyle);
+        followButton.setFocusTraversable(false);
+        followButton.setOnAction(event -> {
+            game.setAutoFollowList(!game.isAutoFollowingList());
+            refresh();
+        });
+        HBox followRow = new HBox(followButton);
+        followRow.setAlignment(Pos.CENTER);
+        this.followRow = followRow;
+        getChildren().add(followRow);
     }
+
+    private HBox followRow;
 
     /** La carte du rassemblement automatique : pour les vérifications. */
     Card gatherCard() {
@@ -508,7 +522,7 @@ final class AutomationPage extends VBox {
             }
             anyDark = true;
             boolean on = game.isDarkAutomationEnabled(automation.id());
-            boolean suspended = automation.kind() == DarkAutomation.Kind.GRANT_AUTOMATIONS && game.inChallenge();
+            boolean suspended = false;   // depuis la 0.47, même l'automatisme qui offre les automatismes agit pendant les défis
             card.show(on && !suspended ? Card.State.ON : Card.State.OFF, "",
                     suspended ? "suspendu" : on ? "en marche" : "coupé",
                     automation.name(), brief(automation),
@@ -536,6 +550,9 @@ final class AutomationPage extends VBox {
         spaceGrid.show(gatherCard, gather);
         spaceGrid.show(formCard, form);
         show(spaceReserveRow, creation);
+        show(followRow, creation);
+        if (creation) followButton.setText(game.isAutoFollowingList()
+                ? "Suit la liste de courses : oui" : "Suit la liste de courses : non, seulement les amas confiés");
         if (creation) {
             double share = game.autoMoleculeReserve();
             spaceReserveLabel.setText(share <= 0
@@ -569,11 +586,15 @@ final class AutomationPage extends VBox {
         if (creation) {
             boolean on = game.isMoleculeAutomationEnabled();
             int chosen = game.automatedMolecules();
-            boolean waiting = on && chosen == 0;
+            boolean follow = game.isAutoFollowingList();
+            boolean waiting = on && chosen == 0 && !follow;
             moleculesCard.show(on ? Card.State.ON : Card.State.OFF, "", waiting ? "en attente" : on ? "en marche" : "coupé",
-                    "Création automatique", chosen == 0 ? "Aucun amas ne lui est confié"
-                            : chosen + (chosen > 1 ? " amas confiés" : " amas confié"),
-                    "Une création dans chaque amas confié, au même prix qu'à la main : la formule, prise dans le tableau "
+                    "Création automatique", (follow ? "Suit la liste de courses" + (chosen > 0 ? ", et " : "") : "")
+                            + (chosen == 0 ? (follow ? "" : "Aucun amas ne lui est confié")
+                            : chosen + (chosen > 1 ? " amas confiés" : " amas confié")),
+                    (follow ? "D'abord une création de chaque sorte que demande le prochain pas (la liste de courses), "
+                            + "sans rien avoir à choisir. Ensuite " : "")
+                            + "Une création dans chaque amas confié, au même prix qu'à la main : la formule, prise dans le tableau "
                             + "périodique, où il reste toujours un exemplaire de chaque élément. Quand l'espace manque pour "
                             + "tous, le premier servi change à chaque passage. Les amas se confient d'un clic sur leur "
                             + "carte, ou tous d'un coup, dans la sous-page États de la matière du Big Bang. Sa réserve "
@@ -607,18 +628,20 @@ final class AutomationPage extends VBox {
     }
 
     /** Ce que fait un automatisme ordinaire, en quelques mots : la ligne de sa carte. */
-    private static String brief(Automation automation) {
+    private String brief(Automation automation) {
         return switch (automation.kind()) {
-            case UPGRADE -> "Achète dès que possible";
+            case UPGRADE -> game.buysInBulk(automation) ? "Achète tous ceux qu'il peut payer" : "Achète dès que possible";
             case FUSION -> "Fusionne dès que possible";
             case SYNTHESIS -> "Synthétise dès que possible";
         };
     }
 
     /** Ce que fait un automatisme ordinaire, en une phrase : pour le mode détails. */
-    private static String describe(Automation automation) {
+    private String describe(Automation automation) {
         return switch (automation.kind()) {
-            case UPGRADE -> "Achète « " + automation.name() + " » dès qu'il y a assez de particules.";
+            case UPGRADE -> game.buysInBulk(automation)
+                    ? "À chaque action, achète d'un coup tous les générateurs que les particules permettent."
+                    : "Achète « " + automation.name() + " » dès qu'il y a assez de particules.";
             case FUSION -> "Fusionne dès que tous les générateurs sont débloqués.";
             case SYNTHESIS -> "Synthétise un élément dès qu'il y a assez d'atomes, réserve déduite.";
         };
@@ -721,14 +744,17 @@ final class AutomationPage extends VBox {
         return switch (automation.kind()) {
             case GRANT_AUTOMATIONS -> "Offre les automatismes ordinaires au début de chaque partie, sans attendre "
                     + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " atomes créés ni payer. La synthèse automatique suit, une fois "
-                    + "les autres à leur cadence maximale et le tableau périodique ouvert, sans attendre un élément unique";
+                    + "les autres à leur cadence maximale et le tableau périodique ouvert, sans attendre un élément unique. "
+                    + "Il agit aussi pendant les défis";
             case ATOM_UPGRADES -> "Achète les améliorations en atomes, la moins chère d'abord";
             case AUTOMATIONS -> "Achète les automatismes ordinaires et leur cadence, le moins cher d'abord";
             case EXPLOSION -> "Fait exploser le tableau périodique dès que c'est possible";
             case DARK_TREE -> "Achète les cases de l'arbre de matière noire et les améliorations de la boutique qui "
-                    + "ont un dernier niveau, dans l'ordre de l'arbre. Une case sans dernier niveau n'est prise qu'une "
-                    + "fois, pour ouvrir la suivante : au-delà elle reste à votre main, comme les améliorations sans "
-                    + "limite de la boutique. Rien n'est acheté pendant un défi";
+                    + "ont un dernier niveau, dans l'ordre de l'arbre. Une case sans dernier niveau (Densité, Noyau lourd) "
+                    + "est prise une fois pour ouvrir la suivante, puis chaque fois qu'un niveau coûte au plus "
+                    + ElementText.percent(Game.TREE_REPEAT_SHARE) + " de ce que possède sa branche : le Big Bang n'en "
+                    + "souffre pas. Les améliorations sans limite de la boutique restent à votre main. Rien n'est acheté "
+                    + "pendant un défi";
         };
     }
 

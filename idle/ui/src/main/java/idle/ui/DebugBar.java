@@ -160,10 +160,12 @@ final class DebugBar extends VBox {
                 }),
                 tool("Former la galaxie", () -> {
                     while (formNextBody()) { }
+                    threeSystems();
                     game.formGalaxy();
                 }),
                 tool("Échelle suivante du cosmos", () -> {
                     while (formNextBody()) { }
+                    threeSystems();
                     idle.core.Cosmos next = game.nextCosmos();
                     if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }));
@@ -416,6 +418,8 @@ final class DebugBar extends VBox {
         for (idle.core.Body body : game.bodies()) {
             if (game.hasBody(body.id())) continue;
             if (state.bigBangs() == 0) state.setBigBangs(1);
+            // Une matière exotique attend le huitième Big Bang : l'outil y va d'office.
+            if (body.tier() == idle.core.Body.Tier.EXOTIC && !game.isExoticUnlocked()) state.setBigBangs(8);
             for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
             for (String assembly : body.assemblies()) {
                 if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
@@ -437,9 +441,26 @@ final class DebugBar extends VBox {
                 }
             }
             state.setSpace(state.space().max(game.usedSpace().multiply(3)));
-            return game.formBody(body.id());
+            // L'outil de mise au point saute la maturation, et donne le cœur de galaxie s'il le faut.
+            if (game.needsGalaxyCore(body) && state.hadrons(idle.core.Hadron.UPSILON) == 0) state.setHadrons(idle.core.Hadron.UPSILON, 1);
+            boolean formed = game.formBody(body.id());
+            if (formed) state.setMaturing(body.id(), 0);
+            return formed;
         }
         return false;
+    }
+
+    /** Range d'office les étoiles et les planètes libres en systèmes solaires, jusqu'à ce que la galaxie en ait assez. */
+    private void threeSystems() {
+        if (game.state().bigBangs() < 6) game.state().setBigBangs(6);
+        while (game.solarSystemsComplete() < Game.SYSTEMS_FOR_GALAXY) {
+            java.util.List<String> stars = game.freeForSystems(idle.core.Body.Tier.STAR);
+            java.util.List<String> planets = game.freeForSystems(idle.core.Body.Tier.PLANET);
+            if (stars.isEmpty() || planets.size() < Game.SYSTEM_MIN_PLANETS) return;
+            game.foundSystem(stars.get(0));
+            int index = game.state().solarSystems().size() - 1;
+            for (int i = 0; i < Game.SYSTEM_MIN_PLANETS; i++) game.addPlanet(index, planets.get(i));
+        }
     }
 
     private void readyForBigBang() {

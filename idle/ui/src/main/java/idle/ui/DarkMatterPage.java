@@ -51,8 +51,12 @@ final class DarkMatterPage extends VBox {
     private final Button pointTab = new Button("Matière noire");
     private final Button treeTab = new Button("Arbre");
     private final Button challengesTab = new Button("Défis");
+    private final Button colliderTab = new Button("Collisionneur");
+    private final ColliderPane collider;
+    private final javafx.scene.control.ScrollPane colliderScroll;
     /** Sous-page affichée : 0 = le point, 1 = l'arbre, 2 = les défis. */
     private int selected = 0;
+    private boolean darkWasOpen = true;
 
     // Sous-page « Matière noire »
     private final Label sizeLabel = new Label();
@@ -83,6 +87,8 @@ final class DarkMatterPage extends VBox {
         this.tree = new DarkMatterTreePane(game);
         this.balanceBreakdown = Breakdown.attach(balanceLabel, game, Breakdown.Of.DARK_MATTER);
         this.challenges = new ChallengesPane(game);
+        this.collider = new ColliderPane(game, this::refresh);
+        this.colliderScroll = new javafx.scene.control.ScrollPane(collider);
         this.challengesScroll = new ScrollPane(challenges);
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 16, 24));
@@ -112,7 +118,11 @@ final class DarkMatterPage extends VBox {
             select(2);
             refresh();
         });
-        HBox subTabs = new HBox(pointTab, treeTab, challengesTab);
+        colliderTab.setOnAction(event -> {
+            select(3);
+            refresh();
+        });
+        HBox subTabs = new HBox(pointTab, treeTab, challengesTab, colliderTab);
         subTabs.setAlignment(Pos.CENTER);
 
         // Le clic doit commencer sur le point ; il compte ensuite jusqu'à ce qu'on relâche le bouton.
@@ -156,23 +166,26 @@ final class DarkMatterPage extends VBox {
         challengesScroll.setFitToWidth(true);
         challengesScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         challengesScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        StackPane pages = new StackPane(pointPane, treeScroll, challengesScroll);
+        colliderScroll.setFitToWidth(true);
+        colliderScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        colliderScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        StackPane pages = new StackPane(pointPane, treeScroll, challengesScroll, colliderScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        getChildren().add(balanceLabel);
+        getChildren().add(StableHeight.of(balanceLabel));
         getChildren().add(subTabs);
         getChildren().add(pages);
         select(0);
     }
 
-    /** Affiche une sous-page : 0 = le point, 1 = l'arbre, 2 = les défis. */
     /** Passe à la sous-page suivante ou précédente, en boucle. */
     void step(int direction) {
-        select(Math.floorMod(selected + direction, 3));
+        if (!game.isDarkMatterUnlocked()) return;
+        select(Math.floorMod(selected + direction, game.isColliderUnlocked() ? 4 : 3));
         refresh();
     }
 
-    /** La sous-page affichée : 0 le point, 1 l'arbre, 2 les défis. Pour les vérifications. */
+    /** La sous-page affichée : 0 le point, 1 l'arbre, 2 les défis, 3 le collisionneur. Pour les vérifications. */
     int selected() {
         return selected;
     }
@@ -197,6 +210,8 @@ final class DarkMatterPage extends VBox {
         pointPane.setVisible(index == 0);
         treeScroll.setVisible(index == 1);
         challengesScroll.setVisible(index == 2);
+        colliderScroll.setVisible(index == 3);
+        colliderTab.setStyle(subTabStyle(index == 3));
         pointTab.setStyle(subTabStyle(index == 0));
         treeTab.setStyle(subTabStyle(index == 1));
         challengesTab.setStyle(subTabStyle(index == 2));
@@ -218,6 +233,7 @@ final class DarkMatterPage extends VBox {
     void frame(double elapsed, double timeFactor) {
         if (selected == 1) tree.frame(elapsed);
         if (selected == 2) challenges.frame(elapsed);
+        if (selected == 3) collider.frame(elapsed);
         if (selected != 0) return;
         // Verrouillée, elle grossit déjà toute seule à chaque tick du jeu : tenir le clic n'ajoute que la part manquante.
         boolean locked = game.isHoldLocked();
@@ -264,6 +280,7 @@ final class DarkMatterPage extends VBox {
         balanceLabel.setText(Format.count(darkMatter) + " matière noire"
                 + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
                 + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
+        if (!game.isDarkMatterUnlocked()) balanceLabel.setText("La matière noire revient à la première explosion");
         balanceBreakdown.refresh();
 
         mockNotice.setVisible(Detail.shown());
@@ -273,6 +290,24 @@ final class DarkMatterPage extends VBox {
         challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")" + Readiness.dot(ready.challenges()));
         if (selected == 1) tree.refresh();
         if (selected == 2) challenges.refresh();
+        boolean colliderOpen = game.isColliderUnlocked();
+        boolean idleSlot = game.state().collisions().size() < game.colliderSlots() && game.canStartCollision(idle.core.CollisionTier.LOW);
+        colliderTab.setText("Collisionneur" + Readiness.dot(colliderOpen && (idleSlot || game.hasTop())));
+        colliderTab.setVisible(colliderOpen);
+        colliderTab.setManaged(colliderOpen);
+        if (selected == 3 && !colliderOpen) select(0);
+        // Après un Big Bang, la matière noire attend la première explosion de la partie, mais le
+        // collisionneur, lui, ne s'arrête pas : l'onglet n'offre alors que lui.
+        boolean darkOpen = game.isDarkMatterUnlocked();
+        for (Button tab : new Button[] {pointTab, treeTab, challengesTab}) {
+            tab.setVisible(darkOpen);
+            tab.setManaged(darkOpen);
+        }
+        if (!darkOpen && colliderOpen && selected != 3) select(3);
+        // La première explosion de la partie rouvre la matière noire : la page revient sur son point.
+        if (darkOpen && !darkWasOpen && selected == 3) select(0);
+        darkWasOpen = darkOpen;
+        if (selected == 3) collider.refresh();
         if (selected != 0) return;
 
         BigNum size = game.state().darkMatterSize();

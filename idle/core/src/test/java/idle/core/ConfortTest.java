@@ -56,7 +56,8 @@ class ConfortTest {
             Game game = afterBigBang();
             game.tick(299);
             assertFalse(game.ownsSpaceUpgrade("space_primordial_atoms"));
-            assertEquals(List.of(), game.takeNewSpaceUpgrades());
+            // Seule « Création continue » (100 d'espace depuis la 0.47) est venue avant.
+            assertEquals(List.of("space_hold_create"), game.takeNewSpaceUpgrades().stream().map(SpaceUpgrade::id).toList());
             game.tick(2);
             assertTrue(game.ownsSpaceUpgrade("space_primordial_atoms"));
             List<SpaceUpgrade> taken = game.takeNewSpaceUpgrades();
@@ -282,6 +283,7 @@ class ConfortTest {
         @Test
         void laCoupureArreteLaCreationAutomatique() {
             Game game = openGame();
+            game.state().setAutoFollowList(false);
             game.state().setBigBangs(2);
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             give(game, "H2O", 3);
@@ -563,7 +565,7 @@ class ConfortTest {
         @Test
         void tousLesAstresFormesElleViseLaProchaineEchelle() {
             Game game = openGame();
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
             assertEquals(Cosmos.GALAXY.phrase(), list.target());
@@ -583,7 +585,7 @@ class ConfortTest {
         @Test
         void lUniversFormeIlNYAPlusRienAViser() {
             Game game = openGame();
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             game.state().setCosmosLevel(3);
             assertEquals(ShoppingList.Kind.NONE, game.shoppingList().kind());
         }

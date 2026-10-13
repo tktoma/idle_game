@@ -2,6 +2,7 @@ package idle.core;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +54,16 @@ import java.util.random.RandomGenerator;
  */
 public final class Game {
 
-    /** Vitesse de départ d'un générateur : une particule toutes les 4 secondes. */
-    public static final BigNum BASE_SPEED = BigNum.of(0.25);
+    /**
+     * Le tempo du jeu : ce par quoi la vitesse de départ des générateurs a été multipliée pour que
+     * la première explosion vienne en trois heures au lieu de vingt-quatre. Ce qui se mesurait à
+     * l'aune de la production (la croissance de la matière noire, le seuil du rendement de fusion)
+     * se compte en production de départ : ces règles gardent ainsi l'allure qu'elles avaient.
+     */
+    public static final double TEMPO = 8;
+
+    /** Vitesse de départ d'un générateur : deux particules par seconde. */
+    public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
 
     /** Atomes gagnés à chaque fusion, avant les bonus. */
     public static final BigNum ATOMS_PER_FUSION = BigNum.ONE;
@@ -462,8 +471,9 @@ public final class Game {
         autoFormed.clear();
         autoGathered = 0;
         autoFormTimer = 0;
-        shoppingVersion = -1;
+        shoppingVersion = Long.MIN_VALUE;
         shoppingSpaceKey = -1;
+        finishedCollisions.clear();
         achievementTimer = 0;
         moleculeAutomationTimer = 0;
         moleculeAutomationTurn = 0;
@@ -531,6 +541,10 @@ public final class Game {
         expandSpace(dt);
         takeSpaceUpgrades();
         runComet(dt);
+        refillPulses(dt);
+        runCollider(dt);
+        runProbes(dt);
+        runMaturation(dt);
         runMoleculeAutomation(dt);
         runAutoForm(dt);
         advance(dt);
@@ -906,13 +920,15 @@ public final class Game {
      * ou moins si l'arbre de matière noire l'a abaissé.
      */
     public double minAutomationInterval() {
-        double min = MIN_AUTOMATION_INTERVAL;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.FasterAutomations faster && state.darkLevelOf(dark.id()) > 0) {
-                min = Math.min(min, faster.minInterval());
+        return darkMemo("minInterval", () -> {
+            double min = MIN_AUTOMATION_INTERVAL;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.FasterAutomations faster && state.darkLevelOf(dark.id()) > 0) {
+                    min = Math.min(min, faster.minInterval());
+                }
             }
-        }
-        return min;
+            return min;
+        });
     }
 
     /** Vrai quand tous les niveaux de cadence de cet automatisme sont achetés. */
@@ -987,12 +1003,61 @@ public final class Game {
     /** Fait faire à l'automatisme une action ; faux s'il ne peut rien faire pour l'instant. */
     private boolean act(Automation automation) {
         return switch (automation.kind()) {
-            case UPGRADE -> buy(automation.upgradeId());
+            case UPGRADE -> bulkBuy(automation);
             case FUSION -> generatorCount() >= fusionThreshold() && fuse();
             // La réserve du joueur : la synthèse automatique n'entame pas les atomes mis de côté.
             case SYNTHESIS -> state.atoms().gte(synthesisCost().add(state.synthesisReserve())) && paySynthesis();
         };
     }
+
+    /**
+     * L'achat d'un automatisme : un niveau par action, sauf celui des générateurs, qui prend d'un
+     * coup tous ceux que les particules permettent. Une fois les automatismes rapides, c'est leur
+     * cadence et non la production qui fixait la durée d'une partie : neuf achats de générateurs,
+     * un par action, avant chaque fusion. Pris d'un coup, la fusion revient au rythme d'une action.
+     */
+    private boolean bulkBuy(Automation automation) {
+        if (!buysInBulk(automation)) return buy(automation.upgradeId());
+        Upgrade upgrade = upgrades.get(automation.upgradeId());
+        if (upgrade.resource() != Resource.PARTICLES || !state.started()) {
+            boolean any = false;
+            for (int bought = 0; bought < MAX_GENERATORS_PER_ACTION && buy(upgrade.id()); bought++) any = true;
+            return any;
+        }
+        // Le même résultat qu'autant d'achats un à un, sans refaire chaque fois tous les calculs :
+        // la réduction des générateurs ne dépend pas de leur nombre, elle se calcule une fois. En fin de
+        // partie, une action achète des dizaines de générateurs, vingt fois par seconde de jeu.
+        int room = Math.min(MAX_GENERATORS_PER_ACTION, maxGeneratorCount() - generatorCount());
+        double factor = generatorCostFactor();
+        int level = state.levelOf(upgrade.id());
+        BigNum particles = state.particles();
+        int bought = 0;
+        // Le prix brut du suivant, multiplié par la croissance à chaque achat plutôt que recalculé par une puissance.
+        BigNum growth = BigNum.of(upgrade.costGrowth());
+        BigNum raw = room > 0 ? upgrade.baseCost().multiply(growth.pow(level)) : BigNum.ZERO;
+        while (bought < room) {
+            BigNum cost = Upgrade.roundUp(raw);
+            raw = raw.multiply(growth);
+            if (factor != 1) cost = Upgrade.roundUp(cost.multiply(factor)).max(BigNum.ONE);
+            if (particles.lt(cost)) break;
+            particles = particles.subtract(cost).max(BigNum.ZERO);
+            state.stats().noteParticleUpgrade(cost, true);
+            bought++;
+        }
+        if (bought == 0) return false;
+        state.setParticles(particles);
+        state.setLevel(upgrade.id(), level + bought);
+        return true;
+    }
+
+    /** Vrai pour l'automatisme qui achète les générateurs : une action prend tous ceux que les particules permettent. */
+    public boolean buysInBulk(Automation automation) {
+        return automation.kind() == Automation.Kind.UPGRADE
+                && upgrades.get(automation.upgradeId()).effect() instanceof Effect.AddGenerator;
+    }
+
+    /** Garde-fou : le plus grand nombre de générateurs que leur automatisme achète en une action. */
+    private static final int MAX_GENERATORS_PER_ACTION = 1_000;
 
     /**
      * Fait une synthèse et dit si elle a eu lieu : une étape de synthèse ciblée ne donne aucun
@@ -1154,7 +1219,10 @@ public final class Game {
             if (target == ElementCategory.ACTINIDE) award(Achievements.TARGETED_ACTINIDE);
         }
         List<Element> obtained = new ArrayList<>();
-        obtained.add(target != null ? drawTargeted(target) : drawElement(guaranteed));
+        int known = discoveredElements();
+        // Le garde-fou du hasard : après trop de synthèses sans rien de nouveau, celle-ci donne un élément inconnu.
+        boolean rescue = target == null && !guaranteed && LUCK_FLOOR > 0 && state.drySyntheses() >= LUCK_FLOOR;
+        obtained.add(target != null ? drawTargeted(target) : rescue ? drawUnknown() : drawElement(guaranteed));
         // Les éléments en plus de la matière noire, tant qu'il en reste à obtenir.
         for (int extra = elementsPerSynthesis() - 1; extra > 0 && !isPeriodicTableComplete(); extra--) {
             obtained.add(drawElement(false));
@@ -1162,6 +1230,8 @@ public final class Game {
         boolean doubleDraw = random.nextDouble() < doubleChance && !isPeriodicTableComplete();
         if (doubleDraw) obtained.add(drawElement(false));
         state.stats().noteSynthesis(obtained.size(), doubleDraw);
+        // Rien de nouveau si le tableau compte autant d'éléments connus qu'avant le tirage.
+        state.setDrySyntheses(discoveredElements() > known ? 0 : state.drySyntheses() + 1);
         if (doubleDraw) award(Achievements.DOUBLE_DRAW);
         if (obtained.size() >= 3) award(Achievements.TRIPLE_DRAW);
         return obtained;
@@ -1205,7 +1275,11 @@ public final class Game {
 
     /** Vrai une fois acquis l'achat groupé des améliorations payées en atomes : par dix, ou tout ce qui est à portée. */
     public boolean isBulkAtomBuyUnlocked() {
-        return hasDark(DarkEffect.BulkAtomUpgrades.class);
+        if (hasDark(DarkEffect.BulkAtomUpgrades.class)) return true;
+        for (Upgrade upgrade : upgrades.values()) {
+            if (upgrade.effect() instanceof Effect.BulkAtomBuy && state.levelOf(upgrade.id()) > 0) return true;
+        }
+        return false;
     }
 
     /** Synthèses déjà payées pour la synthèse ciblée en cours. */
@@ -1233,6 +1307,50 @@ public final class Game {
         List<Element> from = unknown.isEmpty() ? pool : unknown;
         Element element = from.get(random.nextInt(from.size()));
         state.setElementCount(element.number(), state.elementCount(element.number()) + 1);
+        return element;
+    }
+
+    /**
+     * Nombre de synthèses de suite sans élément nouveau au bout duquel la suivante en donne un à
+     * coup sûr, tant qu'il en reste à découvrir. C'est ce qui borne la malchance : le dernier
+     * élément du tableau ne se fait plus attendre des dizaines de synthèses.
+     */
+    public static final int LUCK_FLOOR = 2;
+
+    /**
+     * Vrai si la prochaine synthèse ordinaire donnera à coup sûr un élément que le joueur n'a pas :
+     * les {@link #LUCK_FLOOR} dernières n'ont rien apporté de nouveau, aucune famille n'est visée
+     * et il reste des éléments à découvrir.
+     */
+    public boolean isNextSynthesisNew() {
+        return LUCK_FLOOR > 0 && state.drySyntheses() >= LUCK_FLOOR && isPeriodicTableUnlocked()
+                && synthesisTarget() == null && discoveredElements() < PeriodicTable.ELEMENTS.size();
+    }
+
+    /**
+     * Tire un élément que le joueur n'a pas encore, avec les mêmes poids de familles que le tirage
+     * ordinaire, parmi les familles qui en ont. S'il n'en reste aucun à découvrir, c'est un tirage ordinaire.
+     */
+    private Element drawUnknown() {
+        double total = 0;
+        Map<ElementCategory, List<Element>> unknown = new java.util.EnumMap<>(ElementCategory.class);
+        for (ElementCategory category : ElementCategory.values()) {
+            if (drawWeight(category) <= 0) continue;
+            List<Element> pool = availableElements(category).stream().filter(element -> state.elementCount(element.number()) == 0).toList();
+            if (pool.isEmpty()) continue;
+            unknown.put(category, pool);
+            total += drawWeight(category);
+        }
+        if (unknown.isEmpty()) return drawElement(false);
+        double roll = random.nextDouble() * total;
+        List<Element> chosen = null;
+        for (Map.Entry<ElementCategory, List<Element>> entry : unknown.entrySet()) {
+            chosen = entry.getValue();
+            roll -= drawWeight(entry.getKey());
+            if (roll < 0) break;
+        }
+        Element element = chosen.get(random.nextInt(chosen.size()));
+        state.setElementCount(element.number(), 1);
         return element;
     }
 
@@ -1580,12 +1698,19 @@ public final class Game {
 
     /** Vrai si le joueur a réussi un défi qui donne cette récompense. */
     private boolean rewarded(Challenge.Reward reward) {
-        if (state.completedChallenges().isEmpty()) return false;
-        for (Challenge challenge : Challenges.DEFAULT) {
-            if (challenge.reward() == reward && state.completedChallenges().contains(challenge.id())) return true;
+        if (rewardsVersion != state.challengesVersion()) {
+            rewards.clear();
+            for (Challenge challenge : Challenges.DEFAULT) {
+                if (state.completedChallenges().contains(challenge.id())) rewards.add(challenge.reward());
+            }
+            rewardsVersion = state.challengesVersion();
         }
-        return false;
+        return rewards.contains(reward);
     }
+
+    /** Les récompenses des défis réussis, recalculées seulement quand la liste des défis change. */
+    private final java.util.EnumSet<Challenge.Reward> rewards = java.util.EnumSet.noneOf(Challenge.Reward.class);
+    private int rewardsVersion = -1;
 
     /**
      * La désintégration du défi du même nom : chaque exemplaire possédé a {@link #DECAY_RATE}
@@ -1903,16 +2028,17 @@ public final class Game {
 
     /**
      * Ce que l'avancement de la partie en cours apporte à la croissance de la matière noire :
-     * {@code 1 + ordres de grandeur de la production + ordres de grandeur des atomes créés}.
-     * Avec 10¹² particules par seconde et 1 000 atomes créés depuis la dernière explosion, le
-     * facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
+     * {@code 1 + ordres de grandeur de la production + ordres de grandeur des atomes créés}. La
+     * production se compte à partir de {@link #TEMPO} particules par seconde, celle d'une partie
+     * qui commence. Avec 8 × 10¹² particules par seconde et 1 000 atomes créés depuis la dernière
+     * explosion, le facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
      * et des atomes : faible au début d'une partie, de plus en plus fort ensuite.
      *
      * <p>La production comptée est celle de tous les générateurs réunis
      * ({@link #productionAtFusion()}), pour ne pas retomber à chaque fusion.
      */
     public double darkMatterProgressFactor() {
-        double production = Math.max(0, productionAtFusion().log10());
+        double production = Math.max(0, productionAtFusion().divide(TEMPO).log10());
         double atoms = Math.max(0, state.totalAtoms().log10());
         return 1 + production + atoms;
     }
@@ -1927,7 +2053,8 @@ public final class Game {
         return DARK_MATTER_GROWTH_PER_UNIT * darkMatterUnits() * darkMatterProgressFactor()
                 * darkExpansionMultiplier().min(BigNum.of(1, 100)).toDouble() * landmarkExpansionMultiplier()
                 * (1 + achievementBonus(Achievement.Bonus.EXPANSION))
-                * moleculeBoost(Molecule.Stat.DARK_GROWTH);
+                * moleculeBoost(Molecule.Stat.DARK_GROWTH)
+                * colliderDarkGrowthMultiplier();
     }
 
     /**
@@ -1998,13 +2125,30 @@ public final class Game {
             case DARK_MATTER -> state.darkMatter().gte(BIG_BANG_DARK_MATTER);
             case ACHIEVEMENTS -> achievementCount() >= BIG_BANG_ACHIEVEMENTS;
             case CHALLENGES -> !challenges().isEmpty() && completedChallenges() >= challenges().size();
+            case SKY -> bodiesMature() >= bigBangSkyRequirement();
         };
+    }
+
+    /** Astres mûrs que demandent les Big Bangs six, sept et huit : le ciel doit avancer avant les derniers paliers. */
+    public static final int[] BIG_BANG_SKY = {18, 24, 28};
+
+    /** Astres mûrs que demande le prochain Big Bang : rien avant le sixième ni après le huitième. */
+    public int bigBangSkyRequirement() {
+        int next = state.bigBangs() + 1;
+        return next >= 6 && next <= 5 + BIG_BANG_SKY.length ? BIG_BANG_SKY[next - 6] : 0;
+    }
+
+    /** Les conditions du prochain Big Bang : les cinq de toujours, et le ciel pour les Big Bangs six à huit. */
+    public List<BigBangCondition> bigBangConditions() {
+        List<BigBangCondition> all = new ArrayList<>(List.of(BigBangCondition.values()));
+        if (bigBangSkyRequirement() == 0) all.remove(BigBangCondition.SKY);
+        return all;
     }
 
     /** Nombre de conditions du Big Bang remplies en ce moment, sur les cinq. */
     public int bigBangConditionsMet() {
         int met = 0;
-        for (BigBangCondition condition : BigBangCondition.values()) {
+        for (BigBangCondition condition : bigBangConditions()) {
             if (isBigBangConditionMet(condition)) met++;
         }
         return met;
@@ -2017,7 +2161,7 @@ public final class Game {
      */
     public boolean canBigBang() {
         return state.started() && !inChallenge()
-                && bigBangConditionsMet() == BigBangCondition.values().length;
+                && bigBangConditionsMet() == bigBangConditions().size();
     }
 
     /**
@@ -2085,9 +2229,12 @@ public final class Game {
         return List.of(BangChallenge.values());
     }
 
-    /** Vrai une fois tous les paliers de Big Bang atteints : les défis de Big Bang s'ouvrent, pour donner un sens aux Big Bangs suivants. */
+    /** Big Bangs qui ouvrent les défis de Big Bang : le cinquième, comme avant les paliers six à huit. */
+    public static final int BANG_CHALLENGES_BIG_BANGS = 5;
+
+    /** Vrai à partir du cinquième Big Bang : les défis de Big Bang s'ouvrent, pour donner un sens aux Big Bangs suivants. */
     public boolean isBangChallengesUnlocked() {
-        return bigBangMilestonesReached() == BigBangMilestones.DEFAULT.size();
+        return state.bigBangs() >= BANG_CHALLENGES_BIG_BANGS;
     }
 
     /** Le défi de Big Bang en cours, ou {@code null}. */
@@ -2328,8 +2475,21 @@ public final class Game {
 
     /** Vrai si la création automatique agit en ce moment : acquise, en marche, et au moins un amas lui est confié. */
     public boolean isAutoCreatingMolecules() {
-        return isMoleculeAutomationUnlocked() && state.autoMolecules() && !state.automatedMolecules().isEmpty()
+        return isMoleculeAutomationUnlocked() && state.autoMolecules()
+                && (!state.automatedMolecules().isEmpty() || state.autoFollowList())
                 && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
+    }
+
+    /** Vrai si la création automatique suit la liste de courses (le réglage par défaut). */
+    public boolean isAutoFollowingList() {
+        return state.autoFollowList();
+    }
+
+    /** Fait suivre la liste de courses à la création automatique, ou non ; faux tant qu'elle n'est pas acquise. */
+    public boolean setAutoFollowList(boolean follow) {
+        if (!isMoleculeAutomationUnlocked()) return false;
+        state.setAutoFollowList(follow);
+        return true;
     }
 
     /**
@@ -2352,6 +2512,19 @@ public final class Game {
         List<String> chosen = state.automatedMolecules();
         for (int round = 0; round < rounds; round++) {
             boolean created = false;
+            // D'abord ce que demande le prochain pas : une création par sorte qui manque, dans l'ordre de la liste.
+            if (state.autoFollowList()) {
+                for (ShoppingList.Item item : shoppingList().items()) {
+                    if (item.missing() <= 0) continue;
+                    String id = item.molecule().id();
+                    if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                    created |= createMolecule(id, true);
+                }
+            }
+            if (chosen.isEmpty()) {
+                if (!created) break;
+                continue;
+            }
             int first = Math.floorMod(moleculeAutomationTurn++, chosen.size());
             for (int offset = 0; offset < chosen.size(); offset++) {
                 String id = chosen.get((first + offset) % chosen.size());
@@ -2745,6 +2918,51 @@ public final class Game {
     }
 
     /**
+     * Crée une molécule du rayon, tirée au hasard parmi celles qui peuvent l'être maintenant : d'abord
+     * parmi celles que demande le prochain pas ({@link #shoppingList()}), sinon parmi toutes. C'est
+     * l'achat simple : un clic par rayon, sans avoir à choisir la sorte.
+     *
+     * @return la molécule créée, ou {@code null} si aucune du rayon ne peut l'être
+     */
+    public Molecule createRandomMolecule(Molecule.Kind kind) {
+        if (!isMoleculeKindUnlocked(kind)) return null;
+        ShoppingList shopping = shoppingList();
+        List<Molecule> wanted = new ArrayList<>();
+        List<Molecule> any = new ArrayList<>();
+        for (Molecule molecule : molecules.values()) {
+            if (molecule.kind() != kind || !canCreateMolecule(molecule.id())) continue;
+            any.add(molecule);
+            if (shopping.wants(molecule)) wanted.add(molecule);
+        }
+        List<Molecule> pool = wanted.isEmpty() ? any : wanted;
+        if (pool.isEmpty()) return null;
+        Molecule chosen = pool.get(random.nextInt(pool.size()));
+        return createMolecule(chosen.id()) ? chosen : null;
+    }
+
+    /** Vrai si au moins une molécule du rayon peut être créée maintenant. */
+    public boolean canCreateInKind(Molecule.Kind kind) {
+        if (!isMoleculeKindUnlocked(kind)) return false;
+        for (Molecule molecule : molecules.values()) {
+            if (molecule.kind() == kind && canCreateMolecule(molecule.id())) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ce que le prochain pas demande, rayon par rayon : le nombre de molécules qu'il reste à créer
+     * dans chaque rayon d'après la liste de courses. Les rayons dont rien ne manque n'y sont pas.
+     */
+    public Map<Molecule.Kind, Integer> missingByKind() {
+        Map<Molecule.Kind, Integer> missing = new java.util.EnumMap<>(Molecule.Kind.class);
+        for (ShoppingList.Item item : shoppingList().items()) {
+            int count = item.missing();
+            if (count > 0) missing.merge(item.molecule().kind(), count, Integer::sum);
+        }
+        return missing;
+    }
+
+    /**
      * Crée une molécule : les exemplaires que demande sa formule quittent le tableau périodique,
      * avec ce qu'ils y apportaient, et la molécule prend sa place dans l'espace. Il reste toujours
      * au moins un exemplaire de chaque élément : le tableau reste découvert, et l'explosion reste
@@ -2954,12 +3172,20 @@ public final class Game {
         }
         for (String id : state.bodies()) {
             Body body = bodies.get(id);
-            if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule(), Double::sum);
+            // Un astre qui mûrit donne déjà une part de son bonus.
+            double share = state.maturingLeft(id) > 0 ? MATURING_SHARE : 1;
+            if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule() * share, Double::sum);
         }
         // La galaxie, l'amas de galaxies et l'univers augmentent chacun toutes les grandeurs à la fois.
         for (Cosmos scale : Cosmos.values()) {
             if (!hasCosmos(scale)) break;
             for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, scale.gain(), Double::sum);
+        }
+        // Chaque système solaire complet augmente toutes les grandeurs, selon son harmonie.
+        for (SolarSystem system : state.solarSystems()) {
+            if (!isSystemComplete(system)) continue;
+            double gain = SYSTEM_GAIN * systemHarmony(system);
+            for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, gain, Double::sum);
         }
     }
 
@@ -3161,7 +3387,7 @@ public final class Game {
     }
 
     private ShoppingList shopping = ShoppingList.NONE;
-    private int shoppingVersion = -1;
+    private long shoppingVersion = Long.MIN_VALUE;
 
     /**
      * Ce qu'il manque pour le prochain pas du troisième acte ({@link ShoppingList}) : l'astre à
@@ -3169,11 +3395,27 @@ public final class Game {
      * ou la prochaine échelle du cosmos une fois tous les astres formés.
      */
     public ShoppingList shoppingList() {
-        if (shoppingVersion != state.moleculesVersion()) {
-            shoppingVersion = state.moleculesVersion();
+        long key = shoppingKey();
+        if (shoppingVersion != key) {
+            shoppingVersion = key;
             shopping = computeShoppingList();
         }
         return shopping;
+    }
+
+    /**
+     * Ce dont dépend la liste de courses. Les molécules ne suffisaient pas : un assemblage ou un astre
+     * formé, un rassemblement, une explosion qui vide le tableau, une amélioration d'espace ou un Big
+     * Bang la changent aussi. Avant la 0.47, elle pouvait rester sur un astre déjà formé et ne plus
+     * rien montrer.
+     */
+    private long shoppingKey() {
+        long key = state.moleculesVersion();
+        for (int part : new int[] {state.elementsVersion(), assembliesFormed(), bodiesFormed(), substancesFormed(),
+                state.spaceUpgradeCount(), state.cosmosLevel(), state.bigBangs(), state.started() ? 1 : 0}) {
+            key = key * 1_000_003L + part;
+        }
+        return key;
     }
 
     private ShoppingList computeShoppingList() {
@@ -3233,9 +3475,9 @@ public final class Game {
         for (Body body : bodies.values()) {
             if (state.hasBody(body.id())) continue;
             boolean reachable = true;
-            for (String smaller : body.bodies()) reachable &= state.hasBody(smaller);
+            for (String smaller : body.bodies()) reachable &= isBodyMature(smaller);
             if (!reachable) continue;
-            int missing = body.conditions() - bodyConditionsMet(body.id());
+            int missing = bodyConditions(body.id()) - bodyConditionsMet(body.id());
             if (missing < bestMissing) {
                 best = body;
                 bestMissing = missing;
@@ -3253,7 +3495,7 @@ public final class Game {
      */
     public BigNum shoppingSpace() {
         // Le calcul parcourt le catalogue : il n'est refait que lorsque les molécules ou les rayons ouverts ont changé.
-        long key = state.moleculesVersion() * 64L + state.spaceUpgradeCount();
+        long key = shoppingKey();
         if (key == shoppingSpaceKey && shoppingSpace != null) return shoppingSpace;
         shoppingSpaceKey = key;
         shoppingSpace = computeShoppingSpace();
@@ -3710,12 +3952,12 @@ public final class Game {
         return gatheredByState.getOrDefault(matter, 0);
     }
 
-    /** Nombre de conditions de cet astre déjà réunies, sur {@link Body#conditions()}. */
+    /** Nombre de conditions de cet astre déjà réunies, sur {@link #bodyConditions(String)}. */
     public int bodyConditionsMet(String bodyId) {
         Body body = body(bodyId);
         int met = 0;
         for (String needed : body.bodies()) {
-            if (state.hasBody(needed)) met++;
+            if (isBodyMature(needed)) met++;
         }
         for (String needed : body.assemblies()) {
             if (state.hasAssembly(needed)) met++;
@@ -3726,6 +3968,7 @@ public final class Game {
         for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
             if (state.moleculeCount(needed.getKey()) >= needed.getValue()) met++;
         }
+        if (needsGalaxyCore(body) && hasColliderMilestone(ColliderMilestone.CORE)) met++;
         return met;
     }
 
@@ -3738,7 +3981,8 @@ public final class Game {
     public boolean canFormBody(String bodyId) {
         Body body = body(bodyId);
         return state.started() && isBodiesUnlocked() && !state.hasBody(body.id())
-                && bodyConditionsMet(bodyId) == body.conditions();
+                && bodyConditionsMet(bodyId) == bodyConditions(bodyId) && hasMaturationPlace()
+                && (body.tier() != Body.Tier.EXOTIC || isExoticUnlocked());
     }
 
     /**
@@ -3753,6 +3997,7 @@ public final class Game {
     public boolean formBody(String bodyId) {
         if (!canFormBody(bodyId)) return false;
         state.addBody(body(bodyId).id());
+        state.setMaturing(body(bodyId).id(), maturationSeconds(body(bodyId)));
         noteStep(GameStats.Step.FIRST_BODY);
         return true;
     }
@@ -3808,7 +4053,8 @@ public final class Game {
      * supermassif.
      */
     public boolean canFormGalaxy() {
-        return state.started() && isBodiesUnlocked() && !state.hasGalaxy() && state.bodies().size() == bodies.size();
+        return state.started() && isBodiesUnlocked() && !state.hasGalaxy() && bodiesMature() == bodies.size()
+                && solarSystemsComplete() >= SYSTEMS_FOR_GALAXY;
     }
 
     /**
@@ -3887,7 +4133,9 @@ public final class Game {
 
     /** Nombre de conditions de cette échelle déjà réunies, sur {@link #cosmosConditions(Cosmos)}. */
     public int cosmosConditionsMet(Cosmos scale) {
-        if (scale == Cosmos.GALAXY) return hasGalaxy() ? bodies.size() : state.bodies().size();
+        if (scale == Cosmos.GALAXY) {
+            return hasGalaxy() ? bodies.size() + 1 : bodiesMature() + (solarSystemsComplete() >= SYSTEMS_FOR_GALAXY ? 1 : 0);
+        }
         int met = hasCosmos(scale.previous()) ? 1 : 0;
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
             if (gatheredInState(need.getKey()) >= need.getValue()) met++;
@@ -3900,7 +4148,7 @@ public final class Game {
 
     /** Nombre de conditions de cette échelle : les astres du catalogue pour la galaxie ; sinon l'échelle d'avant, plus un état de la matière par ligne. */
     public int cosmosConditions(Cosmos scale) {
-        return scale == Cosmos.GALAXY ? bodies.size() : 1 + scale.matter().size() + scale.sorts().size();
+        return scale == Cosmos.GALAXY ? bodies.size() + 1 : 1 + scale.matter().size() + scale.sorts().size();
     }
 
     /**
@@ -3941,7 +4189,7 @@ public final class Game {
     public BigNum steadySpacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
         return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
-                * bangReward(BangChallenge.Reward.SPACE));
+                * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier());
     }
 
     /**
@@ -3955,6 +4203,377 @@ public final class Game {
         // Le sillage d'une comète ne compte que pour le temps qu'il lui reste, même si le pas de temps est plus long.
         double boosted = Math.min(dt, state.cometBoost());
         state.setSpace(state.space().add(steadySpacePerSecond().multiply(dt + boosted * (COMET_BOOST - 1))));
+    }
+
+    // ------------------------------------------------------------------
+    // Le collisionneur de quarks (version 0.50) : un jeu en parallèle, dont rien ne se perd
+    // ------------------------------------------------------------------
+
+    /** Collisions menées en même temps. */
+    public static final int COLLIDER_SLOTS = 2;
+    /** Période de la barre de résonance, en secondes, et la part de la période où un clic réussit. */
+    public static final double RESONANCE_PERIOD = 2;
+    public static final double RESONANCE_WINDOW = 0.16;
+    /** Le quark top se désintègre une minute après son arrivée ; utilisé à temps, il donne dix minutes de surchauffe. */
+    public static final double TOP_SECONDS = 60;
+    public static final double OVERHEAT_SECONDS = 600;
+    public static final double OVERHEAT_FACTOR = 10;
+    /** Quarks beaux rendus quand le top se désintègre sans servir : rater le moment ne coûte rien. */
+    public static final int TOP_CONSOLATION_BOTTOM = 3;
+
+    /** Ce qu'une collision terminée a rapporté : pour les annonces. */
+    public record CollisionResult(CollisionTier tier, Map<Quark, Integer> quarks, boolean doubled) {}
+
+    private final List<CollisionResult> finishedCollisions = new ArrayList<>();
+
+    /** Le collisionneur s'ouvre à la première explosion et ne se referme plus. */
+    public boolean isColliderUnlocked() {
+        return state.started() && (isDarkMatterUnlocked() || state.bigBangs() > 0 || state.collisionRuns() > 0);
+    }
+
+    /**
+     * Énergie gagnée par seconde : {@link #COLLIDER_ENERGY} × (1 + ln(1 + ordres de grandeur de la
+     * production / 10)). Environ 1,7 par seconde vers 1e100 particules par seconde, 3 vers 1e1000, 4,3
+     * vers 1e20000 : le collisionneur suit la partie principale sans s'emballer avec elle.
+     */
+    public double colliderEnergyPerSecond() {
+        if (!isColliderUnlocked()) return 0;
+        return COLLIDER_ENERGY * (1 + Math.log(1 + Math.max(0, productionAtFusion().log10()) / 10));
+    }
+
+    /** L'énergie du collisionneur à ses débuts, par seconde : elle croît ensuite avec le logarithme de l'ordre de grandeur de la production. */
+    public static final double COLLIDER_ENERGY = 0.5;
+
+    public double colliderEnergy() {
+        return state.colliderEnergy();
+    }
+
+    /** Vrai si cette énergie de collision est ouverte : son hadron d'ouverture a été formé une fois. */
+    public boolean isCollisionTierOpen(CollisionTier tier) {
+        return isColliderUnlocked() && (tier.opener() == null || state.hadrons(tier.opener()) > 0);
+    }
+
+    public boolean canStartCollision(CollisionTier tier) {
+        return isCollisionTierOpen(tier) && state.collisions().size() < colliderSlots()
+                && state.colliderEnergy() >= tier.cost() - 1e-9;
+    }
+
+    /** Places de collision : {@link #COLLIDER_SLOTS}, une de plus avec la matière étrange. */
+    public int colliderSlots() {
+        return COLLIDER_SLOTS + (hasColliderMilestone(ColliderMilestone.STRANGE) ? 1 : 0);
+    }
+
+    /** Vrai si ce palier du collisionneur est atteint : il se déduit des hadrons formés. */
+    public boolean hasColliderMilestone(ColliderMilestone milestone) {
+        return switch (milestone) {
+            case PLASMA -> state.hadrons(Hadron.PROTON) >= 10 && state.hadrons(Hadron.NEUTRON) >= 10;
+            case STRANGE -> state.hadrons(Hadron.KAON) + state.hadrons(Hadron.LAMBDA) >= 5;
+            case CHARM -> state.hadrons(Hadron.JPSI) >= 3;
+            case CORE -> state.hadrons(Hadron.UPSILON) >= 1;
+        };
+    }
+
+    /** Où en est ce palier : ce qui est réuni, sur ce qu'il demande (« 7/20 »). */
+    public int[] colliderMilestoneProgress(ColliderMilestone milestone) {
+        return switch (milestone) {
+            case PLASMA -> new int[] {Math.min(10, state.hadrons(Hadron.PROTON)) + Math.min(10, state.hadrons(Hadron.NEUTRON)), 20};
+            case STRANGE -> new int[] {Math.min(5, state.hadrons(Hadron.KAON) + state.hadrons(Hadron.LAMBDA)), 5};
+            case CHARM -> new int[] {Math.min(3, state.hadrons(Hadron.JPSI)), 3};
+            case CORE -> new int[] {Math.min(1, state.hadrons(Hadron.UPSILON)), 1};
+        };
+    }
+
+    /** Nombre de paliers du collisionneur atteints. */
+    public int colliderMilestones() {
+        int count = 0;
+        for (ColliderMilestone milestone : ColliderMilestone.values()) if (hasColliderMilestone(milestone)) count++;
+        return count;
+    }
+
+    /** Vrai si le plasma relance la collision basse énergie : le palier est atteint et le joueur le laisse faire. */
+    public boolean isColliderAutoRunning() {
+        return hasColliderMilestone(ColliderMilestone.PLASMA) && state.colliderAuto();
+    }
+
+    /** Coupe ou remet la relance automatique de la basse énergie. */
+    public void setColliderAuto(boolean on) {
+        state.setColliderAuto(on);
+    }
+
+    /**
+     * Vrai si cet astre demande le cœur de galaxie : c'est le cas du trou noir supermassif, le dernier
+     * avant la galaxie. Le collisionneur fait ainsi partie du chemin.
+     */
+    public boolean needsGalaxyCore(Body body) {
+        return body.tier() == Body.Tier.CORE;
+    }
+
+    /** Nombre de conditions de cet astre : celles du catalogue, plus le cœur de galaxie s'il le demande. */
+    public int bodyConditions(String bodyId) {
+        Body body = body(bodyId);
+        return body.conditions() + (needsGalaxyCore(body) ? 1 : 0);
+    }
+
+    /** Lance une collision : paie son énergie et occupe une place. */
+    public boolean startCollision(CollisionTier tier) {
+        if (!canStartCollision(tier)) return false;
+        state.setColliderEnergy(state.colliderEnergy() - tier.cost());
+        List<Collision> running = new ArrayList<>(state.collisions());
+        running.add(new Collision(tier, tier.seconds(), false, false));
+        state.setCollisions(running);
+        return true;
+    }
+
+    /** La phase de la barre de résonance d'une collision, de 0 à 1 ; la zone gagnante est au milieu. */
+    public double resonancePhase(int slot) {
+        Collision collision = state.collisions().get(slot);
+        double phase = (collision.elapsed() % RESONANCE_PERIOD) / RESONANCE_PERIOD;
+        return phase < 0 ? phase + 1 : phase;
+    }
+
+    /** Vrai si la phase tombe dans la zone gagnante. */
+    public static boolean inResonance(double phase) {
+        return Math.abs(phase - 0.5) <= RESONANCE_WINDOW / 2;
+    }
+
+    /**
+     * Tente la résonance sur une collision en cours : un clic quand la barre passe au milieu double
+     * son butin. Une seule tentative par collision.
+     *
+     * @return vrai si la tentative a réussi
+     */
+    public boolean resonate(int slot) {
+        if (slot < 0 || slot >= state.collisions().size()) return false;
+        Collision collision = state.collisions().get(slot);
+        if (collision.resonated()) return false;
+        boolean success = inResonance(resonancePhase(slot));
+        List<Collision> running = new ArrayList<>(state.collisions());
+        running.set(slot, new Collision(collision.tier(), collision.left(), true, success));
+        state.setCollisions(running);
+        return success;
+    }
+
+    public int quarks(Quark quark) {
+        return state.quarks(quark);
+    }
+
+    public int hadrons(Hadron hadron) {
+        return state.hadrons(hadron);
+    }
+
+    public boolean canFormHadron(Hadron hadron) {
+        if (!isColliderUnlocked()) return false;
+        for (Map.Entry<Quark, Integer> need : hadron.recipe().entrySet()) {
+            if (state.quarks(need.getKey()) < need.getValue()) return false;
+        }
+        return true;
+    }
+
+    /** Forme un hadron avec ses quarks. */
+    public boolean formHadron(Hadron hadron) {
+        if (!canFormHadron(hadron)) return false;
+        hadron.recipe().forEach((quark, count) -> state.setQuarks(quark, state.quarks(quark) - count));
+        state.setHadrons(hadron, state.hadrons(hadron) + 1);
+        return true;
+    }
+
+    /** Forme autant de ce hadron que les quarks le permettent ; renvoie le nombre formé. */
+    public int formAllHadrons(Hadron hadron) {
+        int formed = 0;
+        while (formed < 100_000 && formHadron(hadron)) formed++;
+        return formed;
+    }
+
+    /** Vrai tant qu'un quark top attend d'être utilisé. */
+    public boolean hasTop() {
+        return state.topLeft() > 0;
+    }
+
+    public double topLeft() {
+        return state.topLeft();
+    }
+
+    /** Utilise le quark top : dix minutes de surchauffe, toutes les particules ×10. */
+    public boolean useTop() {
+        if (!hasTop()) return false;
+        state.setTopLeft(0);
+        state.setOverheatLeft(state.overheatLeft() + OVERHEAT_SECONDS);
+        return true;
+    }
+
+    public double overheatLeft() {
+        return state.overheatLeft();
+    }
+
+    /** Au-delà de ce nombre d'un même hadron, chacun compte de moins en moins. */
+    public static final int HADRON_FULL = 10;
+
+    /**
+     * Le poids des hadrons d'une sorte dans leur bonus : leur nombre jusqu'à {@link #HADRON_FULL},
+     * puis une croissance logarithmique (100 en valent 33, 1000 en valent 56), pour qu'enchaîner
+     * les collisions reste payant sans écraser le reste du jeu.
+     */
+    public double hadronWeight(Hadron hadron) {
+        return weightOf(state.hadrons(hadron));
+    }
+
+    static double weightOf(int count) {
+        return count <= HADRON_FULL ? count : HADRON_FULL * (1 + Math.log((double) count / HADRON_FULL));
+    }
+
+    /** Ce par quoi le collisionneur multiplie les particules : les protons, et la surchauffe d'un quark top. */
+    public double colliderParticlesMultiplier() {
+        return (1 + 0.5 * hadronWeight(Hadron.PROTON)) * (state.overheatLeft() > 0 ? OVERHEAT_FACTOR : 1);
+    }
+
+    /** Ce par quoi les neutrons multiplient les atomes de chaque fusion. */
+    public double colliderAtomsMultiplier() {
+        return 1 + 0.05 * hadronWeight(Hadron.NEUTRON);
+    }
+
+    /** Ce par quoi les kaons et les lambdas multiplient la croissance de la matière noire. */
+    public double colliderDarkGrowthMultiplier() {
+        return (1 + 0.1 * hadronWeight(Hadron.KAON)) * (1 + 0.25 * hadronWeight(Hadron.LAMBDA));
+    }
+
+    /** Ce par quoi les J/psi multiplient l'espace par seconde. */
+    public double colliderSpaceMultiplier() {
+        return 1 + 0.2 * hadronWeight(Hadron.JPSI);
+    }
+
+    /** Les collisions terminées depuis le dernier appel : pour les annoncer une fois. */
+    public List<CollisionResult> takeFinishedCollisions() {
+        List<CollisionResult> taken = List.copyOf(finishedCollisions);
+        finishedCollisions.clear();
+        return taken;
+    }
+
+    private void runCollider(double dt) {
+        if (dt <= 0 || !isColliderUnlocked()) return;
+        state.setColliderEnergy(state.colliderEnergy() + colliderEnergyPerSecond() * dt);
+        if (state.overheatLeft() > 0) state.setOverheatLeft(state.overheatLeft() - dt);
+        if (state.topLeft() > 0) {
+            state.setTopLeft(state.topLeft() - dt);
+            if (state.topLeft() <= 0) state.setQuarks(Quark.BOTTOM, state.quarks(Quark.BOTTOM) + TOP_CONSOLATION_BOTTOM);
+        }
+        relaunchLowCollision();
+        if (state.collisions().isEmpty()) return;
+        List<Collision> running = new ArrayList<>();
+        for (Collision collision : state.collisions()) {
+            double left = collision.left() - dt;
+            if (left > 0) {
+                running.add(new Collision(collision.tier(), left, collision.resonated(), collision.doubled()));
+            } else {
+                finishCollision(collision);
+            }
+        }
+        state.setCollisions(running);
+        relaunchLowCollision();
+    }
+
+    /** Le plasma quark-gluon : une collision basse énergie tourne toujours, si une place est libre et l'énergie là. */
+    private void relaunchLowCollision() {
+        if (!isColliderAutoRunning()) return;
+        for (Collision collision : state.collisions()) if (collision.tier() == CollisionTier.LOW) return;
+        startCollision(CollisionTier.LOW);
+    }
+
+    /** Le butin d'une collision terminée, tiré sans toucher au hasard de la synthèse. */
+    private void finishCollision(Collision collision) {
+        long run = state.collisionRuns();
+        state.setCollisionRuns(run + 1);
+        int factor = collision.doubled() ? 2 : 1;
+        Map<Quark, Integer> loot = new java.util.EnumMap<>(Quark.class);
+        switch (collision.tier()) {
+            case LOW -> {
+                loot.put(Quark.UP, between(run, 1, 2, 4));
+                loot.put(Quark.DOWN, between(run, 2, 2, 4));
+            }
+            case MEDIUM -> {
+                loot.put(Quark.STRANGE, between(run, 1, 1, 2));
+                loot.put(Quark.UP, between(run, 2, 1, 2));
+                loot.put(Quark.DOWN, between(run, 3, 1, 2));
+            }
+            case HIGH -> {
+                loot.put(Quark.CHARM, between(run, 1, 1, 2));
+                loot.put(Quark.STRANGE, 1);
+            }
+            case VERY_HIGH -> {
+                loot.put(Quark.BOTTOM, between(run, 1, 1, 2));
+                loot.put(Quark.CHARM, 1);
+            }
+            case EXTREME -> {
+                loot.put(Quark.BOTTOM, 2);
+                state.setTopLeft(TOP_SECONDS);
+            }
+        }
+        loot.replaceAll((quark, count) -> count * factor);
+        loot.forEach((quark, count) -> state.setQuarks(quark, state.quarks(quark) + count));
+        if (collision.tier() == CollisionTier.EXTREME) loot.put(Quark.TOP, 1);
+        finishedCollisions.add(new CollisionResult(collision.tier(), Map.copyOf(loot), collision.doubled()));
+    }
+
+    /** Un entier de {@code low} à {@code high}, toujours le même pour une collision et un tirage donnés. */
+    private static int between(long run, int draw, int low, int high) {
+        double mix = Math.sin(run * 12.9898 + draw * 78.233) * 43758.5453;
+        double unit = mix - Math.floor(mix);
+        return low + (int) Math.floor(unit * (high - low + 1));
+    }
+
+    // ------------------------------------------------------------------
+    // L'impulsion : le clic du joueur actif (version 0.48)
+    // ------------------------------------------------------------------
+
+    /** Charges d'impulsion au plus : deux minutes d'avance, pour qui revient un instant. */
+    public static final int PULSE_MAX_CHARGES = 40;
+    /** Une charge revient toutes les trois secondes de jeu. */
+    public static final double PULSE_REFILL_SECONDS = 3;
+    /** Une impulsion donne d'un coup l'espace de dix secondes d'expansion. */
+    public static final double PULSE_SECONDS = 10;
+
+    /**
+     * Vrai une fois le premier Big Bang passé : l'impulsion pousse l'expansion. Au milieu du
+     * troisième acte, c'est l'espace qui manque ; le joueur présent l'accélère d'un clic (jusqu'à
+     * quatre fois plus vite en cliquant sans arrêt), celui qui laisse tourner n'y perd rien.
+     */
+    public boolean isPulseUnlocked() {
+        return state.started() && isBigBangUnlocked();
+    }
+
+    /** Charges entières disponibles. */
+    public int pulseCharges() {
+        return (int) Math.floor(state.pulseCharges() + 1e-9);
+    }
+
+    /** Espace que donnerait une impulsion maintenant. */
+    public BigNum pulseGain() {
+        return isPulseUnlocked() ? steadySpacePerSecond().multiply(PULSE_SECONDS) : BigNum.ZERO;
+    }
+
+    /** Secondes avant la prochaine charge (0 si la réserve est pleine). */
+    public double secondsUntilPulse() {
+        double charges = state.pulseCharges();
+        if (charges >= PULSE_MAX_CHARGES) return 0;
+        return (Math.floor(charges + 1e-9) + 1 - charges) * PULSE_REFILL_SECONDS;
+    }
+
+    /** Dépense une charge pour dix secondes d'expansion d'un coup. Faux sans charge ou avant le premier Big Bang. */
+    public boolean pulse() {
+        if (!isPulseUnlocked() || state.pulseCharges() < 1 - 1e-9) return false;
+        state.setPulseCharges(state.pulseCharges() - 1);
+        state.setSpace(state.space().add(pulseGain()));
+        state.setPulses(state.pulses() + 1);
+        return true;
+    }
+
+    /** Impulsions données depuis le début du jeu. */
+    public long pulses() {
+        return state.pulses();
+    }
+
+    private void refillPulses(double dt) {
+        if (dt <= 0 || !isPulseUnlocked()) return;
+        state.setPulseCharges(Math.min(PULSE_MAX_CHARGES, state.pulseCharges() + dt / PULSE_REFILL_SECONDS));
     }
 
     // ------------------------------------------------------------------
@@ -4212,9 +4831,10 @@ public final class Game {
     /**
      * Achète, dans l'ordre du catalogue, la première chose payable parmi : les cases de l'arbre de
      * matière noire et les améliorations payées en matière noire dont le nombre de niveaux est limité.
-     * Une case sans dernier niveau n'est prise qu'à son premier niveau, celui qui ouvre la case du
-     * dessous : au-delà elle avalerait les particules et les atomes qu'il faut réunir pour le Big
-     * Bang. Les améliorations de la boutique sans limite restent entièrement au joueur.
+     * Une case sans dernier niveau est prise d'abord à son premier niveau, celui qui ouvre la case du
+     * dessous ; ses niveaux suivants ne le sont que lorsqu'ils coûtent au plus 1 % de la branche
+     * ({@link #TREE_REPEAT_SHARE}), pour ne pas avaler ce qu'il faut réunir pour le Big Bang. Les
+     * améliorations de la boutique sans limite restent entièrement au joueur.
      */
     private boolean buyCheapestDarkUpgrade() {
         if (inChallenge()) return false;
@@ -4222,8 +4842,20 @@ public final class Game {
             if (!upgrade.hasLimit() && (!upgrade.branch().inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
             if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;
         }
+        // Les niveaux suivants des cases sans fin (Densité, Noyau lourd…), seulement quand ils ne coûtent
+        // presque rien : au plus TREE_REPEAT_SHARE de ce que possède la branche. Leur prix grandit à chaque
+        // niveau, si bien que l'automatisme n'entame jamais vraiment ce qu'il faut réunir pour le Big Bang.
+        for (DarkUpgrade upgrade : darkUpgrades.values()) {
+            if (upgrade.hasLimit() || !upgrade.branch().inTree() || state.darkLevelOf(upgrade.id()) < 1) continue;
+            if (!canBuyDark(upgrade.id())) continue;
+            BigNum cost = darkCostOf(upgrade.id());
+            if (cost.lte(darkBalance(upgrade.branch()).multiply(TREE_REPEAT_SHARE)) && buyDark(upgrade.id())) return true;
+        }
         return false;
     }
+
+    /** Part de la branche au-delà de laquelle l'automatisme de l'arbre ne prend plus un niveau de case sans fin : 1 %. */
+    public static final double TREE_REPEAT_SHARE = 0.01;
 
     /**
      * Offre au joueur un automatisme ordinaire qu'il ne possède pas encore, mis en marche
@@ -4235,7 +4867,8 @@ public final class Game {
      * @return {@code true} si un automatisme a été offert
      */
     private boolean grantAutomation() {
-        if (inChallenge()) return false;   // un défi se joue sans les mémoires de la matière noire
+        // Les défis gardent cet automatisme (version 0.47) : sans lui, chaque défi obligeait à racheter
+        // les automatismes à la main. Les autres mémoires de la matière noire restent sans effet en défi.
         for (Automation automation : automations.values()) {
             if (state.ownsAutomation(automation.id())) continue;
             if (automation.kind() == Automation.Kind.SYNTHESIS
@@ -4515,28 +5148,31 @@ public final class Game {
      * Somme, sur les améliorations d'un type, de {@code par unité × niveau × matière noire gagnée} :
      * la forme commune des effets payés en matière noire.
      */
-    private double darkMatterScaling(java.util.function.ToDoubleFunction<DarkEffect> perUnit) {
-        double total = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            int level = state.darkLevelOf(dark.id());
-            if (level > 0) total += perUnit.applyAsDouble(dark.effect()) * level;
-        }
-        return total * darkMatterUnits();
+    private double darkMatterScaling(String key, java.util.function.ToDoubleFunction<DarkEffect> perUnit) {
+        double total = this.<Double>darkMemo(key, () -> {
+            double sum = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                int level = state.darkLevelOf(dark.id());
+                if (level > 0) sum += perUnit.applyAsDouble(dark.effect()) * level;
+            }
+            return sum;
+        });
+        return total == 0 ? 0 : total * darkMatterUnits();
     }
 
     /** Ce par quoi les améliorations payées en matière noire multiplient les atomes de chaque fusion. */
     public double darkAtomsMultiplier() {
-        return 1 + darkMatterScaling(effect -> effect instanceof DarkEffect.AtomsByDarkMatter by ? by.perUnit() : 0);
+        return 1 + darkMatterScaling("atomsByDarkMatter", effect -> effect instanceof DarkEffect.AtomsByDarkMatter by ? by.perUnit() : 0);
     }
 
     /** Ce par quoi les améliorations payées en matière noire divisent le délai des automatismes ordinaires. */
     public double darkAutomationDivisor() {
-        return 1 + darkMatterScaling(effect -> effect instanceof DarkEffect.AutomationsByDarkMatter by ? by.perUnit() : 0);
+        return 1 + darkMatterScaling("automationsByDarkMatter", effect -> effect instanceof DarkEffect.AutomationsByDarkMatter by ? by.perUnit() : 0);
     }
 
     /** Ce par quoi les améliorations payées en matière noire divisent le prix de la synthèse. */
     public double darkSynthesisDivisor() {
-        return 1 + darkMatterScaling(effect -> effect instanceof DarkEffect.SynthesisByDarkMatter by ? by.perUnit() : 0);
+        return 1 + darkMatterScaling("synthesisByDarkMatter", effect -> effect instanceof DarkEffect.SynthesisByDarkMatter by ? by.perUnit() : 0);
     }
 
     /**
@@ -4545,7 +5181,7 @@ public final class Game {
      */
     public BigNum darkHeadStartAtoms() {
         if (inChallenge()) return BigNum.ZERO;
-        double atoms = Math.floor(darkMatterScaling(
+        double atoms = Math.floor(darkMatterScaling("headStart",
                 effect -> effect instanceof DarkEffect.HeadStartByDarkMatter by ? by.perUnit() : 0));
         return BigNum.of(atoms).min(UNLOCK_TOTAL_ATOMS);
     }
@@ -4558,31 +5194,66 @@ public final class Game {
 
     /** Vrai si le joueur possède au moins un niveau d'une amélioration de matière noire de ce type. */
     private boolean hasDark(Class<? extends DarkEffect> type) {
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (type.isInstance(dark.effect()) && state.darkLevelOf(dark.id()) > 0) return true;
+        return darkMemo(type, () -> {
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (type.isInstance(dark.effect()) && state.darkLevelOf(dark.id()) > 0) return true;
+            }
+            return false;
+        });
+    }
+
+    /** Les cases possédées dont l'effet sur les particules suit la matière noire ou sa taille : peu nombreuses, parcourues à chaque calcul. */
+    private List<DarkUpgrade> darkScaled() {
+        return darkMemo("scaledParticles", () -> darkUpgrades.values().stream()
+                .filter(dark -> state.darkLevelOf(dark.id()) > 0
+                        && (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter || dark.effect() instanceof DarkEffect.ParticlesByLightYears))
+                .toList());
+    }
+
+    // Les effets de l'arbre qui ne dépendent que de ses niveaux : calculés une fois par version des
+    // niveaux. Sans ce cache, chaque appel parcourait tout l'arbre, des milliers de fois par seconde
+    // de jeu une fois les automatismes rapides : c'était le gros du temps du rattrapage d'absence.
+    private final Map<Object, Object> darkMemo = new HashMap<>();
+    private int darkMemoVersion = -1;
+
+    @SuppressWarnings("unchecked")
+    private <T> T darkMemo(Object key, java.util.function.Supplier<T> compute) {
+        if (darkMemoVersion != state.darkVersion()) {
+            darkMemo.clear();
+            darkMemoVersion = state.darkVersion();
         }
-        return false;
+        Object value = darkMemo.get(key);
+        if (value == null) {
+            value = compute.get();
+            darkMemo.put(key, value);
+        }
+        return (T) value;
     }
 
     /** Atomes de base ajoutés à chaque fusion par l'arbre. */
     public double darkAtomsPerFusion() {
-        double added = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.AddAtomsPerFusion add) {
-                added += add.perLevel() * state.darkLevelOf(dark.id());
+        return darkMemo("atomsPerFusion", () -> {
+            double added = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.AddAtomsPerFusion add) {
+                    added += add.perLevel() * state.darkLevelOf(dark.id());
+                }
             }
-        }
-        return added;
+            return added;
+        });
     }
 
     /** Nombre d'éléments tirés à chaque synthèse, avant le tirage double : un, plus ceux de l'arbre. */
     public int elementsPerSynthesis() {
-        int count = 1;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.AddElementsPerSynthesis add) {
-                count += add.perLevel() * state.darkLevelOf(dark.id());
+        int count = 1 + this.<Integer>darkMemo("elementsPerSynthesis", () -> {
+            int added = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.AddElementsPerSynthesis add) {
+                    added += add.perLevel() * state.darkLevelOf(dark.id());
+                }
             }
-        }
+            return added;
+        });
         if (rewarded(Challenge.Reward.EXTRA_ELEMENT)) count += REWARD_EXTRA_ELEMENTS;
         return count;
     }
@@ -4592,13 +5263,20 @@ public final class Game {
      * et la taille de la matière noire en années-lumière (à partir d'une année-lumière).
      */
     public BigNum darkParticlesMultiplier() {
-        BigNum result = BigNum.ONE;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
+        BigNum result = this.<BigNum>darkMemo("baseParticles", () -> {
+            BigNum base = BigNum.ONE;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                int level = state.darkLevelOf(dark.id());
+                if (level > 0 && dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply) {
+                    base = base.multiply(BigNum.of(multiply.perLevel()).pow(level));
+                }
+            }
+            return base;
+        });
+        for (DarkUpgrade dark : darkScaled()) {
             int level = state.darkLevelOf(dark.id());
             if (level == 0) continue;
-            if (dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply) {
-                result = result.multiply(BigNum.of(multiply.perLevel()).pow(level));
-            } else if (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter byDarkMatter) {
+            if (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter byDarkMatter) {
                 result = result.multiply(BigNum.of(byDarkMatter.perUnit()).pow(darkMatterUnits() * level));
             } else if (dark.effect() instanceof DarkEffect.ParticlesByLightYears byLightYears) {
                 BigNum lightYears = darkMatterLightYears();
@@ -4610,59 +5288,69 @@ public final class Game {
 
     /** Ce que l'arbre multiplie dans la vitesse de croissance de la matière noire. */
     public BigNum darkExpansionMultiplier() {
-        BigNum result = BigNum.ONE;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.MultiplyExpansion multiply) {
-                result = result.multiply(BigNum.of(multiply.perLevel()).pow(state.darkLevelOf(dark.id())));
+        return darkMemo("expansion", () -> {
+            BigNum result = BigNum.ONE;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.MultiplyExpansion multiply) {
+                    result = result.multiply(BigNum.of(multiply.perLevel()).pow(state.darkLevelOf(dark.id())));
+                }
             }
-        }
-        return result;
+            return result;
+        });
     }
 
     /** Part de la vitesse d'appui à laquelle la matière noire grossit seule (0 sans l'amélioration). */
     public double darkAutoExpansionShare() {
-        double share = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            int level = state.darkLevelOf(dark.id());
-            if (dark.effect() instanceof DarkEffect.AutoExpansion auto && level > 0) {
-                share += auto.share() * Math.pow(auto.growth(), level - 1);
+        return darkMemo("autoExpansion", () -> {
+            double share = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                int level = state.darkLevelOf(dark.id());
+                if (dark.effect() instanceof DarkEffect.AutoExpansion auto && level > 0) {
+                    share += auto.share() * Math.pow(auto.growth(), level - 1);
+                }
             }
-        }
-        return share;
+            return share;
+        });
     }
 
     /** Secondes d'appui que vaut chaque fusion pour la matière noire (0 sans l'amélioration). */
     public double darkFusionPulse() {
-        double seconds = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.FusionPulse pulse) {
-                seconds += pulse.seconds() * state.darkLevelOf(dark.id());
+        return darkMemo("fusionPulse", () -> {
+            double seconds = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.FusionPulse pulse) {
+                    seconds += pulse.seconds() * state.darkLevelOf(dark.id());
+                }
             }
-        }
-        return seconds;
+            return seconds;
+        });
     }
 
     /** Niveaux de vitesse offerts par l'arbre : ils s'ajoutent à ceux achetés et ne se perdent jamais. */
     public int startingSpeedLevels() {
         if (inChallenge()) return 0;
-        int levels = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.StartingSpeedLevels start) {
-                levels += start.perLevel() * state.darkLevelOf(dark.id());
+        return this.<Integer>darkMemo("startingSpeedLevels", () -> {
+            int levels = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.StartingSpeedLevels start) {
+                    levels += start.perLevel() * state.darkLevelOf(dark.id());
+                }
             }
-        }
-        return levels;
+            return levels;
+        });
     }
 
     /** Rang de la synthèse qui donne un élément unique à coup sûr, tant qu'aucun n'est sorti. */
     public int guaranteedUniqueSynthesis() {
-        int rank = GUARANTEED_UNIQUE_SYNTHESIS;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.EarlierGuaranteedUnique earlier && state.darkLevelOf(dark.id()) > 0) {
-                rank = Math.min(rank, earlier.rank());
+        return darkMemo("guaranteedUnique", () -> {
+            int rank = GUARANTEED_UNIQUE_SYNTHESIS;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.EarlierGuaranteedUnique earlier && state.darkLevelOf(dark.id()) > 0) {
+                    rank = Math.min(rank, earlier.rank());
+                }
             }
-        }
-        return rank;
+            return rank;
+        });
     }
 
     /**
@@ -4672,12 +5360,15 @@ public final class Game {
      */
     public int maxCopiesOf(ElementCategory category) {
         if (category.unique()) return 1;
-        int steps = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.IncreaseMaxCopies more) {
-                steps += more.perLevel() * state.darkLevelOf(dark.id());
+        int steps = this.<Integer>darkMemo("copySteps", () -> {
+            int sum = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.IncreaseMaxCopies more) {
+                    sum += more.perLevel() * state.darkLevelOf(dark.id());
+                }
             }
-        }
+            return sum;
+        });
         if (steps == 0) return category.maxCopies();
         int strength = (int) Math.round(Math.sqrt(category.maxCopies())) + steps;
         return strength * strength;
@@ -4866,12 +5557,15 @@ public final class Game {
      */
     public int startingGenerators() {
         if (inChallenge()) return 0;
-        int bonus = 0;
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.StartingGenerators start) {
-                bonus += start.perLevel() * state.darkLevelOf(dark.id());
+        int bonus = this.<Integer>darkMemo("startingGenerators", () -> {
+            int sum = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.StartingGenerators start) {
+                    sum += start.perLevel() * state.darkLevelOf(dark.id());
+                }
             }
-        }
+            return sum;
+        });
         return Math.min(bonus, generatorsPerAtom() - 1);
     }
 
@@ -4880,26 +5574,36 @@ public final class Game {
      * l'arbre de matière noire.
      */
     public int maxGeneratorCount() {
-        int limit = generatorsPerAtom();
-        for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.effect() instanceof DarkEffect.UncapGenerators uncap && state.darkLevelOf(dark.id()) > 0) {
-                limit = Math.max(limit, uncap.limit());
+        int uncapped = this.<Integer>darkMemo("maxGenerators", () -> {
+            int limit = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.UncapGenerators uncap && state.darkLevelOf(dark.id()) > 0) {
+                    limit = Math.max(limit, uncap.limit());
+                }
             }
-        }
-        return limit;
+            return limit;
+        });
+        return Math.max(generatorsPerAtom(), uncapped);
     }
+
+    /** Générateurs du catalogue (le premier compris) : le catalogue ne change pas, on ne les compte qu'une fois. */
+    private int catalogGenerators = 0;
 
     /**
      * Nombre de générateurs qu'il faut pour fusionner, et que consomme chaque atome de base :
      * le premier, plus tous ceux des améliorations du catalogue (dix dans le jeu).
      */
     public int generatorsPerAtom() {
-        int count = 1;
-        for (Upgrade upgrade : upgrades.values()) {
-            if (upgrade.effect() instanceof Effect.AddGenerator && upgrade.hasLimit()) {
-                count += upgrade.maxLevel();
+        if (catalogGenerators == 0) {
+            int count = 1;
+            for (Upgrade upgrade : upgrades.values()) {
+                if (upgrade.effect() instanceof Effect.AddGenerator && upgrade.hasLimit()) {
+                    count += upgrade.maxLevel();
+                }
             }
+            catalogGenerators = count;
         }
+        int count = catalogGenerators;
         return ruled(Challenge.Rule.HEAVY_FUSION) ? count * HEAVY_FUSION_FACTOR : count;
     }
 
@@ -4919,7 +5623,8 @@ public final class Game {
                 .multiply(landmarkParticlesMultiplier())
                 .multiply(achievementParticlesMultiplier())
                 .multiply(moleculeBoost(Molecule.Stat.PARTICLES))
-                .multiply(speedMilestoneMultiplier());
+                .multiply(speedMilestoneMultiplier())
+                .multiply(colliderParticlesMultiplier());
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade, state.levelOf(upgrade.id()), generators));
         }
@@ -4967,6 +5672,7 @@ public final class Game {
             case Effect.StrengthenSpeed strengthen -> BigNum.ONE;
             case Effect.DiscountGenerators discount -> BigNum.ONE;
             case Effect.KeepUpgradesOnFusion keep -> BigNum.ONE;
+            case Effect.BulkAtomBuy bulk -> BigNum.ONE;
             case Effect.MultiplyAtomsByProduction byProduction -> BigNum.ONE;
         };
     }
@@ -5014,6 +5720,7 @@ public final class Game {
                 .multiply(landmarkAtomsMultiplier())
                 .multiply(1 + achievementBonus(Achievement.Bonus.ATOMS))
                 .multiply(moleculeBoost(Molecule.Stat.ATOMS))
+                .multiply(colliderAtomsMultiplier())
                 .multiply(fusionYield())
                 .multiply(fusionGroups() * fusionGroupBonus());
     }
@@ -5404,5 +6111,568 @@ public final class Game {
         Upgrade upgrade = upgrades.get(upgradeId);
         if (upgrade == null) throw new IllegalArgumentException("Amélioration inconnue : " + upgradeId);
         return upgrade;
+    }
+    // ------------------------------------------------------------------
+    // Les sondes (version 0.52) : des voyages dont le butin se réclame d'un clic
+    // ------------------------------------------------------------------
+
+    /** Secondes d'expansion que vaut une récompense d'espace de valeur 1 (un saut court). */
+    public static final double PROBE_SPACE_SECONDS = 120;
+    /** Exemplaires d'élément que vaut une récompense d'éléments de valeur 1. */
+    public static final double PROBE_ELEMENTS = 3;
+    /** Durée d'un sursaut d'expansion de valeur 1, avant les réserves d'énergie. */
+    public static final double PROBE_BOOST_SECONDS = 300;
+    /** Ce par quoi un sursaut multiplie l'espace par seconde. */
+    public static final double PROBE_BOOST_FACTOR = 2;
+
+    private final List<ProbeReward> returnedProbes = new ArrayList<>();
+
+    /** Vrai une fois les sondes ouvertes : au palier du troisième Big Bang. */
+    public boolean isProbesUnlocked() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.Probes) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Sondes en vol à la fois : une, plus le hangar. */
+    public int probeSlots() {
+        int slots = 1 + state.probeUpgradeLevel(ProbeUpgrade.HANGAR);
+        for (BigBangMilestone.MorePlaces more : reachedMorePlaces()) slots += more.probes();
+        return slots;
+    }
+
+    /** Vrai si cette destination est ouverte : le vide toujours, les autres avec leur rayon. */
+    public boolean isProbeDestinationOpen(ProbeDestination destination) {
+        return destination.kind() == null || isMoleculeKindUnlocked(destination.kind());
+    }
+
+    /** Durée d'un voyage, moteurs compris. */
+    public double probeDuration(ProbeTrip trip) {
+        return trip.seconds() * Math.pow(0.9, state.probeUpgradeLevel(ProbeUpgrade.ENGINE));
+    }
+
+    /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
+    public int probeRewardCount(ProbeTrip trip) {
+        return trip.rewards() + state.probeUpgradeLevel(ProbeUpgrade.CARGO)
+                + (hasColliderMilestone(ColliderMilestone.CHARM) && trip.ordinal() >= ProbeTrip.HOUR.ordinal() ? 1 : 0);
+    }
+
+    /** Ce que valent les récompenses de ce voyage : sa valeur, instruments compris. */
+    public double probeValue(ProbeTrip trip) {
+        return trip.value() * (1 + 0.25 * state.probeUpgradeLevel(ProbeUpgrade.LOOT));
+    }
+
+    public boolean canLaunchProbe(ProbeDestination destination, ProbeTrip trip) {
+        return isProbesUnlocked() && isProbeDestinationOpen(destination) && state.probes().size() < probeSlots();
+    }
+
+    /** Envoie une sonde. */
+    public boolean launchProbe(ProbeDestination destination, ProbeTrip trip) {
+        if (!canLaunchProbe(destination, trip)) return false;
+        List<Probe> flying = new ArrayList<>(state.probes());
+        double seconds = probeDuration(trip);
+        long id = state.probeLaunches();
+        state.setProbeLaunches(id + 1);
+        flying.add(new Probe(destination, trip, seconds, seconds, id));
+        state.setProbes(flying);
+        return true;
+    }
+
+    /** Les sondes arrivées dont le butin attend, dans l'ordre de leur départ. */
+    public List<Probe> landedProbes() {
+        List<Probe> landed = new ArrayList<>();
+        for (Probe probe : state.probes()) if (probe.landed()) landed.add(probe);
+        return landed;
+    }
+
+    /** Le butin qu'il reste à ouvrir de cette sonde, dans l'ordre. */
+    public List<ProbeReward> probeRewardsOf(long probe) {
+        List<ProbeReward> rewards = new ArrayList<>();
+        for (ProbeReward reward : state.probeRewards()) if (reward.probe() == probe) rewards.add(reward);
+        return rewards;
+    }
+
+    /** Ouvre la prochaine récompense de cette sonde ; la dernière ouverte, la sonde rentre au hangar. */
+    public ProbeReward claimProbeReward(long probe) {
+        for (int index = 0; index < state.probeRewards().size(); index++) {
+            if (state.probeRewards().get(index).probe() == probe) return claimProbeRewardAt(index);
+        }
+        dropEmptyProbes();
+        return null;
+    }
+
+    /** Ouvre d'un coup tout le butin de cette sonde : les récompenses ouvertes, dans l'ordre. */
+    public List<ProbeReward> claimAllProbeRewards(long probe) {
+        List<ProbeReward> opened = new ArrayList<>();
+        for (ProbeReward reward = claimProbeReward(probe); reward != null; reward = claimProbeReward(probe)) opened.add(reward);
+        return opened;
+    }
+
+    /** Les sondes arrivées dont tout le butin est ouvert rentrent au hangar : leur place se libère. */
+    private void dropEmptyProbes() {
+        boolean any = false;
+        for (Probe probe : state.probes()) if (probe.landed() && probeRewardsOf(probe.id()).isEmpty()) any = true;
+        if (!any) return;
+        List<Probe> kept = new ArrayList<>();
+        for (Probe probe : state.probes()) if (!probe.landed() || !probeRewardsOf(probe.id()).isEmpty()) kept.add(probe);
+        state.setProbes(kept);
+    }
+
+    private void runProbes(double dt) {
+        if (dt <= 0) return;
+        if (state.probeBoostLeft() > 0) state.setProbeBoostLeft(state.probeBoostLeft() - dt);
+        if (state.probes().isEmpty()) return;
+        List<Probe> flying = new ArrayList<>();
+        List<ProbeReward> waiting = new ArrayList<>(state.probeRewards());
+        boolean landed = false;
+        for (Probe probe : state.probes()) {
+            if (probe.landed()) {
+                // Arrivée : elle attend qu'on ouvre son butin. Sans numéro (une sauvegarde d'avant), elle rentre aussitôt.
+                if (probe.id() >= 0) flying.add(probe);
+                continue;
+            }
+            double left = probe.left() - dt;
+            if (left > 0) {
+                flying.add(new Probe(probe.destination(), probe.trip(), left, probe.total(), probe.id()));
+            } else {
+                List<ProbeReward> loot = probeLoot(probe);
+                waiting.addAll(loot);
+                returnedProbes.add(loot.isEmpty() ? null : loot.get(0));
+                landed = true;
+                if (probe.id() >= 0) flying.add(new Probe(probe.destination(), probe.trip(), 0, probe.total(), probe.id()));
+            }
+        }
+        state.setProbes(flying);
+        if (landed) state.setProbeRewards(waiting);
+    }
+
+    /** Le butin d'une sonde qui revient : fixé par le numéro du voyage, sans toucher au hasard du jeu. */
+    private List<ProbeReward> probeLoot(Probe probe) {
+        long run = state.probeRuns();
+        state.setProbeRuns(run + 1);
+        double value = probeValue(probe.trip());
+        ProbeDestination where = probe.destination();
+        List<Integer> elements = probeElements(where);
+        int count = probeRewardCount(probe.trip());
+        boolean quarks = hasColliderMilestone(ColliderMilestone.CHARM) && probe.trip().ordinal() >= ProbeTrip.HOUR.ordinal();
+        List<ProbeReward> loot = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            if (i == count - 1) {
+                loot.add(new ProbeReward(ProbeReward.Type.SAMPLES, "", value, where, probe.id()));
+            } else if (quarks && i == count - 2) {
+                loot.add(new ProbeReward(ProbeReward.Type.QUARKS, "", value, where, probe.id()));
+            } else if (i == 0) {
+                loot.add(elements.isEmpty() ? new ProbeReward(ProbeReward.Type.SPACE, "", value, where, probe.id())
+                        : new ProbeReward(ProbeReward.Type.ELEMENTS, String.valueOf(elements.get(between(run, 10, 0, elements.size() - 1))), value, where, probe.id()));
+            } else {
+                int roll = between(run, 20 + i, 0, elements.isEmpty() ? 1 : 2);
+                if (roll == 2) {
+                    loot.add(new ProbeReward(ProbeReward.Type.ELEMENTS, String.valueOf(elements.get(between(run, 30 + i, 0, elements.size() - 1))), value, where, probe.id()));
+                } else {
+                    loot.add(new ProbeReward(roll == 0 ? ProbeReward.Type.SPACE : ProbeReward.Type.BOOST, "", value, where, probe.id()));
+                }
+            }
+        }
+        return loot;
+    }
+
+    /**
+     * Les éléments que peut rapporter une destination : ceux des molécules de son rayon, déjà
+     * découverts dans la partie, par ordre de numéro. Aucun pour le vide.
+     */
+    public List<Integer> probeElements(ProbeDestination destination) {
+        if (destination.kind() == null) return List.of();
+        java.util.TreeSet<Integer> found = new java.util.TreeSet<>();
+        for (Molecule molecule : molecules()) {
+            if (molecule.kind() != destination.kind()) continue;
+            for (Integer element : molecule.recipe().keySet()) {
+                if (state.elementCount(element) > 0) found.add(element);
+            }
+        }
+        return new ArrayList<>(found);
+    }
+
+    /** La prochaine récompense à réclamer, ou {@code null}. */
+    public ProbeReward nextProbeReward() {
+        return state.probeRewards().isEmpty() ? null : state.probeRewards().get(0);
+    }
+
+    /** Exemplaires d'élément que donne cette récompense. */
+    public int probeElementsOf(ProbeReward reward) {
+        return (int) Math.ceil(PROBE_ELEMENTS * reward.value());
+    }
+
+    /** Espace que donne cette récompense, à l'expansion du moment. */
+    public BigNum probeSpaceOf(ProbeReward reward) {
+        return steadySpacePerSecond().multiply(PROBE_SPACE_SECONDS * reward.value());
+    }
+
+    /** Secondes de sursaut que donne cette récompense, réserves d'énergie comprises. */
+    public double probeBoostOf(ProbeReward reward) {
+        return PROBE_BOOST_SECONDS * Math.sqrt(reward.value()) * (1 + 0.5 * state.probeUpgradeLevel(ProbeUpgrade.BOOST));
+    }
+
+    /** Échantillons que donne cette récompense. */
+    public long probeSamplesOf(ProbeReward reward) {
+        return Math.max(1, Math.round(2 * Math.pow(reward.value(), 0.8)));
+    }
+
+    /** Quarks charmés que donne cette récompense ; les quarks beaux sont la moitié, arrondie au-dessous. */
+    public int probeCharmOf(ProbeReward reward) {
+        return Math.max(1, (int) Math.round(Math.pow(reward.value(), 0.5)));
+    }
+
+    /**
+     * Réclame la prochaine récompense : elle s'applique, et la suivante prend sa place. Un élément
+     * qui n'est plus découvert (un Big Bang a eu lieu entre-temps) devient de l'espace.
+     *
+     * @return la récompense réclamée, ou {@code null} s'il n'y en avait pas
+     */
+    public ProbeReward claimProbeReward() {
+        if (state.probeRewards().isEmpty()) {
+            dropEmptyProbes();
+            return null;
+        }
+        return claimProbeRewardAt(0);
+    }
+
+    private ProbeReward claimProbeRewardAt(int index) {
+        ProbeReward reward = state.probeRewards().get(index);
+        List<ProbeReward> waiting = new ArrayList<>(state.probeRewards());
+        waiting.remove(index);
+        state.setProbeRewards(waiting);
+        dropEmptyProbes();
+        ProbeReward.Type type = reward.type();
+        if (type == ProbeReward.Type.ELEMENTS) {
+            int element = Integer.parseInt(reward.target());
+            if (state.elementCount(element) > 0) {
+                state.setElementCount(element, state.elementCount(element) + probeElementsOf(reward));
+                return reward;
+            }
+            reward = new ProbeReward(ProbeReward.Type.SPACE, "", reward.value(), reward.destination());
+            type = ProbeReward.Type.SPACE;
+        }
+        switch (type) {
+            case SPACE -> {
+                if (isBigBangUnlocked()) state.setSpace(state.space().add(probeSpaceOf(reward)));
+            }
+            case BOOST -> state.setProbeBoostLeft(state.probeBoostLeft() + probeBoostOf(reward));
+            case SAMPLES -> state.setProbeSamples(state.probeSamples() + probeSamplesOf(reward));
+            case QUARKS -> {
+                int charm = probeCharmOf(reward);
+                state.setQuarks(Quark.CHARM, state.quarks(Quark.CHARM) + charm);
+                state.setQuarks(Quark.BOTTOM, state.quarks(Quark.BOTTOM) + charm / 2);
+            }
+            default -> { }
+        }
+        return reward;
+    }
+
+    /** Ce par quoi un sursaut d'expansion multiplie l'espace par seconde. */
+    public double probeBoostMultiplier() {
+        return state.probeBoostLeft() > 0 ? PROBE_BOOST_FACTOR : 1;
+    }
+
+    public long probeUpgradeCost(ProbeUpgrade upgrade) {
+        return upgrade.cost(state.probeUpgradeLevel(upgrade));
+    }
+
+    public boolean canBuyProbeUpgrade(ProbeUpgrade upgrade) {
+        int level = state.probeUpgradeLevel(upgrade);
+        return isProbesUnlocked() && level < upgrade.maxLevel() && state.probeSamples() >= upgrade.cost(level);
+    }
+
+    public boolean buyProbeUpgrade(ProbeUpgrade upgrade) {
+        if (!canBuyProbeUpgrade(upgrade)) return false;
+        state.setProbeSamples(state.probeSamples() - probeUpgradeCost(upgrade));
+        state.setProbeUpgradeLevel(upgrade, state.probeUpgradeLevel(upgrade) + 1);
+        return true;
+    }
+
+    /** Les sondes revenues depuis le dernier appel, par leur première récompense : pour les annoncer une fois. */
+    public List<ProbeReward> takeReturnedProbes() {
+        List<ProbeReward> taken = new ArrayList<>(returnedProbes);
+        returnedProbes.clear();
+        return taken;
+    }
+    // ------------------------------------------------------------------
+    // La maturation des astres (version 0.53) : un astre formé mûrit avant de compter pleinement
+    // ------------------------------------------------------------------
+
+    /** Part de son bonus que donne un astre pendant qu'il mûrit. */
+    public static final double MATURING_SHARE = 0.25;
+    /** Places de maturation : autant d'astres qui mûrissent à la fois. */
+    public static final int MATURATION_PLACES = 3;
+    /** Ce qu'une charge d'impulsion fait gagner à une maturation. */
+    public static final double MATURATION_HASTE_SECONDS = 60;
+
+    private final List<String> maturedBodies = new ArrayList<>();
+
+    /**
+     * Durée de maturation d'un astre, selon son échelle : 4 minutes pour un amas de roches, 25
+     * pour une planète, 50 pour une étoile, 2 heures pour le trou noir supermassif.
+     */
+    public double maturationSeconds(Body body) {
+        double minutes = switch (body.tier()) {
+            case RUBBLE -> 4;
+            case COMET -> 6;
+            case ASTEROID -> 10;
+            case MOON -> 15;
+            case PLANET -> 25;
+            case STAR -> 50;
+            case REMNANT -> 70;
+            case BLACK_HOLE -> 90;
+            case EXOTIC -> 100;
+            case CORE -> 120;
+        };
+        return minutes * 60;
+    }
+
+    /** Vrai si cet astre est formé et a fini de mûrir : il compte pour les astres plus gros et pour la galaxie. */
+    public boolean isBodyMature(String bodyId) {
+        String id = body(bodyId).id();
+        return state.hasBody(id) && state.maturingLeft(id) <= 0;
+    }
+
+    /** Vrai si cet astre est formé mais mûrit encore. */
+    public boolean isBodyMaturing(String bodyId) {
+        return state.maturingLeft(body(bodyId).id()) > 0;
+    }
+
+    /** Secondes de maturation qu'il reste à cet astre. */
+    public double maturationLeft(String bodyId) {
+        return state.maturingLeft(body(bodyId).id());
+    }
+
+    /** Nombre d'astres mûrs. */
+    public int bodiesMature() {
+        return state.bodies().size() - state.maturing().size();
+    }
+
+    /** Places de maturation. */
+    public int maturationPlaces() {
+        int places = MATURATION_PLACES;
+        for (BigBangMilestone.MorePlaces more : reachedMorePlaces()) places += more.maturation();
+        return places;
+    }
+
+    /** Les paliers « des places de plus » atteints. */
+    private List<BigBangMilestone.MorePlaces> reachedMorePlaces() {
+        List<BigBangMilestone.MorePlaces> found = new ArrayList<>();
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (effect instanceof BigBangMilestone.MorePlaces more) found.add(more);
+            }
+        }
+        return found;
+    }
+
+    /** Vrai si un palier atteint donne cet effet. */
+    private boolean milestoneGives(Class<? extends BigBangMilestone.Effect> kind) {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (!isBigBangMilestoneReached(milestone)) continue;
+            for (BigBangMilestone.Effect effect : milestone.effects()) {
+                if (kind.isInstance(effect)) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Vrai une fois les matières exotiques ouvertes, au huitième Big Bang : leurs astres peuvent se former. */
+    public boolean isExoticUnlocked() {
+        return milestoneGives(BigBangMilestone.ExoticMatter.class);
+    }
+
+    /** Vrai s'il reste une place pour faire mûrir un astre de plus. */
+    public boolean hasMaturationPlace() {
+        return state.maturing().size() < maturationPlaces();
+    }
+
+    /** Les astres qui mûrissent, dans l'ordre de leur formation. */
+    public List<String> maturingBodies() {
+        return List.copyOf(state.maturing().keySet());
+    }
+
+    /** Dépense une charge d'impulsion pour avancer d'une minute la maturation de cet astre. */
+    public boolean hastenMaturation(String bodyId) {
+        String id = body(bodyId).id();
+        if (state.maturingLeft(id) <= 0 || state.pulseCharges() < 1 - 1e-9) return false;
+        state.setPulseCharges(state.pulseCharges() - 1);
+        state.setPulses(state.pulses() + 1);
+        state.setMaturing(id, state.maturingLeft(id) - MATURATION_HASTE_SECONDS);
+        if (state.maturingLeft(id) <= 0) maturedBodies.add(id);
+        return true;
+    }
+
+    private void runMaturation(double dt) {
+        if (dt <= 0 || state.maturing().isEmpty()) return;
+        for (String id : List.copyOf(state.maturing().keySet())) {
+            state.setMaturing(id, state.maturingLeft(id) - dt);
+            if (state.maturingLeft(id) <= 0) maturedBodies.add(id);
+        }
+    }
+
+    /** Les astres qui ont fini de mûrir depuis le dernier appel : pour les annoncer une fois. */
+    public List<String> takeMaturedBodies() {
+        List<String> taken = List.copyOf(maturedBodies);
+        maturedBodies.clear();
+        return taken;
+    }
+    // ------------------------------------------------------------------
+    // Les systèmes solaires (version 0.54) : une étoile, ses planètes, ses lunes
+    // ------------------------------------------------------------------
+
+    /** Systèmes solaires complets que demande la galaxie. */
+    public static final int SYSTEMS_FOR_GALAXY = 3;
+    /** Planètes qu'il faut à un système pour être complet. */
+    public static final int SYSTEM_MIN_PLANETS = 2;
+    /** Ce que chaque point d'harmonie d'un système complet ajoute à toutes les grandeurs (8 = +800 %). */
+    public static final double SYSTEM_GAIN = 8;
+
+    /** Vrai une fois les systèmes solaires ouverts, au sixième Big Bang. */
+    public boolean isSolarSystemsUnlocked() {
+        return milestoneGives(BigBangMilestone.SolarSystems.class);
+    }
+
+    /** Vrai si ce système a assez de planètes. */
+    public boolean isSystemComplete(SolarSystem system) {
+        return system.planets().size() >= SYSTEM_MIN_PLANETS;
+    }
+
+    /** Nombre de systèmes complets. */
+    public int solarSystemsComplete() {
+        int count = 0;
+        for (SolarSystem system : state.solarSystems()) if (isSystemComplete(system)) count++;
+        return count;
+    }
+
+    /** Vrai si cet astre est déjà dans un système. */
+    public boolean isInSystem(String bodyId) {
+        for (SolarSystem system : state.solarSystems()) {
+            if (system.star().equals(bodyId) || system.planets().contains(bodyId) || system.moons().contains(bodyId)) return true;
+        }
+        return false;
+    }
+
+    /** Les astres mûrs de cette échelle qui ne sont dans aucun système : ce qu'on peut encore y placer. */
+    public List<String> freeForSystems(Body.Tier tier) {
+        List<String> free = new ArrayList<>();
+        for (Body body : bodies.values()) {
+            if (body.tier() == tier && isBodyMature(body.id()) && !isInSystem(body.id())) free.add(body.id());
+        }
+        return free;
+    }
+
+    /** Fonde un système autour de cette étoile, mûre et libre. */
+    public boolean foundSystem(String starId) {
+        Body star = body(starId);
+        if (!isSolarSystemsUnlocked() || star.tier() != Body.Tier.STAR || !isBodyMature(star.id()) || isInSystem(star.id())) return false;
+        List<SolarSystem> systems = new ArrayList<>(state.solarSystems());
+        systems.add(new SolarSystem(star.id(), List.of(), List.of()));
+        state.setSolarSystems(systems);
+        return true;
+    }
+
+    /** Défait un système : ses astres redeviennent libres. */
+    public boolean dissolveSystem(int index) {
+        if (index < 0 || index >= state.solarSystems().size()) return false;
+        List<SolarSystem> systems = new ArrayList<>(state.solarSystems());
+        systems.remove(index);
+        state.setSolarSystems(systems);
+        return true;
+    }
+
+    /** Place une planète mûre et libre sur l'orbite la plus lointaine de ce système. */
+    public boolean addPlanet(int index, String planetId) {
+        Body planet = body(planetId);
+        if (index < 0 || index >= state.solarSystems().size() || planet.tier() != Body.Tier.PLANET
+                || !isBodyMature(planet.id()) || isInSystem(planet.id())) return false;
+        SolarSystem system = state.solarSystems().get(index);
+        List<String> planets = new ArrayList<>(system.planets());
+        planets.add(planet.id());
+        replaceSystem(index, system.withPlanets(planets));
+        return true;
+    }
+
+    /** Ajoute une lune mûre et libre à ce système : une par planète au plus. */
+    public boolean addMoon(int index, String moonId) {
+        Body moon = body(moonId);
+        if (index < 0 || index >= state.solarSystems().size() || moon.tier() != Body.Tier.MOON
+                || !isBodyMature(moon.id()) || isInSystem(moon.id())) return false;
+        SolarSystem system = state.solarSystems().get(index);
+        if (system.moons().size() >= system.planets().size()) return false;
+        List<String> moons = new ArrayList<>(system.moons());
+        moons.add(moon.id());
+        replaceSystem(index, system.withMoons(moons));
+        return true;
+    }
+
+    /** Retire une planète ou une lune de ce système ; une lune de trop part avec la planète. */
+    public boolean removeFromSystem(int index, String bodyId) {
+        if (index < 0 || index >= state.solarSystems().size()) return false;
+        SolarSystem system = state.solarSystems().get(index);
+        List<String> planets = new ArrayList<>(system.planets());
+        List<String> moons = new ArrayList<>(system.moons());
+        if (!planets.remove(bodyId) && !moons.remove(bodyId)) return false;
+        while (moons.size() > planets.size()) moons.remove(moons.size() - 1);
+        replaceSystem(index, new SolarSystem(system.star(), planets, moons));
+        return true;
+    }
+
+    /** Rapproche (−1) ou éloigne (+1) une planète de son étoile. */
+    public boolean movePlanet(int index, String planetId, int direction) {
+        if (index < 0 || index >= state.solarSystems().size()) return false;
+        SolarSystem system = state.solarSystems().get(index);
+        List<String> planets = new ArrayList<>(system.planets());
+        int at = planets.indexOf(planetId), to = at + Integer.signum(direction);
+        if (at < 0 || to < 0 || to >= planets.size()) return false;
+        java.util.Collections.swap(planets, at, to);
+        replaceSystem(index, system.withPlanets(planets));
+        return true;
+    }
+
+    private void replaceSystem(int index, SolarSystem system) {
+        List<SolarSystem> systems = new ArrayList<>(state.solarSystems());
+        systems.set(index, system);
+        state.setSolarSystems(systems);
+    }
+
+    /** Une planète rocheuse : roche, lave ou océan ; sa place est près de l'étoile. */
+    private static boolean telluric(Body planet) {
+        return planet.look() == Body.Look.ROCKY || planet.look() == Body.Look.MOLTEN || planet.look() == Body.Look.OCEAN;
+    }
+
+    /** Ce qui fait l'harmonie d'un système, une raison par point, pour l'afficher. */
+    public List<String> systemHarmonyReasons(SolarSystem system) {
+        List<String> reasons = new ArrayList<>();
+        List<String> planets = system.planets();
+        for (int orbit = 0; orbit < planets.size(); orbit++) {
+            Body planet = body(planets.get(orbit));
+            boolean placed = true;
+            if (telluric(planet)) {
+                for (int inner = 0; inner < orbit; inner++) placed &= telluric(body(planets.get(inner)));
+            } else {
+                for (int outer = orbit + 1; outer < planets.size(); outer++) placed &= !telluric(body(planets.get(outer)));
+            }
+            if (placed) reasons.add(planet.name() + (telluric(planet) ? " : tellurique, près de l'étoile" : " : glacée ou gazeuse, au loin"));
+            if (planet.look() == Body.Look.OCEAN && (orbit == 1 || orbit == 2)
+                    && (system.star().equals("yellow_sun") || system.star().equals("red_dwarf"))) {
+                reasons.add(planet.name() + " : dans la zone habitable (+2)");
+                reasons.add("");
+            }
+        }
+        for (String moon : system.moons()) reasons.add(body(moon).name() + " : une lune");
+        if (system.star().equals("blue_giant") || system.star().equals("red_giant")) reasons.add(body(system.star()).name() + " : une étoile géante");
+        return reasons;
+    }
+
+    /** Points d'harmonie d'un système : une planète bien placée, une lune, la zone habitable, une géante. */
+    public int systemHarmony(SolarSystem system) {
+        return systemHarmonyReasons(system).size();
     }
 }

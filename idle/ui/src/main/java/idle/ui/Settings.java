@@ -76,6 +76,29 @@ final class Settings {
         }
     }
 
+    /** Nombre d'images par seconde au plus : moins d'images, moins de calcul et moins de batterie. */
+    enum FrameRate {
+        HIGH("60", 60),
+        MEDIUM("30", 30),
+        LOW("15", 15);
+
+        private final String label;
+        private final int perSecond;
+
+        FrameRate(String label, int perSecond) {
+            this.label = label;
+            this.perSecond = perSecond;
+        }
+
+        String label() {
+            return label;
+        }
+
+        int perSecond() {
+            return perSecond;
+        }
+    }
+
     /** Taille de l'interface : tout grandit ou rétrécit ensemble, textes, boutons et dessins. */
     enum Scale {
         SMALL("Petite", 0.85),
@@ -107,6 +130,12 @@ final class Settings {
     private static final String SHOW_GOAL = "showGoal";
     private static final String STATE_SIGNS = "stateSigns";
     private static final String CHRONO = "chrono";
+    private static final String SOUND = "sound";
+    private static final String VOLUME = "volume";
+    private static final String FRAME_RATE = "frameRate";
+    private static final String SAVE_ENERGY = "saveEnergy";
+    /** Volume de départ, sur 100 : assez bas pour qu'un premier son ne surprenne pas. */
+    static final int DEFAULT_VOLUME = 40;
     private static final String BUY_AMOUNT = "buyAmount";
     private static final String SHORTCUTS = "shortcuts";
     private static final String EFFECTS = "effects";
@@ -139,6 +168,10 @@ final class Settings {
     private boolean showGoal = true;
     private boolean stateSigns = true;
     private boolean chrono = true;
+    private boolean sound = true;
+    private int volume = DEFAULT_VOLUME;
+    private FrameRate frameRate = FrameRate.HIGH;
+    private boolean saveEnergy = true;
     private KeyCode detailKey = DEFAULT_DETAIL_KEY;
     private boolean detailToggle = false;
     private boolean confirmBigBang = true;
@@ -174,6 +207,18 @@ final class Settings {
                 settings.scale = Scale.valueOf(store.get(SCALE, Scale.NORMAL.name()));
             } catch (RuntimeException unknown) {
                 settings.scale = Scale.NORMAL;
+            }
+            try {
+                settings.frameRate = FrameRate.valueOf(store.get(FRAME_RATE, FrameRate.HIGH.name()));
+            } catch (RuntimeException unknown) {
+                settings.frameRate = FrameRate.HIGH;
+            }
+            try {
+                settings.sound = store.getBoolean(SOUND, true);
+                settings.volume = Math.max(0, Math.min(100, store.getInt(VOLUME, DEFAULT_VOLUME)));
+                settings.saveEnergy = store.getBoolean(SAVE_ENERGY, true);
+            } catch (RuntimeException unreadable) {
+                // on garde les valeurs par défaut
             }
             try {
                 settings.detailKey = KeyCode.valueOf(store.get(DETAIL_KEY, DEFAULT_DETAIL_KEY.name()));
@@ -376,6 +421,45 @@ final class Settings {
     void setShowGoal(boolean showGoal) {
         this.showGoal = showGoal;
         save(SHOW_GOAL, String.valueOf(showGoal));
+    }
+
+    /** Vrai si le jeu joue ses sons. */
+    boolean sound() {
+        return sound;
+    }
+
+    void setSound(boolean sound) {
+        this.sound = sound;
+        save(SOUND, String.valueOf(sound));
+    }
+
+    /** Volume des sons, de 0 à 100. */
+    int volume() {
+        return volume;
+    }
+
+    void setVolume(int volume) {
+        this.volume = Math.max(0, Math.min(100, volume));
+        save(VOLUME, String.valueOf(this.volume));
+    }
+
+    FrameRate frameRate() {
+        return frameRate;
+    }
+
+    void setFrameRate(FrameRate frameRate) {
+        this.frameRate = frameRate;
+        save(FRAME_RATE, frameRate.name());
+    }
+
+    /** Vrai si la fenêtre ralentit quand elle n'est pas au premier plan : quatre images par seconde, une si elle est réduite. */
+    boolean saveEnergy() {
+        return saveEnergy;
+    }
+
+    void setSaveEnergy(boolean saveEnergy) {
+        this.saveEnergy = saveEnergy;
+        save(SAVE_ENERGY, String.valueOf(saveEnergy));
     }
 
     /** Vrai si la ligne d'objectif dit l'écart au record sur la prochaine étape, quand il y a un record. */

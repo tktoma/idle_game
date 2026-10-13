@@ -47,6 +47,11 @@ class TroisiemeActeTest {
             if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
         }
         for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+        // Du sixième au huitième Big Bang, il faut aussi des astres mûrs.
+        for (Body body : game.bodies()) {
+            if (game.bodiesMature() >= game.bigBangSkyRequirement()) break;
+            game.state().addBody(body.id());
+        }
     }
 
     @Nested
@@ -262,7 +267,7 @@ class TroisiemeActeTest {
         @Test
         void laMatiereSansLaVarieteNeSuffitPas() {
             Game game = afterBigBangs(1, 1e12);
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             game.state().setCosmosLevel(1);
             // Toute la matière dans une seule sorte par état.
             for (Map.Entry<Molecule.State, Integer> need : Cosmos.CLUSTER.matter().entrySet()) {
@@ -548,7 +553,7 @@ class TroisiemeActeTest {
             game.state().setMoleculeCount("H2O", 3);
             assertTrue(game.formSubstance("H2O"));
             game.state().setBigBangs(5);
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             game.state().setCosmosLevel(3);
             game.state().setCometVisible(10);
             assertTrue(game.catchComet());

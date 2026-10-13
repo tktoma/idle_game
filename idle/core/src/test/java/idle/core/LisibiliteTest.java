@@ -65,7 +65,7 @@ class LisibiliteTest {
         @Test
         void tousFormesIlNYEnAPlus() {
             Game game = openGame(1e12);
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             assertNull(game.nextBody());
         }
     }
@@ -133,7 +133,7 @@ class LisibiliteTest {
         @Test
         void pourLeCosmosCEstLaPlusPetiteMoleculeDeChaqueEtat() {
             Game game = openGame(1e12);
-            for (Body body : game.bodies()) game.state().addBody(body.id());
+            for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             game.state().setCosmosLevel(1);                           // la galaxie est formée
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());

@@ -93,4 +93,20 @@ public record BigBangMilestone(int bigBangs, String name, List<Effect> effects) 
         if (effects == null || effects.isEmpty()) throw new IllegalArgumentException("Palier sans effet : " + name);
         effects = List.copyOf(effects);
     }
+
+    /** Ouvre les sondes : des voyages de 15 minutes à 8 heures, dont le butin se réclame d'un clic ({@link Game#isProbesUnlocked()}). */
+    public record Probes() implements Effect {}
+
+    /** Ouvre les systèmes solaires : la galaxie en demande trois ({@link Game#isSolarSystemsUnlocked()}). */
+    public record SolarSystems() implements Effect {}
+
+    /** Des places de plus : pour la maturation des astres, et pour les sondes en vol. */
+    public record MorePlaces(int maturation, int probes) implements Effect {
+        public MorePlaces {
+            if (maturation < 0 || probes < 0 || maturation + probes == 0) throw new IllegalArgumentException("Aucune place de plus");
+        }
+    }
+
+    /** Ouvre les matières exotiques : une famille d'astres de plus, que la galaxie demande aussi. */
+    public record ExoticMatter() implements Effect {}
 }

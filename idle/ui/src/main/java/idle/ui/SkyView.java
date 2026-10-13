@@ -75,6 +75,8 @@ final class SkyView extends Canvas {
             case REMNANT -> 12;
             case BLACK_HOLE -> 15;
             case CORE -> 21;
+            // Une nébuleuse s'étale ; un pulsar, un magnétar ou un quasar restent petits.
+            case EXOTIC -> body.look() == Body.Look.NEBULA ? 34 : 14;
         };
     }
 

@@ -94,6 +94,13 @@ public sealed interface Effect {
     record KeepUpgradesOnFusion() implements Effect {}
 
     /**
+     * Ouvre l'achat par dix et « max » des améliorations payées en atomes. La même chose s'achète
+     * aussi en matière noire ({@link DarkEffect.BulkAtomUpgrades}), pour toujours ; payée en atomes,
+     * elle tient jusqu'à la prochaine explosion, comme les autres améliorations en atomes.
+     */
+    record BulkAtomBuy() implements Effect {}
+
+    /**
      * Augmente les atomes gagnés à la fusion selon la production de particules : {@code +perDecade}
      * chaque fois que la production par seconde est multipliée par dix au-delà de {@code threshold}
      * (0.5 = +50 %). Sans effet sous le seuil.

@@ -57,6 +57,7 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
         STAR("Étoiles", 64),
         REMNANT("Étoiles mortes", 128),
         BLACK_HOLE("Trous noirs", 256),
+        EXOTIC("Matières exotiques", 384),
         CORE("Cœur de galaxie", 512);
 
         private final String label;
@@ -101,7 +102,9 @@ public record Body(String id, String name, Tier tier, Look look, String tint, St
         /** Une étoile à neutrons : minuscule, avec ses deux faisceaux. */
         BEAMING,
         /** Un trou noir : un disque noir dans l'anneau de ce qui y tombe. */
-        VOID
+        VOID,
+        /** Une nébuleuse : un nuage lumineux, sans surface. */
+        NEBULA
     }
 
     public Body {

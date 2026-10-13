@@ -278,13 +278,38 @@ class AutomatisationTest {
                 if (upgrade.hasLimit()) {
                     // Tout ce qui a un dernier niveau y est porté, case ou boutique.
                     if (game.isDarkAvailable(upgrade.id())) assertEquals(upgrade.maxLevel(), level, upgrade.id());
+                } else if (!tree) {
+                    assertEquals(0, level, upgrade.id());              // la boutique sans limite reste au joueur
                 } else {
-                    // Une case sans dernier niveau n'est prise qu'une fois, pour ouvrir la suivante ; en boutique, jamais.
-                    assertEquals(tree ? 1 : 0, level, upgrade.id());
+                    // Une case sans dernier niveau est ouverte, puis montée tant qu'un niveau coûte au plus 1 % de sa branche :
+                    // avec une production aussi absurde, Densité monte d'un niveau à chaque action.
+                    assertTrue(level >= 1, upgrade.id());
                 }
             }
             // Les particules et les atomes ne sont donc pas engloutis : il en reste pour le Big Bang.
             assertTrue(game.state().particles().gt(BigNum.of(1, 299)));
+        }
+
+        @Test
+        void lesNiveauxSuivantsDUneCaseSansFinNeCoutentJamaisPlusDUnPourCent() {
+            Game game = darkGame();
+            game.state().setDarkMatter(BigNum.ZERO);                     // rien d'autre à acheter…
+            game.state().setDarkMatterSpent(BigNum.of(1, 9));           // …mais assez gagné pour que l'automatisme soit ouvert
+            game.state().setBigBangs(1);
+            game.state().setDarkLevel("dark_density", 1);
+            BigNum second = game.darkCostOf("dark_density");             // le prix du niveau 2
+            assertTrue(game.setDarkAutomationEnabled("dark_auto_tree", true));
+            // Un peu moins de cent fois le prix : le niveau ne vaut pas encore la peine.
+            for (int i = 0; i < 5; i++) {
+                game.state().setParticles(second.multiply(99));
+                game.tick(1.05);
+            }
+            assertEquals(1, game.darkLevelOf("dark_density"));
+            // Cent fois le prix : il est pris, et les particules ne baissent que d'un pour cent.
+            game.state().setParticles(second.multiply(100));
+            game.tick(1.05);
+            assertEquals(2, game.darkLevelOf("dark_density"));
+            assertTrue(game.state().particles().gte(second.multiply(98.9)));
         }
 
         @Test

@@ -21,6 +21,8 @@ final class Shortcuts {
         SYNTHESIZE("Synthétiser un élément", KeyCode.S),
         EXPLODE("Faire exploser le tableau", KeyCode.E),
         BIG_BANG("Déclencher le Big Bang", KeyCode.B),
+        PULSE("Donner une impulsion à l'expansion", KeyCode.I),
+        CLAIM("Réclamer une récompense de sonde", KeyCode.R),
         AUTOMATION("Couper ou relancer tous les automatismes", KeyCode.A),
         PAUSE("Mettre en pause ou reprendre", KeyCode.P),
         HELP("Ouvrir ou fermer l'aide", KeyCode.H),

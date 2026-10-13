@@ -158,7 +158,7 @@ final class HelpPane extends StackPane {
                     + "l'expansion de la matière : la saisir double l'espace créé pendant "
                     + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. L'amas de galaxies et "
                     + "l'univers demandent de la quantité et de la variété : un nombre de sortes rassemblées dans chaque état."
-                    + (game.isBangChallengesUnlocked() ? " Tous les paliers atteints, les défis de Big Bang s'ouvrent sous "
+                    + (game.isBangChallengesUnlocked() ? " Au cinquième Big Bang, les défis de Big Bang s'ouvrent sous "
                             + "les paliers : un Big Bang sous contrainte, pour une récompense qui reste." : "")));
         }
         sections.add(new Section("Lire une carte", "Une carte dit l'essentiel : son niveau en haut, ce qu'elle fait, son "
@@ -171,11 +171,38 @@ final class HelpPane extends StackPane {
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, dernière sous-page des statistiques."));
+        if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Dans la matière noire, depuis la première "
+                + "explosion. La production de particules donne de l'énergie ; une collision la dépense, dure de 30 secondes "
+                + "à 8 heures selon son énergie, et rapporte des quarks. Un clic sur « Résonance ! » quand le curseur passe "
+                + "entre les crochets double le butin. Les quarks forment des hadrons, aux bonus définitifs ; au-delà de dix d'une même sorte, chacun compte un peu moins. Le quark top "
+                + "des collisions extrêmes se désintègre en une minute : lancé à temps, il donne dix minutes de surchauffe. "
+                + "Quatre paliers, au bas de la page, se gagnent avec les hadrons : la relance automatique de la basse énergie, "
+                + "une troisième place, des quarks dans les sondes, et le cœur de galaxie, un upsilon, sans lequel le trou noir "
+                + "supermassif ne se forme pas."));
+        if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
+                + "en entier : de 4 minutes pour un amas de roches à 2 heures pour le trou noir supermassif. En attendant, il donne "
+                + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. Trois astres "
+                + "mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner une minute."));
+        if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "
+                + "Autour d'une étoile mûre, on range des planètes, de la plus proche à la plus lointaine, et des lunes, une par "
+                + "planète au plus. Un système est complet à " + Game.SYSTEM_MIN_PLANETS + " planètes ; la galaxie en demande "
+                + Game.SYSTEMS_FOR_GALAXY + ". L'harmonie : un point par planète bien placée (telluriques près, glacées et gazeuses "
+                + "au loin), par lune, pour une étoile géante, et deux pour une planète océan en deuxième ou troisième orbite d'un "
+                + "Soleil ou d'une naine rouge. Chaque point d'un système complet ajoute " + ElementText.percent(Game.SYSTEM_GAIN)
+                + " à toutes les grandeurs. Au septième Big Bang, deux places de maturation et une sonde de plus ; au huitième, "
+                + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."));
+        if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
+                + "destination, puis un voyage de 15 minutes à 8 heures ; plus il est long, plus le butin est riche par heure. À l'"
+                + "arrivée, la sonde attend à destination : un clic sur elle (ou la touche R) ouvre son butin, une carte par clic, ou tout d'un coup : des éléments "
+                + "du rayon visé, de l'espace d'un coup, un sursaut qui double l'espace par seconde un moment, des échantillons. "
+                + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "
+                + "Rien ne se perd si l'on revient tard, ni au Big Bang."));
         sections.add(new Section("Sauvegarde et absence", "La partie s'écrit toute seule toutes les "
                 + (int) SaveStore.EVERY_SECONDS + " secondes et à la fermeture. Au retour, une part du temps d'absence est "
                 + "rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
-                + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie."));
+                + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
+                + "couper, et de limiter les images par seconde ; la fenêtre ralentit d'elle-même quand elle n'est pas au premier plan."));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
         return sections;
     }

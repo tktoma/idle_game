@@ -5,6 +5,7 @@ import idle.core.BigNum;
 import idle.core.Challenge;
 import idle.core.Effect;
 import idle.core.Game;
+import idle.core.PeriodicTable;
 import idle.core.Resource;
 import idle.core.SaveCodec;
 import idle.core.Upgrade;
@@ -181,6 +182,7 @@ public final class GameApp extends Application {
     // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
     private final ToastPane toasts = new ToastPane();
     private final Notifier notifier = new Notifier(game);
+    private final Sound sound = new Sound();
     // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
     private ScaledPane scaled;
     private LightTheme lightTheme;
@@ -199,6 +201,8 @@ public final class GameApp extends Application {
     // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
     private double sinceSave = 0;
     private final AbsencePane absencePane = new AbsencePane(this::save);
+    /** Le butin d'une sonde, par-dessus la fenêtre : une carte à la fois. */
+    private final LootPane lootPane = new LootPane(game, this::refresh);
     /** Temps réel donné au rattrapage d'une absence à chaque image, en nanosecondes : assez peu pour que la fenêtre reste vive. */
     private static final long CATCH_UP_NANOS = 10_000_000;
     private Stage stage;
@@ -220,6 +224,7 @@ public final class GameApp extends Application {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        settingsPage.setSoundTest(() -> sound.test(settings.volume()));
         // Une erreur imprévue ne ferme pas le jeu : elle est gardée pour le rapport de bug, et écrite dans la console.
         Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
             Crash.note(error);
@@ -323,6 +328,7 @@ public final class GameApp extends Application {
         goalLabel.setMaxWidth(Double.MAX_VALUE);
         goalLabel.setMinWidth(0);
         goalLabel.setWrapText(true);
+        StableHeight.of(goalLabel);   // la ligne d'objectif change sans cesse : sa hauteur ne doit pas faire sauter la page
         goalLabel.setAlignment(Pos.CENTER);
         goalLabel.setTextAlignment(TextAlignment.CENTER);
         goalLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #8fa3b8;");
@@ -351,7 +357,8 @@ public final class GameApp extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = new StackPane(root, blast, toasts, helpPane, absencePane);
+        StackPane window = new StackPane(root, blast, toasts, lootPane, helpPane, absencePane);
+        bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         scaled = new ScaledPane(window);
         lightTheme = new LightTheme(window);
@@ -359,16 +366,23 @@ public final class GameApp extends Application {
         // Boucle de jeu : appelée à chaque image (~60 fois par seconde) sur le thread JavaFX.
         new AnimationTimer() {
             private long previous = 0;
+            /** Le temps des images sautées : il est rendu au jeu à l'image suivante, rien ne se perd. */
+            private double pending = 0;
 
             @Override
             public void handle(long now) {
-                double dt = previous == 0 ? 0 : (now - previous) / 1e9; // nanosecondes → secondes
+                double elapsed = previous == 0 ? 0 : (now - previous) / 1e9; // nanosecondes → secondes
                 previous = now;
                 // Au retour d'une absence, le jeu rattrape d'abord le temps perdu : rien d'autre n'avance.
                 if (absencePane.isCatchingUp()) {
                     catchUp();
                     return;
                 }
+                // Images par seconde plafonnées, et bien moins quand la fenêtre n'est pas au premier plan.
+                pending += elapsed;
+                if (pending < 1.0 / framesPerSecond() - FRAME_TOLERANCE) return;
+                double dt = pending;
+                pending = 0;
                 sinceSave += dt;
                 if (sinceSave >= SaveStore.EVERY_SECONDS) save();
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
@@ -378,6 +392,7 @@ public final class GameApp extends Application {
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
                 Card.repeatHeld(dt);
+                repeatHeldKeys(dt);
                 explosionArmed = Math.max(0, explosionArmed - dt);
                 if (selectedTab == Tab.SETTINGS) settingsPage.frame(dt);
                 announce(dt);
@@ -408,12 +423,17 @@ public final class GameApp extends Application {
             if (keyPressed(event.getCode())) event.consume();
         });
         scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
+            // Une touche tenue cesse de se répéter même si son relâchement arrive dans une barre de recherche.
+            heldKeys.remove(event.getCode());
             if (typing(scene) && !event.getCode().isModifierKey()) return;
             if (keyReleased(event.getCode())) event.consume();
         });
         // La fenêtre perd la main touche enfoncée : le relâchement ne viendra jamais, on l'anticipe.
         stage.focusedProperty().addListener((observable, before, focused) -> {
-            if (!focused) releaseDetailKey();
+            if (!focused) {
+                heldKeys.clear();    // les relâchements n'arriveront pas : plus rien ne se répète
+                releaseDetailKey();
+            }
         });
         stage.setScene(scene);
         stage.setMinWidth(480);
@@ -750,14 +770,54 @@ public final class GameApp extends Application {
             }
             return true;
         }
-        return onKey(code);
+        // Une touche tenue se répète : le système renvoie des appuis, mais c'est la fenêtre qui fixe le
+        // rythme, pour toutes les touches tenues à la fois (M et F ensemble, par exemple).
+        Shortcuts.Action action = settings.actionOf(code);
+        if (action != null && heldKeys.containsKey(code)) return settings.shortcuts();
+        boolean used = onKey(code);
+        if (used) heldKeys.put(code, REPEATABLE.contains(action) ? REPEAT_DELAY : Double.POSITIVE_INFINITY);
+        return used;
     }
 
-    /** Une touche vient d'être relâchée : si c'est la touche de détail et qu'elle se tient, les détails se referment. */
+    /** Une touche vient d'être relâchée : elle cesse de se répéter ; si c'est la touche de détail tenue, les détails se referment. */
     private boolean keyReleased(KeyCode code) {
+        if (heldKeys.remove(code) != null) return true;
         if (code != settings.detailKey()) return false;
         releaseDetailKey();
         return true;
+    }
+
+    /**
+     * Les touches de raccourci tenues, avec le temps avant leur prochaine répétition. Plusieurs à la
+     * fois se répètent ensemble : tenir M et F achète tout et fusionne en boucle.
+     */
+    private final java.util.Map<KeyCode, Double> heldKeys = new java.util.HashMap<>();
+    /** Attente avant la première répétition, puis intervalle entre deux répétitions, en secondes. */
+    static final double REPEAT_DELAY = 0.3;
+    static final double REPEAT_INTERVAL = 0.08;
+    /** Les raccourcis qui se répètent tant que la touche est tenue ; les autres (exploser, couper…) ne jouent qu'une fois. */
+    static final java.util.Set<Shortcuts.Action> REPEATABLE = java.util.EnumSet.of(Shortcuts.Action.SPEED,
+            Shortcuts.Action.COUPLING, Shortcuts.Action.GENERATOR, Shortcuts.Action.BUY_ALL, Shortcuts.Action.FUSE,
+            Shortcuts.Action.SYNTHESIZE, Shortcuts.Action.PULSE);
+
+    /** Répète les raccourcis tenus dont le délai est écoulé. */
+    private void repeatHeldKeys(double dt) {
+        if (heldKeys.isEmpty() || !settings.shortcuts() || exploding || absencePane.isOpen() || helpPane.isOpen()) return;
+        boolean any = false;
+        for (java.util.Map.Entry<KeyCode, Double> entry : heldKeys.entrySet()) {
+            double wait = entry.getValue();
+            if (Double.isInfinite(wait)) continue;
+            wait -= dt;
+            Shortcuts.Action action = settings.actionOf(entry.getKey());
+            // Au plus quelques répétitions par image : une image en retard ne déclenche pas une rafale.
+            for (int burst = 0; wait <= 0 && burst < 4; burst++) {
+                if (action != null && game.isStarted()) play(action);
+                wait += REPEAT_INTERVAL;
+                any = true;
+            }
+            entry.setValue(Math.max(wait, 0));
+        }
+        if (any) refresh();
     }
 
     private void releaseDetailKey() {
@@ -802,6 +862,12 @@ public final class GameApp extends Application {
             case FUSE -> fuse();
             case BUY_ALL -> game.buyAllWithParticles();
             case SYNTHESIZE -> game.synthesize();
+            case PULSE -> game.pulse();
+            case CLAIM -> {
+                // Le butin ouvert : la carte suivante ; sinon, celui de la première sonde arrivée.
+                if (lootPane.isOpen()) lootPane.next();
+                else if (!lootPane.openFirst()) game.claimProbeReward();
+            }
             case EXPLODE -> {
                 if (game.canExplode()) requestExplosion();
             }
@@ -852,6 +918,7 @@ public final class GameApp extends Application {
      * le bouton et c'est le second, dans les secondes qui suivent, qui déclenche l'explosion.
      */
     private void requestExplosion() {
+        if (!game.canExplode() || exploding) return;
         if (settings.confirmExplosion() && explosionArmed <= 0) {
             explosionArmed = EXPLOSION_CONFIRM_SECONDS;
             refresh();
@@ -925,6 +992,7 @@ public final class GameApp extends Application {
      */
     private void announce(double dt) {
         List<String> news = notifier.poll();
+        sound.announce(news, settings.sound(), settings.volume());
         // Le journal garde tout, que les notifications soient affichées ou non.
         for (String text : news) EventLog.of(game).add(game, text);
         if (settings.notifications()) {
@@ -937,10 +1005,11 @@ public final class GameApp extends Application {
 
     /** La couleur du liseré d'une notification : celle de l'onglet dont elle parle. */
     private static String noticeColor(String text) {
-        if (text.startsWith("Big Bang") || text.startsWith("Molécules") || text.startsWith("Espace")
+        if (text.startsWith("Big Bang") || text.startsWith("Molécules") || text.startsWith("Espace") || text.startsWith("Astre mûr") || text.contains("astres mûrs")
                 || text.startsWith("Rassemblement automatique") || text.startsWith("Formation automatique")) return BIG_BANG_COLOR;
         if (text.startsWith("Succès")) return ACHIEVEMENTS_COLOR;
-        if (text.startsWith("Explosion") || text.startsWith("Défi") || text.startsWith("Nouveau défi")
+        if (text.startsWith("Sonde") || text.contains("sondes revenues")) return ProbesPane.COLOR;
+        if (text.startsWith("Explosion") || text.startsWith("Collision") || text.startsWith("Palier du collisionneur") || text.startsWith("Défi") || text.startsWith("Nouveau défi")
                 || text.contains("matière noire") || text.startsWith("Palier de taille") || text.contains("paliers de taille")
                 || text.contains("exploser")) return DARK_MATTER_COLOR;
         if (text.contains("utomatis")) return AUTOMATION_COLOR;
@@ -1030,6 +1099,7 @@ public final class GameApp extends Application {
         if (selectedTab == Tab.BIG_BANG) {
             bigBangPage.frame(dt);
         }
+        lootPane.frame(dt);
         if (selectedTab != Tab.PARTICLES) {
             return;
         }
@@ -1040,6 +1110,21 @@ public final class GameApp extends Application {
             double speed = Math.min(game.speed(i).toDouble() * timeFactor(), 1e9);
             views.get(i).frame(dt, game.state().formation(i), speed);
         }
+    }
+
+    /** Marge sur la durée d'une image : un écran à 60 Hz n'arrive pas pile à 1/60 s, et le plafond de 60 ne doit sauter aucune image. */
+    private static final double FRAME_TOLERANCE = 0.004;
+    /** Images par seconde quand la fenêtre est derrière une autre, et quand elle est réduite, avec l'économie d'énergie. */
+    static final int BACKGROUND_FPS = 4;
+    static final int ICONIFIED_FPS = 1;
+
+    /** Images par seconde visées en ce moment : le réglage, ou moins si la fenêtre n'est pas au premier plan. */
+    private int framesPerSecond() {
+        int chosen = settings.frameRate().perSecond();
+        if (!settings.saveEnergy() || stage == null) return chosen;
+        if (stage.isIconified()) return Math.min(chosen, ICONIFIED_FPS);
+        if (!stage.isFocused()) return Math.min(chosen, BACKGROUND_FPS);
+        return chosen;
     }
 
     /** Accélération du temps : toujours 1 en jeu normal, réglable dans le profil de test. */
@@ -1115,7 +1200,8 @@ public final class GameApp extends Application {
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
         boolean hasAtoms = game.state().totalAtoms().sign() > 0;
-        boolean darkMatter = game.isDarkMatterUnlocked();
+        // Le collisionneur garde l'onglet ouvert d'une partie à l'autre, même avant l'explosion.
+        boolean darkMatter = game.isDarkMatterUnlocked() || game.isColliderUnlocked();
         atomsTab.setVisible(hasAtoms);
         atomsTab.setManaged(hasAtoms);
         readiness.frame();
@@ -1163,9 +1249,17 @@ public final class GameApp extends Application {
             return;
         }
 
-        // Le bouton d'explosion n'apparaît que lorsque les 118 éléments sont découverts.
+        // Le bouton d'explosion s'allume quand les 118 éléments sont découverts. Après la première explosion,
+        // il garde sa place, éteint, entre deux explosions : sans cela, quand les explosions s'enchaînent,
+        // toute la fenêtre montait et descendait à chaque fois, et les clics tombaient à côté.
         Challenge challenge = game.activeChallenge();
         boolean canExplode = game.canExplode() && !exploding;
+        boolean keepPlace = game.isDarkMatterUnlocked() && game.isStarted() && !canExplode;
+        if (keepPlace) {
+            int missing = PeriodicTable.ELEMENTS.size() - game.discoveredElements();
+            explosionButton.setText(exploding ? "Explosion…"
+                    : "Prochaine explosion : encore " + missing + (missing > 1 ? " éléments à découvrir" : " élément à découvrir"));
+        }
         // Son texte n'est composé que lorsqu'il se voit.
         if (canExplode) {
             explosionButton.setText(explosionArmed > 0
@@ -1226,8 +1320,9 @@ public final class GameApp extends Application {
                     : lowerFirst(bangChallenge.brief()) + ", jusqu'au prochain Big Bang");
             challengeLabel.setText(constraint + (constraint.isEmpty() || ordinary.isEmpty() ? "" : "\n") + ordinary);
         }
-        explosionButton.setVisible(canExplode);
-        explosionButton.setManaged(canExplode);
+        explosionButton.setVisible(canExplode || keepPlace);
+        explosionButton.setManaged(canExplode || keepPlace);
+        explosionButton.setDisable(!canExplode);
     }
 
     /**

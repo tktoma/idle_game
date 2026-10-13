@@ -252,6 +252,7 @@ final class BodyArt {
             case MOON, PLANET -> body.look() == Body.Look.RINGED ? RING_REACH : 1;
             case STAR, REMNANT -> body.look() == Body.Look.BEAMING ? BEAM_LENGTH * Math.cos(BEAM) + BEAM_WIDTH : CORONA;
             case BLACK_HOLE, CORE -> DISC_REACH;
+            case EXOTIC -> exoticReach(body, BEAM_LENGTH * Math.cos(BEAM) + BEAM_WIDTH, DISC_REACH);
         };
     }
 
@@ -269,6 +270,7 @@ final class BodyArt {
             case STAR, REMNANT -> body.look() == Body.Look.BEAMING ? -BEAM_LENGTH * Math.sin(BEAM) + BEAM_WIDTH : CORONA;
             case BLACK_HOLE -> LENSED + 0.1;
             case CORE -> JET_LENGTH;
+            case EXOTIC -> exoticReach(body, -BEAM_LENGTH * Math.sin(BEAM) + BEAM_WIDTH, JET_LENGTH);
         };
     }
 
@@ -290,6 +292,7 @@ final class BodyArt {
             case STAR, REMNANT -> body.look() == Body.Look.BEAMING ? BEAM_LENGTH + BEAM_WIDTH : CORONA;
             case BLACK_HOLE -> DISC_REACH;
             case CORE -> Math.max(DISC_REACH, JET_LENGTH + 0.05);
+            case EXOTIC -> exoticReach(body, BEAM_LENGTH + BEAM_WIDTH, Math.max(DISC_REACH, JET_LENGTH + 0.05));
         };
     }
 
@@ -309,7 +312,7 @@ final class BodyArt {
             case HAZY -> 1.12;
             case BANDED, RINGED -> 1.08;
             case MOLTEN -> 1.06;
-            case ROCKY, ICY, DARK, GLOWING, BEAMING, VOID -> 0;
+            case ROCKY, ICY, DARK, GLOWING, BEAMING, VOID, NEBULA -> 0;
         };
     }
 
@@ -335,6 +338,13 @@ final class BodyArt {
             }
             case BLACK_HOLE -> hole(g, skin, x, y, r, false);
             case CORE -> hole(g, skin, x, y, r, true);
+            case EXOTIC -> {
+                switch (body.look()) {
+                    case BEAMING -> pulsar(g, skin, x, y, r);
+                    case NEBULA -> nebula(g, skin, x, y, r);
+                    default -> hole(g, skin, x, y, r, true);
+                }
+            }
         }
         g.setGlobalAlpha(1);
     }
@@ -401,6 +411,36 @@ final class BodyArt {
      *
      * @param r le rayon de sa lueur ; la bille est bien plus petite, les faisceaux bien plus longs
      */
+    /** Jusqu'où va une matière exotique : comme un pulsar, une nébuleuse, ou un quasar avec ses jets. */
+    private static double exoticReach(Body body, double beaming, double hole) {
+        return body.look() == Body.Look.BEAMING ? beaming : body.look() == Body.Look.NEBULA ? NEBULA_REACH : hole;
+    }
+
+    /** Jusqu'où va une nébuleuse, en rayons. */
+    private static final double NEBULA_REACH = 1.35;
+
+    /**
+     * Une nébuleuse : des nuages qui se recouvrent, de la teinte vers l'accent, et une petite
+     * étoile au cœur qui les éclaire.
+     */
+    private static void nebula(GraphicsContext g, Skin skin, double x, double y, double r) {
+        java.util.Random random = new java.util.Random(skin.seed);
+        for (int puff = 0; puff < 9; puff++) {
+            double angle = random.nextDouble() * 2 * Math.PI;
+            double away = random.nextDouble() * 0.55 * r;
+            double size = (0.45 + random.nextDouble() * 0.35) * r;
+            double px = x + Math.cos(angle) * away, py = y + Math.sin(angle) * away;
+            Color color = skin.tint.interpolate(skin.accent, puff / 8.0);
+            g.setFill(new RadialGradient(0, 0, px, py, size, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, fade(color, 0.55)), new Stop(1, fade(color, 0))));
+            g.fillOval(px - size, py - size, 2 * size, 2 * size);
+        }
+        double core = 0.12 * r;
+        g.setFill(new RadialGradient(0, 0, x, y, 2.5 * core, false, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.WHITE), new Stop(0.4, fade(Color.WHITE, 0.6)), new Stop(1, fade(Color.WHITE, 0))));
+        g.fillOval(x - 2.5 * core, y - 2.5 * core, 5 * core, 5 * core);
+    }
+
     private static void pulsar(GraphicsContext g, Skin skin, double x, double y, double r) {
         tail(g, skin.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM);
         tail(g, skin.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM + Math.PI);

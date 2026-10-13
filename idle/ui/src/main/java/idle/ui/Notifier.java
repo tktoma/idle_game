@@ -44,6 +44,7 @@ final class Notifier {
     private boolean synthesisUnlocked;
     private boolean canExplode;
     private int speedMilestones;
+    private java.util.Set<idle.core.ColliderMilestone> colliderMilestones = java.util.EnumSet.noneOf(idle.core.ColliderMilestone.class);
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
@@ -75,11 +76,45 @@ final class Notifier {
         boolean comet = game.takeCometAppeared();
         boolean prime = game.takeSpeedPrime();
         List<idle.core.GameStats.Step> records = game.takeNewRecords();
+        List<Game.CollisionResult> collisions = game.takeFinishedCollisions();
         // Premier relevé, ou partie remise à zéro : on prend ses repères sans rien annoncer.
         if (!primed || (started && !game.isStarted())) {
             snapshot();
             primed = true;
             return news;
+        }
+        boolean plasma = game.hasColliderMilestone(idle.core.ColliderMilestone.PLASMA);
+        for (Game.CollisionResult result : collisions) {
+            // Avec le plasma, la basse énergie tourne sans fin : elle ne s'annonce plus, sauf réussie en résonance.
+            if (plasma && result.tier() == idle.core.CollisionTier.LOW && !result.doubled()) continue;
+            StringBuilder loot = new StringBuilder();
+            for (idle.core.Quark quark : idle.core.Quark.values()) {
+                Integer count = result.quarks().get(quark);
+                if (count == null || count == 0) continue;
+                loot.append(loot.length() == 0 ? "" : ", ").append("+").append(count).append(' ').append(quark.symbol());
+            }
+            news.add("Collision " + result.tier().label().toLowerCase(java.util.Locale.ROOT) + " terminée : " + loot
+                    + (result.doubled() ? " (résonance : ×2)" : "")
+                    + (result.quarks().containsKey(idle.core.Quark.TOP) ? ". Un quark top : à utiliser dans la minute !" : ""));
+        }
+
+        List<String> matured = game.takeMaturedBodies();
+        if (matured.size() == 1) {
+            news.add("Astre mûr : " + game.body(matured.get(0)).name() + ". Il compte désormais en entier.");
+        } else if (matured.size() > 1) {
+            news.add(matured.size() + " astres mûrs. Ils comptent désormais en entier.");
+        }
+        List<idle.core.ProbeReward> probes = game.takeReturnedProbes();
+        if (!probes.isEmpty()) {
+            idle.core.ProbeReward first = probes.get(0);
+            news.add(probes.size() == 1 && first != null
+                    ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
+                    : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
+        }
+        for (idle.core.ColliderMilestone milestone : idle.core.ColliderMilestone.values()) {
+            if (game.hasColliderMilestone(milestone) && colliderMilestones.add(milestone)) {
+                news.add("Palier du collisionneur : " + milestone.label() + ". " + milestone.reward() + ".");
+            }
         }
 
         if (game.bigBangs() > bigBangs) {
@@ -243,6 +278,10 @@ final class Notifier {
     /** Retient l'état du jeu, pour le comparer au prochain relevé. */
     private void snapshot() {
         started = game.isStarted();
+        colliderMilestones.clear();
+        for (idle.core.ColliderMilestone milestone : idle.core.ColliderMilestone.values()) {
+            if (game.hasColliderMilestone(milestone)) colliderMilestones.add(milestone);
+        }
         // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
         java.util.Set<Integer> owned = game.state().elements().keySet();
         if (!elements.equals(owned)) elements = new HashSet<>(owned);

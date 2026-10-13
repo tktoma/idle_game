@@ -104,7 +104,7 @@ final class BangChallengesPane extends VBox {
         grid.setManaged(unlocked);
         BangChallenge active = game.activeBangChallenge();
         if (!unlocked) {
-            intro.setText("Ils s'ouvrent une fois tous les paliers atteints : refaire un Big Bang sous une contrainte, pour une "
+            intro.setText("Ils s'ouvrent au cinquième Big Bang : refaire un Big Bang sous une contrainte, pour une "
                     + "récompense qui reste.");
             return;
         }

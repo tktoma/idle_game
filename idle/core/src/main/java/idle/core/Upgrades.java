@@ -130,13 +130,21 @@ public final class Upgrades {
             // ----- Le lien entre les particules et les atomes. -----
 
             // +9 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
-            // de cinquante millions de particules par seconde. Sans lui, les particules ne serviraient
+            // de quatre cents millions de particules par seconde (cinquante millions avant le tempo ×8). Sans lui, les particules ne serviraient
             // plus à rien une fois les parties automatisées ; avec lui, tout ce qui augmente la
             // production (vitesse et ses paliers, couplage, surcharge, éléments, ensembles, succès)
             // finit par rapporter des atomes.
             new Upgrade("atom_yield", "Rendement", Resource.ATOMS,
                     BigNum.of(40), 1, 1,
-                    new Effect.MultiplyAtomsByProduction(50_000_000, 0.09)));
+                    new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09)),
+
+            // ----- Le confort (idée 34, version 0.47) -----
+
+            // L'achat par dix et « max » des améliorations en atomes, dès les premiers atomes : avant, il
+            // fallait attendre la première explosion et sa matière noire.
+            new Upgrade("atom_bulk", "Achat groupé", Resource.ATOMS,
+                    BigNum.of(8), 1, 1,
+                    new Effect.BulkAtomBuy()));
 
     private Upgrades() {}
 }

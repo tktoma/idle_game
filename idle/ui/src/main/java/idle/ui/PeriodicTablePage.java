@@ -291,7 +291,7 @@ final class PeriodicTablePage extends VBox {
             synthesizeCard.show(game.canSynthesize() ? Card.State.READY : Card.State.WAITING,
                     String.valueOf(count + 1), "",
                     target == null ? "Synthétiser un élément" : "Synthèse ciblée",
-                    target == null ? "Un élément tiré au sort"
+                    target == null ? game.isNextSynthesisNew() ? "Un élément nouveau, à coup sûr" : "Un élément tiré au sort"
                             : left > 1 ? "Étape " + (target.targetTries() - left + 1) + " sur " + target.targetTries()
                                     + ", sans élément"
                             : "Un élément parmi les " + target.label().toLowerCase(Locale.ROOT),
@@ -299,7 +299,8 @@ final class PeriodicTablePage extends VBox {
                             + Format.count(game.atomCap()) + " atomes"
                             + (game.tableWeight().gt(BigNum.ONE) ? " (tableau " + Format.multiplier(game.tableWeight())
                                     + " plus lourd qu'au début)" : "")
-                            + ". Les familles rares sortent moins souvent : leurs chances sont sous le tableau.",
+                            + ". Les familles rares sortent moins souvent : leurs chances sont sous le tableau."
+                            + " Après " + Game.LUCK_FLOOR + " synthèses sans rien de nouveau, la suivante donne un élément inconnu.",
                     price, fusions > 0 ? Format.whole(fusions) + (fusions > 1 ? " fusions" : " fusion") : "");
         }
         refreshTargets(target, left);

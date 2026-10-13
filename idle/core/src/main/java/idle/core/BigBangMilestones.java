@@ -3,8 +3,10 @@ package idle.core;
 import java.util.List;
 
 /**
- * Les paliers de Big Bang : sept, répartis sur les cinq premiers Big Bangs (le deuxième et le
- * troisième en donnent deux). Au-delà du cinquième, un Big Bang n'apporte plus que ce qu'il apporte toujours : une unité
+ * Les paliers de Big Bang : onze, répartis sur les huit premiers Big Bangs (le deuxième en donne
+ * deux, le troisième trois, dont les sondes). Les trois derniers (version 0.54) donnent une raison
+ * aux Big Bangs six à huit : les systèmes solaires, des places de plus, les matières exotiques ; la
+ * galaxie demande les premiers et les derniers. Au-delà du cinquième, un Big Bang n'apporte plus que ce qu'il apporte toujours : une unité
  * d'espace de plus par seconde.
  *
  * <p>Chacun répond à ce qui freine le troisième acte à ce moment-là. Le premier double la matière
@@ -29,9 +31,13 @@ public final class BigBangMilestones {
             new BigBangMilestone(2, "Création automatique", List.of(new BigBangMilestone.AutoMolecules())),
             new BigBangMilestone(3, "Gravité", List.of(new BigBangMilestone.Accretion(2))),
             new BigBangMilestone(3, "Mémoire des défis", List.of(new BigBangMilestone.KeepChallenges())),
+            new BigBangMilestone(3, "Sondes spatiales", List.of(new BigBangMilestone.Probes())),
             new BigBangMilestone(4, "Énergie sombre", List.of(new BigBangMilestone.DarkMatterSpace(0.1))),
             new BigBangMilestone(5, "Univers mûr", List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3),
-                    new BigBangMilestone.KeepDarkTree())));
+                    new BigBangMilestone.KeepDarkTree())),
+            new BigBangMilestone(6, "Systèmes solaires", List.of(new BigBangMilestone.SolarSystems())),
+            new BigBangMilestone(7, "Ateliers du ciel", List.of(new BigBangMilestone.MorePlaces(2, 1))),
+            new BigBangMilestone(8, "Matières exotiques", List.of(new BigBangMilestone.ExoticMatter())));
 
     private BigBangMilestones() {}
 }

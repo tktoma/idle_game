@@ -31,9 +31,13 @@ public final class GameState {
     private final Map<String, Double> automationTimers = new HashMap<>();
     private final Map<Integer, Integer> elements = new TreeMap<>();
     private int elementsVersion = 0;
+    /** Augmente à chaque changement des niveaux de l'arbre de matière noire : le jeu s'en sert pour ne recalculer leurs effets qu'alors. */
+    private int darkVersion = 0;
     private int synthesisCount = 0;
     private ElementCategory synthesisTarget = null;
     private int synthesisTries = 0;
+    /** Nombre de synthèses de suite qui n'ont donné aucun élément nouveau : au-delà d'un seuil, la suivante en donne un. */
+    private int drySyntheses = 0;
     private BigNum darkMatter = BigNum.ZERO;
     private BigNum darkMatterSpent = BigNum.ZERO;
     private BigNum darkMatterSize = Game.DARK_MATTER_START_SIZE;
@@ -45,6 +49,9 @@ public final class GameState {
     private boolean holdLocked = false;
     private String activeChallenge = null;
     private final Set<String> completedChallenges = new HashSet<>();
+    private final Set<String> completedChallengesView = Collections.unmodifiableSet(completedChallenges);
+    /** Augmente à chaque changement des défis réussis : le jeu s'en sert pour ne recalculer leurs récompenses qu'alors. */
+    private int challengesVersion = 0;
     private final Map<String, Double> challengeTimes = new HashMap<>();
     private double decayDebt = 0;
     private final Set<String> achievements = new java.util.LinkedHashSet<>();
@@ -64,6 +71,10 @@ public final class GameState {
     private final Set<String> substances = new java.util.LinkedHashSet<>();
     private final Set<String> assemblies = new java.util.LinkedHashSet<>();
     private final Set<String> bodies = new java.util.LinkedHashSet<>();
+    /** Les systèmes solaires (version 0.54). */
+    private final List<SolarSystem> solarSystems = new ArrayList<>();
+    /** Les astres formés qui mûrissent encore (version 0.53), avec les secondes qu'il leur reste. */
+    private final Map<String, Double> maturing = new java.util.LinkedHashMap<>();
     /**
      * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
      * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
@@ -74,6 +85,8 @@ public final class GameState {
     private boolean autoHold = true;
     /** Vrai tant que la création automatique des molécules est en marche, une fois acquise ({@link Game#isAutoCreatingMolecules()}). */
     private boolean autoMolecules = true;
+    /** La création automatique suit aussi la liste de courses : elle crée ce que le prochain pas demande. */
+    private boolean autoFollowList = true;
     /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
     private final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
     private List<String> substancesSeen;
@@ -95,6 +108,28 @@ public final class GameState {
     private double cometVisible = 0;
     private double cometBoost = 0;
     private int cometsCaught = 0;
+    /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
+    private double pulseCharges = 0;
+    // Le collisionneur de quarks (version 0.50) : rien ne s'y perd à l'explosion ni au Big Bang.
+    private double colliderEnergy = 0;
+    private final java.util.EnumMap<Quark, Integer> quarks = new java.util.EnumMap<>(Quark.class);
+    private final java.util.EnumMap<Hadron, Integer> hadrons = new java.util.EnumMap<>(Hadron.class);
+    private final List<Collision> collisions = new ArrayList<>();
+    private long collisionRuns = 0;
+    private double topLeft = 0;
+    private double overheatLeft = 0;
+    // Les sondes (version 0.52) : comme le collisionneur, elles traversent l'explosion et le Big Bang.
+    private final List<Probe> probes = new ArrayList<>();
+    private final List<ProbeReward> probeRewards = new ArrayList<>();
+    private final java.util.EnumMap<ProbeUpgrade, Integer> probeUpgrades = new java.util.EnumMap<>(ProbeUpgrade.class);
+    private long probeRuns = 0;
+    /** Numéros donnés aux sondes au départ. */
+    private long probeLaunches = 0;
+    private long probeSamples = 0;
+    private double probeBoostLeft = 0;
+    /** Le plasma quark-gluon relance-t-il la collision basse énergie ? Un réglage du joueur. */
+    private boolean colliderAuto = true;
+    private long pulses = 0;
     /** Les records du joueur, étape par étape : le temps de jeu le plus court auquel chacune a été atteinte. La remise à zéro les garde. */
     private final Map<String, Double> records = new HashMap<>();
     // Les défis de Big Bang : celui en cours, ceux qui sont réussis, et leur meilleur temps.
@@ -306,6 +341,15 @@ public final class GameState {
     /** Synthèses déjà payées pour la synthèse ciblée en cours, sans avoir encore rien donné. */
     public int synthesisTries() {
         return synthesisTries;
+    }
+
+    /** Nombre de synthèses de suite qui n'ont donné aucun élément nouveau. */
+    public int drySyntheses() {
+        return drySyntheses;
+    }
+
+    public void setDrySyntheses(int count) {
+        drySyntheses = Math.max(0, count);
     }
 
     public void setSynthesisTries(int synthesisTries) {
@@ -549,6 +593,38 @@ public final class GameState {
         }
     }
 
+    /** Les systèmes solaires, dans l'ordre de leur fondation. */
+    public List<SolarSystem> solarSystems() {
+        return Collections.unmodifiableList(solarSystems);
+    }
+
+    public void setSolarSystems(List<SolarSystem> systems) {
+        solarSystems.clear();
+        solarSystems.addAll(systems);
+        moleculesVersion++;
+    }
+
+    /** Les astres qui mûrissent encore, avec les secondes qu'il leur reste, dans l'ordre de leur formation. */
+    public Map<String, Double> maturing() {
+        return Collections.unmodifiableMap(maturing);
+    }
+
+    /** Secondes de maturation qu'il reste à cet astre ; 0 s'il est mûr ou pas formé. */
+    public double maturingLeft(String bodyId) {
+        return maturing.getOrDefault(bodyId, 0.0);
+    }
+
+    /** Fixe ce qu'il reste à mûrir à un astre ; à 0, il est mûr, et ses bonus se recalculent. */
+    public void setMaturing(String bodyId, double seconds) {
+        boolean was = maturing.containsKey(bodyId);
+        if (Double.isNaN(seconds) || seconds <= 0) {
+            maturing.remove(bodyId);
+        } else {
+            maturing.put(bodyId, seconds);
+        }
+        if (was != maturing.containsKey(bodyId)) moleculesVersion++;
+    }
+
     /** Les astres formés, dans l'ordre où ils l'ont été. */
     public List<String> bodies() {
         if (bodiesSeen == null || bodiesSeen.size() != bodies.size()) bodiesSeen = List.copyOf(bodies);
@@ -566,6 +642,14 @@ public final class GameState {
     }
 
     /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
+    public boolean autoFollowList() {
+        return autoFollowList;
+    }
+
+    public void setAutoFollowList(boolean follow) {
+        autoFollowList = follow;
+    }
+
     public boolean autoMolecules() {
         return autoMolecules;
     }
@@ -699,6 +783,155 @@ public final class GameState {
     }
 
     /** Nombre de comètes saisies depuis le début du jeu. */
+    public double colliderEnergy() {
+        return colliderEnergy;
+    }
+
+    public void setColliderEnergy(double energy) {
+        colliderEnergy = Double.isNaN(energy) ? 0 : Math.max(0, energy);
+    }
+
+    public int quarks(Quark quark) {
+        return quarks.getOrDefault(quark, 0);
+    }
+
+    public void setQuarks(Quark quark, int count) {
+        if (count <= 0) quarks.remove(quark);
+        else quarks.put(quark, count);
+    }
+
+    public int hadrons(Hadron hadron) {
+        return hadrons.getOrDefault(hadron, 0);
+    }
+
+    public void setHadrons(Hadron hadron, int count) {
+        if (count <= 0) hadrons.remove(hadron);
+        else hadrons.put(hadron, count);
+    }
+
+    /** Les collisions en cours, dans l'ordre de leur lancement. */
+    public List<Collision> collisions() {
+        return Collections.unmodifiableList(collisions);
+    }
+
+    public void setCollisions(List<Collision> running) {
+        collisions.clear();
+        collisions.addAll(running);
+    }
+
+    public long collisionRuns() {
+        return collisionRuns;
+    }
+
+    public void setCollisionRuns(long count) {
+        collisionRuns = Math.max(0, count);
+    }
+
+    /** Secondes avant que le quark top ne se désintègre ; 0 s'il n'y en a pas. */
+    public double topLeft() {
+        return topLeft;
+    }
+
+    public void setTopLeft(double seconds) {
+        topLeft = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes de surchauffe qu'il reste. */
+    public double overheatLeft() {
+        return overheatLeft;
+    }
+
+    public void setOverheatLeft(double seconds) {
+        overheatLeft = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Les sondes en vol, dans l'ordre de leur départ. */
+    public List<Probe> probes() {
+        return Collections.unmodifiableList(probes);
+    }
+
+    public void setProbes(List<Probe> flying) {
+        probes.clear();
+        probes.addAll(flying);
+    }
+
+    /** Les récompenses rapportées, qui attendent d'être réclamées, la prochaine en tête. */
+    public List<ProbeReward> probeRewards() {
+        return Collections.unmodifiableList(probeRewards);
+    }
+
+    public void setProbeRewards(List<ProbeReward> waiting) {
+        probeRewards.clear();
+        probeRewards.addAll(waiting);
+    }
+
+    public int probeUpgradeLevel(ProbeUpgrade upgrade) {
+        return probeUpgrades.getOrDefault(upgrade, 0);
+    }
+
+    public void setProbeUpgradeLevel(ProbeUpgrade upgrade, int level) {
+        if (level <= 0) probeUpgrades.remove(upgrade);
+        else probeUpgrades.put(upgrade, Math.min(level, upgrade.maxLevel()));
+    }
+
+    /** Nombre de voyages terminés depuis le début : il fixe le butin de chacun, sans toucher au hasard du jeu. */
+    public long probeRuns() {
+        return probeRuns;
+    }
+
+    public void setProbeRuns(long runs) {
+        probeRuns = Math.max(0, runs);
+    }
+
+    public long probeLaunches() {
+        return probeLaunches;
+    }
+
+    public void setProbeLaunches(long launches) {
+        probeLaunches = Math.max(0, launches);
+    }
+
+    public long probeSamples() {
+        return probeSamples;
+    }
+
+    public void setProbeSamples(long samples) {
+        probeSamples = Math.max(0, samples);
+    }
+
+    /** Secondes de sursaut d'expansion qu'il reste. */
+    public double probeBoostLeft() {
+        return probeBoostLeft;
+    }
+
+    public void setProbeBoostLeft(double seconds) {
+        probeBoostLeft = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    public boolean colliderAuto() {
+        return colliderAuto;
+    }
+
+    public void setColliderAuto(boolean on) {
+        colliderAuto = on;
+    }
+
+    public double pulseCharges() {
+        return pulseCharges;
+    }
+
+    public void setPulseCharges(double charges) {
+        pulseCharges = Double.isNaN(charges) ? 0 : Math.max(0, charges);
+    }
+
+    public long pulses() {
+        return pulses;
+    }
+
+    public void setPulses(long count) {
+        pulses = Math.max(0, count);
+    }
+
     public int cometsCaught() {
         return cometsCaught;
     }
@@ -906,11 +1139,16 @@ public final class GameState {
 
     /** Vue en lecture seule des défis réussis. */
     public Set<String> completedChallenges() {
-        return Collections.unmodifiableSet(completedChallenges);
+        return completedChallengesView;
     }
 
     public void addCompletedChallenge(String challengeId) {
-        completedChallenges.add(challengeId);
+        if (completedChallenges.add(challengeId)) challengesVersion++;
+    }
+
+    /** Version des défis réussis : change dès qu'un défi est ajouté ou que la liste est vidée. */
+    public int challengesVersion() {
+        return challengesVersion;
     }
 
     /** Meilleur temps de chaque défi réussi, en secondes de jeu (identifiant → durée de la partie). */
@@ -978,9 +1216,15 @@ public final class GameState {
     public void setDarkLevel(String darkUpgradeId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
         darkUpgradeLevels.put(darkUpgradeId, level);
+        darkVersion++;
     }
 
     /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
+    /** Version des niveaux de l'arbre : change dès qu'un niveau change. */
+    public int darkVersion() {
+        return darkVersion;
+    }
+
     public Map<String, Integer> darkUpgradeLevels() {
         return Map.copyOf(darkUpgradeLevels);
     }
@@ -1005,12 +1249,15 @@ public final class GameState {
         substances.clear();
         assemblies.clear();
         bodies.clear();
+        maturing.clear();
+        solarSystems.clear();
         substancesSeen = null;
         assembliesSeen = null;
         bodiesSeen = null;
         cosmos = 0;
         autoHold = true;
         autoMolecules = true;
+        autoFollowList = true;
         automatedMolecules.clear();
         spaceUpgrades.clear();
         automationPaused = false;
@@ -1023,6 +1270,23 @@ public final class GameState {
         cometVisible = 0;
         cometBoost = 0;
         cometsCaught = 0;
+        pulseCharges = 0;
+        pulses = 0;
+        colliderEnergy = 0;
+        quarks.clear();
+        hadrons.clear();
+        collisions.clear();
+        collisionRuns = 0;
+        topLeft = 0;
+        overheatLeft = 0;
+        colliderAuto = true;
+        probes.clear();
+        probeRewards.clear();
+        probeUpgrades.clear();
+        probeRuns = 0;
+        probeLaunches = 0;
+        probeSamples = 0;
+        probeBoostLeft = 0;
         // Les records restent : ils sont ce que le joueur cherche à battre à la partie suivante.
         activeBangChallenge = null;
         completedBangChallenges.clear();
@@ -1055,9 +1319,11 @@ public final class GameState {
         explosions = 0;
         tableWeightLevel = 0;
         darkUpgradeLevels.clear();
+        darkVersion++;
         synthesisReserve = BigNum.ZERO;
         activeChallenge = null;
         completedChallenges.clear();
+        challengesVersion++;
         darkAutomationTimers.clear();
     }
 
@@ -1074,6 +1340,7 @@ public final class GameState {
         tableWeightLevel = 0;
         activeChallenge = null;
         completedChallenges.clear();
+        challengesVersion++;
         darkAutomationTimers.clear();
     }
 
@@ -1098,6 +1365,7 @@ public final class GameState {
         synthesisCount = 0;
         synthesisTarget = null;
         synthesisTries = 0;
+        drySyntheses = 0;
         decayDebt = 0;
     }
 
@@ -1132,6 +1400,7 @@ public final class GameState {
         data.put("synthesisCount", synthesisCount);
         data.put("synthesisTarget", synthesisTarget == null ? null : synthesisTarget.name());
         data.put("synthesisTries", synthesisTries);
+        data.put("drySyntheses", drySyntheses);
         data.put("darkMatter", darkMatter);
         data.put("darkMatterSpent", darkMatterSpent);
         data.put("darkMatterSize", darkMatterSize);
@@ -1159,9 +1428,16 @@ public final class GameState {
         data.putList("substances", substances);
         data.putList("assemblies", assemblies);
         data.putList("bodies", bodies);
+        data.putDoubles("maturing", new TreeMap<>(maturing));
+        List<String> systems = new ArrayList<>();
+        for (SolarSystem system : solarSystems) {
+            systems.add(system.star() + "|" + String.join(",", system.planets()) + "|" + String.join(",", system.moons()));
+        }
+        data.putList("solarSystems", systems);
         data.put("cosmos", cosmos);
         data.put("autoHold", autoHold);
         data.put("autoMolecules", autoMolecules);
+        data.put("autoFollowList", autoFollowList);
         data.putList("automatedMolecules", automatedMolecules);
         data.putList("spaceUpgrades", spaceUpgrades);
         data.put("automationPaused", automationPaused);
@@ -1174,6 +1450,41 @@ public final class GameState {
         data.put("cometVisible", cometVisible);
         data.put("cometBoost", cometBoost);
         data.put("cometsCaught", cometsCaught);
+        data.put("pulseCharges", pulseCharges);
+        data.put("pulses", pulses);
+        data.put("colliderEnergy", colliderEnergy);
+        Map<String, Integer> quarkCounts = new TreeMap<>();
+        quarks.forEach((quark, count) -> quarkCounts.put(quark.name(), count));
+        data.putInts("quarks", quarkCounts);
+        Map<String, Integer> hadronCounts = new TreeMap<>();
+        hadrons.forEach((hadron, count) -> hadronCounts.put(hadron.name(), count));
+        data.putInts("hadrons", hadronCounts);
+        List<String> running = new ArrayList<>();
+        for (Collision collision : collisions) {
+            running.add(collision.tier().name() + ";" + collision.left() + ";" + collision.resonated() + ";" + collision.doubled());
+        }
+        data.putList("collisions", running);
+        data.put("collisionRuns", collisionRuns);
+        data.put("topLeft", topLeft);
+        data.put("overheatLeft", overheatLeft);
+        data.put("colliderAuto", colliderAuto);
+        List<String> flying = new ArrayList<>();
+        for (Probe probe : probes) {
+            flying.add(probe.destination().name() + ";" + probe.trip().name() + ";" + probe.left() + ";" + probe.total() + ";" + probe.id());
+        }
+        data.putList("probes", flying);
+        List<String> waiting = new ArrayList<>();
+        for (ProbeReward reward : probeRewards) {
+            waiting.add(reward.type().name() + ";" + reward.target() + ";" + reward.value() + ";" + reward.destination().name() + ";" + reward.probe());
+        }
+        data.putList("probeRewards", waiting);
+        Map<String, Integer> upgradeLevels = new TreeMap<>();
+        probeUpgrades.forEach((upgrade, level) -> upgradeLevels.put(upgrade.name(), level));
+        data.putInts("probeUpgrades", upgradeLevels);
+        data.put("probeRuns", probeRuns);
+        data.put("probeLaunches", probeLaunches);
+        data.put("probeSamples", probeSamples);
+        data.put("probeBoostLeft", probeBoostLeft);
         data.putDoubles("records", new TreeMap<>(records));
         data.put("activeBangChallenge", activeBangChallenge == null ? null : SaveData.escape(activeBangChallenge));
         data.putList("completedBangChallenges", new java.util.TreeSet<>(completedBangChallenges));
@@ -1214,6 +1525,7 @@ public final class GameState {
         String target = data.text("synthesisTarget", null);
         synthesisTarget = target == null ? null : ElementCategory.valueOf(target);
         setSynthesisTries(data.whole("synthesisTries", 0));
+        setDrySyntheses(data.whole("drySyntheses", 0));
         setDarkMatter(data.big("darkMatter", BigNum.ZERO));
         setDarkMatterSpent(data.big("darkMatterSpent", BigNum.ZERO));
         setDarkMatterSize(data.big("darkMatterSize", Game.DARK_MATTER_START_SIZE));
@@ -1226,6 +1538,7 @@ public final class GameState {
         String challenge = data.text("activeChallenge", null);
         activeChallenge = challenge == null ? null : SaveData.unescape(challenge);
         completedChallenges.addAll(data.list("completedChallenges"));
+        challengesVersion++;
         data.doubles("challengeTimes").forEach(this::setChallengeTime);
         setDecayDebt(data.real("decayDebt", 0));
         achievements.addAll(data.list("achievements"));
@@ -1242,9 +1555,21 @@ public final class GameState {
         substances.addAll(data.list("substances"));
         assemblies.addAll(data.list("assemblies"));
         bodies.addAll(data.list("bodies"));
+        solarSystems.clear();
+        for (String line : data.list("solarSystems")) {
+            String[] parts = line.split("\\|", -1);
+            if (parts.length != 3 || parts[0].isBlank()) continue;
+            solarSystems.add(new SolarSystem(parts[0], parts[1].isEmpty() ? List.of() : List.of(parts[1].split(",")),
+                    parts[2].isEmpty() ? List.of() : List.of(parts[2].split(","))));
+        }
+        maturing.clear();
+        data.doubles("maturing").forEach((id, left) -> {
+            if (bodies.contains(id) && left > 0) maturing.put(id, left);
+        });
         setCosmosLevel(data.whole("cosmos", 0));
         autoHold = data.flag("autoHold", true);
         autoMolecules = data.flag("autoMolecules", true);
+        autoFollowList = data.flag("autoFollowList", true);
         automatedMolecules.addAll(data.list("automatedMolecules"));
         spaceUpgrades.addAll(data.list("spaceUpgrades"));
         automationPaused = data.flag("automationPaused", false);
@@ -1257,6 +1582,72 @@ public final class GameState {
         setCometVisible(data.real("cometVisible", 0));
         setCometBoost(data.real("cometBoost", 0));
         setCometsCaught(data.whole("cometsCaught", 0));
+        setPulseCharges(data.real("pulseCharges", 0));
+        setPulses((long) data.real("pulses", 0));
+        setColliderEnergy(data.real("colliderEnergy", 0));
+        quarks.clear();
+        data.ints("quarks").forEach((name, count) -> {
+            try {
+                setQuarks(Quark.valueOf(name), count);
+            } catch (IllegalArgumentException unknown) {
+                // une saveur d'une autre version : écartée
+            }
+        });
+        hadrons.clear();
+        data.ints("hadrons").forEach((name, count) -> {
+            try {
+                setHadrons(Hadron.valueOf(name), count);
+            } catch (IllegalArgumentException unknown) {
+                // un hadron d'une autre version : écarté
+            }
+        });
+        collisions.clear();
+        for (String line : data.list("collisions")) {
+            String[] parts = line.split(";");
+            try {
+                collisions.add(new Collision(CollisionTier.valueOf(parts[0]), Math.max(0, Double.parseDouble(parts[1])),
+                        Boolean.parseBoolean(parts[2]), Boolean.parseBoolean(parts[3])));
+            } catch (RuntimeException unreadable) {
+                // une collision illisible : perdue, sans autre dommage
+            }
+        }
+        setCollisionRuns((long) data.real("collisionRuns", 0));
+        setTopLeft(data.real("topLeft", 0));
+        setOverheatLeft(data.real("overheatLeft", 0));
+        colliderAuto = data.flag("colliderAuto", true);
+        probes.clear();
+        for (String line : data.list("probes")) {
+            String[] parts = line.split(";");
+            try {
+                probes.add(new Probe(ProbeDestination.valueOf(parts[0]), ProbeTrip.valueOf(parts[1]),
+                        Math.max(0, Double.parseDouble(parts[2])), Math.max(1, Double.parseDouble(parts[3])),
+                        parts.length > 4 ? Long.parseLong(parts[4]) : -1));
+            } catch (RuntimeException unreadable) {
+                // une sonde illisible : perdue, sans autre dommage
+            }
+        }
+        probeRewards.clear();
+        for (String line : data.list("probeRewards")) {
+            String[] parts = line.split(";", -1);
+            try {
+                probeRewards.add(new ProbeReward(ProbeReward.Type.valueOf(parts[0]), parts[1], Double.parseDouble(parts[2]),
+                        ProbeDestination.valueOf(parts[3]), parts.length > 4 ? Long.parseLong(parts[4]) : -1));
+            } catch (RuntimeException unreadable) {
+                // une récompense illisible : perdue
+            }
+        }
+        probeUpgrades.clear();
+        data.ints("probeUpgrades").forEach((name, level) -> {
+            try {
+                setProbeUpgradeLevel(ProbeUpgrade.valueOf(name), level);
+            } catch (IllegalArgumentException unknown) {
+                // une amélioration d'une autre version : écartée
+            }
+        });
+        setProbeRuns((long) data.real("probeRuns", 0));
+        setProbeLaunches((long) data.real("probeLaunches", 0));
+        setProbeSamples((long) data.real("probeSamples", 0));
+        setProbeBoostLeft(data.real("probeBoostLeft", 0));
         records.clear();
         data.doubles("records").forEach(this::setRecord);
         String bangChallenge = data.text("activeBangChallenge", null);
@@ -1308,14 +1699,14 @@ public final class GameState {
             automationTimers.keySet().retainAll(known.automations());
         }
         if (elements.keySet().removeIf(number -> number < 1 || number > known.elements())) elementsVersion++;
-        if (!known.darkUpgrades().isEmpty()) darkUpgradeLevels.keySet().retainAll(known.darkUpgrades());
+        if (!known.darkUpgrades().isEmpty() && darkUpgradeLevels.keySet().retainAll(known.darkUpgrades())) darkVersion++;
         if (!known.darkAutomations().isEmpty()) {
             enabledDarkAutomations.retainAll(known.darkAutomations());
             darkAutomationTimers.keySet().retainAll(known.darkAutomations());
         }
         if (!known.challenges().isEmpty()) {
             if (activeChallenge != null && !known.challenges().contains(activeChallenge)) activeChallenge = null;
-            completedChallenges.retainAll(known.challenges());
+            if (completedChallenges.retainAll(known.challenges())) challengesVersion++;
             challengeTimes.keySet().retainAll(known.challenges());
         }
         if (!known.achievements().isEmpty()) achievements.retainAll(known.achievements());
@@ -1329,6 +1720,9 @@ public final class GameState {
         }
         if (!known.assemblies().isEmpty()) assemblies.retainAll(known.assemblies());
         if (!known.bodies().isEmpty()) bodies.retainAll(known.bodies());
+        maturing.keySet().retainAll(bodies);
+        solarSystems.removeIf(system -> !bodies.contains(system.star()) || !bodies.containsAll(system.planets())
+                || !bodies.containsAll(system.moons()));
         if (!known.spaceUpgrades().isEmpty()) spaceUpgrades.retainAll(known.spaceUpgrades());
         substancesSeen = null;
         assembliesSeen = null;
