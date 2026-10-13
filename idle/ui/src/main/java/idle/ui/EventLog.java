@@ -18,10 +18,10 @@ import java.util.WeakHashMap;
  * lisent le même ({@link #of(Game)}) ; c'est {@link GameApp} qui l'alimente, la sous-page
  * « Journal » des statistiques qui le montre.
  */
-final class EventLog {
+public final class EventLog {
 
     /** Nombre d'annonces gardées : au-delà, les plus anciennes s'effacent. */
-    static final int CAPACITY = 100;
+    public static final int CAPACITY = 100;
     private static final Map<Game, EventLog> SHARED = new WeakHashMap<>();
 
     /**
@@ -31,7 +31,7 @@ final class EventLog {
      * @param played   le temps de jeu à ce moment, en secondes
      * @param text     l'annonce, telle que la notification l'a dite
      */
-    record Entry(String clock, double played, String text) {
+    public record Entry(String clock, double played, String text) {
     }
 
     private final Deque<Entry> entries = new ArrayDeque<>();
@@ -41,7 +41,7 @@ final class EventLog {
     }
 
     /** Le journal de cette partie : le même objet pour toutes les pages. */
-    static EventLog of(Game game) {
+    public static EventLog of(Game game) {
         synchronized (SHARED) {
             return SHARED.computeIfAbsent(game, each -> new EventLog());
         }
@@ -62,16 +62,16 @@ final class EventLog {
     }
 
     /** Les annonces gardées, de la plus récente à la plus ancienne. */
-    List<Entry> entries() {
+    public List<Entry> entries() {
         return new ArrayList<>(entries);
     }
 
-    int size() {
+    public int size() {
         return entries.size();
     }
 
     /** Change à chaque annonce : la page ne se recompose que lorsqu'il a bougé. */
-    int version() {
+    public int version() {
         return version;
     }
 

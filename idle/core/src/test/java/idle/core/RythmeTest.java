@@ -4,6 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.achievements.Achievements;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.save.SaveCodec;
+import idle.core.upgrades.Automation;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Effect;
+import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.Upgrades;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Nested;

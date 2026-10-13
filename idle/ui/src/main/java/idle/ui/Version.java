@@ -9,7 +9,7 @@ import java.util.List;
  *
  * <p>À chaque livraison : ajouter une entrée en tête de {@link #NOTES}, et {@link #CURRENT} suit.
  */
-final class Version {
+public final class Version {
 
     /**
      * Une version et ce qu'elle a apporté.
@@ -23,6 +23,21 @@ final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.58", "Paquets thématiques et lanceur de tests", List.of(
+                    "Le code est rangé en paquets par thème : particules, atomes, matière noire, collisionneur, Big Bang, "
+                            + "molécules, ciel, sondes, sauvegarde… pour s'y retrouver plus vite.",
+                    "Un seul clic lance tous les essais, ceux d'aujourd'hui comme ceux à venir : tester-tout.bat, "
+                            + "tester-tout.sh, la configuration « Tous les tests » d'IntelliJ ou « gradlew toutTester ».")),
+            new Note("0.57", "Collisionneur à part, et onglets à gauche", List.of(
+                    "Le collisionneur a son propre onglet, ouvert à la première explosion, avec trois sous-onglets : "
+                            + "l'énergie, les collisions, les hadrons.",
+                    "L'énergie ne vient plus de la production de particules : les faisceaux croisés la donnent, et huit "
+                            + "générateurs s'achètent avec elle, chacun produisant le précédent, de l'aimant supraconducteur "
+                            + "au collisionneur de Planck.",
+                    "Un clic quand les faisceaux se croisent, sur le grand anneau, capte trois secondes de production.",
+                    "Les collisions coûtent désormais 100, 10 000, 100 millions, mille milliards et dix millions de milliards d'énergie.",
+                    "Nouveau réglage « Disposition des onglets » : en haut comme avant, ou à gauche, la barre du haut "
+                            + "montrant alors les sous-onglets de l'onglet affiché.")),
             new Note("0.56", "Collisionneur et sondes en images", List.of(
                     "Le collisionneur se dessine : un anneau par place, deux faisceaux qui partent de l'injecteur et se "
                             + "croisent dans le détecteur. Un clic sur l'anneau quand ils se croisent tente la résonance ; "
@@ -196,13 +211,13 @@ final class Version {
                     "Le palier « Création automatique » entretient les amas de molécules choisis.")));
 
     /** Le numéro de la version en cours. */
-    static final String CURRENT = NOTES.get(0).number();
+    public static final String CURRENT = NOTES.get(0).number();
 
     private Version() {
     }
 
     /** Les notes de version en texte : une version par paragraphe, ses changements en dessous. */
-    static String notes() {
+    public static String notes() {
         StringBuilder text = new StringBuilder();
         for (Note note : NOTES) {
             if (text.length() > 0) text.append("\n\n");

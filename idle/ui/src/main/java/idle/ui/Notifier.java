@@ -1,16 +1,29 @@
 package idle.ui;
 
-import idle.core.Achievement;
-import idle.core.Automation;
-import idle.core.Challenge;
-import idle.core.DarkAutomation;
-import idle.core.Element;
-import idle.core.ElementSet;
 import idle.core.Game;
-import idle.core.Molecule;
-import idle.core.Landmark;
-import idle.core.PeriodicTable;
-import idle.core.SizeScale;
+import idle.core.GameStats;
+import idle.core.achievements.Achievement;
+import idle.core.bigbang.BangChallenge;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.collider.ColliderMilestone;
+import idle.core.collider.CollisionTier;
+import idle.core.collider.Quark;
+import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.DarkAutomation;
+import idle.core.darkmatter.Landmark;
+import idle.core.darkmatter.SizeScale;
+import idle.core.elements.Element;
+import idle.core.elements.ElementSet;
+import idle.core.elements.PeriodicTable;
+import idle.core.molecules.KindCollection;
+import idle.core.molecules.Molecule;
+import idle.core.probes.ProbeReward;
+import idle.core.upgrades.Automation;
+import idle.ui.bigbang.BigBangPage;
+import idle.ui.common.AchievementText;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
+import idle.ui.darkmatter.ChallengesPane;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +57,7 @@ final class Notifier {
     private boolean synthesisUnlocked;
     private boolean canExplode;
     private int speedMilestones;
-    private java.util.Set<idle.core.ColliderMilestone> colliderMilestones = java.util.EnumSet.noneOf(idle.core.ColliderMilestone.class);
+    private java.util.Set<ColliderMilestone> colliderMilestones = java.util.EnumSet.noneOf(ColliderMilestone.class);
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
@@ -55,7 +68,7 @@ final class Notifier {
     private int moleculeKinds;
     private final Map<Molecule.Kind, Integer> collections = new java.util.EnumMap<>(Molecule.Kind.class);
     private int bangChallengesDone;
-    private idle.core.BangChallenge bangChallenge;
+    private BangChallenge bangChallenge;
 
     Notifier(Game game) {
         this.game = game;
@@ -70,12 +83,12 @@ final class Notifier {
     List<String> poll() {
         List<String> news = new ArrayList<>();
         List<Achievement> achievements = game.takeNewAchievements();
-        List<idle.core.SpaceUpgrade> spaceUpgrades = game.takeNewSpaceUpgrades();
+        List<SpaceUpgrade> spaceUpgrades = game.takeNewSpaceUpgrades();
         int gathered = game.takeAutoGathered();
         List<String> formed = game.takeAutoFormed();
         boolean comet = game.takeCometAppeared();
         boolean prime = game.takeSpeedPrime();
-        List<idle.core.GameStats.Step> records = game.takeNewRecords();
+        List<GameStats.Step> records = game.takeNewRecords();
         List<Game.CollisionResult> collisions = game.takeFinishedCollisions();
         // Premier relevé, ou partie remise à zéro : on prend ses repères sans rien annoncer.
         if (!primed || (started && !game.isStarted())) {
@@ -83,19 +96,19 @@ final class Notifier {
             primed = true;
             return news;
         }
-        boolean plasma = game.hasColliderMilestone(idle.core.ColliderMilestone.PLASMA);
+        boolean plasma = game.hasColliderMilestone(ColliderMilestone.PLASMA);
         for (Game.CollisionResult result : collisions) {
             // Avec le plasma, la basse énergie tourne sans fin : elle ne s'annonce plus, sauf réussie en résonance.
-            if (plasma && result.tier() == idle.core.CollisionTier.LOW && !result.doubled()) continue;
+            if (plasma && result.tier() == CollisionTier.LOW && !result.doubled()) continue;
             StringBuilder loot = new StringBuilder();
-            for (idle.core.Quark quark : idle.core.Quark.values()) {
+            for (Quark quark : Quark.values()) {
                 Integer count = result.quarks().get(quark);
                 if (count == null || count == 0) continue;
                 loot.append(loot.length() == 0 ? "" : ", ").append("+").append(count).append(' ').append(quark.symbol());
             }
             news.add("Collision " + result.tier().label().toLowerCase(java.util.Locale.ROOT) + " terminée : " + loot
                     + (result.doubled() ? " (résonance : ×2)" : "")
-                    + (result.quarks().containsKey(idle.core.Quark.TOP) ? ". Un quark top : à utiliser dans la minute !" : ""));
+                    + (result.quarks().containsKey(Quark.TOP) ? ". Un quark top : à utiliser dans la minute !" : ""));
         }
 
         List<String> matured = game.takeMaturedBodies();
@@ -104,14 +117,14 @@ final class Notifier {
         } else if (matured.size() > 1) {
             news.add(matured.size() + " astres mûrs. Ils comptent désormais en entier.");
         }
-        List<idle.core.ProbeReward> probes = game.takeReturnedProbes();
+        List<ProbeReward> probes = game.takeReturnedProbes();
         if (!probes.isEmpty()) {
-            idle.core.ProbeReward first = probes.get(0);
+            ProbeReward first = probes.get(0);
             news.add(probes.size() == 1 && first != null
                     ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
                     : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
         }
-        for (idle.core.ColliderMilestone milestone : idle.core.ColliderMilestone.values()) {
+        for (ColliderMilestone milestone : ColliderMilestone.values()) {
             if (game.hasColliderMilestone(milestone) && colliderMilestones.add(milestone)) {
                 news.add("Palier du collisionneur : " + milestone.label() + ". " + milestone.reward() + ".");
             }
@@ -123,7 +136,7 @@ final class Notifier {
             if (game.completedBangChallenges() > bangChallengesDone && bangChallenge != null) {
                 news.add("Défi de Big Bang « " + bangChallenge.label() + " » réussi : " + lower(bangChallenge.rewardText()));
             }
-            for (idle.core.GameStats.Step step : records) news.add("Record battu : " + step.label());
+            for (GameStats.Step step : records) news.add("Record battu : " + step.label());
             snapshot();
             news.add(game.isDarkMatterUnlocked()
                     ? "Big Bang n° " + count + " : tout repart du premier générateur, mais l'arbre de matière noire est resté."
@@ -142,14 +155,14 @@ final class Notifier {
         }
 
         // Les améliorations d'espace que le temps vient d'apporter ; l'ouverture d'un rayon s'annonce déjà ci-dessus.
-        for (idle.core.SpaceUpgrade upgrade : spaceUpgrades) {
-            if (upgrade.effect() instanceof idle.core.SpaceUpgrade.OpenKind) continue;
+        for (SpaceUpgrade upgrade : spaceUpgrades) {
+            if (upgrade.effect() instanceof SpaceUpgrade.OpenKind) continue;
             news.add("Espace : « " + upgrade.name() + " » est acquise");
         }
 
         // Un défi de Big Bang vient de commencer : tout est reparti, comme après un Big Bang.
         if (game.activeBangChallenge() != null && game.activeBangChallenge() != bangChallenge) {
-            idle.core.BangChallenge started = game.activeBangChallenge();
+            BangChallenge started = game.activeBangChallenge();
             snapshot();
             news.add("Défi de Big Bang « " + started.label() + " » : tout repart du premier générateur.");
             return news;
@@ -158,9 +171,9 @@ final class Notifier {
         if (comet) {
             news.add("Une comète traverse l'expansion : " + (int) Game.COMET_VISIBLE_SECONDS + " secondes pour la saisir (Big Bang, Expansion de la matière)");
         }
-        for (idle.core.GameStats.Step step : records) news.add("Record battu : " + step.label());
+        for (GameStats.Step step : records) news.add("Record battu : " + step.label());
         // Une collection vient de passer la moitié de son rayon, ou d'être complétée.
-        for (idle.core.KindCollection collection : game.collections()) {
+        for (KindCollection collection : game.collections()) {
             int level = game.collectionLevel(collection.kind());
             if (level > collections.getOrDefault(collection.kind(), 0)) {
                 news.add("Collection " + collection.kind().label() + (level >= 2 ? " complète : " : " à moitié réunie : ")
@@ -279,7 +292,7 @@ final class Notifier {
     private void snapshot() {
         started = game.isStarted();
         colliderMilestones.clear();
-        for (idle.core.ColliderMilestone milestone : idle.core.ColliderMilestone.values()) {
+        for (ColliderMilestone milestone : ColliderMilestone.values()) {
             if (game.hasColliderMilestone(milestone)) colliderMilestones.add(milestone);
         }
         // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
@@ -308,7 +321,7 @@ final class Notifier {
         weightLevel = game.state().tableWeightLevel();
         bigBangs = game.bigBangs();
         moleculeKinds = game.moleculeKindsUnlocked();
-        for (idle.core.KindCollection collection : game.collections()) {
+        for (KindCollection collection : game.collections()) {
             collections.put(collection.kind(), game.collectionLevel(collection.kind()));
         }
         bangChallengesDone = game.completedBangChallenges();

@@ -1,5 +1,20 @@
 package idle.core;
 
+import idle.core.collider.ColliderGenerator;
+import idle.core.collider.Collision;
+import idle.core.collider.CollisionTier;
+import idle.core.collider.Hadron;
+import idle.core.collider.Quark;
+import idle.core.elements.ElementCategory;
+import idle.core.math.BigNum;
+import idle.core.probes.Probe;
+import idle.core.probes.ProbeDestination;
+import idle.core.probes.ProbeReward;
+import idle.core.probes.ProbeTrip;
+import idle.core.probes.ProbeUpgrade;
+import idle.core.save.SaveData;
+import idle.core.sky.Cosmos;
+import idle.core.sky.SolarSystem;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -112,6 +127,11 @@ public final class GameState {
     private double pulseCharges = 0;
     // Le collisionneur de quarks (version 0.50) : rien ne s'y perd à l'explosion ni au Big Bang.
     private double colliderEnergy = 0;
+    /** Les générateurs du collisionneur (version 0.57) : ce qu'on en a, et combien ont été achetés. */
+    private final java.util.EnumMap<ColliderGenerator, Double> colliderGenerators = new java.util.EnumMap<>(ColliderGenerator.class);
+    private final java.util.EnumMap<ColliderGenerator, Integer> colliderGeneratorsBought = new java.util.EnumMap<>(ColliderGenerator.class);
+    /** Le temps de jeu du dernier croisement capté d'un clic : un seul par passage. */
+    private double colliderCrossingAt = -1;
     private final java.util.EnumMap<Quark, Integer> quarks = new java.util.EnumMap<>(Quark.class);
     private final java.util.EnumMap<Hadron, Integer> hadrons = new java.util.EnumMap<>(Hadron.class);
     private final List<Collision> collisions = new ArrayList<>();
@@ -791,6 +811,32 @@ public final class GameState {
         colliderEnergy = Double.isNaN(energy) ? 0 : Math.max(0, energy);
     }
 
+    public double colliderGenerators(ColliderGenerator generator) {
+        return colliderGenerators.getOrDefault(generator, 0.0);
+    }
+
+    public void setColliderGenerators(ColliderGenerator generator, double amount) {
+        if (Double.isNaN(amount) || amount <= 0) colliderGenerators.remove(generator);
+        else colliderGenerators.put(generator, amount);
+    }
+
+    public int colliderGeneratorsBought(ColliderGenerator generator) {
+        return colliderGeneratorsBought.getOrDefault(generator, 0);
+    }
+
+    public void setColliderGeneratorsBought(ColliderGenerator generator, int bought) {
+        if (bought <= 0) colliderGeneratorsBought.remove(generator);
+        else colliderGeneratorsBought.put(generator, bought);
+    }
+
+    public double colliderCrossingAt() {
+        return colliderCrossingAt;
+    }
+
+    public void setColliderCrossingAt(double time) {
+        colliderCrossingAt = time;
+    }
+
     public int quarks(Quark quark) {
         return quarks.getOrDefault(quark, 0);
     }
@@ -1273,6 +1319,9 @@ public final class GameState {
         pulseCharges = 0;
         pulses = 0;
         colliderEnergy = 0;
+        colliderGenerators.clear();
+        colliderGeneratorsBought.clear();
+        colliderCrossingAt = -1;
         quarks.clear();
         hadrons.clear();
         collisions.clear();
@@ -1381,7 +1430,7 @@ public final class GameState {
      * <p>Tout champ ajouté à cette classe doit être écrit ici et relu dans {@link #load(SaveData)} :
      * un test compare champ par champ une partie à sa copie relue, et échoue sinon.
      */
-    void save(SaveData data) {
+    public void save(SaveData data) {
         data.put("started", started);
         data.put("particles", particles);
         data.put("atoms", atoms);
@@ -1453,6 +1502,13 @@ public final class GameState {
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
         data.put("colliderEnergy", colliderEnergy);
+        Map<String, Double> generatorAmounts = new TreeMap<>();
+        Map<String, Integer> generatorsBought = new TreeMap<>();
+        colliderGenerators.forEach((generator, amount) -> generatorAmounts.put(generator.name(), amount));
+        colliderGeneratorsBought.forEach((generator, bought) -> generatorsBought.put(generator.name(), bought));
+        data.putDoubles("colliderGenerators", generatorAmounts);
+        data.putInts("colliderGeneratorsBought", generatorsBought);
+        data.put("colliderCrossingAt", colliderCrossingAt);
         Map<String, Integer> quarkCounts = new TreeMap<>();
         quarks.forEach((quark, count) -> quarkCounts.put(quark.name(), count));
         data.putInts("quarks", quarkCounts);
@@ -1505,7 +1561,7 @@ public final class GameState {
      * @throws RuntimeException si une valeur est illisible ou impossible (nombre négatif, texte à la
      *                          place d'un nombre) : l'état est alors à moitié rempli, et ne doit pas servir
      */
-    void load(SaveData data) {
+    public void load(SaveData data) {
         reset();
         started = data.flag("started", false);
         setParticles(data.big("particles", BigNum.ZERO));
@@ -1585,6 +1641,23 @@ public final class GameState {
         setPulseCharges(data.real("pulseCharges", 0));
         setPulses((long) data.real("pulses", 0));
         setColliderEnergy(data.real("colliderEnergy", 0));
+        colliderGenerators.clear();
+        colliderGeneratorsBought.clear();
+        data.doubles("colliderGenerators").forEach((name, amount) -> {
+            try {
+                setColliderGenerators(ColliderGenerator.valueOf(name), amount);
+            } catch (IllegalArgumentException unknown) {
+                // un générateur d'une autre version : écarté
+            }
+        });
+        data.ints("colliderGeneratorsBought").forEach((name, bought) -> {
+            try {
+                setColliderGeneratorsBought(ColliderGenerator.valueOf(name), bought);
+            } catch (IllegalArgumentException unknown) {
+                // un générateur d'une autre version : écarté
+            }
+        });
+        colliderCrossingAt = data.real("colliderCrossingAt", -1);
         quarks.clear();
         data.ints("quarks").forEach((name, count) -> {
             try {

@@ -5,6 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.achievements.Achievements;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
+import idle.core.molecules.ShoppingList;
+import idle.core.sky.Assembly;
+import idle.core.sky.Body;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Upgrades;
 import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

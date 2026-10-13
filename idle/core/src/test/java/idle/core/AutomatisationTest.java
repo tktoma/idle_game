@@ -5,6 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.achievements.Achievements;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.darkmatter.DarkUpgrade;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
+import idle.core.upgrades.Automation;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.Upgrades;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;

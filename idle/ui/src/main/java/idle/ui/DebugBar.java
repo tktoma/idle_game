@@ -1,17 +1,24 @@
 package idle.ui;
 
-import idle.core.Achievement;
-import idle.core.Automation;
-import idle.core.BigNum;
-import idle.core.Challenge;
-import idle.core.DarkUpgrade;
-import idle.core.Effect;
-import idle.core.Element;
 import idle.core.Game;
 import idle.core.GameState;
-import idle.core.Molecule;
-import idle.core.PeriodicTable;
-import idle.core.Upgrade;
+import idle.core.Resource;
+import idle.core.achievements.Achievement;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.collider.Hadron;
+import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.DarkUpgrade;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
+import idle.core.sky.Assembly;
+import idle.core.sky.Body;
+import idle.core.sky.Cosmos;
+import idle.core.upgrades.Automation;
+import idle.core.upgrades.Effect;
+import idle.core.upgrades.Upgrade;
+import idle.ui.common.Format;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javafx.geometry.Insets;
@@ -138,7 +145,7 @@ final class DebugBar extends VBox {
                 tool("+1 000 d'espace", () -> game.state().setSpace(game.state().space().add(BigNum.of(1000)))),
                 tool("Espace ×10", () -> game.state().setSpace(game.state().space().max(BigNum.of(100)).multiply(10))),
                 tool("Améliorations d'espace", () -> {
-                    for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) game.state().addSpaceUpgrade(upgrade.id());
+                    for (SpaceUpgrade upgrade : game.spaceUpgrades()) game.state().addSpaceUpgrade(upgrade.id());
                 }),
                 tool("Trois de chaque petite molécule", () -> {
                     for (Molecule molecule : game.molecules()) {
@@ -166,7 +173,7 @@ final class DebugBar extends VBox {
                 tool("Échelle suivante du cosmos", () -> {
                     while (formNextBody()) { }
                     threeSystems();
-                    idle.core.Cosmos next = game.nextCosmos();
+                    Cosmos next = game.nextCosmos();
                     if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }));
 
@@ -277,7 +284,7 @@ final class DebugBar extends VBox {
     /** Porte à leur maximum les améliorations payées en atomes qui en ont un, Persistance comprise. */
     private void maxAtomUpgrades() {
         unlockTable();
-        for (Upgrade upgrade : game.upgrades(idle.core.Resource.ATOMS)) {
+        for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
             if (upgrade.hasLimit()) game.state().setLevel(upgrade.id(), upgrade.maxLevel());
         }
     }
@@ -385,17 +392,17 @@ final class DebugBar extends VBox {
      * @return {@code false} s'ils sont tous formés
      */
     private boolean formNextAssembly() {
-        for (idle.core.Assembly assembly : game.assemblies()) {
+        for (Assembly assembly : game.assemblies()) {
             if (!game.hasAssembly(assembly.id())) return form(assembly);
         }
         return false;
     }
 
     /** Forme cet assemblage, en donnant au joueur ce qu'il demande. */
-    private boolean form(idle.core.Assembly assembly) {
+    private boolean form(Assembly assembly) {
         GameState state = game.state();
         if (state.bigBangs() == 0) state.setBigBangs(1);
-        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
+        for (SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
         for (java.util.Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
             state.addSubstance(ingredient.getKey());
             int missing = ingredient.getValue() - game.spareMolecules(ingredient.getKey());
@@ -415,12 +422,12 @@ final class DebugBar extends VBox {
      */
     private boolean formNextBody() {
         GameState state = game.state();
-        for (idle.core.Body body : game.bodies()) {
+        for (Body body : game.bodies()) {
             if (game.hasBody(body.id())) continue;
             if (state.bigBangs() == 0) state.setBigBangs(1);
             // Une matière exotique attend le huitième Big Bang : l'outil y va d'office.
-            if (body.tier() == idle.core.Body.Tier.EXOTIC && !game.isExoticUnlocked()) state.setBigBangs(8);
-            for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
+            if (body.tier() == Body.Tier.EXOTIC && !game.isExoticUnlocked()) state.setBigBangs(8);
+            for (SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
             for (String assembly : body.assemblies()) {
                 if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
             }
@@ -442,7 +449,7 @@ final class DebugBar extends VBox {
             }
             state.setSpace(state.space().max(game.usedSpace().multiply(3)));
             // L'outil de mise au point saute la maturation, et donne le cœur de galaxie s'il le faut.
-            if (game.needsGalaxyCore(body) && state.hadrons(idle.core.Hadron.UPSILON) == 0) state.setHadrons(idle.core.Hadron.UPSILON, 1);
+            if (game.needsGalaxyCore(body) && state.hadrons(Hadron.UPSILON) == 0) state.setHadrons(Hadron.UPSILON, 1);
             boolean formed = game.formBody(body.id());
             if (formed) state.setMaturing(body.id(), 0);
             return formed;
@@ -454,8 +461,8 @@ final class DebugBar extends VBox {
     private void threeSystems() {
         if (game.state().bigBangs() < 6) game.state().setBigBangs(6);
         while (game.solarSystemsComplete() < Game.SYSTEMS_FOR_GALAXY) {
-            java.util.List<String> stars = game.freeForSystems(idle.core.Body.Tier.STAR);
-            java.util.List<String> planets = game.freeForSystems(idle.core.Body.Tier.PLANET);
+            java.util.List<String> stars = game.freeForSystems(Body.Tier.STAR);
+            java.util.List<String> planets = game.freeForSystems(Body.Tier.PLANET);
             if (stars.isEmpty() || planets.size() < Game.SYSTEM_MIN_PLANETS) return;
             game.foundSystem(stars.get(0));
             int index = game.state().solarSystems().size() - 1;

@@ -1,5 +1,6 @@
 package idle.core;
 
+import idle.core.save.SaveData;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -1,5 +1,6 @@
 package idle.core;
 
+import idle.core.sky.SolarSystem;
 import java.util.List;
 
 /** Pour les essais : trois systèmes solaires complets, faits d'astres posés d'office, pour que la galaxie ne demande plus que ses astres. */

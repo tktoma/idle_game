@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.math.BigNum;
+import idle.core.save.SaveData;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;

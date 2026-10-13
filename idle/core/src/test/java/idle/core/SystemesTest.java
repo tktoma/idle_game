@@ -4,6 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.bigbang.BigBangCondition;
+import idle.core.bigbang.BigBangMilestones;
+import idle.core.molecules.Molecule;
+import idle.core.save.SaveCodec;
+import idle.core.sky.Body;
+import idle.core.sky.SolarSystem;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

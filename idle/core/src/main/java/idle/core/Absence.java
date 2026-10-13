@@ -1,5 +1,7 @@
 package idle.core;
 
+import idle.core.math.BigNum;
+
 /**
  * Le retour du joueur après une absence : le jeu, fermé, n'a rien fait ; il rejoue maintenant une
  * part du temps écoulé, puis dit ce qu'elle a rapporté.

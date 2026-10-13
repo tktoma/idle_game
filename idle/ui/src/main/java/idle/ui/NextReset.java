@@ -1,12 +1,15 @@
 package idle.ui;
 
-import idle.core.BigBangCondition;
-import idle.core.BigBangMilestone;
-import idle.core.BigNum;
-import idle.core.Challenge;
-import idle.core.DarkAutomation;
-import idle.core.DarkUpgrade;
 import idle.core.Game;
+import idle.core.bigbang.BigBangCondition;
+import idle.core.bigbang.BigBangMilestone;
+import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.DarkAutomation;
+import idle.core.darkmatter.DarkUpgrade;
+import idle.core.math.BigNum;
+import idle.ui.bigbang.BigBangPage;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +21,7 @@ import java.util.List;
  * <p>Rien n'est calculé ici que les règles ne sachent déjà : ce sont des phrases, faites avec ce
  * que {@link Game} expose.
  */
-final class NextReset {
+public final class NextReset {
 
     private NextReset() {
     }
@@ -79,7 +82,7 @@ final class NextReset {
      * Ce que donnera le prochain Big Bang, en une ligne : « Donnera : Expansion accélérée (espace
      * par seconde ×2) et Création automatique ». Le premier ouvre aussi le troisième acte.
      */
-    static String bigBangGives(Game game) {
+    public static String bigBangGives(Game game) {
         List<BigBangMilestone> next = bigBangMilestones(game);
         String space = "+" + ElementText.number(Game.SPACE_PER_SECOND) + " d'espace par seconde";
         if (next.isEmpty()) return "Donnera : " + space;

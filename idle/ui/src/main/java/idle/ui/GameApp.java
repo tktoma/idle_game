@@ -1,14 +1,38 @@
 package idle.ui;
 
 import idle.core.Absence;
-import idle.core.BigNum;
-import idle.core.Challenge;
-import idle.core.Effect;
 import idle.core.Game;
-import idle.core.PeriodicTable;
+import idle.core.GameStats;
 import idle.core.Resource;
-import idle.core.SaveCodec;
-import idle.core.Upgrade;
+import idle.core.bigbang.BangChallenge;
+import idle.core.darkmatter.Challenge;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.save.SaveCodec;
+import idle.core.upgrades.Effect;
+import idle.core.upgrades.Upgrade;
+import idle.ui.atoms.AtomView;
+import idle.ui.atoms.AtomsPage;
+import idle.ui.automation.AutomationPage;
+import idle.ui.bigbang.BigBangPage;
+import idle.ui.collider.ColliderPage;
+import idle.ui.collider.ColliderPane;
+import idle.ui.common.Breakdown;
+import idle.ui.common.Card;
+import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
+import idle.ui.common.StableHeight;
+import idle.ui.common.TileGrid;
+import idle.ui.darkmatter.ChallengesPane;
+import idle.ui.darkmatter.DarkMatterPage;
+import idle.ui.pages.AchievementsPage;
+import idle.ui.pages.SettingsPage;
+import idle.ui.pages.StatsPage;
+import idle.ui.particles.GeneratorPane;
+import idle.ui.particles.ParticleView;
+import idle.ui.probes.LootPane;
+import idle.ui.probes.ProbesPane;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -107,19 +131,19 @@ public final class GameApp extends Application {
     /** La même limite une fois l'onglet « Big Bang » apparu : huit onglets au lieu de sept. */
     private static final double NARROW_WINDOW_WITH_BIG_BANG = 920;
     static final String PARTICLES_COLOR = "#9fd0ff";
-    static final String ATOMS_COLOR = "#ffd27f";
-    static final String AUTOMATION_COLOR = "#9be7a8";
-    static final String DARK_MATTER_COLOR = "#c9a6ff";
+    public static final String ATOMS_COLOR = "#ffd27f";
+    public static final String AUTOMATION_COLOR = "#9be7a8";
+    public static final String DARK_MATTER_COLOR = "#c9a6ff";
     /** La couleur du Big Bang : le blanc chaud d'un éclair, à part des quatre couleurs de ressources. */
-    static final String BIG_BANG_COLOR = "#fff1c9";
-    static final String ACHIEVEMENTS_COLOR = "#ff9eb5";
+    public static final String BIG_BANG_COLOR = "#fff1c9";
+    public static final String ACHIEVEMENTS_COLOR = "#ff9eb5";
     static final String STATS_COLOR = "#7fe0d4";
     private static final String SETTINGS_COLOR = "#d6dde6";
     /** Temps laissé pour le second clic qui confirme l'explosion, en secondes. */
     private static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, BIG_BANG, ACHIEVEMENTS, STATS, SETTINGS }
+    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, ACHIEVEMENTS, STATS, SETTINGS }
 
     private final Game game = new Game();
     private final Settings settings = Settings.load();
@@ -141,17 +165,19 @@ public final class GameApp extends Application {
     private final Button atomsTab = new Button();
     private final Button automationTab = new Button("Automatisation");
     private final Button darkMatterTab = new Button();
+    private final Button colliderTab = new Button("Collisionneur");
     private final Button bigBangTab = new Button("Big Bang");
     private final Button achievementsTab = new Button("Succès");
     private final Button statsTab = new Button("Statistiques");
     private final Button settingsTab = new Button("Réglages");
     private final AtomView atomsTabIcon = new AtomView(22);
-    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab, darkMatterTab, bigBangTab,
+    private final HBox tabBar = new HBox(particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
             achievementsTab, statsTab, settingsTab);
     private final BorderPane particlesPage = new BorderPane();
     private final AtomsPage atomsPage = new AtomsPage(game, settings);
     private final AutomationPage automationPage = new AutomationPage(game);
     private final DarkMatterPage darkMatterPage = new DarkMatterPage(game);
+    private final ColliderPage colliderPage = new ColliderPage(game);
     private final BigBangPage bigBangPage = new BigBangPage(game);
     private final AchievementsPage achievementsPage = new AchievementsPage(game);
     private final StatsPage statsPage = new StatsPage(game);
@@ -166,6 +192,14 @@ public final class GameApp extends Application {
     private final VBox controls = new VBox(12, particlesLabel, productionLabel);
     private Button startButton;
     private final BorderPane root = new BorderPane();
+    /** La disposition à gauche (version 0.57) : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
+    private final VBox sideBar = new VBox(2);
+    private final StackPane subTabHolder = new StackPane();
+    /** Une barre de sous-onglets, et d'où elle vient dans sa page : la disposition d'avant l'y remet. */
+    private record SubTabDock(Tab tab, javafx.scene.layout.Pane page, javafx.scene.layout.Pane bar, int index) {}
+    private final List<SubTabDock> docks = new java.util.ArrayList<>();
+    private VBox topBox;
+    private boolean tabsLeftApplied = false;
     private Tab selectedTab = Tab.PARTICLES;
     private boolean narrow = false;
 
@@ -299,12 +333,13 @@ public final class GameApp extends Application {
         achievementsScroll.setFitToWidth(true);
         achievementsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, bigBangPage,
+        StackPane pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
                 achievementsScroll, statsPage, settingsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
         atomsTab.setOnAction(event -> open(Tab.ATOMS));
         automationTab.setOnAction(event -> open(Tab.AUTOMATION));
         darkMatterTab.setOnAction(event -> open(Tab.DARK_MATTER));
+        colliderTab.setOnAction(event -> open(Tab.COLLIDER));
         bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
         achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> open(Tab.STATS));
@@ -343,6 +378,16 @@ public final class GameApp extends Application {
         infoBar.setAlignment(Pos.CENTER);
         infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
         VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar);
+        topBox = top;
+        sideBar.setStyle("-fx-background-color: #0e131b; -fx-padding: 8 0; -fx-border-color: transparent #1d2633 transparent transparent;");
+        sideBar.setMinWidth(170);
+        sideBar.setPrefWidth(170);
+        subTabHolder.setStyle("-fx-background-color: #0e131b; -fx-padding: 4 0;");
+        dock(Tab.ATOMS, atomsPage, atomsPage.subTabs());
+        dock(Tab.DARK_MATTER, darkMatterPage, darkMatterPage.subTabs());
+        dock(Tab.COLLIDER, colliderPage, colliderPage.subTabs());
+        dock(Tab.BIG_BANG, bigBangPage, bigBangPage.subTabs());
+        dock(Tab.STATS, statsPage, statsPage.subTabs());
         boolean testProfile = arguments.contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
@@ -571,11 +616,11 @@ public final class GameApp extends Application {
         @Override
         public String records() {
             int known = 0;
-            for (idle.core.GameStats.Step step : idle.core.GameStats.Step.values()) {
+            for (GameStats.Step step : GameStats.Step.values()) {
                 if (!Double.isNaN(game.recordOf(step))) known++;
             }
             if (known == 0) return "Aucun record pour l'instant : le premier s'inscrit à la première fusion.";
-            idle.core.GameStats.Step next = game.nextStep();
+            GameStats.Step next = game.nextStep();
             return known + (known > 1 ? " étapes ont un record" : " étape a un record")
                     + (next == null || Double.isNaN(game.recordOf(next)) ? "."
                     : ". Prochaine : " + next.label() + ", " + Format.duration(game.recordOf(next)) + ".");
@@ -890,7 +935,7 @@ public final class GameApp extends Application {
 
     /** Passe à l'onglet visible suivant ou précédent, en boucle. */
     private void stepTab(int direction) {
-        Button[] buttons = {particlesTab, atomsTab, automationTab, darkMatterTab, bigBangTab, achievementsTab, statsTab, settingsTab};
+        Button[] buttons = {particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab, achievementsTab, statsTab, settingsTab};
         Tab[] tabs = Tab.values();
         int index = selectedTab.ordinal();
         for (int tries = 0; tries < tabs.length; tries++) {
@@ -907,6 +952,7 @@ public final class GameApp extends Application {
         switch (selectedTab) {
             case ATOMS -> atomsPage.step(direction);
             case DARK_MATTER -> darkMatterPage.step(direction);
+            case COLLIDER -> colliderPage.step(direction);
             case BIG_BANG -> bigBangPage.step(direction);
             case STATS -> statsPage.step(direction);
             default -> { }
@@ -978,11 +1024,75 @@ public final class GameApp extends Application {
         bang.play();
     }
 
-    /** Applique la taille de l'interface et le thème choisis dans les réglages. */
+    /** Applique la taille de l'interface, le thème et la disposition des onglets choisis dans les réglages. */
     private void applyAppearance() {
         if (scaled == null) return;      // la fenêtre n'est pas encore construite
         scaled.setScale(settings.scale().factor());
         lightTheme.apply(settings.theme() == Settings.Theme.LIGHT);
+        applyTabLayout();
+    }
+
+    /** Retient une barre de sous-onglets et sa place dans sa page. */
+    private void dock(Tab tab, javafx.scene.layout.Pane page, javafx.scene.layout.Pane bar) {
+        docks.add(new SubTabDock(tab, page, bar, page.getChildren().indexOf(bar)));
+    }
+
+    /**
+     * Range les onglets selon le réglage. À gauche : les onglets en colonne, et la barre du haut
+     * prend les sous-onglets de l'onglet affiché. En haut : la disposition d'avant, chaque barre
+     * de sous-onglets revenant à sa place dans sa page.
+     */
+    private void applyTabLayout() {
+        boolean left = settings.tabsLeft();
+        if (left == tabsLeftApplied || topBox == null) return;
+        tabsLeftApplied = left;
+        List<javafx.scene.Node> buttons = new java.util.ArrayList<>(left ? tabBar.getChildren() : sideBar.getChildren());
+        if (left) {
+            tabBar.getChildren().clear();
+            sideBar.getChildren().clear();
+            sideBar.getChildren().addAll(buttons);
+            int at = topBox.getChildren().indexOf(tabBar);
+            topBox.getChildren().set(at, subTabHolder);
+            for (SubTabDock dock : docks) {
+                dock.page().getChildren().remove(dock.bar());
+                subTabHolder.getChildren().add(dock.bar());
+            }
+            root.setLeft(sideBar);
+        } else {
+            sideBar.getChildren().clear();
+            tabBar.getChildren().clear();
+            tabBar.getChildren().addAll(buttons);
+            int at = topBox.getChildren().indexOf(subTabHolder);
+            topBox.getChildren().set(at, tabBar);
+            for (SubTabDock dock : docks) {
+                subTabHolder.getChildren().remove(dock.bar());
+                dock.page().getChildren().add(Math.min(dock.index(), dock.page().getChildren().size()), dock.bar());
+                dock.bar().setVisible(true);
+                dock.bar().setManaged(true);
+            }
+            root.setLeft(null);
+        }
+        showSubTabs();
+        styleTabs();
+    }
+
+    /** Dans la disposition à gauche, seule la barre de l'onglet affiché se montre en haut. */
+    private void showSubTabs() {
+        if (!tabsLeftApplied) return;
+        boolean any = false;
+        for (SubTabDock dock : docks) {
+            boolean shown = dock.tab() == selectedTab;
+            dock.bar().setVisible(shown);
+            dock.bar().setManaged(shown);
+            any |= shown;
+        }
+        subTabHolder.setVisible(any);
+        subTabHolder.setManaged(any);
+    }
+
+    /** Vrai si les onglets sont à gauche : pour les vérifications. */
+    boolean tabsOnLeft() {
+        return tabsLeftApplied;
     }
 
     /**
@@ -1009,7 +1119,8 @@ public final class GameApp extends Application {
                 || text.startsWith("Rassemblement automatique") || text.startsWith("Formation automatique")) return BIG_BANG_COLOR;
         if (text.startsWith("Succès")) return ACHIEVEMENTS_COLOR;
         if (text.startsWith("Sonde") || text.contains("sondes revenues")) return ProbesPane.COLOR;
-        if (text.startsWith("Explosion") || text.startsWith("Collision") || text.startsWith("Palier du collisionneur") || text.startsWith("Défi") || text.startsWith("Nouveau défi")
+        if (text.startsWith("Collision") || text.startsWith("Palier du collisionneur")) return ColliderPane.COLOR;
+        if (text.startsWith("Explosion") || text.startsWith("Défi") || text.startsWith("Nouveau défi")
                 || text.contains("matière noire") || text.startsWith("Palier de taille") || text.contains("paliers de taille")
                 || text.contains("exploser")) return DARK_MATTER_COLOR;
         if (text.contains("utomatis")) return AUTOMATION_COLOR;
@@ -1036,10 +1147,12 @@ public final class GameApp extends Application {
         atomsPage.setVisible(tab == Tab.ATOMS);
         automationScroll.setVisible(tab == Tab.AUTOMATION);
         darkMatterPage.setVisible(tab == Tab.DARK_MATTER);
+        colliderPage.setVisible(tab == Tab.COLLIDER);
         bigBangPage.setVisible(tab == Tab.BIG_BANG);
         achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
         settingsScroll.setVisible(tab == Tab.SETTINGS);
+        showSubTabs();
         styleTabs();
     }
 
@@ -1049,6 +1162,7 @@ public final class GameApp extends Application {
         atomsTab.setStyle(tabStyle(ATOMS_COLOR, selectedTab == Tab.ATOMS));
         automationTab.setStyle(tabStyle(AUTOMATION_COLOR, selectedTab == Tab.AUTOMATION));
         darkMatterTab.setStyle(tabStyle(DARK_MATTER_COLOR, selectedTab == Tab.DARK_MATTER));
+        colliderTab.setStyle(tabStyle(ColliderPane.COLOR, selectedTab == Tab.COLLIDER));
         bigBangTab.setStyle(tabStyle(BIG_BANG_COLOR, selectedTab == Tab.BIG_BANG));
         achievementsTab.setStyle(tabStyle(ACHIEVEMENTS_COLOR, selectedTab == Tab.ACHIEVEMENTS));
         statsTab.setStyle(tabStyle(STATS_COLOR, selectedTab == Tab.STATS));
@@ -1059,6 +1173,13 @@ public final class GameApp extends Application {
 
     /** L'onglet affiché est souligné et éclairé dans sa couleur ; l'autre est estompé. */
     private String tabStyle(String color, boolean selected) {
+        if (tabsLeftApplied) {
+            // En colonne : toute la largeur, le texte à gauche, et un trait de couleur sur le bord.
+            return "-fx-cursor: hand; -fx-background-radius: 0; -fx-font-size: 14px; -fx-padding: 9 14; -fx-alignment: center-left;"
+                    + " -fx-min-width: 168; -fx-max-width: 168; -fx-border-width: 0 0 0 3;" + (selected
+                    ? " -fx-text-fill: " + color + "; -fx-background-color: #16202e; -fx-border-color: transparent transparent transparent " + color + ";"
+                    : " -fx-text-fill: #8fa3b8; -fx-background-color: transparent; -fx-border-color: transparent;");
+        }
         return TAB_STYLE + (narrow ? NARROW_TAB : WIDE_TAB) + (selected
                 ? " -fx-text-fill: " + color + "; -fx-background-color: #16202e;"
                         + " -fx-border-color: transparent transparent " + color + " transparent;"
@@ -1096,6 +1217,9 @@ public final class GameApp extends Application {
         if (selectedTab == Tab.DARK_MATTER) {
             darkMatterPage.frame(dt, timeFactor());
         }
+        if (selectedTab == Tab.COLLIDER) {
+            colliderPage.frame(dt);
+        }
         if (selectedTab == Tab.BIG_BANG) {
             bigBangPage.frame(dt);
         }
@@ -1115,8 +1239,8 @@ public final class GameApp extends Application {
     /** Marge sur la durée d'une image : un écran à 60 Hz n'arrive pas pile à 1/60 s, et le plafond de 60 ne doit sauter aucune image. */
     private static final double FRAME_TOLERANCE = 0.004;
     /** Images par seconde quand la fenêtre est derrière une autre, et quand elle est réduite, avec l'économie d'énergie. */
-    static final int BACKGROUND_FPS = 4;
-    static final int ICONIFIED_FPS = 1;
+    public static final int BACKGROUND_FPS = 4;
+    public static final int ICONIFIED_FPS = 1;
 
     /** Images par seconde visées en ce moment : le réglage, ou moins si la fenêtre n'est pas au premier plan. */
     private int framesPerSecond() {
@@ -1137,7 +1261,8 @@ public final class GameApp extends Application {
         // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
         // Avec l'onglet « Big Bang » ils sont huit : la fenêtre de 800 px ne suffit plus aux noms entiers.
         boolean bigBang = game.isBigBangUnlocked();
-        boolean nowNarrow = root.getWidth() > 0 && root.getWidth() < (bigBang ? NARROW_WINDOW_WITH_BIG_BANG : NARROW_WINDOW);
+        // En colonne, les onglets ont toute leur largeur : pas de noms courts.
+        boolean nowNarrow = !tabsLeftApplied && root.getWidth() > 0 && root.getWidth() < (bigBang ? NARROW_WINDOW_WITH_BIG_BANG : NARROW_WINDOW);
         if (nowNarrow != narrow) {
             narrow = nowNarrow;
             styleTabs();
@@ -1200,8 +1325,7 @@ public final class GameApp extends Application {
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
         boolean hasAtoms = game.state().totalAtoms().sign() > 0;
-        // Le collisionneur garde l'onglet ouvert d'une partie à l'autre, même avant l'explosion.
-        boolean darkMatter = game.isDarkMatterUnlocked() || game.isColliderUnlocked();
+        boolean darkMatter = game.isDarkMatterUnlocked();
         atomsTab.setVisible(hasAtoms);
         atomsTab.setManaged(hasAtoms);
         readiness.frame();
@@ -1221,6 +1345,13 @@ public final class GameApp extends Application {
         darkMatterTab.setText((narrow ? "M. noire (" : "Matière noire (") + Format.count(game.state().darkMatter()) + ")"
                 + Readiness.dot(readiness.darkMatter()));
         darkMatterPage.refresh(selectedTab == Tab.DARK_MATTER);
+
+        // L'onglet du collisionneur s'ouvre à la première explosion et ne se referme plus.
+        boolean collider = game.isColliderUnlocked();
+        colliderTab.setVisible(collider);
+        colliderTab.setManaged(collider);
+        colliderTab.setText((narrow ? "Collis." : "Collisionneur") + Readiness.dot(ColliderPage.ready(game)));
+        if (selectedTab == Tab.COLLIDER) colliderPage.refresh();
 
         // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
         // comme une explosion mène à l'onglet « Matière noire ».
@@ -1242,7 +1373,8 @@ public final class GameApp extends Application {
 
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
-                || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)) {
+                || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)
+                || (selectedTab == Tab.COLLIDER && !game.isColliderUnlocked())) {
             selectTab(Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();
@@ -1309,7 +1441,7 @@ public final class GameApp extends Application {
                 : " -fx-text-fill: " + SETTINGS_COLOR + "; -fx-background-color: transparent; -fx-border-color: #3a4a5e;"));
         if (selectedTab == Tab.SETTINGS) settingsPage.refresh();
         // Le défi en cours reste sous les yeux, quel que soit l'onglet.
-        idle.core.BangChallenge bangChallenge = game.activeBangChallenge();
+        BangChallenge bangChallenge = game.activeBangChallenge();
         challengeLabel.setVisible(challenge != null || bangChallenge != null);
         challengeLabel.setManaged(challenge != null || bangChallenge != null);
         if (challenge != null || bangChallenge != null) {

@@ -1,5 +1,6 @@
 package idle.ui;
 
+import idle.ui.common.Detail;
 import javafx.scene.input.KeyCode;
 
 /**
@@ -9,10 +10,10 @@ import javafx.scene.input.KeyCode;
  *
  * <p>La touche de détail n'en fait pas partie : elle se tient enfoncée, les raccourcis se frappent.
  */
-final class Shortcuts {
+public final class Shortcuts {
 
     /** Une chose que le clavier peut déclencher. */
-    enum Action {
+    public enum Action {
         SPEED("Acheter la vitesse de création", KeyCode.V),
         COUPLING("Acheter le couplage", KeyCode.C),
         GENERATOR("Acheter un générateur", KeyCode.G),
@@ -40,7 +41,7 @@ final class Shortcuts {
         }
 
         /** Ce que fait le raccourci, en quelques mots. */
-        String label() {
+        public String label() {
             return label;
         }
 
@@ -54,7 +55,7 @@ final class Shortcuts {
     }
 
     /** Le nom d'une touche tel qu'il s'écrit sur une carte ou dans une liste : « V », « ← », « Espace ». */
-    static String name(KeyCode key) {
+    public static String name(KeyCode key) {
         if (key == null) return "";
         return switch (key) {
             case LEFT -> "←";
@@ -69,7 +70,7 @@ final class Shortcuts {
     }
 
     /** Vrai si cette touche peut porter un raccourci : ni une touche de majuscule ou de contrôle, ni Échap, qui annule. */
-    static boolean bindable(KeyCode key) {
+    public static boolean bindable(KeyCode key) {
         return key != null && !key.isModifierKey() && key != KeyCode.ESCAPE && key != KeyCode.UNDEFINED;
     }
 }

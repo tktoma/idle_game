@@ -1,5 +1,56 @@
 package idle.core;
 
+import idle.core.achievements.Achievement;
+import idle.core.achievements.Achievements;
+import idle.core.bigbang.BangChallenge;
+import idle.core.bigbang.BigBangCondition;
+import idle.core.bigbang.BigBangMilestone;
+import idle.core.bigbang.BigBangMilestones;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.bigbang.SpaceUpgrades;
+import idle.core.collider.ColliderGenerator;
+import idle.core.collider.ColliderMilestone;
+import idle.core.collider.Collision;
+import idle.core.collider.CollisionTier;
+import idle.core.collider.Hadron;
+import idle.core.collider.Quark;
+import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.Challenges;
+import idle.core.darkmatter.DarkAutomation;
+import idle.core.darkmatter.DarkAutomations;
+import idle.core.darkmatter.DarkEffect;
+import idle.core.darkmatter.DarkUpgrade;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.darkmatter.SizeScale;
+import idle.core.elements.Element;
+import idle.core.elements.ElementBonuses;
+import idle.core.elements.ElementCategory;
+import idle.core.elements.ElementEffect;
+import idle.core.elements.ElementSet;
+import idle.core.elements.ElementSets;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.molecules.KindCollection;
+import idle.core.molecules.KindCollections;
+import idle.core.molecules.Molecule;
+import idle.core.molecules.Molecules;
+import idle.core.molecules.ShoppingList;
+import idle.core.probes.Probe;
+import idle.core.probes.ProbeDestination;
+import idle.core.probes.ProbeReward;
+import idle.core.probes.ProbeTrip;
+import idle.core.probes.ProbeUpgrade;
+import idle.core.sky.Assemblies;
+import idle.core.sky.Assembly;
+import idle.core.sky.Bodies;
+import idle.core.sky.Body;
+import idle.core.sky.Cosmos;
+import idle.core.sky.SolarSystem;
+import idle.core.upgrades.Automation;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Effect;
+import idle.core.upgrades.Upgrade;
+import idle.core.upgrades.Upgrades;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -4232,17 +4283,79 @@ public final class Game {
     }
 
     /**
-     * Énergie gagnée par seconde : {@link #COLLIDER_ENERGY} × (1 + ln(1 + ordres de grandeur de la
-     * production / 10)). Environ 1,7 par seconde vers 1e100 particules par seconde, 3 vers 1e1000, 4,3
-     * vers 1e20000 : le collisionneur suit la partie principale sans s'emballer avec elle.
+     * Énergie gagnée par seconde : les faisceaux croisés, un d'office et ceux qu'on achète ou que
+     * produit l'aimant ({@link ColliderGenerator}). Le collisionneur est un jeu à part : il ne dépend
+     * plus de la production de particules.
      */
     public double colliderEnergyPerSecond() {
         if (!isColliderUnlocked()) return 0;
-        return COLLIDER_ENERGY * (1 + Math.log(1 + Math.max(0, productionAtFusion().log10()) / 10));
+        return (1 + state.colliderGenerators(ColliderGenerator.BEAM)) * ColliderGenerator.BEAM.power();
     }
 
-    /** L'énergie du collisionneur à ses débuts, par seconde : elle croît ensuite avec le logarithme de l'ordre de grandeur de la production. */
-    public static final double COLLIDER_ENERGY = 0.5;
+    /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
+    public double colliderGeneratorOutput(ColliderGenerator generator) {
+        return state.colliderGenerators(generator) * generator.power();
+    }
+
+    /** Prix du prochain exemplaire de ce générateur. */
+    public double colliderGeneratorCost(ColliderGenerator generator) {
+        return generator.cost(state.colliderGeneratorsBought(generator));
+    }
+
+    /** Un générateur s'offre dès que le précédent existe : le premier tout de suite. */
+    public boolean isColliderGeneratorOpen(ColliderGenerator generator) {
+        ColliderGenerator previous = generator.previous();
+        return isColliderUnlocked() && (previous == null || state.colliderGeneratorsBought(previous) > 0);
+    }
+
+    public boolean canBuyColliderGenerator(ColliderGenerator generator) {
+        return isColliderGeneratorOpen(generator) && state.colliderEnergy() >= colliderGeneratorCost(generator) - 1e-9;
+    }
+
+    /** Achète un exemplaire de ce générateur avec l'énergie. */
+    public boolean buyColliderGenerator(ColliderGenerator generator) {
+        if (!canBuyColliderGenerator(generator)) return false;
+        state.setColliderEnergy(state.colliderEnergy() - colliderGeneratorCost(generator));
+        state.setColliderGeneratorsBought(generator, state.colliderGeneratorsBought(generator) + 1);
+        state.setColliderGenerators(generator, state.colliderGenerators(generator) + 1);
+        return true;
+    }
+
+    /** Achète autant d'exemplaires de ce générateur que l'énergie le permet. Rend le nombre achetés. */
+    public int buyMaxColliderGenerator(ColliderGenerator generator) {
+        int bought = 0;
+        while (bought < 10_000 && buyColliderGenerator(generator)) bought++;
+        return bought;
+    }
+
+    /** Secondes de production que rapporte un croisement capté d'un clic. */
+    public static final double CROSSING_SECONDS = 3;
+
+    /** La phase des faisceaux de l'énergie, de 0 à 1 : ils se croisent dans le détecteur à 0,5. */
+    public double colliderBeamPhase() {
+        double phase = (state.timePlayed() % RESONANCE_PERIOD) / RESONANCE_PERIOD;
+        return phase < 0 ? phase + 1 : phase;
+    }
+
+    /** Vrai si le croisement en cours n'a pas encore été capté. */
+    public boolean canCatchCrossing() {
+        if (!isColliderUnlocked() || !inResonance(colliderBeamPhase())) return false;
+        return state.timePlayed() - state.colliderCrossingAt() > RESONANCE_PERIOD * RESONANCE_WINDOW;
+    }
+
+    /**
+     * Un clic quand les faisceaux se croisent : {@link #CROSSING_SECONDS} secondes de production
+     * d'énergie d'un coup. Un seul par croisement ; à côté, rien.
+     *
+     * @return l'énergie gagnée, 0 si le clic tombe à côté
+     */
+    public double catchCrossing() {
+        if (!canCatchCrossing()) return 0;
+        double gain = colliderEnergyPerSecond() * CROSSING_SECONDS;
+        state.setColliderEnergy(state.colliderEnergy() + gain);
+        state.setColliderCrossingAt(state.timePlayed());
+        return gain;
+    }
 
     public double colliderEnergy() {
         return state.colliderEnergy();
@@ -4450,7 +4563,16 @@ public final class Game {
 
     private void runCollider(double dt) {
         if (dt <= 0 || !isColliderUnlocked()) return;
+        // La chaîne des générateurs : chacun produit le précédent, le premier l'énergie, au début de ce pas.
+        double[] output = new double[ColliderGenerator.values().length];
+        for (ColliderGenerator generator : ColliderGenerator.values()) output[generator.ordinal()] = colliderGeneratorOutput(generator);
         state.setColliderEnergy(state.colliderEnergy() + colliderEnergyPerSecond() * dt);
+        for (ColliderGenerator generator : ColliderGenerator.values()) {
+            ColliderGenerator previous = generator.previous();
+            if (previous != null && output[generator.ordinal()] > 0) {
+                state.setColliderGenerators(previous, state.colliderGenerators(previous) + output[generator.ordinal()] * dt);
+            }
+        }
         if (state.overheatLeft() > 0) state.setOverheatLeft(state.overheatLeft() - dt);
         if (state.topLeft() > 0) {
             state.setTopLeft(state.topLeft() - dt);

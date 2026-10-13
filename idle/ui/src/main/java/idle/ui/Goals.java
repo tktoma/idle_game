@@ -1,21 +1,26 @@
 package idle.ui;
 
-import idle.core.BigNum;
 import idle.core.Game;
 import idle.core.GameStats;
-import idle.core.PeriodicTable;
-import idle.core.Upgrade;
-import idle.core.Effect;
 import idle.core.Resource;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
+import idle.core.sky.Body;
+import idle.core.sky.Cosmos;
+import idle.core.upgrades.Effect;
+import idle.core.upgrades.Upgrade;
+import idle.ui.common.Format;
 
 /**
  * Le prochain grand pas de la partie, en une phrase, et le temps qu'il demande quand le jeu peut
  * l'estimer. Sert à la ligne d'objectif sous les onglets et à l'onglet Statistiques.
  */
-final class Goals {
+public final class Goals {
 
     /** Le prochain grand pas de la partie en cours, sans estimation de temps. */
-    static String next(Game game) {
+    public static String next(Game game) {
         if (!game.isStarted()) return "créer le premier générateur";
         if (game.canBigBang()) return "déclencher le Big Bang, au bout de l'arbre de matière noire";
         if (game.canExplode()) return "faire exploser le tableau périodique";
@@ -68,20 +73,20 @@ final class Goals {
      * premier rassemblement, un premier assemblage, le prochain astre, la galaxie, l'amas de galaxies, l'univers. Vide avant le
      * premier Big Bang.
      */
-    static String act(Game game) {
+    public static String act(Game game) {
         if (!game.isBigBangUnlocked()) return "";
-        idle.core.Cosmos scale = game.nextCosmos();
+        Cosmos scale = game.nextCosmos();
         if (scale == null) return "l'univers est formé";
         if (game.canFormCosmos(scale)) return "former " + scale.phrase();
         // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
-        if (scale != idle.core.Cosmos.GALAXY) {
+        if (scale != Cosmos.GALAXY) {
             return "réunir la matière de " + scale.phrase() + " (" + game.cosmosConditionsMet(scale) + "/"
                     + game.cosmosConditions(scale) + " conditions)" + spaceWait(game);
         }
         if (game.moleculesCreated() == 0) {
             // Après un Big Bang le tableau périodique est vide : il faut d'abord le regarnir, et laisser l'espace grandir.
             boolean elements = false;
-            for (idle.core.Molecule molecule : game.molecules()) {
+            for (Molecule molecule : game.molecules()) {
                 if (game.canCreateMolecule(molecule.id())) return "créer une première molécule";
                 elements |= game.isMoleculeKindUnlocked(molecule.kind()) && game.hasElementsForMolecule(molecule.id());
             }
@@ -89,7 +94,7 @@ final class Goals {
                     : "regarnir le tableau périodique pour créer une première molécule";
         }
         // Le prochain astre : celui que vise aussi la liste de courses, à portée et le plus avancé.
-        idle.core.Body body = game.nextBody();
+        Body body = game.nextBody();
         if (body != null) {
             return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + game.bodyConditions(body.id())
                     + " conditions)" + spaceWait(game);
@@ -99,8 +104,8 @@ final class Goals {
             return "rassembler " + Game.SUBSTANCE_MOLECULES + " molécules d'une même sorte";
         }
         // Sinon, la prochaine amélioration d'espace : la moins chère de celles qui sont proposées.
-        idle.core.SpaceUpgrade next = null;
-        for (idle.core.SpaceUpgrade upgrade : game.spaceUpgrades()) {
+        SpaceUpgrade next = null;
+        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             if (game.ownsSpaceUpgrade(upgrade.id()) || !game.isSpaceUpgradeAvailable(upgrade.id())) continue;
             if (next == null || upgrade.space().lt(next.space())) next = upgrade;
         }
@@ -123,7 +128,7 @@ final class Goals {
     }
 
     /** « 12 min environ », ou « plus d'un mois » : une attente estimée, sans « environ » quand elle n'est déjà qu'un ordre de grandeur. */
-    static String about(double seconds) {
+    public static String about(double seconds) {
         String wait = Format.wait(seconds);
         return wait.startsWith("plus") ? wait : wait + " environ";
     }
@@ -145,7 +150,7 @@ final class Goals {
     }
 
     /** « un amas rocheux », « une comète glacée », « le Soleil » : le nom d'un astre avec son article. */
-    static String article(String name) {
+    public static String article(String name) {
         if (name.equals("Soleil")) return "le Soleil";
         String lower = name.toLowerCase(java.util.Locale.ROOT);
         boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")

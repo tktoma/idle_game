@@ -8,7 +8,7 @@ package idle.ui;
  *
  * <p>La confirmation de l'explosion, elle, est lue directement dans les réglages par {@link GameApp}.
  */
-final class Confirm {
+public final class Confirm {
 
     private static boolean bigBang = true;
     private static boolean challenge = true;
@@ -22,12 +22,12 @@ final class Confirm {
     }
 
     /** Vrai si le Big Bang demande un second clic. */
-    static boolean bigBang() {
+    public static boolean bigBang() {
         return bigBang;
     }
 
     /** Vrai si commencer ou abandonner un défi demande un second clic. */
-    static boolean challenge() {
+    public static boolean challenge() {
         return challenge;
     }
 }

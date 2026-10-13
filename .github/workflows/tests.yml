@@ -26,13 +26,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # « sh » : gradlew n'est pas marqué exécutable dans le dépôt.
-      # « test » compile aussi l'interface et l'application : une erreur de compilation fait échouer l'envoi.
-      - name: Tests du cœur et compilation de l'interface
-        run: sh ./gradlew test --no-daemon
+      # « toutTester » lance les tests de tous les modules, ceux d'aujourd'hui et ceux à venir ; il compile
+      # aussi l'interface et l'application : une erreur de compilation fait échouer l'envoi.
+      - name: Tous les tests, et la compilation de l'interface
+        run: sh ./gradlew toutTester --continue --no-daemon
 
       - name: Garder le rapport quand un test échoue
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: rapport-des-tests
-          path: idle/core/build/reports/tests/test
+          path: idle/*/build/reports/tests/test

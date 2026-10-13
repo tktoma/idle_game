@@ -1,7 +1,8 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.SaveCodec;
+import idle.core.save.SaveCodec;
+import idle.ui.common.Format;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -31,10 +32,10 @@ import java.util.List;
  * {@code --dossier=chemin} range la sauvegarde ailleurs ; {@code --test} (le profil de test) écrit
  * dans un fichier à part, pour que les ressources gratuites n'abîment jamais la vraie partie.
  */
-final class SaveStore {
+public final class SaveStore {
 
     /** Délai entre deux sauvegardes automatiques, en secondes de temps réel. */
-    static final double EVERY_SECONDS = 30;
+    public static final double EVERY_SECONDS = 30;
 
     /**
      * Ce qu'a donné la lecture au lancement.

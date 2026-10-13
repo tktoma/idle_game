@@ -1,9 +1,9 @@
 package idle.ui;
 
-import idle.core.Challenge;
-import idle.core.Cosmos;
-import idle.core.DarkUpgrade;
 import idle.core.Game;
+import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.DarkUpgrade;
+import idle.core.sky.Cosmos;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -20,7 +20,7 @@ import java.util.WeakHashMap;
  * dès que les molécules, les amas ou les astres ont changé, et toutes les pages lisent le même
  * résultat ({@link #of(Game)}).
  */
-final class Readiness {
+public final class Readiness {
 
     /** Le signe ajouté au nom d'un onglet où quelque chose est prêt. */
     static final String DOT = " ●";
@@ -49,7 +49,7 @@ final class Readiness {
     }
 
     /** Ce qui est prêt dans cette partie : le même objet pour toutes les pages. */
-    static Readiness of(Game game) {
+    public static Readiness of(Game game) {
         synchronized (SHARED) {
             Readiness shared = SHARED.get(game);
             return shared != null ? shared : new Readiness(game);
@@ -57,7 +57,7 @@ final class Readiness {
     }
 
     /** {@link #DOT} si quelque chose est prêt, rien sinon. */
-    static String dot(boolean ready) {
+    public static String dot(boolean ready) {
         return ready ? DOT : "";
     }
 
@@ -71,7 +71,7 @@ final class Readiness {
     }
 
     /** Refait le calcul tout de suite : après un clic qui a changé ce qui est prêt. */
-    void compute() {
+    public void compute() {
         computed = true;
         moleculesVersion = game.state().moleculesVersion();
         tree = false;
@@ -103,12 +103,12 @@ final class Readiness {
     }
 
     /** Une case de l'arbre de matière noire est payable, ou le Big Bang est possible. */
-    boolean tree() {
+    public boolean tree() {
         return tree || bang;
     }
 
     /** Un défi est ouvert, jamais réussi, et aucun n'est en cours. */
-    boolean challenges() {
+    public boolean challenges() {
         return challenges;
     }
 
@@ -118,27 +118,27 @@ final class Readiness {
     }
 
     /** Une sorte de molécules peut être rassemblée. */
-    boolean states() {
+    public boolean states() {
         return states;
     }
 
     /** Un assemblage peut être formé. */
-    boolean assemblies() {
+    public boolean assemblies() {
         return assemblies;
     }
 
     /** Un astre peut être formé. */
-    boolean bodies() {
+    public boolean bodies() {
         return bodies;
     }
 
     /** La prochaine échelle du cosmos peut être formée. */
-    boolean cosmos() {
+    public boolean cosmos() {
         return cosmos;
     }
 
     /** Une comète traverse l'expansion : elle ne reste que quelques secondes, c'est la seule pastille qui s'éteint seule. */
-    boolean comet() {
+    public boolean comet() {
         return comet;
     }
 

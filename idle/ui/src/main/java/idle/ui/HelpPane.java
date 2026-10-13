@@ -2,7 +2,10 @@ package idle.ui;
 
 import idle.core.Absence;
 import idle.core.Game;
-import idle.core.PeriodicTable;
+import idle.core.elements.PeriodicTable;
+import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
@@ -171,10 +174,12 @@ final class HelpPane extends StackPane {
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, dernière sous-page des statistiques."));
-        if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Dans la matière noire, depuis la première "
-                + "explosion. La production de particules donne de l'énergie ; une collision la dépense, dure de 30 secondes "
-                + "à 8 heures selon son énergie, et rapporte des quarks. Un clic sur « Résonance ! » quand le curseur passe "
-                + "entre les crochets double le butin. Les quarks forment des hadrons, aux bonus définitifs ; au-delà de dix d'une même sorte, chacun compte un peu moins. Le quark top "
+        if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
+                + "explosion. Les faisceaux croisés donnent de l'énergie, et huit générateurs se produisent l'un l'autre, "
+                + "de l'aimant supraconducteur au collisionneur de Planck ; un clic quand les faisceaux se croisent capte trois secondes "
+                + "de production. Une collision dépense l'énergie, dure de 30 secondes "
+                + "à 8 heures selon son énergie, et rapporte des quarks. Un clic sur l'anneau d'une collision, ou sur "
+                + "« Résonance ! », quand ses faisceaux se croisent dans le détecteur double le butin. Les quarks forment des hadrons, aux bonus définitifs ; au-delà de dix d'une même sorte, chacun compte un peu moins. Le quark top "
                 + "des collisions extrêmes se désintègre en une minute : lancé à temps, il donne dix minutes de surchauffe. "
                 + "Quatre paliers, au bas de la page, se gagnent avec les hadrons : la relance automatique de la basse énergie, "
                 + "une troisième place, des quarks dans les sondes, et le cœur de galaxie, un upsilon, sans lequel le trou noir "

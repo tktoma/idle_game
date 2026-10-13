@@ -1,6 +1,8 @@
 package idle.ui;
 
 import idle.core.Absence;
+import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;

@@ -1,5 +1,7 @@
 package idle.ui;
 
+import idle.ui.common.Card;
+import idle.ui.common.Format;
 import java.util.prefs.Preferences;
 import javafx.scene.input.KeyCode;
 
@@ -11,10 +13,10 @@ import javafx.scene.input.KeyCode;
  *
  * <p>La pause n'est pas gardée : le jeu repart toujours en marche.
  */
-final class Settings {
+public final class Settings {
 
     /** Façon d'écrire les grands nombres. */
-    enum Notation {
+    public enum Notation {
         /** 1.23e7 : une mantisse entre 1 et 10, et la puissance de dix. */
         SCIENTIFIC("Scientifique"),
         /** 12.3e6 : la puissance de dix avance de trois en trois, comme les milliers. */
@@ -28,13 +30,13 @@ final class Settings {
             this.label = label;
         }
 
-        String label() {
+        public String label() {
             return label;
         }
     }
 
     /** Combien de niveaux achète un clic sur une amélioration payée en particules. */
-    enum BuyAmount {
+    public enum BuyAmount {
         ONE("×1", 1),
         TEN("×10", 10),
         /** Tout ce que le joueur peut payer. */
@@ -48,18 +50,18 @@ final class Settings {
             this.count = count;
         }
 
-        String label() {
+        public String label() {
             return label;
         }
 
         /** Nombre de niveaux demandés à chaque clic ; l'achat s'arrête à ce que le joueur peut payer. */
-        int count() {
+        public int count() {
             return count;
         }
     }
 
     /** Apparence générale de la fenêtre. */
-    enum Theme {
+    public enum Theme {
         /** Fond sombre : celui pour lequel le jeu est dessiné. */
         DARK("Sombre"),
         /** Fond clair : les couleurs du thème sombre, inversées. */
@@ -71,13 +73,13 @@ final class Settings {
             this.label = label;
         }
 
-        String label() {
+        public String label() {
             return label;
         }
     }
 
     /** Nombre d'images par seconde au plus : moins d'images, moins de calcul et moins de batterie. */
-    enum FrameRate {
+    public enum FrameRate {
         HIGH("60", 60),
         MEDIUM("30", 30),
         LOW("15", 15);
@@ -90,7 +92,7 @@ final class Settings {
             this.perSecond = perSecond;
         }
 
-        String label() {
+        public String label() {
             return label;
         }
 
@@ -100,7 +102,7 @@ final class Settings {
     }
 
     /** Taille de l'interface : tout grandit ou rétrécit ensemble, textes, boutons et dessins. */
-    enum Scale {
+    public enum Scale {
         SMALL("Petite", 0.85),
         NORMAL("Normale", 1.0),
         LARGE("Grande", 1.2);
@@ -113,7 +115,7 @@ final class Settings {
             this.factor = factor;
         }
 
-        String label() {
+        public String label() {
             return label;
         }
 
@@ -131,6 +133,7 @@ final class Settings {
     private static final String STATE_SIGNS = "stateSigns";
     private static final String CHRONO = "chrono";
     private static final String SOUND = "sound";
+    private static final String TABS_LEFT = "tabsLeft";
     private static final String VOLUME = "volume";
     private static final String FRAME_RATE = "frameRate";
     private static final String SAVE_ENERGY = "saveEnergy";
@@ -169,6 +172,8 @@ final class Settings {
     private boolean stateSigns = true;
     private boolean chrono = true;
     private boolean sound = true;
+    /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.57) ; sinon, la disposition d'avant. */
+    private boolean tabsLeft = false;
     private int volume = DEFAULT_VOLUME;
     private FrameRate frameRate = FrameRate.HIGH;
     private boolean saveEnergy = true;
@@ -215,6 +220,7 @@ final class Settings {
             }
             try {
                 settings.sound = store.getBoolean(SOUND, true);
+                settings.tabsLeft = store.getBoolean(TABS_LEFT, false);
                 settings.volume = Math.max(0, Math.min(100, store.getInt(VOLUME, DEFAULT_VOLUME)));
                 settings.saveEnergy = store.getBoolean(SAVE_ENERGY, true);
             } catch (RuntimeException unreadable) {
@@ -263,65 +269,65 @@ final class Settings {
         this.store = store;
     }
 
-    Notation notation() {
+    public Notation notation() {
         return notation;
     }
 
-    void setNotation(Notation notation) {
+    public void setNotation(Notation notation) {
         this.notation = notation;
         Format.setNotation(notation);
         save(NOTATION, notation.name());
     }
 
     /** Vrai si les effets visuels sont affichés : éclair de l'explosion, fond animé, onglet qui bat. */
-    boolean effects() {
+    public boolean effects() {
         return effects;
     }
 
-    void setEffects(boolean effects) {
+    public void setEffects(boolean effects) {
         this.effects = effects;
         save(EFFECTS, String.valueOf(effects));
     }
 
     /** Vrai si l'explosion demande un second clic de confirmation. */
-    boolean confirmExplosion() {
+    public boolean confirmExplosion() {
         return confirmExplosion;
     }
 
-    void setConfirmExplosion(boolean confirmExplosion) {
+    public void setConfirmExplosion(boolean confirmExplosion) {
         this.confirmExplosion = confirmExplosion;
         save(CONFIRM_EXPLOSION, String.valueOf(confirmExplosion));
     }
 
     /** Vrai si le Big Bang demande un second clic de confirmation. */
-    boolean confirmBigBang() {
+    public boolean confirmBigBang() {
         return confirmBigBang;
     }
 
-    void setConfirmBigBang(boolean confirm) {
+    public void setConfirmBigBang(boolean confirm) {
         confirmBigBang = confirm;
         Confirm.set(confirmBigBang, confirmChallenge);
         save(CONFIRM_BIG_BANG, String.valueOf(confirm));
     }
 
     /** Vrai si commencer ou abandonner un défi demande un second clic de confirmation. */
-    boolean confirmChallenge() {
+    public boolean confirmChallenge() {
         return confirmChallenge;
     }
 
-    void setConfirmChallenge(boolean confirm) {
+    public void setConfirmChallenge(boolean confirm) {
         confirmChallenge = confirm;
         Confirm.set(confirmBigBang, confirmChallenge);
         save(CONFIRM_CHALLENGE, String.valueOf(confirm));
     }
 
     /** La touche d'un raccourci, ou {@code null} s'il n'en a pas (la sienne a été donnée à un autre). */
-    KeyCode key(Shortcuts.Action action) {
+    public KeyCode key(Shortcuts.Action action) {
         return keys.get(action);
     }
 
     /** Le raccourci que porte cette touche, ou {@code null}. */
-    Shortcuts.Action actionOf(KeyCode key) {
+    public Shortcuts.Action actionOf(KeyCode key) {
         for (java.util.Map.Entry<Shortcuts.Action, KeyCode> entry : keys.entrySet()) {
             if (entry.getValue() == key) return entry.getKey();
         }
@@ -334,7 +340,7 @@ final class Settings {
      * @return faux, sans rien changer, si la touche ne peut pas porter de raccourci, si c'est la
      *         touche de détail, ou si un autre raccourci l'a déjà
      */
-    boolean setKey(Shortcuts.Action action, KeyCode key) {
+    public boolean setKey(Shortcuts.Action action, KeyCode key) {
         if (!Shortcuts.bindable(key) || key == detailKey) return false;
         Shortcuts.Action holder = actionOf(key);
         if (holder != null && holder != action) return false;
@@ -344,7 +350,7 @@ final class Settings {
     }
 
     /** Vrai si au moins un raccourci n'a plus sa touche d'origine. */
-    boolean hasCustomKeys() {
+    public boolean hasCustomKeys() {
         for (Shortcuts.Action action : Shortcuts.Action.values()) {
             if (keys.get(action) != action.defaultKey()) return true;
         }
@@ -352,7 +358,7 @@ final class Settings {
     }
 
     /** Rend à chaque raccourci sa touche d'origine, sauf à celui dont la touche sert de touche de détail. */
-    void resetKeys() {
+    public void resetKeys() {
         keys.clear();
         for (Shortcuts.Action action : Shortcuts.Action.values()) {
             if (action.defaultKey() != detailKey) keys.put(action, action.defaultKey());
@@ -366,129 +372,138 @@ final class Settings {
     }
 
     /** Quantité achetée à chaque clic sur une amélioration payée en particules. */
-    BuyAmount buyAmount() {
+    public BuyAmount buyAmount() {
         return buyAmount;
     }
 
-    void setBuyAmount(BuyAmount buyAmount) {
+    public void setBuyAmount(BuyAmount buyAmount) {
         this.buyAmount = buyAmount;
         save(BUY_AMOUNT, buyAmount.name());
     }
 
     /** Vrai si les raccourcis clavier sont actifs. */
-    boolean shortcuts() {
+    public boolean shortcuts() {
         return shortcuts;
     }
 
-    void setShortcuts(boolean shortcuts) {
+    public void setShortcuts(boolean shortcuts) {
         this.shortcuts = shortcuts;
         save(SHORTCUTS, String.valueOf(shortcuts));
     }
 
-    Theme theme() {
+    public Theme theme() {
         return theme;
     }
 
-    void setTheme(Theme theme) {
+    public void setTheme(Theme theme) {
         this.theme = theme;
         save(THEME, theme.name());
     }
 
-    Scale scale() {
+    public Scale scale() {
         return scale;
     }
 
-    void setScale(Scale scale) {
+    public void setScale(Scale scale) {
         this.scale = scale;
         save(SCALE, scale.name());
     }
 
     /** Vrai si les notifications s'affichent : nouvel élément, succès, déblocage… */
-    boolean notifications() {
+    public boolean notifications() {
         return notifications;
     }
 
-    void setNotifications(boolean notifications) {
+    public void setNotifications(boolean notifications) {
         this.notifications = notifications;
         save(NOTIFICATIONS, String.valueOf(notifications));
     }
 
     /** Vrai si l'objectif du moment est rappelé sous les onglets. */
-    boolean showGoal() {
+    public boolean showGoal() {
         return showGoal;
     }
 
-    void setShowGoal(boolean showGoal) {
+    public void setShowGoal(boolean showGoal) {
         this.showGoal = showGoal;
         save(SHOW_GOAL, String.valueOf(showGoal));
     }
 
     /** Vrai si le jeu joue ses sons. */
-    boolean sound() {
+    public boolean tabsLeft() {
+        return tabsLeft;
+    }
+
+    public void setTabsLeft(boolean left) {
+        this.tabsLeft = left;
+        save(TABS_LEFT, String.valueOf(left));
+    }
+
+    public boolean sound() {
         return sound;
     }
 
-    void setSound(boolean sound) {
+    public void setSound(boolean sound) {
         this.sound = sound;
         save(SOUND, String.valueOf(sound));
     }
 
     /** Volume des sons, de 0 à 100. */
-    int volume() {
+    public int volume() {
         return volume;
     }
 
-    void setVolume(int volume) {
+    public void setVolume(int volume) {
         this.volume = Math.max(0, Math.min(100, volume));
         save(VOLUME, String.valueOf(this.volume));
     }
 
-    FrameRate frameRate() {
+    public FrameRate frameRate() {
         return frameRate;
     }
 
-    void setFrameRate(FrameRate frameRate) {
+    public void setFrameRate(FrameRate frameRate) {
         this.frameRate = frameRate;
         save(FRAME_RATE, frameRate.name());
     }
 
     /** Vrai si la fenêtre ralentit quand elle n'est pas au premier plan : quatre images par seconde, une si elle est réduite. */
-    boolean saveEnergy() {
+    public boolean saveEnergy() {
         return saveEnergy;
     }
 
-    void setSaveEnergy(boolean saveEnergy) {
+    public void setSaveEnergy(boolean saveEnergy) {
         this.saveEnergy = saveEnergy;
         save(SAVE_ENERGY, String.valueOf(saveEnergy));
     }
 
     /** Vrai si la ligne d'objectif dit l'écart au record sur la prochaine étape, quand il y a un record. */
-    boolean chrono() {
+    public boolean chrono() {
         return chrono;
     }
 
-    void setChrono(boolean chrono) {
+    public void setChrono(boolean chrono) {
         this.chrono = chrono;
         save(CHRONO, String.valueOf(chrono));
     }
 
     /** Vrai si les cartes écrivent le signe de leur état devant leur nom, pour le reconnaître sans la couleur. */
-    boolean stateSigns() {
+    public boolean stateSigns() {
         return stateSigns;
     }
 
-    void setStateSigns(boolean stateSigns) {
+    public void setStateSigns(boolean stateSigns) {
         this.stateSigns = stateSigns;
         Card.setSigns(stateSigns);
         save(STATE_SIGNS, String.valueOf(stateSigns));
     }
 
     /** La touche qui fait apparaître les explications complètes des cartes et des pages. */
-    KeyCode detailKey() {
+    public KeyCode detailKey() {
         return detailKey;
     }
 
-    void setDetailKey(KeyCode detailKey) {
+    public void setDetailKey(KeyCode detailKey) {
         this.detailKey = detailKey;
         save(DETAIL_KEY, detailKey.name());
     }
@@ -497,21 +512,21 @@ final class Settings {
      * Vrai si la touche de détail bascule (un appui affiche les détails, un autre les cache) ;
      * faux s'il faut la tenir enfoncée.
      */
-    boolean detailToggle() {
+    public boolean detailToggle() {
         return detailToggle;
     }
 
-    void setDetailToggle(boolean detailToggle) {
+    public void setDetailToggle(boolean detailToggle) {
         this.detailToggle = detailToggle;
         save(DETAIL_TOGGLE, String.valueOf(detailToggle));
     }
 
     /** Vrai si le jeu est en pause : le temps ne passe plus, rien ne se crée. */
-    boolean paused() {
+    public boolean paused() {
         return paused;
     }
 
-    void setPaused(boolean paused) {
+    public void setPaused(boolean paused) {
         this.paused = paused;
     }
 

@@ -1,7 +1,8 @@
 package idle.ui;
 
 import idle.core.Game;
-import idle.core.SaveCodec;
+import idle.core.save.SaveCodec;
+import idle.ui.common.Format;
 
 /**
  * Le rapport de bug : tout ce qu'il faut pour reproduire un problème, en un seul texte à coller.

@@ -4,6 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.achievements.Achievements;
+import idle.core.collider.ColliderGenerator;
+import idle.core.collider.ColliderMilestone;
+import idle.core.collider.CollisionTier;
+import idle.core.collider.Hadron;
+import idle.core.collider.Quark;
+import idle.core.darkmatter.DarkUpgrades;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
+import idle.core.sky.Body;
+import idle.core.upgrades.Automations;
+import idle.core.upgrades.Upgrades;
 import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -39,17 +52,13 @@ class CollisionneurTest {
         }
 
         @Test
-        void lEnergieSuitLaProduction() {
+        void lEnergieVientDesFaisceauxCroises() {
             Game game = opened(0);
-            game.state().setParticles(BigNum.of(1, 9));
-            while (game.buy("generator")) { /* des générateurs */ }
-            double perSecond = game.colliderEnergyPerSecond();
-            assertEquals(Game.COLLIDER_ENERGY * (1 + Math.log(1 + Math.max(0, game.productionAtFusion().log10()) / 10)), perSecond, 1e-9);
-            // L'énergie croît avec le logarithme de l'ordre de grandeur : jamais d'emballement.
-            assertTrue(perSecond >= Game.COLLIDER_ENERGY && perSecond < 10 * Game.COLLIDER_ENERGY);
+            // Un faisceau d'office : 1 énergie par seconde, sans rien acheter.
+            assertEquals(ColliderGenerator.BEAM.power(), game.colliderEnergyPerSecond(), 1e-9);
             game.state().setColliderEnergy(0);
             game.tick(10);
-            assertTrue(game.colliderEnergy() > 0);
+            assertEquals(10 * ColliderGenerator.BEAM.power(), game.colliderEnergy(), 1e-6);
         }
 
         @Test
@@ -68,9 +77,9 @@ class CollisionneurTest {
 
         @Test
         void uneCollisionCouteSonEnergieEtOccupeUnePlace() {
-            Game game = opened(100);
+            Game game = opened(3 * CollisionTier.LOW.cost());
             assertTrue(game.startCollision(CollisionTier.LOW));
-            assertEquals(70, game.colliderEnergy(), 1e-9);
+            assertEquals(2 * CollisionTier.LOW.cost(), game.colliderEnergy(), 1e-9);
             assertTrue(game.startCollision(CollisionTier.LOW));
             assertFalse(game.startCollision(CollisionTier.LOW));          // deux places
             assertEquals(2, game.state().collisions().size());
@@ -78,13 +87,13 @@ class CollisionneurTest {
 
         @Test
         void sansEnergieRienNePart() {
-            Game game = opened(29);
+            Game game = opened(CollisionTier.LOW.cost() - 1);
             assertFalse(game.startCollision(CollisionTier.LOW));
         }
 
         @Test
         void uneCollisionTermineeDonneSesQuarks() {
-            Game game = opened(30);
+            Game game = opened(CollisionTier.LOW.cost());
             game.startCollision(CollisionTier.LOW);
             game.tick(29);
             assertEquals(0, game.quarks(Quark.UP));
@@ -98,7 +107,7 @@ class CollisionneurTest {
 
         @Test
         void ellesAvancentPendantUneAbsence() {
-            Game game = opened(60);
+            Game game = opened(2 * CollisionTier.LOW.cost());
             game.startCollision(CollisionTier.LOW);
             game.startCollision(CollisionTier.LOW);
             new Absence(game, 3600).advance(3600);
@@ -125,7 +134,7 @@ class CollisionneurTest {
 
         @Test
         void unClicAuMilieuDoubleLeButin() {
-            Game single = opened(30), doubled = opened(30);
+            Game single = opened(CollisionTier.LOW.cost()), doubled = opened(CollisionTier.LOW.cost());
             single.startCollision(CollisionTier.LOW);
             doubled.startCollision(CollisionTier.LOW);
             doubled.tick(Game.RESONANCE_PERIOD / 2);                     // la barre au milieu
@@ -140,7 +149,7 @@ class CollisionneurTest {
 
         @Test
         void unClicAuMauvaisMomentNeDonneRienDePlusEtNeRetireRien() {
-            Game game = opened(30);
+            Game game = opened(CollisionTier.LOW.cost());
             game.startCollision(CollisionTier.LOW);
             game.tick(0.1);
             assertFalse(Game.inResonance(game.resonancePhase(0)));
@@ -292,5 +301,47 @@ class CollisionneurTest {
         assertEquals(before + 1, game.bodyConditionsMet(core.id()));
         long others = game.bodies().stream().filter(game::needsGalaxyCore).count();
         assertEquals(1, others, "seul le trou noir supermassif le demande");
+    }
+
+    @Test
+    void lesHuitGenerateursSeProduisentLUnLAutre() {
+        Game game = new Game();
+        game.start();
+        game.state().setExplosions(1);
+        assertTrue(game.isColliderGeneratorOpen(ColliderGenerator.BEAM));
+        assertFalse(game.isColliderGeneratorOpen(ColliderGenerator.MAGNET), "l'aimant attend un premier faisceau");
+        assertFalse(game.buyColliderGenerator(ColliderGenerator.BEAM));
+        game.state().setColliderEnergy(10);
+        assertTrue(game.buyColliderGenerator(ColliderGenerator.BEAM));
+        assertEquals(0, game.colliderEnergy(), 1e-9);
+        assertEquals(10 * 1.4, game.colliderGeneratorCost(ColliderGenerator.BEAM), 1e-9);
+        assertEquals(2 * ColliderGenerator.BEAM.power(), game.colliderEnergyPerSecond(), 1e-9);
+        assertTrue(game.isColliderGeneratorOpen(ColliderGenerator.MAGNET));
+        game.state().setColliderEnergy(100);
+        assertTrue(game.buyColliderGenerator(ColliderGenerator.MAGNET));
+        // L'aimant produit des faisceaux : 0,02 par seconde ; en 100 s, 2 de plus.
+        for (int i = 0; i < 100; i++) game.tick(1);
+        assertEquals(1 + 100 * ColliderGenerator.MAGNET.power(), game.state().colliderGenerators(ColliderGenerator.BEAM), 1e-6);
+        assertEquals(1, game.state().colliderGeneratorsBought(ColliderGenerator.BEAM), "les produits ne comptent pas pour le prix");
+        game.state().setColliderEnergy(1e6);
+        int bought = game.buyMaxColliderGenerator(ColliderGenerator.BEAM);
+        assertTrue(bought > 10 && !game.canBuyColliderGenerator(ColliderGenerator.BEAM));
+    }
+
+    @Test
+    void unClicAuCroisementDonneTroisSecondesDEnergie() {
+        Game game = new Game();
+        game.start();
+        game.state().setExplosions(1);
+        while (!Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
+        double before = game.colliderEnergy();
+        double gain = game.catchCrossing();
+        assertEquals(Game.CROSSING_SECONDS * game.colliderEnergyPerSecond(), gain, 1e-9);
+        assertEquals(before + gain, game.colliderEnergy(), 1e-9);
+        assertEquals(0, game.catchCrossing(), 0, "un seul par croisement");
+        while (Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
+        assertEquals(0, game.catchCrossing(), 0, "à côté, rien");
+        while (!Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
+        assertTrue(game.catchCrossing() > 0, "le croisement suivant se capte de nouveau");
     }
 }
