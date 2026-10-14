@@ -237,7 +237,7 @@ public final class DarkMatterPage extends VBox {
         // Avec l'appui automatique, le jeu tient déjà le clic en entier : le tenir soi-même n'ajoute rien.
         boolean held = game.isAutoHolding();
         if (pressed && !held) game.growDarkMatter(elapsed * timeFactor * (locked ? 1 - Game.HOLD_LOCK_SHARE : 1));
-        view.frame(elapsed, game.state().darkMatterSize(), pressed || locked || held);
+        view.frame(elapsed, game.state().darkMatterSize(), pressed || locked || held, game.darkMatterMomentum());
     }
 
     /** L'onglet n'est plus affiché : un clic resté « maintenu » ne doit pas reprendre au retour. */

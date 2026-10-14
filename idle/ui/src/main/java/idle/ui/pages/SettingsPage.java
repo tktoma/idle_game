@@ -1,8 +1,8 @@
 package idle.ui.pages;
 
 import idle.core.math.BigNum;
+import idle.ui.Cosmetic;
 import idle.ui.GameApp;
-import idle.ui.SaveStore;
 import idle.ui.Settings;
 import idle.ui.Shortcuts;
 import idle.ui.Version;
@@ -22,22 +22,20 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Réglages » : les réglages de base, un bloc chacun.
+ * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.63 en cinq
+ * sous-onglets ({@link Section}).
  * <ul>
- *   <li><b>Notation</b> des grands nombres : scientifique, ingénieur ou lettres ;</li>
- *   <li><b>Thème</b> sombre ou clair, et <b>taille de l'interface</b> ;</li>
- *   <li><b>Notifications</b> et <b>objectif du moment</b> : affichés ou non ;</li>
- *   <li><b>Effets visuels</b> : l'éclair de l'explosion, le fond animé, l'onglet qui bat ;</li>
- *   <li><b>Confirmations</b> : avant l'explosion, avant le Big Bang, avant un défi, chacune à part ;</li>
- *   <li><b>Raccourcis clavier</b> : actifs ou coupés, avec leur liste ; un clic sur une touche la change ;</li>
- *   <li><b>Touche de détail</b> : laquelle, et s'il faut la tenir ou si elle bascule ;</li>
- *   <li><b>Pause</b> : le temps ne passe plus ;</li>
- *   <li><b>Sauvegarde</b> : où elle en est, sauvegarder tout de suite, exporter la partie dans le
- *       presse-papiers, en importer une (en deux clics : elle remplace la partie en cours) ;</li>
- *   <li><b>Recommencer</b> : efface toute la partie, en deux clics ;</li>
- *   <li><b>Rapport de bug</b> : copie de quoi reproduire un problème ;</li>
- *   <li><b>Version</b> du jeu, et ses notes.</li>
+ *   <li><b>Affichage</b> : la notation des grands nombres (dont trois à débloquer), le thème (dont
+ *       cinq à débloquer), la taille de l'interface, la disposition des onglets, les notifications,
+ *       l'objectif du moment, les signes d'état ;</li>
+ *   <li><b>Effets et sons</b> : les effets visuels, ensemble ou un par un, les images par seconde, les sons ;</li>
+ *   <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, le chrono et les records ;</li>
+ *   <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail ;</li>
+ *   <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le
+ *       rapport de bug, la version du jeu et ses notes.</li>
  * </ul>
+ * Un thème ou une notation à débloquer ({@link Cosmetic}) montre, tant qu'il est fermé, un
+ * cadenas et un indice ; une fois ouvert, ce qu'il fallait faire.
  * Chaque réglage s'applique tout de suite. Les règles du jeu ne changent pas : les réglages sont
  * dans {@link Settings}, pas dans core.
  *
@@ -46,6 +44,28 @@ import javafx.scene.text.TextAlignment;
  */
 public final class SettingsPage extends VBox {
 
+    /** Les sous-onglets des réglages (version 0.63). */
+    public enum Section {
+        DISPLAY("Affichage"),
+        EFFECTS("Effets et sons"),
+        GAME("Jeu"),
+        KEYS("Clavier"),
+        SAVE("Partie");
+
+        private final String label;
+
+        Section(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
+    }
+
+    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand;"
+            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
+
     private static final String SETTINGS_COLOR = "#d6dde6";
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand;"
             + " -fx-background-radius: 6; -fx-border-radius: 6;";
@@ -53,6 +73,9 @@ public final class SettingsPage extends VBox {
             + " -fx-text-fill: #0b0e14; -fx-background-color: " + SETTINGS_COLOR + "; -fx-border-color: #ffffff;";
     private static final String OFF_STYLE = BUTTON_STYLE
             + " -fx-text-fill: " + SETTINGS_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;";
+    /** Un thème ou une notation encore fermé : grisé, en pointillés. */
+    private static final String LOCKED_STYLE = BUTTON_STYLE
+            + " -fx-text-fill: #6f7f92; -fx-background-color: #10161f; -fx-border-color: #3a4a5e; -fx-border-style: segments(4, 3);";
     private static final String DANGER_STYLE = BUTTON_STYLE
             + " -fx-text-fill: #ffb4a8; -fx-background-color: #2a1614; -fx-border-color: #b8584a;";
     private static final String DANGER_ARMED_STYLE = BUTTON_STYLE
@@ -90,6 +113,24 @@ public final class SettingsPage extends VBox {
     }
 
     private final Settings settings;
+    /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
+    private final javafx.scene.layout.FlowPane subTabs = new javafx.scene.layout.FlowPane();
+    private final Map<Section, Button> sectionTabs = new EnumMap<>(Section.class);
+    private final Map<Section, VBox> sections = new EnumMap<>(Section.class);
+    private Section selected = Section.DISPLAY;
+    /** Le sous-onglet que remplit la construction de la page. */
+    private VBox target;
+    private final Label themeNote = new Label();
+    /** L'indice du dernier thème fermé cliqué, ou rien. */
+    private String themeHint = "";
+    private String notationHint = "";
+    private static final long LOCKED_THEMES = java.util.Arrays.stream(Settings.Theme.values()).filter(t -> t.unlock() != null).count();
+    private static final long LOCKED_NOTATIONS = java.util.Arrays.stream(Settings.Notation.values()).filter(n -> n.unlock() != null).count();
+    private final Label notationNote = new Label();
+    private final Map<Settings.Effect, Button> effectButtons = new EnumMap<>(Settings.Effect.class);
+    private final javafx.scene.layout.FlowPane effectRow = new javafx.scene.layout.FlowPane(8, 8);
+    private final Map<Settings.SaveDelay, Button> saveDelayButtons = new EnumMap<>(Settings.SaveDelay.class);
+    private final Button offlineButton = new Button();
     private final Runnable onReset;
     private final Runnable onAppearance;
     private final Saves saves;
@@ -122,6 +163,7 @@ public final class SettingsPage extends VBox {
     private final Button soundButton = new Button();
     private final Button tabsTopButton = new Button("En haut (la disposition actuelle)");
     private final Button tabsLeftButton = new Button("À gauche (la nouvelle)");
+    private final Button tabOrderButton = new Button("Remettre les onglets dans l'ordre d'origine");
     private final Button quieterButton = new Button("−");
     private final Button louderButton = new Button("+");
     private final Label volumeLabel = new Label();
@@ -172,40 +214,67 @@ public final class SettingsPage extends VBox {
         Label title = new Label("Réglages");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + SETTINGS_COLOR + ";");
         getChildren().add(title);
+        subTabs.setAlignment(Pos.CENTER);
+        getChildren().add(subTabs);
+        for (Section section : Section.values()) {
+            Button tab = new Button(section.label());
+            tab.setFocusTraversable(false);
+            tab.setOnAction(event -> select(section));
+            sectionTabs.put(section, tab);
+            subTabs.getChildren().add(tab);
+            VBox box = new VBox(10);
+            box.setAlignment(Pos.TOP_CENTER);
+            sections.put(section, box);
+            getChildren().add(box);
+        }
+        use(Section.DISPLAY);
 
         // Notation des grands nombres : un bouton par notation, celui choisi est éclairé.
-        HBox notations = new HBox(8);
-        notations.setAlignment(Pos.CENTER);
+        javafx.scene.layout.FlowPane notationFlow = new javafx.scene.layout.FlowPane(8, 8);
+        notationFlow.setAlignment(Pos.CENTER);
+        notationFlow.setMaxWidth(640);
         for (Settings.Notation notation : Settings.Notation.values()) {
             Button button = new Button(notation.label());
+            button.setFocusTraversable(false);
             button.setOnAction(event -> {
-                settings.setNotation(notation);
+                notationHint = settings.isOpen(notation) ? "" : "Fermée. Indice : " + notation.unlock().hint();
+                if (settings.isOpen(notation)) settings.setNotation(notation);
                 refresh();
             });
             notationButtons.put(notation, button);
-            notations.getChildren().add(button);
+            notationFlow.getChildren().add(button);
         }
         block("Notation des grands nombres",
-                "Comment s'écrivent les nombres à partir d'un million, partout dans le jeu.");
-        getChildren().add(notations);
+                "Comment s'écrivent les nombres à partir d'un million, partout dans le jeu. Celles marquées d'un "
+                        + "cadenas s'ouvrent en faisant quelque chose de très précis : un clic dessus donne un indice.");
+        target.getChildren().add(notationFlow);
         note(notationExample);
+        note(notationNote);
 
         // Le thème et la taille : ils s'appliquent tout de suite à toute la fenêtre.
-        HBox themes = new HBox(8);
+        javafx.scene.layout.FlowPane themes = new javafx.scene.layout.FlowPane(8, 8);
         themes.setAlignment(Pos.CENTER);
+        themes.setMaxWidth(640);
         for (Settings.Theme theme : Settings.Theme.values()) {
             Button button = new Button(theme.label());
+            button.setFocusTraversable(false);
             button.setOnAction(event -> {
-                settings.setTheme(theme);
-                this.onAppearance.run();
+                themeHint = settings.isOpen(theme) ? "" : "Fermé. Indice : " + theme.unlock().hint();
+                if (settings.isOpen(theme)) {
+                    settings.setTheme(theme);
+                    this.onAppearance.run();
+                }
                 refresh();
             });
             themeButtons.put(theme, button);
             themes.getChildren().add(button);
         }
-        block("Thème", "Le thème clair reprend les couleurs du thème sombre en les inversant : le fond devient clair, "
-                + "les textes foncés, et chaque couleur garde sa teinte.");
-        getChildren().add(themes);
+        block("Thème", "Chaque thème filtre les couleurs du thème sombre. Le thème clair les inverse : le fond devient clair, "
+                + "les textes foncés, et chaque couleur garde sa teinte. Les autres tournent les teintes, les éteignent ou "
+                + "les teintent. Ceux marqués d'un cadenas s'ouvrent en faisant quelque chose de très précis : un clic "
+                + "dessus donne un indice.");
+        target.getChildren().add(themes);
+        note(themeNote);
 
         HBox scales = new HBox(8);
         scales.setAlignment(Pos.CENTER);
@@ -220,7 +289,7 @@ public final class SettingsPage extends VBox {
             scales.getChildren().add(button);
         }
         block("Taille de l'interface", "Agrandit ou réduit tout ensemble : les textes, les boutons et les dessins.");
-        getChildren().add(scales);
+        target.getChildren().add(scales);
 
         block("Notifications", "Un message de quelques secondes, en bas à droite, quand il se passe quelque chose : "
                 + "nouvel élément, ensemble réuni, succès, déblocage, explosion possible.");
@@ -228,7 +297,7 @@ public final class SettingsPage extends VBox {
             settings.setNotifications(!settings.notifications());
             refresh();
         });
-        getChildren().add(notificationsButton);
+        target.getChildren().add(notificationsButton);
 
         block("Objectif du moment", "Une ligne sous les onglets rappelle le prochain grand pas de la partie, et "
                 + "le temps qu'il demande quand le jeu peut l'estimer.");
@@ -236,7 +305,7 @@ public final class SettingsPage extends VBox {
             settings.setShowGoal(!settings.showGoal());
             refresh();
         });
-        getChildren().add(goalButton);
+        target.getChildren().add(goalButton);
 
         block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
                 + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée. Les "
@@ -245,20 +314,14 @@ public final class SettingsPage extends VBox {
             settings.setStateSigns(!settings.stateSigns());
             refresh();
         });
-        getChildren().add(signsButton);
+        target.getChildren().add(signsButton);
 
-        block("Effets visuels",
-                "L'éclair blanc de l'explosion, le fond animé derrière les générateurs et l'onglet qui bat à chaque "
-                        + "nouvel atome. Coupés, l'explosion a lieu sans éclair : à préférer si les flashs vous gênent.");
-        effectsButton.setOnAction(event -> {
-            settings.setEffects(!settings.effects());
-            refresh();
-        });
-        getChildren().add(effectsButton);
+        use(Section.DISPLAY);
 
         block("Disposition des onglets",
                 "En haut, comme jusqu'ici : les onglets en ligne, et les sous-onglets dans chaque page. À gauche : les "
-                        + "onglets en colonne sur le côté, et la barre du haut montre les sous-onglets de l'onglet affiché.");
+                        + "onglets en colonne sur le côté, et la barre du haut montre les sous-onglets de l'onglet affiché. "
+                        + "Dans les deux, un appui long sur un onglet permet de le glisser à une autre place.");
         tabsTopButton.setOnAction(event -> {
             settings.setTabsLeft(false);
             onAppearance.run();
@@ -269,10 +332,38 @@ public final class SettingsPage extends VBox {
             onAppearance.run();
             refresh();
         });
-        HBox tabsRow = new HBox(8, tabsTopButton, tabsLeftButton);
+        tabOrderButton.setOnAction(event -> {
+            settings.setTabOrder("");
+            onAppearance.run();
+            refresh();
+        });
+        HBox tabsRow = new HBox(8, tabsTopButton, tabsLeftButton, tabOrderButton);
         tabsRow.setAlignment(Pos.CENTER);
-        for (Button button : List.of(tabsTopButton, tabsLeftButton)) button.setFocusTraversable(false);
-        getChildren().add(tabsRow);
+        for (Button button : List.of(tabsTopButton, tabsLeftButton, tabOrderButton)) button.setFocusTraversable(false);
+        target.getChildren().add(tabsRow);
+
+        use(Section.EFFECTS);
+        block("Effets visuels",
+                "Le grand interrupteur les coupe tous ; sinon, chacun se règle à part. Sans l'éclair, l'explosion a lieu "
+                        + "tout de suite : à préférer si les flashs vous gênent.");
+        effectsButton.setOnAction(event -> {
+            settings.setEffects(!settings.effects());
+            refresh();
+        });
+        target.getChildren().add(effectsButton);
+        effectRow.setAlignment(Pos.CENTER);
+        effectRow.setMaxWidth(640);
+        for (Settings.Effect effect : Settings.Effect.values()) {
+            Button button = new Button(effect.label());
+            button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                settings.setEffect(effect, !settings.effectChosen(effect));
+                refresh();
+            });
+            effectButtons.put(effect, button);
+            effectRow.getChildren().add(button);
+        }
+        target.getChildren().add(effectRow);
 
         block("Sons",
                 "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, comète, défi "
@@ -292,7 +383,7 @@ public final class SettingsPage extends VBox {
         volumeLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9d1d9; -fx-min-width: 110; -fx-alignment: center;");
         HBox soundRow = new HBox(8, soundButton, quieterButton, volumeLabel, louderButton);
         soundRow.setAlignment(Pos.CENTER);
-        getChildren().add(soundRow);
+        target.getChildren().add(soundRow);
 
         block("Images par seconde",
                 "Moins d'images, c'est moins de calcul et moins de batterie ; le jeu avance au même rythme, seule "
@@ -316,7 +407,16 @@ public final class SettingsPage extends VBox {
             refresh();
         });
         rateRow.getChildren().add(energyButton);
-        getChildren().add(rateRow);
+        target.getChildren().add(rateRow);
+
+        use(Section.GAME);
+        block("Pause", "En pause, le temps ne passe plus : rien ne se crée, aucun automatisme n'agit. "
+                + "Le jeu repart toujours en marche au lancement.");
+        pauseButton.setOnAction(event -> {
+            settings.setPaused(!settings.paused());
+            refresh();
+        });
+        target.getChildren().add(pauseButton);
 
         block("Confirmations",
                 "L'explosion, le Big Bang et les défis remettent la partie à zéro. Avec la confirmation, il faut cliquer "
@@ -336,8 +436,18 @@ public final class SettingsPage extends VBox {
         });
         HBox confirmRow = new HBox(8, confirmButton, confirmBigBangButton, confirmChallengeButton);
         confirmRow.setAlignment(Pos.CENTER);
-        getChildren().add(confirmRow);
+        target.getChildren().add(confirmRow);
 
+        block("Temps hors ligne", "Au retour, une part du temps passé jeu fermé est rejouée : 10 % avant la première "
+                + "explosion, 40 % ensuite, 70 % après le premier Big Bang, 100 % une fois l'univers formé (vingt-quatre "
+                + "heures d'absence au plus). Coupé, le jeu reprend là où il en était, sans rien rattraper.");
+        offlineButton.setOnAction(event -> {
+            settings.setOffline(!settings.offline());
+            refresh();
+        });
+        target.getChildren().add(offlineButton);
+
+        use(Section.KEYS);
         block("Raccourcis clavier",
                 "Ils marchent depuis n'importe quel onglet. Les trois premiers achètent la quantité choisie dans l'onglet "
                         + "Particules (×1, ×10 ou max). Un clic sur une touche permet de la changer : appuyez ensuite sur "
@@ -346,7 +456,7 @@ public final class SettingsPage extends VBox {
             settings.setShortcuts(!settings.shortcuts());
             refresh();
         });
-        getChildren().add(shortcutsButton);
+        target.getChildren().add(shortcutsButton);
         keyList.setAlignment(Pos.CENTER);
         for (Shortcuts.Action action : Shortcuts.Action.values()) {
             Label name = new Label(action.label());
@@ -368,7 +478,7 @@ public final class SettingsPage extends VBox {
             row.setAlignment(Pos.CENTER);
             keyList.getChildren().add(row);
         }
-        getChildren().add(keyList);
+        target.getChildren().add(keyList);
         note(keyNote);
         resetKeysButton.setStyle(OFF_STYLE);
         resetKeysButton.setOnAction(event -> {
@@ -378,7 +488,7 @@ public final class SettingsPage extends VBox {
             captureProblem = "";
             refresh();
         });
-        getChildren().add(resetKeysButton);
+        target.getChildren().add(resetKeysButton);
 
         block("Touche de détail", "Les cartes et les pages s'en tiennent à l'essentiel. Cette touche fait apparaître "
                 + "leurs explications complètes : ce que fait chaque amélioration, d'où vient chaque nombre. "
@@ -396,24 +506,31 @@ public final class SettingsPage extends VBox {
         });
         HBox detailRow = new HBox(8, detailKeyButton, detailModeButton);
         detailRow.setAlignment(Pos.CENTER);
-        getChildren().add(detailRow);
+        target.getChildren().add(detailRow);
         note(detailKeyNote);
 
-        block("Pause", "En pause, le temps ne passe plus : rien ne se crée, aucun automatisme n'agit. "
-                + "Le jeu repart toujours en marche au lancement.");
-        pauseButton.setOnAction(event -> {
-            settings.setPaused(!settings.paused());
-            refresh();
-        });
-        getChildren().add(pauseButton);
-
-        block("Sauvegarde", "La partie s'écrit toute seule toutes les " + (int) SaveStore.EVERY_SECONDS + " secondes et à la "
-                + "fermeture du jeu. Au retour, une part du temps d'absence est rejouée : 10 % avant la première explosion, "
-                + "40 % ensuite, 70 % après le premier Big Bang, 100 % une fois l'univers formé (vingt-quatre heures "
-                + "d'absence au plus). Exporter copie toute la partie dans le presse-papiers, sur une ligne : pour la "
-                + "garder ailleurs ou la reprendre sur une autre machine. Importer remplace la partie en cours par celle du "
-                + "presse-papiers.");
+        use(Section.SAVE);
+        block("Sauvegarde", "La partie s'écrit toute seule au rythme choisi ci-dessous (toutes les trente secondes "
+                + "d'origine) et à la fermeture du jeu. Exporter copie toute la partie dans le presse-papiers, sur une ligne : "
+                + "pour la garder ailleurs ou la reprendre sur une autre machine. Importer remplace la partie en cours par "
+                + "celle du presse-papiers. Le temps hors ligne se règle dans « Jeu ».");
         note(saveStatus);
+        HBox delayRow = new HBox(8);
+        delayRow.setAlignment(Pos.CENTER);
+        Label delayLabel = new Label("Sauvegarde automatique toutes les");
+        delayLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9d1d9;");
+        delayRow.getChildren().add(delayLabel);
+        for (Settings.SaveDelay delay : Settings.SaveDelay.values()) {
+            Button button = new Button(delay.label());
+            button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                settings.setSaveDelay(delay);
+                refresh();
+            });
+            saveDelayButtons.put(delay, button);
+            delayRow.getChildren().add(button);
+        }
+        target.getChildren().add(delayRow);
         saveButton.setStyle(OFF_STYLE);
         saveButton.setOnAction(event -> {
             saveMessage = saves.saveNow();
@@ -435,9 +552,10 @@ public final class SettingsPage extends VBox {
         });
         HBox saveRow = new HBox(8, saveButton, exportButton, importButton);
         saveRow.setAlignment(Pos.CENTER);
-        getChildren().add(saveRow);
+        target.getChildren().add(saveRow);
         note(saveNote);
 
+        use(Section.GAME);
         block("Chrono et records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
                 + "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte. Avec le chrono, "
                 + "la ligne d'objectif dit l'avance ou le retard sur le record de la prochaine étape. Les records "
@@ -454,9 +572,10 @@ public final class SettingsPage extends VBox {
         });
         HBox recordsRow = new HBox(8, chronoButton, clearRecordsButton);
         recordsRow.setAlignment(Pos.CENTER);
-        getChildren().add(recordsRow);
+        target.getChildren().add(recordsRow);
         note(recordsLabel);
 
+        use(Section.SAVE);
         block("Recommencer de zéro",
                 "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
                         + "sauvegarde comprise. Les réglages et les records sont gardés. C'est définitif : exportez d'abord "
@@ -470,7 +589,7 @@ public final class SettingsPage extends VBox {
             }
             refresh();
         });
-        getChildren().add(resetButton);
+        target.getChildren().add(resetButton);
 
         block("Rapport de bug", "Copie dans le presse-papiers de quoi reproduire un problème : la version du jeu, "
                 + "celle de Java et du système, la première erreur survenue s'il y en a eu une, et la partie elle-même. "
@@ -480,7 +599,7 @@ public final class SettingsPage extends VBox {
             bugMessage = saves.copyBugReport();
             refresh();
         });
-        getChildren().add(bugButton);
+        target.getChildren().add(bugButton);
         note(bugNote);
 
         block("Version " + Version.CURRENT, "Ce qui a changé, version après version.");
@@ -488,22 +607,48 @@ public final class SettingsPage extends VBox {
             notesShown = !notesShown;
             refresh();
         });
-        getChildren().add(notesButton);
+        target.getChildren().add(notesButton);
         note(notesLabel);
         notesLabel.setTextAlignment(TextAlignment.LEFT);
 
         Label footer = new Label("Les réglages sont gardés d'un lancement à l'autre, sur cette machine. La partie est "
                 + "sauvegardée à part : l'exporter l'emporte, les réglages non.");
+        target = null;
         note(footer);
         footer.setStyle("-fx-font-size: 12px; -fx-padding: 18 0 0 0; -fx-text-fill: #8fa3b8;");
+        select(Section.DISPLAY);
+    }
+
+    /** Les blocs qui suivent vont dans ce sous-onglet. */
+    private void use(Section section) {
+        target = sections.get(section);
+    }
+
+    /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
+    public javafx.scene.layout.FlowPane subTabs() {
+        return subTabs;
+    }
+
+    /** Affiche un sous-onglet, et cache les autres. */
+    public void select(Section section) {
+        selected = section;
+        sections.forEach((each, box) -> {
+            box.setVisible(each == section);
+            box.setManaged(each == section);
+        });
         refresh();
+    }
+
+    /** Le sous-onglet affiché. */
+    public Section selected() {
+        return selected;
     }
 
     /** Titre et explication d'un réglage ; l'explication n'apparaît qu'en mode détails. */
     private void block(String name, String explanation) {
         Label header = new Label(name);
         header.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 14 0 0 0; -fx-text-fill: " + SETTINGS_COLOR + ";");
-        getChildren().add(header);
+        target.getChildren().add(header);
         Label text = new Label(explanation);
         note(text);
         explanations.add(text);
@@ -568,7 +713,7 @@ public final class SettingsPage extends VBox {
         label.setWrapText(true);
         label.setTextAlignment(TextAlignment.CENTER);
         label.setMaxWidth(560);
-        getChildren().add(label);
+        (target == null ? getChildren() : target.getChildren()).add(label);
     }
 
     /**
@@ -592,19 +737,48 @@ public final class SettingsPage extends VBox {
         capturing = false;
         capturingAction = null;
         captureProblem = "";
+        themeHint = "";
+        notationHint = "";
     }
 
     /** Recopie les réglages dans les boutons. */
     public void refresh() {
-        notationButtons.forEach((notation, button) ->
-                button.setStyle(notation == settings.notation() ? ON_STYLE : OFF_STYLE));
+        sectionTabs.forEach((section, tab) -> tab.setStyle(SUB_TAB_STYLE + (section == selected
+                ? " -fx-text-fill: " + SETTINGS_COLOR + "; -fx-border-color: transparent transparent " + SETTINGS_COLOR + " transparent;"
+                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;")));
+        notationButtons.forEach((notation, button) -> {
+            boolean open = settings.isOpen(notation);
+            button.setText(open ? notation.label() : "🔒 " + notation.label());
+            button.setStyle(notation == settings.notation() ? ON_STYLE : open ? OFF_STYLE : LOCKED_STYLE);
+            tip(button, open && notation.unlock() != null ? "Débloquée en : " + notation.unlock().condition() : open ? "" : notation.unlock().hint());
+        });
         StringBuilder example = new StringBuilder("Exemples : ");
         for (int i = 0; i < SAMPLES.length; i++) {
             example.append(i == 0 ? "" : "   ·   ").append(Format.big(SAMPLES[i]));
         }
         notationExample.setText(example.toString());
 
-        themeButtons.forEach((theme, button) -> button.setStyle(theme == settings.theme() ? ON_STYLE : OFF_STYLE));
+        themeButtons.forEach((theme, button) -> {
+            boolean open = settings.isOpen(theme);
+            button.setText(open ? theme.label() : "🔒 " + theme.label());
+            button.setStyle(theme == settings.theme() ? ON_STYLE : open ? OFF_STYLE : LOCKED_STYLE);
+            tip(button, open && theme.unlock() != null ? "Débloqué en : " + theme.unlock().condition() : open ? "" : theme.unlock().hint());
+        });
+        int themesOpen = 0, notationsOpen = 0;
+        for (Settings.Theme theme : Settings.Theme.values()) if (theme.unlock() != null && settings.isOpen(theme)) themesOpen++;
+        for (Settings.Notation notation : Settings.Notation.values()) if (notation.unlock() != null && settings.isOpen(notation)) notationsOpen++;
+        themeNote.setText(!themeHint.isEmpty() ? themeHint : "Thèmes à débloquer : " + themesOpen + " / " + LOCKED_THEMES);
+        notationNote.setText(!notationHint.isEmpty() ? notationHint : "Notations à débloquer : " + notationsOpen + " / " + LOCKED_NOTATIONS);
+        effectButtons.forEach((effect, button) -> {
+            boolean on = settings.effectChosen(effect);
+            button.setText((on ? "✓ " : "✗ ") + effect.label());
+            button.setStyle(on && settings.effects() ? ON_STYLE : OFF_STYLE);
+            button.setDisable(!settings.effects());
+            tip(button, effect.description());
+        });
+        saveDelayButtons.forEach((delay, button) -> button.setStyle(delay == settings.saveDelay() ? ON_STYLE : OFF_STYLE));
+        offlineButton.setText(settings.offline() ? "Temps hors ligne : rejoué au retour" : "Temps hors ligne : ignoré");
+        offlineButton.setStyle(settings.offline() ? ON_STYLE : OFF_STYLE);
         scaleButtons.forEach((scale, button) -> button.setStyle(scale == settings.scale() ? ON_STYLE : OFF_STYLE));
         notificationsButton.setText(settings.notifications() ? "Notifications : affichées" : "Notifications : coupées");
         notificationsButton.setStyle(settings.notifications() ? ON_STYLE : OFF_STYLE);
@@ -618,6 +792,8 @@ public final class SettingsPage extends VBox {
         effectsButton.setText(settings.effects() ? "Effets visuels : affichés" : "Effets visuels : coupés");
         tabsTopButton.setStyle(settings.tabsLeft() ? OFF_STYLE : ON_STYLE);
         tabsLeftButton.setStyle(settings.tabsLeft() ? ON_STYLE : OFF_STYLE);
+        tabOrderButton.setStyle(OFF_STYLE);
+        tabOrderButton.setDisable(settings.tabOrder().isEmpty());
         soundButton.setText(settings.sound() ? "Sons : activés" : "Sons : coupés");
         soundButton.setStyle(settings.sound() ? ON_STYLE : OFF_STYLE);
         volumeLabel.setText("Volume : " + settings.volume() + " %");
@@ -680,6 +856,19 @@ public final class SettingsPage extends VBox {
         notesButton.setStyle(notesShown ? ON_STYLE : OFF_STYLE);
         notesLabel.setVisible(notesShown);
         notesLabel.setManaged(notesShown);
+    }
+
+    /** L'info-bulle d'un bouton, ou aucune. */
+    private static void tip(Button button, String text) {
+        if (text.isEmpty()) {
+            if (button.getTooltip() != null) button.setTooltip(null);
+            return;
+        }
+        if (button.getTooltip() != null && text.equals(button.getTooltip().getText())) return;
+        javafx.scene.control.Tooltip tooltip = new javafx.scene.control.Tooltip(text);
+        tooltip.setWrapText(true);
+        tooltip.setMaxWidth(360);
+        button.setTooltip(tooltip);
     }
 
     /** Affiche une phrase sous un bouton, ou retire sa place quand il n'y a rien à dire. */

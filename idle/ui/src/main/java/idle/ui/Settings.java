@@ -22,16 +22,37 @@ public final class Settings {
         /** 12.3e6 : la puissance de dix avance de trois en trois, comme les milliers. */
         ENGINEERING("Ingénieur"),
         /** 12.3 M : une abréviation par millier (K, M, B, T, Qa…), puis scientifique au-delà de 1e36. */
-        LETTERS("Lettres");
+        LETTERS("Lettres"),
+        /** 12.3 millions : le nom du millier en toutes lettres, jusqu'au décilliard (1e63). */
+        WORDS("En mots"),
+        /** 1.23×10⁷ : la puissance de dix en exposant, comme au tableau. */
+        POWERS("Puissances"),
+        /** 12.3 c : une lettre par millier, a, b… z, puis aa, ab… sans fin. À débloquer. */
+        ALPHABET("Alphabet", Cosmetic.ALPHABET),
+        /** 10^7.09 : le nombre écrit par son logarithme. À débloquer. */
+        LOG("Logarithme", Cosmetic.LOG),
+        /** 1.23 ×X^VII : la puissance de dix en chiffres romains. À débloquer. */
+        ROMAN("Romaine", Cosmetic.ROMAN);
 
         private final String label;
+        private final Cosmetic unlock;
 
         Notation(String label) {
+            this(label, null);
+        }
+
+        Notation(String label, Cosmetic unlock) {
             this.label = label;
+            this.unlock = unlock;
         }
 
         public String label() {
             return label;
+        }
+
+        /** Ce qui l'ouvre, ou {@code null} si elle est offerte d'emblée. */
+        public Cosmetic unlock() {
+            return unlock;
         }
     }
 
@@ -60,21 +81,154 @@ public final class Settings {
         }
     }
 
-    /** Apparence générale de la fenêtre. */
+    /**
+     * Apparence générale de la fenêtre. Chaque thème est un filtre posé sur le thème sombre
+     * ({@link ThemeFilter}) : l'inverser, tourner ses teintes, le désaturer, le teinter. Les cinq
+     * derniers sont à débloquer ({@link Cosmetic}).
+     */
     public enum Theme {
         /** Fond sombre : celui pour lequel le jeu est dessiné. */
-        DARK("Sombre"),
+        DARK("Sombre", false, 0, 0, 0, 0, null, null),
         /** Fond clair : les couleurs du thème sombre, inversées. */
-        LIGHT("Clair");
+        LIGHT("Clair", true, 1.0, 0, 0, 0, null, null),
+        /** Nuit : plus sombre, moins saturé, voilé de bleu. */
+        NIGHT("Nuit", false, 0, -0.35, -0.12, 0, "#a9b8ff", null),
+        /** Aurore : les teintes tournées vers le vert et le rose des aurores polaires. */
+        AURORA("Aurore", false, -0.35, 0.25, 0, 0.05, null, null),
+        /** Monochrome : sans couleur, en gris. */
+        MONOCHROME("Monochrome", false, 0, -1, 0, 0.1, null, null),
+        /** Contraste fort : des couleurs plus vives et plus tranchées, sans noyer les tons sombres (adouci en 0.64). */
+        CONTRAST("Contraste fort", false, 0, 0.35, 0.12, 0.25, null, null),
+        /** Sépia : une vieille photographie. */
+        SEPIA("Sépia", false, 0, -1, 0.05, 0, "#f0cf9c", Cosmetic.SEPIA),
+        /** Phosphore : le vert d'un vieil écran. */
+        PHOSPHOR("Phosphore", false, 0, -1, 0.1, 0.2, "#6dff8f", Cosmetic.PHOSPHOR),
+        /** Infrarouge : la chaleur en couleurs. */
+        INFRARED("Infrarouge", false, 0.7, 0.4, 0, 0.25, null, Cosmetic.INFRARED),
+        /** Nébuleuse : un voile violet et rose. */
+        NEBULA("Nébuleuse", false, 0.15, 0.2, 0, 0, "#e3a8ff", Cosmetic.NEBULA),
+        /** Or : tout en reflets dorés. */
+        GOLD("Or", false, 0, -1, 0.12, 0.2, "#ffd36a", Cosmetic.GOLD);
 
         private final String label;
+        private final boolean invert;
+        private final double hue;
+        private final double saturation;
+        private final double brightness;
+        private final double contrast;
+        private final String tint;
+        private final Cosmetic unlock;
 
-        Theme(String label) {
+        Theme(String label, boolean invert, double hue, double saturation, double brightness, double contrast, String tint, Cosmetic unlock) {
             this.label = label;
+            this.invert = invert;
+            this.hue = hue;
+            this.saturation = saturation;
+            this.brightness = brightness;
+            this.contrast = contrast;
+            this.tint = tint;
+            this.unlock = unlock;
         }
 
         public String label() {
             return label;
+        }
+
+        /** Vrai si le thème part de l'image inversée (le thème clair). */
+        public boolean invert() {
+            return invert;
+        }
+
+        /** Rotation des teintes, de −1 à 1 (1 : un demi-tour). */
+        public double hue() {
+            return hue;
+        }
+
+        /** Saturation ajoutée, de −1 (gris) à 1. */
+        public double saturation() {
+            return saturation;
+        }
+
+        public double brightness() {
+            return brightness;
+        }
+
+        public double contrast() {
+            return contrast;
+        }
+
+        /** La couleur qui teinte toute l'image (multipliée), ou {@code null}. */
+        public String tint() {
+            return tint;
+        }
+
+        /** Vrai si le thème ne change rien : le thème sombre. */
+        public boolean isPlain() {
+            return !invert && hue == 0 && saturation == 0 && brightness == 0 && contrast == 0 && tint == null;
+        }
+
+        /** Ce qui l'ouvre, ou {@code null} s'il est offert d'emblée. */
+        public Cosmetic unlock() {
+            return unlock;
+        }
+    }
+
+    /**
+     * Les effets visuels qu'on peut couper un par un (version 0.63). Le grand interrupteur des
+     * effets les coupe tous ; sinon, chacun suit son propre réglage.
+     */
+    public enum Effect {
+        FLASH("Éclair de l'explosion", "l'onde et l'écran blanc de l'explosion"),
+        AMBIENT("Fond animé", "la poussière qui dérive derrière les générateurs"),
+        PARTICLE_SPEED("Allure des générateurs", "anneaux, traînées, couronne et arcs quand la production monte"),
+        PARTICLE_CREATION("Création de particules", "l'onde et les poussières à chaque particule créée"),
+        ATOM_PULSE("Onglet qui bat", "l'onglet des atomes qui bat à chaque atome créé"),
+        ATOM_MODEL("Atome qui tourne", "l'atome de l'onglet Atomes, ses orbites et ses orbes qui tournent"),
+        TAB_ICONS("Icônes animées", "les petites icônes des onglets qui bougent"),
+        DARK_MATTER_MOTION("Matière noire animée", "la matière noire qui palpite et le fond qui scintille"),
+        DARK_FALL("Chute de matière noire", "la spirale de matière qui tombe dans la matière noire"),
+        COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille ; les faisceaux restent, ils servent à viser"),
+        COLLIDER_SPARKS("Étincelles du collisionneur", "les gerbes au détecteur à chaque croisement"),
+        BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent");
+
+        private final String label;
+        private final String description;
+
+        Effect(String label, String description) {
+            this.label = label;
+            this.description = description;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public String description() {
+            return description;
+        }
+    }
+
+    /** Toutes les combien de secondes la partie s'écrit d'elle-même. */
+    public enum SaveDelay {
+        TEN("10 s", 10),
+        THIRTY("30 s", 30),
+        MINUTE("1 min", 60),
+        FIVE_MINUTES("5 min", 300);
+
+        private final String label;
+        private final double seconds;
+
+        SaveDelay(String label, double seconds) {
+            this.label = label;
+            this.seconds = seconds;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public double seconds() {
+            return seconds;
         }
     }
 
@@ -134,6 +288,11 @@ public final class Settings {
     private static final String CHRONO = "chrono";
     private static final String SOUND = "sound";
     private static final String TABS_LEFT = "tabsLeft";
+    private static final String TAB_ORDER = "tabOrder";
+    private static final String EFFECTS_OFF = "effectsOff";
+    private static final String SAVE_DELAY = "saveDelay";
+    private static final String OFFLINE = "offline";
+    private static final String COSMETICS = "cosmetics";
     private static final String VOLUME = "volume";
     private static final String FRAME_RATE = "frameRate";
     private static final String SAVE_ENERGY = "saveEnergy";
@@ -174,6 +333,15 @@ public final class Settings {
     private boolean sound = true;
     /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.57) ; sinon, la disposition d'avant. */
     private boolean tabsLeft = false;
+    /** L'ordre des onglets choisi en les glissant (version 0.60) : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
+    private String tabOrder = "";
+    /** Les effets coupés un par un (version 0.63). */
+    private final java.util.EnumSet<Effect> effectsOff = java.util.EnumSet.noneOf(Effect.class);
+    private SaveDelay saveDelay = SaveDelay.THIRTY;
+    /** Vrai si le temps passé jeu fermé est rejoué au retour. */
+    private boolean offline = true;
+    /** Les thèmes et notations débloqués (version 0.63). */
+    private final java.util.EnumSet<Cosmetic> cosmetics = java.util.EnumSet.noneOf(Cosmetic.class);
     private int volume = DEFAULT_VOLUME;
     private FrameRate frameRate = FrameRate.HIGH;
     private boolean saveEnergy = true;
@@ -221,11 +389,27 @@ public final class Settings {
             try {
                 settings.sound = store.getBoolean(SOUND, true);
                 settings.tabsLeft = store.getBoolean(TABS_LEFT, false);
+                settings.tabOrder = store.get(TAB_ORDER, "");
                 settings.volume = Math.max(0, Math.min(100, store.getInt(VOLUME, DEFAULT_VOLUME)));
                 settings.saveEnergy = store.getBoolean(SAVE_ENERGY, true);
             } catch (RuntimeException unreadable) {
                 // on garde les valeurs par défaut
             }
+            try {
+                settings.saveDelay = SaveDelay.valueOf(store.get(SAVE_DELAY, SaveDelay.THIRTY.name()));
+            } catch (RuntimeException unknown) {
+                settings.saveDelay = SaveDelay.THIRTY;
+            }
+            try {
+                settings.offline = store.getBoolean(OFFLINE, true);
+                settings.effectsOff.addAll(names(Effect.class, store.get(EFFECTS_OFF, "")));
+                settings.cosmetics.addAll(names(Cosmetic.class, store.get(COSMETICS, "")));
+            } catch (RuntimeException unreadable) {
+                // on garde les valeurs par défaut
+            }
+            // Un thème ou une notation à débloquer, gardé sans être débloqué (préférences touchées à la main) : celui d'origine.
+            if (settings.theme.unlock() != null && !settings.cosmetics.contains(settings.theme.unlock())) settings.theme = Theme.DARK;
+            if (settings.notation.unlock() != null && !settings.cosmetics.contains(settings.notation.unlock())) settings.notation = Notation.SCIENTIFIC;
             try {
                 settings.detailKey = KeyCode.valueOf(store.get(DETAIL_KEY, DEFAULT_DETAIL_KEY.name()));
             } catch (RuntimeException unknown) {
@@ -262,7 +446,115 @@ public final class Settings {
         Confirm.set(settings.confirmBigBang, settings.confirmChallenge);
         Card.setSigns(settings.stateSigns);
         Format.setNotation(settings.notation);
+        settings.applyEffects();
         return settings;
+    }
+
+    /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus sont ignorés. */
+    private static <E extends Enum<E>> java.util.List<E> names(Class<E> type, String text) {
+        java.util.List<E> values = new java.util.ArrayList<>();
+        for (String name : text.split(",")) {
+            try {
+                if (!name.isBlank()) values.add(Enum.valueOf(type, name.trim()));
+            } catch (IllegalArgumentException unknown) {
+                // une valeur d'une autre version du jeu
+            }
+        }
+        return values;
+    }
+
+    private static <E extends Enum<E>> String joined(java.util.Set<E> values) {
+        StringBuilder text = new StringBuilder();
+        for (E value : values) text.append(text.length() == 0 ? "" : ",").append(value.name());
+        return text.toString();
+    }
+
+    /** Vrai si cet effet est affiché : les effets en marche, et lui pas coupé. */
+    public boolean effect(Effect effect) {
+        return effects && !effectsOff.contains(effect);
+    }
+
+    /** Vrai si cet effet est en marche dans son propre réglage, quel que soit le grand interrupteur. */
+    public boolean effectChosen(Effect effect) {
+        return !effectsOff.contains(effect);
+    }
+
+    public void setEffect(Effect effect, boolean on) {
+        if (on) effectsOff.remove(effect);
+        else effectsOff.add(effect);
+        save(EFFECTS_OFF, joined(effectsOff));
+        applyEffects();
+    }
+
+    /** Les dessins lisent leurs effets dans un drapeau commun : le recopier après chaque changement. */
+    private void applyEffects() {
+        idle.ui.particles.ParticleView.setSpeedLook(effect(Effect.PARTICLE_SPEED));
+        idle.ui.collider.EnergyView.setSparks(effect(Effect.COLLIDER_SPARKS));
+        idle.ui.darkmatter.DarkMatterView.setFall(effect(Effect.DARK_FALL));
+        idle.ui.particles.ParticleView.setCreationLook(effect(Effect.PARTICLE_CREATION));
+        idle.ui.darkmatter.DarkMatterView.setMotion(effect(Effect.DARK_MATTER_MOTION));
+        idle.ui.bigbang.BigBangPage.setMotion(effect(Effect.BIG_BANG_MOTION));
+        idle.ui.collider.EnergyView.setMotion(effect(Effect.COLLIDER_MOTION));
+    }
+
+    public SaveDelay saveDelay() {
+        return saveDelay;
+    }
+
+    public void setSaveDelay(SaveDelay delay) {
+        this.saveDelay = delay;
+        save(SAVE_DELAY, delay.name());
+    }
+
+    /** Vrai si le temps passé jeu fermé est rejoué au retour ; faux pour repartir d'où on était. */
+    public boolean offline() {
+        return offline;
+    }
+
+    public void setOffline(boolean offline) {
+        this.offline = offline;
+        save(OFFLINE, String.valueOf(offline));
+    }
+
+    /** Vrai si ce thème ou cette notation à débloquer l'est déjà. */
+    public boolean hasCosmetic(Cosmetic cosmetic) {
+        return cosmetics.contains(cosmetic);
+    }
+
+    /** Vrai si ce thème peut être choisi : offert, ou débloqué. */
+    public boolean isOpen(Theme theme) {
+        return theme.unlock() == null || cosmetics.contains(theme.unlock());
+    }
+
+    public boolean isOpen(Notation notation) {
+        return notation.unlock() == null || cosmetics.contains(notation.unlock());
+    }
+
+    /**
+     * Débloque un thème ou une notation.
+     *
+     * @return vrai s'il ne l'était pas encore
+     */
+    public boolean unlock(Cosmetic cosmetic) {
+        if (!cosmetics.add(cosmetic)) return false;
+        save(COSMETICS, joined(cosmetics));
+        return true;
+    }
+
+    /** Referme un cosmétique (outil de test) : le thème ou la notation qu'il ouvrait revient à celui d'origine s'il était choisi. */
+    public void lock(Cosmetic cosmetic) {
+        if (!cosmetics.remove(cosmetic)) return;
+        save(COSMETICS, joined(cosmetics));
+        if (theme.unlock() == cosmetic) setTheme(Theme.DARK);
+        if (notation.unlock() == cosmetic) setNotation(Notation.SCIENTIFIC);
+    }
+
+    /** Referme tous les cosmétiques (outil de test) : le thème et la notation reviennent à ceux d'origine s'il le faut. */
+    public void lockCosmetics() {
+        cosmetics.clear();
+        save(COSMETICS, "");
+        if (theme.unlock() != null) setTheme(Theme.DARK);
+        if (notation.unlock() != null) setNotation(Notation.SCIENTIFIC);
     }
 
     private Settings(Preferences store) {
@@ -287,6 +579,7 @@ public final class Settings {
     public void setEffects(boolean effects) {
         this.effects = effects;
         save(EFFECTS, String.valueOf(effects));
+        applyEffects();
     }
 
     /** Vrai si l'explosion demande un second clic de confirmation. */
@@ -429,7 +722,17 @@ public final class Settings {
         save(SHOW_GOAL, String.valueOf(showGoal));
     }
 
-    /** Vrai si le jeu joue ses sons. */
+    /** L'ordre des onglets : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
+    public String tabOrder() {
+        return tabOrder;
+    }
+
+    public void setTabOrder(String order) {
+        this.tabOrder = order == null ? "" : order;
+        save(TAB_ORDER, this.tabOrder);
+    }
+
+    /** Vrai si les onglets sont rangés en colonne, à gauche. */
     public boolean tabsLeft() {
         return tabsLeft;
     }

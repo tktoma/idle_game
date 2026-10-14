@@ -8,6 +8,8 @@ import javafx.scene.paint.Color;
 /**
  * Fond animé : des poussières qui dérivent lentement en scintillant.
  * C'est la matière brute, visible dès l'écran de démarrage, que les générateurs attirent ensuite.
+ * Depuis la version 0.61, elles suivent la production : plus elle est forte, plus elles filent
+ * vite, en traînées, et se teintent comme les générateurs.
  */
 public final class AmbientView extends Canvas {
 
@@ -22,6 +24,14 @@ public final class AmbientView extends Canvas {
     private final double[] size = new double[MOTE_COUNT];
     private final double[] phase = new double[MOTE_COUNT];
     private double time = 0;
+    /** La production ramenée de 0 à 1, adoucie. */
+    private double intensity = 0;
+    private double wanted = 0;
+
+    /** La production du moment, de 0 à 1 ({@link ParticleView#intensity(double)}). */
+    void setIntensity(double intensity) {
+        wanted = Math.max(0, Math.min(1, intensity));
+    }
 
     AmbientView() {
         super(1, 1);
@@ -40,16 +50,29 @@ public final class AmbientView extends Canvas {
     void frame(double elapsed) {
         double dt = Math.min(elapsed, 0.1);
         time += dt;
+        intensity += (wanted - intensity) * Math.min(1, dt);
+        double speed = 1 + 9 * intensity * intensity;
 
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
         g.clearRect(0, 0, getWidth(), getHeight());
-        g.setFill(MOTE);
+        Color color = MOTE.interpolate(ParticleView.heat(intensity), 0.7);
+        g.setFill(color);
+        g.setStroke(color);
         for (int i = 0; i < MOTE_COUNT; i++) {
-            x[i] = wrap(x[i] + dx[i] * dt);
-            y[i] = wrap(y[i] + dy[i] * dt);
-            g.setGlobalAlpha(0.10 + 0.22 * (0.5 + 0.5 * Math.sin(phase[i] + time * 1.3)));
-            g.fillOval(x[i] * getWidth() - size[i] / 2, y[i] * getHeight() - size[i] / 2, size[i], size[i]);
+            x[i] = wrap(x[i] + dx[i] * dt * speed);
+            y[i] = wrap(y[i] + dy[i] * dt * speed);
+            double alpha = 0.10 + 0.22 * (0.5 + 0.5 * Math.sin(phase[i] + time * 1.3 * speed));
+            double px = x[i] * getWidth(), py = y[i] * getHeight();
+            if (intensity > 0.3) {
+                // Vite : une traînée derrière chaque poussière, dans le sens de sa course.
+                double tail = 0.6 * intensity;
+                g.setGlobalAlpha(alpha * 0.5);
+                g.setLineWidth(size[i] * 0.6);
+                g.strokeLine(px, py, px - dx[i] * speed * tail * getWidth(), py - dy[i] * speed * tail * getHeight());
+            }
+            g.setGlobalAlpha(alpha);
+            g.fillOval(px - size[i] / 2, py - size[i] / 2, size[i], size[i]);
         }
         g.setGlobalAlpha(1);
     }

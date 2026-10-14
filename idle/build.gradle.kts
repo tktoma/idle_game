@@ -16,13 +16,20 @@ subprojects {
         if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "toutTester" }) {
             outputs.upToDateWhen { false }
         }
-        // Le bilan de chaque module, une ligne à la fin de ses tests.
-        afterSuite(KotlinClosure2<TestDescriptor, TestResult, Unit>({ suite, result ->
-            if (suite.parent == null && result.testCount > 0) {
-                println("Tests de « ${project.name} » : ${result.testCount} lancés, ${result.successfulTestCount} réussis, " +
-                        "${result.failedTestCount} échoués, ${result.skippedTestCount} ignorés")
+        // Le bilan de chaque module, une ligne à la fin de ses tests. Le nom du module est lu ici, à la
+        // configuration : Gradle 10 refusera qu'une tâche touche à son projet pendant qu'elle s'exécute.
+        val moduleName = project.name
+        addTestListener(object : TestListener {
+            override fun beforeSuite(suite: TestDescriptor) {}
+            override fun beforeTest(testDescriptor: TestDescriptor) {}
+            override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+            override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+                if (suite.parent == null && result.testCount > 0) {
+                    println("Tests de « $moduleName » : ${result.testCount} lancés, ${result.successfulTestCount} réussis, " +
+                            "${result.failedTestCount} échoués, ${result.skippedTestCount} ignorés")
+                }
             }
-        }))
+        })
     }
     // Les tâches de test de chaque module, quand le module les aura déclarées : la liste se lit au dernier moment.
     toutTester.configure { dependsOn(tasks.withType<Test>()) }

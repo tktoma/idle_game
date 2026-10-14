@@ -1,8 +1,7 @@
 package idle.ui.collider;
 
 import idle.core.Game;
-import idle.core.collider.CollisionTier;
-import idle.core.collider.Hadron;
+import idle.core.collider.ColliderUpgrade;
 import idle.ui.Readiness;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -12,8 +11,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
- * L'onglet du collisionneur (version 0.57), ouvert à la première explosion : trois sous-onglets,
- * l'énergie et ses huit générateurs, les collisions, les hadrons et leurs paliers.
+ * L'onglet du collisionneur (version 0.57, refait en 0.59), ouvert à la première explosion : trois
+ * sous-onglets : l'énergie (les faisceaux, leurs collisions et les huit générateurs), la chaîne
+ * (énergie → molécules, payée en énergie et en quarks) et les améliorations, qui n'apparaissent
+ * qu'avec le huitième générateur. Les hadrons ont disparu en 0.62.
  */
 public final class ColliderPage extends VBox {
 
@@ -23,16 +24,16 @@ public final class ColliderPage extends VBox {
     private final Game game;
     private final ColliderPane pane;
     private final Button energyTab = new Button("Énergie");
-    private final Button collisionsTab = new Button("Collisions");
-    private final Button hadronsTab = new Button("Hadrons");
-    private final HBox subTabs = new HBox(energyTab, collisionsTab, hadronsTab);
+    private final Button chainTab = new Button("Chaîne");
+    private final Button upgradesTab = new Button("Améliorations");
+    private final HBox subTabs = new HBox(energyTab, chainTab, upgradesTab);
 
     public ColliderPage(Game game) {
         super(6);
         this.game = game;
         this.pane = new ColliderPane(game, this::refresh);
         setAlignment(Pos.TOP_CENTER);
-        Button[] tabs = {energyTab, collisionsTab, hadronsTab};
+        Button[] tabs = {energyTab, chainTab, upgradesTab};
         for (int i = 0; i < tabs.length; i++) {
             int index = i;
             tabs[i].setFocusTraversable(false);
@@ -61,10 +62,11 @@ public final class ColliderPage extends VBox {
     }
 
     public void select(int index) {
+        if (index == ColliderPane.UPGRADES && !game.isColliderUpgradesUnlocked()) index = ColliderPane.ENERGY;
         pane.select(index);
-        energyTab.setStyle(style(index == 0));
-        collisionsTab.setStyle(style(index == 1));
-        hadronsTab.setStyle(style(index == 2));
+        energyTab.setStyle(style(index == ColliderPane.ENERGY));
+        chainTab.setStyle(style(index == ColliderPane.CHAIN));
+        upgradesTab.setStyle(style(index == ColliderPane.UPGRADES));
     }
 
     public int selected() {
@@ -73,7 +75,13 @@ public final class ColliderPage extends VBox {
 
     /** Passe au sous-onglet suivant ou précédent, en boucle. */
     public void step(int direction) {
-        select(Math.floorMod(pane.section() + direction, 3));
+        // Les sous-onglets affichés, dans l'ordre : les améliorations sautent tant qu'elles sont fermées.
+        int[] shown = game.isColliderUpgradesUnlocked()
+                ? new int[] {ColliderPane.ENERGY, ColliderPane.CHAIN, ColliderPane.UPGRADES}
+                : new int[] {ColliderPane.ENERGY, ColliderPane.CHAIN};
+        int at = 0;
+        for (int i = 0; i < shown.length; i++) if (shown[i] == pane.section()) at = i;
+        select(shown[Math.floorMod(at + direction, shown.length)]);
         refresh();
     }
 
@@ -83,23 +91,27 @@ public final class ColliderPage extends VBox {
                 : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
-    /** Vrai s'il y a quelque chose à faire : une place de collision libre et payable, un quark top, un hadron à former. */
+    /** Vrai s'il y a quelque chose à faire : un quark top, une amélioration à prendre. */
     public static boolean ready(Game game) {
         if (!game.isColliderUnlocked()) return false;
-        boolean idleSlot = game.state().collisions().size() < game.colliderSlots() && game.canStartCollision(CollisionTier.LOW);
-        return idleSlot || game.hasTop() || hadronReady(game);
+        return game.hasTop() || upgradeReady(game, true) || upgradeReady(game, false);
     }
 
-    private static boolean hadronReady(Game game) {
-        for (Hadron hadron : Hadron.values()) if (game.canFormHadron(hadron)) return true;
+    /** Vrai si une amélioration payable attend : celles de la chaîne (son sous-onglet), ou les autres. */
+    private static boolean upgradeReady(Game game, boolean chain) {
+        for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
+            if ((upgrade.section() == ColliderUpgrade.Section.CHAIN) == chain && game.canBuyColliderUpgrade(upgrade)) return true;
+        }
         return false;
     }
 
     public void refresh() {
-        boolean slot = game.state().collisions().size() < game.colliderSlots() && game.canStartCollision(CollisionTier.LOW);
-        collisionsTab.setText("Collisions (" + game.state().collisions().size() + "/" + game.colliderSlots() + ")"
-                + Readiness.dot(slot || game.hasTop()));
-        hadronsTab.setText("Hadrons" + Readiness.dot(hadronReady(game)));
+        boolean upgrades = game.isColliderUpgradesUnlocked();
+        upgradesTab.setVisible(upgrades);
+        upgradesTab.setManaged(upgrades);
+        energyTab.setText("Énergie" + Readiness.dot(game.hasTop()));
+        chainTab.setText("Chaîne" + Readiness.dot(upgradeReady(game, true)));
+        upgradesTab.setText("Améliorations" + Readiness.dot(upgradeReady(game, false)));
         pane.refresh();
     }
 

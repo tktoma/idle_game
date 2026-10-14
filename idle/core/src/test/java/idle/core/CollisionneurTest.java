@@ -5,10 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.achievements.Achievements;
+import idle.core.collider.ColliderAchievement;
 import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderMilestone;
+import idle.core.collider.ColliderUpgrade;
+import idle.core.collider.Collision;
 import idle.core.collider.CollisionTier;
-import idle.core.collider.Hadron;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
@@ -17,11 +18,12 @@ import idle.core.math.BigNum;
 import idle.core.sky.Body;
 import idle.core.upgrades.Automations;
 import idle.core.upgrades.Upgrades;
+import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/** Le collisionneur de quarks : énergie, collisions, résonance, hadrons et leurs bonus, quark top. */
+/** Le collisionneur de quarks : énergie, collisions, quarks, la chaîne, les trous noirs, le quark top. */
 class CollisionneurTest {
 
     private static Game newGame() {
@@ -31,8 +33,15 @@ class CollisionneurTest {
         return game;
     }
 
-    /** Après une première explosion, avec de l'énergie à volonté. */
+    /** Après une première explosion, avec de l'énergie à volonté, et l'amélioration « Collisions » prise. */
     private static Game opened(double energy) {
+        Game game = bare(energy);
+        game.state().setColliderUpgradeLevel(ColliderUpgrade.COLLISIONS, 1);
+        return game;
+    }
+
+    /** Après une première explosion, sans aucune amélioration du collisionneur. */
+    private static Game bare(double energy) {
         Game game = newGame();
         game.state().setExplosions(1);
         game.state().setColliderEnergy(energy);
@@ -66,141 +75,178 @@ class CollisionneurTest {
             Game game = opened(1e9);
             assertTrue(game.isCollisionTierOpen(CollisionTier.LOW));
             assertFalse(game.isCollisionTierOpen(CollisionTier.MEDIUM));
-            game.state().setHadrons(Hadron.PROTON, 1);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.FLAVOR_STRANGE, 1);
             assertTrue(game.isCollisionTierOpen(CollisionTier.MEDIUM));
             assertFalse(game.isCollisionTierOpen(CollisionTier.HIGH));
         }
+
+        @Test
+        void sansLAmeliorationCollisionsLesCroisementsNeDonnentQueDeLEnergie() {
+            Game game = bare(0);
+            assertEquals(0, game.collisionChance(), 0);
+            assertFalse(game.isQuarkOpen(Quark.UP));
+            for (int i = 0; i < 200; i++) game.tick(Game.RESONANCE_PERIOD);
+            assertEquals(0, game.quarks(Quark.UP) + game.quarks(Quark.DOWN));
+            untilCrossing(game);
+            assertTrue(game.catchCrossing() > 0, "un clic au croisement donne toujours son énergie");
+            assertEquals(0, game.state().collisionRuns(), "mais pas de collision");
+        }
+    }
+
+    /** Les quarks obtenus, toutes saveurs. */
+    private static int quarkTotal(Game game) {
+        int total = 0;
+        for (Quark quark : Quark.values()) total += game.quarks(quark);
+        return total;
+    }
+
+    /** Jusqu'au prochain croisement, sans le dépasser. */
+    private static void untilCrossing(Game game) {
+        while (!game.isCrossing()) game.tick(0.02);
     }
 
     @Nested
-    class Collisions {
+    class Croisements {
 
         @Test
-        void uneCollisionCouteSonEnergieEtOccupeUnePlace() {
-            Game game = opened(3 * CollisionTier.LOW.cost());
-            assertTrue(game.startCollision(CollisionTier.LOW));
-            assertEquals(2 * CollisionTier.LOW.cost(), game.colliderEnergy(), 1e-9);
-            assertTrue(game.startCollision(CollisionTier.LOW));
-            assertFalse(game.startCollision(CollisionTier.LOW));          // deux places
-            assertEquals(2, game.state().collisions().size());
+        void unCroisementParTourEtUneChanceDeCollision() {
+            Game game = opened(0);
+            for (int i = 0; i < 1000; i++) game.tick(Game.RESONANCE_PERIOD);
+            assertEquals(1000, game.state().colliderCrossings());
+            int ud = quarkTotal(game);
+            // 15 % des croisements donnent une collision, d'un quark : environ 150.
+            assertTrue(ud > 100 && ud < 200, ud + " quarks u et d");
+            assertEquals(0, game.quarks(Quark.STRANGE), "l'étrange n'est pas encore ouvert");
+            assertEquals(ud, game.state().collisionRuns());
+            assertFalse(game.takeFinishedCollisions().isEmpty());
+            assertTrue(game.takeFinishedCollisions().isEmpty(), "annoncées une fois");
         }
 
         @Test
-        void sansEnergieRienNePart() {
-            Game game = opened(CollisionTier.LOW.cost() - 1);
-            assertFalse(game.startCollision(CollisionTier.LOW));
+        void lesSaveursSOuvrentUneAUneParLesAmeliorations() {
+            Game game = opened(0);
+            assertTrue(game.isQuarkOpen(Quark.UP) && game.isQuarkOpen(Quark.DOWN));
+            assertFalse(game.isCollisionTierOpen(CollisionTier.MEDIUM));
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.FLAVOR_STRANGE, 1);
+            assertTrue(game.isCollisionTierOpen(CollisionTier.MEDIUM));
+            assertTrue(game.quarkWeight(Quark.STRANGE) > 0);
+            assertEquals(CollisionTier.MEDIUM, game.colliderTier());
+            assertFalse(game.isQuarkOpen(Quark.CHARM));
+            assertEquals(1, game.quarkShare(Quark.UP) + game.quarkShare(Quark.DOWN) + game.quarkShare(Quark.STRANGE), 1e-9);
         }
 
         @Test
-        void uneCollisionTermineeDonneSesQuarks() {
-            Game game = opened(CollisionTier.LOW.cost());
-            game.startCollision(CollisionTier.LOW);
-            game.tick(29);
-            assertEquals(0, game.quarks(Quark.UP));
-            game.tick(1.5);
+        void unLongPasCompteLeButinEnMoyenne() {
+            Game game = opened(0);
+            game.tick(10_800);                                             // d'un coup : bien plus de 400 croisements
+            assertEquals(5_400, game.state().colliderCrossings(), 1);
+            double expected = 5_400 * Game.COLLISION_CHANCE / 2;
+            assertEquals(2 * expected, quarkTotal(game), expected * 0.2);
+        }
+
+        @Test
+        void laFocalisationMonteLaChance() {
+            Game game = opened(0);
+            assertEquals(0.15, game.collisionChance(), 1e-9);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.LUCK, 2);
+            assertEquals(0.21, game.collisionChance(), 1e-9);
+        }
+
+        @Test
+        void lesAnciennesCollisionsSeTerminentDUnCoup() {
+            Game game = opened(0);
+            game.state().setCollisions(java.util.List.of(new Collision(CollisionTier.LOW, 20, true, true)));
+            game.tick(0.01);
             assertTrue(game.state().collisions().isEmpty());
-            int up = game.quarks(Quark.UP), down = game.quarks(Quark.DOWN);
-            assertTrue(up >= 2 && up <= 4 && down >= 2 && down <= 4, up + " u, " + down + " d");
-            assertEquals(1, game.takeFinishedCollisions().size());
-            assertTrue(game.takeFinishedCollisions().isEmpty());          // annoncée une fois
-        }
-
-        @Test
-        void ellesAvancentPendantUneAbsence() {
-            Game game = opened(2 * CollisionTier.LOW.cost());
-            game.startCollision(CollisionTier.LOW);
-            game.startCollision(CollisionTier.LOW);
-            new Absence(game, 3600).advance(3600);
-            assertTrue(game.state().collisions().isEmpty());
-            assertTrue(game.quarks(Quark.UP) >= 4);
+            assertEquals(12, quarkTotal(game), "trois u et trois d, doublés");
         }
 
         @Test
         void rienNeSePerdALExplosionNiAuBigBang() {
-            Game game = opened(0);
+            Game game = opened(1234);
             game.state().setQuarks(Quark.UP, 5);
-            game.state().setHadrons(Hadron.PROTON, 3);
+            game.state().setColliderEnergyProduced(5e9);
+            game.state().setColliderGenerators(ColliderGenerator.MAGNET, 4);
+            game.state().setColliderGeneratorsBought(ColliderGenerator.MAGNET, 4);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 2);
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), element.category().maxCopies());
             assertTrue(game.explode());
             assertEquals(5, game.quarks(Quark.UP));
-            assertEquals(3, game.hadrons(Hadron.PROTON));
-            game.state().reset();                                          // seul « Recommencer de zéro » efface tout
-            assertEquals(0, game.state().hadrons(Hadron.PROTON));
+            assertEquals(5e9, game.colliderEnergyProduced(), 1);
+            readyForBigBang(game);
+            double energy = game.colliderEnergy();
+            assertTrue(game.bigBang());
+            assertTrue(game.isColliderUnlocked(), "le collisionneur reste ouvert après le Big Bang");
+            assertEquals(energy, game.colliderEnergy(), 1e-6);
+            assertEquals(5, game.quarks(Quark.UP));
+            assertEquals(5e9, game.colliderEnergyProduced(), 1);
+            assertEquals(4, game.state().colliderGeneratorsBought(ColliderGenerator.MAGNET));
+            assertEquals(2, game.colliderUpgradeLevel(ColliderUpgrade.ENERGY));
+            game.reset();                                                  // seul « Recommencer de zéro » efface tout
+            assertEquals(0, game.colliderEnergyProduced(), 0);
+            assertEquals(0, game.colliderUpgradeLevel(ColliderUpgrade.ENERGY));
+            assertEquals(0, game.colliderEnergy(), 0);
+        }
+    }
+
+    /** Tout ce qu'il faut pour que le Big Bang soit possible. */
+    private static void readyForBigBang(Game game) {
+        game.state().setExplosions(Math.max(1, game.state().explosions()));
+        game.state().setParticles(Game.BIG_BANG_PARTICLES);
+        game.state().setAtoms(Game.BIG_BANG_ATOMS);
+        game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+        int given = 0;
+        for (idle.core.achievements.Achievement achievement : game.achievements()) {
+            if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
+        }
+        for (idle.core.darkmatter.Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+        for (Body body : game.bodies()) {
+            if (game.bodiesMature() >= game.bigBangSkyRequirement()) break;
+            game.state().addBody(body.id());
         }
     }
 
     @Nested
-    class Resonance {
+    class Capte {
 
         @Test
-        void unClicAuMilieuDoubleLeButin() {
-            Game single = opened(CollisionTier.LOW.cost()), doubled = opened(CollisionTier.LOW.cost());
-            single.startCollision(CollisionTier.LOW);
-            doubled.startCollision(CollisionTier.LOW);
-            doubled.tick(Game.RESONANCE_PERIOD / 2);                     // la barre au milieu
-            assertTrue(Game.inResonance(doubled.resonancePhase(0)));
-            assertTrue(doubled.resonate(0));
-            assertFalse(doubled.resonate(0));                             // une seule tentative
-            single.tick(31);
-            doubled.tick(31);
-            assertEquals(2 * single.quarks(Quark.UP), doubled.quarks(Quark.UP));
-            assertEquals(2 * single.quarks(Quark.DOWN), doubled.quarks(Quark.DOWN));
-        }
-
-        @Test
-        void unClicAuMauvaisMomentNeDonneRienDePlusEtNeRetireRien() {
-            Game game = opened(CollisionTier.LOW.cost());
-            game.startCollision(CollisionTier.LOW);
-            game.tick(0.1);
-            assertFalse(Game.inResonance(game.resonancePhase(0)));
-            assertFalse(game.resonate(0));
-            game.tick(31);
-            assertTrue(game.quarks(Quark.UP) >= 2);
-        }
-    }
-
-    @Nested
-    class Hadrons {
-
-        @Test
-        void unProtonSeFormeAvecDeuxHautsEtUnBas() {
+        void unClicAuCroisementDonneTroisSecondesDEnergieEtUneCollisionDoublee() {
             Game game = opened(0);
-            game.state().setQuarks(Quark.UP, 5);
-            game.state().setQuarks(Quark.DOWN, 1);
-            assertTrue(game.formHadron(Hadron.PROTON));
-            assertEquals(3, game.quarks(Quark.UP));
-            assertEquals(0, game.quarks(Quark.DOWN));
-            assertFalse(game.formHadron(Hadron.PROTON));
-            assertEquals(1, game.hadrons(Hadron.PROTON));
+            untilCrossing(game);
+            double before = game.colliderEnergy();
+            long runs = game.state().collisionRuns();
+            double gain = game.catchCrossing();
+            assertEquals(Game.CROSSING_SECONDS * game.colliderEnergyPerSecond(), gain, 1e-9);
+            assertEquals(before + gain, game.colliderEnergy(), 1e-9);
+            assertTrue(game.state().collisionRuns() > runs, "une collision assurée");
+            Game.CollisionResult last = game.recentCollisions().get(game.recentCollisions().size() - 1);
+            assertTrue(last.caught());
+            assertEquals(2, last.count(), "butin doublé");
+            assertEquals(0, game.catchCrossing(), 0, "un seul par croisement");
+            while (game.isCrossing()) game.tick(0.02);
+            assertEquals(0, game.catchCrossing(), 0, "à côté, rien");
+            untilCrossing(game);
+            assertTrue(game.catchCrossing() > 0, "le croisement suivant se capte de nouveau");
         }
 
         @Test
-        void formerToutPrendTousLesQuarks() {
+        void leDeclencheurCapteSeul() {
             Game game = opened(0);
-            game.state().setQuarks(Quark.UP, 7);
-            game.state().setQuarks(Quark.DOWN, 9);
-            assertEquals(3, game.formAllHadrons(Hadron.PROTON));          // 7 hauts : trois protons
-            assertEquals(1, game.quarks(Quark.UP));
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 3);
+            for (int i = 0; i < 10; i++) game.tick(Game.RESONANCE_PERIOD);
+            assertEquals(20, quarkTotal(game), "dix croisements captés, deux quarks chacun");
+            assertEquals(20 + 10 * Game.CROSSING_SECONDS, game.colliderEnergy(), 1e-6);
         }
 
         @Test
-        void chaqueHadronRenforceLaPartiePrincipale() {
+        void lesFaisceauxRapidesEtLeDetecteurElargi() {
             Game game = opened(0);
-            BigNum particles = game.particlesPerCreation();
-            BigNum atoms = game.atomsPerFusion();
-            double dark = game.darkMatterMomentum();
-            game.state().setHadrons(Hadron.PROTON, 4);                    // ×3
-            game.state().setHadrons(Hadron.NEUTRON, 10);                  // ×1,5
-            game.state().setHadrons(Hadron.KAON, 5);                      // ×1,5
-            game.state().setHadrons(Hadron.LAMBDA, 2);                    // ×1,5
-            assertEquals(particles.toDouble() * 3, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9);
-            assertEquals(atoms.toDouble() * 1.5, game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-6);
-            assertEquals(dark * 2.25, game.darkMatterMomentum(), dark * 1e-9);
-            Game space = opened(0);
-            space.state().setBigBangs(1);
-            BigNum before = space.steadySpacePerSecond();
-            space.state().setHadrons(Hadron.JPSI, 5);                     // ×2
-            assertEquals(before.toDouble() * 2, space.steadySpacePerSecond().toDouble(), 1e-9);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.SPEED, 5);
+            assertEquals(Game.RESONANCE_PERIOD / 2, game.colliderPeriod(), 1e-9);
+            for (int i = 0; i < 100; i++) game.tick(1);
+            assertEquals(100, game.state().colliderCrossings());
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.WINDOW, 2);
+            assertEquals(Game.RESONANCE_WINDOW * 1.5, game.colliderWindow(), 1e-9);
         }
     }
 
@@ -209,98 +255,77 @@ class CollisionneurTest {
 
         private Game withTop() {
             Game game = opened(0);
-            game.state().setHadrons(Hadron.UPSILON, 1);
-            game.state().setColliderEnergy(CollisionTier.EXTREME.cost());
-            assertTrue(game.startCollision(CollisionTier.EXTREME));
-            game.tick(CollisionTier.EXTREME.seconds() + 1);
+            for (Quark quark : Quark.values()) game.state().setColliderUpgradeLevel(ColliderUpgrade.flavorOf(quark), 1);
+            assertTrue(game.isQuarkOpen(Quark.TOP));
+            long crossings = 0;
+            while (!game.hasTop() && crossings++ < 100_000) game.tick(Game.RESONANCE_PERIOD);
             return game;
         }
 
         @Test
-        void ilArriveAvecLaCollisionExtremeEtSUtiliseEnUneMinute() {
+        void ilArriveAvecLEnergieExtremeEtSUtiliseEnUneMinute() {
             Game game = withTop();
             assertTrue(game.hasTop());
+            game.state().setOverheatLeft(0);
             BigNum particles = game.particlesPerCreation();
             assertTrue(game.useTop());
             assertFalse(game.hasTop());
             assertEquals(particles.toDouble() * Game.OVERHEAT_FACTOR, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9);
-            game.tick(Game.OVERHEAT_SECONDS + 1);
-            assertEquals(particles.toDouble(), game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9);
+            assertEquals(Game.OVERHEAT_SECONDS, game.overheatLeft(), 1e-9);
         }
 
         @Test
         void rateIlLaisseQuandMemeDesQuarksBeaux() {
-            Game game = withTop();
+            Game game = opened(0);
+            game.state().setTopLeft(10);
             int bottom = game.quarks(Quark.BOTTOM);
-            game.tick(Game.TOP_SECONDS + 1);
+            game.tick(11);
             assertFalse(game.hasTop());
             assertFalse(game.useTop());
             assertEquals(bottom + Game.TOP_CONSOLATION_BOTTOM, game.quarks(Quark.BOTTOM));
         }
+
+        @Test
+        void leTopStableDureDavantage() {
+            Game game = opened(0);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.TOP_LIFE, 2);
+            assertEquals(4 * Game.TOP_SECONDS, game.topSeconds(), 1e-9);
+            assertEquals(2 * Game.OVERHEAT_SECONDS, game.overheatSeconds(), 1e-9);
+        }
     }
 
-    @Test
-    void auDelaDeDixChaqueHadronCompteMoins() {
-        assertEquals(10, Game.weightOf(10), 1e-9);
-        assertTrue(Game.weightOf(11) > 10 && Game.weightOf(11) < 11);
-        assertEquals(10 * (1 + Math.log(10)), Game.weightOf(100), 1e-9);
-        Game game = new Game();
-        game.state().setHadrons(Hadron.PROTON, 100);
-        assertEquals(1 + 0.5 * Game.weightOf(100), game.colliderParticlesMultiplier(), 1e-9);
-    }
+
 
     @Test
-    void lesPaliersSeDeduisentDesHadrons() {
-        Game game = new Game();
-        assertEquals(0, game.colliderMilestones());
-        assertEquals(Game.COLLIDER_SLOTS, game.colliderSlots());
-        game.state().setHadrons(Hadron.PROTON, 10);
-        game.state().setHadrons(Hadron.NEUTRON, 9);
-        assertFalse(game.hasColliderMilestone(ColliderMilestone.PLASMA));
-        assertEquals(19, game.colliderMilestoneProgress(ColliderMilestone.PLASMA)[0]);
-        game.state().setHadrons(Hadron.NEUTRON, 10);
-        assertTrue(game.hasColliderMilestone(ColliderMilestone.PLASMA));
-        game.state().setHadrons(Hadron.KAON, 3);
-        game.state().setHadrons(Hadron.LAMBDA, 2);
-        assertEquals(Game.COLLIDER_SLOTS + 1, game.colliderSlots());
-        game.state().setHadrons(Hadron.JPSI, 3);
-        game.state().setHadrons(Hadron.UPSILON, 1);
-        assertEquals(4, game.colliderMilestones());
-    }
-
-    @Test
-    void lePlasmaRelanceLaBasseEnergieSaufSiOnLeCoupe() {
-        Game game = new Game();
-        game.start();
-        game.state().setExplosions(1);
-        game.state().setHadrons(Hadron.PROTON, 10);
-        game.state().setHadrons(Hadron.NEUTRON, 10);
-        game.state().setColliderEnergy(1000);
-        game.tick(0.1);
-        assertEquals(1, game.state().collisions().size());
-        assertEquals(CollisionTier.LOW, game.state().collisions().get(0).tier());
-        // Une seule à la fois : l'autre place reste au joueur.
-        game.tick(0.1);
-        assertEquals(1, game.state().collisions().size());
-        for (int i = 0; i < 31; i++) game.tick(1);
-        assertEquals(1, game.state().collisions().size(), "terminée, elle repart aussitôt");
-        assertTrue(game.state().collisionRuns() >= 1);
-        game.setColliderAuto(false);
-        for (int i = 0; i < 31; i++) game.tick(1);
-        assertTrue(game.state().collisions().isEmpty(), "coupée, elle ne repart plus");
-    }
-
-    @Test
-    void leTrouNoirSupermassifDemandeLeCoeurDeGalaxie() {
-        Game game = new Game();
-        Body core = game.bodies().stream().filter(game::needsGalaxyCore).findFirst().orElseThrow();
-        assertEquals("supermassive_black_hole", core.id());
+    void lesDeuxTrousNoirsDemandentUnPalierDEnergie() {
+        Game game = bare(0);
+        List<Body> needing = game.bodies().stream().filter(game::needsColliderEnergy).toList();
+        assertEquals(List.of("black_hole", "supermassive_black_hole"), needing.stream().map(Body::id).toList(), "les deux trous noirs, et eux seuls");
+        Body hole = game.body("black_hole"), core = game.body("supermassive_black_hole");
+        assertEquals(Game.BLACK_HOLE_ENERGY, game.colliderEnergyNeeded(hole), 0);
+        assertEquals(Game.SUPERMASSIVE_ENERGY, game.colliderEnergyNeeded(core), 0);
         assertEquals(core.conditions() + 1, game.bodyConditions(core.id()));
-        int before = game.bodyConditionsMet(core.id());
-        game.state().setHadrons(Hadron.UPSILON, 1);
-        assertEquals(before + 1, game.bodyConditionsMet(core.id()));
-        long others = game.bodies().stream().filter(game::needsGalaxyCore).count();
-        assertEquals(1, others, "seul le trou noir supermassif le demande");
+        int before = game.bodyConditionsMet(hole.id()), coreBefore = game.bodyConditionsMet(core.id());
+        game.state().setColliderEnergyProduced(Game.BLACK_HOLE_ENERGY);
+        assertEquals(before + 1, game.bodyConditionsMet(hole.id()));
+        assertEquals(coreBefore, game.bodyConditionsMet(core.id()), "le supermassif en demande davantage");
+        game.state().setColliderEnergyProduced(Game.SUPERMASSIVE_ENERGY);
+        assertEquals(coreBefore + 1, game.bodyConditionsMet(core.id()));
+    }
+
+    @Test
+    void lEnergieProduiteSeCompteEtNeSeDepensePas() {
+        Game game = bare(0);
+        game.tick(10);
+        assertEquals(10, game.colliderEnergyProduced(), 1e-6);
+        game.state().setColliderEnergy(10);
+        assertTrue(game.buyColliderGenerator(ColliderGenerator.BEAM));
+        assertEquals(10, game.colliderEnergyProduced(), 1e-6, "acheter ne retire rien à l'énergie produite");
+        untilCrossing(game);
+        double before = game.colliderEnergyProduced();
+        double gain = game.catchCrossing();
+        assertTrue(gain > 0);
+        assertEquals(before + gain, game.colliderEnergyProduced(), 1e-6, "un croisement capté compte aussi");
     }
 
     @Test
@@ -328,20 +353,268 @@ class CollisionneurTest {
         assertTrue(bought > 10 && !game.canBuyColliderGenerator(ColliderGenerator.BEAM));
     }
 
-    @Test
-    void unClicAuCroisementDonneTroisSecondesDEnergie() {
-        Game game = new Game();
-        game.start();
-        game.state().setExplosions(1);
-        while (!Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
-        double before = game.colliderEnergy();
-        double gain = game.catchCrossing();
-        assertEquals(Game.CROSSING_SECONDS * game.colliderEnergyPerSecond(), gain, 1e-9);
-        assertEquals(before + gain, game.colliderEnergy(), 1e-9);
-        assertEquals(0, game.catchCrossing(), 0, "un seul par croisement");
-        while (Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
-        assertEquals(0, game.catchCrossing(), 0, "à côté, rien");
-        while (!Game.inResonance(game.colliderBeamPhase())) game.tick(0.02);
-        assertTrue(game.catchCrossing() > 0, "le croisement suivant se capte de nouveau");
+    @Nested
+    class Ameliorations {
+
+        private Game withAllGenerators() {
+            Game game = bare(0);
+            for (ColliderGenerator generator : ColliderGenerator.values()) {
+                game.state().setColliderGeneratorsBought(generator, 1);
+                game.state().setColliderGenerators(generator, 1);
+            }
+            return game;
+        }
+
+        @Test
+        void ellesSOuvrentAvecLeHuitiemeGenerateur() {
+            Game game = bare(0);
+            assertFalse(game.isColliderUpgradesUnlocked());
+            game = withAllGenerators();
+            assertTrue(game.isColliderUpgradesUnlocked());
+            int open = 0;
+            for (ColliderUpgrade upgrade : ColliderUpgrade.values()) if (game.isColliderUpgradeOpen(upgrade)) open++;
+            assertEquals(1, open, "au début, une seule");
+            assertTrue(game.isColliderUpgradeOpen(ColliderUpgrade.COLLISIONS));
+        }
+
+        @Test
+        void chacuneEnOuvreDAutres() {
+            Game game = withAllGenerators();
+            game.state().setColliderEnergy(ColliderUpgrade.COLLISIONS.cost(0));
+            assertTrue(game.buyColliderUpgrade(ColliderUpgrade.COLLISIONS));
+            assertEquals(0, game.colliderEnergy(), 1);
+            assertFalse(game.buyColliderUpgrade(ColliderUpgrade.COLLISIONS), "un seul niveau");
+            assertTrue(game.isCollisionsUnlocked());
+            for (ColliderUpgrade open : java.util.List.of(ColliderUpgrade.FLAVOR_STRANGE, ColliderUpgrade.AUTO_BEAM, ColliderUpgrade.ENERGY,
+                    ColliderUpgrade.LUCK, ColliderUpgrade.SPEED, ColliderUpgrade.GENERATOR_POWER)) {
+                assertTrue(game.isColliderUpgradeOpen(open), open.name());
+            }
+            assertFalse(game.isColliderUpgradeOpen(ColliderUpgrade.FLAVOR_CHARM), "les saveurs une à une");
+            assertFalse(game.isColliderUpgradeOpen(ColliderUpgrade.AUTO_MAGNET), "les automates un à un");
+            assertFalse(game.isColliderUpgradeOpen(ColliderUpgrade.ATOMS), "la chaîne pas à pas");
+            // Toutes, de proche en proche, sont atteignables.
+            for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
+                ColliderUpgrade at = upgrade;
+                int steps = 0;
+                while (at.requires() != null && steps++ < 30) {
+                    assertTrue(at.requiredLevel() <= at.requires().maxLevel(), at.name());
+                    at = at.requires();
+                }
+                assertEquals(ColliderUpgrade.COLLISIONS, at, upgrade.name());
+            }
+        }
+
+        @Test
+        void lesAutomatesAchetentEtSeMettentEnPause() {
+            Game game = withAllGenerators();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_BEAM, 1);
+            game.state().setColliderEnergy(1000);
+            game.tick(0.01);
+            assertTrue(game.state().colliderGeneratorsBought(ColliderGenerator.BEAM) > 5);
+            assertFalse(game.canBuyColliderGenerator(ColliderGenerator.BEAM));
+            game.toggleColliderAutomation(ColliderUpgrade.AUTO_BEAM);
+            int bought = game.state().colliderGeneratorsBought(ColliderGenerator.BEAM);
+            game.state().setColliderEnergy(1e6);
+            game.tick(0.01);
+            assertEquals(bought, game.state().colliderGeneratorsBought(ColliderGenerator.BEAM), "en pause, il n'achète plus");
+        }
+
+        @Test
+        void energieEtEspace() {
+            Game game = withAllGenerators();
+            double base = game.colliderEnergyPerSecond();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 3);
+            assertEquals(base * 8, game.colliderEnergyPerSecond(), base * 1e-9);
+            double space = game.colliderSpaceMultiplier();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.SPACE, 2);
+            assertEquals(space * 1.5, game.colliderSpaceMultiplier(), 1e-9);
+        }
+
+
+
+        @Test
+        void laChaineSePaieAussiEnQuarks() {
+            Game game = withAllGenerators();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.COLLISIONS, 1);
+            game.state().setColliderEnergy(1e30);
+            assertEquals(Quark.UP, ColliderUpgrade.ENERGY.quark());
+            assertEquals(10, game.colliderUpgradeQuarks(ColliderUpgrade.ENERGY));
+            assertFalse(game.canBuyColliderUpgrade(ColliderUpgrade.ENERGY), "sans quarks haut, rien");
+            game.state().setQuarks(Quark.UP, 25);
+            assertTrue(game.buyColliderUpgrade(ColliderUpgrade.ENERGY));
+            assertEquals(15, game.quarks(Quark.UP));
+            assertEquals(20, game.colliderUpgradeQuarks(ColliderUpgrade.ENERGY), "le double au niveau suivant");
+            assertFalse(game.canBuyColliderUpgrade(ColliderUpgrade.ENERGY));
+            assertEquals(0, game.colliderUpgradeQuarks(ColliderUpgrade.LUCK), "les autres ne coûtent que de l'énergie");
+            assertEquals(java.util.List.of(Quark.UP, Quark.UP, Quark.DOWN, Quark.STRANGE, Quark.CHARM, Quark.BOTTOM),
+                    java.util.List.of(ColliderUpgrade.ENERGY.quark(), ColliderUpgrade.PARTICLES.quark(), ColliderUpgrade.ATOMS.quark(),
+                            ColliderUpgrade.DARK_MATTER.quark(), ColliderUpgrade.SPACE.quark(), ColliderUpgrade.MOLECULES.quark()));
+        }
+
+        @Test
+        void ellesSeSauvegardent() throws Exception {
+            Game game = withAllGenerators();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.LUCK, 3);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_BEAM, 1);
+            game.toggleColliderAutomation(ColliderUpgrade.AUTO_BEAM);
+            game.state().setColliderPhase(0.3);
+            game.state().setColliderCrossings(77);
+            GameState back = idle.core.save.SaveCodec.read(idle.core.save.SaveCodec.write(game.state(), 1_700_000_000_000L)).state();
+            assertEquals(3, back.colliderUpgradeLevel(ColliderUpgrade.LUCK));
+            assertTrue(back.isColliderPaused(ColliderUpgrade.AUTO_BEAM));
+            assertEquals(0.3, back.colliderPhase(), 1e-9);
+            assertEquals(77, back.colliderCrossings());
+        }
+    }
+    @Nested
+    class SuccesEtChaine {
+
+        @Test
+        void lesSuccesRenforcentLesGenerateurs() {
+            Game game = bare(0);
+            assertEquals(0, game.colliderAchievements());
+            double cost = game.colliderGeneratorCost(ColliderGenerator.MAGNET);
+            double energy = game.colliderEnergyPerSecond();
+            game.state().setColliderGeneratorsBought(ColliderGenerator.BEAM, 10);
+            assertTrue(game.hasColliderAchievement(ColliderAchievement.BEAM_OUTPUT));
+            assertEquals(energy * 2, game.colliderEnergyPerSecond(), 1e-9, "dix faisceaux achetés : énergie ×2");
+            game.state().setColliderGeneratorsBought(ColliderGenerator.MAGNET, 30);
+            game.state().setColliderGenerators(ColliderGenerator.MAGNET, 1);
+            assertTrue(game.hasColliderAchievement(ColliderAchievement.MAGNET_COST));
+            assertEquals(ColliderGenerator.MAGNET.cost(30) / 2, game.colliderGeneratorCost(ColliderGenerator.MAGNET), 1e-6);
+            assertEquals(ColliderGenerator.MAGNET.power() * 2, game.colliderGeneratorOutput(ColliderGenerator.MAGNET), 1e-12,
+                    "trente aimants : le succès de production aussi");
+            assertTrue(cost < game.colliderGeneratorCost(ColliderGenerator.MAGNET));
+            assertEquals(40, game.colliderGeneratorsBoughtTotal());
+            assertFalse(game.hasColliderAchievement(ColliderAchievement.HUNDRED));
+            game.state().setColliderGeneratorsBought(ColliderGenerator.CAVITY, 60);
+            assertTrue(game.hasColliderAchievement(ColliderAchievement.HUNDRED));
+            game.state().setCollisionRuns(1000);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.COLLISIONS, 1);
+            assertEquals(0.17, game.collisionChance(), 1e-9, "mille collisions : +2 points");
+        }
+
+        @Test
+        void lesGenerateursRenforces() {
+            Game game = bare(0);
+            game.state().setColliderGenerators(ColliderGenerator.CAVITY, 3);
+            double before = game.colliderGeneratorOutput(ColliderGenerator.CAVITY), energy = game.colliderEnergyPerSecond();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.GENERATOR_POWER, 2);
+            assertEquals(before * 4, game.colliderGeneratorOutput(ColliderGenerator.CAVITY), 1e-12);
+            assertEquals(energy, game.colliderEnergyPerSecond(), 1e-12, "l'énergie a ses propres améliorations");
+        }
+
+        @Test
+        void laChaineRenforceLeResteDuJeu() {
+            Game game = bare(0);
+            BigNum particles = game.particlesPerCreation();
+            BigNum atoms = game.atomsPerFusion();
+            double dark = game.darkMatterMomentum();
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.PARTICLES, 2);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.ATOMS, 3);
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.DARK_MATTER, 5);
+            assertEquals(particles.toDouble() * 2.25, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9);
+            assertEquals(atoms.toDouble() * 1.3, game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-6);
+            assertEquals(dark * 2, game.darkMatterMomentum(), dark * 1e-9);
+            Game space = bare(0);
+            space.state().setBigBangs(1);
+            BigNum before = space.steadySpacePerSecond();
+            space.state().setColliderUpgradeLevel(ColliderUpgrade.SPACE, 2);
+            assertEquals(before.toDouble() * 1.5, space.steadySpacePerSecond().toDouble(), 1e-9);
+            space.state().setColliderUpgradeLevel(ColliderUpgrade.MOLECULES, 4);
+            assertEquals(0.2, space.moleculeDoublingChance(), 1e-9);
+        }
+
+        @Test
+        void lesHuitGenerateursArriventEnQuelquesHeures() {
+            // Un joueur qui ne fait qu'acheter, du plus haut au plus bas, sans cliquer.
+            Game game = bare(0);
+            double hours = 0;
+            while (game.state().colliderGeneratorsBought(ColliderGenerator.PLANCK) == 0 && hours < 24) {
+                for (int i = 0; i < 60; i++) game.tick(1);
+                for (int k = ColliderGenerator.values().length - 1; k >= 0; k--) game.buyMaxColliderGenerator(ColliderGenerator.values()[k]);
+                hours += 1 / 60.0;
+            }
+            assertTrue(hours > 1.5 && hours < 5, "le collisionneur de Planck à " + hours + " h");
+        }
+    }
+    @Nested
+    class SuccesDuBigBang {
+
+        @Test
+        void ilsSOuvrentAuPremierBigBangEtRenforcentLeurGrandeur() {
+            Game game = bare(0);
+            assertFalse(game.isBangAchievementsUnlocked());
+            assertEquals(1, game.bangAchievementMultiplier(idle.core.bigbang.BangAchievement.Reward.SPACE), 0);
+            BigNum particles = game.particlesPerCreation();
+            game.state().setBigBangs(3);
+            assertTrue(game.isBangAchievementsUnlocked());
+            assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_1));
+            assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_3));
+            assertFalse(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_5));
+            assertEquals(3, game.bangAchievementProgress(idle.core.bigbang.BangAchievement.BANGS_5));
+            assertEquals(1.10, game.bangAchievementMultiplier(idle.core.bigbang.BangAchievement.Reward.ATOMS), 1e-9);
+            assertEquals(particles.toDouble() * 1.25, game.particlesPerCreation().toDouble(), particles.toDouble() * 1e-9,
+                    "trois Big Bangs : particules +25 %");
+            game.state().addBody("rocky_planet");
+            assertEquals(1, game.bangAchievementProgress(idle.core.bigbang.BangAchievement.BODIES_5));
+        }
+    }
+
+    /** Les outils de test de la version 0.63 : la série de croisements captés, et les remises à zéro par acte. */
+    @Nested
+    class OutilsDeTest {
+
+        @Test
+        void laSerieCompteLesCroisementsCaptesALaMainEtRepartAuPremierManque() {
+            Game game = opened(0);
+            game.state().setColliderGeneratorsBought(ColliderGenerator.BEAM, 1);
+            for (int i = 0; i < 5; i++) {
+                int guard = 0;
+                while (!game.canCatchCrossing() && guard++ < 10_000) game.tick(0.01);
+                assertTrue(game.catchCrossing() > 0);
+                // On laisse passer le milieu du croisement, sans le compter comme manqué.
+                guard = 0;
+                while (game.isCrossing() && guard++ < 10_000) game.tick(0.01);
+            }
+            assertEquals(5, game.catchStreak());
+            // Un tour entier sans clic : le croisement suivant passe, la série repart de zéro.
+            game.tick(game.colliderPeriod() * 1.2);
+            assertEquals(0, game.catchStreak());
+        }
+
+        @Test
+        void viderLeCollisionneurNeToucheQuALui() {
+            Game game = opened(5e6);
+            game.state().setColliderGeneratorsBought(ColliderGenerator.BEAM, 3);
+            game.state().setQuarks(Quark.UP, 12);
+            game.state().setColliderEnergyProduced(Game.BLACK_HOLE_ENERGY);
+            game.state().setParticles(BigNum.of(1234));
+            game.state().clearCollider();
+            assertEquals(0, game.colliderEnergy());
+            assertEquals(0, game.colliderEnergyProduced());
+            assertEquals(0, game.state().colliderGeneratorsBought(ColliderGenerator.BEAM));
+            assertEquals(0, game.quarks(Quark.UP));
+            assertEquals(0, game.colliderUpgradeLevel(ColliderUpgrade.COLLISIONS));
+            assertEquals(BigNum.of(1234), game.state().particles());
+            assertEquals(1, game.state().explosions());
+        }
+
+        @Test
+        void refaireLActeDuBigBangGardeLaMatiereNoireEtLeCollisionneur() {
+            Game game = opened(5e6);
+            game.state().setBigBangs(3);
+            game.state().setMoleculeCount("H2O", 4);
+            game.state().addBody("rocky_planet");
+            game.state().setSpace(BigNum.of(5000));
+            game.state().setDarkMatter(BigNum.of(7));
+            game.state().clearBigBangAct();
+            assertEquals(0, game.bigBangs());
+            assertEquals(0, game.moleculeCount("H2O"));
+            assertFalse(game.hasBody("rocky_planet"));
+            assertTrue(game.state().space().isZero());
+            assertEquals(BigNum.of(7), game.state().darkMatter());
+            assertEquals(5e6, game.colliderEnergy());
+        }
     }
 }

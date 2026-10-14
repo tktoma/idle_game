@@ -127,7 +127,7 @@ public final class GalaxyView extends Canvas {
 
     /** Fait avancer le temps de la vue et la redessine. */
     public void frame(double elapsed) {
-        time += elapsed;
+        if (BigBangPage.moving()) time += elapsed;
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.cosmosFormed() != drawnLevel
                 || colored != game.state().moleculesVersion();

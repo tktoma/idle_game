@@ -1,44 +1,47 @@
 package idle.core.collider;
 
 /**
- * Les cinq énergies de collision. Chacune coûte de l'énergie, dure un temps fixe et rapporte des
- * quarks ; elle s'ouvre quand le hadron de l'énergie précédente a été formé une fois.
+ * Les cinq énergies du collisionneur (version 0.60 : elles s'ouvrent une à une par les
+ * améliorations). Chacune ajoute une saveur de quark à ce que peut donner un croisement des
+ * faisceaux ; l'amélioration qui l'ouvre est {@link ColliderUpgrade#flavorOf(Quark)}.
  */
 public enum CollisionTier {
-    LOW("Basse énergie", 100, 30, null),
-    MEDIUM("Moyenne énergie", 10_000, 5 * 60, Hadron.PROTON),
-    HIGH("Haute énergie", 1e8, 30 * 60, Hadron.KAON),
-    VERY_HIGH("Très haute énergie", 1e12, 2 * 3600, Hadron.JPSI),
-    EXTREME("Énergie extrême", 1e16, 8 * 3600, Hadron.UPSILON);
+    LOW("Basse énergie", Quark.DOWN),
+    MEDIUM("Moyenne énergie", Quark.STRANGE),
+    HIGH("Haute énergie", Quark.CHARM),
+    VERY_HIGH("Très haute énergie", Quark.BOTTOM),
+    EXTREME("Énergie extrême", Quark.TOP);
 
     private final String label;
-    private final double cost;
-    private final double seconds;
-    private final Hadron opener;
+    private final Quark flavor;
 
-    CollisionTier(String label, double cost, double seconds, Hadron opener) {
+    CollisionTier(String label, Quark flavor) {
         this.label = label;
-        this.cost = cost;
-        this.seconds = seconds;
-        this.opener = opener;
+        this.flavor = flavor;
     }
 
     public String label() {
         return label;
     }
 
-    /** Énergie dépensée au lancement. */
-    public double cost() {
-        return cost;
+    /** La saveur la plus lourde qu'ouvre cette énergie ; la basse énergie donne les quarks haut et bas. */
+    public Quark flavor() {
+        return flavor;
     }
 
-    /** Durée de la collision, en secondes de jeu. */
-    public double seconds() {
-        return seconds;
+    /** L'amélioration qui ouvre cette énergie. */
+    public ColliderUpgrade upgrade() {
+        return ColliderUpgrade.flavorOf(flavor);
     }
 
-    /** Le hadron qu'il faut avoir formé une fois pour ouvrir cette énergie ; {@code null} pour la première. */
-    public Hadron opener() {
-        return opener;
+    /** L'énergie qui ouvre cette saveur. */
+    public static CollisionTier of(Quark quark) {
+        return switch (quark) {
+            case UP, DOWN -> LOW;
+            case STRANGE -> MEDIUM;
+            case CHARM -> HIGH;
+            case BOTTOM -> VERY_HIGH;
+            case TOP -> EXTREME;
+        };
     }
 }

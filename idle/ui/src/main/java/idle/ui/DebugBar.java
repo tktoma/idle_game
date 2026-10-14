@@ -5,7 +5,9 @@ import idle.core.GameState;
 import idle.core.Resource;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.SpaceUpgrade;
-import idle.core.collider.Hadron;
+import idle.core.collider.ColliderGenerator;
+import idle.core.collider.ColliderUpgrade;
+import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.elements.Element;
@@ -45,7 +47,10 @@ import javafx.scene.layout.VBox;
  *   <li><b>Étapes</b> : ouvrir le tableau, tout automatiser, remplir ou vider le tableau ;</li>
  *   <li><b>Matière noire</b> : exploser, matière noire, taille, arbre, défis, masse du tableau ;</li>
  *   <li><b>Succès</b> : tous les accorder ;</li>
- *   <li><b>Big Bang</b> : réunir ses conditions, le déclencher, s'ajouter des molécules ou de l'espace.</li>
+ *   <li><b>Big Bang</b> : réunir ses conditions, le déclencher, s'ajouter des molécules ou de l'espace ;</li>
+ *   <li><b>Collisionneur</b> : énergie, générateurs, améliorations, quarks, quark top, énergie des trous noirs ;</li>
+ *   <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
+ *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
  * </ul>
  * Un outil qui ajoute de la matière noire ouvre l'onglet correspondant, comme le ferait une
  * première explosion.
@@ -72,6 +77,24 @@ final class DebugBar extends VBox {
     private final Map<Button, FlowPane> groups = new LinkedHashMap<>();
     private Button open = null;
     private int timeIndex = 0;
+    /** Ce que la barre peut faire des thèmes et notations à débloquer, qui vivent dans les réglages ; branché par l'application. */
+    interface CosmeticTools {
+        void unlockAll();
+
+        void lockAll();
+
+        /** Ouvre ce thème ou cette notation s'il est fermé, le referme sinon. */
+        void toggle(Cosmetic cosmetic);
+    }
+
+    private CosmeticTools cosmetics;
+
+    /** Le nom court d'un cosmétique, pour son bouton : « Sépia », « Romaine ». */
+    private static String cosmeticName(Cosmetic cosmetic) {
+        String label = cosmetic.label();
+        int open = label.lastIndexOf('«');
+        return open < 0 ? label : "± " + label.substring(open + 1).replace("»", "").trim();
+    }
 
     DebugBar(Game game) {
         super(6);
@@ -176,10 +199,68 @@ final class DebugBar extends VBox {
                     Cosmos next = game.nextCosmos();
                     if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }));
+        group("Collisionneur",
+                tool("Énergie ×1 000", () -> {
+                    unlockCollider();
+                    game.state().setColliderEnergy(Math.max(game.state().colliderEnergy(), 1000) * 1000);
+                }),
+                tool("Les 8 générateurs", () -> {
+                    unlockCollider();
+                    for (ColliderGenerator generator : ColliderGenerator.values()) {
+                        if (game.state().colliderGeneratorsBought(generator) == 0) {
+                            game.state().setColliderGeneratorsBought(generator, 1);
+                            game.state().setColliderGenerators(generator, Math.max(1, game.state().colliderGenerators(generator)));
+                        }
+                    }
+                }),
+                tool("Collisions et saveurs", () -> {
+                    unlockCollider();
+                    for (ColliderUpgrade upgrade : java.util.List.of(ColliderUpgrade.COLLISIONS, ColliderUpgrade.FLAVOR_STRANGE,
+                            ColliderUpgrade.FLAVOR_CHARM, ColliderUpgrade.FLAVOR_BOTTOM, ColliderUpgrade.FLAVOR_TOP)) {
+                        game.state().setColliderUpgradeLevel(upgrade, Math.max(1, game.colliderUpgradeLevel(upgrade)));
+                    }
+                }),
+                tool("Toutes les améliorations", () -> {
+                    unlockCollider();
+                    for (ColliderUpgrade upgrade : ColliderUpgrade.values()) game.state().setColliderUpgradeLevel(upgrade, upgrade.maxLevel());
+                }),
+                tool("+100 quarks de chaque", () -> {
+                    unlockCollider();
+                    for (Quark quark : Quark.values()) game.state().setQuarks(quark, game.quarks(quark) + 100);
+                }),
+                tool("Un quark top", () -> {
+                    unlockCollider();
+                    game.state().setTopLeft(Game.TOP_SECONDS);
+                }),
+                tool("Énergie des trous noirs", () -> {
+                    unlockCollider();
+                    game.state().setColliderEnergyProduced(Math.max(game.state().colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
+                }));
+        group("Actes",
+                tool("Refaire l'acte 1", () -> game.state().clearMatter()),
+                tool("Refaire l'acte 2", () -> {
+                    game.state().clearMatter();
+                    game.state().clearDarkMatter();
+                }),
+                tool("Refaire l'acte 3", () -> game.state().clearBigBangAct()),
+                tool("Vider le collisionneur", () -> game.state().clearCollider()));
+        // Un bouton par thème et par notation à débloquer : un clic l'ouvre, un second le referme.
+        java.util.List<Button> cosmeticTools = new java.util.ArrayList<>();
+        cosmeticTools.add(tool("Tout débloquer", () -> { if (cosmetics != null) cosmetics.unlockAll(); }));
+        cosmeticTools.add(tool("Tout refermer", () -> { if (cosmetics != null) cosmetics.lockAll(); }));
+        for (idle.ui.Cosmetic cosmetic : idle.ui.Cosmetic.values()) {
+            cosmeticTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
+        }
+        group("Thèmes et notations", cosmeticTools.toArray(new Button[0]));
 
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
         header.getChildren().add(status);
         refresh();
+    }
+
+    /** Branche les outils qui ouvrent ou referment les cosmétiques, qui vivent dans les réglages de l'application. */
+    void setCosmetics(CosmeticTools cosmetics) {
+        this.cosmetics = cosmetics;
     }
 
     /** Facteur d'accélération du temps choisi : 1 = vitesse normale. */
@@ -448,8 +529,8 @@ final class DebugBar extends VBox {
                 }
             }
             state.setSpace(state.space().max(game.usedSpace().multiply(3)));
-            // L'outil de mise au point saute la maturation, et donne le cœur de galaxie s'il le faut.
-            if (game.needsGalaxyCore(body) && state.hadrons(Hadron.UPSILON) == 0) state.setHadrons(Hadron.UPSILON, 1);
+            // L'outil de mise au point saute la maturation, et donne l'énergie produite qu'un trou noir demande.
+            if (game.needsColliderEnergy(body)) state.setColliderEnergyProduced(Math.max(state.colliderEnergyProduced(), game.colliderEnergyNeeded(body)));
             boolean formed = game.formBody(body.id());
             if (formed) state.setMaturing(body.id(), 0);
             return formed;
@@ -468,6 +549,11 @@ final class DebugBar extends VBox {
             int index = game.state().solarSystems().size() - 1;
             for (int i = 0; i < Game.SYSTEM_MIN_PLANETS; i++) game.addPlanet(index, planets.get(i));
         }
+    }
+
+    /** Le collisionneur s'ouvre à la première explosion : l'outil la compte, s'il n'y en a pas eu. */
+    private void unlockCollider() {
+        if (game.state().explosions() == 0 && game.bigBangs() == 0) game.state().setExplosions(1);
     }
 
     private void readyForBigBang() {

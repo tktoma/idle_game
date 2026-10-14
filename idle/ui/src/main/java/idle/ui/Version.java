@@ -23,6 +23,99 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.67", "Quatre effets de plus, coupés tout de suite", List.of(
+                    "Quatre effets visuels de plus à couper : la création de particules (l'onde et les poussières), la "
+                            + "matière noire animée, les animations du Big Bang (espace, ciel, systèmes, galaxie) et celles du "
+                            + "collisionneur (ondes, envol des quarks, scintillement ; les faisceaux restent, ils servent à viser). "
+                            + "Douze en tout, rangés onglet par onglet.",
+                    "Un effet coupé s'arrête dès l'image suivante : plus de poussières, d'ondes, d'étincelles ou d'allure qui "
+                            + "finissent de s'éteindre, ni en arrivant sur l'onglet. Le fond animé coupé s'efface au lieu de rester figé.")),
+            new Note("0.66", "Le record de la fusion la plus rapide se débloque", List.of(
+                    "Une fusion de zéro seconde (tout de suite après la précédente, quand tout est gardé) inscrivait un record "
+                            + "de 0, que l'écran lit comme « pas encore » et qu'aucune fusion ne pouvait battre. Une durée nulle "
+                            + "ne compte plus, et un record à 0 relu d'une sauvegarde est battu par la prochaine fusion. Pareil "
+                            + "pour l'explosion et le Big Bang les plus rapides.")),
+            new Note("0.65", "Courbes tout de suite, nombres en notation, outils des thèmes", List.of(
+                    "Les courbes ont toujours un point de l'instant : une courbe toute neuve (comme celles du collisionneur "
+                            + "sur une partie déjà longue, dont les relevés s'espacent de plusieurs minutes) n'est plus vide en "
+                            + "attendant le prochain relevé ; elle se remplit à partir de maintenant.",
+                    "Collisionneur : tous les nombres (énergie, générateurs, achetés, quarks, prix en quarks, production) suivent "
+                            + "la notation choisie au-delà de mille.",
+                    "Effets : l'atome de l'onglet Atomes a son propre réglage, « Atome qui tourne », et l'icône de l'onglet se "
+                            + "fige avec les autres icônes.",
+                    "Thème « Contraste fort » adouci : les tons sombres (orbites de l'atome, cadres) ne disparaissent plus.",
+                    "Profil de test : un groupe « Thèmes et notations », pour tout débloquer, tout refermer, ou ouvrir et refermer chacun.")),
+            new Note("0.64", "Courbes du collisionneur, records complets, collisionneur plus sobre", List.of(
+                    "Statistiques : l'énergie du collisionneur rejoint le graphique de toutes les ressources, et sa courbe "
+                            + "d'énergie produite la vue d'ensemble. Le sous-onglet « Collisionneur » a cinq courbes : énergie "
+                            + "produite, énergie par seconde, énergie en réserve, collisions, quarks.",
+                    "Records : chaque record a sa ligne dès le début, « pas encore » tant qu'il n'est pas tenu (fusion la plus "
+                            + "rapide, explosion la plus rapide, chaque défi…).",
+                    "Collisionneur : les cartes d'amélioration disent l'essentiel en quelques mots, l'explication complète passe "
+                            + "en mode détails, comme les saveurs fermées, le quark top et les annonces.",
+                    "Les courbes relues d'une sauvegarde se réécrivent à l'identique (un arrondi pouvait changer d'un chiffre).")),
+            new Note("0.63", "Thèmes, notations secrètes, réglages rangés, records", List.of(
+                    "Neuf thèmes de plus : Nuit, Aurore, Monochrome et Contraste fort tout de suite ; Sépia, Phosphore, "
+                            + "Infrarouge, Nébuleuse et Or à débloquer. Deux notations de plus (en mots, en puissances), et trois à "
+                            + "débloquer (Alphabet, Logarithme, Romaine). Chaque déblocage demande quelque chose de très précis : "
+                            + "un clic sur un cadenas en donne l'indice.",
+                    "Les réglages se rangent en cinq sous-onglets : Affichage, Effets et sons, Jeu, Clavier, Partie. Les "
+                            + "effets visuels se coupent un par un (éclair, fond animé, onglet qui bat, icônes, allure des "
+                            + "générateurs, étincelles du collisionneur, chute de matière noire).",
+                    "La sauvegarde automatique se règle : toutes les 10 s, 30 s, 1 min ou 5 min. Le temps hors ligne peut "
+                            + "être coupé : le jeu reprend alors là où il en était.",
+                    "Les statistiques gagnent deux sous-onglets : « Collisionneur » (énergie, croisements, collisions, quarks) "
+                            + "et « Records », acte par acte (étapes, fusion, explosion et Big Bang les plus rapides, défis).",
+                    "Profil de test : deux groupes d'outils de plus, « Collisionneur » et « Actes » (refaire un acte, vider "
+                            + "le collisionneur, ouvrir ou refermer les cosmétiques).",
+                    "Les textes d'aide, d'objectifs et de détail qui parlaient encore des hadrons ou du plasma sont remis à jour.")),
+            new Note("0.62", "Plus de hadrons : l'énergie ouvre les trous noirs", List.of(
+                    "Les hadrons disparaissent, avec leurs bonus, leurs paliers et la capture : les quarks servent désormais à "
+                            + "payer la chaîne, chaque étape dans sa saveur (u, u, d, s, c, b), en plus de l'énergie.",
+                    "Les deux trous noirs demandent un palier d'énergie produite au collisionneur depuis le début : "
+                            + "mille milliards pour le trou noir, un million de milliards pour le trou noir supermassif.",
+                    "Le sous-onglet « Hadrons » devient « Chaîne » ; les sondes rapportent des quarks c et b dès la saveur charmée.")),
+            new Note("0.61", "Particules vivantes, succès rangés, chaîne dans les hadrons", List.of(
+                    "Les générateurs de particules suivent leur vitesse : lents, des poussières bleues et un noyau calme ; plus "
+                            + "vite, des traînées, des spirales et des anneaux d'accrétion qui tournent ; très vite, une couronne "
+                            + "de rayons, des arcs d'énergie, et la couleur qui passe du bleu au violet puis à l'or.",
+                    "Le fond de l'onglet des particules file et se teinte avec la production ; l'icône des particules et celle "
+                            + "du collisionneur tournent avec leur vitesse ; la matière noire attire en spirale de la matière qui "
+                            + "tombe, d'autant plus fort qu'elle grossit vite.",
+                    "Les succès du collisionneur passent dans l'onglet « Succès », avec la matière noire ; quatorze succès du "
+                            + "Big Bang s'y ajoutent au premier Big Bang (Big Bangs, molécules, astres, galaxie, systèmes, sondes, "
+                            + "comètes), chacun renforçant l'espace, les particules, les atomes ou la matière noire.",
+                    "La chaîne énergie → particules → atomes → matière noire → espace → molécules prend la place des cartes "
+                            + "du sous-onglet « Hadrons » ; les hadrons se forment désormais d'eux-mêmes.")),
+            new Note("0.60", "Collisionneur par améliorations, succès du collisionneur, onglets à glisser", List.of(
+                    "Les collisions ne viennent plus d'office : l'amélioration « Collisions », première du sous-onglet ouvert "
+                            + "par le huitième générateur, donne aux croisements leur chance ; les saveurs s'ouvrent ensuite une à "
+                            + "une, avec l'énergie : étrange, charmée, belle, top.",
+                    "Les générateurs coûtent moins : les huit arrivent en trois heures environ, au lieu de deux jours.",
+                    "Les améliorations se rangent en quatre familles : collisions et saveurs ; faisceaux (vitesse, détecteur, "
+                            + "déclencheur) ; générateurs (production ×2 par niveau, un automate par générateur, ouvert un à un) ; "
+                            + "et la chaîne énergie → particules → atomes → matière noire → vitesse de l'espace → dédoublement des molécules.",
+                    "Nouveau sous-onglet « Succès » : dix-neuf succès du collisionneur, gagnés en achetant des générateurs ; "
+                            + "chacun double une production, divise des prix par deux, ou renforce l'énergie ou la chance.",
+                    "Un appui long sur un onglet le laisse glisser à une autre place, en haut comme à gauche ; l'ordre est "
+                            + "gardé, et un réglage remet l'ordre d'origine.")),
+            new Note("0.59", "Collisions au hasard, améliorations du collisionneur, systèmes lisibles", List.of(
+                    "Le sous-onglet « Collisions » disparaît : chaque croisement des faisceaux a désormais 15 % de chances "
+                            + "de donner une collision, donc un quark, qui s'envole du détecteur à la couleur de sa saveur.",
+                    "Un clic au moment du croisement capte trois secondes d'énergie et assure une collision au butin doublé.",
+                    "Les saveurs plus lourdes s'ouvrent avec un hadron et un générateur : l'étrange avec un proton et la "
+                            + "cavité accélératrice, le charmé avec un kaon et l'anneau de stockage, et ainsi de suite.",
+                    "Avec le huitième générateur s'ouvre le sous-onglet « Améliorations » : une seule au début, chacune en "
+                            + "ouvrant d'autres (automates des générateurs, chance, saveurs lourdes, capture de hadrons, "
+                            + "déclencheur automatique, énergie, espace, top stable).",
+                    "Les plasma et matière étrange changent : 20 % de chance de collision, et un quark de plus une fois sur quatre.",
+                    "Les systèmes solaires se dessinent : l'étoile, une orbite par planète, verte quand la planète est à sa "
+                            + "place et orange sinon, la zone habitable ; trois pas à suivre en haut, et « Ranger au mieux ».",
+                    "Chaque onglet a son icône animée et une allure selon son rôle : cadre plein pour les actes, pointillés "
+                            + "pour ce qui tourne à côté, sans cadre pour les pages pour s'y retrouver.",
+                    "À gauche, les onglets ne bougent plus au clic : la barre du haut garde sa hauteur, et la colonne descend "
+                            + "jusqu'en bas de la fenêtre.",
+                    "Le lanceur de tests n'emploie plus ce que Gradle 10 refusera.")),
             new Note("0.58", "Paquets thématiques et lanceur de tests", List.of(
                     "Le code est rangé en paquets par thème : particules, atomes, matière noire, collisionneur, Big Bang, "
                             + "molécules, ciel, sondes, sauvegarde… pour s'y retrouver plus vite.",

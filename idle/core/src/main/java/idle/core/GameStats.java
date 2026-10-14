@@ -483,7 +483,7 @@ public final class GameStats {
     void noteBigBang(long explosions, double timePlayed) {
         timedBigBangs++;
         lastBigBangTime = bigBangTime;
-        if (timedBigBangs == 1 || bigBangTime < fastestBigBangTime) fastestBigBangTime = bigBangTime;
+        if (bigBangTime > 0 && (fastestBigBangTime <= 0 || bigBangTime < fastestBigBangTime)) fastestBigBangTime = bigBangTime;
         bigBangTimes.add(bigBangTime);
         if (bigBangTimes.size() > MAX_BIG_BANG_TIMES) bigBangTimes.remove(0);
         lastBigBangExplosions = explosions;
@@ -540,7 +540,9 @@ public final class GameStats {
         atomsCreated = atomsCreated.add(atoms);
         bestAtomsPerFusion = bestAtomsPerFusion.max(atoms);
         lastFusionTime = seconds;
-        if (fusions == 1 || seconds < fastestFusionTime) fastestFusionTime = seconds;
+        // 0 = pas encore de record : une durée nulle (temps non daté) n'en est pas un, et un record à 0 relu d'une
+        // ancienne sauvegarde ne bloque plus les suivants (version 0.65).
+        if (seconds > 0 && (fastestFusionTime <= 0 || seconds < fastestFusionTime)) fastestFusionTime = seconds;
     }
 
     void noteAutomationAction() {
@@ -588,7 +590,7 @@ public final class GameStats {
     void endRun() {
         timedExplosions++;
         lastExplosionTime = runTime;
-        if (timedExplosions == 1 || runTime < fastestExplosionTime) fastestExplosionTime = runTime;
+        if (runTime > 0 && (fastestExplosionTime <= 0 || runTime < fastestExplosionTime)) fastestExplosionTime = runTime;
         explosionTimes.add(runTime);
         if (explosionTimes.size() > MAX_EXPLOSION_TIMES) explosionTimes.remove(0);
         runTime = 0;

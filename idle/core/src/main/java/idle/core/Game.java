@@ -2,17 +2,18 @@ package idle.core;
 
 import idle.core.achievements.Achievement;
 import idle.core.achievements.Achievements;
+import idle.core.bigbang.BangAchievement;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.BigBangMilestones;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.bigbang.SpaceUpgrades;
+import idle.core.collider.ColliderAchievement;
 import idle.core.collider.ColliderGenerator;
-import idle.core.collider.ColliderMilestone;
+import idle.core.collider.ColliderUpgrade;
 import idle.core.collider.Collision;
 import idle.core.collider.CollisionTier;
-import idle.core.collider.Hadron;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.Challenges;
@@ -708,6 +709,29 @@ public final class Game {
         if (run) stats.runHistory().add(new StatsHistory.Sample(stats.runTime(), withPeaks(values, stats.runHistory()), delays));
     }
 
+    /**
+     * Les relevés d'un historique, suivis d'un relevé de l'instant (version 0.64). Les relevés
+     * s'espacent avec le temps de jeu (plusieurs minutes après quelques heures) : sans ce dernier
+     * point, une courbe toute neuve, ou une statistique apparue depuis le dernier relevé, resterait
+     * vide jusqu'au suivant. Le relevé de l'instant n'est pas gardé.
+     *
+     * @param run vrai pour l'historique de la partie en cours, faux pour celui de tout le jeu
+     */
+    public List<StatsHistory.Sample> samplesWithNow(boolean run) {
+        GameStats stats = state.stats();
+        StatsHistory history = run ? stats.runHistory() : stats.history();
+        List<StatsHistory.Sample> samples = new ArrayList<>(history.samples());
+        if (!state.started()) return samples;
+        double time = run ? stats.runTime() : state.timePlayed();
+        if (!samples.isEmpty() && samples.get(samples.size() - 1).time() >= time) return samples;
+        Map<String, Double> delays = new java.util.HashMap<>();
+        for (Automation automation : automations.values()) {
+            if (ownsAutomation(automation.id())) delays.put(automation.id(), automationInterval(automation.id()));
+        }
+        samples.add(new StatsHistory.Sample(time, withPeaks(measure(), history), delays));
+        return samples;
+    }
+
     /** Ces mesures, où chaque statistique qui retient un sommet ({@link StatsHistory.Stat#peaks()}) prend celui de cet historique. */
     private static double[] withPeaks(double[] values, StatsHistory history) {
         double[] copy = values.clone();
@@ -791,6 +815,11 @@ public final class Game {
                 case MOLECULE_CREATIONS -> state.stats().moleculeCreations();
                 case AUTO_MOLECULE_CREATIONS -> state.stats().autoMoleculeCreations();
                 case SUBSTANCES -> substancesFormed();
+                case COLLIDER_ENERGY -> isColliderUnlocked() ? power(BigNum.of(state.colliderEnergy())) : Double.NaN;
+                case COLLIDER_ENERGY_PRODUCED -> isColliderUnlocked() ? power(BigNum.of(state.colliderEnergyProduced())) : Double.NaN;
+                case COLLIDER_ENERGY_RATE -> isColliderUnlocked() ? power(BigNum.of(colliderEnergyPerSecond())) : Double.NaN;
+                case COLLISIONS -> isCollisionsUnlocked() ? state.collisionRuns() : Double.NaN;
+                case QUARKS -> isCollisionsUnlocked() ? totalQuarks() : Double.NaN;
                 case PARTICLES -> power(state.particles());
                 case ATOMS -> power(state.atoms());
                 case ELEMENT_COPIES -> ownedCopies();
@@ -2105,7 +2134,8 @@ public final class Game {
                 * darkExpansionMultiplier().min(BigNum.of(1, 100)).toDouble() * landmarkExpansionMultiplier()
                 * (1 + achievementBonus(Achievement.Bonus.EXPANSION))
                 * moleculeBoost(Molecule.Stat.DARK_GROWTH)
-                * colliderDarkGrowthMultiplier();
+                * colliderDarkGrowthMultiplier()
+                * bangAchievementMultiplier(BangAchievement.Reward.DARK_GROWTH);
     }
 
     /**
@@ -3035,6 +3065,7 @@ public final class Game {
         if (!canCreateMolecule(moleculeId)) return false;
         Molecule molecule = molecule(moleculeId);
         int created = moleculesNextCreation(moleculeId);
+        created += moleculeDoubling(moleculeId, created);
         long elements = 0;
         for (Map.Entry<Integer, Integer> atom : nextMoleculeCost(moleculeId).entrySet()) {
             state.setElementCount(atom.getKey(), state.elementCount(atom.getKey()) - atom.getValue());
@@ -3044,6 +3075,28 @@ public final class Game {
         state.stats().noteMoleculeCreation(created, elements, automatic);
         noteStep(GameStats.Step.FIRST_MOLECULE);
         return true;
+    }
+
+    /** Chance qu'une création de molécule en donne deux fois plus : le dédoublement du collisionneur (5 % par niveau). */
+    public double moleculeDoublingChance() {
+        return 0.05 * colliderUpgradeLevel(ColliderUpgrade.MOLECULES);
+    }
+
+    /**
+     * Les molécules de plus que donne le dédoublement à cette création : autant qu'elle en crée,
+     * dans la limite de l'espace libre et des plafonds ; 0 s'il ne joue pas cette fois. Le hasard est
+     * tiré du nombre de créations, sans toucher à celui de la synthèse.
+     */
+    private int moleculeDoubling(String moleculeId, int created) {
+        double chance = moleculeDoublingChance();
+        if (chance <= 0) return 0;
+        double mix = Math.sin(state.stats().moleculeCreations() * 12.9898 + 61 * 78.233) * 43758.5453;
+        if (mix - Math.floor(mix) >= chance) return 0;
+        Molecule molecule = molecule(moleculeId);
+        double room = state.space().multiply(1 + 1e-9).subtract(usedSpace()).toDouble() / volumeOf(molecule) - created;
+        long caps = Math.min((long) MAX_MOLECULES - state.moleculeCount(molecule.id()) - created,
+                (long) MAX_TOTAL_MOLECULES - moleculesCreated() - created);
+        return (int) Math.max(0, Math.min(created, Math.min(Math.floor(room), caps)));
     }
 
     /**
@@ -4019,7 +4072,7 @@ public final class Game {
         for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
             if (state.moleculeCount(needed.getKey()) >= needed.getValue()) met++;
         }
-        if (needsGalaxyCore(body) && hasColliderMilestone(ColliderMilestone.CORE)) met++;
+        if (needsColliderEnergy(body) && hasColliderEnergyFor(body)) met++;
         return met;
     }
 
@@ -4240,7 +4293,8 @@ public final class Game {
     public BigNum steadySpacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
         return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
-                * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier());
+                * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier()
+                * bangAchievementMultiplier(BangAchievement.Reward.SPACE));
     }
 
     /**
@@ -4257,13 +4311,13 @@ public final class Game {
     }
 
     // ------------------------------------------------------------------
-    // Le collisionneur de quarks (version 0.50) : un jeu en parallèle, dont rien ne se perd
+    // Le collisionneur de quarks (version 0.50, refait en 0.59) : un jeu en parallèle, dont rien
+    // ne se perd ni à l'explosion ni au Big Bang ; seule la remise à zéro le reprend
     // ------------------------------------------------------------------
 
-    /** Collisions menées en même temps. */
-    public static final int COLLIDER_SLOTS = 2;
-    /** Période de la barre de résonance, en secondes, et la part de la période où un clic réussit. */
+    /** Période des faisceaux, en secondes : ils se croisent une fois par tour. */
     public static final double RESONANCE_PERIOD = 2;
+    /** La part du tour pendant laquelle les faisceaux se croisent : le moment où un clic les capte. */
     public static final double RESONANCE_WINDOW = 0.16;
     /** Le quark top se désintègre une minute après son arrivée ; utilisé à temps, il donne dix minutes de surchauffe. */
     public static final double TOP_SECONDS = 60;
@@ -4271,35 +4325,142 @@ public final class Game {
     public static final double OVERHEAT_FACTOR = 10;
     /** Quarks beaux rendus quand le top se désintègre sans servir : rater le moment ne coûte rien. */
     public static final int TOP_CONSOLATION_BOTTOM = 3;
+    /** Chance qu'un croisement donne une collision, sans les améliorations. */
+    public static final double COLLISION_CHANCE = 0.15;
+    /** Ce que chaque niveau de focalisation ajoute à cette chance. */
+    public static final double LUCK_CHANCE = 0.03;
+    /** Secondes de production que rapporte un croisement capté d'un clic. */
+    public static final double CROSSING_SECONDS = 3;
+    /** Au-delà de ce nombre de croisements d'un coup (une longue absence), le butin se compte en moyenne. */
+    static final int CROSSINGS_ONE_BY_ONE = 400;
+    /** Les collisions gardées pour le dessin des faisceaux. */
+    private static final int RECENT_COLLISIONS = 24;
 
-    /** Ce qu'une collision terminée a rapporté : pour les annonces. */
-    public record CollisionResult(CollisionTier tier, Map<Quark, Integer> quarks, boolean doubled) {}
+    /**
+     * Ce qu'une collision a donné : une saveur et son nombre de quarks. {@code caught} : le croisement a été capté (d'un clic ou par le déclencheur), le butin
+     * est doublé. {@code serial} : le numéro de la collision, pour que le dessin ne la montre qu'une fois.
+     */
+    public record CollisionResult(long serial, Quark quark, int count, boolean caught) {}
 
     private final List<CollisionResult> finishedCollisions = new ArrayList<>();
+    private final java.util.ArrayDeque<CollisionResult> recentCollisions = new java.util.ArrayDeque<>();
 
     /** Le collisionneur s'ouvre à la première explosion et ne se referme plus. */
     public boolean isColliderUnlocked() {
-        return state.started() && (isDarkMatterUnlocked() || state.bigBangs() > 0 || state.collisionRuns() > 0);
+        return state.started() && (isDarkMatterUnlocked() || state.bigBangs() > 0 || state.collisionRuns() > 0
+                || state.colliderGeneratorsBought(ColliderGenerator.BEAM) > 0);
     }
 
     /**
      * Énergie gagnée par seconde : les faisceaux croisés, un d'office et ceux qu'on achète ou que
-     * produit l'aimant ({@link ColliderGenerator}). Le collisionneur est un jeu à part : il ne dépend
-     * plus de la production de particules.
+     * produit l'aimant ({@link ColliderGenerator}), multipliés par la production d'énergie et les
+     * succès du collisionneur. Le collisionneur est un jeu à part : il ne dépend pas de la production
+     * de particules.
      */
     public double colliderEnergyPerSecond() {
         if (!isColliderUnlocked()) return 0;
-        return (1 + state.colliderGenerators(ColliderGenerator.BEAM)) * ColliderGenerator.BEAM.power();
+        return (1 + state.colliderGenerators(ColliderGenerator.BEAM)) * ColliderGenerator.BEAM.power() * colliderEnergyMultiplier()
+                * colliderOutputMultiplier(ColliderGenerator.BEAM);
+    }
+
+    /**
+     * Ce par quoi un générateur multiplie sa production : son succès de production (×2), le succès
+     * des 250 générateurs (×1,5), et pour ceux qui produisent un autre générateur, les générateurs
+     * renforcés (×2 par niveau).
+     */
+    public double colliderOutputMultiplier(ColliderGenerator generator) {
+        double multiplier = hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.OUTPUT)) ? 2 : 1;
+        if (hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND)) multiplier *= 1.5;
+        if (generator != ColliderGenerator.BEAM) multiplier *= Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.GENERATOR_POWER));
+        return multiplier;
+    }
+
+    // Les succès du Big Bang (version 0.61).
+
+    /** Vrai une fois le premier Big Bang passé : les succès du Big Bang se montrent. */
+    public boolean isBangAchievementsUnlocked() {
+        return state.bigBangs() > 0;
+    }
+
+    /** Où en est ce succès du Big Bang : ce qui est réuni, borné à ce qu'il demande. */
+    public int bangAchievementProgress(BangAchievement achievement) {
+        long have = switch (achievement.stat()) {
+            case BIG_BANGS -> state.bigBangs();
+            case MOLECULES -> moleculesCreated();
+            case BODIES -> bodiesFormed();
+            case GALAXY -> hasGalaxy() ? 1 : 0;
+            case SYSTEMS -> solarSystemsComplete();
+            case PROBES -> state.probeRuns();
+            case COMETS -> state.cometsCaught();
+        };
+        return (int) Math.min(achievement.threshold(), Math.max(0, have));
+    }
+
+    public boolean hasBangAchievement(BangAchievement achievement) {
+        return bangAchievementProgress(achievement) >= achievement.threshold();
+    }
+
+    public int bangAchievements() {
+        int count = 0;
+        for (BangAchievement achievement : BangAchievement.values()) if (hasBangAchievement(achievement)) count++;
+        return count;
+    }
+
+    /** Ce par quoi les succès du Big Bang gagnés multiplient cette grandeur : 1 + la somme de leurs bonus. */
+    public double bangAchievementMultiplier(BangAchievement.Reward reward) {
+        double sum = 0;
+        for (BangAchievement achievement : BangAchievement.values()) {
+            if (achievement.reward() == reward && hasBangAchievement(achievement)) sum += achievement.amount();
+        }
+        return 1 + sum;
+    }
+
+    // Les succès du collisionneur (version 0.60).
+
+    /** Générateurs achetés en tout, toutes sortes confondues. */
+    public int colliderGeneratorsBoughtTotal() {
+        int total = 0;
+        for (ColliderGenerator generator : ColliderGenerator.values()) total += state.colliderGeneratorsBought(generator);
+        return total;
+    }
+
+    /** Où en est ce succès : ce qui est réuni (borné à ce qu'il demande). */
+    public int colliderAchievementProgress(ColliderAchievement achievement) {
+        long have;
+        if (achievement.generator() != null) have = state.colliderGeneratorsBought(achievement.generator());
+        else if (achievement.kind() == ColliderAchievement.Kind.CHANCE) have = state.collisionRuns();
+        else have = colliderGeneratorsBoughtTotal();
+        return (int) Math.min(achievement.threshold(), have);
+    }
+
+    /** Vrai si ce succès du collisionneur est gagné : il se déduit des achats et des collisions. */
+    public boolean hasColliderAchievement(ColliderAchievement achievement) {
+        return colliderAchievementProgress(achievement) >= achievement.threshold();
+    }
+
+    /** Nombre de succès du collisionneur gagnés. */
+    public int colliderAchievements() {
+        int count = 0;
+        for (ColliderAchievement achievement : ColliderAchievement.values()) if (hasColliderAchievement(achievement)) count++;
+        return count;
+    }
+
+    /** Ce par quoi les améliorations multiplient l'énergie. */
+    public double colliderEnergyMultiplier() {
+        double multiplier = Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.ENERGY))
+                * (hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1);
+        return multiplier;
     }
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
     public double colliderGeneratorOutput(ColliderGenerator generator) {
-        return state.colliderGenerators(generator) * generator.power();
+        return state.colliderGenerators(generator) * generator.power() * colliderOutputMultiplier(generator);
     }
 
     /** Prix du prochain exemplaire de ce générateur. */
     public double colliderGeneratorCost(ColliderGenerator generator) {
-        return generator.cost(state.colliderGeneratorsBought(generator));
+        double cost = generator.cost(state.colliderGeneratorsBought(generator));
+        return hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.COST)) ? cost / 2 : cost;
     }
 
     /** Un générateur s'offre dès que le précédent existe : le premier tout de suite. */
@@ -4328,173 +4489,360 @@ public final class Game {
         return bought;
     }
 
-    /** Secondes de production que rapporte un croisement capté d'un clic. */
-    public static final double CROSSING_SECONDS = 3;
+    public double colliderEnergy() {
+        return state.colliderEnergy();
+    }
 
-    /** La phase des faisceaux de l'énergie, de 0 à 1 : ils se croisent dans le détecteur à 0,5. */
+    /** Ajoute de l'énergie, et la compte dans l'énergie produite depuis le début. */
+    private void addColliderEnergy(double gain) {
+        if (!(gain > 0)) return;
+        state.setColliderEnergy(state.colliderEnergy() + gain);
+        state.setColliderEnergyProduced(state.colliderEnergyProduced() + gain);
+    }
+
+    /** L'énergie produite depuis le début : ce qui ouvre les deux trous noirs (version 0.62). */
+    public double colliderEnergyProduced() {
+        return state.colliderEnergyProduced();
+    }
+
+    // Les croisements et leur hasard.
+
+    /** Secondes entre deux croisements : {@link #RESONANCE_PERIOD}, moins avec les faisceaux rapides. */
+    public double colliderPeriod() {
+        return RESONANCE_PERIOD / (1 + 0.2 * colliderUpgradeLevel(ColliderUpgrade.SPEED));
+    }
+
+    /** La part du tour où les faisceaux se croisent : {@link #RESONANCE_WINDOW}, plus avec le détecteur élargi. */
+    public double colliderWindow() {
+        return RESONANCE_WINDOW * (1 + 0.25 * colliderUpgradeLevel(ColliderUpgrade.WINDOW));
+    }
+
+    /** La phase des faisceaux, de 0 à 1 : ils se croisent dans le détecteur à 0,5. */
     public double colliderBeamPhase() {
-        double phase = (state.timePlayed() % RESONANCE_PERIOD) / RESONANCE_PERIOD;
-        return phase < 0 ? phase + 1 : phase;
+        return state.colliderPhase();
+    }
+
+    /** Vrai si la phase tombe dans le moment du croisement, de la largeur de départ. */
+    public static boolean inResonance(double phase) {
+        return Math.abs(phase - 0.5) <= RESONANCE_WINDOW / 2;
+    }
+
+    /** Vrai pendant que les faisceaux se croisent, détecteur élargi compris. */
+    public boolean isCrossing() {
+        return Math.abs(state.colliderPhase() - 0.5) <= colliderWindow() / 2;
+    }
+
+    /** Le numéro du croisement en cours : celui qui arrive avant le milieu du tour, celui qui vient de passer après. */
+    private long currentCrossing() {
+        return state.colliderCrossings() + (state.colliderPhase() < 0.5 ? 1 : 0);
     }
 
     /** Vrai si le croisement en cours n'a pas encore été capté. */
     public boolean canCatchCrossing() {
-        if (!isColliderUnlocked() || !inResonance(colliderBeamPhase())) return false;
-        return state.timePlayed() - state.colliderCrossingAt() > RESONANCE_PERIOD * RESONANCE_WINDOW;
+        return isColliderUnlocked() && isCrossing() && state.colliderCaught() != currentCrossing();
     }
 
     /**
      * Un clic quand les faisceaux se croisent : {@link #CROSSING_SECONDS} secondes de production
-     * d'énergie d'un coup. Un seul par croisement ; à côté, rien.
+     * d'énergie d'un coup, et une collision assurée au butin doublé. Un seul par croisement ; à
+     * côté, rien.
      *
      * @return l'énergie gagnée, 0 si le clic tombe à côté
      */
     public double catchCrossing() {
         if (!canCatchCrossing()) return 0;
+        long crossing = currentCrossing();
+        state.setColliderCaught(crossing);
+        catchStreak++;
+        return caught(crossing);
+    }
+
+    /** Croisements captés à la main de suite, sans en laisser passer un : rien ne le garde, il repart de zéro au lancement. */
+    private int catchStreak;
+
+    /** Croisements captés à la main de suite, depuis le dernier manqué (ou le lancement du jeu). */
+    public int catchStreak() {
+        return catchStreak;
+    }
+
+    /** Ce que donne un croisement capté : l'énergie, et la collision assurée. */
+    private double caught(long crossing) {
         double gain = colliderEnergyPerSecond() * CROSSING_SECONDS;
-        state.setColliderEnergy(state.colliderEnergy() + gain);
-        state.setColliderCrossingAt(state.timePlayed());
+        addColliderEnergy(gain);
+        if (isCollisionsUnlocked()) collide(crossing, true);
         return gain;
     }
 
-    public double colliderEnergy() {
-        return state.colliderEnergy();
-    }
-
-    /** Vrai si cette énergie de collision est ouverte : son hadron d'ouverture a été formé une fois. */
-    public boolean isCollisionTierOpen(CollisionTier tier) {
-        return isColliderUnlocked() && (tier.opener() == null || state.hadrons(tier.opener()) > 0);
-    }
-
-    public boolean canStartCollision(CollisionTier tier) {
-        return isCollisionTierOpen(tier) && state.collisions().size() < colliderSlots()
-                && state.colliderEnergy() >= tier.cost() - 1e-9;
-    }
-
-    /** Places de collision : {@link #COLLIDER_SLOTS}, une de plus avec la matière étrange. */
-    public int colliderSlots() {
-        return COLLIDER_SLOTS + (hasColliderMilestone(ColliderMilestone.STRANGE) ? 1 : 0);
-    }
-
-    /** Vrai si ce palier du collisionneur est atteint : il se déduit des hadrons formés. */
-    public boolean hasColliderMilestone(ColliderMilestone milestone) {
-        return switch (milestone) {
-            case PLASMA -> state.hadrons(Hadron.PROTON) >= 10 && state.hadrons(Hadron.NEUTRON) >= 10;
-            case STRANGE -> state.hadrons(Hadron.KAON) + state.hadrons(Hadron.LAMBDA) >= 5;
-            case CHARM -> state.hadrons(Hadron.JPSI) >= 3;
-            case CORE -> state.hadrons(Hadron.UPSILON) >= 1;
-        };
-    }
-
-    /** Où en est ce palier : ce qui est réuni, sur ce qu'il demande (« 7/20 »). */
-    public int[] colliderMilestoneProgress(ColliderMilestone milestone) {
-        return switch (milestone) {
-            case PLASMA -> new int[] {Math.min(10, state.hadrons(Hadron.PROTON)) + Math.min(10, state.hadrons(Hadron.NEUTRON)), 20};
-            case STRANGE -> new int[] {Math.min(5, state.hadrons(Hadron.KAON) + state.hadrons(Hadron.LAMBDA)), 5};
-            case CHARM -> new int[] {Math.min(3, state.hadrons(Hadron.JPSI)), 3};
-            case CORE -> new int[] {Math.min(1, state.hadrons(Hadron.UPSILON)), 1};
-        };
-    }
-
-    /** Nombre de paliers du collisionneur atteints. */
-    public int colliderMilestones() {
-        int count = 0;
-        for (ColliderMilestone milestone : ColliderMilestone.values()) if (hasColliderMilestone(milestone)) count++;
-        return count;
-    }
-
-    /** Vrai si le plasma relance la collision basse énergie : le palier est atteint et le joueur le laisse faire. */
-    public boolean isColliderAutoRunning() {
-        return hasColliderMilestone(ColliderMilestone.PLASMA) && state.colliderAuto();
-    }
-
-    /** Coupe ou remet la relance automatique de la basse énergie. */
-    public void setColliderAuto(boolean on) {
-        state.setColliderAuto(on);
+    /** Vrai une fois l'amélioration « Collisions » prise : les croisements ont leur chance de collision. */
+    public boolean isCollisionsUnlocked() {
+        return isColliderUnlocked() && colliderUpgradeLevel(ColliderUpgrade.COLLISIONS) > 0;
     }
 
     /**
-     * Vrai si cet astre demande le cœur de galaxie : c'est le cas du trou noir supermassif, le dernier
-     * avant la galaxie. Le collisionneur fait ainsi partie du chemin.
+     * Chance qu'un croisement donne une collision : aucune avant l'amélioration « Collisions » ;
+     * ensuite 15 %, plus la focalisation et le succès des mille collisions.
      */
-    public boolean needsGalaxyCore(Body body) {
-        return body.tier() == Body.Tier.CORE;
+    public double collisionChance() {
+        if (!isCollisionsUnlocked()) return 0;
+        double chance = COLLISION_CHANCE
+                + LUCK_CHANCE * colliderUpgradeLevel(ColliderUpgrade.LUCK)
+                + (hasColliderAchievement(ColliderAchievement.THOUSAND_COLLISIONS) ? 0.02 : 0);
+        return Math.min(1, chance);
     }
 
-    /** Nombre de conditions de cet astre : celles du catalogue, plus le cœur de galaxie s'il le demande. */
+    /** Vrai si cette énergie est ouverte : son amélioration est prise. */
+    public boolean isCollisionTierOpen(CollisionTier tier) {
+        return isColliderUnlocked() && colliderUpgradeLevel(tier.upgrade()) > 0;
+    }
+
+    /** L'énergie la plus haute ouverte. */
+    public CollisionTier colliderTier() {
+        CollisionTier top = CollisionTier.LOW;
+        for (CollisionTier tier : CollisionTier.values()) if (isCollisionTierOpen(tier)) top = tier;
+        return top;
+    }
+
+    /** Vrai si un croisement peut donner cette saveur. */
+    public boolean isQuarkOpen(Quark quark) {
+        return isCollisionTierOpen(CollisionTier.of(quark));
+    }
+
+    /** Le poids d'une saveur dans le tirage, 0 si elle n'est pas ouverte : les lourdes sont rares. */
+    public double quarkWeight(Quark quark) {
+        if (!isQuarkOpen(quark)) return 0;
+        double heavy = Math.pow(1.4, colliderUpgradeLevel(ColliderUpgrade.HEAVY));
+        return switch (quark) {
+            case UP, DOWN -> 45;
+            case STRANGE -> 14 * heavy;
+            case CHARM -> 6 * heavy;
+            case BOTTOM -> 2 * heavy;
+            case TOP -> 0.15 * heavy;
+        };
+    }
+
+    /** La part des collisions qui donne cette saveur, de 0 à 1. */
+    public double quarkShare(Quark quark) {
+        double total = 0;
+        for (Quark each : Quark.values()) total += quarkWeight(each);
+        return total <= 0 ? 0 : quarkWeight(quark) / total;
+    }
+
+    /** Un nombre de 0 à 1, toujours le même pour un croisement et un tirage donnés : le hasard du collisionneur ne touche pas à celui de la synthèse. */
+    private static double roll(long crossing, int draw) {
+        double mix = Math.sin(crossing * 12.9898 + draw * 78.233) * 43758.5453;
+        return mix - Math.floor(mix);
+    }
+
+    /** Un croisement : la chance d'une collision, ou une collision assurée s'il est capté. */
+    private void collide(long crossing, boolean caught) {
+        if (!caught && roll(crossing, 1) >= collisionChance()) return;
+        Quark quark = drawQuark(roll(crossing, caught ? 7 : 2));
+        int count = caught ? 2 : 1;
+        give(quark, count, caught);
+    }
+
+    /** Tire une saveur parmi celles qui sont ouvertes, selon leur poids. */
+    private Quark drawQuark(double unit) {
+        double total = 0;
+        for (Quark quark : Quark.values()) total += quarkWeight(quark);
+        double at = unit * total;
+        for (Quark quark : Quark.values()) {
+            at -= quarkWeight(quark);
+            if (at < 0) return quark;
+        }
+        return Quark.UP;
+    }
+
+    /** Ajoute le butin d'une collision, et la retient pour les annonces et le dessin. */
+    private void give(Quark quark, int count, boolean caught) {
+        long serial = state.collisionRuns() + 1;
+        state.setCollisionRuns(serial);
+        if (quark == Quark.TOP) {
+            state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
+        } else {
+            state.setQuarks(quark, state.quarks(quark) + count);
+        }
+        CollisionResult result = new CollisionResult(serial, quark, quark == Quark.TOP ? 1 : count, caught);
+        if (finishedCollisions.size() < 200) finishedCollisions.add(result);
+        recentCollisions.addLast(result);
+        while (recentCollisions.size() > RECENT_COLLISIONS) recentCollisions.removeFirst();
+    }
+
+    /** Les dernières collisions, la plus récente au bout : pour le dessin des faisceaux. */
+    public List<CollisionResult> recentCollisions() {
+        return List.copyOf(recentCollisions);
+    }
+
+    /** Les collisions depuis le dernier appel : pour les annoncer une fois. */
+    public List<CollisionResult> takeFinishedCollisions() {
+        List<CollisionResult> taken = List.copyOf(finishedCollisions);
+        finishedCollisions.clear();
+        return taken;
+    }
+
+    /** Tous les combien de croisements le déclencheur automatique capte : 5, 3 puis 1 ; 0 sans lui. */
+    public int autoCatchEvery() {
+        return switch (colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH)) {
+            case 0 -> 0;
+            case 1 -> 5;
+            case 2 -> 3;
+            default -> 1;
+        };
+    }
+
+    /**
+     * Les croisements d'un pas de jeu. Un à un d'habitude ; au retour d'une longue absence, au-delà
+     * de {@link #CROSSINGS_ONE_BY_ONE}, le butin se compte en moyenne pour ne pas ralentir le jeu.
+     */
+    private void runCrossings(long count) {
+        if (count <= 0) return;
+        long first = state.colliderCrossings() + 1;
+        state.setColliderCrossings(state.colliderCrossings() + count);
+        int every = autoCatchEvery();
+        if (count <= CROSSINGS_ONE_BY_ONE) {
+            for (long crossing = first; crossing < first + count; crossing++) {
+                if (state.colliderCaught() == crossing) continue;      // déjà capté d'un clic, juste avant le milieu
+                catchStreak = 0;
+                if (every > 0 && crossing % every == 0) {
+                    state.setColliderCaught(crossing);
+                    caught(crossing);
+                } else {
+                    collide(crossing, false);
+                }
+            }
+            return;
+        }
+        // En moyenne : les captés du déclencheur, puis la chance sur les autres.
+        catchStreak = 0;
+        long autoCaught = every > 0 ? count / every : 0;
+        double free = count - autoCaught;
+        addColliderEnergy(colliderEnergyPerSecond() * CROSSING_SECONDS * autoCaught);
+        if (!isCollisionsUnlocked()) return;
+        double collisions = free * collisionChance() + autoCaught;
+        double quarks = free * collisionChance() + 2.0 * autoCaught;
+        for (Quark quark : Quark.values()) {
+            double share = quarkShare(quark);
+            if (share <= 0) continue;
+            if (quark == Quark.TOP) {
+                if (collisions * share >= 1 || roll(first, 11) < collisions * share) state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
+                continue;
+            }
+            double expected = quarks * share;
+            int whole = (int) Math.min(Integer.MAX_VALUE / 4, Math.floor(expected) + (roll(first, 20 + quark.ordinal()) < expected - Math.floor(expected) ? 1 : 0));
+            state.setQuarks(quark, (int) Math.min(Integer.MAX_VALUE / 2, (long) state.quarks(quark) + whole));
+        }
+        state.setCollisionRuns(state.collisionRuns() + (long) collisions);
+    }
+
+    // Les améliorations du collisionneur.
+
+    /** Vrai quand les huit générateurs sont là : les améliorations du collisionneur s'ouvrent. */
+    public boolean isColliderUpgradesUnlocked() {
+        return isColliderUnlocked() && state.colliderGeneratorsBought(ColliderGenerator.PLANCK) > 0
+                || !colliderUpgradesBought().isEmpty();
+    }
+
+    private List<ColliderUpgrade> colliderUpgradesBought() {
+        List<ColliderUpgrade> bought = new ArrayList<>();
+        for (ColliderUpgrade upgrade : ColliderUpgrade.values()) if (state.colliderUpgradeLevel(upgrade) > 0) bought.add(upgrade);
+        return bought;
+    }
+
+    public int colliderUpgradeLevel(ColliderUpgrade upgrade) {
+        return state.colliderUpgradeLevel(upgrade);
+    }
+
+    /** Vrai si cette amélioration s'offre : la première dès l'ouverture, les autres quand celle qui les ouvre a le niveau voulu. */
+    public boolean isColliderUpgradeOpen(ColliderUpgrade upgrade) {
+        if (!isColliderUpgradesUnlocked()) return false;
+        return upgrade.requires() == null || state.colliderUpgradeLevel(upgrade.requires()) >= upgrade.requiredLevel();
+    }
+
+    public double colliderUpgradeCost(ColliderUpgrade upgrade) {
+        return upgrade.cost(state.colliderUpgradeLevel(upgrade));
+    }
+
+    /** Les quarks que demande le prochain niveau de cette amélioration (la chaîne, version 0.62) ; 0 pour les autres. */
+    public int colliderUpgradeQuarks(ColliderUpgrade upgrade) {
+        return upgrade.quarkCost(state.colliderUpgradeLevel(upgrade));
+    }
+
+    public boolean canBuyColliderUpgrade(ColliderUpgrade upgrade) {
+        return isColliderUpgradeOpen(upgrade) && state.colliderUpgradeLevel(upgrade) < upgrade.maxLevel()
+                && state.colliderEnergy() >= colliderUpgradeCost(upgrade) - 1e-9
+                && (upgrade.quark() == null || state.quarks(upgrade.quark()) >= colliderUpgradeQuarks(upgrade));
+    }
+
+    /** Prend un niveau de cette amélioration, payé en énergie, et en quarks pour la chaîne. */
+    public boolean buyColliderUpgrade(ColliderUpgrade upgrade) {
+        if (!canBuyColliderUpgrade(upgrade)) return false;
+        state.setColliderEnergy(state.colliderEnergy() - colliderUpgradeCost(upgrade));
+        if (upgrade.quark() != null) state.setQuarks(upgrade.quark(), state.quarks(upgrade.quark()) - colliderUpgradeQuarks(upgrade));
+        state.setColliderUpgradeLevel(upgrade, state.colliderUpgradeLevel(upgrade) + 1);
+        return true;
+    }
+
+    /** Vrai si cet automate est acheté et que le joueur le laisse faire. */
+    public boolean isColliderAutomationRunning(ColliderUpgrade upgrade) {
+        return state.colliderUpgradeLevel(upgrade) > 0 && !state.isColliderPaused(upgrade);
+    }
+
+    /** Met en pause un automate, ou le relance. */
+    public void toggleColliderAutomation(ColliderUpgrade upgrade) {
+        if (state.colliderUpgradeLevel(upgrade) <= 0) return;
+        state.setColliderPaused(upgrade, !state.isColliderPaused(upgrade));
+    }
+
+    /** Les automates : du générateur le plus haut au plus bas, chacun achète tout ce qu'il peut. */
+    private void runColliderAutomations() {
+        ColliderGenerator[] generators = ColliderGenerator.values();
+        for (int k = generators.length - 1; k >= 0; k--) {
+            ColliderUpgrade automation = ColliderUpgrade.automationOf(generators[k]);
+            if (isColliderAutomationRunning(automation)) buyMaxColliderGenerator(generators[k]);
+        }
+    }
+
+    /** L'énergie produite qu'il faut au trou noir (version 0.62), puis au trou noir supermassif, le dernier avant la galaxie. */
+    public static final double BLACK_HOLE_ENERGY = 1e12;
+    public static final double SUPERMASSIVE_ENERGY = 1e15;
+
+    /**
+     * L'énergie du collisionneur que demande cet astre : produite depuis le début, pour les deux trous
+     * noirs ; 0 pour les autres. Le collisionneur fait ainsi partie du chemin vers la galaxie.
+     */
+    public double colliderEnergyNeeded(Body body) {
+        return switch (body.tier()) {
+            case BLACK_HOLE -> BLACK_HOLE_ENERGY;
+            case CORE -> SUPERMASSIVE_ENERGY;
+            default -> 0;
+        };
+    }
+
+    /** Vrai si cet astre demande de l'énergie du collisionneur. */
+    public boolean needsColliderEnergy(Body body) {
+        return colliderEnergyNeeded(body) > 0;
+    }
+
+    /** Vrai si l'énergie produite suffit à cet astre. */
+    public boolean hasColliderEnergyFor(Body body) {
+        return state.colliderEnergyProduced() >= colliderEnergyNeeded(body) - 1e-6;
+    }
+
+    /** Nombre de conditions de cet astre : celles du catalogue, plus l'énergie du collisionneur s'il en demande. */
     public int bodyConditions(String bodyId) {
         Body body = body(bodyId);
-        return body.conditions() + (needsGalaxyCore(body) ? 1 : 0);
+        return body.conditions() + (needsColliderEnergy(body) ? 1 : 0);
     }
 
-    /** Lance une collision : paie son énergie et occupe une place. */
-    public boolean startCollision(CollisionTier tier) {
-        if (!canStartCollision(tier)) return false;
-        state.setColliderEnergy(state.colliderEnergy() - tier.cost());
-        List<Collision> running = new ArrayList<>(state.collisions());
-        running.add(new Collision(tier, tier.seconds(), false, false));
-        state.setCollisions(running);
-        return true;
+    /** Quarks en réserve, toutes saveurs ensemble. */
+    public long totalQuarks() {
+        long total = 0;
+        for (Quark quark : Quark.values()) total += state.quarks(quark);
+        return total;
     }
 
-    /** La phase de la barre de résonance d'une collision, de 0 à 1 ; la zone gagnante est au milieu. */
-    public double resonancePhase(int slot) {
-        Collision collision = state.collisions().get(slot);
-        double phase = (collision.elapsed() % RESONANCE_PERIOD) / RESONANCE_PERIOD;
-        return phase < 0 ? phase + 1 : phase;
-    }
-
-    /** Vrai si la phase tombe dans la zone gagnante. */
-    public static boolean inResonance(double phase) {
-        return Math.abs(phase - 0.5) <= RESONANCE_WINDOW / 2;
-    }
-
-    /**
-     * Tente la résonance sur une collision en cours : un clic quand la barre passe au milieu double
-     * son butin. Une seule tentative par collision.
-     *
-     * @return vrai si la tentative a réussi
-     */
-    public boolean resonate(int slot) {
-        if (slot < 0 || slot >= state.collisions().size()) return false;
-        Collision collision = state.collisions().get(slot);
-        if (collision.resonated()) return false;
-        boolean success = inResonance(resonancePhase(slot));
-        List<Collision> running = new ArrayList<>(state.collisions());
-        running.set(slot, new Collision(collision.tier(), collision.left(), true, success));
-        state.setCollisions(running);
-        return success;
-    }
-
-    public int quarks(Quark quark) {
+        public int quarks(Quark quark) {
         return state.quarks(quark);
-    }
-
-    public int hadrons(Hadron hadron) {
-        return state.hadrons(hadron);
-    }
-
-    public boolean canFormHadron(Hadron hadron) {
-        if (!isColliderUnlocked()) return false;
-        for (Map.Entry<Quark, Integer> need : hadron.recipe().entrySet()) {
-            if (state.quarks(need.getKey()) < need.getValue()) return false;
-        }
-        return true;
-    }
-
-    /** Forme un hadron avec ses quarks. */
-    public boolean formHadron(Hadron hadron) {
-        if (!canFormHadron(hadron)) return false;
-        hadron.recipe().forEach((quark, count) -> state.setQuarks(quark, state.quarks(quark) - count));
-        state.setHadrons(hadron, state.hadrons(hadron) + 1);
-        return true;
-    }
-
-    /** Forme autant de ce hadron que les quarks le permettent ; renvoie le nombre formé. */
-    public int formAllHadrons(Hadron hadron) {
-        int formed = 0;
-        while (formed < 100_000 && formHadron(hadron)) formed++;
-        return formed;
     }
 
     /** Vrai tant qu'un quark top attend d'être utilisé. */
@@ -4506,11 +4854,21 @@ public final class Game {
         return state.topLeft();
     }
 
-    /** Utilise le quark top : dix minutes de surchauffe, toutes les particules ×10. */
+    /** Combien de temps le quark top attend : une minute, deux fois plus par niveau de top stable. */
+    public double topSeconds() {
+        return TOP_SECONDS * Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.TOP_LIFE));
+    }
+
+    /** Durée de la surchauffe d'un quark top : dix minutes, 50 % de plus par niveau de top stable. */
+    public double overheatSeconds() {
+        return OVERHEAT_SECONDS * (1 + 0.5 * colliderUpgradeLevel(ColliderUpgrade.TOP_LIFE));
+    }
+
+    /** Utilise le quark top : la surchauffe, toutes les particules ×10. */
     public boolean useTop() {
         if (!hasTop()) return false;
         state.setTopLeft(0);
-        state.setOverheatLeft(state.overheatLeft() + OVERHEAT_SECONDS);
+        state.setOverheatLeft(state.overheatLeft() + overheatSeconds());
         return true;
     }
 
@@ -4518,124 +4876,90 @@ public final class Game {
         return state.overheatLeft();
     }
 
-    /** Au-delà de ce nombre d'un même hadron, chacun compte de moins en moins. */
-    public static final int HADRON_FULL = 10;
-
-    /**
-     * Le poids des hadrons d'une sorte dans leur bonus : leur nombre jusqu'à {@link #HADRON_FULL},
-     * puis une croissance logarithmique (100 en valent 33, 1000 en valent 56), pour qu'enchaîner
-     * les collisions reste payant sans écraser le reste du jeu.
-     */
-    public double hadronWeight(Hadron hadron) {
-        return weightOf(state.hadrons(hadron));
-    }
-
-    static double weightOf(int count) {
-        return count <= HADRON_FULL ? count : HADRON_FULL * (1 + Math.log((double) count / HADRON_FULL));
-    }
-
-    /** Ce par quoi le collisionneur multiplie les particules : les protons, et la surchauffe d'un quark top. */
+    /** Ce par quoi le collisionneur multiplie les particules : la chaîne, et la surchauffe d'un quark top. */
     public double colliderParticlesMultiplier() {
-        return (1 + 0.5 * hadronWeight(Hadron.PROTON)) * (state.overheatLeft() > 0 ? OVERHEAT_FACTOR : 1);
+        return (state.overheatLeft() > 0 ? OVERHEAT_FACTOR : 1) * Math.pow(1.5, colliderUpgradeLevel(ColliderUpgrade.PARTICLES));
     }
 
-    /** Ce par quoi les neutrons multiplient les atomes de chaque fusion. */
+    /** Ce par quoi la chaîne multiplie les atomes de chaque fusion. */
     public double colliderAtomsMultiplier() {
-        return 1 + 0.05 * hadronWeight(Hadron.NEUTRON);
+        return 1 + 0.1 * colliderUpgradeLevel(ColliderUpgrade.ATOMS);
     }
 
-    /** Ce par quoi les kaons et les lambdas multiplient la croissance de la matière noire. */
+    /** Ce par quoi la chaîne multiplie la croissance de la matière noire. */
     public double colliderDarkGrowthMultiplier() {
-        return (1 + 0.1 * hadronWeight(Hadron.KAON)) * (1 + 0.25 * hadronWeight(Hadron.LAMBDA));
+        return 1 + 0.2 * colliderUpgradeLevel(ColliderUpgrade.DARK_MATTER);
     }
 
-    /** Ce par quoi les J/psi multiplient l'espace par seconde. */
+    /** Ce par quoi la chaîne multiplie l'espace par seconde. */
     public double colliderSpaceMultiplier() {
-        return 1 + 0.2 * hadronWeight(Hadron.JPSI);
-    }
-
-    /** Les collisions terminées depuis le dernier appel : pour les annoncer une fois. */
-    public List<CollisionResult> takeFinishedCollisions() {
-        List<CollisionResult> taken = List.copyOf(finishedCollisions);
-        finishedCollisions.clear();
-        return taken;
+        return 1 + 0.25 * colliderUpgradeLevel(ColliderUpgrade.SPACE);
     }
 
     private void runCollider(double dt) {
         if (dt <= 0 || !isColliderUnlocked()) return;
+        finishOldCollisions();
         // La chaîne des générateurs : chacun produit le précédent, le premier l'énergie, au début de ce pas.
         double[] output = new double[ColliderGenerator.values().length];
         for (ColliderGenerator generator : ColliderGenerator.values()) output[generator.ordinal()] = colliderGeneratorOutput(generator);
-        state.setColliderEnergy(state.colliderEnergy() + colliderEnergyPerSecond() * dt);
+        addColliderEnergy(colliderEnergyPerSecond() * dt);
         for (ColliderGenerator generator : ColliderGenerator.values()) {
             ColliderGenerator previous = generator.previous();
             if (previous != null && output[generator.ordinal()] > 0) {
                 state.setColliderGenerators(previous, state.colliderGenerators(previous) + output[generator.ordinal()] * dt);
             }
         }
+        // Les faisceaux avancent ; chaque passage au milieu du tour est un croisement.
+        double before = state.colliderPhase();
+        double after = before + dt / colliderPeriod();
+        long crossings = (long) (Math.floor(after - 0.5) - Math.floor(before - 0.5));
+        state.setColliderPhase(after);
+        runCrossings(crossings);
         if (state.overheatLeft() > 0) state.setOverheatLeft(state.overheatLeft() - dt);
         if (state.topLeft() > 0) {
             state.setTopLeft(state.topLeft() - dt);
             if (state.topLeft() <= 0) state.setQuarks(Quark.BOTTOM, state.quarks(Quark.BOTTOM) + TOP_CONSOLATION_BOTTOM);
         }
-        relaunchLowCollision();
+        runColliderAutomations();
+    }
+
+    /** Les collisions d'une sauvegarde d'avant la version 0.59 se terminent d'un coup, avec leur butin d'alors. */
+    private void finishOldCollisions() {
         if (state.collisions().isEmpty()) return;
-        List<Collision> running = new ArrayList<>();
         for (Collision collision : state.collisions()) {
-            double left = collision.left() - dt;
-            if (left > 0) {
-                running.add(new Collision(collision.tier(), left, collision.resonated(), collision.doubled()));
-            } else {
-                finishCollision(collision);
+            int factor = collision.doubled() ? 2 : 1;
+            switch (collision.tier()) {
+                case LOW -> {
+                    addQuarks(Quark.UP, 3 * factor);
+                    addQuarks(Quark.DOWN, 3 * factor);
+                }
+                case MEDIUM -> {
+                    addQuarks(Quark.STRANGE, factor);
+                    addQuarks(Quark.UP, factor);
+                    addQuarks(Quark.DOWN, factor);
+                }
+                case HIGH -> {
+                    addQuarks(Quark.CHARM, factor);
+                    addQuarks(Quark.STRANGE, factor);
+                }
+                case VERY_HIGH -> {
+                    addQuarks(Quark.BOTTOM, factor);
+                    addQuarks(Quark.CHARM, factor);
+                }
+                case EXTREME -> {
+                    addQuarks(Quark.BOTTOM, 2 * factor);
+                    state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
+                }
             }
         }
-        state.setCollisions(running);
-        relaunchLowCollision();
+        state.setCollisions(List.of());
     }
 
-    /** Le plasma quark-gluon : une collision basse énergie tourne toujours, si une place est libre et l'énergie là. */
-    private void relaunchLowCollision() {
-        if (!isColliderAutoRunning()) return;
-        for (Collision collision : state.collisions()) if (collision.tier() == CollisionTier.LOW) return;
-        startCollision(CollisionTier.LOW);
+    private void addQuarks(Quark quark, int count) {
+        state.setQuarks(quark, state.quarks(quark) + count);
     }
 
-    /** Le butin d'une collision terminée, tiré sans toucher au hasard de la synthèse. */
-    private void finishCollision(Collision collision) {
-        long run = state.collisionRuns();
-        state.setCollisionRuns(run + 1);
-        int factor = collision.doubled() ? 2 : 1;
-        Map<Quark, Integer> loot = new java.util.EnumMap<>(Quark.class);
-        switch (collision.tier()) {
-            case LOW -> {
-                loot.put(Quark.UP, between(run, 1, 2, 4));
-                loot.put(Quark.DOWN, between(run, 2, 2, 4));
-            }
-            case MEDIUM -> {
-                loot.put(Quark.STRANGE, between(run, 1, 1, 2));
-                loot.put(Quark.UP, between(run, 2, 1, 2));
-                loot.put(Quark.DOWN, between(run, 3, 1, 2));
-            }
-            case HIGH -> {
-                loot.put(Quark.CHARM, between(run, 1, 1, 2));
-                loot.put(Quark.STRANGE, 1);
-            }
-            case VERY_HIGH -> {
-                loot.put(Quark.BOTTOM, between(run, 1, 1, 2));
-                loot.put(Quark.CHARM, 1);
-            }
-            case EXTREME -> {
-                loot.put(Quark.BOTTOM, 2);
-                state.setTopLeft(TOP_SECONDS);
-            }
-        }
-        loot.replaceAll((quark, count) -> count * factor);
-        loot.forEach((quark, count) -> state.setQuarks(quark, state.quarks(quark) + count));
-        if (collision.tier() == CollisionTier.EXTREME) loot.put(Quark.TOP, 1);
-        finishedCollisions.add(new CollisionResult(collision.tier(), Map.copyOf(loot), collision.doubled()));
-    }
-
-    /** Un entier de {@code low} à {@code high}, toujours le même pour une collision et un tirage donnés. */
+    /** Un entier de {@code low} à {@code high}, toujours le même pour un tirage donné. */
     private static int between(long run, int draw, int low, int high) {
         double mix = Math.sin(run * 12.9898 + draw * 78.233) * 43758.5453;
         double unit = mix - Math.floor(mix);
@@ -5746,7 +6070,8 @@ public final class Game {
                 .multiply(achievementParticlesMultiplier())
                 .multiply(moleculeBoost(Molecule.Stat.PARTICLES))
                 .multiply(speedMilestoneMultiplier())
-                .multiply(colliderParticlesMultiplier());
+                .multiply(colliderParticlesMultiplier())
+                .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES));
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade, state.levelOf(upgrade.id()), generators));
         }
@@ -5843,6 +6168,7 @@ public final class Game {
                 .multiply(1 + achievementBonus(Achievement.Bonus.ATOMS))
                 .multiply(moleculeBoost(Molecule.Stat.ATOMS))
                 .multiply(colliderAtomsMultiplier())
+                .multiply(bangAchievementMultiplier(BangAchievement.Reward.ATOMS))
                 .multiply(fusionYield())
                 .multiply(fusionGroups() * fusionGroupBonus());
     }
@@ -6280,7 +6606,7 @@ public final class Game {
     /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
     public int probeRewardCount(ProbeTrip trip) {
         return trip.rewards() + state.probeUpgradeLevel(ProbeUpgrade.CARGO)
-                + (hasColliderMilestone(ColliderMilestone.CHARM) && trip.ordinal() >= ProbeTrip.HOUR.ordinal() ? 1 : 0);
+                + (colliderUpgradeLevel(ColliderUpgrade.FLAVOR_CHARM) > 0 && trip.ordinal() >= ProbeTrip.HOUR.ordinal() ? 1 : 0);
     }
 
     /** Ce que valent les récompenses de ce voyage : sa valeur, instruments compris. */
@@ -6380,7 +6706,7 @@ public final class Game {
         ProbeDestination where = probe.destination();
         List<Integer> elements = probeElements(where);
         int count = probeRewardCount(probe.trip());
-        boolean quarks = hasColliderMilestone(ColliderMilestone.CHARM) && probe.trip().ordinal() >= ProbeTrip.HOUR.ordinal();
+        boolean quarks = colliderUpgradeLevel(ColliderUpgrade.FLAVOR_CHARM) > 0 && probe.trip().ordinal() >= ProbeTrip.HOUR.ordinal();
         List<ProbeReward> loot = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             if (i == count - 1) {
@@ -6769,21 +7095,47 @@ public final class Game {
         return planet.look() == Body.Look.ROCKY || planet.look() == Body.Look.MOLTEN || planet.look() == Body.Look.OCEAN;
     }
 
+    /** Vrai pour une planète tellurique (roche, lave, océan), dont la place est près de l'étoile. */
+    public boolean isTelluric(String planetId) {
+        return telluric(body(planetId));
+    }
+
+    /**
+     * Vrai si la planète de cette orbite est bien placée : une tellurique n'a que des telluriques plus
+     * près de l'étoile qu'elle, une glacée ou gazeuse n'a que des glacées ou gazeuses plus loin.
+     */
+    public boolean isPlanetWellPlaced(SolarSystem system, int orbit) {
+        List<String> planets = system.planets();
+        if (orbit < 0 || orbit >= planets.size()) return false;
+        boolean placed = true;
+        if (telluric(body(planets.get(orbit)))) {
+            for (int inner = 0; inner < orbit; inner++) placed &= telluric(body(planets.get(inner)));
+        } else {
+            for (int outer = orbit + 1; outer < planets.size(); outer++) placed &= !telluric(body(planets.get(outer)));
+        }
+        return placed;
+    }
+
+    /** Vrai si l'étoile de ce système a une zone habitable : un Soleil ou une naine rouge, aux orbites 2 et 3. */
+    public static boolean hasHabitableZone(SolarSystem system) {
+        return system.star().equals("yellow_sun") || system.star().equals("red_dwarf");
+    }
+
+    /** Vrai si cette orbite (comptée depuis 0) est dans la zone habitable du système. */
+    public static boolean isHabitableOrbit(SolarSystem system, int orbit) {
+        return hasHabitableZone(system) && (orbit == 1 || orbit == 2);
+    }
+
     /** Ce qui fait l'harmonie d'un système, une raison par point, pour l'afficher. */
     public List<String> systemHarmonyReasons(SolarSystem system) {
         List<String> reasons = new ArrayList<>();
         List<String> planets = system.planets();
         for (int orbit = 0; orbit < planets.size(); orbit++) {
             Body planet = body(planets.get(orbit));
-            boolean placed = true;
-            if (telluric(planet)) {
-                for (int inner = 0; inner < orbit; inner++) placed &= telluric(body(planets.get(inner)));
-            } else {
-                for (int outer = orbit + 1; outer < planets.size(); outer++) placed &= !telluric(body(planets.get(outer)));
+            if (isPlanetWellPlaced(system, orbit)) {
+                reasons.add(planet.name() + (telluric(planet) ? " : tellurique, près de l'étoile" : " : glacée ou gazeuse, au loin"));
             }
-            if (placed) reasons.add(planet.name() + (telluric(planet) ? " : tellurique, près de l'étoile" : " : glacée ou gazeuse, au loin"));
-            if (planet.look() == Body.Look.OCEAN && (orbit == 1 || orbit == 2)
-                    && (system.star().equals("yellow_sun") || system.star().equals("red_dwarf"))) {
+            if (planet.look() == Body.Look.OCEAN && isHabitableOrbit(system, orbit)) {
                 reasons.add(planet.name() + " : dans la zone habitable (+2)");
                 reasons.add("");
             }
@@ -6791,6 +7143,56 @@ public final class Game {
         for (String moon : system.moons()) reasons.add(body(moon).name() + " : une lune");
         if (system.star().equals("blue_giant") || system.star().equals("red_giant")) reasons.add(body(system.star()).name() + " : une étoile géante");
         return reasons;
+    }
+
+    /**
+     * Le meilleur ordre des planètes de ce système (version 0.59) : celui qui donne le plus
+     * d'harmonie, et à égalité celui qui bouge le moins de planètes. Les lunes ne changent pas.
+     */
+    public SolarSystem bestArrangement(SolarSystem system) {
+        List<String> planets = system.planets();
+        if (planets.size() > 8) return system;
+        SolarSystem[] best = {system};
+        int[] bestScore = {systemHarmony(system)};
+        int[] bestMoves = {0};
+        permute(new ArrayList<>(planets), 0, order -> {
+            SolarSystem candidate = system.withPlanets(order);
+            int score = systemHarmony(candidate);
+            int moves = 0;
+            for (int i = 0; i < order.size(); i++) if (!order.get(i).equals(planets.get(i))) moves++;
+            if (score > bestScore[0] || (score == bestScore[0] && moves < bestMoves[0])) {
+                best[0] = candidate;
+                bestScore[0] = score;
+                bestMoves[0] = moves;
+            }
+        });
+        return best[0];
+    }
+
+    private static void permute(List<String> items, int from, java.util.function.Consumer<List<String>> each) {
+        if (from >= items.size() - 1) {
+            each.accept(List.copyOf(items));
+            return;
+        }
+        for (int i = from; i < items.size(); i++) {
+            java.util.Collections.swap(items, from, i);
+            permute(items, from + 1, each);
+            java.util.Collections.swap(items, from, i);
+        }
+    }
+
+    /** Vrai si ranger autrement les planètes de ce système lui donnerait plus d'harmonie. */
+    public boolean canArrangeSystem(int index) {
+        if (index < 0 || index >= state.solarSystems().size()) return false;
+        SolarSystem system = state.solarSystems().get(index);
+        return systemHarmony(bestArrangement(system)) > systemHarmony(system);
+    }
+
+    /** Range les planètes de ce système dans leur meilleur ordre. */
+    public boolean arrangeSystem(int index) {
+        if (!canArrangeSystem(index)) return false;
+        replaceSystem(index, bestArrangement(state.solarSystems().get(index)));
+        return true;
     }
 
     /** Points d'harmonie d'un système : une planète bien placée, une lune, la zone habitable, une géante. */

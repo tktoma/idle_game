@@ -23,12 +23,34 @@ public final class Format {
         notation = chosen;
     }
 
+    /** Les noms des milliers, au singulier, de 1e3 (mille) à 1e63 (décilliard), selon l'échelle longue en usage en français. */
+    private static final String[] WORDS = {"mille", "million", "milliard", "billion", "billiard", "trillion", "trilliard",
+            "quadrillion", "quadrilliard", "quintillion", "quintilliard", "sextillion", "sextilliard", "septillion", "septilliard",
+            "octillion", "octilliard", "nonillion", "nonilliard", "décillion", "décilliard"};
+    private static final String SUPERSCRIPTS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+
     /**
-     * Grand nombre dans la notation choisie : « 1.23e7 », « 12.3e6 » ou « 12.3 M ». En dessous de
-     * mille, toutes les notations donnent la même chose : « 123.45 ».
+     * Grand nombre dans la notation choisie : « 1.23e7 », « 12.3e6 », « 12.3 M », « 12.3 millions »,
+     * « 1.23×10⁷ », « 12.3 b », « 10^7.09 » ou « 1.23 ×X^VII ». En dessous de mille, toutes les
+     * notations donnent la même chose : « 123.45 ».
      */
     public static String big(BigNum value) {
         if (notation == Settings.Notation.SCIENTIFIC || value.sign() <= 0 || value.lt(THOUSAND)) return value.format();
+        switch (notation) {
+            case POWERS -> {
+                long exponent = roundedExponent(value);
+                return mantissa(value) + "×10" + superscript(exponent);
+            }
+            case LOG -> {
+                double log = value.exponent() + Math.log10(value.mantissa());
+                return "10^" + String.format(Locale.ROOT, log < 1e5 ? "%.2f" : "%.0f", log);
+            }
+            case ROMAN -> {
+                long exponent = roundedExponent(value);
+                return exponent < 4000 ? mantissa(value) + " ×X^" + roman((int) exponent) : value.format();
+            }
+            default -> { }
+        }
         // Mantisse ramenée entre 1 et 1000, avec un exposant multiple de trois.
         long exponent = Math.floorDiv(value.exponent(), 3L) * 3;
         double mantissa = value.mantissa() * Math.pow(10, value.exponent() - exponent);
@@ -39,8 +61,67 @@ public final class Format {
         // Trois chiffres significatifs : 1.23, 12.3, 123.
         String digits = String.format(Locale.ROOT, mantissa < 9.995 ? "%.2f" : mantissa < 99.95 ? "%.1f" : "%.0f", mantissa);
         int letter = (int) (exponent / 3) - 1;
-        if (notation == Settings.Notation.LETTERS && letter < LETTERS.length) return digits + " " + LETTERS[letter];
-        return notation == Settings.Notation.LETTERS ? value.format() : digits + "e" + exponent;
+        switch (notation) {
+            case LETTERS -> {
+                return letter < LETTERS.length ? digits + " " + LETTERS[letter] : value.format();
+            }
+            case WORDS -> {
+                if (letter >= WORDS.length) return value.format();
+                // « mille » ne prend pas de s ; les autres, à partir de deux.
+                return digits + " " + WORDS[letter] + (letter > 0 && Double.parseDouble(digits) >= 2 ? "s" : "");
+            }
+            case ALPHABET -> {
+                return digits + " " + alphabet(letter);
+            }
+            default -> {
+                return digits + "e" + exponent;
+            }
+        }
+    }
+
+    /** La mantisse, à trois chiffres significatifs : « 1.23 » ; 9.996 s'arrondit à « 1.00 », la puissance suivante. */
+    private static String mantissa(BigNum value) {
+        String digits = String.format(Locale.ROOT, "%.2f", value.mantissa());
+        return digits.equals("10.00") ? "1.00" : digits;
+    }
+
+    /** La puissance de dix qui va avec {@link #mantissa(BigNum)}. */
+    private static long roundedExponent(BigNum value) {
+        return String.format(Locale.ROOT, "%.2f", value.mantissa()).equals("10.00") ? value.exponent() + 1 : value.exponent();
+    }
+
+    /** Un entier en exposant : « ⁷ », « ¹²³ », « ⁻⁴ ». */
+    static String superscript(long number) {
+        StringBuilder text = new StringBuilder(number < 0 ? "⁻" : "");
+        for (char digit : String.valueOf(Math.abs(number)).toCharArray()) text.append(SUPERSCRIPTS.charAt(digit - '0'));
+        return text.toString();
+    }
+
+    /** Le rang d'un millier en lettres : 0 → a, 25 → z, 26 → aa, 27 → ab… */
+    static String alphabet(long index) {
+        StringBuilder text = new StringBuilder();
+        long n = index;
+        do {
+            text.insert(0, (char) ('a' + n % 26));
+            n = n / 26 - 1;
+        } while (n >= 0);
+        return text.toString();
+    }
+
+    private static final int[] ROMAN_VALUES = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+    private static final String[] ROMAN_SIGNS = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
+
+    /** Un entier de 1 à 3 999 en chiffres romains. */
+    static String roman(int number) {
+        StringBuilder text = new StringBuilder();
+        int rest = number;
+        for (int i = 0; i < ROMAN_VALUES.length; i++) {
+            while (rest >= ROMAN_VALUES[i]) {
+                text.append(ROMAN_SIGNS[i]);
+                rest -= ROMAN_VALUES[i];
+            }
+        }
+        return text.toString();
     }
 
     /**

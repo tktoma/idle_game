@@ -221,9 +221,9 @@ public final class AtomsPage extends VBox {
                 : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
-    /** Fait avancer l'animation de l'atome, quand il est visible. */
+    /** Fait avancer l'animation de l'atome, quand il est visible ; figé si le joueur a coupé son effet. */
     public void frame(double dt) {
-        if (selected == 0) atomView.frame(dt);
+        if (selected == 0) atomView.frame(settings.effect(Settings.Effect.ATOM_MODEL) ? dt : 0);
     }
 
     /** Recopie l'état du jeu dans les textes et les boutons. */

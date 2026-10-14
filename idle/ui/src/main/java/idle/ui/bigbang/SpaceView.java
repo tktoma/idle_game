@@ -1845,7 +1845,7 @@ public final class SpaceView extends Canvas {
      * @param elapsed secondes écoulées depuis l'image précédente
      */
     public void frame(double elapsed) {
-        time += elapsed;
+        if (BigBangPage.moving()) time += elapsed;
         beat++;
         sincePlaced += elapsed;
         boolean stale = placedVersion != game.state().moleculesVersion();

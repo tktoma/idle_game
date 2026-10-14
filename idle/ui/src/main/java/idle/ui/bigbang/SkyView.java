@@ -101,7 +101,7 @@ public final class SkyView extends Canvas {
      * @param elapsed secondes écoulées depuis l'image précédente
      */
     public void frame(double elapsed) {
-        time += elapsed;
+        if (BigBangPage.moving()) time += elapsed;
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.bodiesFormed() != drawn;
         if (!changed && beat % EVERY != 0) return;

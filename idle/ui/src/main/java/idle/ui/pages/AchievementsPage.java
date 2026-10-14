@@ -2,8 +2,11 @@ package idle.ui.pages;
 
 import idle.core.Game;
 import idle.core.achievements.Achievement;
+import idle.core.bigbang.BangAchievement;
+import idle.core.collider.ColliderAchievement;
 import idle.core.math.BigNum;
 import idle.ui.GameApp;
+import idle.ui.collider.ColliderPane;
 import idle.ui.common.AchievementText;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
@@ -22,7 +25,8 @@ import javafx.scene.text.TextAlignment;
 
 /**
  * Contenu de l'onglet « Succès » : le compte, ce que les succès rapportent en tout, puis une
- * tuile par succès ({@link Card}), obtenu ou non.
+ * tuile par succès ({@link Card}), obtenu ou non. Suivent, depuis la version 0.61, les succès du
+ * collisionneur (avec la matière noire) et ceux du Big Bang (au premier Big Bang).
  *
  * <p>Les tuiles sont rangées dans l'ordre du catalogue, qui est celui où un joueur les obtient
  * d'ordinaire, et numérotées. Chacune porte le nom du succès, ce qu'il demande en quelques mots
@@ -40,6 +44,13 @@ public final class AchievementsPage extends VBox {
     private final Label bonusLabel = new Label();
     private final Label hintLabel = new Label();
     private final Map<Achievement, Card> tiles = new LinkedHashMap<>();
+    /** Les succès du collisionneur, ouverts avec la matière noire, et ceux du Big Bang, au premier Big Bang (version 0.61). */
+    private final Label colliderTitle = new Label();
+    private final TileGrid colliderGrid = new TileGrid(150, 5, 6);
+    private final Map<ColliderAchievement, Card> colliderTiles = new java.util.EnumMap<>(ColliderAchievement.class);
+    private final Label bangTitle = new Label();
+    private final TileGrid bangGrid = new TileGrid(150, 5, 6);
+    private final Map<BangAchievement, Card> bangTiles = new java.util.EnumMap<>(BangAchievement.class);
 
     public AchievementsPage(Game game) {
         super(8);
@@ -68,10 +79,27 @@ public final class AchievementsPage extends VBox {
             grid.add(tile);
         }
 
+        for (ColliderAchievement achievement : ColliderAchievement.values()) {
+            Card tile = new Card(ColliderPane.COLOR);
+            colliderTiles.put(achievement, tile);
+            colliderGrid.add(tile);
+        }
+        for (BangAchievement achievement : BangAchievement.values()) {
+            Card tile = new Card(GameApp.BIG_BANG_COLOR);
+            bangTiles.put(achievement, tile);
+            bangGrid.add(tile);
+        }
+        for (Label title : new Label[] {colliderTitle, bangTitle}) {
+            title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 14 0 0 0; -fx-text-fill: "
+                    + (title == colliderTitle ? ColliderPane.COLOR : GameApp.BIG_BANG_COLOR) + ";");
+        }
+        for (TileGrid section : new TileGrid[] {colliderGrid, bangGrid}) section.setMaxWidth(820);
+
         getChildren().add(countLabel);
         getChildren().add(bonusLabel);
         getChildren().add(hintLabel);
         getChildren().add(grid);
+        getChildren().addAll(colliderTitle, colliderGrid, bangTitle, bangGrid);
     }
 
     /** La tuile d'un succès : pour les vérifications. */
@@ -81,6 +109,8 @@ public final class AchievementsPage extends VBox {
 
     /** Recopie l'état des succès dans le compte, le bilan des bonus et les tuiles. */
     public void refresh() {
+        refreshCollider();
+        refreshBang();
         int got = game.achievementCount();
         countLabel.setText(got + " / " + game.achievements().size() + (got > 1 ? " succès obtenus" : " succès obtenu"));
         bonusLabel.setText(summary());
@@ -100,6 +130,50 @@ public final class AchievementsPage extends VBox {
                     + achievement.description() + "\n"
                     + (own.isEmpty() ? "Bonus : " + AchievementText.common() + ", comme chaque succès."
                             : "Bonus propre : " + own + ".\nEn plus : " + AchievementText.common() + ", comme chaque succès."));
+        }
+    }
+
+    /** Les succès du collisionneur : avec la matière noire, comme le collisionneur. */
+    private void refreshCollider() {
+        boolean open = game.isColliderUnlocked();
+        colliderTitle.setVisible(open);
+        colliderTitle.setManaged(open);
+        colliderGrid.setVisible(open);
+        colliderGrid.setManaged(open);
+        if (!open) return;
+        colliderTitle.setText("Succès du collisionneur : " + game.colliderAchievements() + " / " + ColliderAchievement.values().length);
+        int rank = 0;
+        for (Map.Entry<ColliderAchievement, Card> entry : colliderTiles.entrySet()) {
+            ColliderAchievement achievement = entry.getKey();
+            boolean owned = game.hasColliderAchievement(achievement);
+            String progress = owned ? "" : game.colliderAchievementProgress(achievement) + "/" + achievement.threshold();
+            entry.getValue().show(owned ? Card.State.STARTED : Card.State.LOCKED, String.valueOf(++rank), owned ? "obtenu" : progress,
+                    achievement.title(), achievement.condition(), "", achievement.reward(), "");
+            entry.getValue().setHint(achievement.title() + (owned ? "  (obtenu)" : "  (" + progress + ")") + "\n"
+                    + achievement.condition() + " : " + achievement.reward() + ".");
+        }
+    }
+
+    /** Les succès du Big Bang : à partir du premier Big Bang. */
+    private void refreshBang() {
+        boolean open = game.isBangAchievementsUnlocked();
+        bangTitle.setVisible(open);
+        bangTitle.setManaged(open);
+        bangGrid.setVisible(open);
+        bangGrid.setManaged(open);
+        if (!open) return;
+        bangTitle.setText("Succès du Big Bang : " + game.bangAchievements() + " / " + BangAchievement.values().length);
+        int rank = 0;
+        for (Map.Entry<BangAchievement, Card> entry : bangTiles.entrySet()) {
+            BangAchievement achievement = entry.getKey();
+            boolean owned = game.hasBangAchievement(achievement);
+            String progress = owned ? "" : Format.whole(game.bangAchievementProgress(achievement)) + "/" + Format.whole(achievement.threshold());
+            String condition = Format.whole(achievement.threshold()) + " " + achievement.stat().label();
+            if (achievement.stat() == BangAchievement.Stat.GALAXY) condition = "Former la galaxie";
+            String reward = "+" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label();
+            entry.getValue().show(owned ? Card.State.STARTED : Card.State.LOCKED, String.valueOf(++rank), owned ? "obtenu" : progress,
+                    achievement.title(), condition, "", reward, "");
+            entry.getValue().setHint(achievement.title() + (owned ? "  (obtenu)" : "  (" + progress + ")") + "\n" + condition + " : " + reward + ".");
         }
     }
 

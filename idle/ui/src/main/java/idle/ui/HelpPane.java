@@ -3,6 +3,7 @@ package idle.ui;
 import idle.core.Absence;
 import idle.core.Game;
 import idle.core.elements.PeriodicTable;
+import idle.core.math.BigNum;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
@@ -175,15 +176,18 @@ final class HelpPane extends StackPane {
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, dernière sous-page des statistiques."));
         if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
-                + "explosion. Les faisceaux croisés donnent de l'énergie, et huit générateurs se produisent l'un l'autre, "
-                + "de l'aimant supraconducteur au collisionneur de Planck ; un clic quand les faisceaux se croisent capte trois secondes "
-                + "de production. Une collision dépense l'énergie, dure de 30 secondes "
-                + "à 8 heures selon son énergie, et rapporte des quarks. Un clic sur l'anneau d'une collision, ou sur "
-                + "« Résonance ! », quand ses faisceaux se croisent dans le détecteur double le butin. Les quarks forment des hadrons, aux bonus définitifs ; au-delà de dix d'une même sorte, chacun compte un peu moins. Le quark top "
-                + "des collisions extrêmes se désintègre en une minute : lancé à temps, il donne dix minutes de surchauffe. "
-                + "Quatre paliers, au bas de la page, se gagnent avec les hadrons : la relance automatique de la basse énergie, "
-                + "une troisième place, des quarks dans les sondes, et le cœur de galaxie, un upsilon, sans lequel le trou noir "
-                + "supermassif ne se forme pas."));
+                + "explosion, que ni l'explosion ni le Big Bang ne remettent à zéro. Les faisceaux croisés donnent de l'énergie, et "
+                + "huit générateurs se produisent l'un l'autre, de l'aimant supraconducteur au collisionneur de Planck : comptez "
+                + "trois heures environ pour les avoir tous. Un clic quand les faisceaux se croisent capte trois secondes de production. "
+                + "Avec le huitième s'ouvrent les améliorations, payées en énergie : d'abord « Collisions », qui donne à chaque "
+                + "croisement 15 % de chances de sortir un quark, puis les saveurs une à une (étrange, charmée, belle, top), les "
+                + "automates des générateurs, la vitesse des faisceaux, la production d'énergie et des générateurs, et la chaîne qui "
+                + "renforce le reste du jeu, dans son sous-onglet « Chaîne », payée en énergie et en quarks : particules, atomes, "
+                + "matière noire, vitesse de l'espace, dédoublement des molécules. L'énergie produite depuis le début ouvre les deux "
+                + "trous noirs : " + Format.count(BigNum.of(Game.BLACK_HOLE_ENERGY)) + " pour le trou noir, "
+                + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
+                + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
+                + "production ou divise des prix par deux."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 4 minutes pour un amas de roches à 2 heures pour le trou noir supermassif. En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. Trois astres "
@@ -203,11 +207,13 @@ final class HelpPane extends StackPane {
                 + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "
                 + "Rien ne se perd si l'on revient tard, ni au Big Bang."));
         sections.add(new Section("Sauvegarde et absence", "La partie s'écrit toute seule toutes les "
-                + (int) SaveStore.EVERY_SECONDS + " secondes et à la fermeture. Au retour, une part du temps d'absence est "
-                + "rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
+                + settings.saveDelay().label() + " (le rythme se choisit dans les réglages) et à la fermeture. Au retour, "
+                + (settings.offline() ? "" : "si le temps hors ligne est rejoué (il est coupé en ce moment), ")
+                + "une part du temps d'absence est rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
                 + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
-                + "couper, et de limiter les images par seconde ; la fenêtre ralentit d'elle-même quand elle n'est pas au premier plan."));
+                + "couper, de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
+                + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
         return sections;
     }

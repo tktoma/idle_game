@@ -12,7 +12,7 @@ public enum Hadron {
     KAON("Kaon", Map.of(Quark.UP, 1, Quark.STRANGE, 1), "Croissance de la matière noire +10 % par kaon"),
     LAMBDA("Lambda", Map.of(Quark.UP, 1, Quark.DOWN, 1, Quark.STRANGE, 1), "Croissance de la matière noire +25 % par lambda"),
     JPSI("J/psi", Map.of(Quark.CHARM, 2), "Espace par seconde +20 % par J/psi"),
-    UPSILON("Upsilon", Map.of(Quark.BOTTOM, 2), "Ouvre l'énergie extrême ; le cœur de galaxie en demande un");
+    UPSILON("Upsilon", Map.of(Quark.BOTTOM, 2), "Le cœur de galaxie en demande un : sans lui, pas de trou noir supermassif");
 
     private final String label;
     private final Map<Quark, Integer> recipe;

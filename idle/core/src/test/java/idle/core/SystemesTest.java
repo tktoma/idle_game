@@ -76,6 +76,28 @@ class SystemesTest {
     }
 
     @Test
+    void rangerAuMieuxDonneLeMeilleurOrdre() {
+        Game game = game(6);
+        SolarSystem bad = new SolarSystem("yellow_sun", List.of("gas_giant_planet", "ocean_planet", "rocky_planet"), List.of());
+        assertFalse(game.isPlanetWellPlaced(bad, 0), "une gazeuse devant des telluriques");
+        assertTrue(game.isPlanetWellPlaced(bad, 2) == false && game.isTelluric("rocky_planet"));
+        SolarSystem best = game.bestArrangement(bad);
+        assertEquals(List.of("rocky_planet", "ocean_planet", "gas_giant_planet"), best.planets());
+        assertEquals(5, game.systemHarmony(best), "trois planètes à leur place, l'océan en zone habitable");
+        for (int orbit = 0; orbit < 3; orbit++) assertTrue(game.isPlanetWellPlaced(best, orbit));
+        assertTrue(Game.isHabitableOrbit(best, 1) && !Game.isHabitableOrbit(best, 0));
+        game.foundSystem("yellow_sun");
+        game.addPlanet(0, "gas_giant_planet");
+        game.addPlanet(0, "ocean_planet");
+        game.addPlanet(0, "rocky_planet");
+        assertTrue(game.canArrangeSystem(0));
+        assertTrue(game.arrangeSystem(0));
+        assertEquals(best.planets(), game.state().solarSystems().get(0).planets());
+        assertFalse(game.canArrangeSystem(0), "déjà au mieux");
+        assertFalse(game.arrangeSystem(0));
+    }
+
+    @Test
     void unSystemeCompletAugmenteToutesLesGrandeurs() {
         Game game = game(6);
         double before = game.moleculeBoost(Molecule.Stat.ATOMS);

@@ -96,6 +96,12 @@ public final class Goals {
         // Le prochain astre : celui que vise aussi la liste de courses, à portée et le plus avancé.
         Body body = game.nextBody();
         if (body != null) {
+            // Il ne lui manque que l'énergie du collisionneur (les deux trous noirs) : on le dit.
+            if (game.needsColliderEnergy(body) && !game.hasColliderEnergyFor(body)
+                    && game.bodyConditionsMet(body.id()) == game.bodyConditions(body.id()) - 1) {
+                return "produire " + Format.count(BigNum.of(game.colliderEnergyNeeded(body))) + " d'énergie au collisionneur pour former "
+                        + article(body.name()) + " (" + Format.count(BigNum.of(game.colliderEnergyProduced())) + " produite)";
+            }
             return "former " + article(body.name()) + " (" + game.bodyConditionsMet(body.id()) + "/" + game.bodyConditions(body.id())
                     + " conditions)" + spaceWait(game);
         }

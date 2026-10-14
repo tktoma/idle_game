@@ -12,7 +12,6 @@ import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.BigBangMilestones;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.bigbang.SpaceUpgrades;
-import idle.core.collider.Hadron;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.Challenges;
 import idle.core.darkmatter.DarkAutomation;
@@ -3415,11 +3414,11 @@ class GameTest {
             fuseAgain(game);                                  // tout de suite : une partie de zéro seconde
             assertEquals(2, stats.fusions());
             assertEquals(0, stats.lastFusionTime(), 1e-9);
-            assertEquals(0, stats.fastestFusionTime(), 1e-9);
+            assertEquals(30, stats.fastestFusionTime(), 1e-9); // une durée nulle n'est pas un record (0.65)
             game.tick(50);
             fuseAgain(game);
             assertEquals(50, stats.lastFusionTime(), 1e-9);
-            assertEquals(0, stats.fastestFusionTime(), 1e-9); // le record reste
+            assertEquals(30, stats.fastestFusionTime(), 1e-9); // le record reste
             assertValue(3, stats.atomsCreated());
         }
 
@@ -6180,7 +6179,7 @@ class GameTest {
             assertTrue(game.bigBang());
             assertEquals(2, stats.timedBigBangs());
             assertEquals(40, stats.lastBigBangTime(), 1e-6);
-            assertEquals(Math.min(first, 40), stats.fastestBigBangTime(), 1e-6);
+            assertEquals(first > 0 ? Math.min(first, 40) : 40, stats.fastestBigBangTime(), 1e-6);   // une durée nulle ne compte pas (0.65)
             assertEquals(7, stats.lastBigBangExplosions());
             assertEquals(2, stats.bigBangTimes().size());
             assertEquals(first, stats.bigBangTimes().get(0), 1e-9);
@@ -8095,7 +8094,7 @@ class GameTest {
             // Une matière exotique attend le huitième Big Bang.
             if (game.body(bodyId).tier() == Body.Tier.EXOTIC && game.state().bigBangs() < 8) game.state().setBigBangs(8);
             // Le trou noir supermassif demande aussi le cœur de galaxie, un upsilon du collisionneur.
-            if (game.needsGalaxyCore(game.body(bodyId)) && game.state().hadrons(Hadron.UPSILON) == 0) game.state().setHadrons(Hadron.UPSILON, 1);
+            if (game.needsColliderEnergy(game.body(bodyId))) game.state().setColliderEnergyProduced(Math.max(game.colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
         }
 
         /** Forme cet astre, et d'abord ceux dont il part. */

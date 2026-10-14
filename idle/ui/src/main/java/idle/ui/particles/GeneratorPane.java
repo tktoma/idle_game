@@ -49,6 +49,17 @@ public final class GeneratorPane extends Pane {
         ambient.frame(dt);
     }
 
+    /** Le fond suit la production : {@code rate} particules par seconde. */
+    public void animateBackground(double dt, double rate) {
+        ambient.setIntensity(ParticleView.intensity(rate));
+        ambient.frame(dt);
+    }
+
+    /** Efface le fond animé : coupé, il disparaît tout de suite au lieu de rester figé (version 0.67). */
+    public void clearBackground() {
+        ambient.getGraphicsContext2D().clearRect(0, 0, ambient.getWidth(), ambient.getHeight());
+    }
+
     /** Vrai pendant l'animation de fusion. */
     public boolean isFusing() {
         return fusing;

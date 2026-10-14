@@ -1,7 +1,7 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
-import idle.core.collider.ColliderMilestone;
+import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Body;
 import idle.ui.GameApp;
@@ -10,6 +10,7 @@ import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
@@ -262,8 +263,8 @@ public final class BodiesPane extends VBox {
             int lacking = molecule.getValue() - game.moleculeCount(molecule.getKey());
             if (lacking > 0) return "Il manque " + lacking + " " + game.molecule(molecule.getKey()).formula();
         }
-        if (game.needsGalaxyCore(body) && !game.hasColliderMilestone(ColliderMilestone.CORE)) {
-            return "Il faut le cœur de galaxie : un upsilon du collisionneur";
+        if (game.needsColliderEnergy(body) && !game.hasColliderEnergyFor(body)) {
+            return "Il faut " + Format.count(BigNum.of(game.colliderEnergyNeeded(body))) + " d'énergie produite au collisionneur";
         }
         if (!game.hasMaturationPlace()) return "Les " + game.maturationPlaces() + " places de maturation sont prises";
         return "";
@@ -288,8 +289,10 @@ public final class BodiesPane extends VBox {
             line(text, formed || have >= molecule.getValue(), molecule.getValue() + " " + game.molecule(molecule.getKey()).formula()
                     + (formed || have >= molecule.getValue() ? "" : " (" + have + ")"));
         }
-        if (game.needsGalaxyCore(body)) {
-            line(text, formed || game.hasColliderMilestone(ColliderMilestone.CORE), "Cœur de galaxie : 1 upsilon (collisionneur)");
+        if (game.needsColliderEnergy(body)) {
+            boolean enough = formed || game.hasColliderEnergyFor(body);
+            line(text, enough, "Énergie produite au collisionneur : " + Format.count(BigNum.of(game.colliderEnergyNeeded(body)))
+                    + (enough ? "" : " (" + Format.count(BigNum.of(game.colliderEnergyProduced())) + ")"));
         }
         return text.toString();
     }

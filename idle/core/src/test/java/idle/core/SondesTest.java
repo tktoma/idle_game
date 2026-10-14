@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.collider.Hadron;
+import idle.core.collider.ColliderUpgrade;
 import idle.core.collider.Quark;
 import idle.core.math.BigNum;
 import idle.core.probes.Probe;
@@ -141,7 +141,7 @@ class SondesTest {
     @Test
     void leCharmeAjouteDesQuarksAuxVoyagesDUneHeure() {
         Game game = third();
-        game.state().setHadrons(Hadron.JPSI, 3);
+        game.state().setColliderUpgradeLevel(ColliderUpgrade.FLAVOR_CHARM, 1);
         assertEquals(ProbeTrip.SHORT.rewards(), game.probeRewardCount(ProbeTrip.SHORT));
         assertEquals(ProbeTrip.HOUR.rewards() + 1, game.probeRewardCount(ProbeTrip.HOUR));
         assertTrue(game.launchProbe(ProbeDestination.VOID, ProbeTrip.HOUR));

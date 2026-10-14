@@ -1,8 +1,7 @@
 package idle.ui.collider;
 
 import idle.core.Game;
-import idle.core.math.BigNum;
-import idle.ui.common.Format;
+import idle.core.collider.Quark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleConsumer;
@@ -16,10 +15,12 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'anneau d'énergie du collisionneur (version 0.57) : un grand anneau ovale où deux faisceaux
- * tournent en sens contraires. Chaque fois qu'ils se croisent dans le détecteur, des étincelles
- * jaillissent : c'est l'énergie que donnent les faisceaux croisés. Un clic au moment du
- * croisement capte {@link Game#CROSSING_SECONDS} secondes de production d'un coup.
+ * L'anneau d'énergie du collisionneur (version 0.57, collisions en 0.59) : un grand anneau ovale où
+ * deux faisceaux tournent en sens contraires. Chaque fois qu'ils se croisent dans le détecteur, des
+ * étincelles jaillissent ; quand le croisement donne une collision, une onde part du détecteur et
+ * le quark obtenu s'envole, de la couleur de sa saveur, sa lettre dessus. Un clic au moment du
+ * croisement capte {@link Game#CROSSING_SECONDS} secondes de production et assure une collision
+ * au butin doublé.
  */
 public final class EnergyView extends Canvas {
 
@@ -33,15 +34,47 @@ public final class EnergyView extends Canvas {
     private static final double[] XS = new double[STEPS + 1];
     private static final double[] YS = new double[STEPS + 1];
 
-    /** Une étincelle, ou un « +12 énergie » qui monte et s'efface. */
+    /** Une étincelle, un « +12 énergie » qui monte et s'efface, ou un quark (sa lettre dans un rond). */
     private static final class Spark {
-        double x, y, vx, vy, life, age;
+        double x, y, vx, vy, life, age, size;
         Color color;
         String text;
+        String quark;
+    }
+
+    /** L'onde d'une collision, qui s'élargit autour du détecteur. */
+    private static final class Wave {
+        double age;
+        Color color;
+        boolean caught;
+    }
+
+    /** La couleur d'une saveur de quark : la même partout dans l'onglet. */
+    public static Color color(Quark quark) {
+        return Color.web(ColliderPane.quarkColor(quark));
     }
 
     private final Game game;
     private final List<Spark> sparks = new ArrayList<>();
+    /** Faux si le joueur a coupé les étincelles : le détecteur ne jaillit plus, l'énergie gagnée reste écrite. */
+    private static boolean sparksOn = true;
+
+    /** Faux si le joueur a coupé l'animation du collisionneur : ni ondes ni envol, l'anneau ne scintille plus ; les faisceaux restent. */
+    private static boolean motion = true;
+
+    /** Allume ou coupe l'animation du collisionneur (réglage « Animations du collisionneur »). */
+    public static void setMotion(boolean on) {
+        motion = on;
+    }
+
+    /** Allume ou coupe les gerbes d'étincelles du détecteur (réglage « Étincelles du collisionneur »). */
+    public static void setSparks(boolean on) {
+        sparksOn = on;
+    }
+    private final List<Wave> waves = new ArrayList<>();
+    /** Le numéro de la dernière collision dessinée ; −1 avant la première image, pour ne pas rejouer les anciennes. */
+    private long lastSerial = -1;
+    private int collisionsShown;
     private double time;
     private boolean wasCrossing;
     private double lastGain;
@@ -67,6 +100,11 @@ public final class EnergyView extends Canvas {
 
     public int sparks() {
         return sparks.size();
+    }
+
+    /** Collisions montrées depuis l'ouverture : pour les vérifications. */
+    public int collisionsShown() {
+        return collisionsShown;
     }
 
     private double cx() {
@@ -95,25 +133,67 @@ public final class EnergyView extends Canvas {
     }
 
     public void frame(double elapsed) {
-        time += elapsed;
-        boolean crossing = Game.inResonance(game.colliderBeamPhase());
+        if (motion) time += elapsed;
+        boolean crossing = game.isCrossing();
         // Chaque croisement fait jaillir des étincelles, même sans clic : les faisceaux produisent toujours.
         if (crossing && !wasCrossing) burst(false, 0);
         wasCrossing = crossing;
+        showCollisions();
+        for (Wave wave : waves) wave.age += elapsed;
+        waves.removeIf(wave -> wave.age >= 1.2);
+        // Un effet coupé l'est tout de suite : les ondes et les étincelles déjà lancées disparaissent (version 0.67).
+        if (!motion) waves.clear();
+        if (!sparksOn) sparks.removeIf(spark -> spark.quark == null && spark.text == null);
         for (Spark spark : sparks) {
             spark.age += elapsed;
+            // Sans animation, un quark ou un gain reste au détecteur le temps de se lire, sans s'envoler.
+            if (!motion) continue;
             spark.x += spark.vx * elapsed;
             spark.y += spark.vy * elapsed;
-            spark.vy += (spark.text == null ? 60 : -10) * elapsed;
+            spark.vy += (spark.quark != null ? 18 : spark.text == null ? 60 : -10) * elapsed;
         }
         sparks.removeIf(spark -> spark.age >= spark.life);
         draw();
     }
 
+    /** Les collisions arrivées depuis la dernière image : une onde, et le quark qui s'envole. */
+    private void showCollisions() {
+        List<Game.CollisionResult> recent = game.recentCollisions();
+        if (lastSerial < 0) {
+            lastSerial = recent.isEmpty() ? 0 : recent.get(recent.size() - 1).serial();
+            return;
+        }
+        int shown = 0;
+        for (Game.CollisionResult result : recent) {
+            if (result.serial() <= lastSerial) continue;
+            lastSerial = result.serial();
+            if (shown++ >= 6 || sparks.size() > 220) continue;      // beaucoup d'un coup (déclencheur rapide) : quelques-unes suffisent
+            collisionsShown++;
+            Wave wave = new Wave();
+            wave.color = color(result.quark());
+            wave.caught = result.caught();
+            waves.add(wave);
+            double seed = Math.sin(result.serial() * 12.9898) * 43758.5453;
+            double unit = seed - Math.floor(seed);
+            Spark quark = new Spark();
+            quark.x = px(Math.PI);
+            quark.y = py(Math.PI);
+            double angle = -Math.PI * (0.2 + 0.6 * unit);
+            quark.vx = Math.cos(angle) * 70;
+            quark.vy = Math.sin(angle) * 70;
+            quark.life = 1.8;
+            quark.size = result.caught() ? 22 : 16;
+            quark.color = wave.color;
+            quark.quark = result.quark().symbol();
+            quark.text = result.count() > 1 ? "×" + result.count() : null;
+            sparks.add(quark);
+        }
+    }
+
     /** Des étincelles au détecteur ; dorées et plus nombreuses quand le croisement est capté, avec ce qu'il rapporte. */
     private void burst(boolean caught, double gain) {
         double x = px(Math.PI), y = py(Math.PI);
-        int count = caught ? 34 : 10;
+        int count = !sparksOn ? 0 : caught ? 34 : 10;
         Color[] palette = caught ? new Color[] {GOLD, Color.WHITE, BEAM_A, BEAM_B} : new Color[] {BEAM_A, BEAM_B};
         for (int k = 0; k < count; k++) {
             Spark spark = new Spark();
@@ -136,7 +216,7 @@ public final class EnergyView extends Canvas {
             text.vy = -30;
             text.life = 1.4;
             text.color = GOLD;
-            text.text = "+" + Format.count(BigNum.of(gain)) + " énergie";
+            text.text = "+" + ColliderPane.whole(gain) + " énergie";
             sparks.add(text);
         }
     }
@@ -155,12 +235,12 @@ public final class EnergyView extends Canvas {
         }
         g.setGlobalAlpha(1);
         double phase = game.colliderBeamPhase();
-        boolean crossing = Game.inResonance(phase), catchable = game.canCatchCrossing();
+        boolean crossing = game.isCrossing(), catchable = game.canCatchCrossing();
         // L'anneau.
         ellipse(g, 0, 2 * Math.PI, RING, 10, 1);
         ellipse(g, 0, 2 * Math.PI, LIGHT, 2, 0.25 + 0.1 * Math.sin(time * 2));
         // La zone du croisement, autour du détecteur.
-        double half = Math.PI * Game.RESONANCE_WINDOW;
+        double half = Math.PI * game.colliderWindow();
         ellipse(g, Math.PI - half, Math.PI + half, GOLD, catchable ? 8 : 5, catchable ? 1 : 0.4);
         // L'injecteur et le détecteur.
         g.setFill(Color.web("#2c4866"));
@@ -172,11 +252,36 @@ public final class EnergyView extends Canvas {
         beam(g, angle, 1, BEAM_A);
         beam(g, -angle, -1, BEAM_B);
         if (catchable) glow(g, px(Math.PI), py(Math.PI), 46, GOLD, 0.5);
+        // Les ondes des collisions.
+        for (Wave wave : waves) {
+            double grow = wave.age / 1.2;
+            double radius = 10 + grow * (wave.caught ? 90 : 60);
+            g.setStroke(wave.color);
+            g.setLineWidth(wave.caught ? 4 : 2.5);
+            g.setGlobalAlpha(Math.max(0, 1 - grow));
+            g.strokeOval(px(Math.PI) - radius, py(Math.PI) - radius * 0.6, 2 * radius, 1.2 * radius);
+        }
+        g.setGlobalAlpha(1);
         // Les étincelles, et les gains qui montent.
         for (Spark spark : sparks) {
             double fade = 1 - spark.age / spark.life;
             g.setGlobalAlpha(Math.max(0, fade));
-            if (spark.text != null) {
+            if (spark.quark != null) {
+                double s = spark.size;
+                glow(g, spark.x, spark.y, s * 1.3, spark.color, 0.45);
+                g.setFill(spark.color);
+                g.fillOval(spark.x - s / 2, spark.y - s / 2, s, s);
+                g.setFill(BACK);
+                g.setFont(Font.font(s * 0.62));
+                g.setTextAlign(TextAlignment.CENTER);
+                g.fillText(spark.quark, spark.x, spark.y + s * 0.22);
+                if (spark.text != null) {
+                    g.setFill(spark.color);
+                    g.setFont(Font.font(12));
+                    g.fillText(spark.text, spark.x + s * 0.9, spark.y - s * 0.4);
+                }
+                g.setTextAlign(TextAlignment.LEFT);
+            } else if (spark.text != null) {
                 g.setFont(Font.font(14));
                 g.setTextAlign(TextAlignment.CENTER);
                 g.setFill(spark.color);
@@ -191,12 +296,25 @@ public final class EnergyView extends Canvas {
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font(13));
         g.setFill(LIGHT);
-        g.fillText("+" + Format.count(BigNum.of(game.colliderEnergyPerSecond())) + " énergie par seconde", cx(), cy() + 5);
+        g.fillText("+" + ColliderPane.rate(game.colliderEnergyPerSecond()) + " énergie par seconde", cx(), cy() + 5);
         g.setFont(Font.font(11));
         g.setFill(catchable ? GOLD : Color.web("#5a7088"));
         g.fillText(catchable ? "ils se croisent : cliquer !" : crossing ? "croisement capté" : "cliquer quand les faisceaux se croisent en bas",
                 cx(), h - 8);
+        // En haut à gauche : la chance d'une collision à chaque croisement.
         g.setTextAlign(TextAlignment.LEFT);
+        g.setFont(Font.font(12));
+        g.setFill(LIGHT);
+        g.fillText("Chance de collision : " + Math.round(game.collisionChance() * 100) + " %", 12, 18);
+        g.setFill(Color.web("#5a7088"));
+        g.fillText("un croisement toutes les " + seconds(game.colliderPeriod()) + " s", 12, 34);
+        g.setTextAlign(TextAlignment.LEFT);
+    }
+
+    /** « 2 », « 1,4 » : des secondes, avec une décimale au besoin. */
+    static String seconds(double value) {
+        double rounded = Math.round(value * 10) / 10.0;
+        return rounded == Math.floor(rounded) ? String.valueOf((long) rounded) : String.valueOf(rounded).replace('.', ',');
     }
 
     private void ellipse(GraphicsContext g, double from, double to, Color color, double width, double alpha) {

@@ -145,6 +145,18 @@ public final class StatsHistory {
         /** Sortes de molécules rassemblées. */
         SUBSTANCES,
 
+        // ----- Collisionneur (version 0.64) -----
+        /** Énergie du collisionneur en réserve, en puissance de dix. */
+        COLLIDER_ENERGY,
+        /** Énergie produite par le collisionneur depuis le début, en puissance de dix. */
+        COLLIDER_ENERGY_PRODUCED,
+        /** Énergie du collisionneur par seconde, en puissance de dix. */
+        COLLIDER_ENERGY_RATE,
+        /** Collisions depuis le début. */
+        COLLISIONS,
+        /** Quarks en réserve, toutes saveurs ensemble. */
+        QUARKS,
+
         // ----- Ce que le joueur a en main -----
         /**
          * Particules en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé
@@ -389,20 +401,41 @@ public final class StatsHistory {
         int i = 0;
         for (String token : text.split(";", -1)) {
             int star = token.indexOf('*');
-            double value = SaveData.parse(star < 0 ? token : token.substring(0, star));
+            double value = value(star < 0 ? token : token.substring(0, star));
             int run = star < 0 ? 1 : Integer.parseInt(token.substring(star + 1));
             for (int k = 0; k < run && i < count; k++) column[i++] = value;
         }
         return column;
     }
 
-    /** Une valeur de courbe en peu de caractères : un entier tel quel, sinon sept chiffres significatifs. */
+    /**
+     * Une valeur de courbe en peu de caractères : un entier tel quel, sinon sept chiffres
+     * significatifs. Relue par {@link #value(String)}, elle se réécrit à l'identique : un arrondi
+     * qui tombe sur un entier s'écrit en entier, et le texte d'un {@code float} se relit en {@code float}.
+     */
     private static String compact(double value) {
         if (Double.isNaN(value)) return "";
         if (Double.isInfinite(value)) return Double.toString(value);
         if (value == Math.rint(value) && Math.abs(value) < 1e15) return Long.toString((long) value);
         float rounded = (float) value;
         if (Float.isInfinite(rounded) || rounded == 0) return Double.toString(value);
+        if (rounded == Math.rint(rounded) && Math.abs(rounded) < 1e15) return Long.toString((long) rounded);
         return Float.toString(rounded);
+    }
+
+    /**
+     * Relit une valeur écrite par {@link #compact(double)}. Un texte de {@code float} se relit en
+     * {@code float} : passer par un {@code double} puis l'arrondir peut tomber sur le {@code float}
+     * voisin, et la sauvegarde suivante n'écrirait plus le même texte.
+     */
+    private static double value(String token) {
+        double value = SaveData.parse(token);
+        if (Double.isNaN(value) || Double.isInfinite(value) || value == Math.rint(value)) return value;
+        try {
+            float single = Float.parseFloat(token);
+            return Float.isInfinite(single) || single == 0 ? value : single;
+        } catch (NumberFormatException unreadable) {
+            return value;
+        }
     }
 }

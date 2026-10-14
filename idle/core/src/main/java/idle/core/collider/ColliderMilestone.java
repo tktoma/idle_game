@@ -6,11 +6,11 @@ package idle.core.collider;
  * palier atteint le reste.
  */
 public enum ColliderMilestone {
-    /** 10 protons et 10 neutrons : la collision basse énergie se relance d'elle-même. */
+    /** 10 protons et 10 neutrons : la chance de collision monte de cinq points. */
     PLASMA("Plasma quark-gluon", "10 protons et 10 neutrons",
-            "La collision basse énergie se relance d'elle-même dans une place libre"),
-    /** 5 hadrons étranges (kaons et lambdas) : une troisième place de collision. */
-    STRANGE("Matière étrange", "5 hadrons étranges (kaons et lambdas)", "Une troisième place de collision"),
+            "Chance de collision à chaque croisement : 20 % au lieu de 15 %"),
+    /** 5 hadrons étranges (kaons et lambdas) : une collision sur quatre donne un quark de plus. */
+    STRANGE("Matière étrange", "5 hadrons étranges (kaons et lambdas)", "Une collision sur quatre donne un quark de plus"),
     /** 3 J/psi : les sondes rapportent aussi des quarks charmés et beaux. */
     CHARM("Charme", "3 J/psi", "Les sondes rapportent aussi des quarks c et b"),
     /** 1 upsilon : le cœur de galaxie, que demande le trou noir supermassif. */

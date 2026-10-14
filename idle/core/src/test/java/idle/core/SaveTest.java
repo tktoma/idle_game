@@ -9,7 +9,6 @@ import idle.core.achievements.Achievements;
 import idle.core.collider.ColliderGenerator;
 import idle.core.collider.Collision;
 import idle.core.collider.CollisionTier;
-import idle.core.collider.Hadron;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.ElementCategory;
@@ -85,12 +84,14 @@ class SaveTest {
         state.setColliderEnergy(1234.5);
         state.setColliderGenerators(ColliderGenerator.BEAM, 12.25);
         state.setColliderGeneratorsBought(ColliderGenerator.MAGNET, 3);
-        state.setColliderCrossingAt(77.5);
+        state.setColliderPhase(0.375);
+        state.setColliderCrossings(1234);
+        state.setColliderCaught(1233);
+        state.setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.LUCK, 4);
+        state.setColliderPaused(idle.core.collider.ColliderUpgrade.AUTO_BEAM, true);
         state.setQuarks(Quark.UP, 7);
         state.setQuarks(Quark.CHARM, 2);
-        state.setHadrons(Hadron.PROTON, 4);
-        state.setHadrons(Hadron.UPSILON, 1);
-        state.setColliderAuto(false);
+        state.setColliderEnergyProduced(4.5e9);
         state.setProbes(List.of(new Probe(ProbeDestination.COMET, ProbeTrip.HOUR, 1200.5, 3240, 8)));
         state.setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, "26", 6.25, ProbeDestination.ASTEROIDS, 7),
                 new ProbeReward(ProbeReward.Type.SPACE, "", 1, ProbeDestination.VOID)));
@@ -812,6 +813,29 @@ class SaveTest {
             while (!absence.isDone() && rounds++ < 100_000) absence.advanceFor(1_000_000);
             assertTrue(absence.isDone());
             assertEquals(360, absence.done(), 1e-9);
+        }
+    }
+
+    /** Les courbes gardées dans la sauvegarde (version 0.64) : une colonne relue se réécrit à l'identique. */
+    @Nested
+    class Courbes {
+
+        @Test
+        void uneColonneRelueSeReecritALIdentique() {
+            java.util.Random random = new java.util.Random(7);
+            double[] column = new double[5_000];
+            for (int i = 0; i < column.length; i++) {
+                column[i] = switch (i % 5) {
+                    case 0 -> random.nextDouble() * 3000;
+                    case 1 -> Math.rint(random.nextDouble() * 3000) - 1e-9;   // un arrondi qui tombe sur un entier
+                    case 2 -> random.nextGaussian() * 1e-40;
+                    case 3 -> Double.NaN;
+                    default -> random.nextDouble() * 1e30;
+                };
+            }
+            String once = StatsHistory.pack(column);
+            String twice = StatsHistory.pack(StatsHistory.unpack(once, column.length));
+            assertEquals(once, twice);
         }
     }
 }

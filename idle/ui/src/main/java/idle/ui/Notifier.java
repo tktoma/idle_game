@@ -3,10 +3,10 @@ package idle.ui;
 import idle.core.Game;
 import idle.core.GameStats;
 import idle.core.achievements.Achievement;
+import idle.core.bigbang.BangAchievement;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.SpaceUpgrade;
-import idle.core.collider.ColliderMilestone;
-import idle.core.collider.CollisionTier;
+import idle.core.collider.ColliderAchievement;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.DarkAutomation;
@@ -49,6 +49,11 @@ final class Notifier {
 
     private final Game game;
     private boolean primed = false;
+    /** Vrai si les améliorations du collisionneur étaient déjà ouvertes au dernier relevé. */
+    private boolean colliderUpgradesSeen = false;
+    /** Les succès du collisionneur déjà gagnés au dernier relevé. */
+    private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
+    private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
     private boolean started;
     private Set<Integer> elements = new HashSet<>();
     private final Map<String, Double> setStrengths = new HashMap<>();
@@ -57,7 +62,8 @@ final class Notifier {
     private boolean synthesisUnlocked;
     private boolean canExplode;
     private int speedMilestones;
-    private java.util.Set<ColliderMilestone> colliderMilestones = java.util.EnumSet.noneOf(ColliderMilestone.class);
+    /** L'énergie produite au dernier relevé : pour annoncer une fois les paliers des trous noirs. */
+    private double blackHoleEnergySeen = 0;
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
@@ -96,19 +102,22 @@ final class Notifier {
             primed = true;
             return news;
         }
-        boolean plasma = game.hasColliderMilestone(ColliderMilestone.PLASMA);
-        for (Game.CollisionResult result : collisions) {
-            // Avec le plasma, la basse énergie tourne sans fin : elle ne s'annonce plus, sauf réussie en résonance.
-            if (plasma && result.tier() == CollisionTier.LOW && !result.doubled()) continue;
-            StringBuilder loot = new StringBuilder();
-            for (Quark quark : Quark.values()) {
-                Integer count = result.quarks().get(quark);
-                if (count == null || count == 0) continue;
-                loot.append(loot.length() == 0 ? "" : ", ").append("+").append(count).append(' ').append(quark.symbol());
-            }
-            news.add("Collision " + result.tier().label().toLowerCase(java.util.Locale.ROOT) + " terminée : " + loot
-                    + (result.doubled() ? " (résonance : ×2)" : "")
-                    + (result.quarks().containsKey(Quark.TOP) ? ". Un quark top : à utiliser dans la minute !" : ""));
+        // Les collisions sont trop nombreuses pour être toutes annoncées : seulement le quark top.
+        boolean top = false;
+        for (Game.CollisionResult result : collisions) if (result.quark() == Quark.TOP) top = true;
+        if (top) news.add("Collision : un quark top ! À utiliser dans " + Format.wait(game.topLeft()) + ", dans l'onglet du collisionneur.");
+        boolean upgradesOpen = game.isColliderUpgradesUnlocked();
+        if (upgradesOpen && !colliderUpgradesSeen) news.add("Collisionneur : les huit générateurs sont là, les améliorations s'ouvrent.");
+        colliderUpgradesSeen = upgradesOpen;
+        for (ColliderAchievement achievement : ColliderAchievement.values()) {
+            if (colliderAchievementsSeen.contains(achievement) || !game.hasColliderAchievement(achievement)) continue;
+            colliderAchievementsSeen.add(achievement);
+            news.add("Succès du collisionneur : " + achievement.condition() + ", " + achievement.reward() + ".");
+        }
+        for (BangAchievement achievement : BangAchievement.values()) {
+            if (bangAchievementsSeen.contains(achievement) || !game.hasBangAchievement(achievement)) continue;
+            bangAchievementsSeen.add(achievement);
+            news.add("Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
         }
 
         List<String> matured = game.takeMaturedBodies();
@@ -124,11 +133,15 @@ final class Notifier {
                     ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
                     : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
         }
-        for (ColliderMilestone milestone : ColliderMilestone.values()) {
-            if (game.hasColliderMilestone(milestone) && colliderMilestones.add(milestone)) {
-                news.add("Palier du collisionneur : " + milestone.label() + ". " + milestone.reward() + ".");
-            }
+        // Les deux trous noirs (version 0.62) : l'énergie produite qu'ils demandent est atteinte.
+        double produced = game.colliderEnergyProduced();
+        if (blackHoleEnergySeen < Game.BLACK_HOLE_ENERGY && produced >= Game.BLACK_HOLE_ENERGY) {
+            news.add("Collisionneur : assez d'énergie produite pour le trou noir.");
         }
+        if (blackHoleEnergySeen < Game.SUPERMASSIVE_ENERGY && produced >= Game.SUPERMASSIVE_ENERGY) {
+            news.add("Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
+        }
+        blackHoleEnergySeen = produced;
 
         if (game.bigBangs() > bigBangs) {
             // Tout vient de repartir de zéro : on reprend ses repères, pour que la partie suivante s'annonce comme la première.
@@ -291,10 +304,16 @@ final class Notifier {
     /** Retient l'état du jeu, pour le comparer au prochain relevé. */
     private void snapshot() {
         started = game.isStarted();
-        colliderMilestones.clear();
-        for (ColliderMilestone milestone : ColliderMilestone.values()) {
-            if (game.hasColliderMilestone(milestone)) colliderMilestones.add(milestone);
+        colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
+        colliderAchievementsSeen.clear();
+        for (ColliderAchievement achievement : ColliderAchievement.values()) {
+            if (game.hasColliderAchievement(achievement)) colliderAchievementsSeen.add(achievement);
         }
+        bangAchievementsSeen.clear();
+        for (BangAchievement achievement : BangAchievement.values()) {
+            if (game.hasBangAchievement(achievement)) bangAchievementsSeen.add(achievement);
+        }
+        blackHoleEnergySeen = game.colliderEnergyProduced();
         // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
         java.util.Set<Integer> owned = game.state().elements().keySet();
         if (!elements.equals(owned)) elements = new HashSet<>(owned);

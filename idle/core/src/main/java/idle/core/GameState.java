@@ -1,9 +1,9 @@
 package idle.core;
 
 import idle.core.collider.ColliderGenerator;
+import idle.core.collider.ColliderUpgrade;
 import idle.core.collider.Collision;
 import idle.core.collider.CollisionTier;
-import idle.core.collider.Hadron;
 import idle.core.collider.Quark;
 import idle.core.elements.ElementCategory;
 import idle.core.math.BigNum;
@@ -130,10 +130,19 @@ public final class GameState {
     /** Les générateurs du collisionneur (version 0.57) : ce qu'on en a, et combien ont été achetés. */
     private final java.util.EnumMap<ColliderGenerator, Double> colliderGenerators = new java.util.EnumMap<>(ColliderGenerator.class);
     private final java.util.EnumMap<ColliderGenerator, Integer> colliderGeneratorsBought = new java.util.EnumMap<>(ColliderGenerator.class);
-    /** Le temps de jeu du dernier croisement capté d'un clic : un seul par passage. */
-    private double colliderCrossingAt = -1;
+    /**
+     * Les faisceaux (version 0.59) : leur phase, de 0 à 1 (ils se croisent à 0,5), le nombre de
+     * croisements depuis le début, et le numéro du dernier croisement capté d'un clic.
+     */
+    private double colliderPhase = 0;
+    private long colliderCrossings = 0;
+    private long colliderCaught = -1;
+    /** Les améliorations du collisionneur (version 0.59) et les automates mis en pause par le joueur. */
+    private final java.util.EnumMap<ColliderUpgrade, Integer> colliderUpgrades = new java.util.EnumMap<>(ColliderUpgrade.class);
+    private final java.util.EnumSet<ColliderUpgrade> colliderPaused = java.util.EnumSet.noneOf(ColliderUpgrade.class);
     private final java.util.EnumMap<Quark, Integer> quarks = new java.util.EnumMap<>(Quark.class);
-    private final java.util.EnumMap<Hadron, Integer> hadrons = new java.util.EnumMap<>(Hadron.class);
+    /** L'énergie produite depuis le début (version 0.62) : elle ouvre les deux trous noirs. */
+    private double colliderEnergyProduced = 0;
     private final List<Collision> collisions = new ArrayList<>();
     private long collisionRuns = 0;
     private double topLeft = 0;
@@ -147,8 +156,6 @@ public final class GameState {
     private long probeLaunches = 0;
     private long probeSamples = 0;
     private double probeBoostLeft = 0;
-    /** Le plasma quark-gluon relance-t-il la collision basse énergie ? Un réglage du joueur. */
-    private boolean colliderAuto = true;
     private long pulses = 0;
     /** Les records du joueur, étape par étape : le temps de jeu le plus court auquel chacune a été atteinte. La remise à zéro les garde. */
     private final Map<String, Double> records = new HashMap<>();
@@ -829,12 +836,50 @@ public final class GameState {
         else colliderGeneratorsBought.put(generator, bought);
     }
 
-    public double colliderCrossingAt() {
-        return colliderCrossingAt;
+    /** La phase des faisceaux, de 0 à 1 : ils partent ensemble de l'injecteur à 0 et se croisent à 0,5. */
+    public double colliderPhase() {
+        return colliderPhase;
     }
 
-    public void setColliderCrossingAt(double time) {
-        colliderCrossingAt = time;
+    public void setColliderPhase(double phase) {
+        colliderPhase = Double.isNaN(phase) ? 0 : phase - Math.floor(phase);
+    }
+
+    /** Nombre de croisements des faisceaux depuis le début. */
+    public long colliderCrossings() {
+        return colliderCrossings;
+    }
+
+    public void setColliderCrossings(long count) {
+        colliderCrossings = Math.max(0, count);
+    }
+
+    /** Le numéro du dernier croisement capté d'un clic ; −1 avant le premier. */
+    public long colliderCaught() {
+        return colliderCaught;
+    }
+
+    public void setColliderCaught(long crossing) {
+        colliderCaught = crossing;
+    }
+
+    public int colliderUpgradeLevel(ColliderUpgrade upgrade) {
+        return colliderUpgrades.getOrDefault(upgrade, 0);
+    }
+
+    public void setColliderUpgradeLevel(ColliderUpgrade upgrade, int level) {
+        if (level <= 0) colliderUpgrades.remove(upgrade);
+        else colliderUpgrades.put(upgrade, Math.min(level, upgrade.maxLevel()));
+    }
+
+    /** Vrai si le joueur a mis cet automate en pause. */
+    public boolean isColliderPaused(ColliderUpgrade upgrade) {
+        return colliderPaused.contains(upgrade);
+    }
+
+    public void setColliderPaused(ColliderUpgrade upgrade, boolean paused) {
+        if (paused) colliderPaused.add(upgrade);
+        else colliderPaused.remove(upgrade);
     }
 
     public int quarks(Quark quark) {
@@ -846,13 +891,12 @@ public final class GameState {
         else quarks.put(quark, count);
     }
 
-    public int hadrons(Hadron hadron) {
-        return hadrons.getOrDefault(hadron, 0);
+    public double colliderEnergyProduced() {
+        return colliderEnergyProduced;
     }
 
-    public void setHadrons(Hadron hadron, int count) {
-        if (count <= 0) hadrons.remove(hadron);
-        else hadrons.put(hadron, count);
+    public void setColliderEnergyProduced(double energy) {
+        colliderEnergyProduced = Double.isNaN(energy) ? 0 : Math.max(0, energy);
     }
 
     /** Les collisions en cours, dans l'ordre de leur lancement. */
@@ -952,14 +996,6 @@ public final class GameState {
 
     public void setProbeBoostLeft(double seconds) {
         probeBoostLeft = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
-    }
-
-    public boolean colliderAuto() {
-        return colliderAuto;
-    }
-
-    public void setColliderAuto(boolean on) {
-        colliderAuto = on;
     }
 
     public double pulseCharges() {
@@ -1321,14 +1357,17 @@ public final class GameState {
         colliderEnergy = 0;
         colliderGenerators.clear();
         colliderGeneratorsBought.clear();
-        colliderCrossingAt = -1;
+        colliderPhase = 0;
+        colliderCrossings = 0;
+        colliderCaught = -1;
+        colliderUpgrades.clear();
+        colliderPaused.clear();
         quarks.clear();
-        hadrons.clear();
+        colliderEnergyProduced = 0;
         collisions.clear();
         collisionRuns = 0;
         topLeft = 0;
         overheatLeft = 0;
-        colliderAuto = true;
         probes.clear();
         probeRewards.clear();
         probeUpgrades.clear();
@@ -1416,6 +1455,66 @@ public final class GameState {
         synthesisTries = 0;
         drySyntheses = 0;
         decayDebt = 0;
+    }
+
+    /**
+     * Efface tout le collisionneur : son énergie, produite comme dépensée, ses générateurs, ses
+     * améliorations et leurs pauses, les quarks, les collisions en cours, le quark top et la
+     * surchauffe. Rien d'autre ne bouge. Aucune étape du jeu ne le fait (le collisionneur
+     * traverse les actes) : c'est un outil de test.
+     */
+    public void clearCollider() {
+        colliderEnergy = 0;
+        colliderEnergyProduced = 0;
+        colliderGenerators.clear();
+        colliderGeneratorsBought.clear();
+        colliderPhase = 0;
+        colliderCrossings = 0;
+        colliderCaught = -1;
+        colliderUpgrades.clear();
+        colliderPaused.clear();
+        quarks.clear();
+        collisions.clear();
+        collisionRuns = 0;
+        topLeft = 0;
+        overheatLeft = 0;
+    }
+
+    /**
+     * Efface l'acte du Big Bang : les Big Bangs, les molécules et leurs automatismes, les
+     * substances, les assemblages, les astres, les systèmes solaires, l'espace et ses
+     * améliorations, le cosmos, les comètes, les sondes et les défis du Big Bang. La matière, la
+     * matière noire et le collisionneur restent ; les succès et les records aussi. Un outil de
+     * test : aucune étape du jeu ne revient en arrière ainsi.
+     */
+    public void clearBigBangAct() {
+        bigBangs = 0;
+        molecules.clear();
+        substances.clear();
+        assemblies.clear();
+        bodies.clear();
+        maturing.clear();
+        solarSystems.clear();
+        substancesSeen = null;
+        assembliesSeen = null;
+        bodiesSeen = null;
+        cosmos = 0;
+        automatedMolecules.clear();
+        spaceUpgrades.clear();
+        favoriteMolecules.clear();
+        cometWait = 0;
+        cometVisible = 0;
+        cometBoost = 0;
+        probes.clear();
+        probeRewards.clear();
+        probeUpgrades.clear();
+        probeRuns = 0;
+        probeBoostLeft = 0;
+        activeBangChallenge = null;
+        completedBangChallenges.clear();
+        bangChallengeStarted = 0;
+        moleculesVersion++;
+        space = BigNum.ZERO;
     }
 
     // ------------------------------------------------------------------
@@ -1508,13 +1607,19 @@ public final class GameState {
         colliderGeneratorsBought.forEach((generator, bought) -> generatorsBought.put(generator.name(), bought));
         data.putDoubles("colliderGenerators", generatorAmounts);
         data.putInts("colliderGeneratorsBought", generatorsBought);
-        data.put("colliderCrossingAt", colliderCrossingAt);
+        data.put("colliderPhase", colliderPhase);
+        data.put("colliderCrossings", colliderCrossings);
+        data.put("colliderCaught", colliderCaught);
+        Map<String, Integer> colliderLevels = new TreeMap<>();
+        colliderUpgrades.forEach((upgrade, level) -> colliderLevels.put(upgrade.name(), level));
+        data.putInts("colliderUpgrades", colliderLevels);
+        List<String> paused = new ArrayList<>();
+        for (ColliderUpgrade upgrade : colliderPaused) paused.add(upgrade.name());
+        data.putList("colliderPaused", paused);
         Map<String, Integer> quarkCounts = new TreeMap<>();
         quarks.forEach((quark, count) -> quarkCounts.put(quark.name(), count));
         data.putInts("quarks", quarkCounts);
-        Map<String, Integer> hadronCounts = new TreeMap<>();
-        hadrons.forEach((hadron, count) -> hadronCounts.put(hadron.name(), count));
-        data.putInts("hadrons", hadronCounts);
+        data.put("colliderEnergyProduced", colliderEnergyProduced);
         List<String> running = new ArrayList<>();
         for (Collision collision : collisions) {
             running.add(collision.tier().name() + ";" + collision.left() + ";" + collision.resonated() + ";" + collision.doubled());
@@ -1523,7 +1628,6 @@ public final class GameState {
         data.put("collisionRuns", collisionRuns);
         data.put("topLeft", topLeft);
         data.put("overheatLeft", overheatLeft);
-        data.put("colliderAuto", colliderAuto);
         List<String> flying = new ArrayList<>();
         for (Probe probe : probes) {
             flying.add(probe.destination().name() + ";" + probe.trip().name() + ";" + probe.left() + ";" + probe.total() + ";" + probe.id());
@@ -1657,7 +1761,25 @@ public final class GameState {
                 // un générateur d'une autre version : écarté
             }
         });
-        colliderCrossingAt = data.real("colliderCrossingAt", -1);
+        setColliderPhase(data.real("colliderPhase", 0));
+        setColliderCrossings((long) data.real("colliderCrossings", 0));
+        colliderCaught = (long) data.real("colliderCaught", -1);
+        colliderUpgrades.clear();
+        data.ints("colliderUpgrades").forEach((name, level) -> {
+            try {
+                setColliderUpgradeLevel(ColliderUpgrade.valueOf(name), level);
+            } catch (IllegalArgumentException unknown) {
+                // une amélioration d'une autre version : écartée
+            }
+        });
+        colliderPaused.clear();
+        for (String name : data.list("colliderPaused")) {
+            try {
+                colliderPaused.add(ColliderUpgrade.valueOf(name));
+            } catch (IllegalArgumentException unknown) {
+                // un automate d'une autre version : écarté
+            }
+        }
         quarks.clear();
         data.ints("quarks").forEach((name, count) -> {
             try {
@@ -1666,14 +1788,8 @@ public final class GameState {
                 // une saveur d'une autre version : écartée
             }
         });
-        hadrons.clear();
-        data.ints("hadrons").forEach((name, count) -> {
-            try {
-                setHadrons(Hadron.valueOf(name), count);
-            } catch (IllegalArgumentException unknown) {
-                // un hadron d'une autre version : écarté
-            }
-        });
+        // Avant la version 0.62, l'énergie produite n'était pas comptée : l'énergie en réserve en tient lieu.
+        setColliderEnergyProduced(data.real("colliderEnergyProduced", colliderEnergy));
         collisions.clear();
         for (String line : data.list("collisions")) {
             String[] parts = line.split(";");
@@ -1687,7 +1803,6 @@ public final class GameState {
         setCollisionRuns((long) data.real("collisionRuns", 0));
         setTopLeft(data.real("topLeft", 0));
         setOverheatLeft(data.real("overheatLeft", 0));
-        colliderAuto = data.flag("colliderAuto", true);
         probes.clear();
         for (String line : data.list("probes")) {
             String[] parts = line.split(";");

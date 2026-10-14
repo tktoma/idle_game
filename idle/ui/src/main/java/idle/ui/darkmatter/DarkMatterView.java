@@ -32,7 +32,7 @@ import javafx.scene.text.TextAlignment;
  * <p>Tous les calculs se font sur le logarithme des tailles : elles vont du proton à l'univers
  * et au-delà, bien plus qu'un nombre de pixels ne peut en contenir.
  */
-final class DarkMatterView extends Canvas {
+public final class DarkMatterView extends Canvas {
 
     /** Part de la plus petite dimension de la vue qu'occupe le rayon du point, au repos. */
     private static final double REST_RADIUS = 0.16;
@@ -59,6 +59,28 @@ final class DarkMatterView extends Canvas {
     private double logScale = Double.NaN;
     private double time = 0;
     private double blobRadius = 0;
+    /** La force de la chute de matière, de 0 à 1, adoucie ; et l'avancée de la spirale. */
+    private double fall = 0;
+    private double spiral = 0;
+    /** Faux si le joueur a coupé la chute de matière : la matière noire ne fait plus que grossir. */
+    private static boolean fallOn = true;
+
+    /** Faux si le joueur a coupé l'animation de la matière noire : elle ne palpite plus, rien ne scintille. */
+    private static boolean motion = true;
+
+    /** Allume ou coupe l'animation de la matière noire (réglage « Matière noire animée »). */
+    public static void setMotion(boolean on) {
+        motion = on;
+    }
+
+    /** Allume ou coupe la spirale de matière qui tombe (réglage « Chute de matière noire »). */
+    public static void setFall(boolean on) {
+        fallOn = on;
+    }
+    /** La chute de matière : pour les vérifications. */
+    double fall() {
+        return fall;
+    }
 
     DarkMatterView(double width, double height) {
         super(width, height);
@@ -80,8 +102,22 @@ final class DarkMatterView extends Canvas {
      * @param growing vrai tant que le joueur maintient le point appuyé
      */
     void frame(double elapsed, BigNum size, boolean growing) {
+        frame(elapsed, size, growing, 1);
+    }
+
+    /**
+     * Avance l'animation et redessine (version 0.61) : quand la matière noire grossit, de la
+     * matière tombe vers elle en spirale, d'autant plus vite et plus dense que sa croissance est forte.
+     *
+     * @param momentum l'élan de la croissance ({@link idle.core.Game#darkMatterMomentum()})
+     */
+    void frame(double elapsed, BigNum size, boolean growing, double momentum) {
+        double wanted = fallOn && growing && momentum > 0 ? Math.max(0.15, Math.min(1, Math.log10(1 + momentum) / 2)) : 0;
+        // Coupée, la chute s'arrête tout de suite au lieu de s'éteindre peu à peu (version 0.67).
+        fall = fallOn ? fall + (wanted - fall) * Math.min(1, Math.min(elapsed, 0.1) * 2) : 0;
+        spiral += Math.min(elapsed, 0.1) * (0.4 + 3 * fall);
         double dt = Math.min(elapsed, 0.1);
-        time += dt;
+        if (motion) time += dt;
         double w = getWidth();
         double h = getHeight();
         double small = Math.min(w, h);
@@ -134,8 +170,24 @@ final class DarkMatterView extends Canvas {
             if (beyond) break;
         }
 
-        // Le point : un halo qui bat quand on appuie, et un cœur clair.
-        double pulse = growing ? 1 + 0.08 * Math.sin(time * 9) : 1;
+        // La matière qui tombe : des grains en spirale, plus nombreux et plus rapides avec la croissance.
+        if (fall > 0.02) {
+            int grains = (int) (14 + 46 * fall);
+            g.setFill(GLOW);
+            for (int i = 0; i < grains; i++) {
+                double seed = i * 0.618034;
+                double phase = (seed + spiral * (0.35 + 0.15 * (i % 3))) % 1;   // 0 au bord, 1 avalé
+                double radius = blobRadius * 1.1 + (small * 0.45 - blobRadius * 1.1) * (1 - phase) * (1 - phase);
+                double angle = seed * 2 * Math.PI * 7 + phase * (3 + 5 * fall);
+                g.setGlobalAlpha(Math.min(1, fall * 1.5) * Math.sin(Math.PI * phase) * 0.8);
+                double r = 1 + 1.5 * fall;
+                g.fillOval(cx + radius * Math.cos(angle) - r, cy + radius * Math.sin(angle) - r, 2 * r, 2 * r);
+            }
+            g.setGlobalAlpha(1);
+        }
+
+        // Le point : un halo qui bat quand on appuie, d'autant plus vite qu'il grossit fort, et un cœur clair.
+        double pulse = growing && motion ? 1 + (0.08 + 0.06 * fall) * Math.sin(time * (9 + 12 * fall)) : 1;
         g.setFill(GLOW);
         g.setGlobalAlpha(growing ? 0.22 : 0.12);
         double halo = blobRadius * 1.5 * pulse;

@@ -963,10 +963,24 @@ public final class BigBangPage extends VBox {
      *
      * @param elapsed secondes écoulées depuis l'image précédente
      */
+    /** Faux si le joueur a coupé les animations du Big Bang : les vues se redessinent, figées. */
+    private static boolean motion = true;
+
+    /** Allume ou coupe les animations du Big Bang (réglage « Animations du Big Bang »). */
+    public static void setMotion(boolean on) {
+        motion = on;
+    }
+
+    /** Vrai si les vues du Big Bang font avancer leur temps. */
+    static boolean moving() {
+        return motion;
+    }
+
     public void frame(double elapsed) {
         if (selected == 1) spaceView.frame(elapsed);
         if (selected == 5) bodiesPane.frame(elapsed);
         if (selected == 7) bangChallenges.frame(elapsed);
+        if (selected == 9) systemsPane.frame(elapsed);
         if (selected == 6) galaxyPane.frame(elapsed);
         if (selected == 8) probesPane.frame(elapsed);
     }

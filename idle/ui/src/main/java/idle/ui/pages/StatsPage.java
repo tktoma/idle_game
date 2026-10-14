@@ -7,6 +7,9 @@ import idle.core.StatsHistory;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
+import idle.core.collider.ColliderAchievement;
+import idle.core.collider.Quark;
+import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
@@ -57,7 +60,11 @@ import javafx.scene.text.TextAlignment;
  *   <li>« Atomes » : dès la première fusion ;</li>
  *   <li>« Automatisation » : dès qu'un automatisme est débloqué ;</li>
  *   <li>« Tableau périodique » : dès que le tableau est ouvert ;</li>
- *   <li>« Matière noire » : dès la première explosion.</li>
+ *   <li>« Matière noire » : dès la première explosion ;</li>
+ *   <li>« Big Bang » : dès le premier Big Bang ;</li>
+ *   <li>« Collisionneur » : dès la première explosion, avec lui (version 0.63) ;</li>
+ *   <li>« Records » : toujours là, acte par acte (version 0.63) ;</li>
+ *   <li>« Journal » : toujours là.</li>
  * </ul>
  * Une sous-page débloquée le reste, même si une explosion fait disparaître la ressource. À
  * l'intérieur d'une sous-page, certaines lignes n'apparaissent elles aussi qu'en avançant : le
@@ -211,6 +218,8 @@ public final class StatsPage extends VBox {
         periodicTable();
         darkMatter();
         bigBang();
+        collider();
+        records();
         journal();
 
         VBox.setVgrow(stack, Priority.ALWAYS);
@@ -235,6 +244,7 @@ public final class StatsPage extends VBox {
         atomsPerFusion();
         tableProgress();
         darkMatterSize();
+        colliderEnergy();
         achievementCount();
         section("Temps");
         row("Temps de jeu", () -> Format.duration(game.state().timePlayed()));
@@ -603,7 +613,7 @@ public final class StatsPage extends VBox {
                         + "logarithmique double", true, Format::clock, StatsPage::doubleLog,
                         false, 0, Double.NaN).withTicks(DOUBLE_LOG_TICKS).withHeight(340),
                 () -> {
-                    List<StatsHistory.Sample> samples = history().samples();
+                    List<StatsHistory.Sample> samples = samples();
                     List<ChartPane.Series> series = new ArrayList<>();
                     for (Held each : RESOURCES) {
                         double[] x = new double[samples.size()];
@@ -637,7 +647,8 @@ public final class StatsPage extends VBox {
             new Held("Éléments", ChartPane.MAGENTA, StatsHistory.Stat.ELEMENT_COPIES, true),
             new Held("Matière noire", ChartPane.VIOLET, StatsHistory.Stat.DARK_MATTER, false),
             new Held("Espace", ChartPane.ORANGE, StatsHistory.Stat.SPACE, false),
-            new Held("Molécules", ChartPane.AQUA, StatsHistory.Stat.MOLECULES, true));
+            new Held("Molécules", ChartPane.AQUA, StatsHistory.Stat.MOLECULES, true),
+            new Held("Énergie du collisionneur", ChartPane.GREEN, StatsHistory.Stat.COLLIDER_ENERGY, false));
 
     /** Graduations de l'échelle logarithmique double : 1, 10, 1000, 1e10, 1e30, 1e100, 1e300, 1e1000… */
     private static final double[] DOUBLE_LOG_TICKS = doubleLogTicks(0, 1, 3, 10, 30, 100, 300, 1_000, 3_000, 10_000, 100_000, 1_000_000);
@@ -682,6 +693,12 @@ public final class StatsPage extends VBox {
                 () -> new ChartPane("Taille de la matière noire", "échelle logarithmique",
                         true, Format::clock, value -> Format.length(BigNum.pow10(value)), true, Double.NaN, Double.NaN),
                 new Line("Taille", ChartPane.VIOLET, StatsHistory.Sample::darkMatterSize));
+    }
+
+    /** L'énergie produite au collisionneur depuis le début : sa courbe principale, aussi dans la vue d'ensemble. */
+    private void colliderEnergy() {
+        log("Énergie produite au collisionneur", "depuis le début", ChartPane.GREEN, StatsHistory.Stat.COLLIDER_ENERGY_PRODUCED,
+                game::isColliderUnlocked);
     }
 
     private void achievementCount() {
@@ -810,15 +827,6 @@ public final class StatsPage extends VBox {
         for (GameStats.Step step : GameStats.Step.values()) {
             row(step.label(), () -> reached(step), () -> stats().reached(step));
         }
-
-        section("Records, toutes parties confondues");
-        for (GameStats.Step step : GameStats.Step.values()) {
-            row("Record : " + step.label(), () -> Format.duration(game.recordOf(step)), () -> !Double.isNaN(game.recordOf(step)));
-        }
-        row("Écart sur la prochaine étape", () -> {
-            double gap = game.recordGap();
-            return gap <= 0 ? Format.duration(-gap) + " d'avance" : Format.duration(gap) + " de retard";
-        }, () -> !Double.isNaN(game.recordGap()));
 
         section("Collections, comètes et défis");
         row("Collections à moitié réunies", () -> game.collectionsAt(1) + " / " + game.collections().size());
@@ -990,6 +998,22 @@ public final class StatsPage extends VBox {
         return runOnly && exploded() ? stats().runHistory() : stats().history();
     }
 
+    /** Les relevés de l'historique choisi, et celui de l'instant : recalculés au plus une fois par seconde de jeu. */
+    private List<StatsHistory.Sample> samples() {
+        boolean run = runOnly && exploded();
+        double now = game.state().timePlayed();
+        if (liveSamples == null || liveRun != run || Math.abs(now - liveAt) >= 1 || now < liveAt) {
+            liveSamples = game.samplesWithNow(run);
+            liveRun = run;
+            liveAt = now;
+        }
+        return liveSamples;
+    }
+
+    private List<StatsHistory.Sample> liveSamples;
+    private boolean liveRun;
+    private double liveAt;
+
     /** La durée de chaque explosion gardée, numérotée depuis la première du jeu. */
     private List<ChartPane.Series> explosionSeries() {
         List<Double> times = stats().explosionTimes();
@@ -1032,6 +1056,98 @@ public final class StatsPage extends VBox {
      * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
      * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
      */
+    /** Le collisionneur (version 0.63) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
+    private void collider() {
+        page("Collisionneur", "#6fe3ff", game::isColliderUnlocked, "à la première explosion");
+        curves();
+        colliderEnergy();
+        log("Énergie par seconde", "ce que produisent les faisceaux croisés", ChartPane.GREEN, StatsHistory.Stat.COLLIDER_ENERGY_RATE, () -> true);
+        log("Énergie en réserve", "ce que les achats n'ont pas encore dépensé", ChartPane.TEAL, StatsHistory.Stat.COLLIDER_ENERGY, () -> true);
+        count("Collisions", "depuis le début", ChartPane.ORANGE, StatsHistory.Stat.COLLISIONS, game::isCollisionsUnlocked);
+        count("Quarks en réserve", "toutes saveurs ensemble", ChartPane.MAGENTA, StatsHistory.Stat.QUARKS, game::isCollisionsUnlocked);
+        section("Énergie");
+        charted("Énergie en réserve", row("Énergie possédée", () -> Format.big(BigNum.of(game.colliderEnergy()))));
+        charted("Énergie par seconde", row("Production", () -> Format.big(BigNum.of(game.colliderEnergyPerSecond())) + " par seconde"));
+        charted("Énergie produite au collisionneur", row("Produite depuis le début", () -> Format.big(BigNum.of(game.colliderEnergyProduced()))));
+        section("Croisements et collisions");
+        row("Croisements", () -> Format.whole(game.state().colliderCrossings()));
+        row("Un croisement toutes les", () -> ElementText.number(game.colliderPeriod()) + " s");
+        row("Chance de collision", () -> ElementText.percent(game.collisionChance()), game::isCollisionsUnlocked);
+        charted("Collisions", row("Collisions", () -> Format.whole(game.state().collisionRuns()), game::isCollisionsUnlocked));
+        row("Captés à la main de suite", () -> Format.whole(game.catchStreak()), () -> game.catchStreak() > 0);
+        section("Quarks");
+        for (Quark quark : Quark.values()) {
+            row(quark.symbol() + "  " + quark.label(), () -> Format.whole(game.quarks(quark)), () -> game.isQuarkOpen(quark) || game.quarks(quark) > 0);
+        }
+        charted("Quarks en réserve", row("Tous les quarks", () -> Format.whole(game.totalQuarks()), game::isCollisionsUnlocked));
+        row("Quark top en attente", () -> "encore " + Format.wait(game.topLeft()), game::hasTop);
+        row("Surchauffe", () -> "particules ×" + (int) Game.OVERHEAT_FACTOR + ", encore " + Format.wait(game.overheatLeft()), () -> game.overheatLeft() > 0);
+        section("Générateurs et succès");
+        row("Générateurs achetés", () -> Format.whole(game.colliderGeneratorsBoughtTotal()));
+        row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
+    }
+
+    /**
+     * Les records, acte par acte (version 0.63). Les temps des étapes traversent la remise à zéro
+     * du jeu ; les autres valent depuis le début de la partie.
+     */
+    private void records() {
+        page("Records", "#ffd27f", () -> true, "");
+        Label note = new Label("Les temps des étapes sont les meilleurs de toutes les parties : la remise à zéro les garde. "
+                + "Les autres records valent depuis le début de la partie.");
+        note.setStyle(NAME_STYLE);
+        note.setWrapText(true);
+        note.setMaxWidth(MAX_WIDTH);
+        building.content.getChildren().add(note);
+        row("Écart sur la prochaine étape", () -> {
+            double gap = game.recordGap();
+            return gap <= 0 ? Format.duration(-gap) + " d'avance" : Format.duration(gap) + " de retard";
+        }, () -> !Double.isNaN(game.recordGap()));
+
+        // Chaque record a sa ligne dès le début, « pas encore » tant qu'il n'est pas tenu : on voit ce qu'il reste à battre.
+        section("Premier acte : particules et atomes");
+        stepRecord(GameStats.Step.FIRST_FUSION);
+        row("Fusion la plus rapide", () -> time(stats().fastestFusionTime()));
+        row("Meilleure production", () -> stats().bestProduction().isZero() ? NOT_YET
+                : Format.amount(stats().bestProduction()) + " particules par seconde");
+        row("Le plus d'atomes en une fusion", () -> stats().bestAtomsPerFusion().isZero() ? NOT_YET : Format.amount(stats().bestAtomsPerFusion()));
+
+        section("Deuxième acte : matière noire");
+        stepRecord(GameStats.Step.FIRST_EXPLOSION);
+        row("Explosion la plus rapide", () -> time(stats().fastestExplosionTime()));
+        for (Challenge challenge : game.challenges()) {
+            row("Défi « " + challenge.name() + " »", () -> time(game.state().challengeTimes().getOrDefault(challenge.id(), 0.0)));
+        }
+
+        section("Troisième acte : Big Bang");
+        for (GameStats.Step step : GameStats.Step.values()) {
+            if (step.ordinal() >= GameStats.Step.FIRST_BIG_BANG.ordinal()) stepRecord(step);
+        }
+        row("Big Bang le plus rapide", () -> time(stats().fastestBigBangTime()));
+        row("La plus grosse création de molécules", () -> stats().biggestCreation() > 0 ? Format.whole(stats().biggestCreation()) : NOT_YET);
+        for (BangChallenge challenge : game.bangChallenges()) {
+            row("Défi « " + challenge.label() + " »", () -> time(game.state().bangChallengeTimes().getOrDefault(challenge.name(), 0.0)));
+        }
+
+        section("Collisionneur");
+        row("Énergie produite", () -> game.colliderEnergyProduced() > 0 ? Format.big(BigNum.of(game.colliderEnergyProduced())) : NOT_YET);
+        row("Collisions", () -> game.state().collisionRuns() > 0 ? Format.whole(game.state().collisionRuns()) : NOT_YET);
+        row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
+    }
+
+    /** Ce qu'affiche un record pas encore tenu. */
+    private static final String NOT_YET = "pas encore";
+
+    /** Une durée record, ou « pas encore » (0 : jamais fait). */
+    private static String time(double seconds) {
+        return seconds > 0 ? Format.duration(seconds) : NOT_YET;
+    }
+
+    /** Le record d'une étape, toutes parties confondues, ou « pas encore ». */
+    private void stepRecord(GameStats.Step step) {
+        row(step.label(), () -> Double.isNaN(game.recordOf(step)) ? NOT_YET : Format.duration(game.recordOf(step)));
+    }
+
     private void journal() {
         page("Journal", STATS_COLOR, () -> true, "");
         section("Les " + EventLog.CAPACITY + " dernières annonces");
@@ -1142,7 +1258,7 @@ public final class StatsPage extends VBox {
      */
     private void curve(String name, BooleanSupplier available, Supplier<ChartPane> maker, Line... lines) {
         building.graphs.add(new Graph(name, available, maker, () -> {
-            List<StatsHistory.Sample> samples = history().samples();
+            List<StatsHistory.Sample> samples = samples();
             List<ChartPane.Series> series = new ArrayList<>();
             for (Line line : lines) {
                 double[] x = new double[samples.size()];
