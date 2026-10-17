@@ -148,8 +148,8 @@ public final class DarkMatterPage extends VBox {
         mockNotice.setText("Ces améliorations sont définitives : ni la fusion ni l'explosion ne les "
                 + "reprennent. Chaque branche se paie avec ce qu'indique son en-tête ; la taille, elle, se débloque "
                 + "en l'atteignant, sans rien dépenser. Pour les particules, une seconde de production compte comme "
-                + "des particules en main. La matière noire dépensée reste comptée comme gagnée : "
-                + "les cases qui demandent « N matières noires gagnées » et la croissance n'y perdent rien.");
+                + "des particules en main. Les liaisons, entre deux branches, se paient en matière noire. La "
+                + "matière noire dépensée reste comptée comme gagnée : la croissance n'y perd rien.");
         mockNotice.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
         mockNotice.setWrapText(true);
         mockNotice.setTextAlignment(TextAlignment.CENTER);

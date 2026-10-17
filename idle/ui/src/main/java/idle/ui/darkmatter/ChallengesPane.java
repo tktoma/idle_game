@@ -126,7 +126,7 @@ public final class ChallengesPane extends VBox {
 
             String line = shortRule(challenge) + "\nGain : " + shortReward(challenge);
             String detail = "Contrainte : " + rule(challenge) + "\nRécompense : " + reward(challenge)
-                    + (done ? " (acquise)." : ".");
+                    + (done ? " (acquise)." : ".") + paths(challenge);
             String record = done && best >= 0 ? "Record " + Format.duration(best) : "";
             if (confirming) {
                 card.show(Card.State.ARMED, "", (int) Math.ceil(armedFor) + " s", challenge.name(), line, detail,
@@ -150,6 +150,13 @@ public final class ChallengesPane extends VBox {
         });
     }
 
+    /** Pour les défis qui jouent sur l'arbre (version 0.70) : les voies prises en ce moment. */
+    private String paths(Challenge challenge) {
+        if (challenge.rule() != Challenge.Rule.PRESENCE_ONLY && challenge.rule() != Challenge.Rule.ABSENCE_ONLY) return "";
+        return "\nVoies prises : " + game.darkVoiesOwned(Game.Style.PRESENCE) + " de présence, "
+                + game.darkVoiesOwned(Game.Style.ABSENCE) + " d'absence.";
+    }
+
     /** La contrainte d'un défi, en quelques mots : la ligne de sa carte. */
     public static String shortRule(Challenge challenge) {
         return switch (challenge.rule()) {
@@ -159,6 +166,10 @@ public final class ChallengesPane extends VBox {
             case AMNESIA -> "La fusion reprend les achats en atomes";
             case INERT_ELEMENTS -> "Les éléments ne donnent aucun bonus";
             case DECAY -> "Les éléments se désintègrent";
+            case PRESENCE_ONLY -> "Seules les voies de présence agissent, tableau lourd";
+            case ABSENCE_ONLY -> "Seules les voies d'absence agissent, tableau lourd";
+            case CUT_BRANCH -> "La branche des particules n'agit plus";
+            case BARE_TREE -> "Ni voie ni liaison n'agit";
         };
     }
 
@@ -171,6 +182,10 @@ public final class ChallengesPane extends VBox {
             case CHEAPER_ATOM_UPGRADES -> "achats en atomes ÷" + ElementText.number(Game.REWARD_ATOM_UPGRADE_DIVISOR);
             case STRONGER_ELEMENTS -> "éléments +" + ElementText.percent(Game.REWARD_ELEMENT_STRENGTH - 1);
             case EXTRA_ELEMENT -> "+" + Game.REWARD_EXTRA_ELEMENTS + " élément par synthèse";
+            case STRONGER_PRESENCE -> "voies de présence ×2";
+            case STRONGER_ABSENCE -> "voies d'absence ×2";
+            case STRONGER_LINKS -> "liaisons ×2";
+            case EXTRA_DARK_MATTER -> "+1 matière noire par explosion";
         };
     }
 
@@ -189,6 +204,14 @@ public final class ChallengesPane extends VBox {
             case INERT_ELEMENTS -> "les éléments et leurs ensembles ne donnent aucun bonus. Le tableau reste à remplir.";
             case DECAY -> "les éléments se désintègrent : chaque exemplaire a une demi-vie de "
                     + Format.duration(Math.round(Math.log(2) / Game.DECAY_RATE)) + ". Il faut synthétiser plus vite qu'ils ne disparaissent.";
+            case PRESENCE_ONLY -> "de tout l'arbre, seules agissent les voies de présence (à gauche de chaque bifurcation) et leurs "
+                    + "accords, et le tableau pèse " + Format.count(Game.STYLE_CHALLENGE_WEIGHT) + " fois plus. Avec les voies de présence, "
+                    + "il se finit en quelques minutes ; sans, il demande une demi-heure ou plus.";
+            case ABSENCE_ONLY -> "de tout l'arbre, seules agissent les voies d'absence (à droite de chaque bifurcation) et leurs "
+                    + "accords, et le tableau pèse " + Format.count(Game.STYLE_CHALLENGE_WEIGHT) + " fois plus. Avec les voies d'absence, "
+                    + "il se finit en quelques minutes ; sans, il demande une demi-heure ou plus.";
+            case CUT_BRANCH -> "les cases de la branche des particules n'agissent plus. Restent les atomes, la taille et les liaisons.";
+            case BARE_TREE -> "aucune voie de bifurcation, aucune liaison ni aucun accord n'agit : il ne reste que le tronc de l'arbre.";
         };
     }
 
@@ -205,6 +228,10 @@ public final class ChallengesPane extends VBox {
             case STRONGER_ELEMENTS -> "tous les éléments agissent " + ElementText.percent(Game.REWARD_ELEMENT_STRENGTH - 1)
                     + " plus fort";
             case EXTRA_ELEMENT -> "+" + Game.REWARD_EXTRA_ELEMENTS + " élément à chaque synthèse";
+            case STRONGER_PRESENCE -> "les voies de présence comptent double";
+            case STRONGER_ABSENCE -> "les voies d'absence comptent double, et ce qu'elles rendent du temps d'absence aussi";
+            case STRONGER_LINKS -> "les liaisons et les accords comptent double";
+            case EXTRA_DARK_MATTER -> "une matière noire de plus à chaque explosion";
         };
     }
 }

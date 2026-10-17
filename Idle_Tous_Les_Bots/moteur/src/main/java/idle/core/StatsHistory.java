@@ -1,0 +1,441 @@
+package idle.core;
+
+import idle.core.save.SaveData;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * L'historique d'une partie : des relevés pris à intervalles réguliers, pour tracer des courbes.
+ * Chaque relevé garde une valeur par statistique suivie ({@link Stat}) : en ajouter une à
+ * l'énumération, et la mesurer dans {@code Game}, suffit à pouvoir la tracer.
+ *
+ * <p>Sa taille est bornée. Quand il est plein ({@link #CAPACITY} relevés), un relevé sur deux
+ * est abandonné et l'intervalle entre deux relevés double : l'historique couvre ainsi toute la
+ * partie, qu'elle dure dix minutes ou dix jours, avec une précision qui s'adapte à sa durée.
+ *
+ * <p>Comme les autres statistiques, il ne sert qu'à l'affichage : aucune règle ne le lit.
+ */
+public final class StatsHistory {
+
+    /** Nombre maximal de relevés gardés. */
+    public static final int CAPACITY = 480;
+    /** Intervalle de départ entre deux relevés, en secondes de jeu. */
+    public static final double FIRST_INTERVAL = 5;
+
+    /**
+     * Ce qu'un relevé retient du jeu : une valeur par statistique, de quoi tracer une courbe pour
+     * chacune. Les quantités qui s'étalent sur des dizaines d'ordres de grandeur sont notées en
+     * puissance de dix (3 pour 1 000) ; les autres telles quelles.
+     */
+    public enum Stat {
+        // ----- Particules -----
+        /**
+         * La plus forte production de particules par seconde depuis le relevé précédent, en
+         * puissance de dix. Prendre le maximum évite une courbe en dents de scie quand plusieurs
+         * fusions, qui remettent chacune la production à zéro, tiennent entre deux relevés.
+         */
+        PRODUCTION,
+        /** Particules créées depuis le début du jeu, en puissance de dix. */
+        PARTICLES_CREATED,
+        /** Particules dépensées en améliorations depuis le début du jeu, en puissance de dix. */
+        PARTICLES_SPENT,
+        /** Créations par seconde et par générateur, en puissance de dix. */
+        SPEED,
+        /** Particules par création, en puissance de dix. */
+        PARTICLES_PER_CREATION,
+        /** Nombre de générateurs en activité. */
+        GENERATORS,
+        /** Niveaux de vitesse, offerts compris. */
+        SPEED_LEVELS,
+        /** Paliers de vitesse atteints. */
+        SPEED_MILESTONES,
+        /** Niveaux d'améliorations en particules achetés depuis le début du jeu, générateurs compris. */
+        PARTICLE_UPGRADES_BOUGHT,
+        /** Ce que l'arbre de matière noire multiplie aux particules, en puissance de dix. */
+        DARK_PARTICLES,
+
+        // ----- Atomes -----
+        /** Atomes que rapporte une fusion, en puissance de dix. */
+        ATOMS_PER_FUSION,
+        /** Durée de la dernière partie entre deux fusions, en secondes. */
+        FUSION_TIME,
+        /** Atomes créés depuis le début du jeu, en puissance de dix. */
+        ATOMS_CREATED,
+        /** Atomes dépensés depuis le début du jeu, en puissance de dix. */
+        ATOMS_SPENT,
+        /** Fusions depuis le début du jeu. */
+        FUSIONS,
+        /** Multiplicateur du rendement de fusion (1 sans l'amélioration). */
+        FUSION_YIELD,
+        /** Niveaux d'améliorations en atomes achetés depuis le début du jeu. */
+        ATOM_UPGRADES_BOUGHT,
+
+        // ----- Automatisation -----
+        /** Actions faites par tous les automatismes depuis le début du jeu, en puissance de dix. */
+        AUTOMATION_ACTIONS,
+
+        // ----- Tableau périodique -----
+        /** Part des éléments découverts, de 0 à 1. */
+        ELEMENTS_SHARE,
+        /** Part des exemplaires possédés, de 0 à 1. */
+        COPIES_SHARE,
+        /** Synthèses depuis le début du jeu. */
+        SYNTHESES,
+        /** Prix de la prochaine synthèse en atomes, en puissance de dix. */
+        SYNTHESIS_COST,
+        /** Chance de tirage double, de 0 à 1. */
+        DOUBLE_DRAW,
+        /** Ensembles complets. */
+        SETS,
+        /** Ensembles réunis à moitié, sans être complets. */
+        HALF_SETS,
+        /** Ce que les éléments multiplient aux particules, en puissance de dix. */
+        ELEMENT_PARTICLES,
+        /** Ce que les éléments multiplient à la vitesse, en puissance de dix. */
+        ELEMENT_SPEED,
+        /** Ce que les éléments multiplient aux atomes par fusion, en puissance de dix. */
+        ELEMENT_ATOMS,
+
+        // ----- Matière noire -----
+        /** Taille de la matière noire en mètres, en puissance de dix. */
+        DARK_MATTER_SIZE,
+        /** Matière noire gagnée depuis le début du jeu. */
+        DARK_MATTER_EARNED,
+        /** Explosions depuis le début du jeu. */
+        EXPLOSIONS,
+        /** Taux de croissance de la matière noire par seconde d'appui (0,02 pour +2 %), en puissance de dix. */
+        DARK_GROWTH,
+        /** Ce qui freine la croissance de la matière noire, en puissance de dix. */
+        DARK_RESISTANCE,
+        /** Temps d'appui cumulé sur la matière noire, en secondes. */
+        HOLD_TIME,
+        /** Paliers de taille atteints. */
+        LANDMARKS,
+
+        // ----- Général -----
+        /** Succès obtenus. */
+        ACHIEVEMENTS,
+
+        // ----- Big Bang -----
+        /** Espace créé par l'expansion de la matière, en puissance de dix. Sans valeur avant le premier Big Bang. */
+        SPACE,
+        /** Espace utilisé par les molécules et leurs lieux de rassemblement, en puissance de dix. */
+        SPACE_USED,
+        /** Molécules créées. */
+        MOLECULES,
+        /** Ce que les molécules, les assemblages et les astres multiplient : l'espace, les particules, les atomes, la matière noire, en puissance de dix. */
+        MOLECULE_SPACE,
+        MOLECULE_PARTICLES,
+        MOLECULE_ATOMS,
+        MOLECULE_DARK,
+        /** Assemblages et astres formés, galaxie comprise. */
+        SKY,
+        /** Big Bangs déclenchés. */
+        BIG_BANGS,
+        /** Espace que l'expansion ajoute chaque seconde, en puissance de dix. */
+        SPACE_RATE,
+        /** Ce par quoi la matière noire en réserve multiplie l'expansion (1 sans le palier). */
+        DARK_SPACE,
+        /** Créations de molécules depuis le début du jeu, à la main ou automatiques. */
+        MOLECULE_CREATIONS,
+        /** Créations de molécules faites par l'automatisme, depuis le début du jeu. */
+        AUTO_MOLECULE_CREATIONS,
+        /** Sortes de molécules rassemblées. */
+        SUBSTANCES,
+
+        // ----- Collisionneur (version 0.64) -----
+        /** Énergie du collisionneur en réserve, en puissance de dix. */
+        COLLIDER_ENERGY,
+        /** Énergie produite par le collisionneur depuis le début, en puissance de dix. */
+        COLLIDER_ENERGY_PRODUCED,
+        /** Énergie du collisionneur par seconde, en puissance de dix. */
+        COLLIDER_ENERGY_RATE,
+        /** Collisions depuis le début. */
+        COLLISIONS,
+        /** Quarks en réserve, toutes saveurs ensemble. */
+        QUARKS,
+
+        // ----- Ce que le joueur a en main -----
+        /**
+         * Particules en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé
+         * précédent, puisqu'une fusion, une explosion ou un Big Bang les reprennent.
+         */
+        PARTICLES,
+        /** Atomes en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé précédent. */
+        ATOMS,
+        /** Exemplaires d'éléments du tableau périodique : le plus qu'il y en a eu depuis le relevé précédent. */
+        ELEMENT_COPIES,
+        /**
+         * Matière noire gagnée depuis le dernier Big Bang, celle dépensée dans l'arbre comprise
+         * ({@link Game#darkMatterEarned()}), en puissance de dix : le plus qu'il y en a eu depuis le
+         * relevé précédent. La réserve seule retombe à zéro à chaque achat et ne dirait rien.
+         */
+        DARK_MATTER;
+
+        /**
+         * Vrai si le relevé retient le sommet atteint depuis le relevé précédent plutôt que la
+         * valeur de l'instant : ce sont les quantités qu'une remise à zéro fait retomber.
+         */
+        public boolean peaks() {
+            return this == PRODUCTION || this == PARTICLES || this == ATOMS || this == ELEMENT_COPIES || this == DARK_MATTER;
+        }
+    }
+
+    /**
+     * L'état du jeu à un instant.
+     *
+     * <p>Une valeur qui n'a pas encore de sens vaut {@code NaN} : la durée d'une partie avant la
+     * première fusion, le délai d'un automatisme qu'on ne possède pas. La courbe s'interrompt là.
+     *
+     * @param time   instant du relevé, en secondes depuis le début de l'historique
+     * @param values une valeur par {@link Stat}, rangées dans l'ordre de l'énumération
+     * @param delays délai entre deux actions de chaque automatisme possédé, en secondes, par
+     *               identifiant d'automatisme
+     */
+    public record Sample(double time, double[] values, Map<String, Double> delays) {
+
+        /** La valeur d'une statistique dans ce relevé. */
+        public double value(Stat stat) {
+            return values[stat.ordinal()];
+        }
+
+        /** Le délai d'un automatisme dans ce relevé, en secondes, ou {@code NaN} s'il n'était pas possédé. */
+        public double delay(String automationId) {
+            return delays.getOrDefault(automationId, Double.NaN);
+        }
+
+        public double production() {
+            return value(Stat.PRODUCTION);
+        }
+
+        public double atomsPerFusion() {
+            return value(Stat.ATOMS_PER_FUSION);
+        }
+
+        public double fusionTime() {
+            return value(Stat.FUSION_TIME);
+        }
+
+        public double elementsShare() {
+            return value(Stat.ELEMENTS_SHARE);
+        }
+
+        public double copiesShare() {
+            return value(Stat.COPIES_SHARE);
+        }
+
+        public double darkMatterSize() {
+            return value(Stat.DARK_MATTER_SIZE);
+        }
+    }
+
+    private final List<Sample> samples = new ArrayList<>();
+    private double interval = FIRST_INTERVAL;
+    private double nextTime = 0;
+    /** Le sommet vu depuis le dernier relevé, pour chaque statistique qui en retient un ({@link Stat#peaks()}). */
+    private final double[] peaks = noPeaks();
+
+    private static double[] noPeaks() {
+        double[] none = new double[Stat.values().length];
+        java.util.Arrays.fill(none, Double.NEGATIVE_INFINITY);
+        return none;
+    }
+
+    /** Les relevés, du plus ancien au plus récent, en lecture seule. */
+    public List<Sample> samples() {
+        return Collections.unmodifiableList(samples);
+    }
+
+    /** Intervalle actuel entre deux relevés, en secondes de jeu. */
+    public double interval() {
+        return interval;
+    }
+
+    /** Vrai quand il est temps de prendre un nouveau relevé. */
+    boolean isDue(double time) {
+        return time >= nextTime;
+    }
+
+    /** Signale une production atteinte entre deux relevés (juste avant une fusion, par exemple). */
+    void notePeak(double production) {
+        notePeak(Stat.PRODUCTION, production);
+    }
+
+    /** Signale une valeur atteinte entre deux relevés, juste avant qu'elle ne retombe. Une valeur sans sens ({@code NaN}) est ignorée. */
+    void notePeak(Stat stat, double value) {
+        if (value > peaks[stat.ordinal()]) peaks[stat.ordinal()] = value;
+    }
+
+    /** La production à inscrire dans le prochain relevé : celle du moment, ou le pic atteint depuis le dernier s'il est plus haut. */
+    double peak(double current) {
+        return peak(Stat.PRODUCTION, current);
+    }
+
+    /**
+     * La valeur à inscrire dans le prochain relevé : celle du moment, ou le sommet atteint depuis
+     * le dernier s'il est plus haut. {@code NaN} seulement si ni l'une ni l'autre n'ont de sens.
+     */
+    double peak(Stat stat, double current) {
+        double peak = peaks[stat.ordinal()];
+        if (Double.isNaN(current)) return peak == Double.NEGATIVE_INFINITY ? Double.NaN : peak;
+        return Math.max(current, peak);
+    }
+
+    void add(Sample sample) {
+        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
+        samples.add(sample);
+        if (samples.size() >= CAPACITY) thin();
+        nextTime = sample.time() + interval;
+    }
+
+    /** Garde un relevé sur deux, et espace les suivants deux fois plus. */
+    private void thin() {
+        List<Sample> kept = new ArrayList<>(samples.size() / 2 + 1);
+        for (int i = 0; i < samples.size(); i += 2) kept.add(samples.get(i));
+        samples.clear();
+        samples.addAll(kept);
+        interval *= 2;
+    }
+
+    void clear() {
+        samples.clear();
+        interval = FIRST_INTERVAL;
+        nextTime = 0;
+        java.util.Arrays.fill(peaks, Double.NEGATIVE_INFINITY);
+    }
+
+    // ------------------------------------------------------------------
+    // Sauvegarde
+    // ------------------------------------------------------------------
+
+    /**
+     * Range l'historique dans une sauvegarde, sous ce préfixe : les instants des relevés, puis une
+     * ligne par statistique et une par automatisme, où les valeurs qui se répètent d'un relevé au
+     * suivant ne sont écrites qu'une fois ({@code 3*12} pour douze fois 3).
+     *
+     * <p>Les statistiques sont écrites sous leur nom : en ajouter une à {@link Stat} ne dérange pas
+     * les sauvegardes existantes, sa courbe commence simplement plus tard.
+     *
+     * <p>Les valeurs des courbes sont arrondies à sept chiffres : c'est bien plus fin que ce qu'un
+     * graphique montre, et la sauvegarde en est deux fois plus légère. Les instants, eux, sont exacts.
+     */
+    void save(SaveData data, String prefix) {
+        data.put(prefix + "interval", interval);
+        data.put(prefix + "nextTime", nextTime);
+        Map<String, Double> tops = new java.util.LinkedHashMap<>();
+        for (Stat stat : Stat.values()) {
+            if (peaks[stat.ordinal()] != Double.NEGATIVE_INFINITY) tops.put(stat.name(), peaks[stat.ordinal()]);
+        }
+        data.putDoubles(prefix + "peaks", tops);
+        List<Double> times = new ArrayList<>(samples.size());
+        java.util.Set<String> automations = new java.util.TreeSet<>();
+        for (Sample sample : samples) {
+            times.add(sample.time());
+            automations.addAll(sample.delays().keySet());
+        }
+        data.putDoubleList(prefix + "times", times);
+        double[] column = new double[samples.size()];
+        for (Stat stat : Stat.values()) {
+            for (int i = 0; i < column.length; i++) column[i] = samples.get(i).value(stat);
+            data.put(prefix + "v." + stat.name(), pack(column));
+        }
+        for (String automation : automations) {
+            for (int i = 0; i < column.length; i++) column[i] = samples.get(i).delay(automation);
+            data.put(prefix + "d." + SaveData.escape(automation), pack(column));
+        }
+    }
+
+    /** Relit un historique. Une statistique absente de la sauvegarde n'a aucune valeur ({@code NaN}) dans les relevés relus. */
+    void load(SaveData data, String prefix) {
+        clear();
+        interval = Math.max(FIRST_INTERVAL, data.real(prefix + "interval", FIRST_INTERVAL));
+        nextTime = data.real(prefix + "nextTime", 0);
+        data.doubles(prefix + "peaks").forEach((name, value) -> {
+            for (Stat stat : Stat.values()) {
+                if (stat.name().equals(name)) peaks[stat.ordinal()] = value;
+            }
+        });
+        List<Double> times = data.doubleList(prefix + "times");
+        int count = times.size();
+        double[][] values = new double[count][Stat.values().length];
+        for (Stat stat : Stat.values()) {
+            double[] column = unpack(data.text(prefix + "v." + stat.name(), ""), count);
+            for (int i = 0; i < count; i++) values[i][stat.ordinal()] = column[i];
+        }
+        List<Map<String, Double>> delays = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) delays.add(new java.util.HashMap<>());
+        String delayPrefix = prefix + "d.";
+        for (String key : data.keys(delayPrefix)) {
+            String automation = SaveData.unescape(key.substring(delayPrefix.length()));
+            double[] column = unpack(data.text(key, ""), count);
+            for (int i = 0; i < count; i++) {
+                if (!Double.isNaN(column[i])) delays.get(i).put(automation, column[i]);
+            }
+        }
+        for (int i = 0; i < count; i++) samples.add(new Sample(times.get(i), values[i], delays.get(i)));
+    }
+
+    /** Une colonne de valeurs en texte : les valeurs séparées par {@code ;}, une suite de valeurs égales écrite {@code valeur*nombre}. */
+    static String pack(double[] column) {
+        StringBuilder text = new StringBuilder();
+        int i = 0;
+        while (i < column.length) {
+            String value = compact(column[i]);
+            int run = 1;
+            while (i + run < column.length && compact(column[i + run]).equals(value)) run++;
+            if (i > 0) text.append(';');
+            text.append(value);
+            if (run > 1) text.append('*').append(run);
+            i += run;
+        }
+        return text.toString();
+    }
+
+    /** Relit une colonne écrite par {@link #pack(double[])} ; ce qui manque pour atteindre {@code count} valeurs reste sans valeur. */
+    static double[] unpack(String text, int count) {
+        double[] column = new double[count];
+        java.util.Arrays.fill(column, Double.NaN);
+        if (text.isEmpty()) return column;
+        int i = 0;
+        for (String token : text.split(";", -1)) {
+            int star = token.indexOf('*');
+            double value = value(star < 0 ? token : token.substring(0, star));
+            int run = star < 0 ? 1 : Integer.parseInt(token.substring(star + 1));
+            for (int k = 0; k < run && i < count; k++) column[i++] = value;
+        }
+        return column;
+    }
+
+    /**
+     * Une valeur de courbe en peu de caractères : un entier tel quel, sinon sept chiffres
+     * significatifs. Relue par {@link #value(String)}, elle se réécrit à l'identique : un arrondi
+     * qui tombe sur un entier s'écrit en entier, et le texte d'un {@code float} se relit en {@code float}.
+     */
+    private static String compact(double value) {
+        if (Double.isNaN(value)) return "";
+        if (Double.isInfinite(value)) return Double.toString(value);
+        if (value == Math.rint(value) && Math.abs(value) < 1e15) return Long.toString((long) value);
+        float rounded = (float) value;
+        if (Float.isInfinite(rounded) || rounded == 0) return Double.toString(value);
+        if (rounded == Math.rint(rounded) && Math.abs(rounded) < 1e15) return Long.toString((long) rounded);
+        return Float.toString(rounded);
+    }
+
+    /**
+     * Relit une valeur écrite par {@link #compact(double)}. Un texte de {@code float} se relit en
+     * {@code float} : passer par un {@code double} puis l'arrondir peut tomber sur le {@code float}
+     * voisin, et la sauvegarde suivante n'écrirait plus le même texte.
+     */
+    private static double value(String token) {
+        double value = SaveData.parse(token);
+        if (Double.isNaN(value) || Double.isInfinite(value) || value == Math.rint(value)) return value;
+        try {
+            float single = Float.parseFloat(token);
+            return Float.isInfinite(single) || single == 0 ? value : single;
+        } catch (NumberFormatException unreadable) {
+            return value;
+        }
+    }
+}

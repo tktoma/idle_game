@@ -23,6 +23,110 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.80", "Le quatrième acte : l'onglet Univers", List.of(
+                    "Quand l'univers se forme, un nouvel onglet « Univers » s'ouvre, et l'on y va. Sa naissance s'y joue : "
+                            + "un point de lumière, l'éclair blanc, une onde qui part du centre, puis les amas de galaxies et leurs "
+                            + "filaments qui s'allument à mesure que l'expansion les atteint. L'écran de fin vient après.",
+                    "L'onglet montre ensuite la toile de l'univers, qui tourne doucement, et un bouton pour revoir sa naissance. "
+                            + "Il n'y a encore rien à y faire : c'est le début du quatrième acte.",
+                    "Un réglage « Animations de l'univers » coupe le mouvement ; la naissance passe alors d'un coup.")),
+            new Note("0.79", "Une sorte pleine le dit", List.of(
+                    "Une sorte de molécule arrivée à un milliard affiche « Pleine : un milliard au plus par sorte », au lieu de "
+                            + "réclamer de l'espace qui ne manquait pas, et ne promet plus de gain.",
+                    "Les grands comptes de molécules s'écrivent comme les autres grands nombres : sur les cartes (« ×1.00e9 ») "
+                            + "et dans ce que demande un astre.")),
+            new Note("0.78", "Des boules en feu et de l'électricité", List.of(
+                    "Dans l'anneau d'énergie, les boules des faisceaux prennent feu quand elles tournent une fois et demie plus "
+                            + "vite qu'au départ (« Faisceaux rapides » niveau 3) : une flamme qui traîne derrière elles, du jaune au "
+                            + "rouge, qui vacille et grandit jusqu'au niveau 5.",
+                    "À chaque croisement, de l'électricité crépite entre les deux boules et jaillit du détecteur ; plus d'arcs, "
+                            + "et plus longs, quand elles sont en feu. Le réglage « Étincelles du collisionneur » la coupe aussi.")),
+            new Note("0.77", "Des copies de l'atome au-delà du tableau", List.of(
+                    "Le grand atome reste comme avant, à sa taille. Passé 118 atomes, des copies de lui, complètes (noyau, "
+                            + "couches et 118 orbes), viennent autour : de tailles variées, jamais plus grandes que lui, vues de biais.",
+                    "Une copie dès 119 atomes, quatre de plus par ordre de grandeur, jusqu'à quarante vers cent milliards : la vue, "
+                            + "qui prend maintenant toute la largeur, est alors pleine. Les plus petites sont plus pâles et passent derrière.",
+                    "Les anneaux de petits atomes de la 0.75 disparaissent.")),
+            new Note("0.76", "Plus de plafond à deux milliards de molécules", List.of(
+                    "Les molécules ne s'arrêtent plus à deux milliards en tout : les comptes passent en entiers longs, et la "
+                            + "sauvegarde les relit. Seule une même sorte reste plafonnée à un milliard.",
+                    "Le compte des molécules s'écrit comme les autres grands nombres : « 2.00e9 molécules » au lieu de « 2000000000 ».")),
+            new Note("0.75", "Des anneaux d'atomes au-delà du tableau", List.of(
+                    "Passé 118 atomes, de petits atomes tournent autour du grand, sur des anneaux inclinés vus de biais, de tailles "
+                            + "variées, les plus gros avec un petit noyau doré.",
+                    "Un anneau de plus à chaque fois que les atomes en trop sont multipliés par seize environ, jusqu'à neuf : vers "
+                            + "quatre milliards d'atomes, l'écran est plein. Le grand atome se resserre pour leur faire place.",
+                    "Les anneaux passent devant et derrière le grand atome ; ce qui est derrière est plus pâle.")),
+            new Note("0.74", "Des défis Présence et Absence corsés", List.of(
+                    "« Présence » et « Absence » s'ouvrent à 300 et 350 matières noires, quand l'arbre a toutes ses voies. De tout "
+                            + "l'arbre, seules y agissent les voies et les accords du style, et le tableau pèse trois millions de fois plus.",
+                    "Avec les voies du bon style, ils prennent une ou deux minutes ; avec les autres, vingt à quarante. « Branche coupée » "
+                            + "et « Tronc nu » s'ouvrent maintenant avant eux, à 24 et 27 matières noires.",
+                    "Pour garder un deuxième acte de cinq heures, le premier Big Bang demande 10³²⁰⁰⁰ particules au lieu de 10³⁷⁰⁰⁰.")),
+            new Note("0.73", "Un deuxième acte de cinq heures", List.of(
+                    "Le deuxième acte dure maintenant 5 h en jouant parfaitement, au lieu d'une heure et demie. Le premier Big Bang demande "
+                            + "10³²⁰⁰⁰ particules ; les cases du bas de l'arbre s'étalent jusque-là : Singularité en trente niveaux, "
+                            + "Réacteur en huit, Horizon en dix, et les dernières bifurcations bien plus loin.",
+                    "Les voies de présence sont plus fortes, exprès : « Croissance continue » et « Poussée » renforcent les paliers de "
+                            + "vitesse, ce qui fait grandir une partie qu'on laisse tourner. Les accords de présence rapportent 1 puis 2 "
+                            + "matières noires par explosion.",
+                    "Les voies d'absence sont plus lentes, mais moins fatigantes : pendant une absence, une bifurcation où vous n'avez "
+                            + "pas choisi prend sa voie d'absence, et l'accord d'absence y tente les défis. Le bilan du retour dit "
+                            + "désormais les voies prises et les défis lancés, et le défi en cours.",
+                    "La Superposition s'ouvre au cinquième Big Bang, au milieu du troisième acte, au lieu de l'amas de galaxies.",
+                    "L'amas de galaxies puis l'univers demandent chacun 45 minutes de rassemblement après l'échelle d'avant : la fin "
+                            + "ne passe plus en vingt minutes pour qui va très vite.")),
+            new Note("0.72", "Une planche claire pour les liaisons", List.of(
+                    "Les liaisons et les accords quittent l'intérieur de l'arbre : leurs traits traversaient les colonnes et se "
+                            + "lisaient mal. Ils ont leur planche sous la case du Big Bang, un rang par rang de bifurcations, "
+                            + "liaisons d'abord, accords ensuite.",
+                    "Chaque carte dit ses voies une à une : ✓ prise, ○ à prendre, × fermée jusqu'au prochain Big Bang ; et ce "
+                            + "qu'il manque : l'une des deux voies, les trois, ou rien à faire avant le prochain Big Bang.",
+                    "L'arbre retrouve sa hauteur d'avant : plus de rangées vides entre les cases. En mode détails, chaque voie "
+                            + "dit quelles liaisons et quels accords elle aide à ouvrir.")),
+            new Note("0.71", "Deux styles de jeu, des accords, dix défis", List.of(
+                    "Dans chaque bifurcation, la voie de gauche est celle de la présence, la voie de droite celle de l'absence : "
+                            + "chaque voie d'absence prise rend 5 points de plus du temps passé jeu fermé. La bonne voie dépend "
+                            + "maintenant de la façon de jouer.",
+                    "Quatre accords, entre les branches : ils demandent trois voies du même style à la fois. Ceux de présence "
+                            + "rapportent 2 puis 3 matières noires de plus à chaque explosion. Le premier d'absence fait tenter les "
+                            + "défis ouverts pendant l'absence ; le second rend 10 points de plus du temps passé jeu fermé.",
+                    "Quatre défis de plus, dix en tout : « Présence » et « Absence » éteignent les voies de l'autre style, « Branche "
+                            + "coupée » la branche des particules, « Tronc nu » toutes les voies et liaisons. Leur difficulté dépend "
+                            + "du passage pris dans l'arbre. Le Big Bang demande les dix.",
+                    "La Superposition du collisionneur attend l'amas de galaxies : jusque-là, les choix de l'arbre comptent.")),
+            new Note("0.70", "Liaisons, Superposition, et un arbre sans seuils", List.of(
+                    "Trois bifurcations de plus : « Poussée » ou « Écho sombre » (particules, après la Résonance), « Noyau dense » "
+                            + "ou « Synthèse double » (atomes, après la Mémoire de la matière), « Abîme » ou « Moisson profonde » "
+                            + "(taille, tout au bout). Sept en tout, et toutes nettement plus fortes qu'avant.",
+                    "Six liaisons entre les branches, payées en matière noire : chacune s'ouvre dès que l'une des deux voies "
+                            + "voisines est prise. Elles se posent dans une rangée sous les bifurcations, à cheval entre deux branches, "
+                            + "et repartent au Big Bang avec les voies.",
+                    "Une nouvelle amélioration du collisionneur, « Superposition », après la saveur top : les deux voies de chaque "
+                            + "bifurcation se prennent, et voies et liaisons restent d'un Big Bang à l'autre.",
+                    "Plus aucune case de l'arbre n'attend un nombre de matières noires gagnées : seuls les prix rythment l'arbre, "
+                            + "et ils ont été relevés pour qu'il s'étale sur une vingtaine d'explosions.",
+                    "Aucune voie ne rapporte plus de matière noire par explosion : « Grandes explosions » devient « Cadence sombre », "
+                            + "« Moisson » donne des atomes. Au robot, toutes les voies de gauche ou toutes celles de droite finissent "
+                            + "le jeu à cinq minutes près.")),
+            new Note("0.69", "Un arbre de matière noire à bifurcations", List.of(
+                    "Quatre bifurcations dans l'arbre, deux voies côte à côte : « Croissance continue » ou « Grandes explosions » "
+                            + "(particules), « Fusion riche » ou « Synthèse fine » (atomes), « Croissance soutenue » ou « Onde "
+                            + "amplifiée » (taille), « Gravité » ou « Moisson » (au-delà du Débordement). Prendre une voie ferme "
+                            + "l'autre ; la case d'après demande l'une ou l'autre.",
+                    "Le choix se refait à chaque Big Bang, même quand l'arbre est gardé : la voie prise est rendue, ce qui la suit reste.",
+                    "Trois cases de plus au bout des branches, au-delà de 70 matières noires : Singularité, Réacteur, Horizon. "
+                            + "L'arbre passe de 20 à 31 cases.",
+                    "L'automatisme de l'arbre ne prend jamais une bifurcation : c'est au joueur de choisir sa voie.")),
+            new Note("0.68", "Une vraie fin de partie", List.of(
+                    "La galaxie, l'amas de galaxies et l'univers multiplient enfin : ×4, puis ×2, puis ×2. Avant, ils ajoutaient "
+                            + "1 024, 2 048 et 4 096 à des bonus qui valaient déjà plus de cent mille : leur effet réel était d'environ 1 %.",
+                    "L'amas demande dix fois plus de matière, et l'univers quatre fois celle de l'amas : la réserve accumulée en "
+                            + "attendant les derniers astres ne paie plus tout en quelques minutes.",
+                    "Dix jalons : chaque état de la matière réuni pour l'amas, puis pour l'univers, ajoute 10 % à toutes les grandeurs, "
+                            + "s'annonce et se marque sur la carte. L'objectif dit l'état le plus en retard.",
+                    "Un écran de fin, une fois par partie : le temps de jeu, comparé au record, la durée de chaque acte et quelques "
+                            + "chiffres de la partie. Le jeu continue derrière.")),
             new Note("0.67", "Quatre effets de plus, coupés tout de suite", List.of(
                     "Quatre effets visuels de plus à couper : la création de particules (l'onde et les poussières), la "
                             + "matière noire animée, les animations du Big Bang (espace, ciel, systèmes, galaxie) et celles du "

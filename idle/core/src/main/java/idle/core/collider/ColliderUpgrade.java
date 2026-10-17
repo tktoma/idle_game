@@ -28,6 +28,11 @@ public enum ColliderUpgrade {
             5, 3e11, 8, FLAVOR_STRANGE, 1, null),
     TOP_LIFE(Section.COLLISIONS, "Top stable", "Le quark top attend deux fois plus longtemps, la surchauffe dure 50 % de plus, par niveau",
             3, 1e16, 20, FLAVOR_TOP, 1, null),
+    // Version 0.70 : la condition qui ouvre toutes les bifurcations de l'arbre de matière noire. Elle attend
+    // aussi le cinquième Big Bang (version 0.73, {@link idle.core.Game#isColliderUpgradeOpen}).
+    SUPERPOSITION(Section.COLLISIONS, "Superposition", "À partir du cinquième Big Bang : les bifurcations de l'arbre de matière noire s'ouvrent des deux côtés : "
+            + "les deux voies se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre",
+            1, 1e24, 1, FLAVOR_TOP, 1, null),
     // Les faisceaux.
     SPEED(Section.BEAMS, "Faisceaux rapides", "Les deux faisceaux tournent 20 % plus vite par niveau : plus de croisements",
             5, 2e10, 10, COLLISIONS, 1, null),
@@ -156,6 +161,7 @@ public enum ColliderUpgrade {
             case LUCK -> "Chance de collision +3 points";
             case HEAVY -> "s, c, b, t +40 %";
             case TOP_LIFE -> "Top ×2 plus long, surchauffe +50 %";
+            case SUPERPOSITION -> "Les deux voies de chaque bifurcation";
             case SPEED -> "Faisceaux +20 % plus vite";
             case WINDOW -> "Croisement +25 % plus long";
             case AUTO_CATCH -> "Clique seul aux croisements";

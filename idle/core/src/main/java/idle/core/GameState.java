@@ -80,7 +80,7 @@ public final class GameState {
      * une entrée par molécule.
      */
     private final List<String> logKinds = new ArrayList<>();
-    private int[] logEnds = new int[16];
+    private long[] logEnds = new long[16];
     private final List<String> moleculeLog = new MoleculeLog();
     private int moleculesVersion = 0;
     private final Set<String> substances = new java.util.LinkedHashSet<>();
@@ -123,6 +123,8 @@ public final class GameState {
     private double cometVisible = 0;
     private double cometBoost = 0;
     private int cometsCaught = 0;
+    /** Vrai une fois l'écran de fin vu (version 0.68) : il ne s'ouvre qu'une fois par partie. */
+    private boolean endSeen = false;
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     private double pulseCharges = 0;
     // Le collisionneur de quarks (version 0.50) : rien ne s'y perd à l'explosion ni au Big Bang.
@@ -481,17 +483,17 @@ public final class GameState {
         int extra = owned - count;
         // Les suites de cette sorte rétrécissent en partant de la fin, puis la liste des suites est refaite.
         int runs = logKinds.size();
-        int[] lengths = new int[runs];
+        long[] lengths = new long[runs];
         for (int run = 0; run < runs; run++) lengths[run] = logEnds[run] - (run == 0 ? 0 : logEnds[run - 1]);
         for (int run = runs - 1; run >= 0 && extra > 0; run--) {
             if (!logKinds.get(run).equals(moleculeId)) continue;
-            int taken = Math.min(extra, lengths[run]);
+            long taken = Math.min(extra, lengths[run]);
             lengths[run] -= taken;
             extra -= taken;
         }
         List<String> kinds = new ArrayList<>(logKinds);
         logKinds.clear();
-        int end = 0;
+        long end = 0;
         for (int run = 0; run < runs; run++) {
             if (lengths[run] == 0) continue;
             end += lengths[run];
@@ -522,33 +524,48 @@ public final class GameState {
         return moleculeLog;
     }
 
-    /** Les molécules créées vues une à une, alors qu'elles sont gardées par suites. En lecture seule. */
+    /** Nombre de molécules créées, toutes sortes confondues. Peut dépasser deux milliards. */
+    public long moleculeTotal() {
+        return logKinds.isEmpty() ? 0 : logEnds[logKinds.size() - 1];
+    }
+
+    /** La sorte de la molécule créée au rang {@code index} (à partir de 0), dans l'ordre de création. */
+    public String moleculeAt(long index) {
+        if (index < 0 || index >= moleculeTotal()) throw new IndexOutOfBoundsException("Molécule n° " + index + " sur " + moleculeTotal());
+        // La première suite qui finit après ce rang.
+        int low = 0;
+        int high = logKinds.size() - 1;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (logEnds[middle] > index) high = middle;
+            else low = middle + 1;
+        }
+        return logKinds.get(low);
+    }
+
+    /**
+     * Les molécules créées vues une à une, alors qu'elles sont gardées par suites. En lecture seule.
+     * Une liste ne compte pas au-delà de deux milliards : passé ce nombre, elle s'arrête là, et
+     * {@link #moleculeTotal()} et {@link #moleculeAt(long)} donnent le vrai compte.
+     */
     private final class MoleculeLog extends java.util.AbstractList<String> {
 
         @Override
         public int size() {
-            return logKinds.isEmpty() ? 0 : logEnds[logKinds.size() - 1];
+            return (int) Math.min(Integer.MAX_VALUE, moleculeTotal());
         }
 
         @Override
         public String get(int index) {
             if (index < 0 || index >= size()) throw new IndexOutOfBoundsException("Molécule n° " + index + " sur " + size());
-            // La première suite qui finit après ce rang.
-            int low = 0;
-            int high = logKinds.size() - 1;
-            while (low < high) {
-                int middle = (low + high) >>> 1;
-                if (logEnds[middle] > index) high = middle;
-                else low = middle + 1;
-            }
-            return logKinds.get(low);
+            return moleculeAt(index);
         }
 
         @Override
         public java.util.Iterator<String> iterator() {
             return new java.util.Iterator<>() {
                 private int run = 0;
-                private int index = 0;
+                private long index = 0;
 
                 @Override
                 public boolean hasNext() {
@@ -1018,6 +1035,15 @@ public final class GameState {
         return cometsCaught;
     }
 
+    /** Vrai une fois l'écran de fin vu : il ne s'ouvre qu'une fois par partie. */
+    public boolean endSeen() {
+        return endSeen;
+    }
+
+    public void setEndSeen(boolean seen) {
+        endSeen = seen;
+    }
+
     public void setCometsCaught(int count) {
         cometsCaught = Math.max(0, count);
     }
@@ -1352,6 +1378,7 @@ public final class GameState {
         cometVisible = 0;
         cometBoost = 0;
         cometsCaught = 0;
+        endSeen = false;
         pulseCharges = 0;
         pulses = 0;
         colliderEnergy = 0;
@@ -1598,6 +1625,7 @@ public final class GameState {
         data.put("cometVisible", cometVisible);
         data.put("cometBoost", cometBoost);
         data.put("cometsCaught", cometsCaught);
+        data.put("endSeen", endSeen);
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
         data.put("colliderEnergy", colliderEnergy);
@@ -1742,6 +1770,8 @@ public final class GameState {
         setCometVisible(data.real("cometVisible", 0));
         setCometBoost(data.real("cometBoost", 0));
         setCometsCaught(data.whole("cometsCaught", 0));
+        // Une sauvegarde d'avant la 0.68 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
+        endSeen = data.flag("endSeen", data.whole("cosmos", 0) >= 3);
         setPulseCharges(data.real("pulseCharges", 0));
         setPulses((long) data.real("pulses", 0));
         setColliderEnergy(data.real("colliderEnergy", 0));

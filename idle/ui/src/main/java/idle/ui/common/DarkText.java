@@ -16,10 +16,10 @@ public final class DarkText {
     public static String describe(DarkEffect effect, Game game) {
         return switch (effect) {
             case DarkEffect.AddAtomsPerFusion add ->
-                    "+" + ElementText.number(add.perLevel()) + " atome par fusion, à chaque niveau. Actuellement +"
+                    "+" + ElementText.number(add.perLevel()) + (add.perLevel() >= 2 ? " atomes" : " atome") + " par fusion, à chaque niveau. Actuellement +"
                             + ElementText.number(game.darkAtomsPerFusion());
             case DarkEffect.AddElementsPerSynthesis add ->
-                    "+" + add.perLevel() + " élément par synthèse, à chaque niveau. Actuellement "
+                    "+" + add.perLevel() + (add.perLevel() >= 2 ? " éléments" : " élément") + " par synthèse, à chaque niveau. Actuellement "
                             + game.elementsPerSynthesis() + " par synthèse";
             case DarkEffect.EarlierGuaranteedUnique earlier ->
                     "Élément unique garanti dès la synthèse n° " + earlier.rank() + ", au lieu de la n° "
@@ -34,7 +34,7 @@ public final class DarkText {
             case DarkEffect.KeepUpgradesOnExplosion keep ->
                     "L'explosion ne remet plus les améliorations à zéro (sauf les générateurs)";
             case DarkEffect.MultiplyBaseParticles multiply ->
-                    "Particules de base ×" + ElementText.number(multiply.perLevel()) + ", à chaque niveau";
+                    "Particules de base ×" + factor(multiply.perLevel()) + ", à chaque niveau";
             case DarkEffect.UncapGenerators uncap ->
                     "Jusqu'à " + uncap.limit() + " générateurs. La fusion rapporte ses atomes une fois par groupe de "
                             + game.generatorsPerAtom() + ", plus une prime de "
@@ -59,7 +59,7 @@ public final class DarkText {
                 BigNum lightYears = game.darkMatterLightYears();
                 BigNum now = lightYears.gt(BigNum.ONE) ? lightYears.pow(byLightYears.exponent()) : BigNum.ONE;
                 yield "Particules × (taille de la matière noire en années-lumière)"
-                        + (byLightYears.exponent() == 2 ? "²" : " puissance " + ElementText.number(byLightYears.exponent()))
+                        + (byLightYears.exponent() == 2 ? "²" : byLightYears.exponent() == 1 ? "" : " puissance " + ElementText.number(byLightYears.exponent()))
                         + ". Avec la taille actuelle : " + Format.multiplier(now);
             }
             case DarkEffect.MultiplyExpansion multiply ->
@@ -74,8 +74,17 @@ public final class DarkText {
             case DarkEffect.FusionPulse pulse ->
                     "Chaque fusion fait grossir la matière noire comme " + ElementText.number(pulse.seconds()) + " s d'appui";
             case DarkEffect.AddDarkMatterPerExplosion add ->
-                    "+" + ElementText.number(add.perLevel()) + " matière noire par explosion, à chaque niveau. Actuellement "
+                    "+" + ElementText.number(add.perLevel()) + (add.perLevel() >= 2 ? " matières noires" : " matière noire") + " par explosion, à chaque niveau. Actuellement "
                             + Format.count(game.darkMatterPerExplosion()) + " par explosion";
+            case DarkEffect.StrongerMilestones more ->
+                    "Chaque palier de vitesse multiplie les particules par " + ElementText.number(more.extra()) + " de plus, à chaque "
+                            + "niveau : c'est ce qui fait grandir une partie qu'on laisse tourner";
+            case DarkEffect.ChallengesWhileAway away ->
+                    "En votre absence, chaque partie qui commence tente le prochain défi ouvert et pas encore réussi, comme "
+                            + "si vous l'aviez lancé : l'explosion automatique peut le réussir pendant que le jeu est fermé";
+            case DarkEffect.OfflineBonus bonus ->
+                    "En votre absence, " + ElementText.number(bonus.points() * 100) + " points de temps rejoué en plus, à chaque niveau. Actuellement "
+                            + ElementText.percent(game.offlineRate()) + " du temps passé jeu fermé est rejoué";
             case DarkEffect.UncapAtoms uncap ->
                     "Plus de plafond d'atomes : on peut en posséder plus de " + Format.count(game.atomCap())
                             + ". Le prix maximal d'une synthèse, lui, ne change pas";
@@ -109,14 +118,14 @@ public final class DarkText {
      */
     public static String brief(DarkEffect effect, Game game) {
         return switch (effect) {
-            case DarkEffect.AddAtomsPerFusion add -> "+" + ElementText.number(add.perLevel()) + " atome par fusion";
-            case DarkEffect.AddElementsPerSynthesis add -> "+" + add.perLevel() + " élément par synthèse";
+            case DarkEffect.AddAtomsPerFusion add -> "+" + ElementText.number(add.perLevel()) + (add.perLevel() >= 2 ? " atomes" : " atome") + " par fusion";
+            case DarkEffect.AddElementsPerSynthesis add -> "+" + add.perLevel() + (add.perLevel() >= 2 ? " éléments" : " élément") + " par synthèse";
             case DarkEffect.EarlierGuaranteedUnique earlier -> "Unique ★ garanti à la synthèse " + earlier.rank();
             case DarkEffect.KeepUniqueElementsOnExplosion keep -> "L'explosion garde les uniques ★";
             case DarkEffect.IncreaseMaxCopies more -> "Plus d'exemplaires par élément";
             case DarkEffect.KeepAutomationsOnExplosion keep -> "L'explosion garde les automatismes";
             case DarkEffect.KeepUpgradesOnExplosion keep -> "L'explosion garde les améliorations";
-            case DarkEffect.MultiplyBaseParticles multiply -> "Particules ×" + ElementText.number(multiply.perLevel());
+            case DarkEffect.MultiplyBaseParticles multiply -> "Particules ×" + factor(multiply.perLevel());
             case DarkEffect.UncapGenerators uncap -> "Jusqu'à " + uncap.limit() + " générateurs";
             case DarkEffect.FusionThreshold threshold -> "Fusion automatique réglable";
             case DarkEffect.StartingSpeedLevels start -> "+" + start.perLevel() + " niveaux de vitesse offerts";
@@ -126,14 +135,17 @@ public final class DarkText {
                     "Automatismes jusqu'à " + ElementText.number(faster.minInterval()) + " s";
             case DarkEffect.StartingGenerators start -> "+" + start.perLevel() + " générateur au départ";
             case DarkEffect.ParticlesByLightYears byLightYears -> "Particules × taille"
-                    + (byLightYears.exponent() == 2 ? "²" : " puissance " + ElementText.number(byLightYears.exponent()));
+                    + (byLightYears.exponent() == 2 ? "²" : byLightYears.exponent() == 1 ? "" : " puissance " + ElementText.number(byLightYears.exponent()));
             case DarkEffect.MultiplyExpansion multiply -> "Élan ×" + ElementText.number(multiply.perLevel());
             case DarkEffect.AutoExpansion auto -> "Elle grossit seule";
             case DarkEffect.HoldLock lock -> "Un clic verrouille l'appui";
             case DarkEffect.FusionPulse pulse -> "Chaque fusion la fait grossir";
             case DarkEffect.AddDarkMatterPerExplosion add ->
-                    "+" + ElementText.number(add.perLevel()) + " matière noire par explosion";
+                    "+" + ElementText.number(add.perLevel()) + (add.perLevel() >= 2 ? " matières noires" : " matière noire") + " par explosion";
             case DarkEffect.UncapAtoms uncap -> "Plus de plafond d'atomes";
+            case DarkEffect.StrongerMilestones more -> "Paliers de vitesse +" + ElementText.number(more.extra());
+            case DarkEffect.ChallengesWhileAway away -> "Les défis se tentent en votre absence";
+            case DarkEffect.OfflineBonus bonus -> "Absence : +" + ElementText.number(bonus.points() * 100) + " points rejoués";
             case DarkEffect.AtomsByDarkMatter by -> "Atomes +" + ElementText.percent(by.perUnit()) + " par matière noire";
             case DarkEffect.AutomationsByDarkMatter by ->
                     "Cadence +" + ElementText.percent(by.perUnit()) + " par matière noire";
@@ -146,4 +158,9 @@ public final class DarkText {
     }
 
     private DarkText() {}
+
+    /** Un facteur : en toutes lettres jusqu'au million, au-delà dans la notation choisie (×10²⁰ ne tient pas en chiffres). */
+    private static String factor(double value) {
+        return value >= 1e6 ? Format.count(BigNum.of(value)) : ElementText.number(value);
+    }
 }

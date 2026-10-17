@@ -1,0 +1,13 @@
+﻿profil,conseil,etat_final,horizon_h,BB8_heure_supplementaire,univers_heure_supplementaire
+11,false,"7,bodies=27,mature=27,systems=3,cosmos=0",48,-,
+11,true,"8,bodies=33,mature=33,systems=3,cosmos=0",48,1.2889,
+11,coaching,"bb=7,astres=27,cosmos=0,univers=0",12,NaN,NaN
+11,coaching_corrige,"bb=7,astres=27,cosmos=0,univers=0",12,NaN,NaN
+12,false,"8,bodies=35,mature=35,systems=3,cosmos=1",48,-,
+12,true,"8,bodies=35,mature=35,systems=3,cosmos=1",48,-,
+12,coaching,"bb=8,astres=35,cosmos=1,univers=0",12,NaN,NaN
+12,coaching_corrige,"bb=8,astres=35,cosmos=3,univers=1",12,NaN,2.35556
+17,false,"8,bodies=35,mature=35,systems=3,cosmos=1",48,-,
+17,true,"8,bodies=35,mature=35,systems=3,cosmos=1",48,-,
+17,coaching,"bb=8,astres=35,cosmos=3,univers=1",12,NaN,2.68333
+17,coaching_corrige,"bb=8,astres=35,cosmos=3,univers=1",12,NaN,2.68333

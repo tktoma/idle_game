@@ -27,6 +27,7 @@ import idle.ui.common.TabIcon;
 import idle.ui.common.TileGrid;
 import idle.ui.darkmatter.ChallengesPane;
 import idle.ui.darkmatter.DarkMatterPage;
+import idle.ui.universe.UniversePage;
 import idle.ui.pages.AchievementsPage;
 import idle.ui.pages.SettingsPage;
 import idle.ui.pages.StatsPage;
@@ -146,7 +147,7 @@ public final class GameApp extends Application {
     private static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, ACHIEVEMENTS, STATS, SETTINGS }
+    private enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS }
 
     private final Game game = new Game();
     private final Settings settings = Settings.load();
@@ -170,6 +171,8 @@ public final class GameApp extends Application {
     private final Button darkMatterTab = new Button();
     private final Button colliderTab = new Button("Collisionneur");
     private final Button bigBangTab = new Button("Big Bang");
+    /** L'onglet de l'univers (version 0.80), qui s'ouvre quand l'univers est formé : le quatrième acte. */
+    private final Button universeTab = new Button("Univers");
     private final Button achievementsTab = new Button("Succès");
     private final Button statsTab = new Button("Statistiques");
     private final Button settingsTab = new Button("Réglages");
@@ -180,10 +183,11 @@ public final class GameApp extends Application {
     private final TabIcon darkMatterIcon = new TabIcon(TabIcon.Kind.DARK_MATTER, DARK_MATTER_COLOR, 20);
     private final TabIcon colliderIcon = new TabIcon(TabIcon.Kind.COLLIDER, ColliderPane.COLOR, 20);
     private final TabIcon bigBangIcon = new TabIcon(TabIcon.Kind.BIG_BANG, BIG_BANG_COLOR, 20);
+    private final TabIcon universeIcon = new TabIcon(TabIcon.Kind.UNIVERSE, UniversePage.COLOR, 20);
     private final TabIcon achievementsIcon = new TabIcon(TabIcon.Kind.ACHIEVEMENTS, ACHIEVEMENTS_COLOR, 20);
     private final TabIcon statsIcon = new TabIcon(TabIcon.Kind.STATS, STATS_COLOR, 20);
     private final TabIcon settingsIcon = new TabIcon(TabIcon.Kind.SETTINGS, SETTINGS_COLOR, 20);
-    private final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon,
+    private final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon,
             achievementsIcon, statsIcon, settingsIcon};
     /**
      * Le rôle d'un onglet, qui décide de son allure : les actes du jeu (cadre plein), ce qui tourne
@@ -192,7 +196,7 @@ public final class GameApp extends Application {
     private enum TabRole { ACT, SIDE, META }
     /** Les onglets, dans l'ordre, et l'écart qui sépare les pages pour s'y retrouver des autres. */
     private final Button[] tabButtons = {particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            achievementsTab, statsTab, settingsTab};
+            universeTab, achievementsTab, statsTab, settingsTab};
     private final javafx.scene.layout.Region tabGap = new javafx.scene.layout.Region();
     /** À gauche, l'espace qui pousse les pages pour s'y retrouver en bas de la colonne. */
     private final javafx.scene.layout.Region sideSpacer = new javafx.scene.layout.Region();
@@ -203,7 +207,7 @@ public final class GameApp extends Application {
     private long pressedAt;
     private boolean justDragged;
     private final HBox tabBar = new HBox(4, particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            tabGap, achievementsTab, statsTab, settingsTab);
+            universeTab, tabGap, achievementsTab, statsTab, settingsTab);
     /** À gauche, le nom de l'onglet affiché quand il n'a pas de sous-onglets : la barre du haut garde sa hauteur. */
     private final Label tabTitle = new Label();
     /** À gauche : la colonne de droite, avec le haut de la fenêtre et les pages ; la colonne des onglets descend jusqu'en bas. */
@@ -215,6 +219,7 @@ public final class GameApp extends Application {
     private final DarkMatterPage darkMatterPage = new DarkMatterPage(game);
     private final ColliderPage colliderPage = new ColliderPage(game);
     private final BigBangPage bigBangPage = new BigBangPage(game);
+    private final UniversePage universePage = new UniversePage();
     private final AchievementsPage achievementsPage = new AchievementsPage(game);
     private final StatsPage statsPage = new StatsPage(game);
     private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
@@ -266,6 +271,8 @@ public final class GameApp extends Application {
     private double lastTotalAtoms = -1;
     /** Le nombre de Big Bangs au dernier affichage, pour remarquer qu'il vient d'y en avoir un ; −1 avant le premier affichage. */
     private int lastBigBangs = -1;
+    /** L'univers à la dernière image : 1 formé, 0 pas encore, −1 inconnu (au chargement, sans naissance à jouer). */
+    private int hadUniverse = -1;
     /** Barre du profil de test, ou {@code null} en jeu normal. */
     private DebugBar debugBar;
     /** Guette les conditions des thèmes et des notations à débloquer. */
@@ -273,6 +280,8 @@ public final class GameApp extends Application {
     // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
     private double sinceSave = 0;
     private final AbsencePane absencePane = new AbsencePane(this::save);
+    /** L'écran de fin (version 0.68) : une fois par partie, quand l'univers se forme. */
+    private final EndPane endPane = new EndPane(game);
     /** Le butin d'une sonde, par-dessus la fenêtre : une carte à la fois. */
     private final LootPane lootPane = new LootPane(game, this::refresh);
     /** Temps réel donné au rattrapage d'une absence à chaque image, en nanosecondes : assez peu pour que la fenêtre reste vive. */
@@ -372,13 +381,14 @@ public final class GameApp extends Application {
         achievementsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
-                achievementsScroll, statsPage, settingsScroll);
+                universePage, achievementsScroll, statsPage, settingsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
         atomsTab.setOnAction(event -> open(Tab.ATOMS));
         automationTab.setOnAction(event -> open(Tab.AUTOMATION));
         darkMatterTab.setOnAction(event -> open(Tab.DARK_MATTER));
         colliderTab.setOnAction(event -> open(Tab.COLLIDER));
         bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
+        universeTab.setOnAction(event -> open(Tab.UNIVERSE));
         achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> open(Tab.STATS));
         settingsTab.setOnAction(event -> open(Tab.SETTINGS));
@@ -388,6 +398,7 @@ public final class GameApp extends Application {
         darkMatterTab.setGraphic(darkMatterIcon);
         colliderTab.setGraphic(colliderIcon);
         bigBangTab.setGraphic(bigBangIcon);
+        universeTab.setGraphic(universeIcon);
         achievementsTab.setGraphic(achievementsIcon);
         statsTab.setGraphic(statsIcon);
         settingsTab.setGraphic(settingsIcon);
@@ -488,7 +499,7 @@ public final class GameApp extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = new StackPane(root, blast, toasts, lootPane, helpPane, absencePane);
+        StackPane window = new StackPane(root, blast, toasts, lootPane, helpPane, endPane, absencePane);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         scaled = new ScaledPane(window);
@@ -527,6 +538,9 @@ public final class GameApp extends Application {
                 explosionArmed = Math.max(0, explosionArmed - dt);
                 if (selectedTab == Tab.SETTINGS) settingsPage.frame(dt);
                 announce(dt);
+                // L'écran de fin attend que la naissance de l'univers soit jouée.
+                boolean bornNow = hadUniverse == 0 && game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
+                if (!bornNow && !(selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying())) endPane.check();
                 // Les thèmes et notations à débloquer : annoncés après le reste, pour ne pas être chassés par lui.
                 for (Cosmetic opened : cosmetics.frame(dt, settings.paused())) {
                     toasts.show(Cosmetics.announcement(opened), SETTINGS_COLOR);
@@ -648,11 +662,13 @@ public final class GameApp extends Application {
     private void afterLoad() {
         toasts.clear();
         absencePane.close();
+        endPane.close();
         exploding = false;
         explosionArmed = 0;
         blast.setVisible(false);
         lastTotalAtoms = -1;
         lastBigBangs = -1;
+        hadUniverse = -1;
         generators.setCount(0);
         darkMatterPage.reset();
         bigBangPage.reset();
@@ -801,6 +817,7 @@ public final class GameApp extends Application {
         game.restored();
         save();
         absencePane.close();
+        endPane.close();
         helpPane.close();
         toasts.clear();
         exploding = false;
@@ -811,6 +828,7 @@ public final class GameApp extends Application {
         darkMatterPage.reset();
         bigBangPage.reset();
         lastBigBangs = 0;
+        hadUniverse = 0;
         controls.setVisible(false);
         showStartButton();
         selectTab(Tab.PARTICLES);
@@ -1062,7 +1080,21 @@ public final class GameApp extends Application {
                 // un onglet d'une autre version, ou rien : écarté
             }
         }
-        for (Tab tab : Tab.values()) if (!order.contains(tab)) order.add(tab);
+        // Un onglet que l'ordre ne cite pas (un nouveau, comme l'univers en 0.80) se range après celui qui le
+        // précède d'habitude, pas au bout : les pages pour s'y retrouver restent à part.
+        Tab[] natural = Tab.values();
+        for (int k = 0; k < natural.length; k++) {
+            if (order.contains(natural[k])) continue;
+            int at = 0;
+            for (int before = k - 1; before >= 0; before--) {
+                int place = order.indexOf(natural[before]);
+                if (place >= 0) {
+                    at = place + 1;
+                    break;
+                }
+            }
+            order.add(at, natural[k]);
+        }
         return order;
     }
 
@@ -1335,6 +1367,7 @@ public final class GameApp extends Application {
             case DARK_MATTER -> "Matière noire";
             case COLLIDER -> "Collisionneur";
             case BIG_BANG -> "Big Bang";
+            case UNIVERSE -> "Univers";
             case ACHIEVEMENTS -> "Succès";
             case STATS -> "Statistiques";
             case SETTINGS -> "Réglages";
@@ -1349,6 +1382,7 @@ public final class GameApp extends Application {
             case DARK_MATTER -> DARK_MATTER_COLOR;
             case COLLIDER -> ColliderPane.COLOR;
             case BIG_BANG -> BIG_BANG_COLOR;
+            case UNIVERSE -> UniversePage.COLOR;
             case ACHIEVEMENTS -> ACHIEVEMENTS_COLOR;
             case STATS -> STATS_COLOR;
             case SETTINGS -> SETTINGS_COLOR;
@@ -1425,6 +1459,7 @@ public final class GameApp extends Application {
         darkMatterPage.setVisible(tab == Tab.DARK_MATTER);
         colliderPage.setVisible(tab == Tab.COLLIDER);
         bigBangPage.setVisible(tab == Tab.BIG_BANG);
+        universePage.setVisible(tab == Tab.UNIVERSE);
         achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
         settingsScroll.setVisible(tab == Tab.SETTINGS);
@@ -1445,7 +1480,7 @@ public final class GameApp extends Application {
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
         boolean icons = tabsLeftApplied || !narrow;
-        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, achievementsIcon, statsIcon, settingsIcon};
+        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, achievementsIcon, statsIcon, settingsIcon};
         for (int i = 0; i < tabButtons.length; i++) tabButtons[i].setGraphic(icons ? graphics[i] : null);
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
@@ -1453,7 +1488,7 @@ public final class GameApp extends Application {
 
     private static TabRole roleOf(Tab tab) {
         return switch (tab) {
-            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG -> TabRole.ACT;
+            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE -> TabRole.ACT;
             case AUTOMATION, COLLIDER -> TabRole.SIDE;
             case ACHIEVEMENTS, STATS, SETTINGS -> TabRole.META;
         };
@@ -1467,6 +1502,7 @@ public final class GameApp extends Application {
             case DARK_MATTER -> darkMatterIcon;
             case COLLIDER -> colliderIcon;
             case BIG_BANG -> bigBangIcon;
+            case UNIVERSE -> universeIcon;
             case ACHIEVEMENTS -> achievementsIcon;
             case STATS -> statsIcon;
             case SETTINGS -> settingsIcon;
@@ -1548,6 +1584,9 @@ public final class GameApp extends Application {
         }
         if (selectedTab == Tab.BIG_BANG) {
             bigBangPage.frame(dt);
+        }
+        if (selectedTab == Tab.UNIVERSE) {
+            universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
         lootPane.frame(dt);
         if (selectedTab != Tab.PARTICLES) {
@@ -1689,6 +1728,17 @@ public final class GameApp extends Application {
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
 
+        // L'onglet « Univers » (version 0.80) s'ouvre quand l'univers est formé. S'il vient de se former,
+        // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
+        boolean universe = game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
+        universeTab.setVisible(universe);
+        universeTab.setManaged(universe);
+        if (universe && hadUniverse == 0) {
+            selectTab(Tab.UNIVERSE);
+            universePage.playBirth();
+        }
+        hadUniverse = universe ? 1 : 0;
+
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
         // n'existe que si le jeu en a.
         boolean achievements = !game.achievements().isEmpty();
@@ -1701,6 +1751,7 @@ public final class GameApp extends Application {
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)
+                || (selectedTab == Tab.UNIVERSE && !universe)
                 || (selectedTab == Tab.COLLIDER && !game.isColliderUnlocked())) {
             selectTab(Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
@@ -1750,7 +1801,8 @@ public final class GameApp extends Application {
         String chrono = goal && settings.chrono() ? Goals.chrono(game) : "";
         goalLabel.setText(goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
                 + (bang.isEmpty() ? "" : "   |   Prochain Big Bang : " + bang)
-                + (act.isEmpty() ? "" : "   |   Troisième acte : " + act)
+                + (act.isEmpty() ? "" : game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE)
+                        ? "   |   Quatrième acte : la suite viendra" : "   |   Troisième acte : " + act)
                 + (chrono.isEmpty() ? "" : "   |   " + chrono) : "");
         String detailKey = Detail.keyName(settings.detailKey());
         detailHint.setText(Detail.shown()

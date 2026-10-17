@@ -13,7 +13,8 @@ import idle.core.math.BigNum;
  *
  * <p>Le temps est rejoué par {@link Game#tick(double)}, exactement comme s'il passait jeu ouvert :
  * les automatismes agissent, la matière noire verrouillée grossit, l'espace s'étend. Rien n'est
- * fait à la place du joueur. Comme une longue absence demande du calcul, elle se rejoue par
+ * fait à la place du joueur, sauf ce que l'accord d'absence de l'arbre lui confie : tenter les défis
+ * ouverts ({@link idle.core.darkmatter.DarkEffect.ChallengesWhileAway}). Comme une longue absence demande du calcul, elle se rejoue par
  * morceaux ({@link #advanceFor(long)}), entre deux images, et le joueur peut passer la suite
  * ({@link #skip()}).
  */
@@ -43,15 +44,21 @@ public final class Absence {
      * @param space             espace gagné
      * @param moleculeCreations créations de molécules
      * @param achievements      succès obtenus
+     * @param voies             voies d'absence que l'arbre a prises seul (version 0.73)
+     * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.73)
+     * @param challengesDone    défis réussis pendant l'absence
+     * @param challengeRunning  le défi en cours au retour, ou {@code null}
      */
     public record Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                          BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
-                         long moleculeCreations, int achievements) {
+                         long moleculeCreations, int achievements, java.util.List<String> voies,
+                         java.util.List<String> challengesStarted, int challengesDone, String challengeRunning) {
 
         /** Vrai si l'absence n'a rien rapporté du tout : il n'y a alors rien à annoncer. */
         public boolean isEmpty() {
             return particles.isZero() && atoms.isZero() && fusions == 0 && syntheses == 0 && explosions == 0
-                    && space.isZero() && moleculeCreations == 0 && achievements == 0;
+                    && space.isZero() && moleculeCreations == 0 && achievements == 0 && voies.isEmpty()
+                    && challengesStarted.isEmpty() && challengesDone == 0;
         }
     }
 
@@ -72,6 +79,9 @@ public final class Absence {
     private final BigNum spaceBefore;
     private final long creationsBefore;
     private final int achievementsBefore;
+    private final int challengesBefore;
+    private final java.util.List<String> voies = new java.util.ArrayList<>();
+    private final java.util.List<String> challengesStarted = new java.util.ArrayList<>();
 
     /**
      * @param game        la partie, telle que la sauvegarde l'a rendue
@@ -92,6 +102,9 @@ public final class Absence {
         spaceBefore = game.state().space();
         creationsBefore = stats.moleculeCreations();
         achievementsBefore = game.state().achievements().size();
+        challengesBefore = game.completedChallenges();
+        game.takeAwayVoies();
+        game.takeAwayChallenges();
     }
 
     /** Vrai si une absence de cette durée compte pour cette partie : assez longue, et la partie commencée. */
@@ -134,9 +147,11 @@ public final class Absence {
         double target = Math.min(total, done + Math.max(0, seconds));
         while (!skipped && done < target) {
             double part = Math.min(STEP, target - done);
-            game.tick(part);
+            game.tickAway(part);
             done += part;
         }
+        voies.addAll(game.takeAwayVoies());
+        challengesStarted.addAll(game.takeAwayChallenges());
     }
 
     /**
@@ -163,7 +178,9 @@ public final class Absence {
                 stats.fusions() - fusionsBefore, stats.syntheses() - synthesesBefore,
                 stats.elementsObtained() - elementsBefore, stats.timedExplosions() - explosionsBefore,
                 gain(game.state().space(), spaceBefore), stats.moleculeCreations() - creationsBefore,
-                Math.max(0, game.state().achievements().size() - achievementsBefore));
+                Math.max(0, game.state().achievements().size() - achievementsBefore), java.util.List.copyOf(voies),
+                java.util.List.copyOf(challengesStarted), Math.max(0, game.completedChallenges() - challengesBefore),
+                game.activeChallenge() == null ? null : game.activeChallenge().name());
     }
 
     private static BigNum gain(BigNum now, BigNum before) {

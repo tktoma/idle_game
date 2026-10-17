@@ -30,7 +30,15 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         /** Les éléments et leurs ensembles ne donnent aucun bonus. */
         INERT_ELEMENTS,
         /** Les éléments se désintègrent : chaque exemplaire a une demi-vie de 35 secondes. */
-        DECAY
+        DECAY,
+        /** Version 0.70 : les voies d'absence de l'arbre n'agissent plus, ni l'accord d'absence. Seules comptent celles de présence. */
+        PRESENCE_ONLY,
+        /** Version 0.70 : les voies de présence n'agissent plus, ni l'accord de présence. Seules comptent celles d'absence. */
+        ABSENCE_ONLY,
+        /** Version 0.70 : la branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
+        CUT_BRANCH,
+        /** Version 0.70 : aucune voie, aucune liaison n'agit : il ne reste que le tronc de l'arbre. */
+        BARE_TREE
     }
 
     /** La récompense définitive d'un défi réussi. */
@@ -46,7 +54,15 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         /** Tous les éléments agissent {@link Game#REWARD_ELEMENT_STRENGTH} fois plus fort. */
         STRONGER_ELEMENTS,
         /** Un élément de plus à chaque synthèse. */
-        EXTRA_ELEMENT
+        EXTRA_ELEMENT,
+        /** Les voies de présence comptent double. */
+        STRONGER_PRESENCE,
+        /** Les voies d'absence comptent double, et ce qu'elles rendent du temps d'absence aussi. */
+        STRONGER_ABSENCE,
+        /** Les liaisons et les accords comptent double. */
+        STRONGER_LINKS,
+        /** Une matière noire de plus à chaque explosion. */
+        EXTRA_DARK_MATTER
     }
 
     public Challenge {

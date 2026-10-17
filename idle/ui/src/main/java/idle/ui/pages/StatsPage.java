@@ -736,15 +736,17 @@ public final class StatsPage extends VBox {
     private int owned(boolean inTree) {
         int owned = 0;
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
-            if (upgrade.branch().inTree() == inTree && game.darkLevelOf(upgrade.id()) > 0) owned++;
+            if (upgrade.inTree() == inTree && game.darkLevelOf(upgrade.id()) > 0) owned++;
         }
         return owned;
     }
 
     private int count(boolean inTree) {
         int count = 0;
+        java.util.Set<String> forks = new java.util.HashSet<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
-            if (upgrade.branch().inTree() == inTree) count++;
+            // Une bifurcation ne compte qu'une case : on n'en prend qu'une voie (version 0.69), sauf avec la Superposition (0.70).
+            if (upgrade.inTree() == inTree && (!upgrade.isFork() || game.hasSuperposition() || forks.add(upgrade.fork()))) count++;
         }
         return count;
     }

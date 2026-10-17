@@ -760,7 +760,8 @@ public final class AutomationPage extends VBox {
                     + "ont un dernier niveau, dans l'ordre de l'arbre. Une case sans dernier niveau (Densité, Noyau lourd) "
                     + "est prise une fois pour ouvrir la suivante, puis chaque fois qu'un niveau coûte au plus "
                     + ElementText.percent(Game.TREE_REPEAT_SHARE) + " de ce que possède sa branche : le Big Bang n'en "
-                    + "souffre pas. Les améliorations sans limite de la boutique restent à votre main. Rien n'est acheté "
+                    + "souffre pas. Les améliorations sans limite de la boutique et les bifurcations restent à votre main (les liaisons et les accords, eux, sont pris dès que leurs voies les ouvrent) : "
+                    + "c'est vous qui choisissez votre voie, et l'automatisme ne va pas au-delà tant que vous ne l'avez pas fait. Rien n'est acheté "
                     + "pendant un défi";
         };
     }

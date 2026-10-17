@@ -45,12 +45,6 @@ public final class NextReset {
         for (Challenge challenge : game.challenges()) {
             if (crossed(BigNum.of(challenge.darkMatter()), before, after)) opens.add("le défi « " + challenge.name() + " »");
         }
-        for (DarkUpgrade upgrade : game.darkUpgrades()) {
-            // Les cases du haut de l'arbre s'ouvrent toutes à la première matière noire : c'est « l'arbre », pas une liste.
-            if (upgrade.darkMatter() > 1 && crossed(BigNum.of(upgrade.darkMatter()), before, after)) {
-                opens.add("la case « " + upgrade.name() + " »");
-            }
-        }
         return opens;
     }
 
@@ -122,7 +116,7 @@ public final class NextReset {
     /** Ce qu'il manque à une condition du Big Bang : « 120 matières noires », « 2 défis ». */
     private static String missing(Game game, BigBangCondition condition) {
         return switch (condition) {
-            case PARTICLES -> Format.count(lacking(Game.BIG_BANG_PARTICLES, game.darkBalance(DarkUpgrade.Branch.PARTICLES))) + " particules";
+            case PARTICLES -> Format.count(lacking(game.bigBangParticles(), game.darkBalance(DarkUpgrade.Branch.PARTICLES))) + " particules";
             case ATOMS -> Format.count(lacking(Game.BIG_BANG_ATOMS, game.state().atoms())) + " atomes";
             case DARK_MATTER -> {
                 BigNum lacking = lacking(Game.BIG_BANG_DARK_MATTER, game.state().darkMatter());

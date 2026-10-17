@@ -19,7 +19,11 @@ import java.util.List;
  * d'heure pour Fusion lourde, quelques minutes pour les suivants.
  *
  * <p>Les cinq premiers s'ouvrent tous les trois matières noires, de 3 à 15, pendant que chaque
- * explosion n'en rapporte qu'une ; le dernier attend la Condensation.
+ * explosion n'en rapporte qu'une ; le sixième attend la Condensation. Les quatre derniers (version
+ * 0.71) jouent sur l'arbre lui-même : ils éteignent une branche, les voies et les liaisons, ou tout
+ * sauf un style. « Présence » et « Absence », corsés en 0.73, s'ouvrent à 300 et 350 matières
+ * noires : avec les voies du bon style ils prennent une ou deux minutes, sans elles vingt à
+ * quarante (mesuré au robot).
  */
 public final class Challenges {
 
@@ -40,7 +44,21 @@ public final class Challenges {
                     Challenge.Reward.STRONGER_ELEMENTS),
             // Avec un taux deux fois et demie plus fort, il ne se finit plus à ce stade.
             new Challenge("challenge_decay", "Désintégration", Challenge.Rule.DECAY, 21,
-                    Challenge.Reward.EXTRA_ELEMENT));
+                    Challenge.Reward.EXTRA_ELEMENT),
+            // Version 0.70 : quatre défis qui demandent un autre passage dans l'arbre. Les voies prises jusqu'au
+            // prochain Big Bang décident de leur difficulté : « Présence » est court avec les voies de gauche, long
+            // sans ; « Absence » l'inverse. Réussir les dix demande donc soit de changer de voies d'un Big Bang à
+            // l'autre, soit d'accepter un défi plus long.
+            new Challenge("challenge_cut", "Branche coupée", Challenge.Rule.CUT_BRANCH, 24,
+                    Challenge.Reward.STRONGER_LINKS),
+            new Challenge("challenge_bare", "Tronc nu", Challenge.Rule.BARE_TREE, 27,
+                    Challenge.Reward.EXTRA_DARK_MATTER),
+            // Corsés en 0.73 : ils s'ouvrent tard, quand l'arbre a toutes ses voies, et se jouent sur un tableau très
+            // lourd ({@link idle.core.Game#STYLE_CHALLENGE_WEIGHT}), où seul agit ce qui est du bon style.
+            new Challenge("challenge_presence", "Présence", Challenge.Rule.PRESENCE_ONLY, 300,
+                    Challenge.Reward.STRONGER_PRESENCE),
+            new Challenge("challenge_absence", "Absence", Challenge.Rule.ABSENCE_ONLY, 350,
+                    Challenge.Reward.STRONGER_ABSENCE));
 
     private Challenges() {}
 }

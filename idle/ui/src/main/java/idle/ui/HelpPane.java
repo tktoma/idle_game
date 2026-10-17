@@ -138,7 +138,15 @@ final class HelpPane extends StackPane {
         if (game.isDarkMatterUnlocked() || game.isBigBangUnlocked()) {
             sections.add(new Section("Matière noire", "L'explosion remet toute la matière à zéro et laisse de la matière "
                     + "noire. Tenez le clic sur son point pour la faire grossir. Son arbre a trois branches : l'une se "
-                    + "paie en particules, l'autre en atomes, la troisième s'ouvre avec la taille. Les défis sont des "
+                    + "paie en particules, l'autre en atomes, la troisième s'ouvre avec la taille. Sept bifurcations proposent deux voies côte à côte : en "
+                    + "prendre une ferme l'autre jusqu'au prochain Big Bang, où le choix se refait ; la Superposition du "
+                    + "collisionneur, à partir du cinquième Big Bang, ouvre les deux. À gauche, la voie de présence, la plus "
+                    + "forte : elle renforce les paliers de vitesse ou rapporte de la matière noire. À droite, la voie d'absence, "
+                    + "plus lente mais moins fatigante : elle rend plus du temps passé jeu fermé, et c'est elle que l'arbre prend "
+                    + "seul pendant votre absence si vous n'avez pas choisi. Entre "
+                    + "les branches, six liaisons, payées en matière noire, s'ouvrent par l'une ou l'autre des voies voisines ; "
+                    + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
+                    + "matières noires : seuls les prix rythment l'arbre. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste. Au bout de l'arbre, cinq conditions "
                     + "réunies déclenchent le Big Bang. Exploser nettement plus vite que la fois d'avant (en moins de "
                     + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."));
@@ -161,7 +169,10 @@ final class HelpPane extends StackPane {
                     + "d'un rayon, puis de toutes, multiplie une grandeur pour de bon. De temps en temps une comète traverse "
                     + "l'expansion de la matière : la saisir double l'espace créé pendant "
                     + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. L'amas de galaxies et "
-                    + "l'univers demandent de la quantité et de la variété : un nombre de sortes rassemblées dans chaque état."
+                    + "l'univers demandent de la quantité et de la variété : un nombre de sortes rassemblées dans chaque état. "
+                    + "La galaxie multiplie tout par " + (int) Game.GALAXY_FACTOR + ", l'amas puis l'univers par 2 chacun ; chaque état "
+                    + "réuni pour l'amas ou l'univers est un jalon, +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " % à tout. "
+                    + "L'univers formé, un écran fait le bilan de la partie ; le jeu continue derrière."
                     + (game.isBangChallengesUnlocked() ? " Au cinquième Big Bang, les défis de Big Bang s'ouvrent sous "
                             + "les paliers : un Big Bang sous contrainte, pour une récompense qui reste." : "")));
         }

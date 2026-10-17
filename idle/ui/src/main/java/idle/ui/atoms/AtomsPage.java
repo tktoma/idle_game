@@ -18,7 +18,6 @@ import idle.ui.common.TileGrid;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -29,7 +28,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
-import javafx.util.Duration;
 
 /**
  * Contenu de l'onglet « Atomes ». En haut, les atomes disponibles et le bonus en cours ;
@@ -76,8 +74,11 @@ public final class AtomsPage extends VBox {
 
     // Sous-page « Atome »
     private final AtomModelView atomView = new AtomModelView(240);
-    /** L'atome prend la place disponible, en restant carré, jusqu'à 440 pixels de côté. */
-    private final CanvasPane atomHolder = CanvasPane.square(atomView, 440);
+    /**
+     * La vue prend toute la place disponible : le grand atome y reste carré, au centre, jusqu'à
+     * 440 pixels de côté, et ses copies (au-delà de 118 atomes) occupent le reste.
+     */
+    private final CanvasPane atomHolder = CanvasPane.filling(atomView);
     private final Label orbsLabel = new Label();
     private final Label hintLabel = new Label();
     private final VBox atomPane = new VBox(10, atomHolder, orbsLabel, hintLabel);
@@ -244,6 +245,9 @@ public final class AtomsPage extends VBox {
         // un atome dépensé quitte le visuel.
         int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
         atomView.setOrbs(orbs);
+        // Au-delà, des copies de l'atome autour du grand (version 0.77) : un ordre de grandeur de plus, quelques copies de plus.
+        BigNum extra = atoms.subtract(BigNum.of(AtomModelView.MAX_ORBS));
+        atomView.setExtraDecades(extra.sign() > 0 ? extra.add(BigNum.ONE).log10() : 0);
         // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.
         boolean tableUnlocked = game.isPeriodicTableUnlocked();
         if (!tableUnlocked && selected == 2) select(0);
@@ -281,7 +285,8 @@ public final class AtomsPage extends VBox {
         }
         if (selected != 0) return;
         orbsLabel.setText(orbs + " / " + AtomModelView.MAX_ORBS + (orbs > 1 ? " orbes" : " orbe")
-                + (atoms.gt(Game.MAX_ATOMS) ? " (l'atome n'en montre pas plus)" : "")
+                + (atomView.copies() > 0 ? ", et " + atomView.copies() + (atomView.copies() > 1 ? " copies" : " copie")
+                        + " de l'atome autour" + (atomView.copies() == AtomModelView.MAX_COPIES ? " (pas plus)" : "") : "")
                 + "   |   " + Format.count(created) + (created.gt(BigNum.ONE) ? " atomes créés" : " atome créé")
                 + " depuis le début");
         hintLabel.setText(game.isAtomCapReached()
@@ -414,11 +419,6 @@ public final class AtomsPage extends VBox {
 
     /** Un atome vient d'être créé : l'atome grossit d'un coup puis reprend sa taille. */
     public void celebrate() {
-        ScaleTransition arrive = new ScaleTransition(Duration.seconds(0.6), atomView);
-        arrive.setFromX(1.6);
-        arrive.setFromY(1.6);
-        arrive.setToX(1);
-        arrive.setToY(1);
-        arrive.play();
+        atomView.celebrate();
     }
 }

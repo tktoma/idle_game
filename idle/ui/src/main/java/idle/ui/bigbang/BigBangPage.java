@@ -991,8 +991,8 @@ public final class BigBangPage extends VBox {
         countLabel.setText(count + (count > 1 ? " Big Bangs" : " Big Bang"));
         sinceLabel.setText("Partie en cours depuis " + Format.duration(game.stats().runTime())
                 + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
-        int created = game.moleculesCreated();
-        moleculesTab.setText(created > 0 ? "Molécules (" + created + ")" : "Molécules");
+        long created = game.moleculesCreated();
+        moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
         expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.of(game).comet()));
         milestonesTab.setText("Paliers (" + game.bigBangMilestonesReached() + "/" + game.bigBangMilestones().size() + ")");
         // Le rassemblement n'a son onglet qu'une fois ouvert ; si on le regardait et qu'il se referme (remise à zéro), retour au début.
@@ -1340,7 +1340,7 @@ public final class BigBangPage extends VBox {
                     : "Il manque " + Format.count(space.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
             card.setDoneClickable(automation);
             card.show(automated ? Card.State.ON : gathered ? Card.State.DONE : ready ? Card.State.READY : Card.State.WAITING,
-                    "×" + molecules, automated ? "automatique" : gathered ? "rassemblées" : "", molecule.name(), line, detail, price, "");
+                    "×" + Format.count(BigNum.of(molecules)), automated ? "automatique" : gathered ? "rassemblées" : "", molecule.name(), line, detail, price, "");
         }
         int shown = 0;
         for (Molecule.State matter : Molecule.State.values()) {
@@ -1774,13 +1774,15 @@ public final class BigBangPage extends VBox {
                 + (drawn > 1 ? " Rassemblée : une création en ajoute " + drawn + " d'un coup, pour le prix d'une seule"
                         + (next < drawn ? " (" + next + " seulement, faute de place)." : ".") : "")
                 + given(molecule, count);
-        String price = ready ? (next > 1 ? "Créer ×" + next + " : " : "Créer : ") + recipe(cost, false)
+        boolean full = game.isMoleculeKindFull(molecule.id());
+        String price = ready ? (next > 1 ? "Créer ×" + Format.count(BigNum.of(next)) + " : " : "Créer : ") + recipe(cost, false)
+                : full ? "Pleine : un milliard au plus par sorte"
                 : !reachable ? "Hors de portée : " + recipe(cost, false)
                 : !elements ? "Il faut " + recipe(cost, true)
                 : "Il manque " + Format.count(volume.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
-        card.show(ready ? Card.State.READY : !reachable ? Card.State.LOCKED
+        card.show(ready ? Card.State.READY : full ? Card.State.DONE : !reachable ? Card.State.LOCKED
                         : count > 0 ? Card.State.STARTED : Card.State.WAITING,
-                count > 0 ? "×" + count : "", molecule.formula(), molecule.name(),
+                count > 0 ? "×" + Format.count(BigNum.of(count)) : "", molecule.formula(), molecule.name(),
                 (molecule.hasBonus() ? bonus(molecule) + "\n" : "") + "Occupe " + Format.count(volume) + " d'espace"
                         + (gain > 0 ? "\nRapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) : ""),
                 detail, price, molecule == best ? "★ meilleur achat" : molecule == bestHere ? "meilleur du rayon" : "");
@@ -1851,7 +1853,7 @@ public final class BigBangPage extends VBox {
                 + (game.darkMatterSpaceBoost() > 1 ? " (matière noire ×" + ElementText.number(game.darkMatterSpaceBoost()) + ")" : "")
                 + (game.cometBoost() > 1 ? " (sillage de comète ×" + ElementText.number(game.cometBoost()) + ", encore "
                         + Format.wait(game.cometBoostLeft()) + ")" : "") + "  ·  "
-                + Format.count(game.occupiedSpace()) + " occupées par " + game.moleculesCreated()
+                + Format.count(game.occupiedSpace()) + " occupées par " + Format.count(BigNum.of(game.moleculesCreated()))
                 + (game.moleculesCreated() > 1 ? " molécules" : " molécule")
                 + (reserved.isZero() ? "" : "  ·  " + Format.count(reserved) + " réservées aux rassemblements")
                 + "  ·  " + Format.count(game.freeSpace()) + " libres");

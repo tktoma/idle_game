@@ -1,6 +1,7 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
@@ -142,8 +143,8 @@ public final class GalaxyPane extends VBox {
         int all = game.bodies().size();
         int have = game.bodiesFormed();
         // Une ligne par échelle : un rond plein quand tous ses astres sont formés.
-        StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire +"
-                + ElementText.percent(Game.GALAXY_GAIN));
+        StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire ×"
+                + ElementText.number(Game.GALAXY_FACTOR));
         for (Body.Tier tier : Body.Tier.values()) {
             int done = game.bodiesFormed(tier);
             int wanted = game.bodiesIn(tier);
@@ -184,12 +185,20 @@ public final class GalaxyPane extends VBox {
         boolean ready = game.canFormCosmos(scale);
         int all = game.cosmosConditions(scale);
         int met = game.cosmosConditionsMet(scale);
-        StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire +" + ElementText.percent(scale.gain()));
+        StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire ×" + ElementText.number(scale.factor()));
         lines.append('\n').append(open ? "● " : "○ ").append(scale.previous().label());
+        // Le délai de rassemblement (version 0.73) : l'échelle d'avant doit avoir eu le temps de se rassembler.
+        double settle = game.cosmosSettleRemaining(scale);
+        if (open && !formed) {
+            lines.append('\n').append(settle > 0 ? "○ " : "● ").append("Rassemblement : ")
+                    .append(settle > 0 ? "encore " + minutes(settle) : "fait");
+        }
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
-            int have = Math.min(game.gatheredInState(need.getKey()), need.getValue());
+            int have = (int) Math.min(game.gatheredInState(need.getKey()), need.getValue());
+            boolean milestone = game.isCosmosMilestoneMet(scale, need.getKey());
             lines.append('\n').append(formed || have >= need.getValue() ? "● " : "○ ").append(MatterText.signed(need.getKey())).append(' ')
-                    .append(Format.whole(formed ? need.getValue() : have)).append(" / ").append(Format.whole(need.getValue()));
+                    .append(Format.count(BigNum.of(formed ? need.getValue() : have))).append(" / ").append(Format.count(BigNum.of(need.getValue())))
+                    .append(milestone && !formed ? "  · jalon +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " %" : "");
         }
         // La variété : un nombre de sortes rassemblées dans chaque état, sur une seule ligne.
         if (!scale.sorts().isEmpty()) {
@@ -205,10 +214,20 @@ public final class GalaxyPane extends VBox {
         }
         cards.get(scale).show(formed ? Card.State.DONE : ready ? Card.State.READY : open ? Card.State.STARTED : Card.State.LOCKED,
                 formed ? "" : met + "/" + all, formed ? "formé" : ready ? "prêt" : "", scale.label(), lines.toString(),
-                story + "Un achat unique, qui ne consomme rien, et que ni l'explosion ni le Big Bang ne défont. Il double ce que "
-                        + "donnait l'échelle d'avant. Il demande de la quantité, état par état, et de la variété : un nombre de "
-                        + "sortes rassemblées dans chaque état, chacune comptant dès qu'elle est rassemblée.",
+                story + "Un achat unique, qui ne consomme rien, et que ni l'explosion ni le Big Bang ne défont. Il multiplie "
+                        + "tout par " + ElementText.number(scale.factor()) + ". Il demande de la quantité, état par état, et de la variété : un nombre de "
+                        + "sortes rassemblées dans chaque état, chacune comptant dès qu'elle est rassemblée. Chaque état réuni est un jalon : "
+                        + "toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " %, dix jalons en tout pour l'amas et l'univers. "
+                        + "Il faut aussi laisser à " + scale.previous().phrase() + " " + minutes(Game.COSMOS_SETTLE_SECONDS)
+                        + " pour se rassembler, à compter de sa formation.",
                 formed ? "" : ready ? "Former " + scale.phrase() : !open ? "Après " + scale.previous().phrase()
+                        : met == all && settle > 0 ? "Encore " + minutes(settle) + " de rassemblement"
                         : "Il manque " + (all - met) + (all - met > 1 ? " conditions" : " condition"), "");
+    }
+
+    /** Un délai de rassemblement, en minutes entières, arrondi au-dessus : « 35 min », « 1 h 05 ». */
+    private static String minutes(double seconds) {
+        long total = (long) Math.ceil(seconds / 60);
+        return total < 60 ? total + " min" : total / 60 + " h " + String.format("%02d", total % 60);
     }
 }

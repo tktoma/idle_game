@@ -79,7 +79,7 @@ public final class Readiness {
         bang = false;
         if (game.isDarkMatterUnlocked()) {
             for (DarkUpgrade upgrade : game.darkUpgrades()) {
-                if (upgrade.branch().inTree() && game.canBuyDark(upgrade.id())) tree = true;
+                if (upgrade.inTree() && game.canBuyDark(upgrade.id())) tree = true;
             }
             if (game.activeChallenge() == null) {
                 for (Challenge challenge : game.challenges()) {

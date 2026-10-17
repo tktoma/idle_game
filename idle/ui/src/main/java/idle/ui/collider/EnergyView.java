@@ -21,6 +21,10 @@ import javafx.scene.text.TextAlignment;
  * le quark obtenu s'envole, de la couleur de sa saveur, sa lettre dessus. Un clic au moment du
  * croisement capte {@link Game#CROSSING_SECONDS} secondes de production et assure une collision
  * au butin doublé.
+ *
+ * <p>Version 0.78 : lancées assez vite (« Faisceaux rapides » au niveau 3), les boules prennent
+ * feu, une flamme qui traîne derrière elles et grandit avec la vitesse ; et à chaque croisement,
+ * de l'électricité crépite entre elles.
  */
 public final class EnergyView extends Canvas {
 
@@ -30,6 +34,17 @@ public final class EnergyView extends Canvas {
     private static final Color BEAM_A = Color.web("#6fe3ff");
     private static final Color BEAM_B = Color.web("#ff7ad9");
     private static final Color GOLD = Color.web("#ffd27f");
+    private static final Color FLAME_CORE = Color.web("#fff3b0");
+    private static final Color FLAME_MID = Color.web("#ffa53a");
+    private static final Color FLAME_EDGE = Color.web("#ff4a1c");
+
+    /**
+     * Vitesse des faisceaux (par rapport à celle de départ) à partir de laquelle les boules
+     * prennent feu, et celle où la flamme est à son plein : ×1,5 et ×2, soit les niveaux 3 et 5
+     * de « Faisceaux rapides ».
+     */
+    static final double FLAME_FROM = 1.5;
+    static final double FLAME_FULL = 2;
     private static final int STEPS = 72;
     private static final double[] XS = new double[STEPS + 1];
     private static final double[] YS = new double[STEPS + 1];
@@ -91,6 +106,16 @@ public final class EnergyView extends Canvas {
             }
             onCatch.accept(gain);
         });
+    }
+
+    /**
+     * La force de la flamme des boules, de 0 (pas de flamme) à 1 : elle naît quand les faisceaux
+     * tournent {@link #FLAME_FROM} fois plus vite qu'au départ et grandit jusqu'à {@link #FLAME_FULL}.
+     */
+    public double flameHeat() {
+        double speed = Game.RESONANCE_PERIOD / game.colliderPeriod();
+        if (speed < FLAME_FROM - 1e-9) return 0;
+        return Math.min(1, 0.2 + 0.8 * (speed - FLAME_FROM) / (FLAME_FULL - FLAME_FROM));
     }
 
     /** L'énergie du dernier croisement capté : pour les vérifications. */
@@ -251,6 +276,9 @@ public final class EnergyView extends Canvas {
         double angle = 2 * Math.PI * phase;
         beam(g, angle, 1, BEAM_A);
         beam(g, -angle, -1, BEAM_B);
+        // Quand les boules se croisent dans le détecteur, de l'électricité saute entre elles.
+        arcs = 0;
+        if (crossing && sparksOn) lightning(g, angle);
         if (catchable) glow(g, px(Math.PI), py(Math.PI), 46, GOLD, 0.5);
         // Les ondes des collisions.
         for (Wave wave : waves) {
@@ -339,9 +367,105 @@ public final class EnergyView extends Canvas {
             g.fillOval(px(a) - size / 2, py(a) - size / 2, size, size);
         }
         g.setGlobalAlpha(1);
+        double heat = flameHeat();
+        if (heat > 0) flame(g, angle, direction, heat);
         glow(g, px(angle), py(angle), 12, color, 0.8);
         g.setFill(Color.WHITE);
         g.fillOval(px(angle) - 3.5, py(angle) - 3.5, 7, 7);
+    }
+
+    /** Nombre d'arcs électriques dessinés à la dernière image : pour les vérifications. */
+    private int arcs;
+
+    public int arcs() {
+        return arcs;
+    }
+
+    /**
+     * L'électricité du croisement : des arcs en zigzag entre les deux boules et autour d'elles,
+     * blancs bordés de bleu, redessinés trente fois par seconde pour crépiter. Plus nombreux et
+     * plus longs quand les boules sont en feu.
+     */
+    private void lightning(GraphicsContext g, double angle) {
+        double heat = flameHeat();
+        double ax = px(angle), ay = py(angle), bx = px(-angle), by = py(-angle);
+        double mx = (ax + bx) / 2, my = (ay + by) / 2;
+        long tick = (long) Math.floor(time * 30);
+        int count = 3 + (int) Math.round(3 * heat);
+        arcs = 0;
+        for (int k = 0; k < count; k++) {
+            double fromX, fromY, toX, toY;
+            if (k == 0) {
+                // L'arc entre les deux boules.
+                fromX = ax; fromY = ay; toX = bx; toY = by;
+            } else {
+                // Les autres jaillissent du milieu, vers le haut et les côtés.
+                double direction = -Math.PI * (0.05 + 0.9 * random(tick * 31 + k * 7));
+                double reach = (16 + 22 * random(tick * 31 + k * 7 + 1)) * (1 + 0.6 * heat);
+                fromX = mx; fromY = my;
+                toX = mx + Math.cos(direction) * reach;
+                toY = my + Math.sin(direction) * reach;
+            }
+            double length = Math.hypot(toX - fromX, toY - fromY);
+            if (length < 2) {
+                // Les boules l'une sur l'autre : un petit arc qui les enjambe.
+                toX = fromX + 10;
+                toY = fromY - 6;
+                length = Math.hypot(10, 6);
+            }
+            double nx = -(toY - fromY) / length, ny = (toX - fromX) / length;
+            int points = 8;
+            double[] xs = new double[points + 1], ys = new double[points + 1];
+            double jag = (3 + 4 * heat) * Math.min(1, length / 20);
+            for (int p = 0; p <= points; p++) {
+                double t = p / (double) points;
+                double offset = p == 0 || p == points ? 0 : (random(tick * 131 + k * 17 + p) - 0.5) * 2 * jag;
+                xs[p] = fromX + (toX - fromX) * t + nx * offset;
+                ys[p] = fromY + (toY - fromY) * t + ny * offset;
+            }
+            g.setStroke(LIGHT);
+            g.setLineWidth(4);
+            g.setGlobalAlpha(0.3);
+            g.strokePolyline(xs, ys, points + 1);
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(1.3);
+            g.setGlobalAlpha(0.95);
+            g.strokePolyline(xs, ys, points + 1);
+            arcs++;
+        }
+        g.setGlobalAlpha(1);
+        glow(g, mx, my, 18 + 10 * heat, LIGHT, 0.55);
+    }
+
+    /** Un nombre entre 0 et 1, toujours le même pour une même graine. */
+    private static double random(long seed) {
+        double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+        return value - Math.floor(value);
+    }
+
+    /**
+     * La flamme d'une boule lancée vite : des langues de feu qui traînent derrière elle, du jaune
+     * pâle contre la boule au rouge au bout, qui vacillent et montent un peu ; plus longues et plus
+     * vives avec la vitesse ({@code heat}, de 0 à 1).
+     */
+    private void flame(GraphicsContext g, double angle, int direction, double heat) {
+        double bx = px(angle), by = py(angle);
+        glow(g, bx, by, 18 + 10 * heat, FLAME_MID, 0.45 + 0.35 * heat);
+        int tongues = 11;
+        for (int k = tongues; k >= 1; k--) {
+            double t = k / (double) tongues;
+            double a = angle - direction * k * (0.018 + 0.026 * heat);
+            double x = px(a), y = py(a);
+            // Un vacillement de part et d'autre de l'anneau, et la flamme qui monte.
+            double nx = x - cx(), ny = y - cy();
+            double length = Math.max(1e-9, Math.hypot(nx, ny));
+            double flicker = 0.55 * Math.sin(time * 23 + k * 1.7) + 0.45 * Math.sin(time * 37 + k * 0.9);
+            x += nx / length * flicker * (1.5 + 2.5 * heat) * t;
+            y += ny / length * flicker * (1.5 + 2.5 * heat) * t - k * 1.1 * heat;
+            Color color = t < 0.3 ? FLAME_CORE : t < 0.65 ? FLAME_MID : FLAME_EDGE;
+            double size = (15 - 9 * t) * (0.6 + 0.6 * heat) * (0.85 + 0.15 * Math.sin(time * 31 + k * 2.3));
+            glow(g, x, y, size, color, Math.min(1, (0.5 + 0.6 * heat) * (1 - 0.7 * t)));
+        }
     }
 
     private static void glow(GraphicsContext g, double x, double y, double size, Color color, double strength) {

@@ -432,7 +432,10 @@ final class DebugBar extends VBox {
     /** Porte à leur maximum toutes les améliorations de matière noire qui en ont un. */
     private void fillTree() {
         if (game.state().explosions() == 0) game.state().setExplosions(1);
+        java.util.Set<String> forks = new java.util.HashSet<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
+            // Une bifurcation : la première voie seulement, comme un joueur qui en choisit une.
+            if (upgrade.isFork() && !forks.add(upgrade.fork())) continue;
             if (upgrade.hasLimit()) game.state().setDarkLevel(upgrade.id(), upgrade.maxLevel());
         }
     }
@@ -518,7 +521,7 @@ final class DebugBar extends VBox {
                 state.addSubstance(molecule.getKey());
             }
             for (java.util.Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
-                int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                 if (missing <= 0) continue;
                 // De la matière dans un état : des molécules de plus de la première sorte du catalogue qui a cet état.
                 for (Molecule molecule : game.molecules()) {
@@ -560,7 +563,7 @@ final class DebugBar extends VBox {
         GameState state = game.state();
         if (state.explosions() == 0) state.setExplosions(1);
         state.setActiveChallenge(null);
-        state.setParticles(state.particles().max(Game.BIG_BANG_PARTICLES));
+        state.setParticles(state.particles().max(game.bigBangParticles()));
         state.setAtoms(state.atoms().max(Game.BIG_BANG_ATOMS));
         state.setTotalAtoms(state.totalAtoms().max(state.atoms()));
         state.setDarkMatter(state.darkMatter().max(Game.BIG_BANG_DARK_MATTER));

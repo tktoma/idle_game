@@ -1,0 +1,527 @@
+﻿type,id,nom,dependants_directs,dependants_indirects,profondeur_chaine
+MOLECULE,H2O,Eau,27,50,1
+MOLECULE,SiO2,Quartz,17,45,1
+MOLECULE,CO2,Dioxyde de carbone,12,41,1
+MOLECULE,Fe2O3,Hématite,12,38,1
+MOLECULE,CO,Monoxyde de carbone,15,36,1
+MOLECULE,CaCO3,Calcite,5,36,1
+MOLECULE,H2CO3,Acide carbonique,2,34,1
+ASSEMBLAGE,sparkling_water,Eau pétillante,1,32,2
+MOLECULE,Fe3O4,Magnétite,9,31,1
+ASTRE,icy_rubble,Amas glacé,4,31,3
+MOLECULE,Mg2SiO4,Olivine,8,30,1
+MOLECULE,NiO,Oxyde de nickel,6,30,1
+MOLECULE,Al2Si2O5(OH)4,Kaolinite,3,30,1
+MOLECULE,CH4,Méthane,10,29,1
+MOLECULE,HCN,Cyanure d'hydrogène,6,29,1
+MOLECULE,MgSiO3,Enstatite,6,29,1
+MOLECULE,ZrSiO4,Zircon,2,29,1
+MOLECULE,H2,Dihydrogène,22,28,1
+MOLECULE,N2,Diazote,9,28,1
+MOLECULE,NaCl,Sel de table,6,28,1
+MOLECULE,FeS2,Pyrite,4,28,1
+MOLECULE,NH3,Ammoniac,8,27,1
+MOLECULE,TiO2,Rutile,8,27,1
+MOLECULE,Ca5(PO4)3F,Apatite,1,27,1
+MOLECULE,Ca5(PO4)3OH,Hydroxyapatite,1,27,1
+MOLECULE,Mg3Si4O10(OH)2,Talc,1,27,1
+ASSEMBLAGE,sandy_rock,Roche sableuse,1,27,2
+ASTRE,rocky_rubble,Amas rocheux,2,26,3
+ASSEMBLAGE,clay_rock,Roche argileuse,1,26,2
+ASSEMBLAGE,phosphate_rock,Roche phosphatée,1,26,2
+MOLECULE,MgSO4,Sulfate de magnésium,3,25,1
+MOLECULE,CH3OH,Méthanol,3,25,1
+ASTRE,dusty_comet,Comète poussiéreuse,2,25,4
+MOLECULE,O2,Dioxygène,5,24,1
+MOLECULE,H2S,Sulfure d'hydrogène,3,24,1
+MOLECULE,KCl,Chlorure de potassium,3,24,1
+MOLECULE,MgCl2,Chlorure de magnésium,3,24,1
+MOLECULE,NaHCO3,Bicarbonate de soude,2,24,1
+ASSEMBLAGE,meteorite,Météorite,1,24,2
+ASSEMBLAGE,peridot_gems,Péridots,1,24,2
+MOLECULE,Cr2O3,Oxyde de chrome,5,23,1
+ASTRE,stony_asteroid,Astéroïde pierreux,4,23,5
+MOLECULE,H2SO4,Acide sulfurique,2,22,1
+MOLECULE,H2SO3,Acide sulfureux,2,22,1
+MOLECULE,C8H18,Octane,2,22,1
+MOLECULE,C7H8,Toluène,2,22,1
+MOLECULE,C8H10,Xylène,2,22,1
+MOLECULE,NaF,Fluorure de sodium,1,22,1
+MOLECULE,Na2CO3,Carbonate de sodium,1,22,1
+MOLECULE,CaSO4,Anhydrite,1,22,1
+ASSEMBLAGE,spring_water,Eau de source,1,22,2
+ASSEMBLAGE,comet_ice,Glace de comète,1,22,2
+MOLECULE,CaCl2,Chlorure de calcium,2,21,1
+MOLECULE,FeO(OH),Goethite,2,21,1
+MOLECULE,C10H8,Naphtalène,2,21,1
+MOLECULE,C14H10,Anthracène,1,21,1
+MOLECULE,C4H4S,Thiophène,1,21,1
+ASSEMBLAGE,salt_rock,Roche saline,1,21,2
+ASSEMBLAGE,soda_lake,Lac de soude,1,21,2
+ASTRE,icy_comet,Comète glacée,1,21,4
+ASTRE,icy_asteroid,Astéroïde glacé,4,20,5
+MOLECULE,O3,Ozone,1,20,1
+MOLECULE,NO,Monoxyde d'azote,1,20,1
+MOLECULE,NO2,Dioxyde d'azote,1,20,1
+MOLECULE,H3BO3,Acide borique,1,20,1
+MOLECULE,LiCl,Chlorure de lithium,1,20,1
+MOLECULE,FeCO3,Sidérite,1,20,1
+MOLECULE,C5H12,Pentane,1,20,1
+MOLECULE,C6H14,Hexane,1,20,1
+MOLECULE,C6H12,Cyclohexane,1,20,1
+MOLECULE,C6H6,Benzène,1,20,1
+ASSEMBLAGE,bitumen,Bitume,1,20,2
+MOLECULE,FeTiO3,Ilménite,4,19,1
+MOLECULE,C2H6,Éthane,2,19,1
+MOLECULE,C2H2,Acétylène,2,19,1
+ASTRE,carbon_rubble,Amas carboné,2,19,3
+MOLECULE,HNO3,Acide nitrique,1,19,1
+MOLECULE,HgS,Cinabre,1,19,1
+MOLECULE,Sb2S3,Stibine,1,19,1
+MOLECULE,Bi2S3,Bismuthinite,1,19,1
+MOLECULE,MoS2,Molybdénite,1,19,1
+MOLECULE,CoAsS,Cobaltite,1,19,1
+MOLECULE,NiAs,Nickéline,1,19,1
+MOLECULE,CaMg(CO3)2,Dolomite,1,19,1
+MOLECULE,MgCO3,Magnésite,1,19,1
+MOLECULE,SnO2,Cassitérite,1,19,1
+MOLECULE,CaWO4,Scheelite,1,19,1
+MOLECULE,FeWO4,Ferbérite,1,19,1
+MOLECULE,FeTa2O6,Tantalite,1,19,1
+MOLECULE,FeNb2O6,Colombite,1,19,1
+ASSEMBLAGE,iron_ore,Minerai de fer,1,19,2
+ASSEMBLAGE,thermal_water,Eau thermale,1,19,2
+ASSEMBLAGE,salt_lake,Lac salé,1,19,2
+ASSEMBLAGE,upper_atmosphere,Haute atmosphère,1,19,2
+ASSEMBLAGE,petroleum,Pétrole,1,19,2
+ASTRE,icy_moon,Lune glacée,4,18,6
+MOLECULE,CaAl2Si2O8,Anorthite,3,18,1
+MOLECULE,C3H8,Propane,1,18,1
+MOLECULE,C4H10,Butane,1,18,1
+ASSEMBLAGE,limestone_rock,Roche calcaire,1,18,2
+ASSEMBLAGE,tin_tungsten_ore,Minerai d'étain et de tungstène,1,18,2
+ASSEMBLAGE,rare_metal_ore,Minerai de métaux rares,1,18,2
+ASSEMBLAGE,volcanic_rain,Pluie volcanique,1,18,2
+ASTRE,metal_rubble,Amas ferreux,1,18,3
+ASTRE,dark_comet,Comète sombre,1,18,4
+ASTRE,metal_asteroid,Astéroïde métallique,4,17,5
+MOLECULE,SO2,Dioxyde de soufre,3,17,1
+ASSEMBLAGE,icy_moon_atmosphere,Atmosphère d'une lune glacée,1,17,2
+ASSEMBLAGE,natural_gas,Gaz naturel,1,17,2
+ASTRE,carbon_asteroid,Astéroïde carboné,1,17,5
+MOLECULE,MnO2,Pyrolusite,2,16,1
+ASTRE,hazy_moon,Lune brumeuse,2,16,6
+MOLECULE,Al2O3,Corindon,3,15,1
+MOLECULE,HCl,Acide chlorhydrique,2,15,1
+MOLECULE,FeCr2O4,Chromite,2,15,1
+MOLECULE,MgAl2O4,Spinelle,2,15,1
+MOLECULE,Mg3Al2Si3O12,Grenat pyrope,2,15,1
+MOLECULE,HF,Acide fluorhydrique,1,14,1
+MOLECULE,S8,Soufre,1,13,1
+ASSEMBLAGE,acid_lake,Lac acide,1,13,2
+ASSEMBLAGE,volcanic_gas,Gaz volcanique,1,13,2
+MOLECULE,CH2O,Formaldéhyde,2,12,1
+ASSEMBLAGE,volcanic_rock,Roche volcanique,1,12,2
+ASSEMBLAGE,titanium_chromium_ore,Minerai de titane et de chrome,1,12,2
+ASSEMBLAGE,garnet_gems,Grenats et spinelles,1,12,2
+ASTRE,volcanic_moon,Lune volcanique,1,12,6
+ASTRE,lava_planet,Planète de lave,2,11,7
+MOLECULE,Cu2CO3(OH)2,Malachite,1,11,1
+MOLECULE,Cu3(CO3)2(OH)2,Azurite,1,11,1
+MOLECULE,CuO,Ténorite,1,11,1
+MOLECULE,Be3Al2Si6O18,Béryl,1,11,1
+MOLECULE,V2O5,Pentoxyde de vanadium,1,11,1
+MOLECULE,MgO,Périclase,2,10,1
+MOLECULE,PH3,Phosphine,1,10,1
+MOLECULE,AlO(OH),Diaspore,1,10,1
+MOLECULE,PbS,Galène,1,10,1
+MOLECULE,ZnS,Blende,1,10,1
+MOLECULE,Ag2S,Argentite,1,10,1
+MOLECULE,ZnCO3,Smithsonite,1,10,1
+MOLECULE,PbCO3,Cérusite,1,10,1
+MOLECULE,CaF2,Fluorine,1,10,1
+MOLECULE,YPO4,Xénotime,1,10,1
+MOLECULE,Al2SiO4F2,Topaze,1,10,1
+MOLECULE,HfO2,Dioxyde d'hafnium,1,10,1
+MOLECULE,CePO4,Monazite,1,10,1
+MOLECULE,CeCO3F,Bastnäsite,1,10,1
+ASSEMBLAGE,beryl_gems,Émeraudes et aigues-marines,1,10,2
+ASSEMBLAGE,copper_gems,Pierres de cuivre,1,10,2
+ASSEMBLAGE,interstellar_cloud,Nuage interstellaire,1,10,2
+ASTRE,ice_giant,Géante de glace,2,9,7
+ASSEMBLAGE,mantle_rock,Roche des profondeurs,1,9,2
+ASSEMBLAGE,lunar_rock,Roche lunaire,1,9,2
+ASSEMBLAGE,aluminium_ore,Minerai d'aluminium,1,9,2
+ASSEMBLAGE,lead_zinc_ore,Minerai de plomb; de zinc et d'argent,1,9,2
+ASSEMBLAGE,rare_earth_ore,Minerai de terres rares,1,9,2
+ASSEMBLAGE,corundum_gems,Rubis et saphirs,1,9,2
+ASSEMBLAGE,topaz_gems,Topazes et zircons,1,9,2
+ASSEMBLAGE,gas_giant,Atmosphère d'une géante gazeuse,1,9,2
+ASTRE,gas_giant_planet,Géante gazeuse,4,8,7
+MOLECULE,SiC,Carbure de silicium,3,8,1
+ASTRE,rocky_moon,Lune rocheuse,2,8,6
+MOLECULE,CuS,Covelline,1,8,1
+MOLECULE,Cu2S,Chalcocite,1,8,1
+MOLECULE,CuFeS2,Chalcopyrite,1,8,1
+MOLECULE,Cu2O,Cuprite,1,8,1
+MOLECULE,KAlSi3O8,Orthose,1,8,1
+MOLECULE,NaAlSi3O8,Albite,1,8,1
+ASSEMBLAGE,blue_giant_envelope,Enveloppe de géante bleue,1,8,2
+ASTRE,ice_planet,Planète glacée,1,8,7
+ASTRE,blue_giant,Géante bleue,3,7,8
+MOLECULE,CaO,Chaux vive,1,7,1
+ASSEMBLAGE,granitic_rock,Roche granitique,1,7,2
+ASSEMBLAGE,copper_ore,Minerai de cuivre,1,7,2
+ASSEMBLAGE,foreign_atmosphere,Atmosphère d'un autre monde,1,7,2
+ASTRE,rocky_planet,Planète rocheuse,2,6,7
+ASSEMBLAGE,iron_crust,Croûte de fer et de nickel,1,6,2
+ASSEMBLAGE,supernova_remnant,Reste de supernova,1,6,2
+ASTRE,neutron_star,Étoile à neutrons,3,5,9
+MOLECULE,SiH4,Silane,1,5,1
+ASSEMBLAGE,quartz_gems,Quartz colorés,1,5,2
+ASSEMBLAGE,salt_water,Eau salée,1,5,2
+ASSEMBLAGE,air,Air,1,5,2
+ASSEMBLAGE,red_giant_envelope,Enveloppe de géante rouge,1,5,2
+ASTRE,red_giant,Géante rouge,2,4,8
+MOLECULE,Y2O3,Oxyde d'yttrium,1,4,1
+MOLECULE,Au2O3,Oxyde d'or,1,4,1
+MOLECULE,La2O3,Oxyde de lanthane,1,4,1
+MOLECULE,CeO2,Oxyde de cérium,1,4,1
+MOLECULE,Nd2O3,Oxyde de néodyme,1,4,1
+MOLECULE,Gd2O3,Oxyde de gadolinium,1,4,1
+ASSEMBLAGE,solar_plasma,Plasma solaire,1,4,2
+ASTRE,ocean_planet,Planète océan,1,4,7
+ASTRE,yellow_sun,Soleil,2,3,8
+ASSEMBLAGE,carbon_core,Cœur de carbone et d'oxygène,1,3,2
+ASSEMBLAGE,planetary_nebula,Nébuleuse planétaire,1,3,2
+ASSEMBLAGE,accretion_disc,Disque d'accrétion,1,3,2
+ASSEMBLAGE,heavy_ashes,Cendres d'éléments lourds,1,3,2
+ASTRE,white_dwarf,Naine blanche,2,2,9
+ASTRE,black_hole,Trou noir,2,2,10
+MOLECULE,LiH,Hydrure de lithium,1,2,1
+MOLECULE,C2H5OH,Éthanol,1,2,1
+ASSEMBLAGE,brown_dwarf_atmosphere,Atmosphère de naine brune,1,1,2
+ASSEMBLAGE,red_dwarf_envelope,Enveloppe de naine rouge,1,1,2
+ASSEMBLAGE,galactic_core_gas,Gaz du cœur de la galaxie,1,1,2
+ASSEMBLAGE,bulge_dust,Poussière du bulbe,1,1,2
+ASSEMBLAGE,stellar_wreckage,Débris d'étoiles,1,1,2
+MOLECULE,F2,Difluor,0,0,1
+MOLECULE,Cl2,Dichlore,0,0,1
+MOLECULE,Br2,Dibrome,0,0,1
+MOLECULE,I2,Diiode,0,0,1
+MOLECULE,P4,Phosphore blanc,0,0,1
+MOLECULE,H2O2,Eau oxygénée,0,0,1
+MOLECULE,N2O,Protoxyde d'azote,0,0,1
+MOLECULE,N2O4,Tétroxyde de diazote,0,0,1
+MOLECULE,SO3,Trioxyde de soufre,0,0,1
+MOLECULE,N2H4,Hydrazine,0,0,1
+MOLECULE,AsH3,Arsine,0,0,1
+MOLECULE,B2H6,Diborane,0,0,1
+MOLECULE,GeH4,Germane,0,0,1
+MOLECULE,H2Se,Séléniure d'hydrogène,0,0,1
+MOLECULE,CS2,Disulfure de carbone,0,0,1
+MOLECULE,ClO2,Dioxyde de chlore,0,0,1
+MOLECULE,ICl,Monochlorure d'iode,0,0,1
+MOLECULE,NF3,Trifluorure d'azote,0,0,1
+MOLECULE,BF3,Trifluorure de bore,0,0,1
+MOLECULE,SiF4,Tétrafluorure de silicium,0,0,1
+MOLECULE,SF6,Hexafluorure de soufre,0,0,1
+MOLECULE,PCl3,Trichlorure de phosphore,0,0,1
+MOLECULE,PCl5,Pentachlorure de phosphore,0,0,1
+MOLECULE,P4O10,Pentoxyde de phosphore,0,0,1
+MOLECULE,HBr,Acide bromhydrique,0,0,1
+MOLECULE,HI,Acide iodhydrique,0,0,1
+MOLECULE,HNO2,Acide nitreux,0,0,1
+MOLECULE,H3PO4,Acide phosphorique,0,0,1
+MOLECULE,HClO,Acide hypochloreux,0,0,1
+MOLECULE,HClO4,Acide perchlorique,0,0,1
+MOLECULE,HCOOH,Acide formique,0,0,1
+MOLECULE,CH3COOH,Acide acétique,0,0,1
+MOLECULE,C2H2O4,Acide oxalique,0,0,1
+MOLECULE,C3H6O3,Acide lactique,0,0,1
+MOLECULE,C6H8O7,Acide citrique,0,0,1
+MOLECULE,C7H6O2,Acide benzoïque,0,0,1
+MOLECULE,C7H6O3,Acide salicylique,0,0,1
+MOLECULE,NaOH,Soude,0,0,1
+MOLECULE,KOH,Potasse,0,0,1
+MOLECULE,LiOH,Lithine,0,0,1
+MOLECULE,Ca(OH)2,Chaux éteinte,0,0,1
+MOLECULE,Mg(OH)2,Hydroxyde de magnésium,0,0,1
+MOLECULE,Ba(OH)2,Hydroxyde de baryum,0,0,1
+MOLECULE,Al(OH)3,Hydroxyde d'aluminium,0,0,1
+MOLECULE,RbCl,Chlorure de rubidium,0,0,1
+MOLECULE,CsCl,Chlorure de césium,0,0,1
+MOLECULE,SrCl2,Chlorure de strontium,0,0,1
+MOLECULE,BaCl2,Chlorure de baryum,0,0,1
+MOLECULE,NH4Cl,Chlorure d'ammonium,0,0,1
+MOLECULE,LiF,Fluorure de lithium,0,0,1
+MOLECULE,NaBr,Bromure de sodium,0,0,1
+MOLECULE,KBr,Bromure de potassium,0,0,1
+MOLECULE,NaI,Iodure de sodium,0,0,1
+MOLECULE,KI,Iodure de potassium,0,0,1
+MOLECULE,CsI,Iodure de césium,0,0,1
+MOLECULE,AgCl,Chlorure d'argent,0,0,1
+MOLECULE,AgBr,Bromure d'argent,0,0,1
+MOLECULE,AgI,Iodure d'argent,0,0,1
+MOLECULE,PbI2,Iodure de plomb,0,0,1
+MOLECULE,K2CO3,Carbonate de potassium,0,0,1
+MOLECULE,Li2CO3,Carbonate de lithium,0,0,1
+MOLECULE,KNO3,Salpêtre,0,0,1
+MOLECULE,NaNO3,Nitrate de sodium,0,0,1
+MOLECULE,NH4NO3,Nitrate d'ammonium,0,0,1
+MOLECULE,AgNO3,Nitrate d'argent,0,0,1
+MOLECULE,Na2SO4,Sulfate de sodium,0,0,1
+MOLECULE,CuSO4,Sulfate de cuivre,0,0,1
+MOLECULE,ZnSO4,Sulfate de zinc,0,0,1
+MOLECULE,FeSO4,Sulfate de fer,0,0,1
+MOLECULE,NiSO4,Sulfate de nickel,0,0,1
+MOLECULE,(NH4)2SO4,Sulfate d'ammonium,0,0,1
+MOLECULE,Tl2SO4,Sulfate de thallium,0,0,1
+MOLECULE,NaClO,Eau de Javel,0,0,1
+MOLECULE,KClO3,Chlorate de potassium,0,0,1
+MOLECULE,KMnO4,Permanganate de potassium,0,0,1
+MOLECULE,K2Cr2O7,Dichromate de potassium,0,0,1
+MOLECULE,KCN,Cyanure de potassium,0,0,1
+MOLECULE,Na2S2O3,Thiosulfate de sodium,0,0,1
+MOLECULE,Na2S,Sulfure de sodium,0,0,1
+MOLECULE,Na2O2,Peroxyde de sodium,0,0,1
+MOLECULE,Na3PO4,Phosphate de sodium,0,0,1
+MOLECULE,Ca3(PO4)2,Phosphate de calcium,0,0,1
+MOLECULE,CH3COONa,Acétate de sodium,0,0,1
+MOLECULE,FeCl3,Chlorure de fer,0,0,1
+MOLECULE,CuCl2,Chlorure de cuivre,0,0,1
+MOLECULE,AlCl3,Chlorure d'aluminium,0,0,1
+MOLECULE,CoCl2,Chlorure de cobalt,0,0,1
+MOLECULE,ZnCl2,Chlorure de zinc,0,0,1
+MOLECULE,SnCl2,Chlorure d'étain,0,0,1
+MOLECULE,SnF2,Fluorure d'étain,0,0,1
+MOLECULE,AuCl3,Chlorure d'or,0,0,1
+MOLECULE,PdCl2,Chlorure de palladium,0,0,1
+MOLECULE,RhCl3,Chlorure de rhodium,0,0,1
+MOLECULE,Hg2Cl2,Calomel,0,0,1
+MOLECULE,KAl(SO4)2,Alun,0,0,1
+MOLECULE,Na2B4O7,Borax,0,0,1
+MOLECULE,CdS,Greenockite,0,0,1
+MOLECULE,As2S3,Orpiment,0,0,1
+MOLECULE,As4S4,Réalgar,0,0,1
+MOLECULE,FeAsS,Arsénopyrite,0,0,1
+MOLECULE,Cu2ZnSnS4,Kestérite,0,0,1
+MOLECULE,MnCO3,Rhodochrosite,0,0,1
+MOLECULE,SrCO3,Strontianite,0,0,1
+MOLECULE,BaCO3,Withérite,0,0,1
+MOLECULE,BaSO4,Barytine,0,0,1
+MOLECULE,SrSO4,Célestine,0,0,1
+MOLECULE,PbSO4,Anglésite,0,0,1
+MOLECULE,Na3AlF6,Cryolithe,0,0,1
+MOLECULE,Pb5(PO4)3Cl,Pyromorphite,0,0,1
+MOLECULE,Pb5(VO4)3Cl,Vanadinite,0,0,1
+MOLECULE,BeO,Bromellite,0,0,1
+MOLECULE,ZnO,Zincite,0,0,1
+MOLECULE,PbO,Litharge,0,0,1
+MOLECULE,Pb3O4,Minium,0,0,1
+MOLECULE,Bi2O3,Bismite,0,0,1
+MOLECULE,CaTiO3,Pérovskite,0,0,1
+MOLECULE,PbMoO4,Wulfénite,0,0,1
+MOLECULE,PbCrO4,Crocoïte,0,0,1
+MOLECULE,CaSiO3,Wollastonite,0,0,1
+MOLECULE,CaC2,Carbure de calcium,0,0,1
+MOLECULE,WC,Carbure de tungstène,0,0,1
+MOLECULE,TiC,Carbure de titane,0,0,1
+MOLECULE,B4C,Carbure de bore,0,0,1
+MOLECULE,Ta4HfC5,Carbure de tantale et d'hafnium,0,0,1
+MOLECULE,BN,Nitrure de bore,0,0,1
+MOLECULE,TiN,Nitrure de titane,0,0,1
+MOLECULE,AlN,Nitrure d'aluminium,0,0,1
+MOLECULE,GaN,Nitrure de gallium,0,0,1
+MOLECULE,Si3N4,Nitrure de silicium,0,0,1
+MOLECULE,GaAs,Arséniure de gallium,0,0,1
+MOLECULE,GaP,Phosphure de gallium,0,0,1
+MOLECULE,InP,Phosphure d'indium,0,0,1
+MOLECULE,BP,Phosphure de bore,0,0,1
+MOLECULE,InSb,Antimoniure d'indium,0,0,1
+MOLECULE,CdTe,Tellurure de cadmium,0,0,1
+MOLECULE,CdSe,Séléniure de cadmium,0,0,1
+MOLECULE,ZnSe,Séléniure de zinc,0,0,1
+MOLECULE,PbSe,Séléniure de plomb,0,0,1
+MOLECULE,PbTe,Tellurure de plomb,0,0,1
+MOLECULE,Bi2Te3,Tellurure de bismuth,0,0,1
+MOLECULE,CuInSe2,Séléniure de cuivre et d'indium,0,0,1
+MOLECULE,CH3NH3PbI3,Pérovskite solaire,0,0,1
+MOLECULE,In2O3,Oxyde d'indium,0,0,1
+MOLECULE,Ga2O3,Oxyde de gallium,0,0,1
+MOLECULE,GeO2,Dioxyde de germanium,0,0,1
+MOLECULE,SeO2,Dioxyde de sélénium,0,0,1
+MOLECULE,TeO2,Dioxyde de tellure,0,0,1
+MOLECULE,BaTiO3,Titanate de baryum,0,0,1
+MOLECULE,SrTiO3,Titanate de strontium,0,0,1
+MOLECULE,PbTiO3,Titanate de plomb,0,0,1
+MOLECULE,LiNbO3,Niobate de lithium,0,0,1
+MOLECULE,LiTaO3,Tantalate de lithium,0,0,1
+MOLECULE,LiCoO2,Oxyde de lithium et de cobalt,0,0,1
+MOLECULE,LiFePO4,Phosphate de fer lithié,0,0,1
+MOLECULE,MgB2,Borure de magnésium,0,0,1
+MOLECULE,Mg2Si,Siliciure de magnésium,0,0,1
+MOLECULE,MgF2,Fluorure de magnésium,0,0,1
+MOLECULE,Nb3Sn,Niobium-étain,0,0,1
+MOLECULE,NbTi,Niobium-titane,0,0,1
+MOLECULE,NiTi,Nitinol,0,0,1
+MOLECULE,MoSi2,Disiliciure de molybdène,0,0,1
+MOLECULE,WO3,Trioxyde de tungstène,0,0,1
+MOLECULE,ZrO2,Zircone,0,0,1
+MOLECULE,Sc2O3,Oxyde de scandium,0,0,1
+MOLECULE,CoAl2O4,Bleu de cobalt,0,0,1
+MOLECULE,Fe7(CN)18,Bleu de Prusse,0,0,1
+MOLECULE,ZnFe2O4,Ferrite de zinc,0,0,1
+MOLECULE,BaFe12O19,Ferrite de baryum,0,0,1
+MOLECULE,Ca3SiO5,Ciment,0,0,1
+MOLECULE,Na2SiO3,Silicate de sodium,0,0,1
+MOLECULE,Y3Al5O12,Grenat YAG,0,0,1
+MOLECULE,YBa2Cu3O7,Supraconducteur YBCO,0,0,1
+MOLECULE,Ag2O,Oxyde d'argent,0,0,1
+MOLECULE,HgO,Oxyde de mercure,0,0,1
+MOLECULE,OsO4,Tétroxyde d'osmium,0,0,1
+MOLECULE,RuO2,Dioxyde de ruthénium,0,0,1
+MOLECULE,IrO2,Dioxyde d'iridium,0,0,1
+MOLECULE,Re2O7,Heptoxyde de rhénium,0,0,1
+MOLECULE,WF6,Hexafluorure de tungstène,0,0,1
+MOLECULE,PtF6,Hexafluorure de platine,0,0,1
+MOLECULE,TiCl4,Tétrachlorure de titane,0,0,1
+MOLECULE,Ni(CO)4,Nickel carbonyle,0,0,1
+MOLECULE,Fe(CO)5,Fer carbonyle,0,0,1
+MOLECULE,Fe(C5H5)2,Ferrocène,0,0,1
+MOLECULE,Pt(NH3)2Cl2,Cisplatine,0,0,1
+MOLECULE,Pb(C2H5)4,Plomb tétraéthyle,0,0,1
+MOLECULE,Hg(CH3)2,Diméthylmercure,0,0,1
+MOLECULE,C2H4,Éthylène,0,0,1
+MOLECULE,C3H6,Propylène,0,0,1
+MOLECULE,C4H6,Butadiène,0,0,1
+MOLECULE,C5H8,Isoprène,0,0,1
+MOLECULE,C8H8,Styrène,0,0,1
+MOLECULE,C10H16,Limonène,0,0,1
+MOLECULE,C3H7OH,Isopropanol,0,0,1
+MOLECULE,C2H6O2,Éthylène glycol,0,0,1
+MOLECULE,C3H8O3,Glycérol,0,0,1
+MOLECULE,C6H5OH,Phénol,0,0,1
+MOLECULE,CH3CHO,Acétaldéhyde,0,0,1
+MOLECULE,C3H6O,Acétone,0,0,1
+MOLECULE,C4H10O,Éther,0,0,1
+MOLECULE,CH3COOC2H5,Acétate d'éthyle,0,0,1
+MOLECULE,CH3NH2,Méthylamine,0,0,1
+MOLECULE,C6H5NH2,Aniline,0,0,1
+MOLECULE,C5H5N,Pyridine,0,0,1
+MOLECULE,CH3CN,Acétonitrile,0,0,1
+MOLECULE,C3H3N,Acrylonitrile,0,0,1
+MOLECULE,CO(NH2)2,Urée,0,0,1
+MOLECULE,C3H6N6,Mélamine,0,0,1
+MOLECULE,C3H4N2,Imidazole,0,0,1
+MOLECULE,C4H4O,Furane,0,0,1
+MOLECULE,C2H6OS,Diméthylsulfoxyde,0,0,1
+MOLECULE,CHCl3,Chloroforme,0,0,1
+MOLECULE,CH2Cl2,Dichlorométhane,0,0,1
+MOLECULE,CCl4,Tétrachlorure de carbone,0,0,1
+MOLECULE,CCl2F2,Fréon,0,0,1
+MOLECULE,C2F4,Tétrafluoroéthylène,0,0,1
+MOLECULE,C2H3Cl,Chlorure de vinyle,0,0,1
+MOLECULE,C6H11NO,Caprolactame,0,0,1
+MOLECULE,C5H8O2,Méthacrylate de méthyle,0,0,1
+MOLECULE,C15H16O2,Bisphénol A,0,0,1
+MOLECULE,C10H20O,Menthol,0,0,1
+MOLECULE,C10H16O,Camphre,0,0,1
+MOLECULE,C8H8O3,Vanilline,0,0,1
+MOLECULE,C16H10N2O2,Indigo,0,0,1
+MOLECULE,C7H5NO3S,Saccharine,0,0,1
+MOLECULE,C9H8O4,Aspirine,0,0,1
+MOLECULE,C8H9NO2,Paracétamol,0,0,1
+MOLECULE,C13H18O2,Ibuprofène,0,0,1
+MOLECULE,C8H10N4O2,Caféine,0,0,1
+MOLECULE,C7H8N4O2,Théobromine,0,0,1
+MOLECULE,C10H14N2,Nicotine,0,0,1
+MOLECULE,C7H5N3O6,Trinitrotoluène,0,0,1
+MOLECULE,C3H5N3O9,Nitroglycérine,0,0,1
+MOLECULE,C6H12O6,Glucose,0,0,1
+MOLECULE,C12H22O11,Saccharose,0,0,1
+MOLECULE,C5H10O5,Ribose,0,0,1
+MOLECULE,C5H10O4,Désoxyribose,0,0,1
+MOLECULE,C3H4O3,Acide pyruvique,0,0,1
+MOLECULE,C4H8O2,Acide butyrique,0,0,1
+MOLECULE,C8H16O2,Acide caprylique,0,0,1
+MOLECULE,C2H5NO2,Glycine,0,0,1
+MOLECULE,C3H7NO2,Alanine,0,0,1
+MOLECULE,C3H7NO3,Sérine,0,0,1
+MOLECULE,C3H7NO2S,Cystéine,0,0,1
+MOLECULE,C5H9NO2,Proline,0,0,1
+MOLECULE,C5H11NO2,Valine,0,0,1
+MOLECULE,C6H13NO2,Leucine,0,0,1
+MOLECULE,C5H11NO2S,Méthionine,0,0,1
+MOLECULE,C4H7NO4,Acide aspartique,0,0,1
+MOLECULE,C5H9NO4,Acide glutamique,0,0,1
+MOLECULE,C6H14N2O2,Lysine,0,0,1
+MOLECULE,C6H9N3O2,Histidine,0,0,1
+MOLECULE,C9H11NO2,Phénylalanine,0,0,1
+MOLECULE,C9H11NO3,Tyrosine,0,0,1
+MOLECULE,C11H12N2O2,Tryptophane,0,0,1
+MOLECULE,C5H5N5,Adénine,0,0,1
+MOLECULE,C5H5N5O,Guanine,0,0,1
+MOLECULE,C4H5N3O,Cytosine,0,0,1
+MOLECULE,C5H6N2O2,Thymine,0,0,1
+MOLECULE,C4H4N2O2,Uracile,0,0,1
+MOLECULE,C10H16N5O13P3,ATP,0,0,1
+MOLECULE,C6H8O6,Vitamine C,0,0,1
+MOLECULE,C6H5NO2,Vitamine B3,0,0,1
+MOLECULE,C8H11NO3,Vitamine B6,0,0,1
+MOLECULE,C10H16N2O3S,Biotine,0,0,1
+MOLECULE,C4H9N3O2,Créatine,0,0,1
+MOLECULE,C2H7NO3S,Taurine,0,0,1
+MOLECULE,C10H17N3O6S,Glutathion,0,0,1
+MOLECULE,C5H4N4O3,Acide urique,0,0,1
+MOLECULE,C5H9N3,Histamine,0,0,1
+MOLECULE,C8H11NO2,Dopamine,0,0,1
+MOLECULE,C9H13NO3,Adrénaline,0,0,1
+MOLECULE,C10H12N2O,Sérotonine,0,0,1
+MOLECULE,C13H16N2O2,Mélatonine,0,0,1
+MOLECULE,C16H18N2O4S,Pénicilline,0,0,1
+MOLECULE,C17H19NO3,Morphine,0,0,1
+MOLECULE,C20H24N2O2,Quinine,0,0,1
+MOLECULE,C14H12O3,Resvératrol,0,0,1
+MOLECULE,C21H20O6,Curcumine,0,0,1
+MOLECULE,LaF3,Fluorure de lanthane,0,0,1
+MOLECULE,LaB6,Hexaborure de lanthane,0,0,1
+MOLECULE,CeF3,Fluorure de cérium,0,0,1
+MOLECULE,Pr6O11,Oxyde de praséodyme,0,0,1
+MOLECULE,Nd2Fe14B,Aimant au néodyme,0,0,1
+MOLECULE,Pm2O3,Oxyde de prométhium,0,0,1
+MOLECULE,Sm2O3,Oxyde de samarium,0,0,1
+MOLECULE,SmCo5,Aimant samarium-cobalt,0,0,1
+MOLECULE,Eu2O3,Oxyde d'europium,0,0,1
+MOLECULE,EuS,Sulfure d'europium,0,0,1
+MOLECULE,Gd3Ga5O12,Grenat GGG,0,0,1
+MOLECULE,Tb4O7,Oxyde de terbium,0,0,1
+MOLECULE,Dy2O3,Oxyde de dysprosium,0,0,1
+MOLECULE,Ho2O3,Oxyde d'holmium,0,0,1
+MOLECULE,Er2O3,Oxyde d'erbium,0,0,1
+MOLECULE,Tm2O3,Oxyde de thulium,0,0,1
+MOLECULE,Yb2O3,Oxyde d'ytterbium,0,0,1
+MOLECULE,Lu2O3,Oxyde de lutécium,0,0,1
+MOLECULE,Lu2SiO5,Silicate de lutécium,0,0,1
+MOLECULE,NaTcO4,Pertechnétate de sodium,0,0,1
+MOLECULE,RaCl2,Chlorure de radium,0,0,1
+MOLECULE,PoO2,Dioxyde de polonium,0,0,1
+MOLECULE,PoH2,Hydrure de polonium,0,0,1
+MOLECULE,HAt,Astature d'hydrogène,0,0,1
+MOLECULE,RfCl4,Tétrachlorure de rutherfordium,0,0,1
+MOLECULE,DbCl5,Pentachlorure de dubnium,0,0,1
+MOLECULE,SgO2Cl2,Oxychlorure de seaborgium,0,0,1
+MOLECULE,BhO3Cl,Oxychlorure de bohrium,0,0,1
+MOLECULE,HsO4,Tétroxyde de hassium,0,0,1
+MOLECULE,NhOH,Hydroxyde de nihonium,0,0,1
+ASTRE,brown_dwarf,Naine brune,0,0,8
+ASTRE,red_dwarf,Naine rouge,0,0,8
+ASTRE,pulsar,Pulsar,0,0,10
+ASTRE,planetary_nebula,Nébuleuse planétaire,0,0,10
+ASTRE,magnetar,Magnétar,0,0,10
+ASTRE,emission_nebula,Nébuleuse d'émission,0,0,9
+ASTRE,quasar,Quasar,0,0,11
+ASTRE,supermassive_black_hole,Trou noir supermassif,0,0,11
+COSMOS,GALAXY,la galaxie,0,0,1
+COSMOS,CLUSTER,l'amas de galaxies,0,0,1
+COSMOS,UNIVERSE,l'univers,0,0,1

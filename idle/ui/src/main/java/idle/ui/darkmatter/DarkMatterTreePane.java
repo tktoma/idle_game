@@ -10,6 +10,7 @@ import idle.ui.NextReset;
 import idle.ui.common.Card;
 import idle.ui.common.DarkText;
 import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -45,6 +46,10 @@ import javafx.scene.text.TextAlignment;
  * traits : ils suivent la largeur de la fenêtre. Dans une fenêtre étroite, les branches ne
  * tiennent plus côte à côte : elles se rangent en deux étages de deux, reliés par le tronc.
  *
+ * <p>Les liaisons et les accords (versions 0.70 et 0.71) s'ouvrent avec les voies des bifurcations.
+ * Ils ont leur planche sous la case du Big Bang, un rang par rang de bifurcations, et chaque carte
+ * dit, voie par voie, ce qui l'ouvre : des traits à travers tout l'arbre se lisaient mal.
+ *
  * <p>Tout en bas, là où les branches se rejoignent, la case du Big Bang ({@link Game#bigBang()}).
  * Elle se paie avec les trois ressources à la fois et demande des succès et tous les défis : elle
  * liste ses cinq conditions, avec ce que le joueur en a. Comme elle efface tout, elle demande un
@@ -77,6 +82,8 @@ public final class DarkMatterTreePane extends Pane {
     private static final double MIN_CARD_HEIGHT = 84;
     /** Largeur maximale de la case du Big Bang : plus large qu'une case, elle porte cinq lignes. */
     private static final double BANG_WIDTH = 380;
+    /** L'écart entre les deux voies d'une bifurcation, en pixels. */
+    private static final double FORK_GAP = 10;
     /** Temps laissé pour le second clic sur le Big Bang, en secondes. */
     private static final double CONFIRM_SECONDS = 5;
     private static final String CARD_STYLE = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-background-radius: 6;"
@@ -92,13 +99,34 @@ public final class DarkMatterTreePane extends Pane {
         Cell parent;
         /** Trait vertical : depuis la case du dessus, ou le long du tronc pour une branche en éventail. */
         final Line link = new Line();
-        /** Petit trait horizontal du tronc à la case, pour une branche en éventail seulement. */
+        /** Petit trait horizontal du tronc à la case, pour une branche en éventail ; pour une voie de bifurcation, le trait qui rejoint la case d'après. */
         final Line elbow = new Line();
+        /** Une voie de bifurcation (version 0.69) : 0 à gauche, 1 à droite ; −1 pour une case ordinaire. */
+        final int side;
+        /** Sa place à la dernière mise en page : les traits des liaisons en partent. */
+        double x, y, width;
 
-        Cell(DarkUpgrade upgrade, int row) {
+        Cell(DarkUpgrade upgrade, int row, int side) {
             this.upgrade = upgrade;
             this.row = row;
+            this.side = side;
             this.card = new Card(COLORS.get(upgrade.branch()));
+        }
+    }
+
+    /**
+     * Une liaison ou un accord (versions 0.70 et 0.71) : sa carte, les voies qui l'ouvrent, et le rang
+     * de bifurcations auquel elle appartient (le premier ou le second de chaque branche).
+     */
+    private static final class LinkCell {
+        final DarkUpgrade upgrade;
+        final Card card = new Card(GameApp.DARK_MATTER_COLOR);
+        final List<Cell> options = new ArrayList<>();
+        /** 1 pour le premier rang de bifurcations, 2 pour le second. */
+        int level;
+
+        LinkCell(DarkUpgrade upgrade) {
+            this.upgrade = upgrade;
         }
     }
 
@@ -115,6 +143,14 @@ public final class DarkMatterTreePane extends Pane {
     private final Map<DarkUpgrade.Branch, Boolean> fans = new EnumMap<>(DarkUpgrade.Branch.class);
     private final List<DarkUpgrade.Branch> branches = new ArrayList<>();
     private final List<Cell> cells = new ArrayList<>();
+    private final List<LinkCell> links = new ArrayList<>();
+    /** Le titre de la planche des liaisons, et celui de chacun de ses rangs. */
+    private final Label linksTitle = new Label();
+    private final Map<Integer, Label> levelTitles = new java.util.TreeMap<>();
+    /** Pour chaque voie, les liaisons et accords qu'elle aide à ouvrir : son rappel, en mode détails. */
+    private final Map<String, List<String>> opens = new HashMap<>();
+    /** Les bifurcations suivies d'une case : les autres (la dernière d'une branche) n'ont pas de trait vers le bas. */
+    private final java.util.Set<String> forksWithChild = new java.util.HashSet<>();
     /** Hauteur commune des cases : celle de la plus haute, mesurée à chaque mise en page. */
     private double cardHeight = MIN_CARD_HEIGHT;
     /** La largeur de case et le mode (détails ou non) pour lesquels {@link #cardHeight} a été mesurée. */
@@ -136,16 +172,45 @@ public final class DarkMatterTreePane extends Pane {
         Map<String, Cell> byId = new HashMap<>();
         Map<DarkUpgrade.Branch, Integer> filled = new EnumMap<>(DarkUpgrade.Branch.class);
         Map<DarkUpgrade.Branch, Integer> independent = new EnumMap<>(DarkUpgrade.Branch.class);
+        Map<String, Cell> forks = new HashMap<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
+            if (upgrade.isLink()) {
+                links.add(new LinkCell(upgrade));
+                continue;
+            }
             DarkUpgrade.Branch branch = upgrade.branch();
             if (!branches.contains(branch)) branches.add(branch);
-            Cell cell = new Cell(upgrade, filled.merge(branch, 1, Integer::sum) - 1);
-            cell.parent = upgrade.requires() == null ? null : byId.get(upgrade.requires());
+            // Les deux voies d'une bifurcation partagent une rangée, côte à côte.
+            Cell first = upgrade.isFork() ? forks.get(upgrade.fork()) : null;
+            Cell cell = first != null ? new Cell(upgrade, first.row, 1)
+                    : new Cell(upgrade, filled.merge(branch, 1, Integer::sum) - 1, upgrade.isFork() ? 0 : -1);
+            if (upgrade.isFork() && first == null) forks.put(upgrade.fork(), cell);
+            cell.parent = upgrade.requires() == null ? null
+                    : upgrade.requiredFork() != null ? forks.get(upgrade.requiredFork()) : byId.get(upgrade.requires());
             if (cell.parent == null) independent.merge(branch, 1, Integer::sum);
+            if (upgrade.requiredFork() != null) forksWithChild.add(upgrade.requiredFork());
             byId.put(upgrade.id(), cell);
             cells.add(cell);
         }
         rowCounts.putAll(filled);
+        // Le rang d'une bifurcation : la première de sa branche, ou la deuxième. Une liaison prend le rang de ses voies.
+        Map<String, Integer> forkLevel = new HashMap<>();
+        Map<DarkUpgrade.Branch, Integer> forksInBranch = new EnumMap<>(DarkUpgrade.Branch.class);
+        for (DarkUpgrade upgrade : game.darkUpgrades()) {
+            if (upgrade.isFork() && !forkLevel.containsKey(upgrade.fork())) {
+                forkLevel.put(upgrade.fork(), forksInBranch.merge(upgrade.branch(), 1, Integer::sum));
+            }
+        }
+        for (LinkCell link : links) {
+            for (String id : link.upgrade.linkedIds()) {
+                Cell option = byId.get(id);
+                if (option == null) continue;
+                link.options.add(option);
+                link.level = Math.max(link.level, forkLevel.getOrDefault(option.upgrade.fork(), 1));
+                opens.computeIfAbsent(id, key -> new ArrayList<>()).add(link.upgrade.name());
+            }
+            levelTitles.computeIfAbsent(link.level, level -> new Label());
+        }
         // Plusieurs cases sans case du dessus dans une même branche : elles ne s'enchaînent pas.
         for (DarkUpgrade.Branch branch : branches) fans.put(branch, independent.getOrDefault(branch, 0) > 1);
 
@@ -176,7 +241,7 @@ public final class DarkMatterTreePane extends Pane {
         for (Cell cell : cells) {
             cell.link.setStrokeWidth(2);
             cell.elbow.setStrokeWidth(2);
-            cell.elbow.setVisible(fans.get(cell.upgrade.branch()));
+            cell.elbow.setVisible(fans.get(cell.upgrade.branch()) || (cell.side >= 0 && forksWithChild.contains(cell.upgrade.fork())));
             getChildren().add(cell.link);
             getChildren().add(cell.elbow);
         }
@@ -201,6 +266,22 @@ public final class DarkMatterTreePane extends Pane {
                 refresh();
             });
             getChildren().add(cell.card);
+        }
+        linksTitle.setWrapText(true);
+        linksTitle.setTextAlignment(TextAlignment.CENTER);
+        linksTitle.setAlignment(Pos.CENTER);
+        linksTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #c9b8ff;");
+        if (!links.isEmpty()) getChildren().add(linksTitle);
+        for (Label title : levelTitles.values()) {
+            title.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + ";");
+            getChildren().add(title);
+        }
+        for (LinkCell link : links) {
+            link.card.setOnAction(() -> {
+                game.buyDark(link.upgrade.id());
+                refresh();
+            });
+            getChildren().add(link.card);
         }
         bang.setOnAction(this::clickBang);
         getChildren().add(bang);
@@ -261,6 +342,25 @@ public final class DarkMatterTreePane extends Pane {
             boolean affordable = game.canBuyDark(upgrade.id());
             String color = COLORS.get(upgrade.branch());
             boolean oneTime = upgrade.maxLevel() == 1;
+            DarkUpgrade rival = game.darkForkRival(upgrade.id());
+            if (upgrade.isFork() && (rival != null || level == 0)) {
+                // Une voie de bifurcation (version 0.69) : prise, ouverte au choix, ou fermée par l'autre jusqu'au prochain Big Bang.
+                // Avec la Superposition du collisionneur (0.70), les deux voies se prennent.
+                boolean both = game.hasSuperposition();
+                boolean absence = game.darkStyle(upgrade) == Game.Style.ABSENCE;
+                cell.card.show(rival != null ? Card.State.LOCKED : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
+                        "", rival != null ? "fermée" : both ? "les 2 voies" : absence ? "absence" : "présence",
+                        upgrade.name(), DarkText.brief(upgrade.effect(), game) + (absence ? "\nAbsence +" + ElementText.number(Game.ABSENCE_VOIE_BONUS * 100) + " points" : ""),
+                        Detail.shown() ? DarkText.describe(upgrade.effect(), game) + style(upgrade) + opensText(upgrade) + (both
+                                ? ". Une bifurcation, ouverte des deux côtés par la Superposition du collisionneur : les deux voies se prennent et restent au Big Bang."
+                                : ". Une bifurcation : prendre cette voie ferme l'autre jusqu'au prochain Big Bang, où le choix se refait. "
+                                        + "La Superposition du collisionneur ouvre les deux.") : "",
+                        rival != null ? "« " + rival.name() + " » est prise, jusqu'au prochain Big Bang" : price(upgrade, available), "");
+                Color stroke = Color.web(available ? color : OFF);
+                cell.link.setStroke(stroke);
+                cell.elbow.setStroke(Color.web(OFF));
+                continue;
+            }
 
             // Acquise : couleur pleine. À portée : éclairée. Entamée : teintée. Trop chère ou verrouillée : éteinte.
             cell.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY
@@ -274,9 +374,72 @@ public final class DarkMatterTreePane extends Pane {
             // Le trait qui mène à la case s'allume quand elle est accessible.
             Color stroke = Color.web(available ? color : OFF);
             cell.link.setStroke(stroke);
-            cell.elbow.setStroke(stroke);
+            cell.elbow.setStroke(cell.side >= 0 && level == 0 ? Color.web(OFF) : stroke);
+        }
+        for (LinkCell link : links) refreshLink(link);
+        linksTitle.setText("Liaisons et accords : ils s'ouvrent avec les voies des bifurcations. Une liaison demande l'une "
+                + "de ses deux voies, un accord ses trois voies du même style.");
+        for (Map.Entry<Integer, Label> title : levelTitles.entrySet()) {
+            title.getValue().setText(title.getKey() == 1 ? "Premier rang de bifurcations" : "Second rang de bifurcations");
         }
         refreshBang();
+    }
+
+    /** Les liaisons et accords que cette voie aide à ouvrir, rangés sous l'arbre. */
+    private String opensText(DarkUpgrade upgrade) {
+        List<String> names = opens.get(upgrade.id());
+        return names == null ? "" : ". Ouvre, sous l'arbre : " + String.join(", ", names);
+    }
+
+    /** Ce que dit le style d'une voie (version 0.70), en mode détails. */
+    private String style(DarkUpgrade upgrade) {
+        return game.darkStyle(upgrade) == Game.Style.ABSENCE
+                ? ". Voie d'absence : un peu moins forte tant que vous êtes là, mais elle rend "
+                        + ElementText.number(Game.ABSENCE_VOIE_BONUS * 100) + " points de plus du temps passé jeu fermé"
+                : ". Voie de présence : la plus forte tant que vous êtes là, sans rien de plus en votre absence";
+    }
+
+    /**
+     * Une liaison ou un accord : comme une case, mais la carte dit aussi, voie par voie, ce qui l'ouvre :
+     * ✓ prise, ○ encore à prendre, × fermée par l'autre voie de sa bifurcation.
+     */
+    private void refreshLink(LinkCell link) {
+        DarkUpgrade upgrade = link.upgrade;
+        boolean maxed = game.isDarkMaxed(upgrade.id());
+        boolean available = game.isDarkAvailable(upgrade.id());
+        boolean affordable = game.canBuyDark(upgrade.id());
+        boolean accord = upgrade.isAccord();
+        List<String> needs = new ArrayList<>();
+        int closed = 0;
+        for (Cell option : link.options) {
+            DarkUpgrade voie = option.upgrade;
+            boolean shut = game.darkLevelOf(voie.id()) == 0 && game.darkForkRival(voie.id()) != null;
+            if (shut) closed++;
+            String mark = game.darkLevelOf(voie.id()) > 0 ? "✓ " : shut ? "× " : "○ ";
+            needs.add(mark + voie.name() + " (" + branchName(voie.branch()) + ")");
+        }
+        // Fermée jusqu'au prochain Big Bang : un accord dont une voie est fermée, une liaison dont toutes le sont.
+        boolean shutOut = accord ? closed > 0 : closed == link.options.size();
+        String missing = shutOut ? "Fermée jusqu'au prochain Big Bang" : accord ? "Il faut les trois voies"
+                : link.options.size() == 1 ? "Il faut cette voie" : "Il faut l'une des deux voies";
+        String joined = String.join(accord ? "\n" : "\nou ", needs);
+        link.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
+                "", maxed ? "acquise" : accord ? (game.darkStyle(upgrade) == Game.Style.ABSENCE ? "accord d'absence" : "accord de présence") : "liaison",
+                upgrade.name(), DarkText.brief(upgrade.effect(), game) + "\n" + joined,
+                Detail.shown() ? DarkText.describe(upgrade.effect(), game) + (accord
+                        ? ". Un accord : il demande ses trois voies à la fois, une par branche, toutes du même style."
+                        : ". Une liaison : l'une ou l'autre de ses voies suffit.")
+                        + " Elle se paie en matière noire et repart au Big Bang avec les voies, sauf avec la Superposition du collisionneur." : "",
+                maxed ? "" : available ? price(upgrade, true) : missing, "");
+    }
+
+    private static String branchName(DarkUpgrade.Branch branch) {
+        return switch (branch) {
+            case PARTICLES -> "particules";
+            case ATOMS -> "atomes";
+            case SIZE -> "taille";
+            case DARK_MATTER -> "matière noire";
+        };
     }
 
     /** La case du Big Bang : ses cinq conditions, et ce qu'un clic fera. */
@@ -329,7 +492,7 @@ public final class DarkMatterTreePane extends Pane {
     /** Une condition du Big Bang : ce qu'il faut, et entre parenthèses ce que le joueur a. */
     private String condition(BigBangCondition condition) {
         return switch (condition) {
-            case PARTICLES -> Format.count(Game.BIG_BANG_PARTICLES) + " particules ("
+            case PARTICLES -> Format.count(game.bigBangParticles()) + " particules ("
                     + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")";
             case ATOMS -> Format.count(Game.BIG_BANG_ATOMS) + " atomes (" + Format.count(game.state().atoms()) + ")";
             case DARK_MATTER -> Format.count(Game.BIG_BANG_DARK_MATTER) + " matières noires en réserve ("
@@ -342,9 +505,6 @@ public final class DarkMatterTreePane extends Pane {
 
     /** Le prix du prochain niveau, ou ce qu'il faut pour que la case s'ouvre. Ce que le joueur possède est dans l'en-tête. */
     private String price(DarkUpgrade upgrade, boolean available) {
-        if (!game.hasDarkMatterFor(upgrade.id())) {
-            return "À " + upgrade.darkMatter() + " matières noires gagnées";
-        }
         if (!available) return "Après la case du dessus";
         BigNum cost = game.darkCostOf(upgrade.id());
         return switch (upgrade.branch()) {
@@ -353,6 +513,11 @@ public final class DarkMatterTreePane extends Pane {
             case SIZE -> "Taille " + Format.length(cost);
             case DARK_MATTER -> Format.count(cost) + (cost.gt(BigNum.ONE) ? " matières noires" : " matière noire");
         };
+    }
+
+    /** La place d'une rangée d'une branche. */
+    private int slot(int row) {
+        return row;
     }
 
     @Override
@@ -372,10 +537,12 @@ public final class DarkMatterTreePane extends Pane {
             measuredDetail = Detail.shown();
             cardHeight = MIN_CARD_HEIGHT;
         }
+        double forkWidth = Math.floor((cardWidth - FORK_GAP) / 2);
         for (Cell cell : cells) {
-            double room = fans.get(cell.upgrade.branch()) ? cardWidth - FAN_INDENT : cardWidth;
+            double room = cell.side >= 0 ? forkWidth : fans.get(cell.upgrade.branch()) ? cardWidth - FAN_INDENT : cardWidth;
             cardHeight = Math.max(cardHeight, Math.ceil(cell.card.prefHeight(room)));
         }
+        double pitch = cardHeight + ROW_GAP;
 
         double rootWidth = Math.min(260, width - 16);
         root.resizeRelocate(Math.floor((width - rootWidth) / 2), TOP, rootWidth, ROOT_HEIGHT);
@@ -395,7 +562,7 @@ public final class DarkMatterTreePane extends Pane {
             double headerY = busY + BUS_GAP;
             place(bus, Math.min(width / 2, columnWidth / 2), busY,
                     Math.max(width / 2, (last - first + 0.5) * columnWidth), busY);
-            int rows = 0;
+            int slots = 0;
             for (int index = first; index <= last; index++) {
                 DarkUpgrade.Branch branch = branches.get(index);
                 double centerX = (index - first + 0.5) * columnWidth;
@@ -403,10 +570,10 @@ public final class DarkMatterTreePane extends Pane {
                 headers.get(branch).resizeRelocate(Math.floor(centerX - cardWidth / 2), headerY, cardWidth, HEADER_HEIGHT);
                 headerYs.put(branch, headerY);
                 centers.put(branch, centerX);
-                rows = Math.max(rows, rowCounts.get(branch));
+                slots = Math.max(slots, slot(rowCounts.get(branch) - 1) + 1);
             }
             lastBusY = busY;
-            y = headerY + HEADER_HEIGHT + rows * (ROW_GAP + cardHeight);
+            y = headerY + HEADER_HEIGHT + slots * pitch;
         }
         // Le tronc passe entre les colonnes du milieu, de la racine au dernier étage.
         place(trunk, width / 2, TOP + ROOT_HEIGHT, width / 2, lastBusY);
@@ -416,18 +583,30 @@ public final class DarkMatterTreePane extends Pane {
             double centerX = centers.get(branch);
             double headerBottom = headerYs.get(branch) + HEADER_HEIGHT;
             double left = Math.floor(centerX - cardWidth / 2);
-            double top = headerBottom + ROW_GAP + cell.row * (cardHeight + ROW_GAP);
+            double top = headerBottom + ROW_GAP + slot(cell.row) * pitch;
+            // Le bas de la case du dessus (ou de l'en-tête) : une rangée de liaisons peut s'intercaler entre les deux.
+            double above = cell.parent == null ? headerBottom : headerBottom + ROW_GAP + slot(cell.parent.row) * pitch + cardHeight;
             if (fans.get(branch)) {
                 // En éventail : un tronc descend de l'en-tête à gauche des cases, un coude rejoint chacune.
                 double trunkX = left + FAN_INDENT / 2;
                 double middle = top + cardHeight / 2;
-                cell.card.resizeRelocate(left + FAN_INDENT, top, cardWidth - FAN_INDENT, cardHeight);
+                put(cell, left + FAN_INDENT, top, cardWidth - FAN_INDENT);
                 place(cell.link, trunkX, headerBottom, trunkX, middle);
                 place(cell.elbow, trunkX, middle, left + FAN_INDENT, middle);
+            } else if (cell.side >= 0) {
+                // Une voie de bifurcation : la moitié de la largeur, à gauche ou à droite. Un trait en biais y mène
+                // depuis la case du dessus ; un autre en repart vers le trait qui descend à la case d'après.
+                double cardLeft = left + cell.side * (forkWidth + FORK_GAP);
+                double cardCenter = cardLeft + forkWidth / 2;
+                put(cell, cardLeft, top, forkWidth);
+                place(cell.link, centerX, above, cardCenter, top);
+                place(cell.elbow, cardCenter, top + cardHeight, centerX, top + cardHeight + ROW_GAP / 2);
             } else {
                 // Enchaînées : le trait part du bas de la case du dessus (ou de l'en-tête) et arrive en haut de celle-ci.
-                cell.card.resizeRelocate(left, top, cardWidth, cardHeight);
-                place(cell.link, centerX, top - ROW_GAP, centerX, top);
+                // Après une bifurcation, il part du point où se rejoignent les traits de ses deux voies.
+                double from = cell.parent != null && cell.parent.side >= 0 ? above + ROW_GAP / 2 : above;
+                put(cell, left, top, cardWidth);
+                place(cell.link, centerX, from, centerX, top);
             }
         }
 
@@ -440,7 +619,7 @@ public final class DarkMatterTreePane extends Pane {
             tail.setVisible(index >= firstOfLast);
             if (index < firstOfLast) continue;
             double centerX = centers.get(branch);
-            double bottom = headerYs.get(branch) + HEADER_HEIGHT + rowCounts.get(branch) * (ROW_GAP + cardHeight);
+            double bottom = headerYs.get(branch) + HEADER_HEIGHT + slot(rowCounts.get(branch) - 1) * pitch + pitch;
             place(tail, centerX, bottom, centerX, gatherY);
         }
         double firstCenter = centers.get(branches.get(firstOfLast));
@@ -453,11 +632,61 @@ public final class DarkMatterTreePane extends Pane {
         bang.resizeRelocate(Math.floor((width - bangWidth) / 2), bangTop, bangWidth, bangHeight);
         y = bangTop + bangHeight;
 
+        y = layoutLinks(width, y);
+
         // La hauteur de l'arbre dépend de la largeur : la zone qui défile autour doit la connaître.
         if (y + 8 != totalHeight) {
             totalHeight = y + 8;
             setPrefSize(720, totalHeight);
         }
+    }
+
+    /** Largeur visée d'une carte de liaison, et l'écart entre deux. */
+    private static final double LINK_WIDTH = 200;
+    private static final double LINK_GAP = 10;
+
+    /**
+     * La planche des liaisons et des accords (version 0.71), sous la case du Big Bang : un titre, puis
+     * un rang par rang de bifurcations, liaisons d'abord, accords ensuite, chacun sur une ligne qui
+     * passe à la suivante quand la fenêtre est étroite. Pas de traits : chaque carte dit ses voies.
+     *
+     * @return le bas de ce qui a été placé
+     */
+    private double layoutLinks(double width, double bottom) {
+        if (links.isEmpty()) return bottom;
+        double inner = Math.max(120, width - 16);
+        int columns = (int) Math.max(1, Math.floor((inner + LINK_GAP) / (LINK_WIDTH * 0.85 + LINK_GAP)));
+        double y = bottom + 2 * ROW_GAP;
+        double titleHeight = Math.ceil(linksTitle.prefHeight(Math.min(inner, 640)));
+        linksTitle.resizeRelocate(Math.floor((width - Math.min(inner, 640)) / 2), y, Math.min(inner, 640), titleHeight);
+        y += titleHeight + ROW_GAP / 2;
+        for (Map.Entry<Integer, Label> level : levelTitles.entrySet()) {
+            List<LinkCell> row = new ArrayList<>();
+            for (LinkCell link : links) if (link.level == level.getKey()) row.add(link);
+            int perLine = Math.min(columns, row.size());
+            double cardW = Math.min(LINK_WIDTH, Math.floor((inner - (perLine - 1) * LINK_GAP) / perLine));
+            double height = MIN_CARD_HEIGHT;
+            for (LinkCell link : row) height = Math.max(height, Math.ceil(link.card.prefHeight(cardW)));
+            Label title = level.getValue();
+            title.resizeRelocate(8, y, inner, 18);
+            y += 22;
+            for (int i = 0; i < row.size(); i++) {
+                int line = i / perLine, column = i % perLine;
+                int onThisLine = Math.min(perLine, row.size() - line * perLine);
+                double left = Math.floor((width - (onThisLine * cardW + (onThisLine - 1) * LINK_GAP)) / 2);
+                row.get(i).card.resizeRelocate(left + column * (cardW + LINK_GAP), y + line * (height + LINK_GAP), cardW, height);
+            }
+            int lines = (row.size() + perLine - 1) / perLine;
+            y += lines * (height + LINK_GAP) + ROW_GAP / 2;
+        }
+        return y;
+    }
+
+    private void put(Cell cell, double x, double y, double width) {
+        cell.x = x;
+        cell.y = y;
+        cell.width = width;
+        cell.card.resizeRelocate(x, y, width, cardHeight);
     }
 
     private static void place(Line line, double startX, double startY, double endX, double endY) {

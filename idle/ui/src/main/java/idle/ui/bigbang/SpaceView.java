@@ -1,12 +1,14 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
+import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
 import idle.ui.GameApp;
 import idle.ui.common.ElementText;
+import idle.ui.common.Format;
 import java.util.List;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -232,7 +234,7 @@ public final class SpaceView extends Canvas {
     /** Pour chaque place : l'état de la molécule rassemblée qui l'occupe, ou {@code null} si elle ne l'est pas. */
     private Molecule.State[] states = new Molecule.State[0];
     /** Pour chaque état de {@link #PLACES} : le nombre de molécules rassemblées dans cet état. */
-    private final int[] gathered = new int[PLACES.length];
+    private final long[] gathered = new long[PLACES.length];
     /**
      * Les corps, du centre vers le bord : d'abord un bloc par assemblage formé, puis un amas par sorte
      * de molécule rassemblée. Pour chacun, les places de ses molécules.
@@ -477,7 +479,7 @@ public final class SpaceView extends Canvas {
     }
 
     /** Nombre de molécules rassemblées dans cet état, à la dernière image : pour les vérifications. */
-    public int gathered(Molecule.State place) {
+    public long gathered(Molecule.State place) {
         for (int index = 0; index < PLACES.length; index++) {
             if (PLACES[index] == place) return gathered[index];
         }
@@ -667,8 +669,9 @@ public final class SpaceView extends Canvas {
         sincePlaced = 0;
         List<String> log = game.state().moleculeLog();
         // Trop de molécules pour un point chacune : chaque sorte garde sa part, un point en valant plusieurs.
-        perDot = log.size() <= MOST_DOTS ? 1 : (log.size() + MOST_DOTS - 1) / MOST_DOTS;
-        int count = log.size();
+        long total = game.state().moleculeTotal();
+        perDot = total <= MOST_DOTS ? 1 : (int) ((total + MOST_DOTS - 1) / MOST_DOTS);
+        int count = (int) Math.min(total, MOST_DOTS);
         if (perDot > 1) {
             count = 0;
             for (Molecule molecule : game.molecules()) count += dots(game.moleculeCount(molecule.id()));
@@ -765,7 +768,7 @@ public final class SpaceView extends Canvas {
                 if (molecule.state() != PLACES[place] || left == 0) continue;
                 bodies.add(java.util.Collections.nCopies(left, molecule));
                 formed.add(null);
-                gathered[place] += left * perDot;
+                gathered[place] += (long) left * perDot;
             }
         }
         int[] owner = new int[count];
@@ -2267,7 +2270,7 @@ public final class SpaceView extends Canvas {
     /** Nombre de lignes de la légende : les astres, les assemblages, chaque état qui a des molécules rassemblées, et ce que vaut un point. */
     private int legendLines() {
         int lines = (blocks() > 0 ? 1 : 0) + (sky.length > 0 ? 1 : 0) + (perDot > 1 ? 1 : 0);
-        for (int count : gathered) {
+        for (long count : gathered) {
             if (count > 0) lines++;
         }
         return lines;
@@ -2314,7 +2317,7 @@ public final class SpaceView extends Canvas {
             g.setFill(placeColor(PLACES[place]));
             stateShape(g, PLACES[place], 14, y - 4);
             g.setFill(TEXT);
-            g.fillText(BigBangPage.placeTitle(PLACES[place]) + " : " + gathered[place], 24, y);
+            g.fillText(BigBangPage.placeTitle(PLACES[place]) + " : " + Format.count(BigNum.of(gathered[place])), 24, y);
             y += 16;
         }
         if (perDot > 1) {

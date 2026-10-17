@@ -153,6 +153,7 @@ class SaveTest {
         state.setCometVisible(12.5);
         state.setCometBoost(88.75);
         state.setCometsCaught(7);
+        state.setEndSeen(true);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);
         state.setActiveBangChallenge("FORGOTTEN");
@@ -288,9 +289,9 @@ class SaveTest {
                     if (field.getName().equals("logEnds")) {
                         // Seules comptent les suites réellement posées : le tableau est plus long que nécessaire.
                         int runs = ((GameState) a).moleculeLog().isEmpty() ? 0 : ((List<?>) read(a, "logKinds")).size();
-                        x = java.util.Arrays.copyOf((int[]) x, runs);
-                        y = java.util.Arrays.copyOf((int[]) y, Math.min(runs, ((int[]) y).length));
-                        if (!java.util.Arrays.equals((int[]) x, (int[]) y)) found.add(path + ".logEnds");
+                        x = java.util.Arrays.copyOf((long[]) x, runs);
+                        y = java.util.Arrays.copyOf((long[]) y, Math.min(runs, ((long[]) y).length));
+                        if (!java.util.Arrays.equals((long[]) x, (long[]) y)) found.add(path + ".logEnds");
                         continue;
                     }
                     compare(path + "." + field.getName(), x, y, loose, found);
@@ -385,6 +386,18 @@ class SaveTest {
             SaveCodec.Save save = SaveCodec.read(SaveCodec.write(new GameState(), 1_700_000_123_456L));
             assertEquals(1_700_000_123_456L, save.savedAt());
             assertEquals(SaveCodec.VERSION, save.version());
+        }
+
+        @Test
+        void plusDeDeuxMilliardsDeMoleculesSeRelisent() throws Exception {
+            GameState state = new GameState();
+            state.addMolecules("H2O", 1_000_000_000);
+            state.addMolecules("CO2", 1_000_000_000);
+            state.addMolecules("CH4", 900_000_000);
+            GameState read = copy(state);
+            assertEquals(2_900_000_000L, read.moleculeTotal());
+            assertEquals("CH4", read.moleculeAt(2_899_999_999L));
+            assertEquals(1_000_000_000, read.moleculeCount("CO2"));
         }
 
         @Test

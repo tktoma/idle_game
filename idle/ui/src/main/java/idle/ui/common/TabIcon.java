@@ -14,7 +14,7 @@ import javafx.scene.shape.StrokeLineCap;
 public final class TabIcon extends Canvas {
 
     /** Ce que montre l'icône : un dessin par onglet. */
-    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, ACHIEVEMENTS, STATS, SETTINGS }
+    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS }
 
     private final Kind kind;
     private final Color color;
@@ -125,6 +125,19 @@ public final class TabIcon extends Canvas {
                     double a = k * Math.PI / 4 + time * 0.3;
                     double inner = s * 0.12, outer = s * (0.3 + 0.14 * (k % 2 == 0 ? pulse : 1 - pulse));
                     g.strokeLine(c + inner * Math.cos(a), c + inner * Math.sin(a), c + outer * Math.cos(a), c + outer * Math.sin(a));
+                }
+                g.fillOval(c - 2.5, c - 2.5, 5, 5);
+            }
+            case UNIVERSE -> {
+                // Une galaxie spirale : deux bras de points qui tournent autour d'un cœur.
+                for (int arm = 0; arm < 2; arm++) {
+                    for (int p = 1; p <= 6; p++) {
+                        double t = p / 6.0;
+                        double a = time * 0.8 + arm * Math.PI + t * 3.4;
+                        double r = s * 0.44 * t;
+                        double dot = 2.4 - 1.2 * t;
+                        g.fillOval(c + r * Math.cos(a) - dot / 2, c + r * Math.sin(a) * 0.75 - dot / 2, dot, dot);
+                    }
                 }
                 g.fillOval(c - 2.5, c - 2.5, 5, 5);
             }

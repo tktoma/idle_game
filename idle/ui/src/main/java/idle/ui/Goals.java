@@ -80,8 +80,23 @@ public final class Goals {
         if (game.canFormCosmos(scale)) return "former " + scale.phrase();
         // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
         if (scale != Cosmos.GALAXY) {
+            // Toute la matière est là, mais l'échelle d'avant se rassemble encore (version 0.73).
+            double settle = game.cosmosSettleRemaining(scale);
+            if (settle > 0 && game.cosmosConditionsMet(scale) == game.cosmosConditions(scale)) {
+                return "attendre que " + scale.previous().phrase() + " se rassemble pour former " + scale.phrase()
+                        + " (encore " + (long) Math.ceil(settle / 60) + " min)";
+            }
+            // L'état le plus en retard (version 0.68) : c'est lui qu'il faut pousser.
+            Molecule.State behind = null;
+            double worst = 1;
+            for (java.util.Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+                double share = (double) game.gatheredInState(need.getKey()) / need.getValue();
+                if (share < worst) { worst = share; behind = need.getKey(); }
+            }
             return "réunir la matière de " + scale.phrase() + " (" + game.cosmosConditionsMet(scale) + "/"
-                    + game.cosmosConditions(scale) + " conditions)" + spaceWait(game);
+                    + game.cosmosConditions(scale) + " conditions"
+                    + (behind == null ? "" : ", le plus en retard : " + idle.ui.common.MatterText.plural(behind) + " " + Math.round(worst * 100) + " %")
+                    + ")" + spaceWait(game);
         }
         if (game.moleculesCreated() == 0) {
             // Après un Big Bang le tableau périodique est vide : il faut d'abord le regarnir, et laisser l'espace grandir.

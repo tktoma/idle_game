@@ -256,7 +256,7 @@ public final class BodiesPane extends VBox {
             if (!game.hasAssembly(assembly)) return "Il faut assembler : " + game.assembly(assembly).name().toLowerCase();
         }
         for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
-            int lacking = matter.getValue() - game.gatheredInState(matter.getKey());
+            int lacking = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
             if (lacking > 0) return "Il manque " + lacking + " " + matterName(matter.getKey());
         }
         for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
@@ -280,14 +280,14 @@ public final class BodiesPane extends VBox {
             line(text, formed || game.hasAssembly(assembly), game.assembly(assembly).name());
         }
         for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
-            int have = game.gatheredInState(matter.getKey());
-            line(text, formed || have >= matter.getValue(), matter.getValue() + " " + matterName(matter.getKey())
-                    + (formed || have >= matter.getValue() ? "" : " (" + have + ")"));
+            long have = game.gatheredInState(matter.getKey());
+            line(text, formed || have >= matter.getValue(), Format.count(BigNum.of(matter.getValue())) + " " + matterName(matter.getKey())
+                    + (formed || have >= matter.getValue() ? "" : " (" + Format.count(BigNum.of(have)) + ")"));
         }
         for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
             int have = game.moleculeCount(molecule.getKey());
-            line(text, formed || have >= molecule.getValue(), molecule.getValue() + " " + game.molecule(molecule.getKey()).formula()
-                    + (formed || have >= molecule.getValue() ? "" : " (" + have + ")"));
+            line(text, formed || have >= molecule.getValue(), Format.count(BigNum.of(molecule.getValue())) + " " + game.molecule(molecule.getKey()).formula()
+                    + (formed || have >= molecule.getValue() ? "" : " (" + Format.count(BigNum.of(have)) + ")"));
         }
         if (game.needsColliderEnergy(body)) {
             boolean enough = formed || game.hasColliderEnergyFor(body);

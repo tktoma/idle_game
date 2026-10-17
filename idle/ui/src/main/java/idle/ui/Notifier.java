@@ -64,6 +64,8 @@ final class Notifier {
     private int speedMilestones;
     /** L'énergie produite au dernier relevé : pour annoncer une fois les paliers des trous noirs. */
     private double blackHoleEnergySeen = 0;
+    /** Les jalons du cosmos déjà vus (version 0.68) : « CLUSTER:GAS »… */
+    private final java.util.Set<String> cosmosMilestonesSeen = new HashSet<>();
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
@@ -142,6 +144,16 @@ final class Notifier {
             news.add("Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
         }
         blackHoleEnergySeen = produced;
+        // Les jalons de la fin de partie (version 0.68) : un état de la matière réuni pour l'amas ou l'univers.
+        for (idle.core.sky.Cosmos scale : new idle.core.sky.Cosmos[] {idle.core.sky.Cosmos.CLUSTER, idle.core.sky.Cosmos.UNIVERSE}) {
+            if (game.hasCosmos(scale)) continue;
+            for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {
+                if (game.isCosmosMilestoneMet(scale, matter) && cosmosMilestonesSeen.add(scale.name() + ":" + matter.name())) {
+                    news.add("Jalon : " + idle.ui.common.MatterText.plural(matter) + " réunis pour " + scale.phrase()
+                            + ". Toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " % (" + game.cosmosMilestones() + "/10).");
+                }
+            }
+        }
 
         if (game.bigBangs() > bigBangs) {
             // Tout vient de repartir de zéro : on reprend ses repères, pour que la partie suivante s'annonce comme la première.
@@ -314,6 +326,12 @@ final class Notifier {
             if (game.hasBangAchievement(achievement)) bangAchievementsSeen.add(achievement);
         }
         blackHoleEnergySeen = game.colliderEnergyProduced();
+        cosmosMilestonesSeen.clear();
+        for (idle.core.sky.Cosmos scale : idle.core.sky.Cosmos.values()) {
+            for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {
+                if (game.isCosmosMilestoneMet(scale, matter)) cosmosMilestonesSeen.add(scale.name() + ":" + matter.name());
+            }
+        }
         // Les éléments et les automatismes possédés changent rarement : ils ne sont recopiés que s'ils ont changé.
         java.util.Set<Integer> owned = game.state().elements().keySet();
         if (!elements.equals(owned)) elements = new HashSet<>(owned);

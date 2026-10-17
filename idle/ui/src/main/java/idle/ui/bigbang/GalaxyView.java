@@ -286,10 +286,10 @@ public final class GalaxyView extends Canvas {
 
     /** Donne à chacun des {@link #DOTS} points la couleur d'une molécule du joueur, prises à intervalles réguliers dans l'ordre où il les a créées. */
     static void tint(Game game, Color[] colors) {
-        List<String> log = game.state().moleculeLog();
+        long total = game.state().moleculeTotal();
         for (int dot = 0; dot < DOTS; dot++) {
-            colors[dot] = log.isEmpty() ? PALE[dot % PALE.length]
-                    : MoleculeArt.of(game.molecule(log.get((int) ((long) dot * log.size() / DOTS)))).dominant();
+            colors[dot] = total == 0 ? PALE[dot % PALE.length]
+                    : MoleculeArt.of(game.molecule(game.state().moleculeAt((long) (total * (double) dot / DOTS)))).dominant();
         }
     }
 

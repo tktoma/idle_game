@@ -127,11 +127,23 @@ public final class Game {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le Big Bang. Arbre complet, les explosions s'enchaînent en
-     * une demi-minute et la production gagne environ 75 ordres de grandeur à chacune : ce nombre
-     * tombe une trentaine d'explosions après la fin de l'arbre.
+     * Particules à avoir en main pour le premier Big Bang : 10³²⁰⁰⁰. Depuis la version 0.73, c'est ce qui fait durer le
+     * deuxième acte cinq heures en jeu parfait : à la fin de l'arbre, les parties qu'on laisse tourner
+     * gagnent quelques milliers d'ordres de grandeur par heure, d'autant plus vite que les paliers de
+     * vitesse sont forts (les voies de présence les renforcent).
      */
-    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 3000);
+    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 32000);
+
+    /**
+     * Particules des Big Bangs suivants, au troisième acte : 10³⁰⁰⁰, comme avant la 0.73. Chaque cycle
+     * du troisième acte refait un deuxième acte en raccourci ; il n'a pas à redurer cinq heures.
+     */
+    public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 3000);
+
+    /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants. */
+    public BigNum bigBangParticles() {
+        return state.bigBangs() == 0 ? BIG_BANG_PARTICLES : BIG_BANG_PARTICLES_LATER;
+    }
 
     /**
      * Atomes à avoir en main pour le Big Bang : dix fois ce qu'une partie d'une demi-minute en
@@ -163,13 +175,6 @@ public final class Game {
     /** Nombre de molécules qu'une même sorte ne dépasse jamais : de quoi rester loin des limites de la machine. */
     public static final int MAX_MOLECULES = 1_000_000_000;
 
-    /**
-     * Nombre maximal de molécules en tout, toutes sortes confondues : au-delà, plus aucune création.
-     * Très au-dessus de ce que demande l'univers ({@link Cosmos}), il ne sert qu'à garder les
-     * comptes, qui sont des entiers, dans leurs limites.
-     */
-    public static final int MAX_TOTAL_MOLECULES = 2_000_000_000;
-
     /** Nombre de molécules d'une même sorte qu'il faut avoir créées pour les rassembler dans le lieu de leur état. */
     public static final int SUBSTANCE_MOLECULES = 3;
 
@@ -189,6 +194,12 @@ public final class Game {
      * et demie à plus de huit.
      */
     public static final int TABLE_WEIGHT_MAX_LEVEL = 10;
+
+    /**
+     * Masse du tableau pendant les défis « Présence » et « Absence » (version 0.73) : un tableau très
+     * lourd, qu'on ne remplit vite qu'avec les voies du bon style.
+     */
+    public static final BigNum STYLE_CHALLENGE_WEIGHT = BigNum.of(3, 6);
 
     /**
      * Nombre d'atomes à avoir créés depuis le début de la partie (dépensés ou non) pour débloquer
@@ -327,7 +338,7 @@ public final class Game {
     private List<Assembly> assemblyList;
     private List<Body> bodyList;
     /** Le nombre de molécules rassemblées dans chaque état, recalculé seulement quand leur liste change. */
-    private final Map<Molecule.State, Integer> gatheredByState = new java.util.EnumMap<>(Molecule.State.class);
+    private final Map<Molecule.State, Long> gatheredByState = new java.util.EnumMap<>(Molecule.State.class);
     private int gatheredByStateVersion = -1;
     /** L'espace occupé par les molécules, recalculé seulement quand leur liste change. */
     private BigNum occupiedSpace = BigNum.ZERO;
@@ -466,8 +477,16 @@ public final class Game {
             if (bodies.put(body.id(), body) != null) throw new IllegalArgumentException("Astre en double : " + body.id());
         }
         for (DarkUpgrade dark : darkCatalog) {
-            if (dark.requires() != null && !darkUpgrades.containsKey(dark.requires())) {
+            if (dark.requires() != null && dark.requiredFork() == null && !dark.isLink() && !darkUpgrades.containsKey(dark.requires())) {
                 throw new IllegalArgumentException("Amélioration de matière noire sans sa case du dessus : " + dark.id());
+            }
+            if (dark.requiredFork() != null && darkCatalog.stream().noneMatch(other -> dark.requiredFork().equals(other.fork()))) {
+                throw new IllegalArgumentException("Amélioration de matière noire après une bifurcation inconnue : " + dark.id());
+            }
+            for (String linked : dark.linkedIds()) {
+                if (darkCatalog.stream().noneMatch(other -> other.id().equals(linked) && other.isFork())) {
+                    throw new IllegalArgumentException("Liaison de matière noire vers une voie inconnue : " + dark.id() + " → " + linked);
+                }
             }
             if (darkUpgrades.put(dark.id(), dark) != null) {
                 throw new IllegalArgumentException("Amélioration de matière noire en double : " + dark.id());
@@ -551,6 +570,66 @@ public final class Game {
     /** Part du temps d'absence qui compte une fois l'univers formé : tout. */
     public static final double OFFLINE_RATE_UNIVERSE = 1.0;
 
+    /** Vrai pendant que {@link Absence} rejoue le temps passé jeu fermé. */
+    private boolean away = false;
+
+    /**
+     * Fait avancer le jeu comme {@link #tick(double)}, mais pendant une absence rejouée : l'accord
+     * d'absence (version 0.71) peut alors y tenter les défis ouverts.
+     */
+    public void tickAway(double dt) {
+        away = true;
+        try {
+            tick(dt);
+        } finally {
+            away = false;
+        }
+    }
+
+    /**
+     * En absence (version 0.73) : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
+     * d'absence, si elle est payable. Qui ne choisit pas joue le style de l'absence.
+     */
+    private void takeAbsenceVoies() {
+        if (inChallenge() || !isDarkMatterUnlocked()) return;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (!dark.isFork() || darkStyle(dark) != Style.ABSENCE || state.darkLevelOf(dark.id()) > 0) continue;
+            if (darkForkRival(dark.id()) == null && canBuyDark(dark.id())) {
+                buyDark(dark.id());
+                awayVoies.add(dark.name());
+            }
+        }
+    }
+
+    /** Les voies prises seules pendant l'absence en cours de rejeu, et les défis qu'elle a tentés et réussis. */
+    private final List<String> awayVoies = new ArrayList<>();
+    private final List<String> awayChallengesStarted = new ArrayList<>();
+
+    /** Ce que l'absence rejouée a fait à la place du joueur (version 0.73), puis l'oublie. */
+    public List<String> takeAwayVoies() {
+        List<String> taken = new ArrayList<>(awayVoies);
+        awayVoies.clear();
+        return taken;
+    }
+
+    /** Les défis que l'accord d'absence a lancés pendant l'absence rejouée, puis les oublie. */
+    public List<String> takeAwayChallenges() {
+        List<String> started = new ArrayList<>(awayChallengesStarted);
+        awayChallengesStarted.clear();
+        return started;
+    }
+
+    /** Une partie qui commence, en absence, avec l'accord d'absence : elle devient le prochain défi à réussir. */
+    private void startChallengeWhileAway() {
+        if (inChallenge() || !hasDark(DarkEffect.ChallengesWhileAway.class) || state.stats().runTime() > 1) return;
+        for (Challenge challenge : Challenges.DEFAULT) {
+            if (isChallengeUnlocked(challenge.id()) && !isChallengeCompleted(challenge.id())) {
+                if (startChallenge(challenge.id())) awayChallengesStarted.add(challenge.name());
+                return;
+            }
+        }
+    }
+
     /**
      * Part du temps passé jeu fermé qui est rejouée au retour ({@link Absence}) : un dixième au
      * début, et de plus en plus à mesure que les actes passent, jusqu'à tout le temps une fois
@@ -558,8 +637,9 @@ public final class Game {
      */
     public double offlineRate() {
         if (hasCosmos(Cosmos.UNIVERSE)) return OFFLINE_RATE_UNIVERSE;
-        if (state.bigBangs() > 0) return OFFLINE_RATE_BIG_BANG;
-        if (isDarkMatterUnlocked()) return OFFLINE_RATE_DARK_MATTER;
+        // Les voies d'absence de l'arbre (version 0.70) en rendent une part de plus, jusqu'à tout le temps.
+        if (state.bigBangs() > 0) return Math.min(1, OFFLINE_RATE_BIG_BANG + darkOfflineBonus());
+        if (isDarkMatterUnlocked()) return Math.min(1, OFFLINE_RATE_DARK_MATTER + darkOfflineBonus());
         return OFFLINE_RATE_PARTICLES;
     }
 
@@ -581,6 +661,10 @@ public final class Game {
     public void tick(double dt) {
         if (dt < 0 || Double.isNaN(dt) || Double.isInfinite(dt)) {
             throw new IllegalArgumentException("Durée invalide : " + dt);
+        }
+        if (away) {
+            takeAbsenceVoies();
+            startChallengeWhileAway();
         }
         // La matière noire qui grossit seule : une petite part de ce que donnerait un appui.
         double autoShare = darkAutoExpansionShare();
@@ -1003,7 +1087,7 @@ public final class Game {
         return darkMemo("minInterval", () -> {
             double min = MIN_AUTOMATION_INTERVAL;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.FasterAutomations faster && state.darkLevelOf(dark.id()) > 0) {
+                if (dark.effect() instanceof DarkEffect.FasterAutomations faster && effectLevel(dark) > 0) {
                     min = Math.min(min, faster.minInterval());
                 }
             }
@@ -1182,6 +1266,7 @@ public final class Game {
      * fois au plus. Un défi se joue toujours avec un tableau de masse 1, comme une toute première partie.
      */
     public BigNum tableWeight() {
+        if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT;
         return inChallenge() ? BigNum.ONE
                 : BigNum.of(TABLE_WEIGHT_GROWTH).pow(Math.min(state.tableWeightLevel(), TABLE_WEIGHT_MAX_LEVEL));
     }
@@ -2076,9 +2161,10 @@ public final class Game {
         BigNum amount = DARK_MATTER_PER_EXPLOSION;
         for (DarkUpgrade dark : darkUpgrades.values()) {
             if (dark.effect() instanceof DarkEffect.AddDarkMatterPerExplosion add) {
-                amount = amount.add(BigNum.of(add.perLevel() * state.darkLevelOf(dark.id())));
+                amount = amount.add(BigNum.of(add.perLevel() * effectLevel(dark)));
             }
         }
+        if (rewarded(Challenge.Reward.EXTRA_DARK_MATTER)) amount = amount.add(BigNum.ONE);
         double factor = bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER);
         return factor == 1 ? amount : amount.multiply(factor);
     }
@@ -2201,7 +2287,7 @@ public final class Game {
     /** Vrai si cette condition du Big Bang est remplie en ce moment. */
     public boolean isBigBangConditionMet(BigBangCondition condition) {
         return switch (condition) {
-            case PARTICLES -> darkBalance(DarkUpgrade.Branch.PARTICLES).gte(BIG_BANG_PARTICLES);
+            case PARTICLES -> darkBalance(DarkUpgrade.Branch.PARTICLES).gte(bigBangParticles());
             case ATOMS -> state.atoms().gte(BIG_BANG_ATOMS);
             case DARK_MATTER -> state.darkMatter().gte(BIG_BANG_DARK_MATTER);
             case ACHIEVEMENTS -> achievementCount() >= BIG_BANG_ACHIEVEMENTS;
@@ -2294,8 +2380,25 @@ public final class Game {
         java.util.Set<String> keptChallenges = bigBangKeepsChallenges()
                 ? new java.util.LinkedHashSet<>(state.completedChallenges()) : java.util.Set.of();
         state.clearMatter();
-        if (keepsTree) state.clearDarkMatterKeepingTree();
-        else state.clearDarkMatter();
+        if (keepsTree) {
+            state.clearDarkMatterKeepingTree();
+            // Les bifurcations se rouvrent à chaque Big Bang, même quand l'arbre reste : le joueur peut changer de voie.
+            // Les liaisons, qui en dépendent, repartent avec elles ; la matière noire qu'elles avaient coûté
+            // cesse d'être comptée comme dépensée. Avec la Superposition (0.70), il n'y a plus de choix à refaire :
+            // voies et liaisons restent.
+            if (!hasSuperposition()) {
+                for (DarkUpgrade dark : darkUpgrades.values()) {
+                    if (dark.isLink()) {
+                        BigNum paid = BigNum.ZERO;
+                        for (int level = 0; level < state.darkLevelOf(dark.id()); level++) paid = paid.add(dark.costAt(level));
+                        state.setDarkMatterSpent(state.darkMatterSpent().subtract(paid).max(BigNum.ZERO));
+                    }
+                    if (dark.isFork() || dark.isLink()) state.setDarkLevel(dark.id(), 0);
+                }
+            }
+        } else {
+            state.clearDarkMatter();
+        }
         for (String kept : keptChallenges) state.addCompletedChallenge(kept);
         // Le record d'explosion repart : après un Big Bang, la première explosion redemande des heures.
         state.setExplosionRecord(0);
@@ -2831,8 +2934,8 @@ public final class Game {
     }
 
     /** Nombre de molécules créées, toutes sortes confondues. */
-    public int moleculesCreated() {
-        return state.moleculeLog().size();
+    public long moleculesCreated() {
+        return state.moleculeTotal();
     }
 
     /** Nombre de sortes de molécules dont le joueur a créé au moins une. */
@@ -2954,6 +3057,11 @@ public final class Game {
         return hasFreeSpace(moleculeVolume(moleculeId));
     }
 
+    /** Vrai si cette sorte a atteint {@link #MAX_MOLECULES} molécules : on ne peut plus en créer, quoi qu'on ait. */
+    public boolean isMoleculeKindFull(String moleculeId) {
+        return state.moleculeCount(molecule(moleculeId).id()) >= MAX_MOLECULES;
+    }
+
     /**
      * Vrai si une molécule de cette sorte peut être créée maintenant : son rayon est ouvert
      * ({@link #isMoleculeKindUnlocked}), le tableau périodique contient les exemplaires demandés (plus un de chaque élément,
@@ -2961,7 +3069,7 @@ public final class Game {
      */
     public boolean canCreateMolecule(String moleculeId) {
         return state.started() && isMoleculeKindUnlocked(molecule(moleculeId).kind())
-                && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES && moleculesCreated() < MAX_TOTAL_MOLECULES
+                && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES
                 && hasElementsForMolecule(moleculeId) && hasSpaceForMolecule(moleculeId);
     }
 
@@ -3094,8 +3202,7 @@ public final class Game {
         if (mix - Math.floor(mix) >= chance) return 0;
         Molecule molecule = molecule(moleculeId);
         double room = state.space().multiply(1 + 1e-9).subtract(usedSpace()).toDouble() / volumeOf(molecule) - created;
-        long caps = Math.min((long) MAX_MOLECULES - state.moleculeCount(molecule.id()) - created,
-                (long) MAX_TOTAL_MOLECULES - moleculesCreated() - created);
+        long caps = (long) MAX_MOLECULES - state.moleculeCount(molecule.id()) - created;
         return (int) Math.max(0, Math.min(created, Math.min(Math.floor(room), caps)));
     }
 
@@ -3111,7 +3218,7 @@ public final class Game {
         int count = state.moleculeCount(molecule.id());
         if (!molecule.hasState() || !state.hasSubstance(molecule.id())) return 1;
         int drawn = 1 + (int) Math.floor(accretionFactor() * Math.sqrt(count) + 1e-9);
-        return Math.max(1, Math.min(drawn, Math.min(MAX_MOLECULES - count, MAX_TOTAL_MOLECULES - moleculesCreated())));
+        return Math.max(1, Math.min(drawn, MAX_MOLECULES - count));
     }
 
     /**
@@ -3150,7 +3257,48 @@ public final class Game {
         // Dans l'univers vide, la matière ne multiplie plus rien.
         if (bangRuled(BangChallenge.VOID)) return 1;
         refreshMoleculeBonuses();
-        return 1 + moleculeBoosts.getOrDefault(stat, 0.0);
+        return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * cosmosFactor() * Math.pow(1 + COSMOS_MILESTONE_GAIN, cosmosMilestones());
+    }
+
+    /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière (version 0.68). */
+    public double cosmosFactor() {
+        double factor = 1;
+        for (Cosmos scale : Cosmos.values()) if (hasCosmos(scale)) factor *= scale.factor();
+        return factor;
+    }
+
+    /**
+     * Ce qu'ajoute chaque jalon du cosmos ({@link #cosmosMilestones()}) à toutes les grandeurs de la
+     * matière : +10 %, cumulés en multipliant. Toutes, et pas seulement l'espace : en fin de partie,
+     * l'espace abonde, ce sont les éléments des explosions qui manquent.
+     */
+    public static final double COSMOS_MILESTONE_GAIN = 0.10;
+
+    /**
+     * Les jalons de la fin de partie (version 0.68) : chaque état de la matière réuni pour l'amas de
+     * galaxies, puis pour l'univers, une fois l'échelle en vue. Une échelle formée compte tous les
+     * siens. Dix en tout.
+     */
+    public int cosmosMilestones() {
+        int count = 0;
+        for (Cosmos scale : Cosmos.values()) {
+            if (scale == Cosmos.GALAXY) continue;
+            if (hasCosmos(scale)) {
+                count += scale.matter().size();
+                continue;
+            }
+            if (!isCosmosUnlocked(scale)) continue;
+            for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+                if (gatheredInState(need.getKey()) >= need.getValue()) count++;
+            }
+        }
+        return count;
+    }
+
+    /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon (version 0.68). */
+    public boolean isCosmosMilestoneMet(Cosmos scale, Molecule.State matter) {
+        Integer need = scale.matter().get(matter);
+        return need != null && (hasCosmos(scale) || isCosmosUnlocked(scale) && gatheredInState(matter) >= need);
     }
 
     // ------------------------------------------------------------------
@@ -3279,11 +3427,6 @@ public final class Game {
             // Un astre qui mûrit donne déjà une part de son bonus.
             double share = state.maturingLeft(id) > 0 ? MATURING_SHARE : 1;
             if (body != null) moleculeBoosts.merge(body.boost().stat(), body.boost().perMolecule() * share, Double::sum);
-        }
-        // La galaxie, l'amas de galaxies et l'univers augmentent chacun toutes les grandeurs à la fois.
-        for (Cosmos scale : Cosmos.values()) {
-            if (!hasCosmos(scale)) break;
-            for (Molecule.Stat stat : Molecule.Stat.values()) moleculeBoosts.merge(stat, scale.gain(), Double::sum);
         }
         // Chaque système solaire complet augmente toutes les grandeurs, selon son harmonie.
         for (SolarSystem system : state.solarSystems()) {
@@ -3556,7 +3699,7 @@ public final class Game {
         if (next == null || !isCosmosUnlocked(next)) return ShoppingList.NONE;
         Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
         for (Map.Entry<Molecule.State, Integer> need : next.matter().entrySet()) {
-            int missing = need.getValue() - gatheredInState(need.getKey());
+            int missing = (int) Math.max(0, need.getValue() - gatheredInState(need.getKey()));
             if (missing > 0) matter.put(need.getKey(), missing);
         }
         Map<Molecule.State, Integer> sorts = new java.util.EnumMap<>(Molecule.State.class);
@@ -3679,6 +3822,7 @@ public final class Game {
      */
     public double moleculeGain(String moleculeId) {
         Molecule molecule = molecule(moleculeId);
+        if (isMoleculeKindFull(moleculeId)) return 0;     // une sorte pleine ne peut plus rien rapporter
         int count = state.moleculeCount(molecule.id());
         int after = count + moleculesPerCreation(moleculeId);
         double more = effectiveAt(molecule, after) - effectiveAt(molecule, count);
@@ -3748,7 +3892,7 @@ public final class Game {
         }
         Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
         for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
-            int missing = needed.getValue() - gatheredInState(needed.getKey());
+            int missing = (int) Math.max(0, needed.getValue() - gatheredInState(needed.getKey()));
             if (missing > 0) matter.put(needed.getKey(), missing);
         }
         return new ShoppingList(ShoppingList.Kind.BODY, body.name(), canFormBody(body.id()), shoppingItems(wanted, purposes), matter, ready);
@@ -4044,16 +4188,16 @@ public final class Game {
      * Nombre de molécules rassemblées dans cet état, toutes sortes confondues, qu'elles soient
      * dans leur amas ou dans un assemblage : c'est la matière que demande un astre ({@link Body#matter()}).
      */
-    public int gatheredInState(Molecule.State matter) {
+    public long gatheredInState(Molecule.State matter) {
         if (gatheredByStateVersion != state.moleculesVersion()) {
             gatheredByStateVersion = state.moleculesVersion();
             gatheredByState.clear();
             for (String id : state.substances()) {
                 Molecule molecule = molecules.get(id);
-                if (molecule != null && molecule.hasState()) gatheredByState.merge(molecule.state(), state.moleculeCount(id), Integer::sum);
+                if (molecule != null && molecule.hasState()) gatheredByState.merge(molecule.state(), (long) state.moleculeCount(id), Long::sum);
             }
         }
-        return gatheredByState.getOrDefault(matter, 0);
+        return gatheredByState.getOrDefault(matter, 0L);
     }
 
     /** Nombre de conditions de cet astre déjà réunies, sur {@link #bodyConditions(String)}. */
@@ -4111,7 +4255,7 @@ public final class Game {
     // ------------------------------------------------------------------
 
     /** Ce que la galaxie ajoute à chacune des grandeurs une fois formée (1 024 = +102 400 %) : le double du trou noir supermassif. */
-    public static final double GALAXY_GAIN = Cosmos.GALAXY.gain();
+    public static final double GALAXY_FACTOR = Cosmos.GALAXY.factor();
 
     /** Nombre d'astres de cette échelle dans le catalogue. */
     public int bodiesIn(Body.Tier tier) {
@@ -4164,7 +4308,7 @@ public final class Game {
     /**
      * Forme la galaxie : tout ce que le joueur a créé, molécules, amas, assemblages et astres, se
      * met à tourner autour du trou noir supermassif. C'est un achat unique, qui ne consomme rien :
-     * les astres restent formés et gardent leur bonus. La galaxie ajoute {@link #GALAXY_GAIN} à
+     * les astres restent formés et gardent leur bonus. La galaxie multiplie par {@link #GALAXY_FACTOR}
      * chacune des grandeurs que les molécules augmentent, et rien ne la défait, ni l'explosion ni
      * le Big Bang.
      *
@@ -4210,6 +4354,7 @@ public final class Game {
     public boolean canFormCosmos(Cosmos scale) {
         if (scale == Cosmos.GALAXY) return canFormGalaxy();
         if (!state.started() || hasCosmos(scale) || !hasCosmos(scale.previous())) return false;
+        if (cosmosSettleRemaining(scale) > 0) return false;
         for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
             if (gatheredInState(need.getKey()) < need.getValue()) return false;
         }
@@ -4217,6 +4362,21 @@ public final class Game {
             if (sortsInState(need.getKey()) < need.getValue()) return false;
         }
         return true;
+    }
+
+    /**
+     * Temps de jeu qu'il faut laisser à l'échelle d'avant pour se rassembler avant de former l'amas,
+     * puis l'univers (version 0.73) : 45 minutes chacun. Un joueur qui réunit la matière plus vite
+     * attend ; l'infatigable, qui met déjà près d'une heure à chaque échelle, ne le voit pas.
+     */
+    public static final double COSMOS_SETTLE_SECONDS = 45 * 60;
+
+    /** Secondes de jeu qu'il reste avant que cette échelle puisse se former, 0 si le délai est passé. */
+    public double cosmosSettleRemaining(Cosmos scale) {
+        if (scale == Cosmos.GALAXY || !hasCosmos(scale.previous())) return 0;
+        double since = state.stats().reachedAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
+        if (Double.isNaN(since)) return 0;
+        return Math.max(0, since + COSMOS_SETTLE_SECONDS - state.timePlayed());
     }
 
     private final Map<Molecule.State, Integer> sortsByState = new java.util.EnumMap<>(Molecule.State.class);
@@ -4257,7 +4417,7 @@ public final class Game {
 
     /**
      * Forme cette échelle du cosmos. C'est un achat unique, qui ne consomme rien : la matière reste
-     * rassemblée, les astres restent formés. Elle ajoute {@link Cosmos#gain()} à chacune des
+     * rassemblée, les astres restent formés. Elle multiplie par {@link Cosmos#factor()} chacune des
      * grandeurs que la matière augmente, et rien ne la défait, ni l'explosion ni le Big Bang.
      *
      * @return {@code true} si elle a été formée
@@ -4755,8 +4915,13 @@ public final class Game {
     /** Vrai si cette amélioration s'offre : la première dès l'ouverture, les autres quand celle qui les ouvre a le niveau voulu. */
     public boolean isColliderUpgradeOpen(ColliderUpgrade upgrade) {
         if (!isColliderUpgradesUnlocked()) return false;
+        // La Superposition attend aussi le cinquième Big Bang (version 0.73) : jusque-là, les choix de l'arbre comptent.
+        if (upgrade == ColliderUpgrade.SUPERPOSITION && state.bigBangs() < SUPERPOSITION_BIG_BANGS) return false;
         return upgrade.requires() == null || state.colliderUpgradeLevel(upgrade.requires()) >= upgrade.requiredLevel();
     }
+
+    /** Big Bangs qu'il faut avoir déclenchés pour que la Superposition s'offre : cinq, le milieu du troisième acte. */
+    public static final int SUPERPOSITION_BIG_BANGS = 5;
 
     public double colliderUpgradeCost(ColliderUpgrade upgrade) {
         return upgrade.cost(state.colliderUpgradeLevel(upgrade));
@@ -5285,7 +5450,9 @@ public final class Game {
     private boolean buyCheapestDarkUpgrade() {
         if (inChallenge()) return false;
         for (DarkUpgrade upgrade : darkUpgrades.values()) {
-            if (!upgrade.hasLimit() && (!upgrade.branch().inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
+            if (!upgrade.hasLimit() && (!upgrade.inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
+            // Les bifurcations restent au joueur : c'est lui qui choisit sa voie (version 0.69).
+            if (upgrade.isFork()) continue;
             if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;
         }
         // Les niveaux suivants des cases sans fin (Densité, Noyau lourd…), seulement quand ils ne coûtent
@@ -5497,12 +5664,19 @@ public final class Game {
         return darkUpgrades.values();
     }
 
-    /** Les améliorations de matière noire d'une branche, dans l'ordre du catalogue. */
+    /** Les améliorations de matière noire d'une branche, dans l'ordre du catalogue, sans les liaisons. */
     public List<DarkUpgrade> darkUpgrades(DarkUpgrade.Branch branch) {
         List<DarkUpgrade> result = new ArrayList<>();
         for (DarkUpgrade dark : darkUpgrades.values()) {
-            if (dark.branch() == branch) result.add(dark);
+            if (dark.branch() == branch && !dark.isLink()) result.add(dark);
         }
+        return result;
+    }
+
+    /** Les liaisons entre branches (version 0.70), dans l'ordre du catalogue. */
+    public List<DarkUpgrade> darkLinks() {
+        List<DarkUpgrade> result = new ArrayList<>();
+        for (DarkUpgrade dark : darkUpgrades.values()) if (dark.isLink()) result.add(dark);
         return result;
     }
 
@@ -5516,18 +5690,60 @@ public final class Game {
     }
 
     /**
-     * Vrai si la case est accessible : la matière noire existe, le joueur en possède assez pour
-     * cette case, et la case du dessus est acquise (s'il y en a une).
+     * Vrai si la case est accessible : la matière noire existe et la case du dessus est acquise
+     * (s'il y en a une). Depuis la version 0.70, aucune case n'attend plus un nombre de matières noires
+     * gagnées : seuls les prix rythment l'arbre.
      */
     public boolean isDarkAvailable(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
-        return isDarkMatterUnlocked() && hasDarkMatterFor(darkUpgradeId)
-                && (dark.requires() == null || state.darkLevelOf(dark.requires()) > 0);
+        return isDarkMatterUnlocked() && hasDarkParent(dark) && darkForkRival(darkUpgradeId) == null;
     }
 
-    /** Vrai si le joueur a gagné la matière noire que demande cette case. */
-    public boolean hasDarkMatterFor(String darkUpgradeId) {
-        return darkMatterEarned().gte(BigNum.of(darkUpgrade(darkUpgradeId).darkMatter()));
+    /** Vrai si la case du dessus est acquise : une case ordinaire, ou l'une des voies d'une bifurcation. */
+    private boolean hasDarkParent(DarkUpgrade dark) {
+        if (dark.requires() == null) return true;
+        String fork = dark.requiredFork();
+        if (dark.isAccord()) {
+            for (String linked : dark.linkedIds()) if (state.darkLevelOf(linked) == 0) return false;
+            return true;
+        }
+        if (dark.isLink()) {
+            for (String linked : dark.linkedIds()) if (state.darkLevelOf(linked) > 0) return true;
+            return false;
+        }
+        if (fork == null) return state.darkLevelOf(dark.requires()) > 0;
+        for (DarkUpgrade other : darkUpgrades.values()) {
+            if (fork.equals(other.fork()) && state.darkLevelOf(other.id()) > 0) return true;
+        }
+        return false;
+    }
+
+    /**
+     * L'autre voie de la bifurcation, si le joueur l'a prise : elle ferme celle-ci jusqu'au prochain
+     * Big Bang (version 0.69). {@code null} si la case n'est pas une voie, ou si l'autre n'est pas prise.
+     */
+    public DarkUpgrade darkForkRival(String darkUpgradeId) {
+        DarkUpgrade dark = darkUpgrade(darkUpgradeId);
+        if (!dark.isFork() || hasSuperposition()) return null;
+        for (DarkUpgrade other : darkUpgrades.values()) {
+            if (other != dark && dark.fork().equals(other.fork()) && state.darkLevelOf(other.id()) > 0) return other;
+        }
+        return null;
+    }
+
+    /**
+     * Vrai une fois la « Superposition » du collisionneur prise (version 0.70) : les deux voies de chaque
+     * bifurcation se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre.
+     */
+    public boolean hasSuperposition() {
+        return colliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION) > 0;
+    }
+
+    /** Les voies d'une bifurcation, dans l'ordre du catalogue. */
+    public List<DarkUpgrade> darkForkOptions(String fork) {
+        List<DarkUpgrade> options = new ArrayList<>();
+        for (DarkUpgrade dark : darkUpgrades.values()) if (fork.equals(dark.fork())) options.add(dark);
+        return options;
     }
 
     /** Prix du prochain niveau, dans l'unité de sa branche (particules, atomes, ou mètres à atteindre). */
@@ -5591,6 +5807,78 @@ public final class Game {
     }
 
     /**
+     * Le niveau qui agit (version 0.70) : celui que possède le joueur, éteint par certains défis
+     * (« Présence », « Absence », « Branche coupée », « Tronc nu ») et doublé par certaines récompenses.
+     * Tous les effets de l'arbre passent par lui ; les prix et l'accès suivent le niveau possédé.
+     */
+    private int effectLevel(DarkUpgrade dark) {
+        int level = state.darkLevelOf(dark.id());
+        if (level == 0) return 0;
+        Style style = darkStyle(dark);
+        // « Présence » et « Absence » (corsés en 0.73) : seules agissent les voies et les accords du style, tout le
+        // reste de l'arbre est éteint. Avec les bonnes voies, le défi reste court ; sans, c'est presque un premier acte.
+        if (ruled(Challenge.Rule.PRESENCE_ONLY) && dark.branch() != DarkUpgrade.Branch.DARK_MATTER | dark.isLink()
+                && style != Style.PRESENCE) return 0;
+        if (ruled(Challenge.Rule.ABSENCE_ONLY) && dark.branch() != DarkUpgrade.Branch.DARK_MATTER | dark.isLink()
+                && style != Style.ABSENCE) return 0;
+        if (ruled(Challenge.Rule.CUT_BRANCH) && dark.branch() == DarkUpgrade.Branch.PARTICLES) return 0;
+        if (ruled(Challenge.Rule.BARE_TREE) && (dark.isFork() || dark.isLink())) return 0;
+        if (style == Style.PRESENCE && rewarded(Challenge.Reward.STRONGER_PRESENCE)) level *= 2;
+        if (style == Style.ABSENCE && rewarded(Challenge.Reward.STRONGER_ABSENCE)) level *= 2;
+        if (dark.isLink() && rewarded(Challenge.Reward.STRONGER_LINKS)) level *= 2;
+        return level;
+    }
+
+    /**
+     * Les deux styles de l'arbre (version 0.70). Dans chaque bifurcation, la voie de gauche est celle
+     * de la présence : la plus forte tant que le joueur est là. Celle de droite est celle de l'absence :
+     * un peu moins forte, mais chacune rend {@link #ABSENCE_VOIE_BONUS} de plus du temps passé jeu
+     * fermé ({@link #offlineRate()}). Un accord a le style de ses voies.
+     */
+    public enum Style { PRESENCE, ABSENCE, NONE }
+
+    /** Points de temps d'absence rejoué en plus que rend chaque voie d'absence prise : cinq. */
+    public static final double ABSENCE_VOIE_BONUS = 0.05;
+
+    /** Le style d'une case : celui de sa place dans sa bifurcation, ou de toutes les voies d'un accord. */
+    public Style darkStyle(DarkUpgrade dark) {
+        if (dark.isFork()) return darkForkOptions(dark.fork()).indexOf(dark) == 0 ? Style.PRESENCE : Style.ABSENCE;
+        if (dark.isAccord()) {
+            Style style = null;
+            for (String id : dark.linkedIds()) {
+                Style each = darkStyle(darkUpgrade(id));
+                if (style == null) style = each;
+                else if (style != each) return Style.NONE;
+            }
+            return style == null ? Style.NONE : style;
+        }
+        return Style.NONE;
+    }
+
+    /** Nombre de voies de ce style que possède le joueur. */
+    public int darkVoiesOwned(Style style) {
+        int count = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.isFork() && darkStyle(dark) == style && state.darkLevelOf(dark.id()) > 0) count++;
+        }
+        return count;
+    }
+
+    /** Ce que l'arbre ajoute à la part du temps d'absence rejouée : les voies d'absence, et l'accord d'absence. */
+    public double darkOfflineBonus() {
+        return this.<Double>darkMemo("offlineBonus", () -> {
+            double bonus = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                int level = effectLevel(dark);
+                if (level == 0) continue;
+                if (dark.isFork() && darkStyle(dark) == Style.ABSENCE) bonus += ABSENCE_VOIE_BONUS * level;
+                if (dark.effect() instanceof DarkEffect.OfflineBonus more) bonus += more.points() * level;
+            }
+            return bonus;
+        });
+    }
+
+    /**
      * Somme, sur les améliorations d'un type, de {@code par unité × niveau × matière noire gagnée} :
      * la forme commune des effets payés en matière noire.
      */
@@ -5598,7 +5886,7 @@ public final class Game {
         double total = this.<Double>darkMemo(key, () -> {
             double sum = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                int level = state.darkLevelOf(dark.id());
+                int level = effectLevel(dark);
                 if (level > 0) sum += perUnit.applyAsDouble(dark.effect()) * level;
             }
             return sum;
@@ -5642,7 +5930,7 @@ public final class Game {
     private boolean hasDark(Class<? extends DarkEffect> type) {
         return darkMemo(type, () -> {
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (type.isInstance(dark.effect()) && state.darkLevelOf(dark.id()) > 0) return true;
+                if (type.isInstance(dark.effect()) && effectLevel(dark) > 0) return true;
             }
             return false;
         });
@@ -5651,7 +5939,7 @@ public final class Game {
     /** Les cases possédées dont l'effet sur les particules suit la matière noire ou sa taille : peu nombreuses, parcourues à chaque calcul. */
     private List<DarkUpgrade> darkScaled() {
         return darkMemo("scaledParticles", () -> darkUpgrades.values().stream()
-                .filter(dark -> state.darkLevelOf(dark.id()) > 0
+                .filter(dark -> effectLevel(dark) > 0
                         && (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter || dark.effect() instanceof DarkEffect.ParticlesByLightYears))
                 .toList());
     }
@@ -5660,13 +5948,16 @@ public final class Game {
     // niveaux. Sans ce cache, chaque appel parcourait tout l'arbre, des milliers de fois par seconde
     // de jeu une fois les automatismes rapides : c'était le gros du temps du rattrapage d'absence.
     private final Map<Object, Object> darkMemo = new HashMap<>();
-    private int darkMemoVersion = -1;
+    private long darkMemoVersion = Long.MIN_VALUE;
 
     @SuppressWarnings("unchecked")
     private <T> T darkMemo(Object key, java.util.function.Supplier<T> compute) {
-        if (darkMemoVersion != state.darkVersion()) {
+        // Depuis la version 0.70, les défis et leurs récompenses changent ce que valent les cases : ils comptent aussi.
+        long stamp = state.darkVersion() * 1_000_003L + state.challengesVersion() * 31L
+                + (state.activeChallenge() == null ? 0 : state.activeChallenge().hashCode());
+        if (darkMemoVersion != stamp) {
             darkMemo.clear();
-            darkMemoVersion = state.darkVersion();
+            darkMemoVersion = stamp;
         }
         Object value = darkMemo.get(key);
         if (value == null) {
@@ -5682,7 +5973,7 @@ public final class Game {
             double added = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.AddAtomsPerFusion add) {
-                    added += add.perLevel() * state.darkLevelOf(dark.id());
+                    added += add.perLevel() * effectLevel(dark);
                 }
             }
             return added;
@@ -5695,7 +5986,7 @@ public final class Game {
             int added = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.AddElementsPerSynthesis add) {
-                    added += add.perLevel() * state.darkLevelOf(dark.id());
+                    added += add.perLevel() * effectLevel(dark);
                 }
             }
             return added;
@@ -5712,7 +6003,7 @@ public final class Game {
         BigNum result = this.<BigNum>darkMemo("baseParticles", () -> {
             BigNum base = BigNum.ONE;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                int level = state.darkLevelOf(dark.id());
+                int level = effectLevel(dark);
                 if (level > 0 && dark.effect() instanceof DarkEffect.MultiplyBaseParticles multiply) {
                     base = base.multiply(BigNum.of(multiply.perLevel()).pow(level));
                 }
@@ -5720,7 +6011,7 @@ public final class Game {
             return base;
         });
         for (DarkUpgrade dark : darkScaled()) {
-            int level = state.darkLevelOf(dark.id());
+            int level = effectLevel(dark);
             if (level == 0) continue;
             if (dark.effect() instanceof DarkEffect.ParticlesByDarkMatter byDarkMatter) {
                 result = result.multiply(BigNum.of(byDarkMatter.perUnit()).pow(darkMatterUnits() * level));
@@ -5738,7 +6029,7 @@ public final class Game {
             BigNum result = BigNum.ONE;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.MultiplyExpansion multiply) {
-                    result = result.multiply(BigNum.of(multiply.perLevel()).pow(state.darkLevelOf(dark.id())));
+                    result = result.multiply(BigNum.of(multiply.perLevel()).pow(effectLevel(dark)));
                 }
             }
             return result;
@@ -5750,7 +6041,7 @@ public final class Game {
         return darkMemo("autoExpansion", () -> {
             double share = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                int level = state.darkLevelOf(dark.id());
+                int level = effectLevel(dark);
                 if (dark.effect() instanceof DarkEffect.AutoExpansion auto && level > 0) {
                     share += auto.share() * Math.pow(auto.growth(), level - 1);
                 }
@@ -5765,7 +6056,7 @@ public final class Game {
             double seconds = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.FusionPulse pulse) {
-                    seconds += pulse.seconds() * state.darkLevelOf(dark.id());
+                    seconds += pulse.seconds() * effectLevel(dark);
                 }
             }
             return seconds;
@@ -5779,7 +6070,7 @@ public final class Game {
             int levels = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.StartingSpeedLevels start) {
-                    levels += start.perLevel() * state.darkLevelOf(dark.id());
+                    levels += start.perLevel() * effectLevel(dark);
                 }
             }
             return levels;
@@ -5791,7 +6082,7 @@ public final class Game {
         return darkMemo("guaranteedUnique", () -> {
             int rank = GUARANTEED_UNIQUE_SYNTHESIS;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.EarlierGuaranteedUnique earlier && state.darkLevelOf(dark.id()) > 0) {
+                if (dark.effect() instanceof DarkEffect.EarlierGuaranteedUnique earlier && effectLevel(dark) > 0) {
                     rank = Math.min(rank, earlier.rank());
                 }
             }
@@ -5810,7 +6101,7 @@ public final class Game {
             int sum = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.IncreaseMaxCopies more) {
-                    sum += more.perLevel() * state.darkLevelOf(dark.id());
+                    sum += more.perLevel() * effectLevel(dark);
                 }
             }
             return sum;
@@ -5935,7 +6226,19 @@ public final class Game {
      */
     public double speedMilestoneFactor(String upgradeId) {
         if (!(upgrade(upgradeId).effect() instanceof Effect.MultiplySpeed speed) || !speed.hasMilestones()) return 1;
-        return speed.milestoneFactor() + (rewarded(Challenge.Reward.STRONGER_MILESTONES) ? REWARD_MILESTONE_EXTRA : 0);
+        return speed.milestoneFactor() + (rewarded(Challenge.Reward.STRONGER_MILESTONES) ? REWARD_MILESTONE_EXTRA : 0)
+                + darkMilestoneExtra();
+    }
+
+    /** Ce que l'arbre ajoute au facteur de chaque palier de vitesse (version 0.73) : les voies de présence de l'élan. */
+    public double darkMilestoneExtra() {
+        return this.<Double>darkMemo("milestoneExtra", () -> {
+            double extra = 0;
+            for (DarkUpgrade dark : darkUpgrades.values()) {
+                if (dark.effect() instanceof DarkEffect.StrongerMilestones more) extra += more.extra() * effectLevel(dark);
+            }
+            return extra;
+        });
     }
 
     /**
@@ -6007,7 +6310,7 @@ public final class Game {
             int sum = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 if (dark.effect() instanceof DarkEffect.StartingGenerators start) {
-                    sum += start.perLevel() * state.darkLevelOf(dark.id());
+                    sum += start.perLevel() * effectLevel(dark);
                 }
             }
             return sum;
@@ -6023,7 +6326,7 @@ public final class Game {
         int uncapped = this.<Integer>darkMemo("maxGenerators", () -> {
             int limit = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.UncapGenerators uncap && state.darkLevelOf(dark.id()) > 0) {
+                if (dark.effect() instanceof DarkEffect.UncapGenerators uncap && effectLevel(dark) > 0) {
                     limit = Math.max(limit, uncap.limit());
                 }
             }

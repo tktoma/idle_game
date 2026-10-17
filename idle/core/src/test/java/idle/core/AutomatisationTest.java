@@ -287,7 +287,9 @@ class AutomatisationTest {
             for (DarkUpgrade upgrade : game.darkUpgrades()) {
                 int level = game.darkLevelOf(upgrade.id());
                 boolean tree = upgrade.branch().inTree();
-                if (upgrade.hasLimit()) {
+                if (upgrade.isFork()) {
+                    assertEquals(0, level, upgrade.id());              // une bifurcation reste au joueur (0.69)
+                } else if (upgrade.hasLimit()) {
                     // Tout ce qui a un dernier niveau y est porté, case ou boutique.
                     if (game.isDarkAvailable(upgrade.id())) assertEquals(upgrade.maxLevel(), level, upgrade.id());
                 } else if (!tree) {

@@ -164,6 +164,18 @@ final class AbsencePane extends StackPane {
         if (report.achievements() > 0) {
             lines.add(report.achievements() + (report.achievements() > 1 ? " succès obtenus" : " succès obtenu"));
         }
+        // Ce que l'arbre a fait à votre place (version 0.73) : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
+        if (!report.voies().isEmpty()) {
+            lines.add("Voies d'absence prises à votre place : " + String.join(", ", report.voies()));
+        }
+        if (!report.challengesStarted().isEmpty()) {
+            lines.add("L'accord d'absence a lancé " + (report.challengesStarted().size() > 1 ? "les défis " : "le défi ")
+                    + String.join(", ", report.challengesStarted()) + " ; " + report.challengesDone()
+                    + (report.challengesDone() > 1 ? " réussis" : " réussi"));
+        }
+        if (report.challengeRunning() != null) {
+            lines.add("Défi en cours : « " + report.challengeRunning() + " ». Vous pouvez l'abandonner dans Matière noire, Défis.");
+        }
         return lines;
     }
 }

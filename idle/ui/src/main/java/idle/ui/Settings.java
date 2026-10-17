@@ -189,7 +189,8 @@ public final class Settings {
         DARK_FALL("Chute de matière noire", "la spirale de matière qui tombe dans la matière noire"),
         COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille ; les faisceaux restent, ils servent à viser"),
         COLLIDER_SPARKS("Étincelles du collisionneur", "les gerbes au détecteur à chaque croisement"),
-        BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent");
+        BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent"),
+        UNIVERSE_MOTION("Animations de l'univers", "la toile de l'univers qui tourne et sa naissance");
 
         private final String label;
         private final String description;

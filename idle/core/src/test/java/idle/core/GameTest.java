@@ -2353,18 +2353,17 @@ class GameTest {
         }
 
         @Test
-        void chaqueMatiereNoireOuvreQuelqueChoseJusquALaCondensation() {
-            // Tant qu'une explosion ne rapporte qu'une matière noire, aucune ne doit rester sans rien ouvrir.
-            int condensation = DarkUpgrades.DEFAULT.stream()
-                    .filter(dark -> dark.effect() instanceof DarkEffect.AddDarkMatterPerExplosion)
-                    .mapToInt(DarkUpgrade::darkMatter).findFirst().orElseThrow();
-            for (int earned = 1; earned <= condensation; earned++) {
-                int threshold = earned;
-                boolean opens = DarkUpgrades.DEFAULT.stream().anyMatch(dark -> dark.branch().inTree() && dark.darkMatter() == threshold)
-                        || DarkAutomations.DEFAULT.stream().anyMatch(automation -> automation.darkMatter().toDouble() == threshold)
-                        || Challenges.DEFAULT.stream().anyMatch(challenge -> challenge.darkMatter() == threshold);
-                assertTrue(opens, "rien ne s'ouvre a " + threshold + " matieres noires");
+        void lArbreNAttendAucuneMatiereNoire() {
+            // Depuis la version 0.70, plus aucun seuil : une seule matière noire, et chaque case dont celle du
+            // dessus est prise s'offre. Seuls les prix rythment l'arbre.
+            Game game = newGame();
+            game.state().setExplosions(1);
+            game.state().setDarkMatter(BigNum.ONE);
+            for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
+                if (dark.requires() == null) assertTrue(game.isDarkAvailable(dark.id()), dark.id());
             }
+            game.state().setDarkLevel("dark_overflow", 1);
+            assertTrue(game.isDarkAvailable("dark_gravity"));            // autrefois à 30 matières noires
         }
 
         @Test
@@ -2473,6 +2472,163 @@ class GameTest {
             game.state().setDarkMatter(BigNum.of(darkMatter));
             game.state().setExplosions(darkMatter);
             return game;
+        }
+
+        /** Les bifurcations (0.69) : prendre une voie ferme l'autre ; la case d'après demande l'une ou l'autre. */
+        @Test
+        void uneBifurcationFermeLAutreVoie() {
+            Game game = gameWithDarkMatter(12);
+            for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
+            game.state().setAtoms(BigNum.of(5000));
+            assertEquals(List.of("dark_rich_fusion", "dark_fine_synthesis"), game.darkForkOptions("matiere").stream().map(DarkUpgrade::id).toList());
+            assertTrue(game.canBuyDark("dark_rich_fusion") && game.canBuyDark("dark_fine_synthesis"));
+            assertFalse(game.isDarkAvailable("dark_machines"));            // la case d'après attend une voie
+            int before = game.elementsPerSynthesis();
+            assertTrue(game.buyDark("dark_fine_synthesis"));
+            assertEquals(before + 2, game.elementsPerSynthesis());   // deux éléments depuis la 0.70
+            assertEquals("dark_fine_synthesis", game.darkForkRival("dark_rich_fusion").id());
+            assertFalse(game.isDarkAvailable("dark_rich_fusion"));
+            assertFalse(game.buyDark("dark_rich_fusion"));                  // l'autre voie est fermée
+            assertTrue(game.isDarkAvailable("dark_machines"));              // l'une des deux suffit
+        }
+
+        @Test
+        void uneLiaisonSOuvreParLUneOuLAutreDeSesVoies() {
+            Game game = gameWithDarkMatter(20);
+            DarkUpgrade link = DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("link_nuclei")).findFirst().orElseThrow();
+            assertTrue(link.isLink() && link.inTree() && !link.branch().inTree());
+            assertEquals(List.of("dark_burst", "dark_rich_fusion"), link.linkedIds());
+            assertFalse(game.isDarkAvailable("link_nuclei"));                // aucune des deux voies
+            game.state().setDarkLevel("dark_rich_fusion", 1);               // la voie de gauche des atomes
+            assertTrue(game.canBuyDark("link_nuclei"));
+            double before = game.darkAtomsPerFusion();
+            assertTrue(game.buyDark("link_nuclei"));
+            assertEquals(before + 4, game.darkAtomsPerFusion(), 1e-9);
+            assertValue(14, game.state().darkMatter());                     // payée en matière noire
+            assertFalse(game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER).contains(link));
+            assertEquals(10, game.darkLinks().size());
+            Game other = gameWithDarkMatter(20);
+            other.state().setDarkLevel("dark_burst", 1);                    // ou la voie de droite des particules
+            assertTrue(other.canBuyDark("link_nuclei"));
+            assertFalse(other.isDarkAvailable("link_flow"));                // celle de gauche n'a qu'une voie
+        }
+
+        @Test
+        void unAccordDemandeSesTroisVoies() {
+            Game game = gameWithDarkMatter(30);
+            assertEquals(Game.Style.PRESENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_flow")).findFirst().orElseThrow()));
+            assertEquals(Game.Style.ABSENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_burst")).findFirst().orElseThrow()));
+            game.state().setDarkLevel("dark_flow", 1);
+            game.state().setDarkLevel("dark_rich_fusion", 1);
+            assertFalse(game.isDarkAvailable("accord_presence"));            // il en manque une
+            game.state().setDarkLevel("dark_steady", 1);
+            assertTrue(game.canBuyDark("accord_presence"));
+            assertFalse(game.isDarkAvailable("accord_absence"));
+            assertEquals(3, game.darkVoiesOwned(Game.Style.PRESENCE));
+        }
+
+        @Test
+        void lesVoiesDAbsenceRendentDuTempsDAbsence() {
+            Game game = gameWithDarkMatter(30);
+            double before = game.offlineRate();
+            game.state().setDarkLevel("dark_burst", 1);
+            game.state().setDarkLevel("dark_fine_synthesis", 1);
+            game.state().setDarkLevel("dark_echo", 1);
+            assertEquals(before + 3 * Game.ABSENCE_VOIE_BONUS, game.offlineRate(), 1e-9);
+            game.state().setDarkLevel("dark_flow", 1);                      // une voie de présence n'y change rien
+            assertEquals(before + 3 * Game.ABSENCE_VOIE_BONUS, game.offlineRate(), 1e-9);
+            for (String id : List.of("dark_shadow_echo", "dark_double_synthesis", "dark_harvest")) game.state().setDarkLevel(id, 1);
+            game.state().setDarkMatter(BigNum.of(60));
+            assertTrue(game.buyDark("accord_absence_2"));
+            assertEquals(before + 6 * Game.ABSENCE_VOIE_BONUS + 0.10, game.offlineRate(), 1e-9);
+        }
+
+        @Test
+        void lAccordDAbsenceTenteLesDefisPendantLAbsence() {
+            Game game = gameWithDarkMatter(30);
+            game.start();
+            game.tick(0.1);
+            game.state().stats().restartRun();
+            game.tickAway(0.1);
+            assertEquals(null, game.activeChallenge());                    // sans l'accord, rien
+            for (String id : List.of("dark_burst", "dark_fine_synthesis", "dark_echo", "accord_absence")) game.state().setDarkLevel(id, 1);
+            game.tick(0.1);
+            assertEquals(null, game.activeChallenge());                    // jeu ouvert, rien non plus
+            game.tickAway(0.1);
+            assertEquals("challenge_rust", game.activeChallenge().id());  // le premier défi ouvert
+        }
+
+        @Test
+        void leDefiPresenceNeLaisseAgirQueLesVoiesDePresence() {
+            Game game = gameWithDarkMatter(400);
+            game.state().setDarkLevel("dark_multisynthesis", 2);            // case ordinaire : +2 éléments
+            game.state().setDarkLevel("dark_fine_synthesis", 1);            // voie d'absence : +2 éléments
+            game.state().setDarkLevel("dark_rich_fusion", 1);               // voie de présence : +25 atomes
+            int with = game.elementsPerSynthesis();
+            double atoms = game.darkAtomsPerFusion();
+            assertTrue(game.startChallenge("challenge_presence"));
+            assertEquals(with - 4, game.elementsPerSynthesis());              // tout s'éteint, sauf la présence (0.73)
+            assertEquals(25, game.darkAtomsPerFusion(), 1e-9);
+            assertValue(Game.STYLE_CHALLENGE_WEIGHT.toDouble(), game.tableWeight());   // et le tableau est lourd
+            game.abandonChallenge();
+            assertEquals(with, game.elementsPerSynthesis());
+            assertEquals(atoms, game.darkAtomsPerFusion(), 1e-9);
+            game.state().addCompletedChallenge("challenge_absence");        // récompense : les voies d'absence comptent double
+            assertEquals(with + 2, game.elementsPerSynthesis());
+            assertFalse(gameWithDarkMatter(299).isChallengeUnlocked("challenge_presence"));   // ouvert à 300 matières noires
+        }
+
+        @Test
+        void enAbsenceUneBifurcationSansChoixPrendSaVoieDAbsence() {
+            Game game = gameWithDarkMatter(12);
+            for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
+            game.state().setAtoms(BigNum.of(5000));
+            game.start();
+            game.tick(0.1);
+            assertEquals(0, game.darkLevelOf("dark_fine_synthesis"));          // jeu ouvert : rien
+            game.tickAway(0.1);
+            assertEquals(1, game.darkLevelOf("dark_fine_synthesis"));          // la voie d'absence
+            assertEquals(0, game.darkLevelOf("dark_rich_fusion"));
+            assertEquals(List.of("Synthèse fine"), game.takeAwayVoies());
+            assertTrue(game.takeAwayVoies().isEmpty());                          // dit une seule fois
+        }
+
+        @Test
+        void lesVoiesDePresenceRenforcentLesPaliersDeVitesse() {
+            Game game = gameWithDarkMatter(12);
+            assertEquals(0, game.darkMilestoneExtra(), 1e-9);
+            game.state().setDarkLevel("dark_flow", 1);                          // voie de présence du tempo : +0,5
+            assertEquals(0.5, game.darkMilestoneExtra(), 1e-9);
+            game.state().setDarkLevel("dark_impetus", 1);                       // et la Poussée : +1
+            assertEquals(1.5, game.darkMilestoneExtra(), 1e-9);
+            game.state().setDarkLevel("dark_shadow_echo", 1);                   // l'Écho sombre, voie d'absence : moins, +0,3
+            assertEquals(1.8, game.darkMilestoneExtra(), 1e-9);
+        }
+
+        @Test
+        void laSuperpositionAttendLeCinquiemeBigBang() {
+            Game game = gameWithDarkMatter(12);
+            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.FLAVOR_TOP, 1);
+            game.state().setBigBangs(Game.SUPERPOSITION_BIG_BANGS - 1);
+            assertFalse(game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
+            game.state().setBigBangs(Game.SUPERPOSITION_BIG_BANGS);
+            assertEquals(game.isColliderUpgradesUnlocked(), game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
+        }
+
+        @Test
+        void laSuperpositionOuvreLesDeuxVoies() {
+            Game game = gameWithDarkMatter(12);
+            for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
+            game.state().setAtoms(BigNum.of(5000));
+            assertTrue(game.buyDark("dark_fine_synthesis"));
+            assertFalse(game.canBuyDark("dark_rich_fusion"));
+            assertFalse(game.hasSuperposition());
+            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.SUPERPOSITION, 1);
+            assertTrue(game.hasSuperposition());
+            assertTrue(game.darkForkRival("dark_rich_fusion") == null);
+            assertTrue(game.buyDark("dark_rich_fusion"));                     // les deux voies
+            assertEquals(1, game.darkLevelOf("dark_fine_synthesis"));
+            assertEquals(idle.core.collider.ColliderUpgrade.FLAVOR_TOP, idle.core.collider.ColliderUpgrade.SUPERPOSITION.requires());
         }
 
         @Test
@@ -2682,25 +2838,35 @@ class GameTest {
         void troisBranchesDontChaqueCaseDemandeCelleDuDessus() {
             Map<DarkUpgrade.Branch, Integer> count = new EnumMap<>(DarkUpgrade.Branch.class);
             Map<DarkUpgrade.Branch, String> previous = new EnumMap<>(DarkUpgrade.Branch.class);
+            Map<String, String> forkParent = new java.util.HashMap<>();
             for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
+                if (dark.isLink()) continue;                    // les liaisons (0.70) sont vérifiées à part
                 count.merge(dark.branch(), 1, Integer::sum);
                 if (!dark.branch().inTree()) continue;         // celles payées en matière noire ne sont pas dans l'arbre
-                assertEquals(previous.get(dark.branch()), dark.requires());   // la case du dessus
-                if (dark.requires() != null) {                 // plus on descend, plus il faut de matière noire
-                    int above = DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals(dark.requires()))
-                            .findFirst().orElseThrow().darkMatter();
-                    assertTrue(dark.darkMatter() >= above, () -> dark.name());
-                } else {
-                    assertEquals(1, dark.darkMatter());        // la première case de chaque branche : dès la première explosion
+                // Une bifurcation (0.69) : ses deux voies partent de la même case ; la case d'après demande la bifurcation.
+                if (dark.isFork()) {
+                    String fork = DarkUpgrade.FORK_PREFIX + dark.fork();
+                    if (!fork.equals(previous.get(dark.branch()))) {
+                        assertEquals(previous.get(dark.branch()), dark.requires());
+                        previous.put(dark.branch(), fork);
+                        forkParent.put(dark.fork(), dark.requires());
+                    } else {
+                        assertEquals(forkParent.get(dark.fork()), dark.requires());   // l'autre voie, à côté de la première
+                    }
+                    continue;
                 }
+                assertEquals(previous.get(dark.branch()), dark.requires());   // la case du dessus
                 previous.put(dark.branch(), dark.id());
             }
-            assertEquals(8, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
-            assertEquals(7, count.get(DarkUpgrade.Branch.ATOMS).intValue());
-            assertEquals(6, count.get(DarkUpgrade.Branch.SIZE).intValue());
+            assertEquals(13, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
+            assertEquals(12, count.get(DarkUpgrade.Branch.ATOMS).intValue());
+            assertEquals(13, count.get(DarkUpgrade.Branch.SIZE).intValue());
             assertEquals(6, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
-            assertEquals(27, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
-            assertEquals(27, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
+            assertEquals(7, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::fork).filter(java.util.Objects::nonNull).distinct().count());
+            assertEquals(10, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isLink).count());   // six liaisons, quatre accords
+            assertEquals(4, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isAccord).count());
+            assertEquals(54, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
+            assertEquals(54, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
         }
 
         @Test
@@ -2715,7 +2881,7 @@ class GameTest {
         @Test
         void uneCaseDemandeCelleDuDessus() {
             Game game = darkGame();
-            game.state().setParticles(BigNum.of(1, 30));
+            game.state().setParticles(BigNum.of(1, 45));
             assertTrue(game.isDarkAvailable("dark_density"));
             assertFalse(game.isDarkAvailable("dark_swarm"));
             assertFalse(game.buyDark("dark_swarm"));
@@ -2725,17 +2891,14 @@ class GameTest {
         }
 
         @Test
-        void uneCaseDemandeAssezDeMatiereNoire() {
+        void uneCaseNAttendQueSaCaseDuDessus() {
             Game game = darkGame();
             game.state().setDarkMatter(BigNum.ONE);           // juste après la première explosion
-            game.state().setParticles(BigNum.of(1, 30));
-            assertTrue(game.buyDark("dark_density"));          // la première case : 1 matière noire suffit
-            assertFalse(game.hasDarkMatterFor("dark_swarm"));  // la deuxième en demande 2
-            assertFalse(game.isDarkAvailable("dark_swarm"));
-            assertFalse(game.buyDark("dark_swarm"));
-            game.state().setDarkMatter(BigNum.of(2));
-            assertTrue(game.buyDark("dark_swarm"));
-            assertEquals(2, game.state().darkMatter().toDouble()); // la matière noire n'est pas dépensée
+            game.state().setParticles(BigNum.of(1, 45));
+            assertFalse(game.isDarkAvailable("dark_swarm"));   // la case du dessus manque
+            assertTrue(game.buyDark("dark_density"));
+            assertTrue(game.buyDark("dark_swarm"));            // une seule matière noire suffit depuis la 0.70
+            assertEquals(1, game.state().darkMatter().toDouble()); // la matière noire n'est pas dépensée
         }
 
         @Test
@@ -2795,16 +2958,16 @@ class GameTest {
 
         @Test
         void catalogueIncoherentRefuse() {
-            DarkUpgrade orphan = new DarkUpgrade("a", "A", DarkUpgrade.Branch.ATOMS, BigNum.ONE, 1, 1, "absent", 0,
+            DarkUpgrade orphan = new DarkUpgrade("a", "A", DarkUpgrade.Branch.ATOMS, BigNum.ONE, 1, 1, "absent",
                     new DarkEffect.UncapAtoms());
             assertThrows(IllegalArgumentException.class,
                     () -> new Game(new GameState(), List.of(SPEED), List.of(), List.of(orphan), new Random(1)));
-            DarkUpgrade root = new DarkUpgrade("a", "A", DarkUpgrade.Branch.ATOMS, BigNum.ONE, 1, 1, null, 0,
+            DarkUpgrade root = new DarkUpgrade("a", "A", DarkUpgrade.Branch.ATOMS, BigNum.ONE, 1, 1, null,
                     new DarkEffect.UncapAtoms());
             assertThrows(IllegalArgumentException.class,
                     () -> new Game(new GameState(), List.of(SPEED), List.of(), List.of(root, root), new Random(1)));
             assertThrows(IllegalArgumentException.class, () -> new DarkUpgrade("a", "A", DarkUpgrade.Branch.ATOMS,
-                    BigNum.ZERO, 1, 1, null, 0, new DarkEffect.UncapAtoms()));
+                    BigNum.ZERO, 1, 1, null, new DarkEffect.UncapAtoms()));
             assertThrows(IllegalArgumentException.class, () -> newGame().buyDark("inconnue"));
         }
 
@@ -3796,7 +3959,7 @@ class GameTest {
                 assertEquals(null, dark.requires());
                 assertTrue(game.isDarkAvailable(dark.id()));   // dès la première matière noire
             }
-            assertEquals(8, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());
+            assertEquals(13, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());
         }
 
         @Test
@@ -3840,12 +4003,10 @@ class GameTest {
             Game game = gameWithDarkMatter(3);
             double momentum = game.darkMatterMomentum();
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
-            assertTrue(game.hasDarkMatterFor("dark_swarm"));
             assertTrue(game.buyDark("dark_shop_synthesis"));      // 2 matières noires
             assertTrue(game.buyDark("dark_shop_atoms"));          // et la dernière : tout y passe
             assertValue(0, game.state().darkMatter());
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
-            assertTrue(game.hasDarkMatterFor("dark_swarm"));
             assertEquals(momentum, game.darkMatterMomentum(), 1e-12);
             assertTrue(game.growDarkMatter(1));
         }
@@ -5129,12 +5290,12 @@ class GameTest {
         }
 
         @Test
-        void ilYASixDefisChacunAvecSaContrainteEtSaRecompense() {
+        void ilYADixDefisChacunAvecSaContrainteEtSaRecompense() {
             Game game = darkGame(100);
-            assertEquals(6, game.challenges().size());
-            assertEquals(6, game.challenges().stream().map(Challenge::id).distinct().count());
-            assertEquals(6, game.challenges().stream().map(Challenge::rule).distinct().count());
-            assertEquals(6, game.challenges().stream().map(Challenge::reward).distinct().count());
+            assertEquals(10, game.challenges().size());     // quatre de plus en 0.70
+            assertEquals(10, game.challenges().stream().map(Challenge::id).distinct().count());
+            assertEquals(10, game.challenges().stream().map(Challenge::rule).distinct().count());
+            assertEquals(10, game.challenges().stream().map(Challenge::reward).distinct().count());
             int previous = 0;
             for (Challenge challenge : game.challenges()) {    // du plus accessible au plus exigeant
                 assertTrue(challenge.darkMatter() >= previous);
@@ -6193,17 +6354,37 @@ class GameTest {
         }
 
         @Test
+        void avecLaSuperpositionLesVoiesEtLesLiaisonsRestentAuBigBang() {
+            Game game = readyGame();
+            game.state().setBigBangs(4);
+            game.state().setDarkMatterSpent(BigNum.of(102));
+            game.state().setDarkLevel("dark_overflow", 1);
+            game.state().setDarkLevel("dark_gravity", 1);
+            game.state().setDarkLevel("dark_harvest", 1);
+            game.state().setDarkLevel("link_elements", 1);
+            game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.SUPERPOSITION, 1);
+            assertTrue(game.bigBang());
+            assertEquals(1, game.darkLevelOf("dark_gravity"));
+            assertEquals(1, game.darkLevelOf("dark_harvest"));
+            assertEquals(1, game.darkLevelOf("link_elements"));
+            assertValue(102, game.darkMatterEarned());
+        }
+
+        @Test
         void leCinquiemeBigBangGardeLArbreDeMatiereNoire() {
             Game game = readyGame();
             game.state().setBigBangs(4);
             game.state().setLevel("speed", 12);
             game.state().setElementCount(1, 3);
-            game.state().setDarkMatterSpent(BigNum.of(77));
+            game.state().setDarkMatterSpent(BigNum.of(102));   // dont 25 pour la liaison, rendus au Big Bang
+            game.state().setDarkLevel("link_elements", 1);
             game.state().setDarkMatterSize(BigNum.of(1, 30));
             game.state().setExplosions(60);
             game.state().setTableWeightLevel(9);
             game.state().setDarkLevel("dark_density", 4);
             game.state().setDarkLevel("dark_overflow", 1);
+            game.state().setDarkLevel("dark_gravity", 1);
+            game.state().setDarkLevel("dark_horizon", 2);
             game.state().setDarkAutomationEnabled("dark_auto_explosion", true);
             game.state().setHoldLocked(true);
 
@@ -6215,6 +6396,11 @@ class GameTest {
             // L'arbre est resté : ses cases, ce qu'elles ont coûté, ses automatismes, ses réglages.
             assertEquals(4, game.darkLevelOf("dark_density"));
             assertEquals(1, game.darkLevelOf("dark_overflow"));
+            // Les bifurcations se rouvrent (0.69) : la voie prise est rendue, ce qui la suivait reste.
+            assertEquals(0, game.darkLevelOf("dark_gravity"));
+            assertEquals(2, game.darkLevelOf("dark_horizon"));
+            assertTrue(game.darkForkRival("dark_harvest") == null);
+            assertEquals(0, game.darkLevelOf("link_elements"));     // la liaison repart avec les voies (0.70)
             assertValue(77, game.darkMatterEarned());
             assertTrue(game.state().isDarkAutomationEnabled("dark_auto_explosion"));
             assertTrue(game.state().holdLocked());
@@ -8088,7 +8274,7 @@ class GameTest {
                 // De la matière dans un état : des molécules rassemblées de la première sorte du catalogue qui a cet état.
                 Molecule molecule = game.molecules().stream().filter(each -> each.state() == matter.getKey()).findFirst().orElseThrow();
                 game.state().addSubstance(molecule.id());
-                int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                 if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
             }
             // Une matière exotique attend le huitième Big Bang.
@@ -8127,13 +8313,14 @@ class GameTest {
         void apresLaGalaxieViennentLAmasDeGalaxiesPuisLUnivers() {
             Game game = game();
             assertEquals(List.of(Cosmos.GALAXY, Cosmos.CLUSTER, Cosmos.UNIVERSE), List.of(Cosmos.values()));
-            assertEquals(Game.GALAXY_GAIN, Cosmos.GALAXY.gain(), 0);
-            // Chaque échelle double la précédente, et demande dix fois plus de matière que celle d'avant.
-            assertEquals(2 * Cosmos.GALAXY.gain(), Cosmos.CLUSTER.gain(), 0);
-            assertEquals(2 * Cosmos.CLUSTER.gain(), Cosmos.UNIVERSE.gain(), 0);
+            // Depuis la 0.68, chaque échelle multiplie : ×4, puis ×2, puis ×2 ; l'univers demande quatre fois la matière de l'amas.
+            assertEquals(4, Game.GALAXY_FACTOR, 0);
+            assertEquals(Game.GALAXY_FACTOR, Cosmos.GALAXY.factor(), 0);
+            assertEquals(2, Cosmos.CLUSTER.factor(), 0);
+            assertEquals(2, Cosmos.UNIVERSE.factor(), 0);
             assertTrue(Cosmos.GALAXY.matter().isEmpty());
             for (Molecule.State state : Molecule.State.values()) {
-                assertEquals(10L * Cosmos.CLUSTER.matter().get(state), (long) Cosmos.UNIVERSE.matter().get(state), state.name());
+                assertEquals(4L * Cosmos.CLUSTER.matter().get(state), (long) Cosmos.UNIVERSE.matter().get(state), state.name());
             }
             assertTrue(Cosmos.GALAXY.previous() == null);
             assertEquals(Cosmos.CLUSTER, Cosmos.GALAXY.next());
@@ -8159,41 +8346,59 @@ class GameTest {
             assertTrue(game.isCosmosUnlocked(Cosmos.CLUSTER) && !game.isCosmosUnlocked(Cosmos.UNIVERSE));
             assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la galaxie et les sortes ; la moitié de la matière ne suffit pas
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
+            assertEquals(0, game.cosmosMilestones());                      // aucun état réuni : aucun jalon
             gather(game, Cosmos.CLUSTER, 1);
             Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS) - 1);    // il en manque une
             assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            // Les jalons (0.68) : un par état réuni, +10 % à toutes les grandeurs chacun.
+            assertEquals(4, game.cosmosMilestones());
+            assertFalse(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.GAS));
+            assertTrue(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.LIQUID));
+            double withFour = game.matterBoost(Molecule.Stat.ATOMS);
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS));
+            assertEquals(5, game.cosmosMilestones());
+            assertEquals(withFour * 1.1, game.matterBoost(Molecule.Stat.ATOMS), withFour * 0.02);   // le gaz ajoute aussi un peu de matière lui-même
+            assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withFour * 1.1 - 1e-9);
+            // Le délai de rassemblement (0.73) : 45 minutes après la galaxie.
+            double galaxyAt = game.stats().reachedAt(GameStats.Step.GALAXY);
+            assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
+            assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
+            game.state().setTimePlayed(galaxyAt + Game.COSMOS_SETTLE_SECONDS);
+            assertEquals(0, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
             assertTrue(game.canFormCosmos(Cosmos.CLUSTER));
             assertFalse(game.canFormCosmos(Cosmos.UNIVERSE));             // pas d'univers sans l'amas
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
-            int molecules = game.moleculesCreated();
+            long molecules = game.moleculesCreated();
             game.state().setTimePlayed(7000);
             assertTrue(game.formCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
-            // Rien n'est consommé, et toutes les grandeurs gagnent le double de la galaxie.
+            // Rien n'est consommé, et toutes les grandeurs doublent (0.68 : avant, l'amas ajoutait 2 048).
             assertEquals(molecules, game.moleculesCreated());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
-                assertEquals(before[stat.ordinal()] + 2048, game.matterBoost(stat), 1e-6, stat.name());
+                assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
             }
             assertEquals(7000, game.stats().reachedAt(GameStats.Step.CLUSTER), 1e-9);
             assertFalse(game.stats().reached(GameStats.Step.UNIVERSE));
 
-            // L'univers : dix fois plus, et c'est la fin.
+            // L'univers : quatre fois plus, et c'est la fin.
             assertEquals(Cosmos.UNIVERSE, game.nextCosmos());
             assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));    // l'amas et les sortes, réunies plus haut
             gather(game, Cosmos.UNIVERSE, 1);
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
             game.state().setTimePlayed(9000);
+            assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé à 7 000 s, se rassemble encore
+            game.state().setTimePlayed(9800);
             assertTrue(game.formCosmos(Cosmos.UNIVERSE));
             assertEquals(3, game.cosmosFormed());
             assertTrue(game.nextCosmos() == null);
             assertEquals(11, game.cosmosConditionsMet(Cosmos.UNIVERSE));
-            assertEquals(9000, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
+            assertEquals(9800, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
+            assertEquals(10, game.cosmosMilestones());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
-                assertEquals(before[stat.ordinal()] + 4096, game.matterBoost(stat), 1e-6, stat.name());
+                assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
             }
             // Ni l'explosion ni le Big Bang ne les défont ; défaire la galaxie défait tout ce qui est au-dessus.
             game.state().clearMatter();
@@ -8206,23 +8411,33 @@ class GameTest {
         }
 
         @Test
-        void leNombreDeMoleculesAUnPlafondEnTout() {
+        void leNombreDeMoleculesDepasseDeuxMilliardsEnTout() {
             Game game = game();
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setSpace(BigNum.of(1, 30));
             Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
-            Molecule liquid = game.molecules().stream().filter(each -> each.state() == Molecule.State.LIQUID).findFirst().orElseThrow();
+            List<Molecule> liquids = game.molecules().stream().filter(each -> each.state() == Molecule.State.LIQUID).limit(2).toList();
+            Molecule liquid = liquids.get(0);
+            Molecule other = liquids.get(1);
             game.state().addSubstance(gas.id());
             game.state().addSubstance(liquid.id());
+            game.state().addSubstance(other.id());
             game.state().setMoleculeCount(gas.id(), Game.MAX_MOLECULES);
-            game.state().setMoleculeCount(liquid.id(), Game.MAX_TOTAL_MOLECULES - Game.MAX_MOLECULES - 5);
-            // Un amas d'un milliard attire des dizaines de milliers de molécules : il n'en entre que ce que le total permet.
-            assertEquals(5, game.moleculesPerCreation(liquid.id()));
-            assertTrue(game.createMolecule(liquid.id()));
-            assertEquals(Game.MAX_TOTAL_MOLECULES, game.moleculesCreated());
+            game.state().setMoleculeCount(liquid.id(), Game.MAX_MOLECULES);
+            game.state().setMoleculeCount(other.id(), Game.MAX_MOLECULES - 5);
+            // Deux milliards en tout ne bloquent plus rien : seule une sorte pleine (un milliard) s'arrête.
             assertFalse(game.canCreateMolecule(liquid.id()));
-            assertFalse(game.createMolecule("H2O"));
-            assertEquals(Game.MAX_TOTAL_MOLECULES, game.gatheredInState(Molecule.State.GAS) + game.gatheredInState(Molecule.State.LIQUID));
+            assertTrue(game.isMoleculeKindFull(liquid.id()));
+            assertEquals(0, game.moleculeGain(liquid.id()));
+            assertFalse(game.isMoleculeKindFull(other.id()));
+            assertEquals(5, game.moleculesPerCreation(other.id()));
+            assertTrue(game.createMolecule(other.id()));
+            assertEquals(3L * Game.MAX_MOLECULES, game.moleculesCreated());
+            assertEquals(2L * Game.MAX_MOLECULES, game.gatheredInState(Molecule.State.LIQUID));
+            assertEquals(gas.id(), game.state().moleculeAt(0));
+            assertEquals(other.id(), game.state().moleculeAt(3L * Game.MAX_MOLECULES - 1));
+            assertEquals(Integer.MAX_VALUE, game.state().moleculeLog().size());
+            assertFalse(game.canCreateMolecule(other.id()));
         }
 
         @Test
@@ -8354,7 +8569,7 @@ class GameTest {
             assertTrue(game.canFormGalaxy());
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.moleculeBoost(stat);
-            int molecules = game.moleculesCreated();
+            long molecules = game.moleculesCreated();
             assertFalse(game.stats().reached(GameStats.Step.GALAXY));
             assertTrue(game.stats().reached(GameStats.Step.FIRST_BODY));
             double firstBody = game.stats().reachedAt(GameStats.Step.FIRST_BODY);
@@ -8363,17 +8578,17 @@ class GameTest {
             assertEquals(firstBody + 9000, game.stats().reachedAt(GameStats.Step.GALAXY), 1e-9);
             assertEquals(firstBody, game.stats().reachedAt(GameStats.Step.FIRST_BODY), 1e-9);
             assertTrue(game.hasGalaxy() && !game.canFormGalaxy() && !game.formGalaxy());
-            // Rien n'est consommé, et toutes les grandeurs gagnent autant : le double du trou noir supermassif.
+            // Rien n'est consommé, et toutes les grandeurs sont multipliées d'autant (0.68 : avant, la galaxie s'y ajoutait).
             assertEquals(35, game.bodiesFormed());
             assertEquals(molecules, game.moleculesCreated());
-            assertEquals(2 * Body.Tier.CORE.gain(), Game.GALAXY_GAIN, 0);
+            assertEquals(0, game.cosmosMilestones());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
-                // L'espace : la matière exotique a demandé le huitième Big Bang, dont les paliers multiplient aussi ce gain.
+                // L'espace : la matière exotique a demandé le huitième Big Bang, dont les paliers multiplient aussi l'espace.
                 if (stat == Molecule.Stat.SPACE) {
-                    assertTrue(game.moleculeBoost(stat) - before[stat.ordinal()] >= Game.GALAXY_GAIN, stat.name());
+                    assertTrue(game.moleculeBoost(stat) >= before[stat.ordinal()] * Game.GALAXY_FACTOR, stat.name());
                     continue;
                 }
-                assertEquals(before[stat.ordinal()] + Game.GALAXY_GAIN, game.moleculeBoost(stat), 1e-6, stat.name());
+                assertEquals(before[stat.ordinal()] * Game.GALAXY_FACTOR, game.moleculeBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
             }
         }
 
@@ -8569,7 +8784,7 @@ class GameTest {
             Game game = game();
             supply(game, "rocky_rubble");
             int quartz = game.moleculeCount("SiO2");
-            int crystals = game.gatheredInState(Molecule.State.CRYSTAL);
+            long crystals = game.gatheredInState(Molecule.State.CRYSTAL);
             assertTrue(game.formBody("rocky_rubble"));
             assertEquals(quartz, game.moleculeCount("SiO2"));
             assertEquals(crystals, game.gatheredInState(Molecule.State.CRYSTAL));

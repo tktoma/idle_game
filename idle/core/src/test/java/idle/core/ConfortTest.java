@@ -237,7 +237,7 @@ class ConfortTest {
                 for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
                     Molecule molecule = game.molecules().stream().filter(each -> each.state() == matter.getKey()).findFirst().orElseThrow();
                     game.state().addSubstance(molecule.id());
-                    int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                    int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                     if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
                 }
                 supplied++;
@@ -542,7 +542,7 @@ class ConfortTest {
             for (Map.Entry<Molecule.State, Integer> matter : first.matter().entrySet()) {
                 Molecule molecule = game.molecules().stream().filter(each -> each.state() == matter.getKey()).findFirst().orElseThrow();
                 game.state().addSubstance(molecule.id());
-                int missing = matter.getValue() - game.gatheredInState(matter.getKey());
+                int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                 if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
             }
             assertTrue(game.canFormBody(first.id()));
@@ -568,7 +568,7 @@ class ConfortTest {
             ShoppingList list = game.shoppingList();
             if (list.target().equals(body.name())) {
                 Molecule.State state = body.matter().keySet().iterator().next();
-                int missing = body.matter().get(state) - game.gatheredInState(state);
+                int missing = (int) Math.max(0, body.matter().get(state) - game.gatheredInState(state));
                 if (missing > 0) {
                     assertEquals(missing, list.matter().get(state));
                     Molecule any = game.molecules().stream().filter(each -> each.state() == state).findFirst().orElseThrow();
