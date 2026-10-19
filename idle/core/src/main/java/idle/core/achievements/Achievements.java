@@ -12,10 +12,11 @@ import idle.core.upgrades.Upgrade;
 import java.util.List;
 
 /**
- * Catalogue des succès : soixante-six. Les cinquante premiers vont du premier générateur à la
+ * Catalogue des succès : soixante-sept. Les cinquante premiers vont du premier générateur à la
  * dixième explosion ; vingt et un d'entre eux récompensent une action précise et portent un petit
  * bonus à eux. Les seize derniers jalonnent le troisième acte, de la première molécule à l'univers,
- * et trois d'entre eux portent un bonus.
+ * et trois d'entre eux portent un bonus. Le dernier, « Grappe d'univers » (version 0.81), ouvre la
+ * partie secondaire : cinq univers.
  *
  * <p>Tous donnent en plus le bonus commun, +1 % de particules chacun. Les bonus propres sont
  * volontairement petits : réunis, ceux qu'on peut obtenir avant la première explosion valent
@@ -262,7 +263,11 @@ public final class Achievements {
                     game -> game.hasCosmos(Cosmos.CLUSTER)),
             Achievement.step("step_universe", "Tout ce qui est", "L'univers",
                     "Former l'univers.",
-                    game -> game.hasCosmos(Cosmos.UNIVERSE)));
+                    game -> game.hasCosmos(Cosmos.UNIVERSE)),
+            // ----- La partie secondaire (version 0.81) -----
+            Achievement.step("step_universe_cluster", "Grappe d'univers", "5 univers",
+                    "Créer cinq univers.",
+                    game -> game.universes() >= 5));
 
     /** Vrai si le joueur possède au moins {@code level} niveaux d'une amélioration de ce type. */
     private static boolean owns(Game game, Class<? extends Effect> type, int level) {

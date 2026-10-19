@@ -23,6 +23,17 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.81", "La partie secondaire : univers, dimensions, Vide", List.of(
+                    "L'univers formé, tous les anciens onglets disparaissent, particules et collisionneur compris : restent "
+                            + "l'Univers, les succès, les statistiques et les réglages. Leurs raccourcis et leurs annonces se taisent.",
+                    "Chaque univers est une bulle ronde, un nuage coloré qui dérive dedans. Les suivants viennent autour, plus "
+                            + "petits, reliés par des lignes semi-transparentes ; chaque nouvel univers rejoue la naissance.",
+                    "Dès le deuxième univers, le sous-onglet « Dimensions » : dix points autour d'un onzième qui les relie, une "
+                            + "dimension de plus par univers. Chacune s'ouvre dans sa fenêtre, avec un bouton « Retour ».",
+                    "Les graines d'univers, l'énergie du vide et le Vide, deuxième acte de la partie secondaire ; quatre "
+                            + "améliorations, Brane, Bulk, Paysage et Omnivers ; un succès, « Grappe d'univers », à cinq univers.",
+                    "Rien de tout cela n'a encore de logique : des outils d'essai créent des univers, des graines, de l'énergie "
+                            + "du vide, et font revenir les anciens onglets.")),
             new Note("0.80", "Le quatrième acte : l'onglet Univers", List.of(
                     "Quand l'univers se forme, un nouvel onglet « Univers » s'ouvre, et l'on y va. Sa naissance s'y joue : "
                             + "un point de lumière, l'éclair blanc, une onde qui part du centre, puis les amas de galaxies et leurs "

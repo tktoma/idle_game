@@ -27,6 +27,8 @@ import idle.ui.common.TabIcon;
 import idle.ui.common.TileGrid;
 import idle.ui.darkmatter.ChallengesPane;
 import idle.ui.darkmatter.DarkMatterPage;
+import idle.ui.universe.Dimension;
+import idle.ui.universe.DimensionWindow;
 import idle.ui.universe.UniversePage;
 import idle.ui.pages.AchievementsPage;
 import idle.ui.pages.SettingsPage;
@@ -219,7 +221,9 @@ public final class GameApp extends Application {
     private final DarkMatterPage darkMatterPage = new DarkMatterPage(game);
     private final ColliderPage colliderPage = new ColliderPage(game);
     private final BigBangPage bigBangPage = new BigBangPage(game);
-    private final UniversePage universePage = new UniversePage();
+    private final UniversePage universePage = new UniversePage(game);
+    /** La fenêtre d'une dimension (version 0.81), par-dessus tout le jeu, avec son bouton de retour. */
+    private final DimensionWindow dimensionWindow = new DimensionWindow();
     private final AchievementsPage achievementsPage = new AchievementsPage(game);
     private final StatsPage statsPage = new StatsPage(game);
     private final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
@@ -461,6 +465,9 @@ public final class GameApp extends Application {
         dock(Tab.DARK_MATTER, darkMatterPage, darkMatterPage.subTabs());
         dock(Tab.COLLIDER, colliderPage, colliderPage.subTabs());
         dock(Tab.BIG_BANG, bigBangPage, bigBangPage.subTabs());
+        dock(Tab.UNIVERSE, universePage, universePage.subTabs());
+        universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
+        universePage.setOnOldTabs(shown -> refresh());
         dock(Tab.STATS, statsPage, statsPage.subTabs());
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());
         boolean testProfile = arguments.contains("--test");
@@ -499,7 +506,7 @@ public final class GameApp extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = new StackPane(root, blast, toasts, lootPane, helpPane, endPane, absencePane);
+        StackPane window = new StackPane(root, dimensionWindow, blast, toasts, lootPane, helpPane, endPane, absencePane);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         scaled = new ScaledPane(window);
@@ -561,7 +568,7 @@ public final class GameApp extends Application {
         // Le temps passé jeu fermé n'est rejoué que si le joueur le veut (réglage « Hors ligne »).
         if (loaded.found() && settings.offline()) {
             Absence absence = new Absence(game, (System.currentTimeMillis() - loaded.savedAt()) / 1000.0);
-            if (!absence.isDone()) absencePane.open(absence);
+            if (!absence.isDone() && !universePhase()) absencePane.open(absence);
         }
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
         Scene scene = new Scene(scaled, 800, 640);
@@ -669,6 +676,8 @@ public final class GameApp extends Application {
         lastTotalAtoms = -1;
         lastBigBangs = -1;
         hadUniverse = -1;
+        universePage.forgetOldTabs();
+        dimensionWindow.close();
         generators.setCount(0);
         darkMatterPage.reset();
         bigBangPage.reset();
@@ -829,6 +838,8 @@ public final class GameApp extends Application {
         bigBangPage.reset();
         lastBigBangs = 0;
         hadUniverse = 0;
+        universePage.forgetOldTabs();
+        dimensionWindow.close();
         controls.setVisible(false);
         showStartButton();
         selectTab(Tab.PARTICLES);
@@ -1009,7 +1020,8 @@ public final class GameApp extends Application {
             case PREVIOUS_SUB_TAB -> stepSubTab(-1);
             case NEXT_SUB_TAB -> stepSubTab(1);
             default -> {
-                if (game.isStarted()) play(action);
+                // Dans la partie secondaire, les anciens onglets sont partis : leurs raccourcis ne jouent plus.
+                if (game.isStarted() && !universePhase()) play(action);
             }
         }
         refresh();
@@ -1206,6 +1218,7 @@ public final class GameApp extends Application {
             case DARK_MATTER -> darkMatterPage.step(direction);
             case COLLIDER -> colliderPage.step(direction);
             case BIG_BANG -> bigBangPage.step(direction);
+            case UNIVERSE -> universePage.step(direction);
             case STATS -> statsPage.step(direction);
             default -> { }
         }
@@ -1358,6 +1371,14 @@ public final class GameApp extends Application {
         tabTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + tabColor(selectedTab) + ";");
     }
 
+    /**
+     * Vrai dans la partie secondaire (version 0.81) : l'univers est formé, et les anciens onglets sont
+     * cachés (sauf si l'outil d'essai les a fait revenir).
+     */
+    private boolean universePhase() {
+        return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) && !universePage.showsOldTabs();
+    }
+
     /** Le nom d'un onglet, sans compteur. */
     private static String tabName(Tab tab) {
         return switch (tab) {
@@ -1406,6 +1427,12 @@ public final class GameApp extends Application {
      */
     private void announce(double dt) {
         List<String> news = notifier.poll();
+        // Dans la partie secondaire, ce qui se passe dans les anciens onglets, cachés, n'est plus annoncé :
+        // seuls les succès le sont encore. Le journal, lui, garde tout.
+        if (universePhase()) {
+            for (String text : news) if (!text.startsWith("Succès")) EventLog.of(game).add(game, text);
+            news = news.stream().filter(text -> text.startsWith("Succès")).toList();
+        }
         sound.announce(news, settings.sound(), settings.volume());
         // Le journal garde tout, que les notifications soient affichées ou non.
         for (String text : news) EventLog.of(game).add(game, text);
@@ -1588,6 +1615,7 @@ public final class GameApp extends Application {
         if (selectedTab == Tab.UNIVERSE) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
+        dimensionWindow.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         lootPane.frame(dt);
         if (selectedTab != Tab.PARTICLES) {
             return;
@@ -1690,8 +1718,13 @@ public final class GameApp extends Application {
 
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
-        boolean hasAtoms = game.state().totalAtoms().sign() > 0;
-        boolean darkMatter = game.isDarkMatterUnlocked();
+        // La partie secondaire (version 0.81) : une fois l'univers formé, tous les anciens onglets disparaissent,
+        // particules et collisionneur compris ; restent l'univers et les pages pour s'y retrouver.
+        boolean phase = universePhase();
+        particlesTab.setVisible(!phase);
+        particlesTab.setManaged(!phase);
+        boolean hasAtoms = game.state().totalAtoms().sign() > 0 && !phase;
+        boolean darkMatter = game.isDarkMatterUnlocked() && !phase;
         atomsTab.setVisible(hasAtoms);
         atomsTab.setManaged(hasAtoms);
         readiness.frame();
@@ -1699,7 +1732,7 @@ public final class GameApp extends Application {
         atomsPage.refresh(selectedTab == Tab.ATOMS);
 
         // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire.
-        boolean automation = AutomationPage.hasContent(game);
+        boolean automation = AutomationPage.hasContent(game) && !phase;
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
         automationTab.setText((narrow ? "Auto." : "Automatisation") + (game.isAutomationPaused() && game.hasAnyAutomation() ? " (coupée)" : ""));
@@ -1713,7 +1746,7 @@ public final class GameApp extends Application {
         darkMatterPage.refresh(selectedTab == Tab.DARK_MATTER);
 
         // L'onglet du collisionneur s'ouvre à la première explosion et ne se referme plus.
-        boolean collider = game.isColliderUnlocked();
+        boolean collider = game.isColliderUnlocked() && !phase;
         colliderTab.setVisible(collider);
         colliderTab.setManaged(collider);
         colliderTab.setText((narrow ? "Collis." : "Collisionneur") + Readiness.dot(ColliderPage.ready(game)));
@@ -1721,12 +1754,13 @@ public final class GameApp extends Application {
 
         // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
         // comme une explosion mène à l'onglet « Matière noire ».
-        bigBangTab.setVisible(bigBang);
-        bigBangTab.setManaged(bigBang);
+        bigBangTab.setVisible(bigBang && !phase);
+        bigBangTab.setManaged(bigBang && !phase);
         bigBangTab.setText((narrow ? "Big Bang" : "Big Bang (" + game.bigBangs() + ")") + Readiness.dot(readiness.bigBang()));
         if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) selectTab(Tab.BIG_BANG);
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
+        if (selectedTab == Tab.UNIVERSE) universePage.refresh();
 
         // L'onglet « Univers » (version 0.80) s'ouvre quand l'univers est formé. S'il vient de se former,
         // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
@@ -1750,10 +1784,10 @@ public final class GameApp extends Application {
 
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
-                || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && !bigBang)
-                || (selectedTab == Tab.UNIVERSE && !universe)
-                || (selectedTab == Tab.COLLIDER && !game.isColliderUnlocked())) {
-            selectTab(Tab.PARTICLES);
+                || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
+                || (selectedTab == Tab.UNIVERSE && !universe) || (selectedTab == Tab.PARTICLES && phase)
+                || (selectedTab == Tab.COLLIDER && !collider)) {
+            selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();
             return;
@@ -1799,7 +1833,10 @@ public final class GameApp extends Application {
         String bang = goal ? NextReset.bigBangProgress(game) : "";
         // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
         String chrono = goal && settings.chrono() ? Goals.chrono(game) : "";
-        goalLabel.setText(goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
+        goalLabel.setText(goal && phase ? "Quatrième acte : l'univers. " + game.universes() + (game.universes() > 1 ? " univers" : " univers")
+                + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked() + " dimensions sur " + Game.MAX_DIMENSIONS : "")
+                + ". La suite viendra."
+                : goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
                 + (bang.isEmpty() ? "" : "   |   Prochain Big Bang : " + bang)
                 + (act.isEmpty() ? "" : game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE)
                         ? "   |   Quatrième acte : la suite viendra" : "   |   Troisième acte : " + act)
@@ -1821,8 +1858,8 @@ public final class GameApp extends Application {
         if (selectedTab == Tab.SETTINGS) settingsPage.refresh();
         // Le défi en cours reste sous les yeux, quel que soit l'onglet.
         BangChallenge bangChallenge = game.activeBangChallenge();
-        challengeLabel.setVisible(challenge != null || bangChallenge != null);
-        challengeLabel.setManaged(challenge != null || bangChallenge != null);
+        challengeLabel.setVisible((challenge != null || bangChallenge != null) && !phase);
+        challengeLabel.setManaged((challenge != null || bangChallenge != null) && !phase);
         if (challenge != null || bangChallenge != null) {
             String ordinary = challenge == null ? "" : "Défi « " + challenge.name() + " » depuis " + Format.duration(game.stats().runTime())
                     + " : " + (Detail.shown() ? ChallengesPane.rule(challenge) : ChallengesPane.shortRule(challenge));
@@ -1831,8 +1868,8 @@ public final class GameApp extends Application {
                     : lowerFirst(bangChallenge.brief()) + ", jusqu'au prochain Big Bang");
             challengeLabel.setText(constraint + (constraint.isEmpty() || ordinary.isEmpty() ? "" : "\n") + ordinary);
         }
-        explosionButton.setVisible(canExplode || keepPlace);
-        explosionButton.setManaged(canExplode || keepPlace);
+        explosionButton.setVisible((canExplode || keepPlace) && !phase);
+        explosionButton.setManaged((canExplode || keepPlace) && !phase);
         explosionButton.setDisable(!canExplode);
     }
 

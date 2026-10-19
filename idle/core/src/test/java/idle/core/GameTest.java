@@ -5693,9 +5693,9 @@ class GameTest {
 
         @Test
         void leCatalogueCompteCinquanteSuccesDontAuMoinsVingtAvecUnBonusPropre() {
-            assertEquals(66, Achievements.DEFAULT.size());
-            assertEquals(66, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
-            assertEquals(66, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
+            assertEquals(67, Achievements.DEFAULT.size());
+            assertEquals(67, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
+            assertEquals(67, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
             long withBonus = Achievements.DEFAULT.stream().filter(Achievement::hasBonus).count();
             assertTrue(withBonus >= 20, "succès d'action : " + withBonus);
             for (Achievement achievement : Achievements.DEFAULT) {
@@ -5980,7 +5980,7 @@ class GameTest {
         @Test
         void leJeuCompletASesSucces() {
             Game game = new Game();
-            assertEquals(66, game.achievements().size());
+            assertEquals(67, game.achievements().size());
         }
     }
 
@@ -8408,6 +8408,36 @@ class GameTest {
             assertEquals(0, game.cosmosFormed());
             assertFalse(game.hasGalaxy());
             assertThrows(IllegalArgumentException.class, () -> game.state().setCosmosLevel(4));
+        }
+
+        @Test
+        void lesUniversEtLeursDimensionsSansLogique() {
+            Game game = game();
+            assertEquals(0, game.universes());
+            assertFalse(game.testAddUniverse());                  // pas d'univers à dupliquer avant le premier
+            game.state().setCosmosLevel(3);
+            assertEquals(1, game.universes());
+            assertFalse(game.isDimensionsUnlocked());
+            assertEquals(0, game.dimensionsUnlocked());
+            assertTrue(game.testAddUniverse());
+            assertEquals(2, game.universes());
+            assertEquals(2, game.dimensionsUnlocked());           // les deux premières, d'emblée
+            for (int k = 0; k < 10; k++) game.testAddUniverse();
+            assertEquals(12, game.universes());
+            assertEquals(Game.MAX_DIMENSIONS, game.dimensionsUnlocked());
+            assertTrue(game.testRemoveUniverse());
+            assertEquals(11, game.universes());
+            game.testAddUniverseSeeds(BigNum.of(10));
+            game.testAddVoidEnergy(BigNum.of(3));
+            game.testRaiseUniverseUpgrade(idle.core.universe.UniverseUpgrade.BRANE);
+            assertEquals(1, game.universeUpgradeLevel(idle.core.universe.UniverseUpgrade.BRANE));
+            assertEquals(10, game.state().universeSeeds().toDouble(), 1e-9);
+            assertEquals(4, game.universeUpgrades().size());
+            game.testResetUniverses();
+            assertEquals(1, game.universes());
+            assertTrue(game.state().universeSeeds().isZero() && game.state().voidEnergy().isZero());
+            assertEquals(0, game.universeUpgradeLevel(idle.core.universe.UniverseUpgrade.BRANE));
+            assertFalse(game.testRemoveUniverse());
         }
 
         @Test

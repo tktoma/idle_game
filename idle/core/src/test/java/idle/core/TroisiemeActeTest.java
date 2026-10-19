@@ -553,8 +553,9 @@ class TroisiemeActeTest {
                 if (all.get(i).id().equals("step_first_molecule")) first = i;
             }
             assertEquals(50, first);                                   // à la suite des cinquante premiers
-            assertEquals(16, all.size() - first);
-            assertEquals("step_universe", all.get(all.size() - 1).id());
+            assertEquals(17, all.size() - first);                      // seize, plus « Grappe d'univers » (0.81)
+            assertEquals("step_universe", all.get(all.size() - 2).id());
+            assertEquals("step_universe_cluster", all.get(all.size() - 1).id());
         }
 
         @Test

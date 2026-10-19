@@ -154,6 +154,10 @@ class SaveTest {
         state.setCometBoost(88.75);
         state.setCometsCaught(7);
         state.setEndSeen(true);
+        state.setExtraUniverses(3);
+        state.setUniverseSeeds(BigNum.of(7.5, 12));
+        state.setVoidEnergy(BigNum.of(42));
+        state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);
         state.setActiveBangChallenge("FORGOTTEN");
@@ -386,6 +390,20 @@ class SaveTest {
             SaveCodec.Save save = SaveCodec.read(SaveCodec.write(new GameState(), 1_700_000_123_456L));
             assertEquals(1_700_000_123_456L, save.savedAt());
             assertEquals(SaveCodec.VERSION, save.version());
+        }
+
+        @Test
+        void lesUniversSeRelisent() throws Exception {
+            GameState state = new GameState();
+            state.setExtraUniverses(4);
+            state.setUniverseSeeds(BigNum.of(1.5, 40));
+            state.setVoidEnergy(BigNum.of(12));
+            state.setUniverseUpgradeLevel("bulk", 3);
+            GameState read = copy(state);
+            assertEquals(4, read.extraUniverses());
+            assertEquals(40.176, read.universeSeeds().log10(), 1e-3);
+            assertEquals(12, read.voidEnergy().toDouble(), 1e-9);
+            assertEquals(3, read.universeUpgradeLevel("bulk"));
         }
 
         @Test

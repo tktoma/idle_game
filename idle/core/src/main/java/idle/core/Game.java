@@ -4322,6 +4322,77 @@ public final class Game {
     // Le cosmos : la galaxie, l'amas de galaxies, l'univers
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // La partie secondaire (version 0.81) : les univers, sans logique pour l'instant
+    // ------------------------------------------------------------------
+
+    /** Nombre de dimensions à ouvrir, une par univers jusqu'au dixième. */
+    public static final int MAX_DIMENSIONS = 10;
+
+    /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après (créés pour l'instant par les outils d'essai). */
+    public int universes() {
+        return hasCosmos(Cosmos.UNIVERSE) ? 1 + state.extraUniverses() : 0;
+    }
+
+    /** Vrai à partir du deuxième univers : la sous-page des dimensions s'ouvre. */
+    public boolean isDimensionsUnlocked() {
+        return universes() >= 2;
+    }
+
+    /** Dimensions ouvertes : les deux premières dès le deuxième univers, puis une par univers, dix au plus. */
+    public int dimensionsUnlocked() {
+        return isDimensionsUnlocked() ? Math.min(MAX_DIMENSIONS, universes()) : 0;
+    }
+
+    /** Les améliorations de l'univers, dans l'ordre. */
+    public List<idle.core.universe.UniverseUpgrade> universeUpgrades() {
+        return List.of(idle.core.universe.UniverseUpgrade.values());
+    }
+
+    /** Niveau d'une amélioration de l'univers. */
+    public int universeUpgradeLevel(idle.core.universe.UniverseUpgrade upgrade) {
+        return state.universeUpgradeLevel(upgrade.id());
+    }
+
+    /** Outil d'essai : un univers de plus, une fois le premier formé. Faux s'il n'y en a pas encore. */
+    public boolean testAddUniverse() {
+        if (!hasCosmos(Cosmos.UNIVERSE)) return false;
+        state.setExtraUniverses(state.extraUniverses() + 1);
+        return true;
+    }
+
+    /** Outil d'essai : un univers de moins, sans descendre sous le premier. */
+    public boolean testRemoveUniverse() {
+        if (state.extraUniverses() <= 0) return false;
+        state.setExtraUniverses(state.extraUniverses() - 1);
+        return true;
+    }
+
+    /** Outil d'essai : des graines d'univers en plus. */
+    public void testAddUniverseSeeds(BigNum amount) {
+        state.setUniverseSeeds(state.universeSeeds().add(amount));
+    }
+
+    /** Outil d'essai : de l'énergie du vide en plus. */
+    public void testAddVoidEnergy(BigNum amount) {
+        state.setVoidEnergy(state.voidEnergy().add(amount));
+    }
+
+    /** Outil d'essai : un niveau de plus à une amélioration de l'univers, sans coût ni effet. */
+    public void testRaiseUniverseUpgrade(idle.core.universe.UniverseUpgrade upgrade) {
+        state.setUniverseUpgradeLevel(upgrade.id(), state.universeUpgradeLevel(upgrade.id()) + 1);
+    }
+
+    /** Outil d'essai : la partie secondaire revient à son début (un seul univers, rien en réserve). */
+    public void testResetUniverses() {
+        state.setExtraUniverses(0);
+        state.setUniverseSeeds(BigNum.ZERO);
+        state.setVoidEnergy(BigNum.ZERO);
+        for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
+            state.setUniverseUpgradeLevel(upgrade.id(), 0);
+        }
+    }
+
     /** Vrai si cette échelle du cosmos est formée. */
     public boolean hasCosmos(Cosmos scale) {
         return state.cosmosLevel() > scale.ordinal();

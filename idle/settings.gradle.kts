@@ -1,2 +1,2 @@
 rootProject.name = "idle"
-include("core", "ui", "app")
+include("core", "ui", "app", "bots")

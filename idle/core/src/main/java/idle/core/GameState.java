@@ -125,6 +125,12 @@ public final class GameState {
     private int cometsCaught = 0;
     /** Vrai une fois l'écran de fin vu (version 0.68) : il ne s'ouvre qu'une fois par partie. */
     private boolean endSeen = false;
+    // La partie secondaire (version 0.81), sans logique pour l'instant : les univers créés après le
+    // premier, les graines d'univers, l'énergie du vide, et le niveau des améliorations de l'univers.
+    private int extraUniverses = 0;
+    private BigNum universeSeeds = BigNum.ZERO;
+    private BigNum voidEnergy = BigNum.ZERO;
+    private final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     private double pulseCharges = 0;
     // Le collisionneur de quarks (version 0.50) : rien ne s'y perd à l'explosion ni au Big Bang.
@@ -1044,6 +1050,43 @@ public final class GameState {
         endSeen = seen;
     }
 
+    /** Univers créés après le premier (version 0.81). */
+    public int extraUniverses() {
+        return extraUniverses;
+    }
+
+    public void setExtraUniverses(int count) {
+        extraUniverses = Math.max(0, count);
+    }
+
+    /** Graines d'univers : la ressource principale de l'onglet Univers (version 0.81). */
+    public BigNum universeSeeds() {
+        return universeSeeds;
+    }
+
+    public void setUniverseSeeds(BigNum seeds) {
+        universeSeeds = seeds == null || seeds.sign() < 0 ? BigNum.ZERO : seeds;
+    }
+
+    /** Énergie du vide : la ressource du deuxième acte de la partie secondaire, le Vide (version 0.81). */
+    public BigNum voidEnergy() {
+        return voidEnergy;
+    }
+
+    public void setVoidEnergy(BigNum energy) {
+        voidEnergy = energy == null || energy.sign() < 0 ? BigNum.ZERO : energy;
+    }
+
+    /** Niveau d'une amélioration de l'univers. */
+    public int universeUpgradeLevel(String id) {
+        return universeUpgrades.getOrDefault(id, 0);
+    }
+
+    public void setUniverseUpgradeLevel(String id, int level) {
+        if (level <= 0) universeUpgrades.remove(id);
+        else universeUpgrades.put(id, level);
+    }
+
     public void setCometsCaught(int count) {
         cometsCaught = Math.max(0, count);
     }
@@ -1379,6 +1422,10 @@ public final class GameState {
         cometBoost = 0;
         cometsCaught = 0;
         endSeen = false;
+        extraUniverses = 0;
+        universeSeeds = BigNum.ZERO;
+        voidEnergy = BigNum.ZERO;
+        universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;
         colliderEnergy = 0;
@@ -1626,6 +1673,10 @@ public final class GameState {
         data.put("cometBoost", cometBoost);
         data.put("cometsCaught", cometsCaught);
         data.put("endSeen", endSeen);
+        data.put("extraUniverses", extraUniverses);
+        data.put("universeSeeds", universeSeeds);
+        data.put("voidEnergy", voidEnergy);
+        data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
         data.put("colliderEnergy", colliderEnergy);
@@ -1772,6 +1823,11 @@ public final class GameState {
         setCometsCaught(data.whole("cometsCaught", 0));
         // Une sauvegarde d'avant la 0.68 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
         endSeen = data.flag("endSeen", data.whole("cosmos", 0) >= 3);
+        setExtraUniverses(data.whole("extraUniverses", 0));
+        setUniverseSeeds(data.big("universeSeeds", BigNum.ZERO));
+        setVoidEnergy(data.big("voidEnergy", BigNum.ZERO));
+        universeUpgrades.clear();
+        data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));
         setPulses((long) data.real("pulses", 0));
         setColliderEnergy(data.real("colliderEnergy", 0));
