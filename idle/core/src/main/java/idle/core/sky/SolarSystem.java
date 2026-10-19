@@ -20,6 +20,25 @@ public record SolarSystem(String star, List<String> planets, List<String> moons)
         moons = List.copyOf(moons);
     }
 
+    /** Le système en une ligne : « étoile|planète,planète|lune », comme dans la sauvegarde. */
+    public String line() {
+        return star + "|" + String.join(",", planets) + "|" + String.join(",", moons);
+    }
+
+    /** Relit une ligne écrite par {@link #line()} ; {@code null} si elle ne se lit pas. */
+    public static SolarSystem parse(String line) {
+        if (line == null) return null;
+        String[] parts = line.trim().split("\\|", -1);
+        if (parts.length != 3 || parts[0].isBlank()) return null;
+        return new SolarSystem(parts[0].trim(), split(parts[1]), split(parts[2]));
+    }
+
+    private static List<String> split(String list) {
+        List<String> ids = new java.util.ArrayList<>();
+        for (String id : list.split(",")) if (!id.isBlank()) ids.add(id.trim());
+        return ids;
+    }
+
     /** Le même système, avec ces planètes. */
     public SolarSystem withPlanets(List<String> list) {
         return new SolarSystem(star, list, moons);

@@ -89,6 +89,16 @@ final class DebugBar extends VBox {
 
     private CosmeticTools cosmetics;
 
+    // Les bots (version 0.84)
+    private final javafx.scene.control.ComboBox<String> botMode = new javafx.scene.control.ComboBox<>();
+    private final Button botLive = new Button();
+    private final Label botNote = new Label();
+    /** La politique choisie : DEPENDANCES d'abord, la meilleure des campagnes. */
+    private int modeIndex = Math.max(0, BotBridge.modes().indexOf("DEPENDANCES"));
+    private BotBridge bot;
+    private boolean live = false;
+    private double sinceDecision = 0;
+
     /** Le nom court d'un cosmétique, pour son bouton : « Sépia », « Romaine ». */
     private static String cosmeticName(Cosmetic cosmetic) {
         String label = cosmetic.label();
@@ -252,10 +262,136 @@ final class DebugBar extends VBox {
             cosmeticTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
         }
         group("Thèmes et notations", cosmeticTools.toArray(new Button[0]));
+        // Les bots (version 0.84) : le bot V2 joue la partie en cours, en direct ou en avance rapide.
+        // La politique se choisit dans une liste déroulante (version 0.85), plus en cliquant plusieurs fois.
+        botMode.getItems().setAll(BotBridge.modes());
+        botMode.setValue(BotBridge.modes().get(modeIndex));
+        botMode.setVisibleRowCount(12);
+        botMode.setFocusTraversable(false);
+        botMode.setStyle("-fx-font-size: 12px;");
+        botMode.setOnAction(event -> {
+            int chosen = BotBridge.modes().indexOf(botMode.getValue());
+            if (chosen >= 0 && chosen != modeIndex) {
+                modeIndex = chosen;
+                bot = null;
+            }
+            refreshBots();
+        });
+        botLive.setStyle(TOOL_STYLE);
+        botLive.setFocusTraversable(false);
+        botLive.setOnAction(event -> {
+            if (!game.isStarted()) return;
+            live = !live && bot() != null;
+            sinceDecision = 0;
+            refreshBots();
+        });
+        botNote.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
+        Label botTitle = new Label("Bot :");
+        botTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffd9d4;");
+        group("Bots", botTitle, botMode, botLive,
+                tool("+10 min avec le bot", () -> skipWithBot(600)),
+                tool("+1 h avec le bot", () -> skipWithBot(3600)),
+                tool("+6 h avec le bot", () -> skipWithBot(6 * 3600)),
+                tool("Jusqu'au prochain Big Bang (12 h au plus)", this::botToNextBigBang),
+                tool("Une décision", () -> {
+                    BotBridge b = bot();
+                    if (b != null) note(b.act() ? "Le bot a joué une décision." : "Le bot a échoué : il ne suit plus le jeu.");
+                }));
 
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
         header.getChildren().add(status);
+        header.getChildren().add(botNote);
+        refreshBots();
         refresh();
+    }
+
+    /** Le bot de la politique choisie, créé à la demande ; {@code null} si les bots ne sont pas là. */
+    private BotBridge bot() {
+        String mode = BotBridge.modes().get(modeIndex);
+        if (bot == null || !bot.mode().equals(mode)) bot = BotBridge.of(game, mode);
+        if (bot == null) note("Les bots ne sont pas là : lancez le jeu avec le module « bots » (runTest l'ajoute).");
+        return bot;
+    }
+
+    private void note(String text) {
+        botNote.setText(text);
+    }
+
+    private void refreshBots() {
+        if (!BotBridge.modes().get(modeIndex).equals(botMode.getValue())) botMode.setValue(BotBridge.modes().get(modeIndex));
+        botLive.setText(live ? "En direct : en marche" : "En direct : coupé");
+        if (!BotBridge.available()) note("Les bots ne sont pas là : lancez le jeu avec le module « bots » (runTest l'ajoute).");
+    }
+
+    /** Le dernier message des bots : pour les vérifications. */
+    String botNote() {
+        return botNote.getText();
+    }
+
+    /** La liste des politiques du bot : pour les vérifications. */
+    javafx.scene.control.ComboBox<String> botChoice() {
+        return botMode;
+    }
+
+    /** Vrai si le bot joue en direct : pour les vérifications. */
+    boolean botLive() {
+        return live;
+    }
+
+    /**
+     * Le temps de jeu qui vient de passer (vitesse comprise) : en direct, le bot décide toutes les
+     * {@link BotBridge#STEP} secondes de jeu, comme dans ses campagnes.
+     */
+    void frame(double gameSeconds) {
+        if (!live || !game.isStarted()) return;
+        sinceDecision += gameSeconds;
+        int decisions = 0;
+        while (sinceDecision >= BotBridge.STEP && decisions < 50) {
+            sinceDecision -= BotBridge.STEP;
+            decisions++;
+            BotBridge b = bot();
+            if (b == null || !b.act()) {
+                live = false;
+                note("Le bot s'est arrêté : il ne suit plus le jeu.");
+                refreshBots();
+                return;
+            }
+        }
+        if (sinceDecision > BotBridge.STEP) sinceDecision = 0;      // une image très longue ne fait pas une rafale
+    }
+
+    /** Fait passer ce temps de jeu, le bot décidant toutes les {@link BotBridge#STEP} secondes. */
+    private void skipWithBot(double seconds) {
+        BotBridge b = bot();
+        if (b == null) return;
+        int bangs = game.bigBangs(), explosions = game.state().explosions();
+        for (double done = 0; done < seconds; done += BotBridge.STEP) {
+            game.tick(Math.min(BotBridge.STEP, seconds - done));
+            if (!b.act()) {
+                note("Le bot s'est arrêté : il ne suit plus le jeu.");
+                return;
+            }
+        }
+        note("Le bot a joué " + Format.duration(seconds) + " : +" + (game.state().explosions() - explosions) + " explosion(s), +"
+                + (game.bigBangs() - bangs) + " Big Bang(s).");
+    }
+
+    /** Le bot joue jusqu'au prochain Big Bang, ou douze heures de jeu au plus. */
+    private void botToNextBigBang() {
+        BotBridge b = bot();
+        if (b == null) return;
+        int bangs = game.bigBangs();
+        double played = 0;
+        while (game.bigBangs() == bangs && played < 12 * 3600) {
+            game.tick(BotBridge.STEP);
+            played += BotBridge.STEP;
+            if (!b.act()) {
+                note("Le bot s'est arrêté : il ne suit plus le jeu.");
+                return;
+            }
+        }
+        note(game.bigBangs() > bangs ? "Big Bang atteint par le bot en " + Format.duration(played) + "."
+                : "Pas de Big Bang en 12 h de jeu : le bot s'arrête là.");
     }
 
     /** Branche les outils qui ouvrent ou referment les cosmétiques, qui vivent dans les réglages de l'application. */
@@ -279,7 +415,7 @@ final class DebugBar extends VBox {
     }
 
     /** Ajoute un groupe : son bouton sur la première ligne, et ses outils sur une ligne repliée. */
-    private void group(String name, Button... tools) {
+    private void group(String name, javafx.scene.Node... tools) {
         FlowPane line = new FlowPane(6, 6);    // les boutons passent à la ligne quand la fenêtre est étroite
         line.setAlignment(Pos.CENTER);
         line.getChildren().addAll(tools);

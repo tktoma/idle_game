@@ -176,6 +176,9 @@ public final class BigBangPage extends VBox {
     /** L'achat simple : une molécule du rayon affiché, tirée au hasard, utile au prochain pas d'abord. */
     private final Button randomButton = new Button("Au hasard dans ce rayon");
     private final HBox bestBar = new HBox(8, bestButton, randomButton, sortButton, bestLabel);
+    /** La réservation par recette (version 0.85) : ce qu'il faut encore au prochain assemblage, sur chaque carte. */
+    private final Button reservationButton = new Button();
+    private final HBox reservationBar = new HBox(reservationButton);
     /** Ce que demande le prochain pas, rayon par rayon et état par état. */
     private final Label needsLabel = new Label();
     private final HBox pulseBar = new HBox(moleculesPulseButton);
@@ -380,6 +383,14 @@ public final class BigBangPage extends VBox {
         pulseBar.setAlignment(Pos.CENTER);
         moleculesPane.getChildren().add(pulseBar);
         moleculesPane.getChildren().add(bestBar);
+        reservationButton.setStyle(ZOOM_STYLE);
+        reservationButton.setFocusTraversable(false);
+        reservationButton.setOnAction(event -> {
+            game.setRecipeReservation(!game.state().recipeReservation());
+            refresh();
+        });
+        reservationBar.setAlignment(Pos.CENTER);
+        moleculesPane.getChildren().add(reservationBar);
         createShownButton.setStyle(ZOOM_STYLE);
         createShownButton.setFocusTraversable(false);
         createShownButton.setOnAction(event -> {
@@ -789,6 +800,11 @@ public final class BigBangPage extends VBox {
     }
 
     /** Le bouton du tri et celui qui crée le meilleur achat : pour les vérifications. */
+    /** Le bouton de la réservation par recette : pour les vérifications. */
+    public Button reservationButton() {
+        return reservationButton;
+    }
+
     public Button sortButton() {
         return sortButton;
     }
@@ -942,6 +958,11 @@ public final class BigBangPage extends VBox {
     }
 
     /** La sous-page de la galaxie : pour les vérifications. */
+    /** Les systèmes solaires : pour les vérifications. */
+    public SystemsPane systemsPane() {
+        return systemsPane;
+    }
+
     public GalaxyPane galaxyPane() {
         return galaxyPane;
     }
@@ -1612,6 +1633,14 @@ public final class BigBangPage extends VBox {
             bestButton.setText(lot > 1 ? "Créer ×" + lot : "Créer");
         }
         sortButton.setText(sortedByYield ? "Ordre : meilleur rendement d'abord" : "Ordre : catalogue");
+        boolean reservation = game.isRecipeReservationUnlocked();
+        reservationBar.setVisible(reservation);
+        reservationBar.setManaged(reservation);
+        if (reservation) {
+            idle.core.sky.Assembly next = game.nextAssembly();
+            reservationButton.setText(game.isRecipeReservationOn()
+                    ? "Réservation par recette : oui" + (next == null ? "" : ", pour " + next.name()) : "Réservation par recette : non");
+        }
         collectionLabel.setText(favoritesShown ? "" : collectionText(kind));
         collectionLabel.setVisible(!collectionLabel.getText().isEmpty());
         collectionLabel.setManaged(!collectionLabel.getText().isEmpty());
@@ -1780,12 +1809,21 @@ public final class BigBangPage extends VBox {
                 : !reachable ? "Hors de portée : " + recipe(cost, false)
                 : !elements ? "Il faut " + recipe(cost, true)
                 : "Il manque " + Format.count(volume.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
+        // La réservation par recette (version 0.85) : ce qu'il reste à créer pour le prochain assemblage, et l'alerte.
+        int remaining = game.isRecipeReservationOn() ? game.recipeRemaining(molecule.id()) : -1;
+        String recipe = remaining < 0 ? "" : remaining > 0 ? "\nRecette : encore " + Format.count(BigNum.of(remaining))
+                : "\nRecette : assez";
+        boolean saturating = game.isSaturating(molecule.id());
         card.show(ready ? Card.State.READY : full ? Card.State.DONE : !reachable ? Card.State.LOCKED
                         : count > 0 ? Card.State.STARTED : Card.State.WAITING,
                 count > 0 ? "×" + Format.count(BigNum.of(count)) : "", molecule.formula(), molecule.name(),
                 (molecule.hasBonus() ? bonus(molecule) + "\n" : "") + "Occupe " + Format.count(volume) + " d'espace"
-                        + (gain > 0 ? "\nRapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) : ""),
-                detail, price, molecule == best ? "★ meilleur achat" : molecule == bestHere ? "meilleur du rayon" : "");
+                        + (gain > 0 ? "\nRapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) : "")
+                        + recipe,
+                detail + (saturating ? " La recette en a assez, et l'espace manque déjà pour le reste de la liste : une création "
+                        + "de plus le prendrait à ce qu'il faut encore." : ""),
+                price, saturating ? "⚠ inutile : la recette en a assez" : molecule == best ? "★ meilleur achat"
+                        : molecule == bestHere ? "meilleur du rayon" : "");
     }
 
     /** « Prochain rayon : Sels, dans les améliorations (à 10 000 d'espace créé, dans 2 h 10). » Vide quand tous les rayons sont ouverts. */

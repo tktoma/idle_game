@@ -23,6 +23,53 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.86", "Sondes : l'urgence et l'absence", List.of(
+                    "Dès le troisième Big Bang, l'onde d'urgence chimique : un voyage de 20 minutes, sans destination, qui ramène "
+                            + "un petit lot de l'élément déjà découvert que l'astre visé demande le plus. Jamais un élément inconnu.",
+                    "Pendant votre absence, une sonde arrivée vide son butin et repart pour le même voyage : les sondes servent "
+                            + "à qui s'absente, sans rien demander à qui reste. Le bilan du retour les compte.",
+                    "Les plans de l'arbre et des systèmes ont cinq emplacements de sauvegarde, à choisir dans une liste qui "
+                            + "dit ce que chacun contient.",
+                    "Profil de test : les bots partis de zéro font maintenant les succès et les défis (44 succès et les 10 "
+                            + "défis vers 11 h de jeu, au lieu de 37 et aucun).")),
+            new Note("0.85", "Planifier la matière", List.of(
+                    "Dès cinq astres formés, l'étoile ☆ d'une carte d'astre l'ajoute au plan, trois au plus. Le plan réunit "
+                            + "leurs besoins : ce qui manque d'abord, ce qui est déjà réuni ensuite. Un seuil demandé par plusieurs "
+                            + "astres en même temps ne compte qu'une fois ; les ingrédients de leurs assemblages s'ajoutent.",
+                    "Plafond par état, dans l'automatisation : la création automatique ne donne pas plus de la part choisie de "
+                            + "l'espace créé aux gaz, aux liquides, aux solides, aux cristaux ou aux métaux (de 90 % à 5 %).",
+                    "Dès le premier assemblage, la réservation par recette : chaque carte de molécule dit ce qu'il en faut "
+                            + "encore pour le prochain assemblage, et prévient quand en créer plus prendrait l'espace qui manque au reste.",
+                    "Dès le premier Big Bang, le tableau périodique peut éclairer les éléments utiles au prochain astre et "
+                            + "estomper les autres.",
+                    "Profil de test : la politique du bot se choisit dans une liste.")),
+            new Note("0.84", "Plans de l'arbre et des systèmes", List.of(
+                    "Sous l'arbre de matière noire et dans les systèmes solaires, une barre de plan : « Sauvegarder » garde les "
+                            + "voies prises (ou la disposition des systèmes), « Charger » la reprend, « Copier le code » et « Coller "
+                            + "un code » la font passer en texte. Un plan chargé se suit seul : ce qu'il demande se prend dès que "
+                            + "c'est payable ou mûr, et se reprend après chaque Big Bang, jusqu'à « Oublier le plan ».",
+                    "« Rouvrir les bifurcations à la prochaine explosion » : un clic, et l'explosion suivante rend les voies "
+                            + "prises et leurs liaisons, comme un Big Bang, pour changer de chemin sans attendre.",
+                    "Un clic sur une voie, même trop chère ou fermée, surligne sa bifurcation et toutes les cases qu'il "
+                            + "faut au-dessus d'elle ; sur une liaison, ses voies et leurs chemins. Un second clic l'éteint.",
+                    "Profil de test : le groupe « Bots » fait jouer le bot V2 sur la partie en cours, en direct ou en avance "
+                            + "rapide (10 min, 1 h, 6 h, jusqu'au prochain Big Bang), avec la politique de son choix.")),
+            new Note("0.83", "L'univers remet tout à zéro", List.of(
+                    "Former l'univers remet à zéro tout ce qui y a mené : particules, atomes, matière noire, collisionneur, "
+                            + "Big Bangs, molécules, astres et cosmos. Restent les succès, le temps de jeu, les statistiques et "
+                            + "tout ce qui appartient à l'onglet Univers.",
+                    "Former l'univers donne une graine d'univers. Elle a son sous-onglet, « Graine d'univers » : la graine "
+                            + "dorée qui respire, sa pousse qui grandit, et les graines suivantes qui tournent autour. Elle ne "
+                            + "sert encore à rien.",
+                    "L'écran de fin garde le bilan de la partie d'avant la remise à zéro. Une sauvegarde déjà dans l'univers "
+                            + "se remet à zéro à son premier chargement.")),
+            new Note("0.82", "Plus léger, rien de changé", List.of(
+                    "L'onglet Statistiques ne redessine plus son graphique à chaque image, seulement quand ses points, sa "
+                            + "taille ou l'écriture des nombres changent : il coûtait le cinquième de chaque image, à peine "
+                            + "plus que les autres onglets maintenant.",
+                    "Le jeu ne recompte plus ses succès et ne relit plus les bonus de chaque générateur dans des tables à "
+                            + "chaque instant. Des parties entières rejouées avant et après donnent les mêmes sauvegardes : "
+                            + "rien ne change dans le jeu.")),
             new Note("0.81", "La partie secondaire : univers, dimensions, Vide", List.of(
                     "L'univers formé, tous les anciens onglets disparaissent, particules et collisionneur compris : restent "
                             + "l'Univers, les succès, les statistiques et les réglages. Leurs raccourcis et leurs annonces se taisent.",

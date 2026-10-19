@@ -27,6 +27,12 @@ import java.util.Set;
  */
 public final class GameStats {
 
+    // Le bilan de la partie qui a mené à l'univers (version 0.83).
+    private long universeBigBangs;
+    private long universeMolecules;
+    private long universeCollisions;
+    private long universeComets;
+
     // ----- Particules -----
     private BigNum particlesCreated = BigNum.ZERO;
     private BigNum particlesSpent = BigNum.ZERO;
@@ -322,6 +328,21 @@ public final class GameStats {
         return moleculeElementsSpent;
     }
 
+    /**
+     * Le bilan de la partie qui a mené à l'univers (version 0.83), relevé juste avant la remise à
+     * zéro : Big Bangs, molécules créées, collisions et comètes saisies. Tout à zéro avant l'univers.
+     */
+    public long[] universeTally() {
+        return new long[] {universeBigBangs, universeMolecules, universeCollisions, universeComets};
+    }
+
+    void noteUniverseTally(long bigBangs, long molecules, long collisions, long comets) {
+        universeBigBangs = bigBangs;
+        universeMolecules = molecules;
+        universeCollisions = collisions;
+        universeComets = comets;
+    }
+
     /** Vrai une fois cette première atteinte. */
     public boolean reached(Step step) {
         return steps.containsKey(step);
@@ -402,6 +423,10 @@ public final class GameStats {
         steps.forEach((step, time) -> reached.put(step.name(), time));
         data.putDoubles(prefix + "steps", reached);
         data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
+        data.put(prefix + "universeBigBangs", universeBigBangs);
+        data.put(prefix + "universeMolecules", universeMolecules);
+        data.put(prefix + "universeCollisions", universeCollisions);
+        data.put(prefix + "universeComets", universeComets);
         history.save(data, prefix + "history.");
         runHistory.save(data, prefix + "runHistory.");
     }
@@ -457,6 +482,10 @@ public final class GameStats {
         });
         unlockedOnce.clear();
         unlockedOnce.addAll(data.list(prefix + "unlockedOnce"));
+        universeBigBangs = data.count(prefix + "universeBigBangs", 0);
+        universeMolecules = data.count(prefix + "universeMolecules", 0);
+        universeCollisions = data.count(prefix + "universeCollisions", 0);
+        universeComets = data.count(prefix + "universeComets", 0);
         history.load(data, prefix + "history.");
         runHistory.load(data, prefix + "runHistory.");
     }

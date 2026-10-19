@@ -16,6 +16,8 @@ repositories {
 
 dependencies {
     implementation(project(":ui"))
+    // Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (groupe « Bots »).
+    runtimeOnly(project(":bots"))
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

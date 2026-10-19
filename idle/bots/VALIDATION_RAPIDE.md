@@ -31,3 +31,13 @@ Le kit est devenu le module `idle/bots`. Il est compilé contre le cœur du jeu 
   | Profil 1 | 8 h 17 |
   | Profil 21 | 145 h 09 |
   | Profil 22 | 145 h 51 |
+
+# Correctifs des bots et optimisation (19 octobre 2026, suite)
+
+- Trois correctifs dans `RobotCosmosPlanner` (fusion rallumée, matière confiée à la création automatique, absence plafonnée à 24 h). Avec eux, les 9 profils relancés atteignent l'univers, et non plus 6 sur 9 (voir le README).
+- Optimisations du moteur (0.82) :
+  - bonus des générateurs lus dans un tableau ;
+  - compte des succès gardé en mémoire.
+
+  `python run.py empreinte` donne des sauvegardes identiques avant et après pour les 4 parties.
+- `BotsTest` : 4/4. Les 869 tests du jeu passent.

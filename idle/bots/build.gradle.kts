@@ -1,5 +1,6 @@
 // Les bots de simulation (fusionnés dans le projet le 19 octobre 2026) : des politiques de jeu qui
-// pilotent le VRAI moteur (:core), sans interface. Ils ne sont pas dans le jeu livré.
+// pilotent le VRAI moteur (:core), sans interface. Ils ne font pas partie des règles du jeu ; depuis la 0.84,
+// le lanceur (:app) les ajoute à l'exécution pour le groupe « Bots » du profil de test (runTest).
 //
 //   ./gradlew :bots:test                       vérifie que les bots compilent contre le moteur actuel,
 //                                              que les sauvegardes de référence se rechargent et que

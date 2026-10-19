@@ -17,8 +17,8 @@ public class FreshPhaseProfiles extends IdleProfiles24 {
     StringBuilder progress=new StringBuilder("wall_hours,game_hours,online_hours,explosions,bb,fusions,elements,achievements,atoms_log,particles_log\n");
     for(int i=0;i<n;i++){
       boolean on=p.cycleSeconds()==0 || (wall%p.cycleSeconds()<p.onlineSeconds());
-      if(on){g.tick(step);online+=step;}
-      else {double ct=step*g.offlineRate();g.tickAway(ct);credited+=ct;}
+      if(on){back();g.tick(step);online+=step;}
+      else credited+=away(step);
       wall+=step;
       if(on && wall>=nextAction && attendance.nextDouble()<p.attention()){
         actionsTaken++;super.resourceLoop();

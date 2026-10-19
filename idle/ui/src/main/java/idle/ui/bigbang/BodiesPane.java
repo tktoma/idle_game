@@ -60,6 +60,11 @@ public final class BodiesPane extends VBox {
     private final List<Label> maturingLabels = new java.util.ArrayList<>();
     private final List<javafx.scene.control.Button> hastenButtons = new java.util.ArrayList<>();
     private final List<String> maturingShown = new java.util.ArrayList<>();
+    /** Le plan de plusieurs astres (version 0.85) : ses besoins réunis, ce qui manque d'abord. */
+    private final VBox planBox = new VBox(4);
+    private final Label planTitle = new Label();
+    private final Label planMissing = new Label();
+    private final Label planDone = new Label();
 
     /**
      * @param changed ce qu'il faut refaire quand un astre vient d'être formé : rafraîchir toute la page
@@ -129,8 +134,24 @@ public final class BodiesPane extends VBox {
             hastenButtons.add(hasten);
             maturationBox.getChildren().add(row);
         }
+        planTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+        planTitle.setWrapText(true);
+        planTitle.setMaxWidth(760);
+        planTitle.setTextAlignment(TextAlignment.CENTER);
+        planMissing.setStyle("-fx-font-size: 12px; -fx-text-fill: #e8f4ff;");
+        planDone.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f9f86;");
+        for (Label label : new Label[] {planMissing, planDone}) {
+            label.setWrapText(true);
+            label.setMaxWidth(760);
+        }
+        planBox.setAlignment(Pos.CENTER);
+        planBox.setMaxWidth(780);
+        planBox.setStyle("-fx-padding: 8 12; -fx-background-color: #10161f; -fx-background-radius: 8; -fx-border-radius: 8;"
+                + " -fx-border-color: " + GameApp.BIG_BANG_COLOR + "55;");
+        planBox.getChildren().addAll(planTitle, planMissing, planDone);
         getChildren().add(intro);
         getChildren().add(maturationBox);
+        getChildren().add(planBox);
         getChildren().add(formAll);
         getChildren().add(skyPane);
         getChildren().add(list);
@@ -157,8 +178,9 @@ public final class BodiesPane extends VBox {
     }
 
     /** Recopie l'état du jeu dans les cartes. */
-    void refresh() {
+    public void refresh() {
         refreshMaturation();
+        refreshPlan();
         BigBangPage.showBulk(formAll, game.isBulkFormUnlocked(), "Former les astres prêts", game.bodiesReady());
         Map<Body.Tier, int[]> tiers = new EnumMap<>(Body.Tier.class);     // par échelle : cartes montrées, astres formés
         for (Body body : game.bodies()) {
@@ -178,6 +200,16 @@ public final class BodiesPane extends VBox {
             boolean maturing = game.isBodyMaturing(body.id());
             int met = game.bodyConditionsMet(body.id());
             String gain = BigBangPage.what(body.boost().stat()) + " +" + ElementText.percent(body.boost().perMolecule());
+            // L'étoile de la planification (version 0.85) : un clic l'ajoute au plan, ou l'en retire.
+            if (game.isBodyPlanningUnlocked() && !formed) {
+                card.setPin(() -> {
+                    game.togglePlannedBody(body.id());
+                    changed.run();
+                });
+                card.showPin(game.isBodyPlanned(body.id()));
+            } else {
+                card.setPin(null);
+            }
             card.show(maturing ? Card.State.STARTED : formed ? Card.State.DONE : ready ? Card.State.READY : met > 0 ? Card.State.STARTED : Card.State.WAITING,
                     formed ? "" : met + "/" + game.bodyConditions(body.id()), maturing ? "mûrit" : formed ? "formé" : "", body.name(),
                     gain + "\n" + origin(body), Detail.shown() ? needs(body, formed) : "",
@@ -230,6 +262,60 @@ public final class BodiesPane extends VBox {
             tierGrids.get(body.tier()).add(card);
             return card;
         });
+    }
+
+    /** Le plan de plusieurs astres : caché tant qu'il n'est pas ouvert. */
+    private void refreshPlan() {
+        boolean open = game.isBodyPlanningUnlocked();
+        planBox.setVisible(open);
+        planBox.setManaged(open);
+        if (!open) return;
+        List<Body> planned = game.plannedBodies();
+        if (planned.isEmpty()) {
+            planTitle.setText("Planifier plusieurs astres : l'étoile ☆ d'un astre l'ajoute au plan, " + Game.MAX_PLANNED_BODIES + " au plus.");
+            planMissing.setText("");
+            planDone.setText("");
+            return;
+        }
+        List<String> names = new java.util.ArrayList<>();
+        for (Body body : planned) names.add(body.name());
+        planTitle.setText("Plan : " + String.join(", ", names) + " (" + planned.size() + "/" + Game.MAX_PLANNED_BODIES + ")");
+        StringBuilder missing = new StringBuilder(), done = new StringBuilder();
+        int doneCount = 0;
+        for (Game.PlanNeed need : game.plannedNeeds()) {
+            String text = needText(need);
+            if (need.satisfied()) {
+                doneCount++;
+                if (done.length() > 0) done.append('\n');
+                done.append("● ").append(text);
+            } else {
+                if (missing.length() > 0) missing.append('\n');
+                missing.append("○ ").append(text);
+            }
+        }
+        planMissing.setText(missing.length() == 0 ? "Tout est réuni : il n'y a plus qu'à former." : "À réunir :\n" + missing);
+        planDone.setText(doneCount == 0 ? "" : "Déjà réuni (" + doneCount + ") :\n" + done);
+    }
+
+    /** Une exigence du plan, en une ligne ; « en même temps » quand plusieurs astres du plan la demandent. */
+    private String needText(Game.PlanNeed need) {
+        String what = switch (need.kind()) {
+            case BODY -> game.body(need.id()).name() + " formé et mûr";
+            case ASSEMBLY -> "Assemblage : " + game.assembly(need.id()).name();
+            case MOLECULE -> game.molecule(need.id()).formula() + " : " + Format.count(BigNum.of(need.have())) + " / "
+                    + Format.count(BigNum.of(need.needed())) + (need.gather() && !need.gathered() ? ", à rassembler" : "");
+            case MATTER -> matterName(Molecule.State.valueOf(need.id())) + " : " + Format.count(BigNum.of(need.have()))
+                    + " / " + Format.count(BigNum.of(need.needed()));
+        };
+        if (!need.shared()) return what;
+        return what + (need.kind() == Game.PlanNeed.Kind.MOLECULE && need.gather()
+                ? " · pour " + need.bodies().size() + " astres, leurs assemblages s'ajoutent"
+                : " · en même temps pour " + need.bodies().size() + " astres, compté une fois");
+    }
+
+    /** Le texte du plan : pour les vérifications. */
+    public String planText() {
+        return planTitle.getText() + "\n" + planMissing.getText() + "\n" + planDone.getText();
     }
 
     /** De quoi un astre est fait, en une ligne : « Fait de roche sableuse » ou « Fait de glace de comète et eau de source ». */

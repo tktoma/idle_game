@@ -164,6 +164,14 @@ public final class DarkMatterTreePane extends Pane {
     private final Line stem = new Line();
     /** Secondes qu'il reste pour confirmer le Big Bang ; 0 quand aucun premier clic n'attend. */
     private double armedFor = 0;
+    /** Durée du surlignage du chemin d'une bifurcation, en secondes (version 0.84). */
+    public static final double LIT_SECONDS = 6;
+    /** Les cases surlignées : la voie ou la liaison cliquée, et tout ce qu'il faut au-dessus d'elle. */
+    private final java.util.Set<Cell> lit = new java.util.LinkedHashSet<>();
+    private final java.util.Set<LinkCell> litLinks = new java.util.HashSet<>();
+    private double litFor = 0;
+    /** Les deux voies de chaque bifurcation, par son nom. */
+    private final Map<String, List<Cell>> forkCells = new HashMap<>();
 
     DarkMatterTreePane(Game game) {
         this.game = game;
@@ -191,6 +199,7 @@ public final class DarkMatterTreePane extends Pane {
             if (upgrade.requiredFork() != null) forksWithChild.add(upgrade.requiredFork());
             byId.put(upgrade.id(), cell);
             cells.add(cell);
+            if (upgrade.isFork()) forkCells.computeIfAbsent(upgrade.fork(), key -> new ArrayList<>()).add(cell);
         }
         rowCounts.putAll(filled);
         // Le rang d'une bifurcation : la première de sa branche, ou la deuxième. Une liaison prend le rang de ses voies.
@@ -265,6 +274,11 @@ public final class DarkMatterTreePane extends Pane {
                 game.buyDark(cell.upgrade.id());
                 refresh();
             });
+            // Une voie cliquée (version 0.84), prenable ou non : le chemin qui y mène s'allume.
+            if (cell.upgrade.isFork()) cell.card.setOnLook(() -> {
+                light(cell, null);
+                refresh();
+            });
             getChildren().add(cell.card);
         }
         linksTitle.setWrapText(true);
@@ -279,6 +293,10 @@ public final class DarkMatterTreePane extends Pane {
         for (LinkCell link : links) {
             link.card.setOnAction(() -> {
                 game.buyDark(link.upgrade.id());
+                refresh();
+            });
+            link.card.setOnLook(() -> {
+                light(null, link);
                 refresh();
             });
             getChildren().add(link.card);
@@ -309,11 +327,72 @@ public final class DarkMatterTreePane extends Pane {
      */
     public void frame(double elapsed) {
         if (armedFor > 0) armedFor = Math.max(0, armedFor - elapsed);
+        if (litFor > 0) {
+            litFor = Math.max(0, litFor - elapsed);
+            if (litFor == 0) {
+                lit.clear();
+                litLinks.clear();
+                refresh();
+            }
+        }
+    }
+
+    /**
+     * Surligne ce qu'il faut pour une voie (sa bifurcation, et chaque case au-dessus d'elle jusqu'à
+     * l'en-tête : les deux voies d'une bifurcation du dessus, l'une ou l'autre suffisant), ou pour une
+     * liaison (ses voies, et ce qu'il faut à chacune). Un second clic sur la même case l'éteint.
+     */
+    private void light(Cell cell, LinkCell link) {
+        boolean same = litFor > 0 && (cell != null ? litLinks.isEmpty() && first() == cell : litLinks.contains(link));
+        lit.clear();
+        litLinks.clear();
+        litFor = 0;
+        if (same) return;
+        if (link != null) {
+            litLinks.add(link);
+            for (Cell option : link.options) addPath(option);
+        } else {
+            addPath(cell);
+        }
+        litFor = LIT_SECONDS;
+    }
+
+    private Cell first() {
+        return lit.isEmpty() ? null : lit.iterator().next();
+    }
+
+    private void addPath(Cell cell) {
+        lit.add(cell);       // la case cliquée d'abord : elle mène le surlignage
+        for (Cell at = cell; at != null; at = at.parent) {
+            if (at.upgrade.isFork()) lit.addAll(forkCells.getOrDefault(at.upgrade.fork(), List.of(at)));
+            else lit.add(at);
+        }
+    }
+
+    /** Les cases surlignées, liaisons comprises : pour les vérifications. */
+    public int litCount() {
+        return lit.size() + litLinks.size();
+    }
+
+    /** Vrai si cette case est surlignée : pour les vérifications. */
+    public boolean isLit(String darkUpgradeId) {
+        for (Cell cell : lit) if (cell.upgrade.id().equals(darkUpgradeId)) return true;
+        for (LinkCell link : litLinks) if (link.upgrade.id().equals(darkUpgradeId)) return true;
+        return false;
+    }
+
+    /** Un clic sur la case de cette amélioration, comme le joueur : pour les vérifications. */
+    public void clickCell(String darkUpgradeId) {
+        for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) cell.card.click();
+        for (LinkCell link : links) if (link.upgrade.id().equals(darkUpgradeId)) link.card.click();
     }
 
     /** L'arbre n'est plus affiché : une confirmation en attente est oubliée. */
     void release() {
         armedFor = 0;
+        lit.clear();
+        litLinks.clear();
+        litFor = 0;
     }
 
     /** La case du Big Bang : pour les vérifications. */
@@ -349,7 +428,7 @@ public final class DarkMatterTreePane extends Pane {
                 boolean both = game.hasSuperposition();
                 boolean absence = game.darkStyle(upgrade) == Game.Style.ABSENCE;
                 cell.card.show(rival != null ? Card.State.LOCKED : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
-                        "", rival != null ? "fermée" : both ? "les 2 voies" : absence ? "absence" : "présence",
+                        "", rival != null ? "fermée" : planned(upgrade) ? "prévue" : both ? "les 2 voies" : absence ? "absence" : "présence",
                         upgrade.name(), DarkText.brief(upgrade.effect(), game) + (absence ? "\nAbsence +" + ElementText.number(Game.ABSENCE_VOIE_BONUS * 100) + " points" : ""),
                         Detail.shown() ? DarkText.describe(upgrade.effect(), game) + style(upgrade) + opensText(upgrade) + (both
                                 ? ". Une bifurcation, ouverte des deux côtés par la Superposition du collisionneur : les deux voies se prennent et restent au Big Bang."
@@ -377,12 +456,31 @@ public final class DarkMatterTreePane extends Pane {
             cell.elbow.setStroke(cell.side >= 0 && level == 0 ? Color.web(OFF) : stroke);
         }
         for (LinkCell link : links) refreshLink(link);
+        showLit();
         linksTitle.setText("Liaisons et accords : ils s'ouvrent avec les voies des bifurcations. Une liaison demande l'une "
                 + "de ses deux voies, un accord ses trois voies du même style.");
         for (Map.Entry<Integer, Label> title : levelTitles.entrySet()) {
             title.getValue().setText(title.getKey() == 1 ? "Premier rang de bifurcations" : "Second rang de bifurcations");
         }
         refreshBang();
+    }
+
+    /** Vrai si cette case attend dans le plan de l'arbre (version 0.84). */
+    private boolean planned(DarkUpgrade upgrade) {
+        return game.darkLevelOf(upgrade.id()) == 0 && game.state().darkPlan().contains(upgrade.id());
+    }
+
+    /** Le surlignage : un halo blanc autour des cases, leurs traits épaissis et blanchis. */
+    private void showLit() {
+        javafx.scene.effect.DropShadow halo = new javafx.scene.effect.DropShadow(16, Color.web("#ffffff"));
+        halo.setSpread(0.45);
+        for (Cell cell : cells) {
+            boolean on = lit.contains(cell);
+            cell.card.setEffect(on ? halo : null);
+            cell.link.setStrokeWidth(on ? 4 : 2);
+            if (on) cell.link.setStroke(Color.web("#ffffff"));
+        }
+        for (LinkCell link : links) link.card.setEffect(litLinks.contains(link) ? halo : null);
     }
 
     /** Les liaisons et accords que cette voie aide à ouvrir, rangés sous l'arbre. */
@@ -424,7 +522,7 @@ public final class DarkMatterTreePane extends Pane {
                 : link.options.size() == 1 ? "Il faut cette voie" : "Il faut l'une des deux voies";
         String joined = String.join(accord ? "\n" : "\nou ", needs);
         link.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
-                "", maxed ? "acquise" : accord ? (game.darkStyle(upgrade) == Game.Style.ABSENCE ? "accord d'absence" : "accord de présence") : "liaison",
+                "", maxed ? "acquise" : planned(upgrade) ? "prévue" : accord ? (game.darkStyle(upgrade) == Game.Style.ABSENCE ? "accord d'absence" : "accord de présence") : "liaison",
                 upgrade.name(), DarkText.brief(upgrade.effect(), game) + "\n" + joined,
                 Detail.shown() ? DarkText.describe(upgrade.effect(), game) + (accord
                         ? ". Un accord : il demande ses trois voies à la fois, une par branche, toutes du même style."

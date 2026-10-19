@@ -421,4 +421,9 @@ public final class AtomsPage extends VBox {
     public void celebrate() {
         atomView.celebrate();
     }
+
+    /** Le tableau périodique : pour les vérifications. */
+    public PeriodicTablePage tablePage() {
+        return tablePage;
+    }
 }

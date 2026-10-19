@@ -537,6 +537,8 @@ public final class GameApp extends Application {
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
                 if (!settings.paused()) {
                     game.tick(dt * timeFactor());
+                    // Le bot du profil de test (version 0.84), s'il joue en direct.
+                    if (debugBar != null) debugBar.frame(dt * timeFactor());
                     animate(dt);
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
@@ -829,6 +831,21 @@ public final class GameApp extends Application {
         endPane.close();
         helpPane.close();
         toasts.clear();
+        forgetOldPages();
+        hadUniverse = 0;
+        universePage.forgetOldTabs();
+        dimensionWindow.close();
+        controls.setVisible(false);
+        showStartButton();
+        selectTab(Tab.PARTICLES);
+        refresh();
+    }
+
+    /**
+     * Les anciens onglets oublient ce qu'ils montraient : la partie vient de repartir de zéro, par
+     * « Recommencer » ou par la formation de l'univers (version 0.83).
+     */
+    private void forgetOldPages() {
         exploding = false;
         explosionArmed = 0;
         blast.setVisible(false);
@@ -837,13 +854,6 @@ public final class GameApp extends Application {
         darkMatterPage.reset();
         bigBangPage.reset();
         lastBigBangs = 0;
-        hadUniverse = 0;
-        universePage.forgetOldTabs();
-        dimensionWindow.close();
-        controls.setVisible(false);
-        showStartButton();
-        selectTab(Tab.PARTICLES);
-        refresh();
     }
 
     /**
@@ -1768,6 +1778,8 @@ public final class GameApp extends Application {
         universeTab.setVisible(universe);
         universeTab.setManaged(universe);
         if (universe && hadUniverse == 0) {
+            // Former l'univers a tout remis à zéro (version 0.83) : les anciens onglets, cachés, repartent de rien.
+            forgetOldPages();
             selectTab(Tab.UNIVERSE);
             universePage.playBirth();
         }

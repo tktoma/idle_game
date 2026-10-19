@@ -151,6 +151,32 @@ public final class ChartPane extends Pane {
         draw();
     }
 
+    // Le dernier dessin : la page des statistiques redemande le graphique à chaque image, alors que ses
+    // relevés ne changent que de loin en loin. Tant que rien de ce qui se voit n'a changé (les points, la
+    // taille, l'écriture des nombres), l'image déjà dessinée est gardée telle quelle.
+    private List<Series> drawnSeries = null;
+    private double drawnWidth = -1;
+    private double drawnHeight = -1;
+    private String drawnLabels = null;
+    private int draws = 0;
+
+    /** Nombre de fois que le graphique a vraiment été redessiné : pour les vérifications. */
+    int draws() {
+        return draws;
+    }
+
+    /** Vrai si ce dessin serait exactement celui déjà à l'écran. */
+    private boolean unchanged(double width, String labels) {
+        if (width != drawnWidth || height != drawnHeight || !labels.equals(drawnLabels) || drawnSeries == null
+                || drawnSeries.size() != series.size()) return false;
+        for (int i = 0; i < series.size(); i++) {
+            Series now = series.get(i), before = drawnSeries.get(i);
+            if (!now.name().equals(before.name()) || !now.color().equals(before.color())
+                    || !java.util.Arrays.equals(now.x(), before.x()) || !java.util.Arrays.equals(now.y(), before.y())) return false;
+        }
+        return true;
+    }
+
     @Override
     public void layoutChildren() {
         double width = Math.floor(Math.min(getWidth(), MAX_WIDTH));
@@ -168,6 +194,16 @@ public final class ChartPane extends Pane {
 
     private void draw() {
         double width = canvas.getWidth();
+        // L'écriture des nombres (notation choisie dans les réglages) entre dans l'image : un échantillon de
+        // chaque axe suffit à voir si elle a changé.
+        String labels = idle.ui.common.Format.notation() + "|" + yLabel.apply(1234.5) + "|" + xLabel.apply(1234.5) + "|" + yLabel.apply(1e15);
+        if (unchanged(width, labels)) return;
+        // Une copie des points : si la page réutilisait ses tableaux, la comparaison suivante les verrait encore égaux.
+        drawnSeries = series.stream().map(each -> new Series(each.name(), each.color(), each.x().clone(), each.y().clone())).toList();
+        drawnWidth = width;
+        drawnHeight = height;
+        drawnLabels = labels;
+        draws++;
         GraphicsContext g = canvas.getGraphicsContext2D();
         g.clearRect(0, 0, width, height);
         g.setFill(Color.web(SURFACE));

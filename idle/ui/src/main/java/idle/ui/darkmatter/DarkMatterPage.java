@@ -81,6 +81,9 @@ public final class DarkMatterPage extends VBox {
     /** Le mode d'emploi de l'arbre : en mode détails seulement. */
     private final Label mockNotice = new Label();
     private final ScrollPane treeScroll = new ScrollPane(treePane);
+    /** Le plan des voies (version 0.84), et la réouverture des bifurcations à la prochaine explosion. */
+    private final idle.ui.common.PlanBar treePlan;
+    private final javafx.scene.control.Button reopen = new javafx.scene.control.Button();
 
     // Sous-page « Défis »
     private final ChallengesPane challenges;
@@ -90,6 +93,20 @@ public final class DarkMatterPage extends VBox {
         super(8);
         this.game = game;
         this.tree = new DarkMatterTreePane(game);
+        this.treePlan = new idle.ui.common.PlanBar(new idle.ui.common.PlanBar.Plan() {
+            public String code() { return game.darkTreeCode(); }
+            public Game.PlanLoad load(String code) { return game.loadDarkPlan(code); }
+            public void save(int slot) { game.saveDarkPlan(slot); }
+            public Game.PlanLoad loadSaved(int slot) { return game.loadSavedDarkPlan(slot); }
+            public String saved(int slot) { return game.state().savedDarkPlan(slot); }
+            public String describe(String code) {
+                int[] n = game.describeTreeCode(code);
+                return n[0] + (n[0] > 1 ? " voies" : " voie") + (n[1] > 0 ? ", " + n[1] + (n[1] > 1 ? " liaisons" : " liaison") : "");
+            }
+            public void forget() { game.forgetDarkPlan(); }
+            public boolean active() { return !game.darkPlan().isEmpty(); }
+            public String progress() { return treePlanProgress(); }
+        }, "les voies et les liaisons", GameApp.DARK_MATTER_COLOR);
         this.balanceBreakdown = Breakdown.attach(balanceLabel, game, Breakdown.Of.DARK_MATTER);
         this.challenges = new ChallengesPane(game);
         this.challengesScroll = new ScrollPane(challenges);
@@ -156,6 +173,13 @@ public final class DarkMatterPage extends VBox {
         treePane.setAlignment(Pos.TOP_CENTER);
         treePane.setPadding(new Insets(10, 0, 10, 0));
         treePane.getChildren().add(mockNotice);
+        reopen.setFocusTraversable(false);
+        reopen.setOnAction(event -> {
+            game.setForkResetArmed(!game.state().forkResetArmed());
+            refresh();
+        });
+        treePane.getChildren().add(treePlan);
+        treePane.getChildren().add(reopen);
         treePane.getChildren().add(tree);
         treeScroll.setFitToWidth(true);
         treeScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -200,6 +224,52 @@ public final class DarkMatterPage extends VBox {
         tree.refresh();
         tree.bangCard().click();
         refresh();
+    }
+
+    /** Le plan des voies et le bouton de réouverture (version 0.84). */
+    private void refreshPlan() {
+        treePlan.refresh();
+        boolean armed = game.state().forkResetArmed();
+        boolean can = game.canArmForkReset();
+        reopen.setVisible(can || armed);
+        reopen.setManaged(can || armed);
+        reopen.setText(armed ? "Les bifurcations se rouvriront à la prochaine explosion (annuler)"
+                : "Rouvrir les bifurcations à la prochaine explosion");
+        reopen.setStyle("-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + (armed ? " -fx-text-fill: #1a0f2e; -fx-background-color: " + GameApp.DARK_MATTER_COLOR + ";"
+                        : " -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + "; -fx-background-color: #141a26; -fx-border-color: "
+                                + GameApp.DARK_MATTER_COLOR + "88;"));
+    }
+
+    /** Où en est le plan des voies : prises, en attente, bloquées. */
+    private String treePlanProgress() {
+        int taken = 0, waiting = 0, blocked = 0;
+        for (idle.core.darkmatter.DarkUpgrade dark : game.darkPlan()) {
+            switch (game.darkPlanStep(dark)) {
+                case TAKEN -> taken++;
+                case WAITING -> waiting++;
+                case BLOCKED -> blocked++;
+            }
+        }
+        int all = taken + waiting + blocked;
+        return taken + " / " + all + " prises" + (waiting > 0 ? ", " + waiting + " en attente (prix ou case du dessus)" : "")
+                + (blocked > 0 ? ", " + blocked + " fermée(s) par l'autre voie jusqu'à la réouverture des bifurcations" : "")
+                + ". Elles se reprennent seules après chaque Big Bang.";
+    }
+
+    /** La barre du plan des voies : pour les vérifications. */
+    public idle.ui.common.PlanBar treePlan() {
+        return treePlan;
+    }
+
+    /** Le bouton de réouverture des bifurcations : pour les vérifications. */
+    public javafx.scene.control.Button reopenButton() {
+        return reopen;
+    }
+
+    /** L'arbre : pour les vérifications. */
+    public DarkMatterTreePane treePane() {
+        return tree;
     }
 
     private void select(int index) {
@@ -284,7 +354,10 @@ public final class DarkMatterPage extends VBox {
         Readiness ready = Readiness.of(game);
         treeTab.setText("Arbre" + Readiness.dot(ready.tree()));
         challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")" + Readiness.dot(ready.challenges()));
-        if (selected == 1) tree.refresh();
+        if (selected == 1) {
+            tree.refresh();
+            refreshPlan();
+        }
         if (selected == 2) challenges.refresh();
         if (selected != 0) return;
 

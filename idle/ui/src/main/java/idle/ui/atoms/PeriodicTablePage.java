@@ -124,6 +124,10 @@ public final class PeriodicTablePage extends VBox {
     private Element selected = null;
     /** Côté actuel d'une case, en pixels. */
     private double cellSize = 36;
+    /** Le filtre « utiles au prochain astre » (version 0.85), et les éléments qu'il éclaire au dernier affichage. */
+    private final Button nextFilter = new Button();
+    private boolean filterOn = false;
+    private java.util.Set<Integer> filtered = java.util.Set.of();
 
     PeriodicTablePage(Game game) {
         super(10);
@@ -233,6 +237,14 @@ public final class PeriodicTablePage extends VBox {
         getChildren().add(automationLabel);
         getChildren().add(targets);
         getChildren().add(targetLabel);
+        nextFilter.setFocusTraversable(false);
+        nextFilter.setOnAction(event -> {
+            filterOn = !filterOn;
+            filtered = filterOn ? game.elementsForNextStep() : java.util.Set.of();
+            paintCells();
+            refresh();
+        });
+        getChildren().add(nextFilter);
         getChildren().add(table);
         getChildren().add(detailLabel);
         getChildren().add(bonusLabel);
@@ -243,7 +255,7 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Recopie l'état du jeu dans la carte de synthèse, le tableau, le résumé des bonus et la légende. */
-    void refresh() {
+    public void refresh() {
         refresh(true);
     }
 
@@ -314,6 +326,21 @@ public final class PeriodicTablePage extends VBox {
 
     /** Les tuiles, les bonus et l'annonce du dernier élément obtenu : seulement quand le tableau a changé. */
     private void refreshTable() {
+        // Le filtre du prochain astre : caché avant le premier Big Bang, et repeint quand ce qu'il éclaire change.
+        boolean filter = game.isNextBodyFilterUnlocked();
+        nextFilter.setVisible(filter);
+        nextFilter.setManaged(filter);
+        if (!filter) filterOn = false;
+        java.util.Set<Integer> now = filterOn ? game.elementsForNextStep() : java.util.Set.of();
+        nextFilter.setText(filterOn ? "Utiles au prochain astre : " + now.size() + (now.size() > 1 ? " éléments éclairés" : " élément éclairé")
+                + " (tout montrer)" : "Montrer les éléments utiles au prochain astre");
+        nextFilter.setStyle("-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + (filterOn ? " -fx-text-fill: #10151f; -fx-background-color: #ffd27f;"
+                        : " -fx-text-fill: #ffd27f; -fx-background-color: #141a26; -fx-border-color: #ffd27f88;"));
+        if (!now.equals(filtered)) {
+            filtered = now;
+            paintCells();
+        }
         // Le tableau et les bonus ne changent qu'à la synthèse : inutile de tout réécrire à chaque image.
         // L'arbre de matière noire peut aussi repousser le maximum d'exemplaires : il faut alors repeindre.
         // Passer en mode détails, ou en sortir, change aussi les textes des tuiles.
@@ -423,6 +450,16 @@ public final class PeriodicTablePage extends VBox {
         paintCells();    // la taille du texte suit celle de la case
     }
 
+    /** Le bouton du filtre du prochain astre : pour les vérifications. */
+    public Button nextFilterButton() {
+        return nextFilter;
+    }
+
+    /** Vrai si cette case est éclairée par le filtre du prochain astre : pour les vérifications. */
+    public boolean isFilteredIn(int number) {
+        return filterOn && filtered.contains(number);
+    }
+
     /** Écrit et colore chaque case d'après ce que le joueur possède. */
     private void paintCells() {
         String font = "-fx-font-size: " + Math.max(8, Math.round(cellSize * 0.31)) + "px; ";
@@ -440,7 +477,10 @@ public final class PeriodicTablePage extends VBox {
                     ? " -fx-text-fill: #10151f; -fx-background-color: " + color + "; -fx-border-color: #ffffff;"
                     : copies > 0
                     ? " -fx-text-fill: #ffffff; -fx-background-color: " + color + "55; -fx-border-color: " + color + ";"
-                    : " -fx-text-fill: " + color + "88; -fx-background-color: #10151f; -fx-border-color: " + color + "44;"));
+                    : " -fx-text-fill: " + color + "88; -fx-background-color: #10151f; -fx-border-color: " + color + "44;")
+                    // Le filtre du prochain astre : ce qu'il demande cerclé d'or, le reste estompé.
+                    + (!filterOn ? "" : filtered.contains(element.number()) ? " -fx-border-color: #ffd27f; -fx-border-width: 2;"
+                            : " -fx-opacity: 0.3;"));
             tooltips.get(element.number()).setText(detail(element, "\n"));
         }
     }

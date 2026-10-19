@@ -8,6 +8,7 @@ import idle.core.sky.*;
 import idle.core.collider.*;
 import idle.core.probes.*;
 import idle.core.save.*;
+import idle.core.achievements.*;
 import java.util.*;
 import java.nio.file.*;
 
@@ -20,13 +21,38 @@ public class RobotCosmosPlanner {
   int prevBangs,prevBodies,prevAssemblies,prevSub,prevCosmos,prevMature;
   long prevMolecules;
   boolean abandoned=false;
+  /** Vrai quand c'est le robot qui a coupé la fusion et la synthèse automatiques (avant un Big Bang) : il les rallume ensuite. */
+  boolean fusionPausedByRobot=false;
+  /** Durée de l'absence en cours, en secondes réelles : le jeu n'en rejoue que {@link Absence#MAX_SECONDS} au plus. */
+  double awaySeconds=0;
+
+  /**
+   * Le jeu fermé pendant {@code dt} secondes, comme le vrai jeu le compte au retour : au taux hors ligne,
+   * et pas au-delà de {@link Absence#MAX_SECONDS} (24 h) par absence. Rend le temps de jeu crédité.
+   * (Correctif du 19/10/2026 : les anciennes campagnes créditaient toute l'absence, sans plafond.)
+   */
+  double away(double dt){
+    double counted=Math.max(0,Math.min(dt,Absence.MAX_SECONDS-awaySeconds));
+    awaySeconds+=dt;
+    double credit=counted*g.offlineRate();
+    if(credit>0)g.tickAway(credit);
+    return credit;
+  }
+
+  /** Le joueur revient : la prochaine absence repart de zéro. */
+  void back(){awaySeconds=0;}
   final List<String> csv=new ArrayList<>();
   int tickCount=0;
+  /** Échelles du cosmos formées, 3 une fois l'univers formé : former l'univers remet le cosmos à zéro (0.83). */
+  static int cosmosStage(Game g){return g.hasCosmos(Cosmos.UNIVERSE)?Cosmos.values().length:g.cosmosFormed();}
   RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;prevBangs=g.bigBangs();csv.add("total_hours,bigbangs,explosions,challenges,achievements,elements,molecules,substances,assemblies,bodies,mature,systems,cosmos,space,freeSpace,spaceRate,shopping");}
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
   static void atoms(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.ATOMS))if(!u.id().equals("atom_keep") && g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
   static void dark(Game g,int limit){for(int i=0;i<limit;i++){boolean bought=false;for(DarkUpgrade u:g.darkUpgrades()){if(g.canBuyDark(u.id())) { // On préserve au moins 500 lorsque l'arbre est suffisamment avancé.
-            if(g.darkLevelOf("dark_density")>=3 && g.state().darkMatter().lt(BigNum.of(700)))continue;
+            // Correctif du 19/10/2026 (0.86) : la réserve ne concerne que ce qui se paie en matière noire. Avant, elle
+            // bloquait aussi les cases payées en particules, en atomes ou en taille, qui n'en coûtent pas.
+            boolean paidInDarkMatter=u.branch()==DarkUpgrade.Branch.DARK_MATTER || u.isLink();
+            if(paidInDarkMatter && g.darkLevelOf("dark_density")>=3 && g.state().darkMatter().lt(BigNum.of(700)))continue;
             g.buyDark(u.id());bought=true;break;}}
           if(!bought)break;}}
   void collider(){
@@ -106,12 +132,33 @@ public class RobotCosmosPlanner {
     if(g.canFormBody(id))g.formBody(id);
     return true;
   }
+  /** Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. */
+  boolean automateMatter(){
+    Set<String> chosen=new HashSet<>();
+    // La liste du jeu donne ce qui MANQUE dans chaque état (rien n'y figure quand l'état est complet).
+    for(var need:g.shoppingList().matter().entrySet()){
+      if(need.getValue()<=0)continue;
+      Molecule best=null;double min=Double.POSITIVE_INFINITY;
+      for(Molecule m:g.molecules()){
+        if(!m.hasState()||m.state()!=need.getKey()||!g.hasSubstance(m.id()))continue;
+        double v=g.moleculeVolume(m.id()).toDouble();
+        if(v<min){best=m;min=v;}
+      }
+      if(best!=null&&g.setMoleculeAutomated(best.id(),true))chosen.add(best.id());
+    }
+    for(String id:new ArrayList<>(g.state().automatedMolecules()))if(!chosen.contains(id))g.setMoleculeAutomated(id,false);
+    return !chosen.isEmpty();
+  }
   void cosmos(){
     for(SpaceUpgrade up:g.spaceUpgrades())if(g.canBuySpaceUpgrade(up.id()))g.buySpaceUpgrade(up.id());
     g.setAutoFollowList(true);
     g.setAutoMoleculeReserve(0.10);
-    // L'automatisation générale mange tout l'espace : on contrôle nous-mêmes les créations.
-    g.setMoleculeAutomationEnabled(false);
+    // Correctif du 19/10/2026. Avant : création automatique toujours coupée (« elle mange tout l'espace »), si bien
+    // que la matière des astres et du cosmos ne se créait qu'aux décisions du robot, jamais en son absence.
+    // Maintenant, comme un joueur avisé : pour chaque état dont le prochain pas demande de la matière, l'amas
+    // rassemblé le moins encombrant est confié à la création automatique (les autres lui sont retirés), et la
+    // création automatique ne tourne que tant qu'il y a de la matière à réunir. La réserve d'espace reste de 10 %.
+    g.setMoleculeAutomationEnabled(automateMatter());
     g.setAutoGatherEnabled(true);
     g.setAutoFormEnabled(true);
     for(int i=0;i<5;i++){
@@ -188,22 +235,28 @@ public class RobotCosmosPlanner {
     particle(g,500);
     boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.productionPerSecond().gte(g.bigBangParticles());
     boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
-    if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);}
+    if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);fusionPausedByRobot=true;}
+    else if(fusionPausedByRobot){
+      // Correctif du 19/10/2026 : après le Big Bang, la fusion et la synthèse coupées pour le préparer restaient
+      // coupées pour toujours (d'où les profils 11, 12 et 17 bloqués). Le robot les rallume dès qu'il n'en a plus besoin.
+      g.setAutomationEnabled("auto_fusion",true);g.setAutomationEnabled("auto_synthesis",true);fusionPausedByRobot=false;
+    }
     for(int i=0;i<5 && !stopFusion && g.canFuse();i++){g.fuse();if(!finalMode)atoms(g,50);particle(g,200);}
     for(Automation a:g.automations()){if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());}
     if(!finalMode)atoms(g,60);
     for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
-    // Défis : après préparation des 40 premières explosions.
-    if(!g.inChallenge() && g.completedChallenges()<g.challenges().size() && g.state().explosions()>=40 && g.darkLevelOf("dark_density")>=3){
-        for(Challenge c:g.challenges())if(g.isChallengeUnlocked(c.id())&&!g.isChallengeCompleted(c.id())){
-           if(g.startChallenge(c.id())){ if(!abandoned && g.achievementCount()<40){g.abandonChallenge();abandoned=true;}break; }
-        }
-    }
+    // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
+    // et 0 défi, et n'atteignait jamais son premier Big Bang (il en faut 40 et les 10 défis).
+    hunt();
+    challenges();
     // Ne pas exploser avec une branche de densité incomplète : laisser les particules
     // croître jusqu'au coût astronomique du niveau 3.
-    boolean prepareDensity=false; // ne pas figer le prestige à 40 explosions : il faut dépasser les seuils de coût du tronc.
+    // Correctif du 19/10/2026 (0.86) : le bot explosait à chaque décision, et ne réunissait jamais les particules ou
+    // les atomes des cases chères de l'arbre (Densité…) : sa production plafonnait vers 1e45. Il laisse maintenant
+    // grandir la partie tant qu'une case de l'arbre, ouverte mais trop chère, peut le devenir, au plus 20 minutes.
+    boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.completedChallenges()==g.challenges().size() && waitsForTree();
     if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity)))g.explode();
     if(g.canBigBang() && (g.bigBangs()<6 || (g.bigBangs()<8 && g.bodiesMature()>=g.bigBangSkyRequirement()))){
         double current=elapsed/3600;
@@ -211,11 +264,96 @@ public class RobotCosmosPlanner {
         if(g.bigBang()){System.out.printf("BIGBANG_DONE,%.4f,%d,%d%n",current,old,g.bigBangs());abandoned=true;}
     }
   }
+  /** Une partie ne patiente jamais plus longtemps pour une case de l'arbre, en secondes de jeu. */
+  static final double TREE_PATIENCE=6*3600;
+  /** La production doit gagner au moins une demi-décade en ce temps, sinon la patience s'arrête. */
+  static final double TREE_STALL=30*60;
+  double stallMark=-1, stallLog=0, stallRun=-1;
+
+  /**
+   * Vrai si une case de l'arbre payée en particules, atomes ou taille est ouverte mais pas encore payable, et que la
+   * partie en cours progresse encore assez pour l'atteindre : sa production gagne une demi-décade par quart d'heure.
+   */
+  boolean waitsForTree(){
+    double run=g.stats().runTime();
+    if(!g.isDarkMatterUnlocked() || run>TREE_PATIENCE)return false;
+    double log=g.productionPerSecond().log10();
+    if(run<stallRun || stallMark<0){stallMark=run;stallLog=log;}
+    stallRun=run;
+    if(run-stallMark>=TREE_STALL){
+      if(log-stallLog<0.2){stallMark=-1;return false;}
+      stallMark=run;stallLog=log;
+    }
+    for(DarkUpgrade d:g.darkUpgrades()){
+      if(d.branch()==DarkUpgrade.Branch.DARK_MATTER || d.isLink() || g.isDarkMaxed(d.id()))continue;
+      if(g.isDarkAvailable(d.id()) && !g.canBuyDark(d.id()))return true;
+    }
+    return false;
+  }
+
+  /** Les défis tentés sans succès, et l'explosion où chacun pourra être retenté. */
+  final Map<String,Integer> failedChallenges=new HashMap<>();
+  /** Temps de jeu au début du défi en cours. */
+  double challengeStart=-1;
+  /** Un défi qui ne se réussit pas en ce temps de jeu est abandonné, pour être retenté plus tard. */
+  static final double CHALLENGE_GIVE_UP=2*3600;
+  /** Explosions avant de retenter un défi abandonné. */
+  static final int CHALLENGE_RETRY_EXPLOSIONS=25;
+
+  /**
+   * Les défis, un par un, dans l'ordre : dès que l'arbre a un peu avancé (10 explosions), le premier défi ouvert et
+   * pas encore réussi commence ; une explosion le réussit. Trop long (2 h de jeu), il est abandonné et retenté 25
+   * explosions plus tard. Le premier abandon donne aussi le succès « Demi-tour ».
+   */
+  void challenges(){
+    double now=g.state().timePlayed();
+    if(g.inChallenge()){
+      if(challengeStart<0)challengeStart=now;
+      if(now-challengeStart>CHALLENGE_GIVE_UP){
+        String id=g.activeChallenge().id();
+        if(g.abandonChallenge())failedChallenges.put(id,g.state().explosions()+CHALLENGE_RETRY_EXPLOSIONS);
+        challengeStart=-1;
+      }
+      return;
+    }
+    challengeStart=-1;
+    if(g.completedChallenges()>=g.challenges().size() || g.state().explosions()<10)return;
+    for(Challenge c:g.challenges()){
+      if(!g.isChallengeUnlocked(c.id()) || g.isChallengeCompleted(c.id()))continue;
+      if(failedChallenges.getOrDefault(c.id(),0)>g.state().explosions())continue;
+      if(g.startChallenge(c.id())){challengeStart=now;return;}
+    }
+  }
+
+  /**
+   * Les succès que le jeu demande de faire exprès, et qu'un bot ne faisait jamais : verrouiller l'appui, acheter
+   * Persistance, viser un actinide, tenir une réserve de synthèse, acheter en gros, « tout acheter ». Chaque geste
+   * n'a lieu que tant que son succès manque, et le réglage revient ensuite comme avant.
+   */
+  void hunt(){
+    if(!g.hasAchievement(Achievements.HOLD_LOCK) && g.isHoldLockUnlocked())g.setHoldLocked(true);
+    if(!g.hasAchievement("step_keep") && g.canBuy("atom_keep"))g.buy("atom_keep");
+    if(g.isTargetedSynthesisUnlocked()){
+      boolean wantActinide=!g.hasAchievement(Achievements.TARGETED_ACTINIDE);
+      if(wantActinide && g.synthesisTarget()!=idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(idle.core.elements.ElementCategory.ACTINIDE);
+      if(!wantActinide && g.synthesisTarget()==idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(null);
+    }
+    boolean wantReserve=!g.hasAchievement("feat_reserve") && g.isSynthesisAutomationUnlocked();
+    if(wantReserve && g.synthesisReserve().lt(BigNum.of(50)))g.setSynthesisReserve(BigNum.of(50));
+    if(!wantReserve && g.synthesisReserve().equals(BigNum.of(50)) && g.hasAchievement("feat_reserve"))g.setSynthesisReserve(BigNum.ZERO);
+    if(!g.hasAchievement(Achievements.BUY_EVERYTHING))g.buyAllWithParticles();
+    if(!g.hasAchievement(Achievements.BULK_PURCHASE)){
+      Upgrade cheapest=null;
+      for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (cheapest==null||g.costOf(u.id()).lt(g.costOf(cheapest.id()))))cheapest=u;
+      if(cheapest!=null)g.buy(cheapest.id(),Integer.MAX_VALUE);
+    }
+  }
+
   void snapshot(){
     String target=g.shoppingList().target().replace(',',';');
     String line=String.format(java.util.Locale.ROOT,"%.4f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s,%s",
       (g.state().timePlayed())/3600,g.bigBangs(),g.state().explosions(),g.completedChallenges(),g.achievementCount(),g.discoveredElements(),g.moleculesCreated(),
-      g.substancesFormed(),g.assembliesFormed(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),g.cosmosFormed(),g.state().space(),g.freeSpace(),g.spacePerSecond(),target);
+      g.substancesFormed(),g.assembliesFormed(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),g.state().space(),g.freeSpace(),g.spacePerSecond(),target);
     csv.add(line);System.out.println("HOUR,"+line);
   }
   void run(double hours) throws Exception {
@@ -232,22 +370,22 @@ public class RobotCosmosPlanner {
       probes();
       cosmos();
       resourceLoop();
-      if(g.bodiesFormed()!=prevBodies || g.assembliesFormed()!=prevAssemblies || g.cosmosFormed()!=prevCosmos || g.bodiesMature()!=prevMature){
+      if(g.bodiesFormed()!=prevBodies || g.assembliesFormed()!=prevAssemblies || RobotCosmosPlanner.cosmosStage(g)!=prevCosmos || g.bodiesMature()!=prevMature){
          if(g.bodiesFormed()!=prevBodies)System.out.printf("BODY,%.4f,%d,%s%n",g.state().timePlayed()/3600,g.bodiesFormed(),g.nextBody()==null?"-":g.nextBody().id());
          if(g.assembliesFormed()!=prevAssemblies)System.out.printf("ASSEMBLY,%.4f,%d%n",g.state().timePlayed()/3600,g.assembliesFormed());
-         prevBodies=g.bodiesFormed();prevAssemblies=g.assembliesFormed();prevCosmos=g.cosmosFormed();prevMature=g.bodiesMature();
+         prevBodies=g.bodiesFormed();prevAssemblies=g.assembliesFormed();prevCosmos=RobotCosmosPlanner.cosmosStage(g);prevMature=g.bodiesMature();
       }
       if(i%(int)Math.max(1,Math.round(3600/step))==0){snapshot();Files.writeString(OUTPUT_DIR.resolve("cosmic_planner_checkpoint.save"),SaveCodec.write(g.state(),0));Files.write(OUTPUT_DIR.resolve("cosmic_planner.csv"),csv);}
       if(g.hasCosmos(Cosmos.UNIVERSE)){System.out.println("UNIVERSE_DONE,"+g.state().timePlayed()/3600);snapshot();Files.writeString(OUTPUT_DIR.resolve("checkpoint_universe_finished.save"),SaveCodec.write(g.state(),0));break;}
     }
     Files.write(OUTPUT_DIR.resolve("cosmic_planner.csv"),csv);
-    System.out.println("FINISHED,bangs="+g.bigBangs()+",molecules="+g.moleculesCreated()+",bodies="+g.bodiesFormed()+",cosmos="+g.cosmosFormed());
+    System.out.println("FINISHED,bangs="+g.bigBangs()+",molecules="+g.moleculesCreated()+",bodies="+g.bodiesFormed()+",cosmos="+RobotCosmosPlanner.cosmosStage(g));
   }
   public static void main(String[] args) throws Exception {
     Path checkpoint=Path.of(args.length>0?args[0]:"sauvegardes/reference/checkpoint_bigbang.save");
     GameState state=SaveCodec.read(Files.readString(checkpoint)).state();
     Game game=new Game(state,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(42));
-    System.out.printf("LOADED,bb=%d,space=%s,time=%.3f,cosmos=%d%n",game.bigBangs(),game.state().space(),game.state().timePlayed()/3600,game.cosmosFormed());
+    System.out.printf("LOADED,bb=%d,space=%s,time=%.3f,cosmos=%d%n",game.bigBangs(),game.state().space(),game.state().timePlayed()/3600,RobotCosmosPlanner.cosmosStage(game));
     new RobotCosmosPlanner(game,args.length>2?Double.parseDouble(args[2]):10).run(args.length>1?Double.parseDouble(args[1]):20);
   }
 }

@@ -23,10 +23,11 @@ import javafx.scene.layout.VBox;
 
 /**
  * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé
- * (version 0.80, refaite en 0.81). Trois sous-onglets, sans logique pour l'instant :
+ * (version 0.80, refaite en 0.81). Quatre sous-onglets, sans logique pour l'instant :
  * <ul>
  *   <li>« Univers » : les univers en bulles, les graines d'univers, les quatre améliorations (Brane,
  *       Bulk, Paysage, Omnivers) et les outils d'essai ;</li>
+ *   <li>« Graine d'univers » (version 0.83) : la ressource principale, en grand, et son visuel ;</li>
  *   <li>« Dimensions », dès le deuxième univers : dix points autour d'un onzième, une dimension
  *       de plus par univers ; chacune ouvre sa fenêtre ;</li>
  *   <li>« Vide », le deuxième acte de la partie secondaire, dès qu'il y a de l'énergie du vide.</li>
@@ -42,6 +43,9 @@ public final class UniversePage extends VBox {
     static final int MAIN = 0;
     static final int DIMENSIONS = 1;
     static final int VOID = 2;
+    static final int SEED = 3;
+    /** La couleur de la graine d'univers : un or de paille. */
+    static final String SEED_COLOR = "#e6d27a";
 
     private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
             + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
@@ -52,7 +56,8 @@ public final class UniversePage extends VBox {
     private final Button mainTab = new Button("Univers");
     private final Button dimensionsTab = new Button("Dimensions");
     private final Button voidTab = new Button("Vide");
-    private final HBox subTabs = new HBox(mainTab, dimensionsTab, voidTab);
+    private final Button seedTab = new Button("Graine d'univers");
+    private final HBox subTabs = new HBox(mainTab, seedTab, dimensionsTab, voidTab);
     private int selected = MAIN;
 
     // Sous-onglet « Univers »
@@ -78,6 +83,11 @@ public final class UniversePage extends VBox {
     private final Label voidLine = new Label();
     private final VBox voidPane;
 
+    // Sous-onglet « Graine d'univers »
+    private final SeedView seedView = new SeedView();
+    private final Label seedLine = new Label();
+    private final VBox seedPane;
+
     private final StackPane pages;
     private boolean showOldTabs;
     private Consumer<Boolean> onOldTabs = shown -> { };
@@ -89,7 +99,7 @@ public final class UniversePage extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(0, 16, 10, 16));
 
-        Button[] tabs = {mainTab, dimensionsTab, voidTab};
+        Button[] tabs = {mainTab, dimensionsTab, voidTab, seedTab};
         for (int i = 0; i < tabs.length; i++) {
             int index = i;
             tabs[i].setFocusTraversable(false);
@@ -172,7 +182,19 @@ public final class UniversePage extends VBox {
         voidPane = new VBox(8, voidLine, voidHint, voidHolder);
         voidPane.setAlignment(Pos.TOP_CENTER);
 
-        pages = new StackPane(mainPane, dimensionsPane, voidPane);
+        // « Graine d'univers » : le nombre, en grand, et la graine.
+        seedLine.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + SEED_COLOR + ";");
+        Label seedHint = new Label("La ressource principale de l'univers. Former l'univers en donne une, et remet à zéro tout ce qui y a mené."
+                + " Elle ne sert à rien pour l'instant : la suite viendra.");
+        seedHint.setWrapText(true);
+        seedHint.setMaxWidth(560);
+        seedHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8ab80; -fx-text-alignment: center;");
+        CanvasPane seedHolder = CanvasPane.filling(seedView);
+        VBox.setVgrow(seedHolder, Priority.ALWAYS);
+        seedPane = new VBox(8, seedLine, seedHint, seedHolder);
+        seedPane.setAlignment(Pos.TOP_CENTER);
+
+        pages = new StackPane(mainPane, dimensionsPane, voidPane, seedPane);
         VBox.setVgrow(pages, Priority.ALWAYS);
         getChildren().addAll(subTabs, pages);
         select(MAIN);
@@ -217,7 +239,9 @@ public final class UniversePage extends VBox {
         mainPane.setVisible(index == MAIN);
         dimensionsPane.setVisible(index == DIMENSIONS);
         voidPane.setVisible(index == VOID);
+        seedPane.setVisible(index == SEED);
         mainTab.setStyle(style(index == MAIN, COLOR));
+        seedTab.setStyle(style(index == SEED, SEED_COLOR));
         dimensionsTab.setStyle(style(index == DIMENSIONS, COLOR));
         voidTab.setStyle(style(index == VOID, VOID_COLOR));
     }
@@ -228,7 +252,7 @@ public final class UniversePage extends VBox {
 
     /** Passe au sous-onglet suivant ou précédent, en boucle, parmi ceux qui sont ouverts. */
     public void step(int direction) {
-        java.util.List<Integer> shown = new java.util.ArrayList<>(java.util.List.of(MAIN));
+        java.util.List<Integer> shown = new java.util.ArrayList<>(java.util.List.of(MAIN, SEED));
         if (game.isDimensionsUnlocked()) shown.add(DIMENSIONS);
         if (isVoidOpen()) shown.add(VOID);
         int at = Math.max(0, shown.indexOf(selected));
@@ -275,6 +299,10 @@ public final class UniversePage extends VBox {
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
+        BigNum seeds = game.state().universeSeeds();
+        seedLine.setText(Format.count(seeds) + (seeds.gt(BigNum.ONE) ? " graines d'univers" : " graine d'univers"));
+        seedView.setSeeds(seeds.toDouble());
+        seedTab.setText("Graine d'univers (" + Format.count(seeds) + ")");
         mainTab.setText("Univers (" + universes + ")");
         dimensionsTab.setText("Dimensions (" + open + "/" + Game.MAX_DIMENSIONS + ")");
     }
@@ -295,6 +323,7 @@ public final class UniversePage extends VBox {
         switch (selected) {
             case DIMENSIONS -> dimensions.frame(elapsed, moving);
             case VOID -> voidView.frame(elapsed, moving);
+            case SEED -> seedView.frame(elapsed, moving);
             default -> view.frame(elapsed, moving);
         }
     }
@@ -302,6 +331,11 @@ public final class UniversePage extends VBox {
     /** La vue des univers : pour les vérifications. */
     public UniverseView view() {
         return view;
+    }
+
+    /** La graine d'univers : pour les vérifications. */
+    public SeedView seedView() {
+        return seedView;
     }
 
     /** La carte des dimensions : pour les vérifications. */

@@ -67,6 +67,85 @@ Avec Gradle, depuis `idle/` :
 | `docs/` | Le rapport consolidé (PDF et Word), le rapport du laboratoire V2, les synthèses, 25 graphiques et 3 classeurs Excel. |
 | `scripts_originals/` | Les scripts Python et shell d'origine. Ils sont gardés pour mémoire et pointent vers les anciens dossiers `/mnt/data/...` ; `run.py` les remplace. |
 
+## Les correctifs des bots (19 octobre 2026)
+
+Trois défauts des bots faussaient les anciennes campagnes. Ils sont corrigés dans `RobotCosmosPlanner`, que tous les profils et le bot V2 utilisent.
+
+1. **La fusion et la synthèse restent coupées après le Big Bang.** Le robot les coupait pour préparer le Big Bang, puis ne les rallumait jamais. C'est ce qui bloquait les profils 11, 12 et 17. Il les rallume maintenant dès qu'il n'en a plus besoin.
+2. **La matière ne se créait qu'aux décisions du robot.** La création automatique était toujours coupée, donc la matière des derniers astres et du cosmos ne se créait jamais pendant l'absence ni entre deux décisions. Le robot fait maintenant ce que ferait un joueur avisé : pour chaque état dont le prochain pas demande de la matière, il confie à la création automatique l'amas rassemblé le moins encombrant (« amas choisis »), et la coupe une fois la matière réunie.
+3. **L'absence n'était pas plafonnée.** Elle compte maintenant comme dans le jeu : au taux hors ligne, et 24 h au plus par absence (`RobotCosmosPlanner.away`).
+
+Résultats depuis la partie à 7 Big Bangs, graine 42, horizon 14 jours :
+
+| Profil | Avant | Après les correctifs | Dont temps actif |
+|---|---|---|---|
+| Bot V2 `DEPENDANCES` | 7 h 38 | 6 h 42 | tout |
+| 1 Optimiseur | 8 h 17 | 6 h 54 | tout |
+| 11 Fan de prestige | bloqué | 15 h 10 | tout |
+| 12 Accumulateur | bloqué | 10 h 02 | tout |
+| 17 AFK jeu ouvert | bloqué | 27 h 00 | tout |
+| 19 Micro-sessions | 184 h 00 | 12 h 01 | 1 h 01 |
+| 21 Joueur du soir | 145 h 09 | 72 h 00 | 6 h 00 |
+| 22 Joueur de week-end | 145 h 51 | 51 h 26 | 7 h 26 |
+| 23 Joueur distrait | 254 h 20 | 15 h 00 | 5 h 00 |
+| 24 Expert intermittent | 156 h 00 | 18 h 00 | 1 h 30 |
+
+**Le rapport consolidé et les CSV de `donnees/` datent d'avant ces correctifs.** Leurs durées de fin de partie, surtout celles des profils intermittents, mesuraient les défauts des bots plus que le jeu.
+
+Le correctif 2 a un revers : il montre qu'un joueur qui laisse la création automatique sur « suivre la liste » reste lent. Le jeu ne lui crée pas la matière des astres et du cosmos. Seul celui qui choisit lui-même ses amas avance seul.
+
+## Les bots partis de zéro : succès et défis (0.86)
+
+Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :
+
+1. **Les succès à faire exprès** (`hunt()`). Le bot verrouille l'appui, achète Persistance, vise un actinide, tient une réserve de synthèse de 50 atomes, achète en gros et « tout acheter ». Chaque geste n'a lieu que tant que son succès manque.
+2. **Les défis, un par un** (`challenges()`), dès 10 explosions. Un défi pas réussi en 2 h de jeu est abandonné, ce qui donne au passage le succès « Demi-tour », puis retenté 25 explosions plus tard. Avant, une condition sur une case de l'arbre empêchait de les lancer.
+3. **La réserve de matière noire** (`dark()`) ne bloque plus que ce qui se paie en matière noire. Avant, elle bloquait aussi les cases payées en particules, en atomes ou en taille.
+4. **La patience pour l'arbre** (`waitsForTree()`). Une fois les défis faits, le bot laisse grandir la partie tant qu'une case ouverte de l'arbre reste trop chère et que sa production progresse encore, 6 h au plus.
+
+Résultat, bot V2 `DEPENDANCES` depuis une partie neuve : 44 succès et les 10 défis vers 11 h de jeu.
+
+**Ce qui reste :** sa production plafonne vers 1e63 par seconde, et le premier Big Bang en demande 1e32000. Depuis zéro, le bot n'atteint donc toujours pas le premier Big Bang ; il faudrait une vraie stratégie de l'arbre et des explosions. Les durées de fin de partie, depuis la partie à 7 Big Bangs, ne bougent pas : 6 h 42 pour le bot V2, 6 h 53 pour le profil 1.
+
+## Former l'univers remet tout à zéro (0.83)
+
+Depuis la 0.83, former l'univers remet à zéro tout ce qui y a mené : Big Bangs, matière noire, molécules, astres, cosmos. L'univers, lui, reste formé (`g.hasCosmos(Cosmos.UNIVERSE)`), mais `g.cosmosFormed()` retombe à 0. Pour cette raison :
+- les bots repèrent l'univers par `RobotCosmosPlanner.cosmosStage(g)`, qui vaut 3 une fois l'univers formé ;
+- le bilan du bot V2 (`result.csv`) garde les Big Bangs et les astres d'avant la remise à zéro ;
+- la ligne `RESULT` des 24 profils montre, elle, l'état d'après : `bb=0`, `bodies=0`. Le bilan d'avant est dans `g.stats().universeTally()` ;
+- `winner.save` et `checkpoint_universe_finished.save` sont désormais des parties remises à zéro, dans l'univers ;
+- la partie « fin de partie » de l'empreinte change donc entre la 0.82 et la 0.83 : c'est voulu.
+
+Les durées jusqu'à l'univers ne changent pas : 6 h 42 pour `DEPENDANCES` et 6 h 54 pour le profil 1, comme en 0.82.
+
+## Les bots dans le jeu (0.84)
+
+Le profil de test (`./gradlew :app:runTest`) a un groupe « Bots ». Il fait jouer le bot V2 (`AdvancedLab`) sur la partie en cours, avec la politique choisie dans une liste (`DEPENDANCES` d'abord) :
+- **en direct** : une décision toutes les 20 s de jeu, vitesse du temps comprise ;
+- **en avance rapide** : 10 min, 1 h, 6 h, ou jusqu'au prochain Big Bang (12 h au plus) ;
+- **une décision** à la fois.
+
+Le lanceur ajoute le module à l'exécution (`runtimeOnly(project(":bots"))`). L'interface trouve le bot par son nom (`idle.ui.BotBridge`), sans dépendre de ce module. Sans les bots, les outils le disent et ne font rien.
+
+## L'empreinte du moteur : prouver qu'une optimisation ne change rien
+
+```bash
+python run.py empreinte --out sorties/avant          # sur la version de référence du jeu
+# … modifier le moteur …
+python run.py empreinte --out sorties/apres
+python run.py comparer sorties/avant sorties/apres   # « IDENTIQUES » pour les 4 parties, code 0
+```
+
+`Empreinte` joue quatre parties fixes avec les bots :
+- le début : 10 h depuis zéro ;
+- le premier Big Bang : 6 h ;
+- la fin de partie : le bot V2 jusqu'à l'univers ;
+- un joueur absent : 30 h, à raison de 30 minutes toutes les 4 h.
+
+Elle écrit ensuite leurs sauvegardes finales, et `outils/comparer_sauvegardes.py` les compare. Les textes et les entiers doivent être identiques, et les nombres réels égaux à un milliardième près.
+
+Pourquoi pas au bit près : `Math.pow`, `Math.log`… peuvent changer de dernier chiffre selon le moment où la JVM compile le code. Deux exécutions du même moteur ne donnent donc pas toujours les mêmes bits.
+
 ## À savoir avant de lire les résultats
 
 - **Version du moteur.** Les campagnes de `donnees/` ont tourné sur le moteur copié dans l'ancien kit. Ce moteur est identique au cœur du jeu en 0.79 et 0.80 ; la 0.81 n'a rien changé avant l'univers.
@@ -76,7 +155,5 @@ Avec Gradle, depuis `idle/` :
   - profil 21 : 145 h 09 ;
   - profil 22 : 145 h 51.
 - **La graine ne change presque rien après 7 Big Bangs.** La fin du jeu n'y dépend plus du hasard (7 h 38 avec la graine 42, 7 h 39 avec la 43). Plusieurs graines ne valent donc pas plusieurs essais à ce stade.
-- **Les profils historiques ont un bug.** Après le 8e Big Bang, leur politique de fin peut couper définitivement la fusion et la synthèse. Les trois profils perdants (11, 12 et 17) viennent de là ; `CorrectedCoach` les débloque.
-- **Le planificateur coupe la création automatique de molécules** (`RobotCosmosPlanner.cosmos()`). Ça ne change rien aux résultats : en fin d'acte 3, la création automatique « suivre la liste » ne crée pas la matière demandée par les astres et le cosmos, même allumée.
-- **L'absence des profils n'est pas plafonnée.** Les profils intermittents créditent toute leur absence, alors que le jeu la plafonne à 24 h (`Absence.MAX_SECONDS`).
+- **Les anciennes campagnes ont tourné avant les correctifs du 19 octobre** (voir plus haut) : fusion coupée après le Big Bang, matière jamais créée en l'absence du robot, absence sans plafond. Les reproductions de ces chiffres datent d'avant les correctifs.
 - **Les profils partis de zéro ne savent pas faire le premier Big Bang.** Ils ne planifient ni les défis ni ses conditions. Leurs nombres d'explosions (une par décision, toutes les 20 s) ne mesurent pas le jeu.

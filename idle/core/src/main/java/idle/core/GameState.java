@@ -70,6 +70,8 @@ public final class GameState {
     private final Map<String, Double> challengeTimes = new HashMap<>();
     private double decayDebt = 0;
     private final Set<String> achievements = new java.util.LinkedHashSet<>();
+    /** Change à chaque modification des succès : {@link Game} y garde son compte sans reparcourir la liste. Non sauvegardé. */
+    private int achievementsVersion = 0;
     private final Set<String> enabledDarkAutomations = new HashSet<>();
     private final Map<String, Double> darkAutomationTimers = new HashMap<>();
     private int bigBangs = 0;
@@ -128,6 +130,30 @@ public final class GameState {
     // La partie secondaire (version 0.81), sans logique pour l'instant : les univers créés après le
     // premier, les graines d'univers, l'énergie du vide, et le niveau des améliorations de l'univers.
     private int extraUniverses = 0;
+    private boolean universeFormed = false;
+    // Les plans de l'arbre et des systèmes solaires (version 0.84).
+    private final List<String> darkPlan = new ArrayList<>();
+    /** Les emplacements de sauvegarde des plans (version 0.86) : {@link #PLAN_SLOTS} chacun, vides au départ. */
+    public static final int PLAN_SLOTS = 5;
+    private final List<String> savedDarkPlans = emptySlots();
+    private final List<SolarSystem> systemPlan = new ArrayList<>();
+    private final List<String> savedSystemPlans = emptySlots();
+
+    /** Relit des emplacements ; une sauvegarde de la 0.84 ou 0.85 n'en avait qu'un, sous l'ancienne clé. */
+    private static void readSlots(SaveData data, String key, String oldKey, List<String> slots) {
+        java.util.Collections.fill(slots, "");
+        List<String> read = data.has(key) ? data.list(key) : List.of(String.join("", data.list(oldKey)));
+        for (int i = 0; i < Math.min(PLAN_SLOTS, read.size()); i++) slots.set(i, read.get(i) == null ? "" : read.get(i));
+    }
+
+    private static List<String> emptySlots() {
+        return new ArrayList<>(java.util.Collections.nCopies(PLAN_SLOTS, ""));
+    }
+    private boolean forkResetArmed = false;
+    // Planifier la matière (version 0.85).
+    private final List<String> plannedBodies = new ArrayList<>();
+    private final Map<String, Double> stateCaps = new TreeMap<>();
+    private boolean recipeReservation = false;
     private BigNum universeSeeds = BigNum.ZERO;
     private BigNum voidEnergy = BigNum.ZERO;
     private final Map<String, Integer> universeUpgrades = new HashMap<>();
@@ -648,6 +674,112 @@ public final class GameState {
         return Collections.unmodifiableList(solarSystems);
     }
 
+    /**
+     * Le plan de l'arbre (version 0.84) : les voies et les liaisons que le jeu prend dès qu'elles
+     * sont payables, dans cet ordre. Vide : pas de plan.
+     */
+    public List<String> darkPlan() {
+        return Collections.unmodifiableList(darkPlan);
+    }
+
+    public void setDarkPlan(List<String> ids) {
+        darkPlan.clear();
+        for (String id : ids) if (id != null && !id.isBlank() && !darkPlan.contains(id)) darkPlan.add(id);
+    }
+
+    /** Le plan de l'arbre gardé par « Sauvegarder », sous forme de code ; vide s'il n'y en a pas. */
+    public String savedDarkPlan() {
+        return savedDarkPlan(0);
+    }
+
+    /** Le code gardé dans cet emplacement, de 0 à {@link #PLAN_SLOTS} − 1 ; vide s'il n'y en a pas. */
+    public String savedDarkPlan(int slot) {
+        return slot < 0 || slot >= PLAN_SLOTS ? "" : savedDarkPlans.get(slot);
+    }
+
+    public void setSavedDarkPlan(int slot, String code) {
+        if (slot >= 0 && slot < PLAN_SLOTS) savedDarkPlans.set(slot, code == null ? "" : code);
+    }
+
+    public void setSavedDarkPlan(String code) {
+        setSavedDarkPlan(0, code);
+    }
+
+    /** Le plan des systèmes solaires (version 0.84) : ce que le jeu place dès que les astres sont mûrs et libres. */
+    public List<SolarSystem> systemPlan() {
+        return Collections.unmodifiableList(systemPlan);
+    }
+
+    public void setSystemPlan(List<SolarSystem> systems) {
+        systemPlan.clear();
+        systemPlan.addAll(systems);
+    }
+
+    /** Le plan des systèmes gardé par « Sauvegarder », sous forme de code ; vide s'il n'y en a pas. */
+    public String savedSystemPlan() {
+        return savedSystemPlan(0);
+    }
+
+    /** La disposition gardée dans cet emplacement ; vide s'il n'y en a pas. */
+    public String savedSystemPlan(int slot) {
+        return slot < 0 || slot >= PLAN_SLOTS ? "" : savedSystemPlans.get(slot);
+    }
+
+    public void setSavedSystemPlan(int slot, String code) {
+        if (slot >= 0 && slot < PLAN_SLOTS) savedSystemPlans.set(slot, code == null ? "" : code);
+    }
+
+    public void setSavedSystemPlan(String code) {
+        setSavedSystemPlan(0, code);
+    }
+
+    /** Les astres planifiés ensemble (version 0.85), trois au plus, dans l'ordre du choix. */
+    public List<String> plannedBodies() {
+        return Collections.unmodifiableList(plannedBodies);
+    }
+
+    public void setPlannedBodies(List<String> ids) {
+        plannedBodies.clear();
+        for (String id : ids) if (id != null && !id.isBlank() && !plannedBodies.contains(id)) plannedBodies.add(id);
+    }
+
+    /**
+     * Le plafond de la création automatique pour un état de la matière (version 0.85) : la part de
+     * l'espace que ses molécules peuvent occuper, de 0 à 1 ; 1 (sans plafond) s'il n'est pas réglé.
+     */
+    public double stateCap(String matter) {
+        return stateCaps.getOrDefault(matter, 1.0);
+    }
+
+    /** Règle un plafond ; 1 ou plus l'efface. */
+    public void setStateCap(String matter, double cap) {
+        if (Double.isNaN(cap) || cap >= 1) stateCaps.remove(matter);
+        else stateCaps.put(matter, Math.max(0, cap));
+    }
+
+    /** Les plafonds réglés, état par état. */
+    public Map<String, Double> stateCaps() {
+        return Collections.unmodifiableMap(stateCaps);
+    }
+
+    /** Vrai si la réservation par recette est allumée (version 0.85). */
+    public boolean recipeReservation() {
+        return recipeReservation;
+    }
+
+    public void setRecipeReservation(boolean on) {
+        recipeReservation = on;
+    }
+
+    /** Vrai si les bifurcations se rouvriront à la prochaine explosion (version 0.84). */
+    public boolean forkResetArmed() {
+        return forkResetArmed;
+    }
+
+    public void setForkResetArmed(boolean armed) {
+        forkResetArmed = armed;
+    }
+
     public void setSolarSystems(List<SolarSystem> systems) {
         solarSystems.clear();
         solarSystems.addAll(systems);
@@ -1050,6 +1182,54 @@ public final class GameState {
         endSeen = seen;
     }
 
+    /**
+     * Vrai une fois le premier univers formé (version 0.83) : il reste formé après la remise à
+     * zéro qui l'accompagne ({@link #startUniverse()}), quand l'échelle du cosmos repart de rien.
+     */
+    public boolean universeFormed() {
+        return universeFormed;
+    }
+
+    public void setUniverseFormed(boolean formed) {
+        universeFormed = formed;
+    }
+
+    /**
+     * Le premier univers se forme (version 0.83) : tout ce qui y a mené est effacé, comme pour une
+     * nouvelle partie ({@link #reset()}). Restent les succès, le temps de jeu, les statistiques,
+     * l'écran de fin déjà vu, et tout ce qui appartient à l'onglet Univers : les univers, leurs
+     * graines, l'énergie du vide et les quatre améliorations. La partie reste commencée, pour que
+     * l'écran de démarrage ne revienne pas.
+     */
+    public void startUniverse() {
+        java.util.Set<String> keptAchievements = new java.util.LinkedHashSet<>(achievements);
+        double played = timePlayed;
+        GameStats keptStats = stats;
+        boolean seen = endSeen;
+        int extra = extraUniverses;
+        BigNum seeds = universeSeeds;
+        BigNum energy = voidEnergy;
+        Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
+        List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
+        reset();
+        // Les plans gardés par « Sauvegarder » (version 0.84) servent d'une partie à l'autre.
+        for (int i = 0; i < PLAN_SLOTS; i++) {
+            savedDarkPlans.set(i, treeCodes.get(i));
+            savedSystemPlans.set(i, systemsCodes.get(i));
+        }
+        started = true;
+        timePlayed = played;
+        stats = keptStats;
+        endSeen = seen;
+        achievements.addAll(keptAchievements);
+        achievementsVersion++;
+        universeFormed = true;
+        extraUniverses = extra;
+        universeSeeds = seeds;
+        voidEnergy = energy;
+        universeUpgrades.putAll(upgrades);
+    }
+
     /** Univers créés après le premier (version 0.81). */
     public int extraUniverses() {
         return extraUniverses;
@@ -1319,7 +1499,14 @@ public final class GameState {
 
     /** @return {@code true} si le succès vient d'être ajouté, faux s'il était déjà obtenu */
     public boolean addAchievement(String achievementId) {
-        return achievements.add(achievementId);
+        boolean added = achievements.add(achievementId);
+        if (added) achievementsVersion++;
+        return added;
+    }
+
+    /** Numéro de version des succès : il change dès qu'un succès est ajouté ou retiré. */
+    public int achievementsVersion() {
+        return achievementsVersion;
     }
 
     /** Fraction d'exemplaire qui attend de se désintégrer, pendant le défi de la désintégration. */
@@ -1394,6 +1581,7 @@ public final class GameState {
         timePlayed = 0;
         challengeTimes.clear();
         achievements.clear();
+        achievementsVersion++;
         bigBangs = 0;
         molecules.clear();
         logKinds.clear();
@@ -1423,6 +1611,15 @@ public final class GameState {
         cometsCaught = 0;
         endSeen = false;
         extraUniverses = 0;
+        universeFormed = false;
+        darkPlan.clear();
+        java.util.Collections.fill(savedDarkPlans, "");
+        systemPlan.clear();
+        java.util.Collections.fill(savedSystemPlans, "");
+        forkResetArmed = false;
+        plannedBodies.clear();
+        stateCaps.clear();
+        recipeReservation = false;
         universeSeeds = BigNum.ZERO;
         voidEnergy = BigNum.ZERO;
         universeUpgrades.clear();
@@ -1563,6 +1760,7 @@ public final class GameState {
      */
     public void clearBigBangAct() {
         bigBangs = 0;
+        plannedBodies.clear();
         molecules.clear();
         substances.clear();
         assemblies.clear();
@@ -1662,6 +1860,16 @@ public final class GameState {
         data.put("autoFollowList", autoFollowList);
         data.putList("automatedMolecules", automatedMolecules);
         data.putList("spaceUpgrades", spaceUpgrades);
+        data.putList("darkPlan", darkPlan);
+        data.putList("savedDarkPlans", savedDarkPlans);
+        List<String> plannedSystems = new ArrayList<>();
+        for (SolarSystem system : systemPlan) plannedSystems.add(system.line());
+        data.putList("systemPlan", plannedSystems);
+        data.putList("savedSystemPlans", savedSystemPlans);
+        data.put("forkResetArmed", forkResetArmed);
+        data.putList("plannedBodies", plannedBodies);
+        data.putDoubles("stateCaps", new TreeMap<>(stateCaps));
+        data.put("recipeReservation", recipeReservation);
         data.put("automationPaused", automationPaused);
         data.putList("favoriteMolecules", favoriteMolecules);
         data.put("autoGather", autoGather);
@@ -1673,6 +1881,7 @@ public final class GameState {
         data.put("cometBoost", cometBoost);
         data.put("cometsCaught", cometsCaught);
         data.put("endSeen", endSeen);
+        data.put("universeFormed", universeFormed);
         data.put("extraUniverses", extraUniverses);
         data.put("universeSeeds", universeSeeds);
         data.put("voidEnergy", voidEnergy);
@@ -1781,6 +1990,7 @@ public final class GameState {
         data.doubles("challengeTimes").forEach(this::setChallengeTime);
         setDecayDebt(data.real("decayDebt", 0));
         achievements.addAll(data.list("achievements"));
+        achievementsVersion++;
         enabledDarkAutomations.addAll(data.list("enabledDarkAutomations"));
         data.doubles("darkAutomationTimers").forEach(this::setDarkAutomationTimer);
         setBigBangs(data.whole("bigBangs", 0));
@@ -1811,6 +2021,19 @@ public final class GameState {
         autoFollowList = data.flag("autoFollowList", true);
         automatedMolecules.addAll(data.list("automatedMolecules"));
         spaceUpgrades.addAll(data.list("spaceUpgrades"));
+        setDarkPlan(data.list("darkPlan"));
+        readSlots(data, "savedDarkPlans", "savedDarkPlan", savedDarkPlans);
+        systemPlan.clear();
+        for (String line : data.list("systemPlan")) {
+            SolarSystem system = SolarSystem.parse(line);
+            if (system != null) systemPlan.add(system);
+        }
+        readSlots(data, "savedSystemPlans", "savedSystemPlan", savedSystemPlans);
+        forkResetArmed = data.flag("forkResetArmed", false);
+        setPlannedBodies(data.list("plannedBodies"));
+        stateCaps.clear();
+        data.doubles("stateCaps").forEach(this::setStateCap);
+        recipeReservation = data.flag("recipeReservation", false);
         automationPaused = data.flag("automationPaused", false);
         favoriteMolecules.addAll(data.list("favoriteMolecules"));
         autoGather = data.flag("autoGather", true);
@@ -1823,6 +2046,8 @@ public final class GameState {
         setCometsCaught(data.whole("cometsCaught", 0));
         // Une sauvegarde d'avant la 0.68 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
         endSeen = data.flag("endSeen", data.whole("cosmos", 0) >= 3);
+        // Une sauvegarde d'avant la 0.83 dont l'univers est formé : la remise à zéro se fera au chargement (Game.restored).
+        universeFormed = data.flag("universeFormed", data.whole("cosmos", 0) >= 3);
         setExtraUniverses(data.whole("extraUniverses", 0));
         setUniverseSeeds(data.big("universeSeeds", BigNum.ZERO));
         setVoidEnergy(data.big("voidEnergy", BigNum.ZERO));
@@ -1983,7 +2208,7 @@ public final class GameState {
             if (completedChallenges.retainAll(known.challenges())) challengesVersion++;
             challengeTimes.keySet().retainAll(known.challenges());
         }
-        if (!known.achievements().isEmpty()) achievements.retainAll(known.achievements());
+        if (!known.achievements().isEmpty() && achievements.retainAll(known.achievements())) achievementsVersion++;
         if (!known.molecules().isEmpty()) {
             for (String id : List.copyOf(molecules.keySet())) {
                 if (!known.molecules().contains(id)) setMoleculeCount(id, 0);

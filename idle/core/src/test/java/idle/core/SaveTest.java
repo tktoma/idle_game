@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 class SaveTest {
 
     /** Ce qui se recalcule et ne fait pas partie de la sauvegarde. */
-    private static final Set<String> DERIVED = Set.of("elementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
+    private static final Set<String> DERIVED = Set.of("elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
             "assembliesSeen", "bodiesSeen", "moleculeLog");
 
     // ------------------------------------------------------------------
@@ -155,6 +155,17 @@ class SaveTest {
         state.setCometsCaught(7);
         state.setEndSeen(true);
         state.setExtraUniverses(3);
+        state.setUniverseFormed(true);
+        state.setDarkPlan(List.of("dark_a", "dark_b"));
+        state.setSavedDarkPlan("arbre:dark_a,dark_b");
+        state.setSavedDarkPlan(3, "arbre:dark_c");
+        state.setSystemPlan(List.of(new idle.core.sky.SolarSystem("etoile", List.of("p1", "p2"), List.of("l1"))));
+        state.setSavedSystemPlan("systemes:etoile|p1,p2|l1;autre||");
+        state.setForkResetArmed(true);
+        state.setPlannedBodies(List.of("icy_comet", "rocky_moon"));
+        state.setStateCap("GAS", 0.7);
+        state.setRecipeReservation(true);
+        state.stats().noteUniverseTally(8, 5_000, 300, 12);
         state.setUniverseSeeds(BigNum.of(7.5, 12));
         state.setVoidEnergy(BigNum.of(42));
         state.setUniverseUpgradeLevel("brane", 2);

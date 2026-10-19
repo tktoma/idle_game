@@ -81,10 +81,12 @@ final class EndPane extends StackPane {
         summary.setText("Tout ce que vous avez créé tient maintenant dans un univers. Temps de jeu : " + Format.duration(end)
                 + record(GameStats.Step.UNIVERSE, end) + ".");
         acts.setText(String.join("\n", actLines(stats, end)));
+        // Le bilan d'avant la remise à zéro de l'univers (version 0.83).
+        long[] tally = stats.universeTally();
         numbers.setText(Format.whole(stats.fusions()) + " fusions, " + Format.whole(stats.timedExplosions()) + " explosions, "
-                + Format.whole(game.bigBangs()) + " Big Bangs, " + Format.whole(game.moleculesCreated()) + " molécules, "
-                + Format.whole(game.state().collisionRuns()) + " collisions, " + Format.whole(game.cometsCaught()) + " comètes saisies.\n"
-                + "Le jeu continue derrière cet écran : l'univers reste formé, rien ne le défait.");
+                + Format.whole(tally[0]) + " Big Bangs, " + Format.whole(tally[1]) + " molécules, "
+                + Format.whole(tally[2]) + " collisions, " + Format.whole(tally[3]) + " comètes saisies.\n"
+                + "Tout ce qui y a mené repart de zéro. La suite se joue dans l'onglet Univers, avec votre première graine d'univers.");
     }
 
     /** Une ligne par acte : sa durée, de la fin du précédent à la sienne. */

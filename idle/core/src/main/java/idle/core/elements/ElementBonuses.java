@@ -24,8 +24,10 @@ public final class ElementBonuses {
     private final EnumMap<ElementEffect.Stat, Double> added = new EnumMap<>(ElementEffect.Stat.class);
     /** Multiplicateurs par grandeur : ils se multiplient entre eux. */
     private final EnumMap<ElementEffect.Stat, Double> multiplied = new EnumMap<>(ElementEffect.Stat.class);
-    private final Map<Integer, Double> generatorParticles = new java.util.HashMap<>();
-    private final Map<Integer, Double> generatorSpeed = new java.util.HashMap<>();
+    // Par générateur (indice = numéro du générateur) : des tableaux plutôt que des tables, lus à chaque
+    // instant pour chaque générateur. 1 partout tant qu'aucun élément ne les touche.
+    private double[] generatorParticles = new double[0];
+    private double[] generatorSpeed = new double[0];
     private final EnumMap<ElementEffect.CostTarget, Double> costs = new EnumMap<>(ElementEffect.CostTarget.class);
     private final EnumMap<ElementEffect.AutomationTarget, Double> automations =
             new EnumMap<>(ElementEffect.AutomationTarget.class);
@@ -67,9 +69,11 @@ public final class ElementBonuses {
     private void apply(ElementEffect effect, double strength) {
         switch (effect) {
             case ElementEffect.GeneratorBoost boost -> {
-                Map<Integer, Double> target = boost.stat() == ElementEffect.Stat.SPEED
-                        ? generatorSpeed : generatorParticles;
-                target.merge(boost.generator(), Math.pow(boost.factor(), strength), (a, b) -> a * b);
+                boolean speed = boost.stat() == ElementEffect.Stat.SPEED;
+                double[] target = grown(speed ? generatorSpeed : generatorParticles, boost.generator());
+                target[boost.generator()] *= Math.pow(boost.factor(), strength);
+                if (speed) generatorSpeed = target;
+                else generatorParticles = target;
             }
             case ElementEffect.Add add -> added.merge(add.stat(), add.bonus() * strength, Double::sum);
             case ElementEffect.Multiply multiply ->
@@ -103,12 +107,20 @@ public final class ElementBonuses {
 
     /** Multiplicateur des particules d'un générateur (numéroté à partir de 1). */
     public double generatorParticles(int generator) {
-        return generatorParticles.getOrDefault(generator, 1.0);
+        return generator >= 0 && generator < generatorParticles.length ? generatorParticles[generator] : 1.0;
     }
 
     /** Multiplicateur de la vitesse d'un générateur (numéroté à partir de 1). */
     public double generatorSpeed(int generator) {
-        return generatorSpeed.getOrDefault(generator, 1.0);
+        return generator >= 0 && generator < generatorSpeed.length ? generatorSpeed[generator] : 1.0;
+    }
+
+    /** Le tableau, agrandi au besoin pour contenir cet indice ; les cases ajoutées valent 1. */
+    private static double[] grown(double[] values, int index) {
+        if (index < values.length) return values;
+        double[] bigger = java.util.Arrays.copyOf(values, index + 1);
+        java.util.Arrays.fill(bigger, values.length, bigger.length, 1.0);
+        return bigger;
     }
 
     /** Diviseur d'un prix : 1 sans bonus, 2 quand le prix est divisé par deux. */

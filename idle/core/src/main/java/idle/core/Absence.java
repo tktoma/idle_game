@@ -48,17 +48,27 @@ public final class Absence {
      * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.73)
      * @param challengesDone    défis réussis pendant l'absence
      * @param challengeRunning  le défi en cours au retour, ou {@code null}
+     * @param probeTrips        voyages de sonde que l'absence a vidés et relancés seule (version 0.86)
      */
     public record Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                          BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
                          long moleculeCreations, int achievements, java.util.List<String> voies,
-                         java.util.List<String> challengesStarted, int challengesDone, String challengeRunning) {
+                         java.util.List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
+
+        /** Un bilan sans sondes : celui d'avant la 0.86. */
+        public Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
+                      BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
+                      long moleculeCreations, int achievements, java.util.List<String> voies,
+                      java.util.List<String> challengesStarted, int challengesDone, String challengeRunning) {
+            this(away, counted, rate, played, skipped, particles, atoms, fusions, syntheses, elements, explosions, space,
+                    moleculeCreations, achievements, voies, challengesStarted, challengesDone, challengeRunning, 0);
+        }
 
         /** Vrai si l'absence n'a rien rapporté du tout : il n'y a alors rien à annoncer. */
         public boolean isEmpty() {
             return particles.isZero() && atoms.isZero() && fusions == 0 && syntheses == 0 && explosions == 0
                     && space.isZero() && moleculeCreations == 0 && achievements == 0 && voies.isEmpty()
-                    && challengesStarted.isEmpty() && challengesDone == 0;
+                    && challengesStarted.isEmpty() && challengesDone == 0 && probeTrips == 0;
         }
     }
 
@@ -68,6 +78,7 @@ public final class Absence {
     private final double total;
     private double done = 0;
     private boolean skipped = false;
+    private int probeTrips = 0;
 
     // Les compteurs au retour, pour dire à la fin ce que l'absence a ajouté.
     private final BigNum particlesBefore;
@@ -105,6 +116,7 @@ public final class Absence {
         challengesBefore = game.completedChallenges();
         game.takeAwayVoies();
         game.takeAwayChallenges();
+        game.takeAwayProbeTrips();
     }
 
     /** Vrai si une absence de cette durée compte pour cette partie : assez longue, et la partie commencée. */
@@ -152,6 +164,7 @@ public final class Absence {
         }
         voies.addAll(game.takeAwayVoies());
         challengesStarted.addAll(game.takeAwayChallenges());
+        probeTrips += game.takeAwayProbeTrips();
     }
 
     /**
@@ -180,7 +193,7 @@ public final class Absence {
                 gain(game.state().space(), spaceBefore), stats.moleculeCreations() - creationsBefore,
                 Math.max(0, game.state().achievements().size() - achievementsBefore), java.util.List.copyOf(voies),
                 java.util.List.copyOf(challengesStarted), Math.max(0, game.completedChallenges() - challengesBefore),
-                game.activeChallenge() == null ? null : game.activeChallenge().name());
+                game.activeChallenge() == null ? null : game.activeChallenge().name(), probeTrips);
     }
 
     private static BigNum gain(BigNum now, BigNum before) {

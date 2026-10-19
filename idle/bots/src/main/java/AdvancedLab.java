@@ -28,7 +28,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
   AdvancedLab(Game g,double dt,String mode,long seed){
     super(g,dt);this.mode=mode;policyRandom=new Random(seed ^ 0x71abcL);
     prevB=g.bodiesMature();prevA=g.assembliesFormed();prevM=g.moleculeKindsCreated();prevT=g.substancesFormed();
-    prevS=g.solarSystemsComplete();prevC=g.cosmosFormed();prevBl=g.bigBangs();prevExpl=g.state().explosions();prevMol=g.moleculesCreated();
+    prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevBl=g.bigBangs();prevExpl=g.state().explosions();prevMol=g.moleculesCreated();
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
     events.add("wall_h,event,detail");
   }
@@ -83,22 +83,23 @@ public class AdvancedLab extends RobotCosmosPlanner {
     if(g.assembliesFormed()!=prevA)event("ASSEMBLAGES",String.valueOf(g.assembliesFormed()));
     if(g.substancesFormed()!=prevT)event("SUBSTANCES",String.valueOf(g.substancesFormed()));
     if(g.solarSystemsComplete()!=prevS)event("SYSTEMES",String.valueOf(g.solarSystemsComplete()));
-    if(g.cosmosFormed()!=prevC){event("COSMOS",String.valueOf(g.cosmosFormed()));if(g.cosmosFormed()>=1&&Double.isNaN(reachedGalaxy))reachedGalaxy=wall/3600;if(g.cosmosFormed()>=2&&Double.isNaN(reachedCluster))reachedCluster=wall/3600;if(g.cosmosFormed()>=3&&Double.isNaN(reachedUniverse))reachedUniverse=wall/3600;}
-    prevBl=g.bigBangs();prevExpl=g.state().explosions();prevB=g.bodiesMature();prevA=g.assembliesFormed();prevT=g.substancesFormed();prevS=g.solarSystemsComplete();prevC=g.cosmosFormed();prevM=g.moleculeKindsCreated();prevMol=g.moleculesCreated();
+    if(RobotCosmosPlanner.cosmosStage(g)!=prevC){event("COSMOS",String.valueOf(RobotCosmosPlanner.cosmosStage(g)));if(RobotCosmosPlanner.cosmosStage(g)>=1&&Double.isNaN(reachedGalaxy))reachedGalaxy=wall/3600;if(RobotCosmosPlanner.cosmosStage(g)>=2&&Double.isNaN(reachedCluster))reachedCluster=wall/3600;if(RobotCosmosPlanner.cosmosStage(g)>=3&&Double.isNaN(reachedUniverse))reachedUniverse=wall/3600;}
+    prevBl=g.bigBangs();prevExpl=g.state().explosions();prevB=g.bodiesMature();prevA=g.assembliesFormed();prevT=g.substancesFormed();prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevM=g.moleculeKindsCreated();prevMol=g.moleculesCreated();
   }
   void snapshot(){
     String wish=g.shoppingList().target().replace(',',';').replace('\n',' ');
-    rows.add(String.format(Locale.ROOT,"%.5f,%.5f,%d,%d,%.4f,%.4f,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%.3f",wall/3600,g.state().timePlayed()/3600,g.bigBangs(),g.state().explosions(),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.spacePerSecond(),g.freeSpace(),g.moleculesCreated(),g.moleculeKindsCreated(),g.substancesFormed(),g.assembliesFormed(),g.bodiesMature(),g.solarSystemsComplete(),g.cosmosFormed(),wish,acts,failed,(wall-lastMilestone)/3600));
+    rows.add(String.format(Locale.ROOT,"%.5f,%.5f,%d,%d,%.4f,%.4f,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%.3f",wall/3600,g.state().timePlayed()/3600,g.bigBangs(),g.state().explosions(),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.spacePerSecond(),g.freeSpace(),g.moleculesCreated(),g.moleculeKindsCreated(),g.substancesFormed(),g.assembliesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),wish,acts,failed,(wall-lastMilestone)/3600));
   }
   void runLab(double horizon,Path out) throws Exception{
     Files.createDirectories(out);
-    long ticks=(long)Math.ceil(horizon*3600/step);
+    long ticks=(long)Math.ceil(horizon*3600/step);int endBB=0,endMature=0;
     for(long i=1;i<=ticks;i++){
       wall+=step;g.tick(step);
       if(i%Math.max(1,(long)Math.round(20/step))==0){
-        int stage=g.cosmosFormed();int bb=g.bigBangs();int mature=g.bodiesMature();int kind=g.moleculeKindsCreated();long mol=g.moleculesCreated();
-        act();
-        if(stage==g.cosmosFormed() && bb==g.bigBangs() && mature==g.bodiesMature() && kind==g.moleculeKindsCreated() && mol==g.moleculesCreated())failed++;
+        int stage=RobotCosmosPlanner.cosmosStage(g);int bb=g.bigBangs();int mature=g.bodiesMature();int kind=g.moleculeKindsCreated();long mol=g.moleculesCreated();
+        endBB=bb;endMature=mature;
+        act(); // former l'univers remet tout à zéro (0.83) : le bilan garde endBB et endMature, l'état d'avant
+        if(stage==RobotCosmosPlanner.cosmosStage(g) && bb==g.bigBangs() && mature==g.bodiesMature() && kind==g.moleculeKindsCreated() && mol==g.moleculesCreated())failed++;
       }
       captureEvents();
       maxStall=Math.max(maxStall,wall-lastMilestone);
@@ -110,7 +111,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
     Files.write(out.resolve("timeline.csv"),rows);
     Files.write(out.resolve("events.csv"),events);
     if(g.hasCosmos(Cosmos.UNIVERSE))Files.writeString(out.resolve("winner.save"),SaveCodec.write(g.state(),0));
-    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d",mode,g.hasCosmos(Cosmos.UNIVERSE)?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.bigBangs(),g.bodiesMature(),g.cosmosFormed(),caught,pulses,extras);
+    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d",mode,g.hasCosmos(Cosmos.UNIVERSE)?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras);
     Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats\n"+res+"\n");
     System.out.println("RESULT,"+res);
   }

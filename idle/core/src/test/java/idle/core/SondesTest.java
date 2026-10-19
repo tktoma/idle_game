@@ -113,7 +113,7 @@ class SondesTest {
     @Test
     void unLongVoyageRapportePlusParHeure() {
         double previous = 0;
-        for (ProbeTrip trip : ProbeTrip.values()) {
+        for (ProbeTrip trip : ProbeTrip.ordinary()) {
             double perHour = trip.value() * trip.rewards() / (trip.seconds() / 3600);
             assertTrue(perHour > previous, trip + " : " + perHour);
             previous = perHour;

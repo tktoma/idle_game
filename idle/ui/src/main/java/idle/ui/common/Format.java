@@ -23,6 +23,11 @@ public final class Format {
         notation = chosen;
     }
 
+    /** La façon d'écrire les grands nombres en ce moment. */
+    public static Settings.Notation notation() {
+        return notation;
+    }
+
     /** Les noms des milliers, au singulier, de 1e3 (mille) à 1e63 (décilliard), selon l'échelle longue en usage en français. */
     private static final String[] WORDS = {"mille", "million", "milliard", "billion", "billiard", "trillion", "trilliard",
             "quadrillion", "quadrilliard", "quintillion", "quintilliard", "sextillion", "sextilliard", "septillion", "septilliard",

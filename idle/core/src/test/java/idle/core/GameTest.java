@@ -8391,11 +8391,12 @@ class GameTest {
             game.state().setTimePlayed(9000);
             assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé à 7 000 s, se rassemble encore
             game.state().setTimePlayed(9800);
-            assertTrue(game.formCosmos(Cosmos.UNIVERSE));
+            // L'univers à la main, sans sa remise à zéro (version 0.83) : il double toutes les grandeurs.
+            String atCluster = idle.core.save.SaveCodec.write(game.state(), 0);
+            game.state().setCosmosLevel(3);
             assertEquals(3, game.cosmosFormed());
             assertTrue(game.nextCosmos() == null);
             assertEquals(11, game.cosmosConditionsMet(Cosmos.UNIVERSE));
-            assertEquals(9800, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
             assertEquals(10, game.cosmosMilestones());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
                 assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
@@ -8408,6 +8409,74 @@ class GameTest {
             assertEquals(0, game.cosmosFormed());
             assertFalse(game.hasGalaxy());
             assertThrows(IllegalArgumentException.class, () -> game.state().setCosmosLevel(4));
+
+            // Pour de bon (version 0.83) : former l'univers remet tout à zéro, sauf ce qui appartient à l'univers.
+            try {
+                idle.core.save.SaveCodec.readInto(game.state(), atCluster);
+            } catch (Exception unreadable) {
+                throw new AssertionError(unreadable);
+            }
+            game.restored();
+            int bangs = game.bigBangs();
+            long createdBefore = game.moleculesCreated();
+            game.state().setTimePlayed(9800);
+            game.testAddVoidEnergy(BigNum.of(5));
+            assertTrue(bangs > 0 && createdBefore > 0);
+            int achievementsBefore = game.achievementCount();
+            assertTrue(game.formCosmos(Cosmos.UNIVERSE));
+            assertTrue(game.hasCosmos(Cosmos.UNIVERSE) && game.state().universeFormed());
+            assertEquals(1, game.universes());
+            assertEquals(0, game.cosmosFormed());                          // le cosmos repart de rien
+            assertFalse(game.hasGalaxy());
+            assertEquals(0, game.bigBangs());
+            assertEquals(0, game.moleculesCreated());
+            assertTrue(game.state().darkMatter().sign() == 0 && game.state().particles().sign() == 0);
+            assertEquals(0, game.state().explosions());
+            assertTrue(game.isStarted());                                  // pas d'écran de démarrage
+            assertEquals(9800, game.state().timePlayed(), 1e-9);           // le temps de jeu reste
+            assertEquals(9800, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
+            assertTrue(game.achievementCount() >= achievementsBefore);     // les succès restent
+            assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), game.state().universeSeeds());
+            assertEquals(BigNum.of(5), game.state().voidEnergy());          // ce qui est à l'univers reste
+            long[] tally = game.stats().universeTally();
+            assertEquals(bangs, tally[0]);
+            assertEquals(createdBefore, tally[1]);
+            assertEquals(1.0, game.offlineRate(), 1e-12);                  // l'absence compte toujours en entier
+            // Relue, la partie reste dans l'univers et ne se remet pas à zéro une seconde fois.
+            GameState back;
+            try {
+                back = idle.core.save.SaveCodec.read(idle.core.save.SaveCodec.write(game.state(), 0)).state();
+            } catch (Exception unreadable) {
+                throw new AssertionError(unreadable);
+            }
+            assertTrue(back.universeFormed());
+            assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), back.universeSeeds());
+        }
+
+        @Test
+        void uneSauvegardeDAvantLaRemiseAZeroDeLUniversSeRemetAZeroAuChargement() {
+            // Une partie d'avant la 0.83 : l'univers formé, sans la clé universeFormed, et tout ce qui y a mené.
+            Game game = game();
+            game.state().setCosmosLevel(3);
+            game.state().setBigBangs(8);
+            game.state().setTimePlayed(40_000);
+            String text = idle.core.save.SaveCodec.write(game.state(), 0).replace("universeFormed", "ancienneCle");
+            Game loaded = game();
+            try {
+                idle.core.save.SaveCodec.readInto(loaded.state(), text);
+            } catch (Exception unreadable) {
+                throw new AssertionError(unreadable);
+            }
+            assertTrue(loaded.state().universeFormed());
+            loaded.restored();
+            assertTrue(loaded.hasCosmos(Cosmos.UNIVERSE));
+            assertEquals(0, loaded.cosmosFormed());
+            assertEquals(0, loaded.bigBangs());
+            assertEquals(8, loaded.stats().universeTally()[0]);
+            assertEquals(40_000, loaded.state().timePlayed(), 1e-9);
+            assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), loaded.state().universeSeeds());
+            loaded.restored();                                             // une seule fois
+            assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), loaded.state().universeSeeds());
         }
 
         @Test

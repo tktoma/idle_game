@@ -47,6 +47,8 @@ public final class SystemsPane extends VBox {
     private final VBox systems = new VBox(14);
     private final List<SystemView> views = new ArrayList<>();
     private String shown = "";
+    /** Le plan de la disposition (version 0.84) : la sauvegarder, la recharger, la copier en texte. */
+    private final idle.ui.common.PlanBar plan;
 
     SystemsPane(Game game, Runnable changed) {
         super(10);
@@ -83,7 +85,29 @@ public final class SystemsPane extends VBox {
         stars.setAlignment(Pos.CENTER);
         stars.setMaxWidth(780);
         systems.setAlignment(Pos.TOP_CENTER);
-        getChildren().addAll(summary, stepRow, intro, foundTitle, stars, systems);
+        plan = new idle.ui.common.PlanBar(new idle.ui.common.PlanBar.Plan() {
+            public String code() { return game.systemsCode(); }
+            public Game.PlanLoad load(String code) { return game.loadSystemPlan(code); }
+            public void save(int slot) { game.saveSystemPlan(slot); }
+            public Game.PlanLoad loadSaved(int slot) { return game.loadSavedSystemPlan(slot); }
+            public String saved(int slot) { return game.state().savedSystemPlan(slot); }
+            public String describe(String code) {
+                int[] n = game.describeSystemsCode(code);
+                return n[0] + (n[0] > 1 ? " systèmes, " : " système, ") + n[1] + (n[1] > 1 ? " astres autour" : " astre autour");
+            }
+            public void forget() { game.forgetSystemPlan(); }
+            public boolean active() { return !game.systemPlan().isEmpty(); }
+            public String progress() {
+                int[] done = game.systemPlanProgress();
+                return done[0] + " / " + done[1] + " astres à leur place. Les autres se placeront dès qu'ils seront mûrs et libres.";
+            }
+        }, "la disposition des systèmes", COLOR);
+        getChildren().addAll(summary, stepRow, intro, plan, foundTitle, stars, systems);
+    }
+
+    /** La barre du plan des systèmes : pour les vérifications. */
+    public idle.ui.common.PlanBar plan() {
+        return plan;
     }
 
     /** Une étape : faite (verte), en cours (dorée), ou à venir (grise). */
@@ -95,7 +119,8 @@ public final class SystemsPane extends VBox {
                 + "; -fx-background-color: " + (current ? "#1c1a12" : "#0f151e") + ";");
     }
 
-    void refresh() {
+    public void refresh() {
+        plan.refresh();
         intro.setVisible(Detail.shown());
         intro.setManaged(Detail.shown());
         int complete = game.solarSystemsComplete();

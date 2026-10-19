@@ -526,15 +526,24 @@ public final class Game {
         int dropped = state.retainKnown(new GameState.Known(upgrades.keySet(), automations.keySet(), darkUpgrades.keySet(),
                 darkAutomations.keySet(), challengeIds(), achievements.keySet(), molecules.keySet(), assemblies.keySet(),
                 bodies.keySet(), spaceUpgrades.keySet(), PeriodicTable.ELEMENTS.size()));
+        newAchievements.clear();
+        newRecords.clear();
+        // Une sauvegarde d'avant la 0.83 dont l'univers est formé : la remise à zéro de l'univers ne s'était pas faite.
+        if (state.universeFormed() && state.cosmosLevel() >= Cosmos.values().length) resetForUniverse();
+        forgetDerived();
+        return dropped;
+    }
+
+    /** Oublie tout ce que le jeu avait calculé d'avance : l'état vient de changer d'un coup. */
+    private void forgetDerived() {
         gatheredByStateVersion = -1;
+        spaceByStateVersion = -1;
         occupiedSpaceVersion = -1;
         reservedSpaceVersion = -1;
         moleculeBonusesVersion = -1;
         achievementBonusesFor = -1;
         elementBonusesVersion = -1;
-        newAchievements.clear();
         newSpaceUpgrades.clear();
-        newRecords.clear();
         cometAppeared = false;
         speedPrimePaid = false;
         kindCountsVersion = -1;
@@ -544,11 +553,11 @@ public final class Game {
         autoFormTimer = 0;
         shoppingVersion = Long.MIN_VALUE;
         shoppingSpaceKey = -1;
+        nextAssemblyKey = Long.MIN_VALUE;
         finishedCollisions.clear();
         achievementTimer = 0;
         moleculeAutomationTimer = 0;
         moleculeAutomationTurn = 0;
-        return dropped;
     }
 
     private static java.util.Set<String> challengeIds() {
@@ -599,6 +608,29 @@ public final class Game {
                 awayVoies.add(dark.name());
             }
         }
+    }
+
+    /**
+     * Les sondes en absence (version 0.86) : une sonde arrivée vide son butin et repart pour le même
+     * voyage, comme le ferait le joueur. Joueur présent, rien ne change : le butin attend son clic,
+     * et les sondes restent un à-côté, jamais une obligation.
+     */
+    private void runProbesWhileAway() {
+        if (!isProbesUnlocked() || state.probes().isEmpty()) return;
+        for (Probe probe : new ArrayList<>(state.probes())) {
+            if (!probe.landed() || probe.id() < 0) continue;
+            claimAllProbeRewards(probe.id());
+            if (launchProbe(probe.destination(), probe.trip())) awayProbeTrips++;
+        }
+    }
+
+    private int awayProbeTrips = 0;
+
+    /** Les voyages de sonde que l'absence rejouée a relancés seule, puis les oublie. */
+    public int takeAwayProbeTrips() {
+        int trips = awayProbeTrips;
+        awayProbeTrips = 0;
+        return trips;
     }
 
     /** Les voies prises seules pendant l'absence en cours de rejeu, et les défis qu'elle a tentés et réussis. */
@@ -665,6 +697,7 @@ public final class Game {
         if (away) {
             takeAbsenceVoies();
             startChallengeWhileAway();
+            runProbesWhileAway();
         }
         // La matière noire qui grossit seule : une petite part de ce que donnerait un appui.
         double autoShare = darkAutoExpansionShare();
@@ -683,6 +716,7 @@ public final class Game {
         runMaturation(dt);
         runMoleculeAutomation(dt);
         runAutoForm(dt);
+        runPlans(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -1731,6 +1765,11 @@ public final class Game {
         clearRun();
         state.stats().endRun();
         if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
+        // Demandé par le joueur (version 0.84) : les bifurcations se rouvrent avec cette explosion.
+        if (state.forkResetArmed()) {
+            if (!hasSuperposition()) reopenForks();
+            state.setForkResetArmed(false);
+        }
         return true;
     }
 
@@ -1920,12 +1959,20 @@ public final class Game {
 
     /** Nombre de succès obtenus parmi ceux du catalogue. */
     public int achievementCount() {
-        int count = 0;
-        for (String id : state.achievements()) {
-            if (achievements.containsKey(id)) count++;
+        // Lu à chaque instant par plusieurs bonus : le compte n'est refait que si les succès ont changé.
+        if (achievementCountVersion != state.achievementsVersion()) {
+            int count = 0;
+            for (String id : state.achievements()) {
+                if (achievements.containsKey(id)) count++;
+            }
+            achievementCountCache = count;
+            achievementCountVersion = state.achievementsVersion();
         }
-        return count;
+        return achievementCountCache;
     }
+
+    private int achievementCountCache = 0;
+    private int achievementCountVersion = -1;
 
     /**
      * Les succès obtenus depuis le dernier appel, dans l'ordre : l'interface s'en sert pour les
@@ -2374,6 +2421,22 @@ public final class Game {
         return true;
     }
 
+    /**
+     * Rouvre les bifurcations : leurs voies et les liaisons qui en dépendent repartent de zéro, et la
+     * matière noire des liaisons cesse d'être comptée comme dépensée. Ce que fait chaque Big Bang ; et
+     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.84).
+     */
+    private void reopenForks() {
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.isLink()) {
+                BigNum paid = BigNum.ZERO;
+                for (int level = 0; level < state.darkLevelOf(dark.id()); level++) paid = paid.add(dark.costAt(level));
+                state.setDarkMatterSpent(state.darkMatterSpent().subtract(paid).max(BigNum.ZERO));
+            }
+            if (dark.isFork() || dark.isLink()) state.setDarkLevel(dark.id(), 0);
+        }
+    }
+
     /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
     private void clearForBigBang() {
         boolean keepsTree = bigBangKeepsDarkTree();
@@ -2386,16 +2449,7 @@ public final class Game {
             // Les liaisons, qui en dépendent, repartent avec elles ; la matière noire qu'elles avaient coûté
             // cesse d'être comptée comme dépensée. Avec la Superposition (0.70), il n'y a plus de choix à refaire :
             // voies et liaisons restent.
-            if (!hasSuperposition()) {
-                for (DarkUpgrade dark : darkUpgrades.values()) {
-                    if (dark.isLink()) {
-                        BigNum paid = BigNum.ZERO;
-                        for (int level = 0; level < state.darkLevelOf(dark.id()); level++) paid = paid.add(dark.costAt(level));
-                        state.setDarkMatterSpent(state.darkMatterSpent().subtract(paid).max(BigNum.ZERO));
-                    }
-                    if (dark.isFork() || dark.isLink()) state.setDarkLevel(dark.id(), 0);
-                }
-            }
+            if (!hasSuperposition()) reopenForks();
         } else {
             state.clearDarkMatter();
         }
@@ -2702,6 +2756,7 @@ public final class Game {
                     if (item.missing() <= 0) continue;
                     String id = item.molecule().id();
                     if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                    if (!withinStateCap(id)) continue;
                     created |= createMolecule(id, true);
                 }
             }
@@ -2715,10 +2770,296 @@ public final class Game {
                 if (!molecules.containsKey(id)) continue;
                 // La réserve : la création n'a lieu que si elle laisse libre la part d'espace que le joueur veut garder.
                 if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                if (!withinStateCap(id)) continue;
                 created |= createMolecule(id, true);
             }
             if (!created) break;
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Planifier la matière (version 0.85)
+    // ------------------------------------------------------------------
+
+    /** Astres formés qu'il faut pour planifier plusieurs astres à la fois. */
+    public static final int BODY_PLANNING_BODIES = 5;
+    /** Astres planifiés ensemble, au plus. */
+    public static final int MAX_PLANNED_BODIES = 3;
+
+    /** Vrai une fois {@link #BODY_PLANNING_BODIES} astres formés : la planification de plusieurs astres s'ouvre. */
+    public boolean isBodyPlanningUnlocked() {
+        return isBodiesUnlocked() && bodiesFormed() >= BODY_PLANNING_BODIES;
+    }
+
+    /** Les astres planifiés qui ne sont pas encore formés, dans l'ordre du choix. */
+    public List<Body> plannedBodies() {
+        List<Body> planned = new ArrayList<>();
+        for (String id : state.plannedBodies()) {
+            Body body = bodies.get(id);
+            if (body != null && !state.hasBody(id)) planned.add(body);
+        }
+        return planned;
+    }
+
+    /** Vrai si cet astre est planifié. */
+    public boolean isBodyPlanned(String bodyId) {
+        return state.plannedBodies().contains(bodyId) && !state.hasBody(bodyId);
+    }
+
+    /**
+     * Ajoute cet astre au plan, ou l'en retire. Faux si la planification n'est pas ouverte, si
+     * l'astre est déjà formé, ou s'il y en a déjà {@link #MAX_PLANNED_BODIES}.
+     */
+    public boolean togglePlannedBody(String bodyId) {
+        Body body = body(bodyId);
+        List<String> planned = new ArrayList<>();
+        for (Body kept : plannedBodies()) planned.add(kept.id());
+        if (planned.remove(body.id())) {
+            state.setPlannedBodies(planned);
+            return true;
+        }
+        if (!isBodyPlanningUnlocked() || state.hasBody(body.id()) || planned.size() >= MAX_PLANNED_BODIES) return false;
+        planned.add(body.id());
+        state.setPlannedBodies(planned);
+        return true;
+    }
+
+    /** Ce que demande le plan de plusieurs astres, une ligne par exigence. */
+    public record PlanNeed(Kind kind, String id, long needed, long have, boolean gather, boolean gathered, List<String> bodies) {
+
+        /** Ce qu'est l'exigence. */
+        public enum Kind {
+            /** Un astre plus petit, à avoir formé et mûri. */
+            BODY,
+            /** Un assemblage à former. */
+            ASSEMBLY,
+            /** Des molécules d'une sorte, en nombre, rassemblées ou non. */
+            MOLECULE,
+            /** De la matière rassemblée dans un état. */
+            MATTER
+        }
+
+        public PlanNeed {
+            bodies = List.copyOf(bodies);
+        }
+
+        /** Vrai si c'est déjà réuni. */
+        public boolean satisfied() {
+            return have >= needed && (!gather || gathered);
+        }
+
+        /** Vrai si plusieurs astres du plan la demandent en même temps : elle ne se compte qu'une fois, ou s'ajoute (assemblages). */
+        public boolean shared() {
+            return bodies.size() > 1;
+        }
+
+        /** Ce qu'il manque, en nombre. */
+        public long missing() {
+            return Math.max(0, needed - have);
+        }
+    }
+
+    /**
+     * Les besoins réunis des astres planifiés ({@link #plannedBodies()}) : les astres plus petits, les
+     * assemblages, les molécules et la matière. Les seuils (molécules d'un astre, matière) servent à
+     * tous les astres à la fois : le plus haut compte. Les ingrédients des assemblages s'ajoutent,
+     * puisque deux assemblages ne se partagent pas leurs molécules. Les exigences déjà réunies
+     * viennent après les autres.
+     */
+    public List<PlanNeed> plannedNeeds() {
+        Map<String, Long> smaller = new LinkedHashMap<>(), assembled = new LinkedHashMap<>();
+        Map<String, long[]> wanted = new LinkedHashMap<>();       // sorte → {ingrédients des assemblages, seuil de l'astre, à rassembler}
+        Map<Molecule.State, Long> matter = new java.util.EnumMap<>(Molecule.State.class);
+        Map<String, List<String>> askers = new java.util.HashMap<>();
+        for (Body body : plannedBodies()) {
+            for (String id : body.bodies()) {
+                smaller.put(id, 1L);
+                askers.computeIfAbsent("B" + id, key -> new ArrayList<>()).add(body.id());
+            }
+            for (String id : body.assemblies()) {
+                assembled.put(id, 1L);
+                askers.computeIfAbsent("A" + id, key -> new ArrayList<>()).add(body.id());
+                if (state.hasAssembly(id)) continue;
+                for (Map.Entry<String, Integer> ingredient : assemblies.get(id).ingredients().entrySet()) {
+                    long[] want = wanted.computeIfAbsent(ingredient.getKey(), key -> new long[3]);
+                    want[0] += ingredient.getValue();
+                    want[2] = 1;
+                    List<String> who = askers.computeIfAbsent("M" + ingredient.getKey(), key -> new ArrayList<>());
+                    if (!who.contains(body.id())) who.add(body.id());
+                }
+            }
+            for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+                long[] want = wanted.computeIfAbsent(needed.getKey(), key -> new long[3]);
+                want[1] = Math.max(want[1], needed.getValue());
+                List<String> who = askers.computeIfAbsent("M" + needed.getKey(), key -> new ArrayList<>());
+                if (!who.contains(body.id())) who.add(body.id());
+            }
+            for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+                matter.merge(needed.getKey(), (long) needed.getValue(), Math::max);
+                askers.computeIfAbsent("S" + needed.getKey().name(), key -> new ArrayList<>()).add(body.id());
+            }
+        }
+        List<PlanNeed> needs = new ArrayList<>();
+        for (String id : smaller.keySet()) {
+            needs.add(new PlanNeed(PlanNeed.Kind.BODY, id, 1, isBodyMature(id) ? 1 : 0, false, false, askers.get("B" + id)));
+        }
+        for (String id : assembled.keySet()) {
+            needs.add(new PlanNeed(PlanNeed.Kind.ASSEMBLY, id, 1, state.hasAssembly(id) ? 1 : 0, false, false, askers.get("A" + id)));
+        }
+        for (Map.Entry<String, long[]> want : wanted.entrySet()) {
+            String id = want.getKey();
+            if (!molecules.containsKey(id)) continue;
+            long[] w = want.getValue();
+            long needed = Math.max(w[1], w[0] > 0 ? assembledMolecules(id) + w[0] : 0);
+            if (w[2] == 1) needed = Math.max(needed, SUBSTANCE_MOLECULES);
+            needs.add(new PlanNeed(PlanNeed.Kind.MOLECULE, id, needed, state.moleculeCount(id), w[2] == 1, state.hasSubstance(id),
+                    askers.get("M" + id)));
+        }
+        for (Map.Entry<Molecule.State, Long> need : matter.entrySet()) {
+            needs.add(new PlanNeed(PlanNeed.Kind.MATTER, need.getKey().name(), need.getValue(), gatheredInState(need.getKey()), false, false,
+                    askers.get("S" + need.getKey().name())));
+        }
+        List<PlanNeed> ordered = new ArrayList<>();
+        for (PlanNeed need : needs) if (!need.satisfied()) ordered.add(need);
+        for (PlanNeed need : needs) if (need.satisfied()) ordered.add(need);
+        return ordered;
+    }
+
+    /** Vrai une fois les plafonds par état ouverts : la création automatique et les états de la matière sont acquis. */
+    public boolean isStateCapUnlocked() {
+        return isMoleculeAutomationUnlocked() && isStatesUnlocked();
+    }
+
+    /** La part de l'espace que la création automatique laisse aux molécules de cet état, de 0,05 à 1 (sans plafond). */
+    public double stateCap(Molecule.State matter) {
+        return state.stateCap(matter.name());
+    }
+
+    /** Règle le plafond d'un état, ramené entre 0,05 et 1 ; 1 l'efface. */
+    public void setStateCap(Molecule.State matter, double cap) {
+        state.setStateCap(matter.name(), Double.isNaN(cap) ? 1 : Math.max(0.05, Math.min(1, cap)));
+    }
+
+    private final Map<Molecule.State, Double> spaceByState = new java.util.EnumMap<>(Molecule.State.class);
+    private long spaceByStateVersion = -1;
+
+    /** L'espace qu'occupent les molécules de cet état, rassemblées ou non. */
+    public BigNum spaceInState(Molecule.State matter) {
+        if (spaceByStateVersion != state.moleculesVersion()) {
+            spaceByStateVersion = state.moleculesVersion();
+            spaceByState.clear();
+            for (Molecule molecule : moleculeList) {
+                if (!molecule.hasState()) continue;
+                int count = state.moleculeCount(molecule.id());
+                if (count > 0) spaceByState.merge(molecule.state(), count * volumeOf(molecule), Double::sum);
+            }
+        }
+        return BigNum.of(spaceByState.getOrDefault(matter, 0.0));
+    }
+
+    /** La part de l'espace créé qu'occupent les molécules de cet état, de 0 à 1. */
+    public double stateShare(Molecule.State matter) {
+        double space = state.space().toDouble();
+        return space > 0 ? Math.min(1, spaceInState(matter).toDouble() / space) : 0;
+    }
+
+    /** Vrai si la création automatique peut créer cette molécule sans dépasser le plafond de son état. */
+    private boolean withinStateCap(String moleculeId) {
+        Molecule molecule = molecules.get(moleculeId);
+        if (molecule == null || !molecule.hasState()) return true;
+        double cap = stateCap(molecule.state());
+        if (cap >= 1 || !isStateCapUnlocked()) return true;
+        BigNum after = spaceInState(molecule.state()).add(moleculeVolume(moleculeId).multiply(moleculesNextCreation(moleculeId)));
+        return after.lte(state.space().multiply(cap));
+    }
+
+    /** Vrai une fois le premier assemblage formé : la réservation par recette s'ouvre. */
+    public boolean isRecipeReservationUnlocked() {
+        return assembliesFormed() > 0;
+    }
+
+    /** Vrai si la réservation par recette est ouverte et allumée. */
+    public boolean isRecipeReservationOn() {
+        return isRecipeReservationUnlocked() && state.recipeReservation();
+    }
+
+    public void setRecipeReservation(boolean on) {
+        state.setRecipeReservation(on);
+    }
+
+    /**
+     * Le prochain assemblage à former : le premier de l'astre visé ({@link #nextBody()}) qui ne l'est
+     * pas encore, ou celui de la liste de courses avant les astres. {@code null} s'il n'y en a pas.
+     */
+    public Assembly nextAssembly() {
+        // Les cartes des molécules le demandent chacune : il n'est recalculé que lorsque la liste de courses peut changer.
+        long key = shoppingKey();
+        if (key != nextAssemblyKey) {
+            nextAssemblyKey = key;
+            nextAssembly = computeNextAssembly();
+        }
+        return nextAssembly;
+    }
+
+    private Assembly nextAssembly;
+    private long nextAssemblyKey = Long.MIN_VALUE;
+
+    private Assembly computeNextAssembly() {
+        Body body = nextBody();
+        if (body != null) {
+            for (String id : body.assemblies()) if (!state.hasAssembly(id)) return assemblies.get(id);
+            return null;
+        }
+        ShoppingList list = shoppingList();
+        if (list.kind() != ShoppingList.Kind.ASSEMBLY) return null;
+        for (Assembly assembly : assemblies.values()) if (assembly.name().equals(list.target())) return assembly;
+        return null;
+    }
+
+    /**
+     * Molécules de cette sorte qu'il faut encore créer pour le prochain assemblage ; −1 si elle n'en
+     * est pas un ingrédient. Celles des assemblages déjà formés n'y comptent pas.
+     */
+    public int recipeRemaining(String moleculeId) {
+        Assembly next = nextAssembly();
+        if (next == null) return -1;
+        Integer count = next.ingredients().get(moleculeId);
+        if (count == null) return -1;
+        return Math.max(0, assembledMolecules(moleculeId) + count - state.moleculeCount(moleculeId));
+    }
+
+    /**
+     * Vrai si créer cette sorte maintenant serait une production saturante inutile : la réservation
+     * par recette est allumée, la sorte a déjà ce qu'il faut au prochain assemblage, et l'espace libre
+     * ne suffirait plus à ce que demande encore la liste de courses.
+     */
+    public boolean isSaturating(String moleculeId) {
+        if (!isRecipeReservationOn() || recipeRemaining(moleculeId) != 0) return false;
+        return freeSpace().subtract(moleculeNextSpace(moleculeId)).lt(shoppingSpace());
+    }
+
+    /** Vrai une fois le premier Big Bang fait : le filtre « utiles au prochain astre » du tableau s'ouvre. */
+    public boolean isNextBodyFilterUnlocked() {
+        return state.bigBangs() > 0;
+    }
+
+    /**
+     * Les éléments qu'il faut aux recettes des molécules utiles au prochain pas
+     * ({@link ShoppingList#wants(Molecule)}), parmi celles que le jeu offre déjà : leurs numéros atomiques.
+     */
+    public java.util.Set<Integer> elementsForNextStep() {
+        java.util.Set<Integer> numbers = new java.util.TreeSet<>();
+        ShoppingList list = shoppingList();
+        if (list.kind() == ShoppingList.Kind.NONE) return numbers;
+        for (Molecule molecule : moleculeList) {
+            if (!isMoleculeKindUnlocked(molecule.kind()) || !list.wants(molecule)) continue;
+            // Une matière qui manque dans un état : seules les sortes déjà rassemblées comptent, sinon tout l'état passerait.
+            boolean listed = false;
+            for (ShoppingList.Item item : list.items()) listed |= item.molecule().id().equals(molecule.id());
+            if (!listed && !state.hasSubstance(molecule.id())) continue;
+            numbers.addAll(molecule.recipe().keySet());
+        }
+        return numbers;
     }
 
     /** Vrai si créer cette molécule maintenant laisserait libre au moins cette part de l'espace créé. */
@@ -4395,6 +4736,8 @@ public final class Game {
 
     /** Vrai si cette échelle du cosmos est formée. */
     public boolean hasCosmos(Cosmos scale) {
+        // L'univers reste formé après la remise à zéro qui l'accompagne (version 0.83), quand le cosmos repart de rien.
+        if (scale == Cosmos.UNIVERSE && state.universeFormed()) return true;
         return state.cosmosLevel() > scale.ordinal();
     }
 
@@ -4501,7 +4844,29 @@ public final class Game {
             case CLUSTER -> GameStats.Step.CLUSTER;
             case UNIVERSE -> GameStats.Step.UNIVERSE;
         });
+        if (scale == Cosmos.UNIVERSE) formUniverse();
         return true;
+    }
+
+    /** Graines d'univers que donne la formation de l'univers (version 0.83). */
+    public static final int SEEDS_PER_UNIVERSE = 1;
+
+    /**
+     * L'univers se forme (version 0.83) : tout ce qui y a mené est remis à zéro
+     * ({@link GameState#startUniverse()}), et le joueur reçoit {@link #SEEDS_PER_UNIVERSE} graine
+     * d'univers. Les succès gagnés par la formation sont relevés avant.
+     */
+    private void formUniverse() {
+        checkAchievements();
+        resetForUniverse();
+        forgetDerived();
+    }
+
+    /** La remise à zéro de l'univers, son bilan relevé avant, et sa graine. */
+    private void resetForUniverse() {
+        state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
+        state.startUniverse();
+        state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));
     }
 
     // ------------------------------------------------------------------
@@ -5810,6 +6175,315 @@ public final class Game {
         return colliderUpgradeLevel(ColliderUpgrade.SUPERPOSITION) > 0;
     }
 
+    // ------------------------------------------------------------------
+    // Les plans de l'arbre et des systèmes solaires (version 0.84)
+    // ------------------------------------------------------------------
+
+    /** Le début d'un code de l'arbre. */
+    public static final String TREE_CODE_PREFIX = "arbre:";
+    /** Le début d'un code des systèmes solaires. */
+    public static final String SYSTEMS_CODE_PREFIX = "systemes:";
+    /** Intervalle, en secondes de jeu, entre deux passages des plans. */
+    public static final double PLAN_CHECK_SECONDS = 1;
+
+    private double planTimer;
+
+    /** Ce qu'un code a donné : les identifiants reconnus, et ceux que le jeu ne connaît pas (écartés). */
+    public record PlanLoad(int known, int unknown) {
+        /** Vrai si le code ne contenait rien d'utilisable. */
+        public boolean empty() {
+            return known == 0;
+        }
+    }
+
+    /** L'état d'une case du plan de l'arbre. */
+    public enum PlanStep {
+        /** Prise. */
+        TAKEN,
+        /** Pas encore payable, ou sa case du dessus pas encore prise : elle sera prise dès que possible. */
+        WAITING,
+        /** L'autre voie de sa bifurcation est prise : elle attend que les bifurcations se rouvrent. */
+        BLOCKED
+    }
+
+    /**
+     * Le code des voies et des liaisons prises dans l'arbre : « arbre: » puis leurs identifiants,
+     * dans l'ordre de l'arbre. Il se recolle avec {@link #loadDarkPlan(String)}.
+     */
+    public String darkTreeCode() {
+        List<String> ids = new ArrayList<>();
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if ((dark.isFork() || dark.isLink()) && state.darkLevelOf(dark.id()) > 0) ids.add(dark.id());
+        }
+        return TREE_CODE_PREFIX + String.join(",", ids);
+    }
+
+    /**
+     * Fait d'un code de l'arbre le plan suivi : ses voies et ses liaisons se prennent dès qu'elles
+     * sont payables, maintenant et après chaque Big Bang, jusqu'à ce que le joueur l'oublie. Un code
+     * vide ou illisible ne change rien.
+     */
+    public PlanLoad loadDarkPlan(String code) {
+        if (code == null) return new PlanLoad(0, 0);
+        String text = code.trim();
+        if (text.startsWith(TREE_CODE_PREFIX)) text = text.substring(TREE_CODE_PREFIX.length());
+        java.util.Set<String> wanted = new java.util.LinkedHashSet<>();
+        int unknown = 0;
+        for (String id : text.split("[,;\\s]+")) {
+            if (id.isBlank()) continue;
+            DarkUpgrade dark = darkUpgrades.get(id);
+            if (dark == null || !(dark.isFork() || dark.isLink())) unknown++;
+            else wanted.add(id);
+        }
+        if (wanted.isEmpty()) return new PlanLoad(0, unknown);
+        // Dans l'ordre de l'arbre : une liaison vient après les voies qu'elle relie.
+        List<String> ordered = new ArrayList<>();
+        for (DarkUpgrade dark : darkUpgrades.values()) if (wanted.contains(dark.id())) ordered.add(dark.id());
+        state.setDarkPlan(ordered);
+        applyDarkPlan();
+        return new PlanLoad(ordered.size(), unknown);
+    }
+
+    /** Les cases du plan de l'arbre, dans l'ordre ; vide sans plan. */
+    public List<DarkUpgrade> darkPlan() {
+        List<DarkUpgrade> plan = new ArrayList<>();
+        for (String id : state.darkPlan()) {
+            DarkUpgrade dark = darkUpgrades.get(id);
+            if (dark != null) plan.add(dark);
+        }
+        return plan;
+    }
+
+    /** Où en est une case du plan de l'arbre. */
+    public PlanStep darkPlanStep(DarkUpgrade dark) {
+        if (state.darkLevelOf(dark.id()) > 0) return PlanStep.TAKEN;
+        return darkForkRival(dark.id()) != null ? PlanStep.BLOCKED : PlanStep.WAITING;
+    }
+
+    /** Oublie le plan de l'arbre : rien de pris n'est rendu. */
+    public void forgetDarkPlan() {
+        state.setDarkPlan(List.of());
+    }
+
+    /** Garde le code de l'arbre actuel dans le premier emplacement. */
+    public void saveDarkPlan() {
+        saveDarkPlan(0);
+    }
+
+    /** Garde le code de l'arbre actuel dans cet emplacement (version 0.86), pour le recharger plus tard. */
+    public void saveDarkPlan(int slot) {
+        state.setSavedDarkPlan(slot, darkTreeCode());
+    }
+
+    /** Recharge le code du premier emplacement. */
+    public PlanLoad loadSavedDarkPlan() {
+        return loadSavedDarkPlan(0);
+    }
+
+    /** Recharge le code gardé dans cet emplacement. */
+    public PlanLoad loadSavedDarkPlan(int slot) {
+        return loadDarkPlan(state.savedDarkPlan(slot));
+    }
+
+    /** Ce que contient un code de l'arbre : {voies, liaisons et accords}, d'après le catalogue. */
+    public int[] describeTreeCode(String code) {
+        int[] counts = new int[2];
+        if (code == null) return counts;
+        String text = code.trim();
+        if (text.startsWith(TREE_CODE_PREFIX)) text = text.substring(TREE_CODE_PREFIX.length());
+        for (String id : text.split("[,;\\s]+")) {
+            DarkUpgrade dark = darkUpgrades.get(id);
+            if (dark == null) continue;
+            if (dark.isFork()) counts[0]++;
+            else if (dark.isLink()) counts[1]++;
+        }
+        return counts;
+    }
+
+    /** Ce que contient un code des systèmes : {systèmes, astres placés autour des étoiles}. */
+    public int[] describeSystemsCode(String code) {
+        int[] counts = new int[2];
+        if (code == null) return counts;
+        String text = code.trim();
+        if (text.startsWith(SYSTEMS_CODE_PREFIX)) text = text.substring(SYSTEMS_CODE_PREFIX.length());
+        for (String line : text.split("[;\\n]+")) {
+            SolarSystem system = SolarSystem.parse(line);
+            if (system == null) continue;
+            counts[0]++;
+            counts[1] += system.planets().size() + system.moons().size();
+        }
+        return counts;
+    }
+
+    /** Prend tout ce que le plan de l'arbre permet maintenant ; renvoie le nombre de cases prises. */
+    public int applyDarkPlan() {
+        int taken = 0;
+        for (String id : state.darkPlan()) {
+            if (!darkUpgrades.containsKey(id) || state.darkLevelOf(id) > 0) continue;
+            if (buyDark(id)) taken++;
+        }
+        return taken;
+    }
+
+    /** Vrai si « Rouvrir les bifurcations à la prochaine explosion » a un sens : une voie prise, sans la Superposition. */
+    public boolean canArmForkReset() {
+        if (!isDarkMatterUnlocked() || hasSuperposition()) return false;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (dark.isFork() && state.darkLevelOf(dark.id()) > 0) return true;
+        }
+        return false;
+    }
+
+    /** Arme ou désarme la réouverture des bifurcations à la prochaine explosion. */
+    public void setForkResetArmed(boolean armed) {
+        state.setForkResetArmed(armed && (canArmForkReset() || !armed));
+    }
+
+    /**
+     * Le code de la disposition des systèmes solaires : « systemes: » puis un système par morceau,
+     * séparés par « ; » ; chacun « étoile|planètes|lunes », les planètes de la plus proche à la plus lointaine.
+     */
+    public String systemsCode() {
+        List<String> lines = new ArrayList<>();
+        for (SolarSystem system : state.solarSystems()) lines.add(system.line());
+        return SYSTEMS_CODE_PREFIX + String.join(";", lines);
+    }
+
+    /**
+     * Fait d'un code des systèmes le plan suivi : chaque système se fonde, et chaque astre s'y place
+     * à son orbite, dès qu'il est mûr et libre. Un astre déjà dans un autre système y reste. Les
+     * identifiants inconnus, ou d'une autre échelle (une planète à la place d'une étoile), sont écartés.
+     */
+    public PlanLoad loadSystemPlan(String code) {
+        if (code == null) return new PlanLoad(0, 0);
+        String text = code.trim();
+        if (text.startsWith(SYSTEMS_CODE_PREFIX)) text = text.substring(SYSTEMS_CODE_PREFIX.length());
+        List<SolarSystem> plan = new ArrayList<>();
+        java.util.Set<String> used = new java.util.HashSet<>();
+        int known = 0, unknown = 0;
+        for (String line : text.split("[;\\n]+")) {
+            if (line.isBlank()) continue;
+            SolarSystem read = SolarSystem.parse(line);
+            if (read == null || !isTier(read.star(), Body.Tier.STAR) || !used.add(read.star())) {
+                unknown++;
+                continue;
+            }
+            known++;
+            List<String> planets = new ArrayList<>(), moons = new ArrayList<>();
+            for (String id : read.planets()) {
+                if (isTier(id, Body.Tier.PLANET) && used.add(id)) {
+                    planets.add(id);
+                    known++;
+                } else unknown++;
+            }
+            for (String id : read.moons()) {
+                if (isTier(id, Body.Tier.MOON) && used.add(id) && moons.size() < planets.size()) {
+                    moons.add(id);
+                    known++;
+                } else unknown++;
+            }
+            plan.add(new SolarSystem(read.star(), planets, moons));
+        }
+        if (plan.isEmpty()) return new PlanLoad(0, unknown);
+        state.setSystemPlan(plan);
+        applySystemPlan();
+        return new PlanLoad(known, unknown);
+    }
+
+    private boolean isTier(String bodyId, Body.Tier tier) {
+        Body body = bodies.get(bodyId);
+        return body != null && body.tier() == tier;
+    }
+
+    /** Le plan des systèmes solaires ; vide sans plan. */
+    public List<SolarSystem> systemPlan() {
+        return state.systemPlan();
+    }
+
+    /** Astres du plan des systèmes déjà à leur place, et astres qu'il compte en tout (étoiles comprises). */
+    public int[] systemPlanProgress() {
+        int placed = 0, total = 0;
+        for (SolarSystem plan : state.systemPlan()) {
+            int index = systemIndexOf(plan.star());
+            SolarSystem now = index < 0 ? null : state.solarSystems().get(index);
+            total += 1 + plan.planets().size() + plan.moons().size();
+            if (now == null) continue;
+            placed++;
+            for (String id : plan.planets()) if (now.planets().contains(id)) placed++;
+            for (String id : plan.moons()) if (now.moons().contains(id)) placed++;
+        }
+        return new int[] {placed, total};
+    }
+
+    /** Oublie le plan des systèmes : rien de placé ne bouge. */
+    public void forgetSystemPlan() {
+        state.setSystemPlan(List.of());
+    }
+
+    /** Garde la disposition actuelle des systèmes dans le premier emplacement. */
+    public void saveSystemPlan() {
+        saveSystemPlan(0);
+    }
+
+    /** Garde la disposition actuelle des systèmes dans cet emplacement (version 0.86). */
+    public void saveSystemPlan(int slot) {
+        state.setSavedSystemPlan(slot, systemsCode());
+    }
+
+    /** Recharge la disposition du premier emplacement. */
+    public PlanLoad loadSavedSystemPlan() {
+        return loadSavedSystemPlan(0);
+    }
+
+    /** Recharge la disposition gardée dans cet emplacement. */
+    public PlanLoad loadSavedSystemPlan(int slot) {
+        return loadSystemPlan(state.savedSystemPlan(slot));
+    }
+
+    /** La place du système de cette étoile, ou −1. */
+    public int systemIndexOf(String starId) {
+        List<SolarSystem> systems = state.solarSystems();
+        for (int i = 0; i < systems.size(); i++) if (systems.get(i).star().equals(starId)) return i;
+        return -1;
+    }
+
+    /** Place tout ce que le plan des systèmes permet maintenant ; renvoie le nombre d'astres placés. */
+    public int applySystemPlan() {
+        if (state.systemPlan().isEmpty() || !isSolarSystemsUnlocked()) return 0;
+        int placed = 0;
+        for (SolarSystem plan : state.systemPlan()) {
+            int index = systemIndexOf(plan.star());
+            if (index < 0) {
+                if (!foundSystem(plan.star())) continue;
+                index = systemIndexOf(plan.star());
+                placed++;
+            }
+            for (String planet : plan.planets()) {
+                if (!state.solarSystems().get(index).planets().contains(planet) && addPlanet(index, planet)) placed++;
+            }
+            // Les planètes du plan à leurs orbites, dans son ordre ; celles que le joueur a ajoutées en plus, après.
+            SolarSystem now = state.solarSystems().get(index);
+            List<String> ordered = new ArrayList<>();
+            for (String planet : plan.planets()) if (now.planets().contains(planet)) ordered.add(planet);
+            for (String planet : now.planets()) if (!ordered.contains(planet)) ordered.add(planet);
+            if (!ordered.equals(now.planets())) replaceSystem(index, now.withPlanets(ordered));
+            for (String moon : plan.moons()) {
+                if (!state.solarSystems().get(index).moons().contains(moon) && addMoon(index, moon)) placed++;
+            }
+        }
+        return placed;
+    }
+
+    /** Les plans, une fois par seconde de jeu : ce qu'ils permettent se prend, joueur présent ou absent. */
+    private void runPlans(double dt) {
+        if (state.darkPlan().isEmpty() && state.systemPlan().isEmpty()) return;
+        planTimer += dt;
+        if (planTimer < PLAN_CHECK_SECONDS) return;
+        planTimer = 0;
+        applyDarkPlan();
+        applySystemPlan();
+    }
+
     /** Les voies d'une bifurcation, dans l'ordre du catalogue. */
     public List<DarkUpgrade> darkForkOptions(String fork) {
         List<DarkUpgrade> options = new ArrayList<>();
@@ -6979,6 +7653,7 @@ public final class Game {
 
     /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
     public int probeRewardCount(ProbeTrip trip) {
+        if (trip.isUrgent()) return 1;      // un seul petit lot, ni soute ni charme
         return trip.rewards() + state.probeUpgradeLevel(ProbeUpgrade.CARGO)
                 + (colliderUpgradeLevel(ColliderUpgrade.FLAVOR_CHARM) > 0 && trip.ordinal() >= ProbeTrip.HOUR.ordinal() ? 1 : 0);
     }
@@ -6989,7 +7664,51 @@ public final class Game {
     }
 
     public boolean canLaunchProbe(ProbeDestination destination, ProbeTrip trip) {
+        if (trip.isUrgent()) return canLaunchUrgentWave();
         return isProbesUnlocked() && isProbeDestinationOpen(destination) && state.probes().size() < probeSlots();
+    }
+
+    /** Big Bangs qu'il faut pour l'onde d'urgence chimique. */
+    public static final int URGENT_WAVE_BIG_BANGS = 3;
+
+    /** Vrai une fois l'onde d'urgence chimique ouverte : les sondes, et le troisième Big Bang. */
+    public boolean isUrgentWaveUnlocked() {
+        return isProbesUnlocked() && state.bigBangs() >= URGENT_WAVE_BIG_BANGS;
+    }
+
+    /** Vrai si l'onde d'urgence peut partir : ouverte, une place libre, et un élément découvert à rapporter. */
+    public boolean canLaunchUrgentWave() {
+        return isUrgentWaveUnlocked() && state.probes().size() < probeSlots() && urgentElement() > 0;
+    }
+
+    /** Envoie l'onde d'urgence chimique. */
+    public boolean launchUrgentWave() {
+        return launchProbe(ProbeDestination.VOID, ProbeTrip.URGENT);
+    }
+
+    /**
+     * L'élément que l'astre visé demande le plus : pour chaque molécule qui lui manque, ses
+     * exemplaires de chaque élément, fois le nombre de molécules qui manquent. Seuls comptent les
+     * éléments déjà découverts ; à égalité, le plus petit numéro. 0 s'il n'y en a pas.
+     */
+    public int urgentElement() {
+        Map<Integer, Long> demand = new java.util.TreeMap<>();
+        for (ShoppingList.Item item : shoppingList().items()) {
+            long missing = Math.max(item.missing(), item.gather() ? 1 : 0);
+            if (missing <= 0) continue;
+            for (Map.Entry<Integer, Integer> part : item.molecule().recipe().entrySet()) {
+                if (state.elementCount(part.getKey()) > 0) demand.merge(part.getKey(), missing * part.getValue(), Long::sum);
+            }
+        }
+        int best = 0;
+        long most = 0;
+        for (Map.Entry<Integer, Long> entry : demand.entrySet()) {
+            if (entry.getValue() > most) {
+                best = entry.getKey();
+                most = entry.getValue();
+            }
+        }
+        return best;
     }
 
     /** Envoie une sonde. */
@@ -7078,6 +7797,12 @@ public final class Game {
         state.setProbeRuns(run + 1);
         double value = probeValue(probe.trip());
         ProbeDestination where = probe.destination();
+        // L'onde d'urgence (version 0.86) : un seul lot, de l'élément le plus demandé à son retour ; rien s'il n'y en a plus.
+        if (probe.trip().isUrgent()) {
+            int element = urgentElement();
+            return element > 0 ? List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, String.valueOf(element), value, where, probe.id()))
+                    : List.of(new ProbeReward(ProbeReward.Type.SAMPLES, "", value, where, probe.id()));
+        }
         List<Integer> elements = probeElements(where);
         int count = probeRewardCount(probe.trip());
         boolean quarks = colliderUpgradeLevel(ColliderUpgrade.FLAVOR_CHARM) > 0 && probe.trip().ordinal() >= ProbeTrip.HOUR.ordinal();

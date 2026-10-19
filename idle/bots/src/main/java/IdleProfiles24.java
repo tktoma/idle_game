@@ -22,7 +22,8 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
       int shopMode, String bias) {}
 
   // cycle=0 signifie jeu ouvert 100% du temps. Pour les intermittents, le jeu fermé reçoit
-  // tickAway(dt * game.offlineRate()) et les décisions humaines sont absentes.
+  // tickAway(dt * game.offlineRate()), plafonné à 24 h par absence comme dans le jeu (RobotCosmosPlanner.away),
+  // et les décisions humaines sont absentes.
   static final Profile[] PROFILES = {
     new Profile( 1,"Speedrunner","Optimaliste / clics et micro-gestion",20,0,0,1,1,1,1,1,0,"doubleplan"),
     new Profile( 2,"Veteran","Habitué du genre, réagit vite",20,0,0,1,.95,1,1,1,0,"smart"),
@@ -60,7 +61,7 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
 
   IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
     super(game,decisionStep);this.p=profile;this.rng=new Random(seed ^ (profile.id*11939L));
-    lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=game.cosmosFormed();
+    lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(game);
   }
 
   @Override void probes(){ if(rng.nextDouble()<p.techAttention()) { super.probes(); techActions++; } }
@@ -114,7 +115,7 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
 
   private static String fmt(double d){return String.format(Locale.ROOT,"%.4f",d);}
   private void event(String what){
-    System.out.printf(Locale.ROOT,"EVENT,%d,%s,%s,wall_h=%.4f,game_h=%.4f,bb=%d,bodies=%d,cosmos=%d%n",p.id(),p.name(),what,wallSeconds/3600,g.state().timePlayed()/3600,g.bigBangs(),g.bodiesFormed(),g.cosmosFormed());
+    System.out.printf(Locale.ROOT,"EVENT,%d,%s,%s,wall_h=%.4f,game_h=%.4f,bb=%d,bodies=%d,cosmos=%d%n",p.id(),p.name(),what,wallSeconds/3600,g.state().timePlayed()/3600,g.bigBangs(),g.bodiesFormed(),RobotCosmosPlanner.cosmosStage(g));
   }
 
   void execute(double horizonWallHours,Path output) throws Exception{
@@ -128,8 +129,8 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     StringBuilder logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
     for(int i=0;i<count;i++){
       boolean isOnline=online();
-      if(isOnline){g.tick(dt);onlineSeconds+=dt;}
-      else {double credited=dt*g.offlineRate();g.tickAway(credited);creditedOfflineSeconds+=credited;}
+      if(isOnline){back();g.tick(dt);onlineSeconds+=dt;}
+      else creditedOfflineSeconds+=away(dt);
       wallSeconds+=dt;
       if(isOnline && wallSeconds>=nextActionAt && rng.nextDouble()<p.attention()){
         actions++;
@@ -141,12 +142,12 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
       }
       if(lastBang<8 && g.bigBangs()>=8){first8=i;event("BB8");}
       if(!g.hasCosmos(Cosmos.GALAXY) && lastCosmos>=1){} // événements captés via les transitions ci-dessous
-      if(lastCosmos<1 && g.cosmosFormed()>=1){galaxy=i;event("GALAXY");}
-      if(lastCosmos<2 && g.cosmosFormed()>=2){cluster=i;event("CLUSTER");}
-      if(lastCosmos<3 && g.cosmosFormed()>=3){universe=i;event("UNIVERSE");}
-      lastBang=g.bigBangs();lastBody=g.bodiesFormed();lastCosmos=g.cosmosFormed();
+      if(lastCosmos<1 && RobotCosmosPlanner.cosmosStage(g)>=1){galaxy=i;event("GALAXY");}
+      if(lastCosmos<2 && RobotCosmosPlanner.cosmosStage(g)>=2){cluster=i;event("CLUSTER");}
+      if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){universe=i;event("UNIVERSE");}
+      lastBang=g.bigBangs();lastBody=g.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(g);
       if((i+1)%(int)Math.ceil(3600/dt)==0 || universe>=0){
-        logs.append(String.format(Locale.ROOT,"%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%.3f,%.3f,%s,%s%n",wallSeconds/3600,g.state().timePlayed()/3600,onlineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),g.cosmosFormed(),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.shoppingList().target().replace(',',';')));
+        logs.append(String.format(Locale.ROOT,"%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%.3f,%.3f,%s,%s%n",wallSeconds/3600,g.state().timePlayed()/3600,onlineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.shoppingList().target().replace(',',';')));
       }
       if(universe>=0)break;
     }
@@ -154,7 +155,7 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_%s.csv",p.id(),p.name(),System.getProperty("idle.stage","late"))),logs.toString());
     // Référence exacte de la victoire dans la sauvegarde finale de chaque robot gagnant.
     if(universe>=0)Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_winner.save",p.id(),p.name())),SaveCodec.write(g.state(),0));
-    System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),g.cosmosFormed(),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600));
+    System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600));
   }
   public static void main(String[]args)throws Exception{
     if(args.length<5){System.err.println("Usage: id  checkpoint  wallHours  stepSeconds outputDir [seed] [stage]");System.exit(2);}

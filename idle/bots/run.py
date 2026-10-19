@@ -67,11 +67,17 @@ def main():
         z.add_argument('--seed',type=int,default=42)
         z.add_argument('--checkpoint',default=str(CP)) if name in ('v2','profils') else None
         z.add_argument('--out',default=None)
+    z=sub.add_parser('empreinte',help="joue les 4 parties de l'empreinte du moteur");z.add_argument('--out',required=True);z.add_argument('parties',nargs='*')
+    z=sub.add_parser('comparer',help="compare deux dossiers d'empreintes (ou deux sauvegardes)");z.add_argument('a');z.add_argument('b')
     z=sub.add_parser('phase3');z.add_argument('--explosions',type=int,default=1);z.add_argument('--hours',type=int,default=8);z.add_argument('--seed',type=int,default=42)
     z=sub.add_parser('batch');z.add_argument('--tier',choices=['rapide','standard','approfondi'],required=True);z.add_argument('--workers',type=int,default=2);z.add_argument('--hours',type=float,default=None);z.add_argument('--step',type=float,default=20);z.add_argument('--seed-start',type=int,default=None);z.add_argument('--replay',action='store_true')
     a=par.parse_args()
     if a.command=='build':compile_bots();return
     if a.command=='verify':sys.exit(execute(['VerifyVictory',pathlib.Path(a.save).resolve()]))
+    if a.command=='empreinte':
+        out=pathlib.Path(a.out).resolve();os.chdir(R);sys.exit(execute(['Empreinte',out,*a.parties]))
+    if a.command=='comparer':
+        sys.exit(subprocess.run([sys.executable,str(R/'outils'/'comparer_sauvegardes.py'),a.a,a.b]).returncode)
     if a.command=='phase3':sys.exit(execute(['RobotPhase3',a.explosions,a.hours,a.seed]))
     if a.command=='batch':
         if not (1<=a.workers<=8):sys.exit('--workers must be 1..8')

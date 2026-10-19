@@ -301,6 +301,65 @@ public final class AutomationPage extends VBox {
         followRow.setAlignment(Pos.CENTER);
         this.followRow = followRow;
         getChildren().add(followRow);
+        // Les plafonds par état (version 0.85) : une liste par état de la matière.
+        capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
+        capsTitle.setWrapText(true);
+        capsTitle.setMaxWidth(760);
+        capsRow.setAlignment(Pos.CENTER);
+        capsRow.setMaxWidth(780);
+        for (idle.core.molecules.Molecule.State matter : idle.core.molecules.Molecule.State.values()) {
+            javafx.scene.control.ComboBox<String> choice = new javafx.scene.control.ComboBox<>();
+            choice.getItems().setAll(CAP_CHOICES);
+            choice.setVisibleRowCount(CAP_CHOICES.size());
+            choice.setFocusTraversable(false);
+            choice.setStyle("-fx-font-size: 12px;");
+            choice.setOnAction(event -> {
+                game.setStateCap(matter, capOf(choice.getValue()));
+                refresh();
+            });
+            Label name = new Label();
+            name.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+            capChoices.put(matter, choice);
+            capNames.put(matter, name);
+            HBox one = new HBox(6, name, choice);
+            one.setAlignment(Pos.CENTER);
+            capsRow.getChildren().add(one);
+        }
+        VBox caps = new VBox(6, capsTitle, capsRow);
+        caps.setAlignment(Pos.CENTER);
+        capsBox = caps;
+        getChildren().add(caps);
+    }
+
+    /** Les choix d'un plafond : sans plafond, puis de 90 % à 5 %. */
+    static final java.util.List<String> CAP_CHOICES = java.util.List.of("sans plafond", "90 %", "80 %", "70 %", "60 %", "50 %",
+            "40 %", "30 %", "20 %", "10 %", "5 %");
+
+    /** Le plafond d'un choix de la liste : 1 sans plafond. */
+    static double capOf(String choice) {
+        if (choice == null || !choice.endsWith("%")) return 1;
+        return Integer.parseInt(choice.replace("%", "").trim()) / 100.0;
+    }
+
+    /** Le choix de la liste le plus proche d'un plafond. */
+    static String choiceOf(double cap) {
+        if (cap >= 1) return CAP_CHOICES.get(0);
+        String best = CAP_CHOICES.get(1);
+        for (String choice : CAP_CHOICES) if (Math.abs(capOf(choice) - cap) < Math.abs(capOf(best) - cap)) best = choice;
+        return best;
+    }
+
+    private final Label capsTitle = new Label();
+    private final javafx.scene.layout.FlowPane capsRow = new javafx.scene.layout.FlowPane(14, 6);
+    private final java.util.Map<idle.core.molecules.Molecule.State, javafx.scene.control.ComboBox<String>> capChoices =
+            new java.util.EnumMap<>(idle.core.molecules.Molecule.State.class);
+    private final java.util.Map<idle.core.molecules.Molecule.State, Label> capNames =
+            new java.util.EnumMap<>(idle.core.molecules.Molecule.State.class);
+    private VBox capsBox;
+
+    /** La liste du plafond d'un état : pour les vérifications. */
+    public javafx.scene.control.ComboBox<String> capChoice(idle.core.molecules.Molecule.State matter) {
+        return capChoices.get(matter);
     }
 
     private HBox followRow;
@@ -558,6 +617,20 @@ public final class AutomationPage extends VBox {
         spaceGrid.show(formCard, form);
         show(spaceReserveRow, creation);
         show(followRow, creation);
+        boolean caps = game.isStateCapUnlocked();
+        show(capsBox, caps);
+        if (caps) {
+            capsTitle.setText("Plafond par état : la création automatique ne donne pas plus de cette part de l'espace créé "
+                    + "aux molécules d'un état." + Detail.only(" La création à la main n'en tient pas compte. Entre parenthèses, "
+                    + "la part qu'elles occupent maintenant."));
+            for (idle.core.molecules.Molecule.State matter : idle.core.molecules.Molecule.State.values()) {
+                javafx.scene.control.ComboBox<String> choice = capChoices.get(matter);
+                String wanted = choiceOf(game.stateCap(matter));
+                if (!wanted.equals(choice.getValue())) choice.setValue(wanted);
+                capNames.get(matter).setText(idle.ui.common.MatterText.plural(matter) + " ("
+                        + ElementText.percent(game.stateShare(matter)) + ")");
+            }
+        }
         if (creation) followButton.setText(game.isAutoFollowingList()
                 ? "Suit la liste de courses : oui" : "Suit la liste de courses : non, seulement les amas confiés");
         if (creation) {

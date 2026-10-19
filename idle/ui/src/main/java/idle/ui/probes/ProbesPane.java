@@ -63,6 +63,8 @@ public final class ProbesPane extends VBox {
     private final Label destinationNote = new Label();
     private final FlowPane trips = new FlowPane(8, 8);
     private final Map<ProbeTrip, Button> tripButtons = new EnumMap<>(ProbeTrip.class);
+    private final Button urgent = new Button();
+    private final Label urgentNote = new Label();
     private final Label samplesLabel = new Label();
     private final TileGrid upgradeGrid = new TileGrid(230, 3, 8);
     private final Map<ProbeUpgrade, Card> upgradeCards = new EnumMap<>(ProbeUpgrade.class);
@@ -84,7 +86,8 @@ public final class ProbesPane extends VBox {
 
         intro.setText("Une sonde part 15 minutes à 8 heures. Plus le voyage est long, plus son butin est riche par heure, "
                 + "et rien ne se perd si vous revenez tard : la sonde attend à destination. Un clic sur elle ouvre son "
-                + "butin, carte par carte, ou tout d'un coup ; elle rentre alors au hangar. Les sondes et leurs améliorations traversent le Big Bang.");
+                + "butin, carte par carte, ou tout d'un coup ; elle rentre alors au hangar. Les sondes et leurs améliorations traversent le Big Bang. "
+                + "Pendant votre absence, une sonde arrivée vide son butin et repart pour le même voyage : rien à faire au retour.");
         note(intro, "#a8987f");
 
         lootBox.setAlignment(Pos.CENTER);
@@ -114,7 +117,7 @@ public final class ProbesPane extends VBox {
         note(destinationNote, "#c9b79a");
         trips.setAlignment(Pos.CENTER);
         trips.setMaxWidth(780);
-        for (ProbeTrip trip : ProbeTrip.values()) {
+        for (ProbeTrip trip : ProbeTrip.ordinary()) {
             Button button = new Button();
             button.setStyle(BUTTON_STYLE);
             button.setFocusTraversable(false);
@@ -125,6 +128,14 @@ public final class ProbesPane extends VBox {
             tripButtons.put(trip, button);
             trips.getChildren().add(button);
         }
+        // L'onde d'urgence chimique (version 0.86) : sans destination, elle rapporte l'élément le plus demandé.
+        urgent.setStyle(BUTTON_STYLE);
+        urgent.setFocusTraversable(false);
+        urgent.setOnAction(event -> {
+            game.launchUrgentWave();
+            changed.run();
+        });
+        note(urgentNote, "#c9b79a");
 
         samplesLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         upgradeGrid.setMaxWidth(780);
@@ -138,7 +149,7 @@ public final class ProbesPane extends VBox {
             upgradeGrid.add(card);
         }
 
-        getChildren().addAll(intro, viewPane, lootBox, boostLabel, flying, launchTitle, destinations, destinationNote, trips, samplesLabel, upgradeGrid);
+        getChildren().addAll(intro, viewPane, lootBox, boostLabel, flying, launchTitle, destinations, destinationNote, trips, urgent, urgentNote, samplesLabel, upgradeGrid);
     }
 
     private static void note(Label label, String color) {
@@ -246,8 +257,9 @@ public final class ProbesPane extends VBox {
                 label.setText("Sonde " + (i + 1) + " : au hangar, prête à partir");
             } else {
                 Probe probe = probes.get(i);
-                label.setText(probe.landed() ? "Sonde " + (i + 1) + " : arrivée à " + probe.destination().label() + ", son butin attend"
-                        : "Sonde " + (i + 1) + " : " + probe.destination().label() + ", arrivée dans " + Format.wait(probe.left()));
+                String where = probe.trip().isUrgent() ? "onde d'urgence chimique" : probe.destination().label();
+                label.setText(probe.landed() ? "Sonde " + (i + 1) + " : " + (probe.trip().isUrgent() ? "onde d'urgence revenue" : "arrivée à " + where)
+                        + ", son butin attend" : "Sonde " + (i + 1) + " : " + where + ", arrivée dans " + Format.wait(probe.left()));
             }
         }
 
@@ -261,7 +273,22 @@ public final class ProbesPane extends VBox {
         }
         destinationNote.setText(destinationText(destination));
         boolean free = probes.size() < slots;
-        for (ProbeTrip trip : ProbeTrip.values()) {
+        boolean wave = game.isUrgentWaveUnlocked();
+        urgent.setVisible(wave);
+        urgent.setManaged(wave);
+        urgentNote.setVisible(wave);
+        urgentNote.setManaged(wave);
+        if (wave) {
+            int element = game.urgentElement();
+            String symbol = element > 0 ? PeriodicTable.ELEMENTS.get(element - 1).symbol() : "";
+            urgent.setText(ProbeTrip.URGENT.label() + " : " + minutes(game.probeDuration(ProbeTrip.URGENT)) + ", "
+                    + (element > 0 ? "un lot de " + symbol : "rien à chercher"));
+            urgent.setDisable(!game.canLaunchUrgentWave());
+            urgentNote.setText(element > 0 ? "L'onde ramène un petit lot de l'élément déjà découvert que l'astre visé demande le plus : "
+                    + symbol + " en ce moment (celui du retour compte). Jamais un élément inconnu."
+                    : "L'onde ramène l'élément déjà découvert que l'astre visé demande le plus : il n'y en a pas en ce moment.");
+        }
+        for (ProbeTrip trip : ProbeTrip.ordinary()) {
             Button button = tripButtons.get(trip);
             button.setText(trip.label() + " : " + minutes(game.probeDuration(trip)) + ", "
                     + game.probeRewardCount(trip) + " récompenses");

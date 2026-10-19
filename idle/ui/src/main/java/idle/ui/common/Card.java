@@ -205,6 +205,8 @@ public final class Card extends VBox {
         paint();
     }
 
+    private Runnable look;
+
     /** Ce que fait un clic sur la carte, quand son état le permet. */
     public void setOnAction(Runnable action) {
         this.action = action;
@@ -287,9 +289,18 @@ public final class Card extends VBox {
         if (pinAction != null) pinAction.run();
     }
 
-    /** Clique sur la carte : sans effet si elle n'est ni à portée ni un interrupteur. */
+    /** Clique sur la carte : sans effet si elle n'est ni à portée ni un interrupteur, sauf ce que {@link #setOnLook} demande. */
     public void click() {
+        if (look != null) look.run();
         if (isClickable()) action.run();
+    }
+
+    /**
+     * Ce que fait un clic, quel que soit l'état de la carte, avant son action (version 0.84) : montrer
+     * quelque chose, sans rien acheter. {@code null} : rien.
+     */
+    public void setOnLook(Runnable look) {
+        this.look = look;
     }
 
     /** Vrai si un clic fait quelque chose : la carte a une action, et elle est à portée ou c'est un interrupteur. */
