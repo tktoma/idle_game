@@ -732,8 +732,14 @@ public final class Game {
         // Les bonus chronométrés sont découpés aux instants exacts de leur expiration.
         double remaining = dt;
         do {
-            double part = isAutoCreatingMolecules() ? Math.min(remaining, 10.0) : remaining;
+            // Même cadence pour les automatismes et les événements du monde, quelle que soit
+            // la taille du tick appelé par le jeu actif ou le rattrapage.
+            double part = Math.min(remaining, 10.0);
             if (isSecondUniverse()) {
+                // Durant une épreuve ou un bonus actif, les événements sont évalués
+                // à la seconde comme lors de 20 appels successifs à tick(1).
+                if (state.regimeLeft() > 0 || state.perfectLeft() > 0 || activeTrial() != null)
+                    part = Math.min(part, 1.0);
                 if (state.regimeLeft() > 0) part = Math.min(part, state.regimeLeft());
                 if (state.perfectLeft() > 0) part = Math.min(part, state.perfectLeft());
             }
@@ -804,7 +810,9 @@ public final class Game {
     private void step(double dt) {
         int generators = generatorCount();
         // Calculés une fois pour tous les générateurs : seuls leurs bonus individuels diffèrent.
-        BigNum commonSpeed = generators > 0 ? speed() : BigNum.ZERO;
+        // La production réelle doit inclure les mêmes bonus de cadence que speed(generator).
+        double sharedMultiplier = regimeMultiplier() * synergyMultiplier();
+        BigNum commonSpeed = generators > 0 ? speed().multiply(sharedMultiplier) : BigNum.ZERO;
         BigNum commonParticles = null;
         BigNum gain = BigNum.ZERO;
         for (int generator = 0; generator < generators; generator++) {
