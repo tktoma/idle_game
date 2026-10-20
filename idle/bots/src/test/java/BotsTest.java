@@ -36,6 +36,102 @@ class BotsTest {
     }
 
     @Test
+    void persistanceEstAcheteeAvantLesAutresDepenses() {
+        Game g = new Game();
+        g.start();
+        g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        assertTrue(FirstUniversePolicy.needsPersistence(g));
+        assertEquals(1, FirstUniversePolicy.atoms(g, 100));
+        assertTrue(g.keepsUpgradesOnFusion());
+        assertEquals(1, g.levelOf("atom_keep"));
+    }
+
+    @Test
+    void reserveDePersistanceRetientLesAtomesJusquaLAchat() {
+        Game g = new Game();
+        g.start();
+        g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        g.state().setAtoms(idle.core.math.BigNum.of(20));
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        bot.prioritizePersistence();
+        assertEquals(idle.core.math.BigNum.of(25), g.synthesisReserve());
+        assertEquals(0, FirstUniversePolicy.atoms(g, 40));
+        assertEquals(idle.core.math.BigNum.of(20), g.state().atoms());
+        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        bot.prioritizePersistence();
+        assertTrue(g.keepsUpgradesOnFusion());
+        assertEquals(idle.core.math.BigNum.ZERO, g.synthesisReserve());
+    }
+
+    @Test
+    void conditionDesAstresBloqueLaPreparationDuBigBang() {
+        Game g = new Game();
+        g.start();
+        g.state().setBigBangs(5);
+        g.state().setDarkMatter(idle.core.math.BigNum.of(500));
+        assertEquals(18, g.bigBangSkyRequirement());
+        assertFalse(FirstUniversePolicy.skyReady(g));
+        assertFalse(FirstUniversePolicy.finalBangPreparation(g));
+        assertFalse(RobotCosmosPlanner.skyReadyForNextBigBang(g));
+    }
+
+    @Test
+    void leBotNeRelancePasAbsencePendantLaFormationDesAstres() {
+        Game g = new Game();
+        g.start();
+        g.state().setBigBangs(5);
+        g.state().setExplosions(25);
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        bot.challenges();
+        assertFalse(g.inChallenge());
+    }
+
+    @Test
+    void liensPrioritairesSurLesBoutiquesRepetables() {
+        Game g = new Game();
+        g.start();
+        g.state().setExplosions(1);
+        g.state().setDarkLevel("dark_flow", 1);
+        g.state().setDarkMatter(idle.core.math.BigNum.of(30));
+        FirstUniversePolicy.dark(g, 1);
+        assertEquals(1, g.darkLevelOf("link_flow"));
+        assertEquals(0, g.darkLevelOf("dark_shop_atoms"));
+    }
+
+    @Test
+    void boutiqueNoireFonctionneSansSeuilArbitraireDeSeptCents() {
+        Game g = new Game();
+        g.start();
+        g.state().setExplosions(1);
+        g.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        FirstUniversePolicy.dark(g, 1);
+        assertEquals(1, g.darkLevelOf("dark_shop_atoms"));
+    }
+
+    @Test
+    void seulLeBotExpertAttendLeSuccesPatience() {
+        Game g = new Game();
+        g.start();
+        AdvancedLab expert = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
+        AdvancedLab autre = new AdvancedLab(g, 20, "DEPENDANCES", 42);
+        assertTrue(expert.waitForPatientFusion());
+        assertFalse(autre.waitForPatientFusion());
+        g.state().setTimeSinceFusion(idle.core.achievements.Achievements.PATIENT_SECONDS);
+        assertFalse(expert.waitForPatientFusion());
+    }
+
+    @Test
+    void toutesLesPolitiquesV2SontDisponiblesDansLePremierUnivers() {
+        Game g = new Game();
+        g.start();
+        for (String mode : AdvancedLab.MODES) {
+            AdvancedLab bot = new AdvancedLab(g, 20, mode, 42);
+            assertEquals(mode, bot.mode);
+        }
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
