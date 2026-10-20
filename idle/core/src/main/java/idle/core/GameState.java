@@ -176,6 +176,7 @@ public final class GameState {
     private String activeTrial = null;
     private double trialStart = 0;
     private double trialBase = 0;
+    private double trialEnergyStart = 0;
     private int trialCount = 0;
     private final Set<String> completedTrials = new java.util.TreeSet<>();
     /** Les fenêtres d'explication déjà montrées (version 0.89) : onglets ouverts et nouveautés du deuxième univers. */
@@ -962,6 +963,9 @@ public final class GameState {
     public void setTrialBase(double base) {
         trialBase = base;
     }
+
+    public double trialEnergyStart() { return trialEnergyStart; }
+    public void setTrialEnergyStart(double energy) { trialEnergyStart = Math.max(0, energy); }
 
     /** Ce que l'épreuve en cours a compté (croisements captés, fusions). */
     public int trialCount() {
@@ -1925,6 +1929,7 @@ public final class GameState {
         activeTrial = null;
         trialStart = 0;
         trialBase = 0;
+        trialEnergyStart = 0;
         trialCount = 0;
         completedTrials.clear();
         seenPopups.clear();
@@ -2207,6 +2212,7 @@ public final class GameState {
         if (activeTrial != null) data.putList("activeTrial", List.of(activeTrial));
         data.put("trialStart", trialStart);
         data.put("trialBase", trialBase);
+        data.put("trialEnergyStart", trialEnergyStart);
         data.put("trialCount", trialCount);
         data.putList("completedTrials", completedTrials);
         data.putList("seenPopups", seenPopups);
@@ -2402,6 +2408,7 @@ public final class GameState {
         setActiveTrial(String.join("", data.list("activeTrial")));
         trialStart = data.real("trialStart", 0);
         trialBase = data.real("trialBase", 0);
+        trialEnergyStart = data.real("trialEnergyStart", 0);
         setTrialCount(data.whole("trialCount", 0));
         completedTrials.clear();
         for (String id : data.list("completedTrials")) addCompletedTrial(id);
