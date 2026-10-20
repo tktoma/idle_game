@@ -357,6 +357,11 @@ public class RobotCosmosPlanner {
       for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
+    // Les automatismes sombres ouverts gratuitement doivent rester actifs,
+    // sauf si le mode « à la main » du défi de Big Bang interdit leur action.
+    for(DarkAutomation automation:g.darkAutomations())
+      if(g.isDarkAutomationUnlocked(automation.id()) && !g.isDarkAutomationEnabled(automation.id())
+          && !g.isHandOnly())g.setDarkAutomationEnabled(automation.id(),true);
     // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
     // et 0 défi, et n'atteignait jamais son premier Big Bang (il en faut 40 et les 10 défis).
     hunt();
