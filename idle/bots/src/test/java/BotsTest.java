@@ -193,7 +193,18 @@ class BotsTest {
     void expertTermineLePremierUniversDepuisLeSeptiemeBigBang(@TempDir Path out) throws Exception {
         Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
         AdvancedLab expert = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
-        expert.runLab(12, out);
+        expert.runLab(8, out);
+        System.out.printf("EXPERT_CHECK,bb=%d,cosmos=%d,conditions=%d/%d,free=%s,space=%s,goal=%s%n",
+                g.bigBangs(), g.cosmosFormed(),
+                g.cosmosConditionsMet(idle.core.sky.Cosmos.CLUSTER),
+                g.cosmosConditions(idle.core.sky.Cosmos.CLUSTER),
+                g.freeSpace(), g.state().space(), g.shoppingList().target());
+        for(var state : idle.core.molecules.Molecule.State.values()){
+            System.out.printf("EXPERT_STATE,%s,gathered=%d,sorts=%d,needed=%s,sortsNeeded=%s%n",
+                state, g.gatheredInState(state), g.sortsInState(state),
+                idle.core.sky.Cosmos.CLUSTER.matter().getOrDefault(state,0),
+                idle.core.sky.Cosmos.CLUSTER.sorts().getOrDefault(state,0));
+        }
         assertTrue(g.hasCosmos(idle.core.sky.Cosmos.UNIVERSE),
                 "Le bot expert doit terminer le premier univers depuis un checkpoint de progression");
         assertTrue(Files.exists(out.resolve("winner.save")));
