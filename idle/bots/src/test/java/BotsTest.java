@@ -90,6 +90,42 @@ class BotsTest {
     }
 
     @Test
+    void expertAcheteLesLiaisonsAvantLesNiveauxRepetables() {
+        Game game = new Game();
+        game.start();
+        game.state().setExplosions(1);
+        game.state().setDarkLevel("dark_flow", 1);
+        game.state().setDarkMatter(idle.core.math.BigNum.of(30));
+        RobotCosmosPlanner.dark(game, 1);
+        assertEquals(1, game.darkLevelOf("link_flow"),
+                "La liaison doit être prioritaire sur les niveaux sans plafond de la boutique");
+        assertEquals(0, game.darkLevelOf("dark_shop_atoms"));
+    }
+
+    @Test
+    void expertAcheteAussiLesAmeliorationsDeLaBoutiqueNoire() {
+        Game game = new Game();
+        game.start();
+        game.state().setExplosions(1);
+        game.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        RobotCosmosPlanner.dark(game, 1);
+        assertEquals(1, game.darkLevelOf("dark_shop_atoms"),
+                "L'achat de Noyaux sombres ne doit pas dépendre du seuil arbitraire de 700");
+    }
+
+    @Test
+    void expertPrepareLaFusionPatienteSansLaForcerDansLesAutresModes() {
+        Game game = new Game();
+        game.start();
+        AdvancedLab expert = new AdvancedLab(game, 20, "EXPERT_COMPLET", 42);
+        AdvancedLab standard = new AdvancedLab(game, 20, "DEPENDANCES", 42);
+        assertTrue(expert.holdForPatienceAchievement());
+        assertFalse(standard.holdForPatienceAchievement());
+        game.state().setTimeSinceFusion(idle.core.achievements.Achievements.PATIENT_SECONDS);
+        assertFalse(expert.holdForPatienceAchievement());
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
