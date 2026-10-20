@@ -179,7 +179,9 @@ public class RobotCosmosPlanner {
     // Maintenant, comme un joueur avisé : pour chaque état dont le prochain pas demande de la matière, l'amas
     // rassemblé le moins encombrant est confié à la création automatique (les autres lui sont retirés), et la
     // création automatique ne tourne que tant qu'il y a de la matière à réunir. La réserve d'espace reste de 10 %.
-    g.setMoleculeAutomationEnabled(automateMatter() || g.isAutoFollowingMatter());
+    automateMatter();
+    // La liste de courses reste active même si aucun besoin de matière n'est signalé.
+    g.setMoleculeAutomationEnabled(true);
     g.setAutoGatherEnabled(true);
     g.setAutoFormEnabled(true);
     for(int i=0;i<5;i++){
