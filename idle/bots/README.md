@@ -1,6 +1,6 @@
 # Idle — les bots de simulation
 
-Ce dossier est le module `bots` du projet `idle`. Il regroupe ce qui était le kit séparé `Idle_Tous_Les_Bots` : les robots, leurs sauvegardes, leurs données et le rapport consolidé.
+Ce dossier est le module `bots` du projet `idle`. Il regroupe ce qui était le kit séparé `Idle_Tous_Les_Bots` : les robots et leurs sauvegardes.
 
 Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils ne font pas partie du jeu livré aux joueurs. Ce sont des politiques de jeu programmées, pas des joueurs réels.
 
@@ -11,12 +11,12 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 | `moteur/` : une copie du moteur, à recopier à chaque version du jeu | supprimé : les bots se compilent contre `idle/core`, le moteur du jeu lui-même |
 | `bin/` : des fichiers `.class` déjà compilés | supprimé : `run.py` ou Gradle recompilent |
 | `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les 13 sources compilées, une seule fois chacune |
-| `bots/historique/` | `historique/` : archive, non compilée (voir plus bas) |
-| `docs/DOCUMENTATION_JEU_107_PAGES.pdf` | supprimé : identique au PDF à la racine du dépôt |
+| `bots/historique/` | `historique/`, puis retiré du dépôt le 21 octobre 2026 (il reste dans l'historique git) |
+| `docs/DOCUMENTATION_JEU_107_PAGES.pdf` | supprimé : identique au PDF qui était à la racine du dépôt (retiré lui aussi le 21 octobre 2026) |
 | `INVENTAIRE_SHA256.csv` | supprimé : les chemins ont changé, et git garde déjà l'empreinte de chaque fichier |
 | chemins `/mnt/data/...` dans quatre bots | chemins relatifs à ce dossier (`sauvegardes/reference/...`, `sorties/`) |
 
-Le contenu des `donnees/`, `sauvegardes/`, `docs/` et `scripts_originals/` est inchangé.
+Le contenu de `sauvegardes/` est inchangé. Les dossiers `donnees/`, `docs/`, `historique/` et `scripts_originals/` ont été retirés du dépôt le 21 octobre 2026 : aucun bot ni test ne s'en servait. Ils restent dans l'historique git.
 
 ## Ce que garantit la fusion
 
@@ -61,11 +61,7 @@ Avec Gradle, depuis `idle/` :
 |---|---|
 | `src/main/java/` | Les 13 bots compilés. `AdvancedLab` contient les 12 politiques V2, `IdleProfiles24` les 24 profils de fin de partie et `FreshPhaseProfiles` les mêmes profils depuis une partie neuve. Il y a aussi `CorrectedCoach`, les audits (`DependencyAudit`, `EconomyAudit`, `DiagnoseState`), `OfflineBenchmark`, `RescueBench`, `RecreateLosers`, `RobotPhase3` et `VerifyVictory`. |
 | `src/test/java/` | `BotsTest` : la vérification de cohérence avec le jeu. |
-| `historique/` | Une trentaine d'anciens robots et sondes, écrits pour d'anciennes versions du jeu. Ils sont gardés pour mémoire et ne sont **pas compilés** : leur API n'est plus garantie. Pour en relancer un, il faut le copier dans `src/main/java` et l'adapter. |
 | `sauvegardes/` | `reference/` : 6 points de départ, dont la partie à 7 Big Bangs. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties. `victoires_historiques/` : les 21 victoires. |
-| `donnees/` | Les CSV bruts des campagnes, sans retraitement. |
-| `docs/` | Le rapport consolidé (PDF et Word), le rapport du laboratoire V2, les synthèses, 25 graphiques et 3 classeurs Excel. |
-| `scripts_originals/` | Les scripts Python et shell d'origine. Ils sont gardés pour mémoire et pointent vers les anciens dossiers `/mnt/data/...` ; `run.py` les remplace. |
 
 ## Les correctifs des bots (19 octobre 2026)
 
@@ -90,7 +86,7 @@ Résultats depuis la partie à 7 Big Bangs, graine 42, horizon 14 jours :
 | 23 Joueur distrait | 254 h 20 | 15 h 00 | 5 h 00 |
 | 24 Expert intermittent | 156 h 00 | 18 h 00 | 1 h 30 |
 
-**Le rapport consolidé et les CSV de `donnees/` datent d'avant ces correctifs.** Leurs durées de fin de partie, surtout celles des profils intermittents, mesuraient les défauts des bots plus que le jeu.
+**Le rapport consolidé et les CSV des campagnes (retirés du dépôt, toujours dans l'historique git) dataient d'avant ces correctifs.** Leurs durées de fin de partie, surtout celles des profils intermittents, mesuraient les défauts des bots plus que le jeu.
 
 Le correctif 2 a un revers : il montre qu'un joueur qui laisse la création automatique sur « suivre la liste » reste lent. Le jeu ne lui crée pas la matière des astres et du cosmos. Seul celui qui choisit lui-même ses amas avance seul.
 
@@ -148,7 +144,7 @@ Pourquoi pas au bit près : `Math.pow`, `Math.log`… peuvent changer de dernier
 
 ## À savoir avant de lire les résultats
 
-- **Version du moteur.** Les campagnes de `donnees/` ont tourné sur le moteur copié dans l'ancien kit. Ce moteur est identique au cœur du jeu en 0.79 et 0.80 ; la 0.81 n'a rien changé avant l'univers.
+- **Version du moteur.** Les anciennes campagnes (leurs CSV sont retirés du dépôt) ont tourné sur le moteur copié dans l'ancien kit. Ce moteur est identique au cœur du jeu en 0.79 et 0.80 ; la 0.81 n'a rien changé avant l'univers.
 - **Résultats reproduits sur la version actuelle.** Le 19 octobre 2026, ces résultats sont retombés exactement sur les mêmes valeurs :
   - `DEPENDANCES` : 7 h 38 ;
   - profil 1 : 8 h 17 ;

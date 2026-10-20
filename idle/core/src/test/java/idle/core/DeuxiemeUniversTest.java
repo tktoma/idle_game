@@ -19,11 +19,20 @@ import org.junit.jupiter.api.Test;
 /** Version 0.87 : le deuxième univers, la partie rejouée, l'onglet Skins et ce qui ne s'ouvre qu'à partir de là. */
 class DeuxiemeUniversTest {
 
+    /** Une méthode du jeu, cherchée dans toute la chaîne de ses parties. */
+    private static java.lang.reflect.Method declared(String name) throws NoSuchMethodException {
+        for (Class<?> c = Game.class; c != null; c = c.getSuperclass()) {
+            for (java.lang.reflect.Method m : c.getDeclaredMethods()) if (m.getName().equals(name) && m.getParameterCount() == 0) return m;
+        }
+        throw new NoSuchMethodException(name);
+    }
+
+
     /** Forme l'univers comme formCosmos le fait une fois les conditions réunies. */
     static void formUniverse(Game game) {
         game.state().setCosmosLevel(3);
         try {
-            java.lang.reflect.Method form = Game.class.getDeclaredMethod("formUniverse");
+            java.lang.reflect.Method form = declared("formUniverse");
             form.setAccessible(true);
             form.invoke(game);
         } catch (ReflectiveOperationException broken) {
@@ -174,7 +183,7 @@ class DeuxiemeUniversTest {
         assertFalse(game.chooseCycle(CycleChoice.RESERVE), "un seul choix par cycle");
         assertEquals(atoms.toDouble() * (1 + CycleChoice.FUSION_GAIN), game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-9);
         try {
-            java.lang.reflect.Method clear = Game.class.getDeclaredMethod("clearForBigBang");
+            java.lang.reflect.Method clear = declared("clearForBigBang");
             clear.setAccessible(true);
             clear.invoke(game);
         } catch (ReflectiveOperationException broken) {

@@ -505,34 +505,8 @@ final class DebugBar extends VBox {
      * le ferait en temps réel : une heure demande quelques secondes de calcul, fenêtre figée.
      */
     private void skip(double seconds) {
-        // Réutilise l'avance fractionnée du bot sans décision de bot : aucune dépendance requise.
-        if (isFastForwarding()) cancelFastForward();
-        fastForward = new BotFastForwardJob(seconds, 10, game::tick, () -> true, () -> false);
-        botCancel.setDisable(false);
-        botTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
-                javafx.util.Duration.millis(25), event -> {
-            if (fastForward == null) return;
-            BotFastForwardJob.End result;
-            try { result = fastForward.runBatch(10); }
-            catch (RuntimeException error) {
-                cancelFastForward();
-                note("Erreur pendant l'avance : " + error.getMessage());
-                return;
-            }
-            if (result == BotFastForwardJob.End.RUNNING) {
-                note("Avance : " + Format.duration(fastForward.advancedSeconds()) + " / "
-                        + Format.duration(fastForward.totalSeconds()));
-                return;
-            }
-            double elapsed = fastForward.advancedSeconds();
-            botTimeline.stop();
-            botTimeline = null;
-            fastForward = null;
-            botCancel.setDisable(true);
-            note("Avance de " + Format.duration(elapsed) + " terminée.");
-        }));
-        botTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
-        botTimeline.play();
+        // Par tranches d'une minute : chaque tranche laisse les automatismes et les relevés suivre.
+        for (double done = 0; done < seconds; done += 60) game.tick(Math.min(60, seconds - done));
     }
 
     // ------------------------------------------------------------------

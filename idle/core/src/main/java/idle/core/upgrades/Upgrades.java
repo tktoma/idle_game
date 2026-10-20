@@ -21,7 +21,7 @@ import java.util.List;
  *       pas la vitesse.</li>
  * </ul>
  * Pour allonger ou raccourcir la phase, voir les deux lignes commentées « durée ».
- * Le test {@code GameTest.Simulation} vérifie que la durée reste dans la fourchette voulue.
+ * Le test {@code JeuDefisTest.Simulation} vérifie que la durée reste dans la fourchette voulue.
  *
  * <p>La suite (atomes, automatismes, tableau périodique) a été réglée de la même façon, en
  * simulant plusieurs ordres d'achat sur toute la progression, avec huit tirages de hasard chacun.

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Le rythme du jeu : le tempo qui a ramené la première explosion de vingt-quatre heures à trois,
  * l'automatisme des générateurs qui les achète tous d'un coup, et le garde-fou du hasard à la
- * synthèse. Les durées elles-mêmes sont gardées par les essais de simulation de {@link GameTest}.
+ * synthèse. Les durées elles-mêmes sont gardées par les essais de simulation de {@link JeuDefisTest}.
  */
 class RythmeTest {
 

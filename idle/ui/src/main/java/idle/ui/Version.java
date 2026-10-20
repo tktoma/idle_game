@@ -23,6 +23,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.98", "Le code rangé", List.of(
+                    "Rien ne change en jeu : les fichiers trop longs du code sont découpés en parties d'un millier de lignes "
+                            + "au plus. Le jeu (Game), son état (GameState), l'application, la page et la vue du Big Bang et la page "
+                            + "des statistiques deviennent des chaînes de classes, une par thème ; les tests des règles sont rangés "
+                            + "en treize fichiers.")),
             new Note("0.97", "Une matière noire plus étalée", List.of(
                     "Avant le premier Big Bang, chaque explosion donne ×0,8 de matière noire : le deuxième acte dure six heures "
                             + "environ au lieu de cinq. La matière noire s'affiche avec son dixième.",

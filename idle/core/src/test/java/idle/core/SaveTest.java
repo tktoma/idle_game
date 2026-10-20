@@ -181,7 +181,6 @@ class SaveTest {
         state.setActiveTrial("DETECTOR");
         state.setTrialStart(1234.5);
         state.setTrialBase(99.25);
-        state.setTrialEnergyStart(12.25);
         state.setTrialCount(2);
         state.addCompletedTrial("COLD_BANG");
         state.setRebuildRecord(48.5);
@@ -354,19 +353,27 @@ class SaveTest {
     /** Les champs d'une classe du jeu qui font partie de la sauvegarde. */
     private static List<Field> fields(Class<?> type) {
         List<Field> kept = new ArrayList<>();
-        for (Field field : type.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers()) || DERIVED.contains(field.getName())) continue;
-            field.setAccessible(true);
-            kept.add(field);
+        // Une classe découpée en parties (GameState et ses couches) : les champs de toute la chaîne.
+        for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Field field : c.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || DERIVED.contains(field.getName())) continue;
+                field.setAccessible(true);
+                kept.add(field);
+            }
         }
         return kept;
     }
 
     private static Object read(Object owner, String name) {
         try {
-            Field field = owner.getClass().getDeclaredField(name);
-            field.setAccessible(true);
-            return field.get(owner);
+            for (Class<?> c = owner.getClass(); c != null; c = c.getSuperclass()) {
+                for (Field field : c.getDeclaredFields()) {
+                    if (!field.getName().equals(name)) continue;
+                    field.setAccessible(true);
+                    return field.get(owner);
+                }
+            }
+            throw new NoSuchFieldException(name);
         } catch (ReflectiveOperationException impossible) {
             throw new AssertionError(impossible);
         }

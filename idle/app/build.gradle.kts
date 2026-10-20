@@ -17,10 +17,7 @@ repositories {
 dependencies {
     implementation(project(":ui"))
     // Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (groupe « Bots »).
-    // Les bots ne sont chargés que dans le profil de test, jamais dans le jeu normal.
-    if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "runTest" }) {
-        runtimeOnly(project(":bots"))
-    }
+    runtimeOnly(project(":bots"))
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

@@ -32,13 +32,6 @@ public class AdvancedLab extends RobotCosmosPlanner {
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
     events.add("wall_h,event,detail");
   }
-  @Override
-  boolean holdForPatienceAchievement(){
-    return mode.equals("EXPERT_COMPLET")
-        && !g.hasAchievement(idle.core.achievements.Achievements.PATIENT_FUSION)
-        && !g.inChallenge()
-        && g.state().timeSinceFusion()<idle.core.achievements.Achievements.PATIENT_SECONDS;
-  }
   boolean getsPlanning(){
     switch(mode){
       case "DEBUTANT_APPRENANT":return policyRandom.nextDouble()<Math.min(.95,.28+.10*(wall/3600));
