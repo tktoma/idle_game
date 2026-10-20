@@ -36,6 +36,38 @@ class BotsTest {
     }
 
     @Test
+    void persistanceEstPrioritaireSurLesAutresDepensesEnAtomes() {
+        Game game = new Game();
+        game.start();
+        game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        game.state().setAtoms(idle.core.math.BigNum.of(25));
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(game, 10);
+        assertFalse(game.keepsUpgradesOnFusion());
+        bot.prioritizePersistence();
+        assertTrue(game.keepsUpgradesOnFusion(), "Le bot doit acheter Persistance avant de dépenser les atomes");
+        assertEquals(1, game.levelOf("atom_keep"));
+    }
+
+    @Test
+    void persistanceAttendVingtCinqAtomesEtProtegeLaReserve() {
+        Game game = new Game();
+        game.start();
+        game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        game.state().setAtoms(idle.core.math.BigNum.of(20));
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(game, 10);
+        bot.prioritizePersistence();
+        assertEquals(idle.core.math.BigNum.of(25), game.synthesisReserve());
+        RobotCosmosPlanner.atoms(game, 30);
+        assertEquals(idle.core.math.BigNum.of(20), game.state().atoms(),
+                "Ne pas acheter d'autres améliorations pendant la réserve");
+        game.state().setAtoms(idle.core.math.BigNum.of(25));
+        bot.prioritizePersistence();
+        assertTrue(game.keepsUpgradesOnFusion());
+        assertEquals(idle.core.math.BigNum.ZERO, game.synthesisReserve(),
+                "Restaurer la réserve de synthèse après l'achat");
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
