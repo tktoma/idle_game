@@ -117,7 +117,10 @@ public class RobotCosmosPlanner {
     for(ProbeDestination destination:ProbeDestination.values())
       if(g.isProbeDestinationOpen(destination))targets.add(destination);
     targets.sort((a,b)->Integer.compare(probePriority(b,shortages),probePriority(a,shortages)));
-    ProbeTrip trip=g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT;
+    // La matière des astres/du cosmos demande des réapprovisionnements fréquents :
+    // les sauts courts restent utiles ; les longs voyages servent quand la liste est vide.
+    ProbeTrip trip=!g.shoppingList().matter().isEmpty() || !g.shoppingList().items().isEmpty()
+        ? ProbeTrip.SHORT : (g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT);
     for(ProbeDestination destination:targets){
       if(g.canLaunchProbe(destination,trip))g.launchProbe(destination,trip);
     }
