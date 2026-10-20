@@ -77,6 +77,19 @@ class BotsTest {
     }
 
     @Test
+    void leBotAttendDixHuitAstresAvantDeRelancerLesDefis() {
+        Game game = new Game();
+        game.start();
+        game.state().setBigBangs(5);
+        game.state().setExplosions(25);
+        game.state().setDarkMatter(idle.core.math.BigNum.of(500));
+        assertFalse(RobotCosmosPlanner.skyReadyForNextBigBang(game));
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(game, 20);
+        bot.challenges();
+        assertFalse(game.inChallenge(), "Ne pas effacer le tableau avant d'avoir les astres requis");
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
