@@ -68,6 +68,15 @@ class BotsTest {
     }
 
     @Test
+    void leSixiemeBigBangDemandeDixHuitAstresMurs() {
+        Game game = new Game();
+        game.start();
+        game.state().setBigBangs(5);
+        assertEquals(18, game.bigBangSkyRequirement());
+        assertFalse(game.isBigBangConditionMet(idle.core.bigbang.BigBangCondition.SKY));
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {

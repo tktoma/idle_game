@@ -188,16 +188,24 @@ public class RobotCosmosPlanner {
     // Cela évite de mélanger les deux politiques pendant les tests A/B.
     if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
-    // La liste du jeu donne ce qui MANQUE dans chaque état (rien n'y figure quand l'état est complet).
+    // La liste du jeu donne le manque pour chaque état. Une recette moins encombrante,
+    // mais devenue impossible (plafond d'éléments, sorte pleine ou rayon fermé), ne
+    // doit jamais empêcher les planètes de recevoir leur matière pour le sixième Big Bang.
     for(var need:g.shoppingList().matter().entrySet()){
       if(need.getValue()<=0)continue;
-      Molecule best=null;double min=Double.POSITIVE_INFINITY;
+      Molecule best=null, fallback=null;
+      double min=Double.POSITIVE_INFINITY, fallbackMin=Double.POSITIVE_INFINITY;
       for(Molecule m:g.molecules()){
-        if(!m.hasState()||m.state()!=need.getKey()||!g.hasSubstance(m.id()))continue;
-        double v=g.moleculeVolume(m.id()).toDouble();
-        if(v<min){best=m;min=v;}
+        if(!m.hasState() || m.state()!=need.getKey() || !g.hasSubstance(m.id())
+            || !g.isMoleculeKindUnlocked(m.kind())
+            || !g.isMoleculeWithinReach(m.id()) || g.isMoleculeKindFull(m.id()))continue;
+        double volume=g.moleculeVolume(m.id()).toDouble();
+        if(g.canCreateMolecule(m.id())){
+          if(volume<min){best=m;min=volume;}
+        }else if(volume<fallbackMin){fallback=m;fallbackMin=volume;}
       }
-      if(best!=null&&g.setMoleculeAutomated(best.id(),true))chosen.add(best.id());
+      if(best==null)best=fallback;
+      if(best!=null && g.setMoleculeAutomated(best.id(),true))chosen.add(best.id());
     }
     for(String id:new ArrayList<>(g.state().automatedMolecules()))if(!chosen.contains(id))g.setMoleculeAutomated(id,false);
     return !chosen.isEmpty();
@@ -289,8 +297,23 @@ public class RobotCosmosPlanner {
   }
   /** Dernière minute simulée où un diagnostic des cinq conditions a été écrit. */
   double lastBigBangDiagnostic = -900;
+  double lastSkyDiagnostic = -900;
   void logBigBangDiagnostic(){
     double now=g.state().timePlayed();
+    int sky=g.bigBangSkyRequirement();
+    // Le prochain Big Bang peut demander des astres MÛRS (18 / 24 / 28).
+    // Si le robot se bloque après les 15 premiers astres, annoncer la cible
+    // et le prochain astre réellement attendu plutôt que rester silencieux.
+    if(sky>0 && g.bodiesMature()<sky && now-lastSkyDiagnostic>=900){
+      lastSkyDiagnostic=now;
+      Body next=g.nextBody();
+      System.out.printf(Locale.ROOT,
+          "SKY_STATUS,bb=%d,murs=%d/%d,formes=%d,en_maturation=%d,cible=%s,conditions=%s,liste=%s%n",
+          g.bigBangs(),g.bodiesMature(),sky,g.bodiesFormed(),g.maturingBodies().size(),
+          next==null?"-":next.id(),
+          next==null?"-":g.bodyConditionsMet(next.id())+"/"+g.bodyConditions(next.id()),
+          g.shoppingList().target().replace(',',';'));
+    }
     if(g.bigBangs()!=0 || now-lastBigBangDiagnostic<900
             || g.completedChallenges()!=g.challenges().size() || g.achievementCount()<40)return;
     lastBigBangDiagnostic=now;
