@@ -136,7 +136,7 @@ final class FirstUniversePolicy {
     }
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
-    static Molecule matterTarget(Game game, idle.core.elements.ElementCategory state) {
+    static Molecule matterTarget(Game game, Molecule.State state) {
         Molecule ready = null, fallback = null;
         double bestVolume = Double.POSITIVE_INFINITY, fallbackVolume = Double.POSITIVE_INFINITY;
         for (Molecule molecule : game.molecules()) {
