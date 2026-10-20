@@ -87,7 +87,11 @@ final class FirstUniversePolicy {
      * enfin améliorations répétables, en plafonnant chaque dépense.
      */
     static int dark(Game game, int limit) {
-        boolean bank = finalBangPreparation(game);
+        // Réserver les 500 matières noires dès que les autres prérequis
+        // sont assurés, et non seulement après avoir déjà atteint 500.
+        boolean bank = game.bigBangs() < 8
+                && game.completedChallenges() == game.challenges().size()
+                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
         int count = 0;
         for (int n = 0; n < limit; n++) {
             DarkUpgrade chosen = null;
@@ -129,7 +133,7 @@ final class FirstUniversePolicy {
 
     private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank) {
         if (!game.canBuyDark(upgrade.id())) return false;
-        if (upgrade.branch() != DarkUpgrade.Branch.DARK_MATTER) return true;
+        if (upgrade.branch() != DarkUpgrade.Branch.DARK_MATTER && !upgrade.isLink()) return true;
         return DarkMatterReservePolicy.allowPurchase(
                 bank, game.state().darkMatter(), game.darkCostOf(upgrade.id()),
                 Game.BIG_BANG_DARK_MATTER);
