@@ -358,7 +358,7 @@ public class RobotCosmosPlanner {
         // La chasse à l'actinide est gérée par hunt() : ne pas la couper prématurément.
       }else{
         idle.core.elements.ElementCategory chemistry=FirstUniversePolicy.chemistryTarget(g);
-        g.setSynthesisTarget(chemistry);
+        if(!g.setSynthesisTarget(chemistry))g.setSynthesisTarget(null);
       }
       for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
     }
