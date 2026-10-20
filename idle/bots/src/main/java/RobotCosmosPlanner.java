@@ -353,8 +353,15 @@ public class RobotCosmosPlanner {
       patiencePausedByRobot=true;
     }
     if(!finalMode)atoms(g,60);
-    if(!FirstUniversePolicy.needsPersistence(g))
+    if(!FirstUniversePolicy.needsPersistence(g)){
+      if(!g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
+        // La chasse à l'actinide est gérée par hunt() : ne pas la couper prématurément.
+      }else{
+        idle.core.elements.ElementCategory chemistry=FirstUniversePolicy.chemistryTarget(g);
+        g.setSynthesisTarget(chemistry);
+      }
       for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
+    }
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
     // Les automatismes sombres ouverts gratuitement doivent rester actifs,
