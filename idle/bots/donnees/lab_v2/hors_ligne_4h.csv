@@ -1,6 +1,0 @@
-scenario,calendrier_h,actif_h,temps_jeu_credite_h,taux_hors_ligne_depart,bb,astres_murs,galaxie,amas,univers,espace,sortes_rassemblees,assemblages
-present_actif,4.0000,4.0000,4.0000,1.00000,8,33,false,false,false,3.159733786635714e12,326,58
-jeu_ouvert_AFK,4.0000,4.0000,4.0000,1.00000,7,26,false,false,false,2.658772120513352e12,320,51
-15min_toutes_3h,4.0000,0.5000,4.0000,1.00000,8,28,false,false,false,2.699333007318208e12,324,55
-2h_puis_10h_absence,4.0000,2.0000,4.0000,1.00000,8,33,false,false,false,2.8242428700261146e12,324,55
-1h_par_jour,4.0000,1.0000,4.0000,1.00000,7,28,false,false,false,2.759521748776219e12,320,54

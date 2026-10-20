@@ -1,4 +1,0 @@
-niveau,profils,graines_par_profil,essais,horizon_heures,statut,methode
-rapide,6,5,30,6,EXECUTE,sauvegarde 7BB et 20 sec de pas
-standard,24,20,480,12,PREPARE_NON_EXECUTE,meme checkpoint et 20 sec de pas
-approfondi,24,50,1200,12,PREPARE_NON_EXECUTE,meme checkpoint et 20 sec de pas

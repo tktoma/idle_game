@@ -1,8 +1,0 @@
-checkpoint,ressource,amelioration,cout,production_avant_log10,production_apres_log10,gain_log10,retour_sur_investissement_s_approx
-neuf_3min_sans_achats,PARTICLES,speed,4.0e0,0.305351,0.346744,0.0413927,19.8020
-neuf_3min_sans_achats,PARTICLES,coupling,6.0e1,0.305351,0.305351,0.00000,NA
-neuf_3min_sans_achats,PARTICLES,generator,2.0e1,0.305351,0.606381,0.301030,9.90099
-neuf_30min_sans_achats,PARTICLES,speed,4.0e0,0.305351,0.346744,0.0413927,19.8020
-neuf_30min_sans_achats,PARTICLES,coupling,6.0e1,0.305351,0.305351,0.00000,NA
-neuf_30min_sans_achats,PARTICLES,generator,2.0e1,0.305351,0.606381,0.301030,9.90099
-checkpoint_before_eighth.save,ATOMS,atom_keep,3.0e0,654581,654581,0.00000,NA
