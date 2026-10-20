@@ -158,6 +158,26 @@ class BotsTest {
     }
 
     @Test
+    void lesDefisDeBigBangNeDemarrentPasAvantLesPrerequis() {
+        Game g = new Game();
+        g.start();
+        g.state().setBigBangs(5);
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        assertFalse(bot.bangChallenges());
+        assertEquals(null, g.activeBangChallenge());
+    }
+
+    @Test
+    void lesSondesNePeuventPasEtreUtiliseesAvantLeurDeblocage() {
+        Game g = new Game();
+        g.start();
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        assertFalse(g.isProbesUnlocked());
+        bot.probes();
+        assertEquals(0, g.state().probeLaunches());
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
