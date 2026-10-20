@@ -132,6 +132,32 @@ class BotsTest {
     }
 
     @Test
+    void toutesLesVariantesJouentLePremierUniversSansPlanter(@TempDir Path out) throws Exception {
+        for (String mode : AdvancedLab.MODES) {
+            Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
+            long before = g.state().timePlayed() == 0 ? 0 : (long) g.state().timePlayed();
+            Path folder = out.resolve(mode);
+            AdvancedLab bot = new AdvancedLab(g, 20, mode, 42);
+            bot.runLab(0.05, folder);
+            assertTrue(g.state().timePlayed() > before, mode + " : le temps du moteur doit avancer");
+            assertTrue(bot.acts > 0, mode + " : le bot doit agir");
+            assertTrue(Files.exists(folder.resolve("timeline.csv")), mode);
+            assertTrue(Files.exists(folder.resolve("result.csv")), mode);
+            assertTrue(g.bigBangs() >= 0, mode);
+        }
+    }
+
+    @Test
+    void laListeEstToujoursActiveDansLesModesQuiLaConsultent() {
+        Game g = new Game();
+        g.start();
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        bot.cosmos();
+        assertTrue(g.isMoleculeAutomationEnabled(),
+                "Les listes de recettes ne doivent jamais désactiver l'automatisation globale");
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
