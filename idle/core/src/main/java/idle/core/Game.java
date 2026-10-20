@@ -727,6 +727,22 @@ public final class Game {
         if (dt < 0 || Double.isNaN(dt) || Double.isInfinite(dt)) {
             throw new IllegalArgumentException("Durée invalide : " + dt);
         }
+        // Les automatismes de matière travaillent par tranches de dix secondes :
+        // tick(60) et six appels tick(10) ont les mêmes occasions de production.
+        // Les bonus chronométrés sont découpés aux instants exacts de leur expiration.
+        double remaining = dt;
+        do {
+            double part = isAutoCreatingMolecules() ? Math.min(remaining, 10.0) : remaining;
+            if (isSecondUniverse()) {
+                if (state.regimeLeft() > 0) part = Math.min(part, state.regimeLeft());
+                if (state.perfectLeft() > 0) part = Math.min(part, state.perfectLeft());
+            }
+            tickSegment(part);
+            remaining -= part;
+        } while (remaining > 0);
+    }
+
+    private void tickSegment(double dt) {
         if (away) {
             takeAbsenceVoies();
             startChallengeWhileAway();
@@ -750,8 +766,8 @@ public final class Game {
         runMoleculeAutomation(dt);
         runAutoForm(dt);
         runPlans(dt);
-        runSecondUniverse(dt);
-        advance(dt);
+        advance(dt); // La production bénéficie des bonus qui sont encore actifs.
+        runSecondUniverse(dt); // Leur durée est écoulée après cette production.
         decay(dt);
         achievementTimer += dt;
         if (achievementTimer >= ACHIEVEMENT_CHECK_SECONDS) {
@@ -806,12 +822,18 @@ public final class Game {
             BigNum each = commonParticles.multiply(generatorParticlesMultiplier(generator));
             gain = gain.add(completed < 0 ? creations.multiply(each) : each.multiply(completed));
         }
-        if (ruled(Challenge.Rule.VOLATILE_PARTICLES) && dt > 0) {
-            // Les particules s'évaporent en continu. Ce qui reste de celles d'avant, plus ce qui reste
-            // de celles créées pendant ce pas, comme si elles étaient arrivées régulièrement.
-            double rate = -Math.log(1 - VOLATILE_LOSS_PER_SECOND);
-            double kept = Math.exp(-rate * dt);
-            state.setParticles(state.particles().multiply(kept).add(gain.multiply((1 - kept) / (rate * dt))));
+        // Les pertes, y compris Contraction douce, agissent continûment.
+        // Les particules produites pendant le pas ne subissent que la perte moyenne.
+        double lossRate = 0;
+        if (ruled(Challenge.Rule.VOLATILE_PARTICLES))
+            lossRate -= Math.log1p(-VOLATILE_LOSS_PER_SECOND);
+        if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION))
+            lossRate -= Math.log1p(-idle.core.universe.Trial.CONTRACTION_LOSS)
+                    / idle.core.universe.Trial.CONTRACTION_EVERY;
+        if (lossRate > 0 && dt > 0) {
+            double decayFactor = Math.exp(-lossRate * dt);
+            double meanGainFactor = -Math.expm1(-lossRate * dt) / (lossRate * dt);
+            state.setParticles(state.particles().multiply(decayFactor).add(gain.multiply(meanGainFactor)));
             if (!gain.isZero()) state.stats().addParticles(gain);
         } else if (!gain.isZero()) {
             state.setParticles(state.particles().add(gain));
@@ -2670,7 +2692,7 @@ public final class Game {
     public static final double MOLECULE_AUTOMATION_SECONDS = 5;
 
     /** Nombre de passages qu'un seul appel à {@link #tick(double)} rattrape au plus : un long temps hors-ligne ne bloque pas le jeu. */
-    private static final int MOLECULE_AUTOMATION_CATCH_UP = 20;
+    private static final int MOLECULE_AUTOMATION_CATCH_UP = 10_000;
 
     private double moleculeAutomationTimer = 0;
     private int moleculeAutomationTurn = 0;
@@ -2795,13 +2817,26 @@ public final class Game {
             if (need.getValue() <= 0) continue;
             Molecule best = null;
             BigNum least = null;
+            Molecule fallback = null;
+            BigNum fallbackVolume = null;
             for (Molecule candidate : moleculeList) {
                 if (!candidate.hasState() || candidate.state() != need.getKey()
                         || !state.hasSubstance(candidate.id()) || !isMoleculeKindUnlocked(candidate.kind())) continue;
-                BigNum volume = moleculeVolume(candidate.id());
-                if (best == null || volume.lt(least)) { best = candidate; least = volume; }
+                String id = candidate.id();
+                // Ne jamais retenir une recette définitivement inaccessible ou plafonnée.
+                if (!isMoleculeWithinReach(id) || isMoleculeKindFull(id) || !withinStateCap(id)) continue;
+                BigNum volume = moleculeVolume(id);
+                if (canCreateMolecule(id)) {
+                    if (best == null || volume.lt(least)) { best = candidate; least = volume; }
+                } else if (fallback == null || volume.lt(fallbackVolume)) {
+                    // En l'absence de recette immédiatement disponible, attendre une
+                    // recette encore atteignable avec davantage d'éléments ou d'espace.
+                    fallback = candidate;
+                    fallbackVolume = volume;
+                }
             }
             if (best != null) selected.add(best.id());
+            else if (fallback != null) selected.add(fallback.id());
         }
         return selected;
     }
@@ -2821,7 +2856,7 @@ public final class Game {
         double interval = moleculeAutomationInterval();
         int rounds = (int) Math.min(MOLECULE_AUTOMATION_CATCH_UP, Math.floor(moleculeAutomationTimer / interval + 1e-9));
         if (rounds <= 0) return;
-        moleculeAutomationTimer = Math.max(0, Math.min(interval, moleculeAutomationTimer - rounds * interval));
+        moleculeAutomationTimer = Math.max(0, moleculeAutomationTimer - rounds * interval);
         double reserve = state.autoMoleculeReserve();
         List<String> chosen = state.automatedMolecules();
         for (int round = 0; round < rounds; round++) {
@@ -4949,7 +4984,7 @@ public final class Game {
     /** Générateurs qu'il faut pour le régime des générateurs. */
     public static final int REGIME_GENERATORS = 3;
     /** Ce que le régime rapide ajoute à la cadence des générateurs, et combien de temps. */
-    public static final double REGIME_GAIN = 0.15;
+    public static final double REGIME_GAIN = 0.50;
     public static final double REGIME_SECONDS = 20;
     /** Le repos qui suit le régime rapide, avant de pouvoir le relancer. */
     public static final double REGIME_REST_SECONDS = 40;
@@ -5053,14 +5088,14 @@ public final class Game {
         return isRegimeUnlocked() && state.regimeLeft() <= 0 && state.regimeRest() <= 0;
     }
 
-    /** Lance le régime rapide : +15 % de cadence pendant 20 s, puis 40 s de repos. Un geste à la main, jamais automatique. */
+    /** Lance le régime rapide : +50 % de cadence pendant 20 s, puis 40 s de repos. Un geste à la main, jamais automatique. */
     public boolean startRegime() {
         if (!canStartRegime()) return false;
         state.setRegimeLeft(REGIME_SECONDS);
         return true;
     }
 
-    /** La cadence du régime rapide : ×1,15 pendant qu'il dure. */
+    /** La cadence du régime rapide : ×1,50 pendant qu'il dure. */
     public double regimeMultiplier() {
         return state.regimeLeft() > 0 ? 1 + REGIME_GAIN : 1;
     }
@@ -5338,6 +5373,7 @@ public final class Game {
     /** Vrai si l'épreuve peut commencer : ouverte, aucune autre en cours, et pour le premier générateur, un seul générateur. */
     public boolean canStartTrial(idle.core.universe.Trial trial) {
         if (!isTrialUnlocked(trial) || activeTrial() != null) return false;
+        if (trial == idle.core.universe.Trial.NO_OVERHEAT && state.overheatLeft() > 0) return false;
         return trial != idle.core.universe.Trial.LONE_GENERATOR || generatorCount() == 1;
     }
 
@@ -5347,6 +5383,7 @@ public final class Game {
         state.setActiveTrial(trial.name());
         state.setTrialStart(state.timePlayed());
         state.setTrialCount(0);
+        state.setTrialEnergyStart(trial == idle.core.universe.Trial.FULL_CHARGE ? colliderEnergyProduced() : 0);
         state.setTrialBase(trial == idle.core.universe.Trial.FULL_CHARGE
                 ? colliderEnergyProduced() + colliderEnergyPerSecond() * idle.core.universe.Trial.FULL_CHARGE_SECONDS : 0);
         return true;
@@ -5374,7 +5411,9 @@ public final class Game {
         return switch (trial) {
             case LONE_GENERATOR -> Math.min(1, Math.max(0, state.particles().log10() / idle.core.universe.Trial.LONE_GOAL_LOG10));
             case SOFT_CONTRACTION, COLD_BANG -> 0;
-            case FULL_CHARGE -> state.trialBase() <= 0 ? 0 : Math.min(1, colliderEnergyProduced() / state.trialBase());
+            case FULL_CHARGE -> state.trialBase() <= state.trialEnergyStart() ? 0
+                    : Math.min(1, Math.max(0, (colliderEnergyProduced() - state.trialEnergyStart())
+                            / (state.trialBase() - state.trialEnergyStart())));
             default -> Math.min(1, state.trialCount() / (double) trial.goal());
         };
     }
@@ -5401,9 +5440,6 @@ public final class Game {
     private void runTrial(double dt) {
         idle.core.universe.Trial trial = activeTrial();
         if (trial == null) return;
-        if (trial == idle.core.universe.Trial.SOFT_CONTRACTION && dt > 0) {
-            state.setParticles(state.particles().multiply(Math.pow(1 - idle.core.universe.Trial.CONTRACTION_LOSS, dt / idle.core.universe.Trial.CONTRACTION_EVERY)));
-        }
         if (trial == idle.core.universe.Trial.NO_OVERHEAT && state.overheatLeft() > 0) {
             failTrial();
             return;
@@ -5622,7 +5658,7 @@ public final class Game {
     public double colliderEnergyMultiplier() {
         double multiplier = Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.ENERGY))
                 * (hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1);
-        return multiplier;
+        return multiplier * skinBoost();
     }
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
@@ -5837,12 +5873,19 @@ public final class Game {
         if (quark == Quark.TOP) {
             state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
         } else {
-            state.setQuarks(quark, state.quarks(quark) + count);
+            state.setQuarks(quark, state.quarks(quark) + skinQuarks(count, serial, quark));
         }
         CollisionResult result = new CollisionResult(serial, quark, quark == Quark.TOP ? 1 : count, caught);
         if (finishedCollisions.size() < 200) finishedCollisions.add(result);
         recentCollisions.addLast(result);
         while (recentCollisions.size() > RECENT_COLLISIONS) recentCollisions.removeFirst();
+    }
+
+    /** Les bonus fractionnaires des skins sont tirés de façon déterministe par collision. */
+    private int skinQuarks(int count, long serial, Quark quark) {
+        double expected = count * skinBoost();
+        int whole = (int) Math.floor(expected);
+        return whole + (roll(serial, 90 + quark.ordinal()) < expected - whole ? 1 : 0);
     }
 
     /** Les dernières collisions, la plus récente au bout : pour le dessin des faisceaux. */
@@ -5906,7 +5949,7 @@ public final class Game {
                 if (collisions * share >= 1 || roll(first, 11) < collisions * share) state.setTopLeft(Math.max(state.topLeft(), topSeconds()));
                 continue;
             }
-            double expected = quarks * share;
+            double expected = quarks * share * skinBoost();
             int whole = (int) Math.min(Integer.MAX_VALUE / 4, Math.floor(expected) + (roll(first, 20 + quark.ordinal()) < expected - Math.floor(expected) ? 1 : 0));
             state.setQuarks(quark, (int) Math.min(Integer.MAX_VALUE / 2, (long) state.quarks(quark) + whole));
         }
