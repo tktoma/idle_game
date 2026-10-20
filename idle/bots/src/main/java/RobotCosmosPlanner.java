@@ -191,9 +191,11 @@ public class RobotCosmosPlanner {
     // Cela évite de mélanger les deux politiques pendant les tests A/B.
     if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
-    // La liste du jeu donne ce qui MANQUE dans chaque état (rien n'y figure quand l'état est complet).
+    // Les recettes partagent certains éléments : investir d'abord dans un amas
+    // massif plutôt que répartir leurs rares ingrédients entre cinq états.
+    Molecule.State focus=FirstUniversePolicy.focusMatterState(g);
     for(var need:g.shoppingList().matter().entrySet()){
-      if(need.getValue()<=0)continue;
+      if(need.getValue()<=0 || need.getKey()!=focus)continue;
       Molecule best=FirstUniversePolicy.matterTarget(g,need.getKey());
       if(best!=null&&g.setMoleculeAutomated(best.id(),true))chosen.add(best.id());
     }
@@ -245,7 +247,9 @@ public class RobotCosmosPlanner {
          if(g.canFormSubstance(m.id())){g.formSubstance(m.id());left--;}
        }
     }
+    Molecule.State focusMatter=FirstUniversePolicy.focusMatterState(g);
     for(var e:wish.matter().entrySet()){
+      if(e.getKey()!=focusMatter)continue;
       long target=g.gatheredInState(e.getKey())+e.getValue(); // shoppingList.matter contient le MANQUE, pas le seuil absolu
       Molecule choice=null;double min=Double.POSITIVE_INFINITY;
       for(Molecule m:g.molecules())if(m.hasState()&&m.state()==e.getKey()&&g.hasSubstance(m.id())&&g.canCreateMolecule(m.id())){
