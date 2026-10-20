@@ -176,35 +176,23 @@ final class FirstUniversePolicy {
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
     static Molecule matterTarget(Game game, Molecule.State state) {
-        Molecule ready = null, fallback = null, established = null;
-        double bestVolume = Double.POSITIVE_INFINITY, fallbackVolume = Double.POSITIVE_INFINITY;
-        // Un amas déjà très développé attire davantage de molécules à chaque création.
-        // Le changer au moindre manque temporaire d'élément efface ce bénéfice
-        // et peut bloquer pendant des heures le gaz et les cristaux du cosmos.
-        for (String id : game.state().automatedMolecules()) {
-            Molecule molecule = game.molecule(id);
-            if (!molecule.hasState() || molecule.state() != state
-                    || !game.hasSubstance(id) || !game.isMoleculeWithinReach(id)
-                    || game.isMoleculeKindFull(id)) continue;
-            if (established == null || game.moleculeCount(id) > game.moleculeCount(established.id()))
-                established = molecule;
-        }
+        Molecule best = null;
+        double smallestVolume = Double.POSITIVE_INFINITY;
+        // La synthèse regarnit les éléments temporairement absents. Changer
+        // d'amas à chaque manque brise l'accrétion en racine du nombre déjà créé.
+        // Filtrer ici seulement les obstacles structurels (rayon, espace, plafond).
         for (Molecule molecule : game.molecules()) {
             if (!molecule.hasState() || molecule.state() != state
                     || !game.hasSubstance(molecule.id())
                     || !game.isMoleculeKindUnlocked(molecule.kind())
                     || !game.isMoleculeWithinReach(molecule.id())
                     || game.isMoleculeKindFull(molecule.id())) continue;
-            double size = game.moleculeVolume(molecule.id()).toDouble();
-            if (game.canCreateMolecule(molecule.id())) {
-                if (size < bestVolume) { bestVolume = size; ready = molecule; }
-            } else if (size < fallbackVolume) {
-                fallbackVolume = size;
-                fallback = molecule;
+            double volume = game.moleculeVolume(molecule.id()).toDouble();
+            if (volume < smallestVolume) {
+                best = molecule;
+                smallestVolume = volume;
             }
         }
-        // Une recette temporairement affamée en éléments reste viable : la synthèse
-        // automatique doit pouvoir la regarnir sans que le robot change de cible.
-        return established != null ? established : ready == null ? fallback : ready;
+        return best;
     }
 }
