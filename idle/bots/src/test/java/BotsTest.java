@@ -204,6 +204,16 @@ class BotsTest {
                 state, g.gatheredInState(state), g.sortsInState(state),
                 idle.core.sky.Cosmos.CLUSTER.matter().getOrDefault(state,0),
                 idle.core.sky.Cosmos.CLUSTER.sorts().getOrDefault(state,0));
+            var target = FirstUniversePolicy.matterTarget(g, state);
+            if (target != null) {
+                System.out.printf("EXPERT_TARGET,%s,id=%s,count=%d,draw=%d,canCreate=%s,auto=%s,enabled=%s,interval=%s,recipe=%s%n",
+                        state,target.id(),g.moleculeCount(target.id()),g.moleculesPerCreation(target.id()),
+                        g.canCreateMolecule(target.id()),g.isMoleculeAutomated(target.id()),
+                        g.isAutoCreatingMolecules(),g.moleculeAutomationInterval(),target.recipe());
+                for (var atom : target.recipe().entrySet())
+                    System.out.printf("EXPERT_ATOM,%s,z=%d,stock=%d,need=%d%n",
+                            state,atom.getKey(),g.elementCount(atom.getKey()),atom.getValue());
+            }
         }
         assertTrue(g.hasCosmos(idle.core.sky.Cosmos.UNIVERSE),
                 "Le bot expert doit terminer le premier univers depuis un checkpoint de progression");
