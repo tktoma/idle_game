@@ -141,8 +141,19 @@ final class FirstUniversePolicy {
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
     static Molecule matterTarget(Game game, Molecule.State state) {
-        Molecule ready = null, fallback = null;
+        Molecule ready = null, fallback = null, established = null;
         double bestVolume = Double.POSITIVE_INFINITY, fallbackVolume = Double.POSITIVE_INFINITY;
+        // Un amas déjà très développé attire davantage de molécules à chaque création.
+        // Le changer au moindre manque temporaire d'élément efface ce bénéfice
+        // et peut bloquer pendant des heures le gaz et les cristaux du cosmos.
+        for (String id : game.state().automatedMolecules()) {
+            Molecule molecule = game.molecule(id);
+            if (!molecule.hasState() || molecule.state() != state
+                    || !game.hasSubstance(id) || !game.isMoleculeWithinReach(id)
+                    || game.isMoleculeKindFull(id)) continue;
+            if (established == null || game.moleculeCount(id) > game.moleculeCount(established.id()))
+                established = molecule;
+        }
         for (Molecule molecule : game.molecules()) {
             if (!molecule.hasState() || molecule.state() != state
                     || !game.hasSubstance(molecule.id())
@@ -157,6 +168,8 @@ final class FirstUniversePolicy {
                 fallback = molecule;
             }
         }
-        return ready == null ? fallback : ready;
+        // Une recette temporairement affamée en éléments reste viable : la synthèse
+        // automatique doit pouvoir la regarnir sans que le robot change de cible.
+        return established != null ? established : ready == null ? fallback : ready;
     }
 }
