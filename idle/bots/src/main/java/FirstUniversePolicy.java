@@ -174,6 +174,23 @@ final class FirstUniversePolicy {
         return category;
     }
 
+    /** Concentre la matière sur un seul objectif massif au lieu de disperser
+     * les éléments limitants entre cinq recettes simultanées.
+     * L'état suivant devient prioritaire dès que le précédent est complet.
+     */
+    static Molecule.State focusMatterState(Game game) {
+        Molecule.State state = null;
+        long largest = 0;
+        for (var entry : game.shoppingList().matter().entrySet()) {
+            long missing = entry.getValue();
+            if (missing <= largest) continue;
+            if (matterTarget(game, entry.getKey()) == null) continue;
+            largest = missing;
+            state = entry.getKey();
+        }
+        return state;
+    }
+
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
     static Molecule matterTarget(Game game, Molecule.State state) {
         Molecule best = null;
