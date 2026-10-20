@@ -270,8 +270,21 @@ public class RobotCosmosPlanner {
       g.isBigBangConditionMet(BigBangCondition.ATOMS),
       g.completedChallenges(),g.achievementCount());
   }
+  /** Les trois défis de Big Bang se tentent sur les passages 6, 7 et 8,
+   * après le ciel mais avant de sacrifier une partie déjà prête à Big Bang. */
+  boolean bangChallenges(){
+    if(!useBangChallenges() || g.bigBangs()<Game.BANG_CHALLENGES_BIG_BANGS
+        || g.bigBangs()>=8 || !skyReadyForNextBigBang(g)
+        || g.completedChallenges()<g.challenges().size()
+        || !g.canStartBangChallenge() || g.canBigBang())return false;
+    for(BangChallenge challenge:g.bangChallenges()){
+      if(!g.isBangChallengeCompleted(challenge) && g.startBangChallenge(challenge))return true;
+    }
+    return false;
+  }
   void resourceLoop(){
     prioritizePersistence();
+    if(bangChallenges())return;
     logBigBangDiagnostic();
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
