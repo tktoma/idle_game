@@ -178,6 +178,18 @@ class BotsTest {
     }
 
     @Test
+    void expertPeutDemarrerDepuisUnePartieNeuve(@TempDir Path out) throws Exception {
+        Game g = new Game();
+        g.start();
+        AdvancedLab bot = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
+        bot.runLab(0.1, out);
+        assertTrue(g.state().started());
+        assertTrue(g.state().timePlayed() >= 360);
+        assertTrue(Files.exists(out.resolve("timeline.csv")));
+        assertTrue(bot.acts > 0);
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
