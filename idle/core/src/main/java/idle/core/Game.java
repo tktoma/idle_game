@@ -732,9 +732,10 @@ public final class Game {
         // Les bonus chronométrés sont découpés aux instants exacts de leur expiration.
         double remaining = dt;
         do {
-            // Même cadence pour les automatismes et les événements du monde, quelle que soit
-            // la taille du tick appelé par le jeu actif ou le rattrapage.
-            double part = Math.min(remaining, 10.0);
+            // Ne découper systématiquement que le rattrapage de création moléculaire.
+            // L'expansion et la croissance de matière noire gardent leur pas original
+            // quand aucun automatisme moléculaire ne réclame de passages.
+            double part = isAutoCreatingMolecules() ? Math.min(remaining, 10.0) : remaining;
             if (isSecondUniverse()) {
                 // Durant une épreuve ou un bonus actif, les événements sont évalués
                 // à la seconde comme lors de 20 appels successifs à tick(1).
