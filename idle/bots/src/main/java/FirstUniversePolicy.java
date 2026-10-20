@@ -184,7 +184,6 @@ final class FirstUniversePolicy {
         for (var entry : game.shoppingList().matter().entrySet()) {
             long missing = entry.getValue();
             if (missing <= largest) continue;
-            if (matterTarget(game, entry.getKey()) == null) continue;
             largest = missing;
             state = entry.getKey();
         }
