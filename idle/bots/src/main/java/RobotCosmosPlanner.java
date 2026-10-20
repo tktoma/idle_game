@@ -303,6 +303,8 @@ public class RobotCosmosPlanner {
     if(!useBangChallenges() || g.bigBangs()<Game.BANG_CHALLENGES_BIG_BANGS
         || g.bigBangs()>=8 || !skyReadyForNextBigBang(g)
         || g.completedChallenges()<g.challenges().size()
+        || g.achievementCount()<Game.BIG_BANG_ACHIEVEMENTS
+        || g.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)
         || !g.canStartBangChallenge() || g.canBigBang())return false;
     for(BangChallenge challenge:g.bangChallenges()){
       if(!g.isBangChallengeCompleted(challenge) && g.startBangChallenge(challenge))return true;
