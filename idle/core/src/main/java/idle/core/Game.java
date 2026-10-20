@@ -732,8 +732,15 @@ public final class Game {
         // Les bonus chronométrés sont découpés aux instants exacts de leur expiration.
         double remaining = dt;
         do {
+            // Ne découper systématiquement que le rattrapage de création moléculaire.
+            // L'expansion et la croissance de matière noire gardent leur pas original
+            // quand aucun automatisme moléculaire ne réclame de passages.
             double part = isAutoCreatingMolecules() ? Math.min(remaining, 10.0) : remaining;
             if (isSecondUniverse()) {
+                // Durant une épreuve ou un bonus actif, les événements sont évalués
+                // à la seconde comme lors de 20 appels successifs à tick(1).
+                if (state.regimeLeft() > 0 || state.perfectLeft() > 0 || activeTrial() != null)
+                    part = Math.min(part, 1.0);
                 if (state.regimeLeft() > 0) part = Math.min(part, state.regimeLeft());
                 if (state.perfectLeft() > 0) part = Math.min(part, state.perfectLeft());
             }
@@ -804,7 +811,9 @@ public final class Game {
     private void step(double dt) {
         int generators = generatorCount();
         // Calculés une fois pour tous les générateurs : seuls leurs bonus individuels diffèrent.
-        BigNum commonSpeed = generators > 0 ? speed() : BigNum.ZERO;
+        // La production réelle doit inclure les mêmes bonus de cadence que speed(generator).
+        double sharedMultiplier = regimeMultiplier() * synergyMultiplier();
+        BigNum commonSpeed = generators > 0 ? speed().multiply(sharedMultiplier) : BigNum.ZERO;
         BigNum commonParticles = null;
         BigNum gain = BigNum.ZERO;
         for (int generator = 0; generator < generators; generator++) {
