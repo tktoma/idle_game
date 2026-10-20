@@ -193,7 +193,7 @@ class BotsTest {
     void expertTermineLePremierUniversDepuisLeSeptiemeBigBang(@TempDir Path out) throws Exception {
         Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
         AdvancedLab expert = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
-        expert.runLab(8, out);
+        expert.runLab(25, out);
         System.out.printf("EXPERT_CHECK,bb=%d,cosmos=%d,conditions=%d/%d,free=%s,space=%s,goal=%s%n",
                 g.bigBangs(), g.cosmosFormed(),
                 g.cosmosConditionsMet(idle.core.sky.Cosmos.CLUSTER),
