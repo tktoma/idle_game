@@ -211,6 +211,19 @@ class BotsTest {
     }
 
     @Test
+    void unAmasNeChangePasAuPremierManqueTemporaireDElements() throws Exception {
+        Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
+        idle.core.molecules.Molecule target = FirstUniversePolicy.matterTarget(
+                g, idle.core.molecules.Molecule.State.CRYSTAL);
+        if(target == null) return; // Aucun amas de cristal ouvert dans ce checkpoint.
+        for(Integer z : target.recipe().keySet()) g.state().setElementCount(z, 1);
+        idle.core.molecules.Molecule again = FirstUniversePolicy.matterTarget(
+                g, idle.core.molecules.Molecule.State.CRYSTAL);
+        assertEquals(target.id(), again.id(),
+                "Un manque de quelques atomes ne doit pas réinitialiser l'accrétion de l'amas");
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
