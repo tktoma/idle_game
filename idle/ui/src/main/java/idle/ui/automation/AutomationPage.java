@@ -84,6 +84,10 @@ public final class AutomationPage extends VBox {
     private final Label reserveLabel = new Label();
     /** La création automatique suit la liste de courses, ou seulement les amas confiés. */
     private final Button followButton = new Button();
+    /** Entretien facultatif des états de matière nécessaires au prochain astre ou au cosmos. */
+    private final Button followMatterButton = new Button();
+    private final Label followMatterHint = new Label("N'entretient que les substances déjà rassemblées. Respecte votre réserve d'espace et vos plafonds par état. N'est jamais activé sans votre choix.");
+    private final VBox followMatterBox = new VBox(5, followMatterButton, followMatterHint);
     private final HBox reserveRow = new HBox(8, lessReserve, reserveLabel, moreReserve);
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     private static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
@@ -301,6 +305,16 @@ public final class AutomationPage extends VBox {
         followRow.setAlignment(Pos.CENTER);
         this.followRow = followRow;
         getChildren().add(followRow);
+        followMatterBox.setAlignment(Pos.CENTER);
+        followMatterButton.setStyle(spaceStyle);
+        followMatterButton.setFocusTraversable(false);
+        followMatterButton.setOnAction(event -> {
+            game.setAutoFollowMatter(!game.isAutoFollowingMatter());
+            refresh();
+        });
+        wrapped(followMatterHint, "-fx-font-size: 11px; -fx-text-fill: #93b4c8;");
+        followMatterHint.setMaxWidth(690);
+        getChildren().add(followMatterBox);
         // Les plafonds par état (version 0.85) : une liste par état de la matière.
         capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         capsTitle.setWrapText(true);
@@ -363,6 +377,9 @@ public final class AutomationPage extends VBox {
     }
 
     private HBox followRow;
+
+    /** Le contrôle de suivi de la matière : pour les tests d'interface. */
+    public Button followMatterButton() { return followMatterButton; }
 
     /** La carte du rassemblement automatique : pour les vérifications. */
     public Card gatherCard() {
@@ -617,6 +634,11 @@ public final class AutomationPage extends VBox {
         spaceGrid.show(formCard, form);
         show(spaceReserveRow, creation);
         show(followRow, creation);
+        show(followMatterBox, creation && game.isStatesUnlocked());
+        followMatterBox.setOpacity(shade);
+        followMatterButton.setText(game.isAutoFollowingMatter()
+                ? "Besoins de matière : suivi activé" : "Besoins de matière : suivi désactivé");
+        followMatterButton.setDisable(!creation || paused);
         boolean caps = game.isStateCapUnlocked();
         show(capsBox, caps);
         if (caps) {
@@ -667,9 +689,11 @@ public final class AutomationPage extends VBox {
             boolean on = game.isMoleculeAutomationEnabled();
             int chosen = game.automatedMolecules();
             boolean follow = game.isAutoFollowingList();
-            boolean waiting = on && chosen == 0 && !follow;
+            boolean matter = game.isAutoFollowingMatter();
+            boolean waiting = on && chosen == 0 && !follow && (!matter || game.autoMatterTargets().isEmpty());
             moleculesCard.show(on ? Card.State.ON : Card.State.OFF, "", waiting ? "en attente" : on ? "en marche" : "coupé",
                     "Création automatique", (follow ? "Suit la liste de courses" + (chosen > 0 ? ", et " : "") : "")
+                            + (matter ? " + besoins de matière" : "")
                             + (chosen == 0 ? (follow ? "" : "Aucun amas ne lui est confié")
                             : chosen + (chosen > 1 ? " amas confiés" : " amas confié")),
                     (follow ? "D'abord une création de chaque sorte que demande le prochain pas (la liste de courses), "

@@ -92,6 +92,10 @@ final class DebugBar extends VBox {
     // Les bots (version 0.84)
     private final javafx.scene.control.ComboBox<String> botMode = new javafx.scene.control.ComboBox<>();
     private final Button botLive = new Button();
+    /** L'avance rapide procède par petites tranches sur le fil JavaFX et reste annulable. */
+    private javafx.animation.Timeline botTimeline;
+    private BotFastForwardJob fastForward;
+    private final Button botCancel = new Button("Annuler l'avance rapide");
     private final Label botNote = new Label();
     /** La politique choisie : DEPENDANCES d'abord, la meilleure des campagnes. */
     private int modeIndex = Math.max(0, BotBridge.modes().indexOf("DEPENDANCES"));
@@ -288,7 +292,10 @@ final class DebugBar extends VBox {
         botNote.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
         Label botTitle = new Label("Bot :");
         botTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffd9d4;");
-        group("Bots", botTitle, botMode, botLive,
+        botCancel.setStyle(TOOL_STYLE);
+        botCancel.setOnAction(event -> cancelFastForward());
+        botCancel.setDisable(true);
+        group("Bots", botTitle, botMode, botLive, botCancel,
                 tool("+10 min avec le bot", () -> skipWithBot(600)),
                 tool("+1 h avec le bot", () -> skipWithBot(3600)),
                 tool("+6 h avec le bot", () -> skipWithBot(6 * 3600)),
@@ -360,39 +367,67 @@ final class DebugBar extends VBox {
         if (sinceDecision > BotBridge.STEP) sinceDecision = 0;      // une image très longue ne fait pas une rafale
     }
 
-    /** Fait passer ce temps de jeu, le bot décidant toutes les {@link BotBridge#STEP} secondes. */
-    private void skipWithBot(double seconds) {
-        BotBridge b = bot();
-        if (b == null) return;
-        int bangs = game.bigBangs(), explosions = game.state().explosions();
-        for (double done = 0; done < seconds; done += BotBridge.STEP) {
-            game.tick(Math.min(BotBridge.STEP, seconds - done));
-            if (!b.act()) {
-                note("Le bot s'est arrêté : il ne suit plus le jeu.");
-                return;
-            }
-        }
-        note("Le bot a joué " + Format.duration(seconds) + " : +" + (game.state().explosions() - explosions) + " explosion(s), +"
-                + (game.bigBangs() - bangs) + " Big Bang(s).");
+    /** Vrai tant que le jeu est avancé par tranches ; GameApp suspend son tick ordinaire. */
+    boolean isFastForwarding() { return fastForward != null && fastForward.running(); }
+
+    /** Arrête l'avance rapide et rend immédiatement la main. */
+    void cancelFastForward() {
+        if (fastForward != null) fastForward.cancel();
+        if (botTimeline != null) { botTimeline.stop(); botTimeline = null; }
+        if (fastForward != null) note("Avance rapide interrompue après " +
+                Format.duration(fastForward.advancedSeconds()) + ".");
+        fastForward = null;
+        botCancel.setDisable(true);
     }
 
-    /** Le bot joue jusqu'au prochain Big Bang, ou douze heures de jeu au plus. */
-    private void botToNextBigBang() {
+    /** Lance une avance JavaFX non bloquante, avec budget de 10 pas par impulsion. */
+    private void startFastForward(double seconds, boolean untilBang) {
         BotBridge b = bot();
-        if (b == null) return;
-        int bangs = game.bigBangs();
-        double played = 0;
-        while (game.bigBangs() == bangs && played < 12 * 3600) {
-            game.tick(BotBridge.STEP);
-            played += BotBridge.STEP;
-            if (!b.act()) {
-                note("Le bot s'est arrêté : il ne suit plus le jeu.");
+        if (b == null || !game.isStarted()) return;
+        if (isFastForwarding()) cancelFastForward();
+        live = false; // ne pas superposer les décisions du mode direct
+        refreshBots();
+        int startingBang = game.bigBangs();
+        int explosions = game.state().explosions();
+        fastForward = new BotFastForwardJob(seconds, BotBridge.STEP, game::tick,
+                b::act, () -> untilBang && game.bigBangs() != startingBang);
+        botCancel.setDisable(false);
+        botTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
+                javafx.util.Duration.millis(25), event -> {
+            if (fastForward == null) return;
+            BotFastForwardJob.End state;
+            try { state = fastForward.runBatch(10); }
+            catch (RuntimeException error) {
+                cancelFastForward();
+                note("Erreur pendant l'avance du bot : " + error.getMessage());
                 return;
             }
-        }
-        note(game.bigBangs() > bangs ? "Big Bang atteint par le bot en " + Format.duration(played) + "."
-                : "Pas de Big Bang en 12 h de jeu : le bot s'arrête là.");
+            if (state == BotFastForwardJob.End.RUNNING) {
+                note("Bot : " + Format.duration(fastForward.advancedSeconds()) + " / " +
+                        Format.duration(fastForward.totalSeconds()) + " — Annuler reste disponible.");
+                return;
+            }
+            double elapsed = fastForward.advancedSeconds();
+            botTimeline.stop();
+            botTimeline = null;
+            fastForward = null;
+            botCancel.setDisable(true);
+            if (state == BotFastForwardJob.End.BOT_ERROR) note("Bot arrêté : décision impossible.");
+            else if (state == BotFastForwardJob.End.TARGET_REACHED)
+                note("Big Bang atteint en " + Format.duration(elapsed) + ".");
+            else note("Avance de " + Format.duration(elapsed) + " terminée : +" +
+                    (game.state().explosions() - explosions) + " explosion(s), +" +
+                    (game.bigBangs() - startingBang) + " Big Bang(s).");
+        }));
+        botTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        botTimeline.play();
     }
+
+    /** Fait avancer la partie sans bloquer l'interface JavaFX. */
+    private void skipWithBot(double seconds) { startFastForward(seconds, false); }
+
+    /** S'arrête au prochain Big Bang, ou après 12 heures simulées au maximum. */
+    private void botToNextBigBang() { startFastForward(12 * 3600, true); }
 
     /** Branche les outils qui ouvrent ou referment les cosmétiques, qui vivent dans les réglages de l'application. */
     void setCosmetics(CosmeticTools cosmetics) {

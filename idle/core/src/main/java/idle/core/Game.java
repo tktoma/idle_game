@@ -2714,7 +2714,7 @@ public final class Game {
     /** Vrai si la création automatique agit en ce moment : acquise, en marche, et au moins un amas lui est confié. */
     public boolean isAutoCreatingMolecules() {
         return isMoleculeAutomationUnlocked() && state.autoMolecules()
-                && (!state.automatedMolecules().isEmpty() || state.autoFollowList())
+                && (!state.automatedMolecules().isEmpty() || state.autoFollowList() || state.autoFollowMatter())
                 && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
     }
 
@@ -2728,6 +2728,38 @@ public final class Game {
         if (!isMoleculeAutomationUnlocked()) return false;
         state.setAutoFollowList(follow);
         return true;
+    }
+
+    /** Mode facultatif, éteint par défaut : entretient les substances utiles aux besoins de matière. */
+    public boolean isAutoFollowingMatter() { return state.autoFollowMatter(); }
+
+    public boolean setAutoFollowMatter(boolean enabled) {
+        if (!isMoleculeAutomationUnlocked() || !isStatesUnlocked()) return false;
+        state.setAutoFollowMatter(enabled);
+        return true;
+    }
+
+    /**
+     * Pour chaque état dont le prochain objectif demande plus de matière rassemblée, sélectionne
+     * une substance existante peu encombrante. Ne découvre ni élément ni nouvelle substance ;
+     * les choix manuels et la liste de courses restent prioritaires.
+     */
+    public List<String> autoMatterTargets() {
+        if (!isStatesUnlocked() || !isMoleculeAutomationUnlocked()) return List.of();
+        List<String> selected = new ArrayList<>();
+        for (Map.Entry<Molecule.State, Integer> need : shoppingList().matter().entrySet()) {
+            if (need.getValue() <= 0) continue;
+            Molecule best = null;
+            BigNum least = null;
+            for (Molecule candidate : moleculeList) {
+                if (!candidate.hasState() || candidate.state() != need.getKey()
+                        || !state.hasSubstance(candidate.id()) || !isMoleculeKindUnlocked(candidate.kind())) continue;
+                BigNum volume = moleculeVolume(candidate.id());
+                if (best == null || volume.lt(least)) { best = candidate; least = volume; }
+            }
+            if (best != null) selected.add(best.id());
+        }
+        return selected;
     }
 
     /**
@@ -2755,6 +2787,15 @@ public final class Game {
                 for (ShoppingList.Item item : shoppingList().items()) {
                     if (item.missing() <= 0) continue;
                     String id = item.molecule().id();
+                    if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                    if (!withinStateCap(id)) continue;
+                    created |= createMolecule(id, true);
+                }
+            }
+            // Répare les besoins de matière sans monopoliser les amas manuels, et sans les doubler.
+            if (state.autoFollowMatter()) {
+                for (String id : autoMatterTargets()) {
+                    if (chosen.contains(id)) continue; // le joueur gère déjà cette substance lui-même
                     if (reserve > 0 && !leavesReserve(id, reserve)) continue;
                     if (!withinStateCap(id)) continue;
                     created |= createMolecule(id, true);

@@ -536,9 +536,11 @@ public final class GameApp extends Application {
                 if (sinceSave >= settings.saveDelay().seconds()) save();
                 // En pause, le temps du jeu s'arrête ; celui de l'interface continue (confirmations, réglages).
                 if (!settings.paused()) {
-                    game.tick(dt * timeFactor());
-                    // Le bot du profil de test (version 0.84), s'il joue en direct.
-                    if (debugBar != null) debugBar.frame(dt * timeFactor());
+                    // Pendant l'avance rapide, la Timeline pilote déjà le temps du jeu.
+                    if (debugBar == null || !debugBar.isFastForwarding()) {
+                        game.tick(dt * timeFactor());
+                        if (debugBar != null) debugBar.frame(dt * timeFactor());
+                    }
                     animate(dt);
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
@@ -824,6 +826,7 @@ public final class GameApp extends Application {
      * l'écran de démarrage.
      */
     private void resetGame() {
+        if (debugBar != null) debugBar.cancelFastForward();
         game.reset();
         game.restored();
         save();

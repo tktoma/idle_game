@@ -48,13 +48,29 @@ public class RobotCosmosPlanner {
   RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;prevBangs=g.bigBangs();csv.add("total_hours,bigbangs,explosions,challenges,achievements,elements,molecules,substances,assemblies,bodies,mature,systems,cosmos,space,freeSpace,spaceRate,shopping");}
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
   static void atoms(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.ATOMS))if(!u.id().equals("atom_keep") && g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
-  static void dark(Game g,int limit){for(int i=0;i<limit;i++){boolean bought=false;for(DarkUpgrade u:g.darkUpgrades()){if(g.canBuyDark(u.id())) { // On préserve au moins 500 lorsque l'arbre est suffisamment avancé.
-            // Correctif du 19/10/2026 (0.86) : la réserve ne concerne que ce qui se paie en matière noire. Avant, elle
-            // bloquait aussi les cases payées en particules, en atomes ou en taille, qui n'en coûtent pas.
-            boolean paidInDarkMatter=u.branch()==DarkUpgrade.Branch.DARK_MATTER || u.isLink();
-            if(paidInDarkMatter && g.darkLevelOf("dark_density")>=3 && g.state().darkMatter().lt(BigNum.of(700)))continue;
-            g.buyDark(u.id());bought=true;break;}}
-          if(!bought)break;}}
+  /**
+   * La condition Big Bang vérifie la réserve DISPONIBLE, pas la matière noire totale gagnée.
+   * Dès que les défis et les succès sont acquis, arrêter les dépenses qui compromettraient 500.
+   */
+  static void dark(Game g,int limit){
+    boolean bankForBang=g.bigBangs()<8 && g.completedChallenges()==g.challenges().size()
+            && g.achievementCount()>=40;
+    for(int i=0;i<limit;i++){
+      boolean bought=false;
+      for(DarkUpgrade u:g.darkUpgrades()){
+        if(!g.canBuyDark(u.id()))continue;
+        boolean costsDark=u.branch()==DarkUpgrade.Branch.DARK_MATTER || u.isLink();
+        if(costsDark){
+          BigNum held=g.state().darkMatter();
+          BigNum cost=g.darkCostOf(u.id());
+          if(!DarkMatterReservePolicy.allowPurchase(bankForBang, held, cost, Game.BIG_BANG_DARK_MATTER)) continue;
+          if(!bankForBang && g.darkLevelOf("dark_density")>=3 && held.lt(BigNum.of(700)))continue;
+        }
+        if(g.buyDark(u.id())){bought=true;break;}
+      }
+      if(!bought)break;
+    }
+  }
   void collider(){
     if(!g.isColliderUnlocked())return;
     for(int i=0;i<70;i++){
@@ -134,6 +150,9 @@ public class RobotCosmosPlanner {
   }
   /** Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. */
   boolean automateMatter(){
+    // Quand le suivi du moteur est actif, laisser le jeu gérer lui-même l'entretien des états.
+    // Cela évite de mélanger les deux politiques pendant les tests A/B.
+    if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
     // La liste du jeu donne ce qui MANQUE dans chaque état (rien n'y figure quand l'état est complet).
     for(var need:g.shoppingList().matter().entrySet()){
@@ -150,6 +169,8 @@ public class RobotCosmosPlanner {
     return !chosen.isEmpty();
   }
   void cosmos(){
+    // Option pour les bancs de test : OFF par défaut, ON seulement dans la branche A/B dédiée.
+    if(Boolean.getBoolean("idle.testAutoMatter") && g.isStateCapUnlocked())g.setAutoFollowMatter(true);
     for(SpaceUpgrade up:g.spaceUpgrades())if(g.canBuySpaceUpgrade(up.id()))g.buySpaceUpgrade(up.id());
     g.setAutoFollowList(true);
     g.setAutoMoleculeReserve(0.10);
@@ -158,7 +179,7 @@ public class RobotCosmosPlanner {
     // Maintenant, comme un joueur avisé : pour chaque état dont le prochain pas demande de la matière, l'amas
     // rassemblé le moins encombrant est confié à la création automatique (les autres lui sont retirés), et la
     // création automatique ne tourne que tant qu'il y a de la matière à réunir. La réserve d'espace reste de 10 %.
-    g.setMoleculeAutomationEnabled(automateMatter());
+    g.setMoleculeAutomationEnabled(automateMatter() || g.isAutoFollowingMatter());
     g.setAutoGatherEnabled(true);
     g.setAutoFormEnabled(true);
     for(int i=0;i<5;i++){
@@ -230,10 +251,27 @@ public class RobotCosmosPlanner {
     }
     systems();
   }
+  /** Dernière minute simulée où un diagnostic des cinq conditions a été écrit. */
+  double lastBigBangDiagnostic = -900;
+  void logBigBangDiagnostic(){
+    double now=g.state().timePlayed();
+    if(g.bigBangs()!=0 || now-lastBigBangDiagnostic<900
+            || g.completedChallenges()!=g.challenges().size() || g.achievementCount()<40)return;
+    lastBigBangDiagnostic=now;
+    System.out.printf(Locale.ROOT,
+      "BB_STATUS,t=%.2fh,dm_disponible=%s,dm_depensee=%s,dm_totale=%s,dm_manquante=%s,conditions=%d/%d,particules=%s,atomes=%s,defis=%d,succes=%d%n",
+      now/3600,g.state().darkMatter(),g.state().darkMatterSpent(),g.darkMatterEarned(),
+      Game.BIG_BANG_DARK_MATTER.subtract(g.state().darkMatter()).max(BigNum.ZERO),
+      g.bigBangConditionsMet(),g.bigBangConditions().size(),
+      g.isBigBangConditionMet(BigBangCondition.PARTICLES),
+      g.isBigBangConditionMet(BigBangCondition.ATOMS),
+      g.completedChallenges(),g.achievementCount());
+  }
   void resourceLoop(){
+    logBigBangDiagnostic();
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
-    boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.productionPerSecond().gte(g.bigBangParticles());
+    boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.isBigBangConditionMet(BigBangCondition.PARTICLES);
     boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
     if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);fusionPausedByRobot=true;}
     else if(fusionPausedByRobot){
@@ -256,7 +294,7 @@ public class RobotCosmosPlanner {
     // Correctif du 19/10/2026 (0.86) : le bot explosait à chaque décision, et ne réunissait jamais les particules ou
     // les atomes des cases chères de l'arbre (Densité…) : sa production plafonnait vers 1e45. Il laisse maintenant
     // grandir la partie tant qu'une case de l'arbre, ouverte mais trop chère, peut le devenir, au plus 20 minutes.
-    boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.completedChallenges()==g.challenges().size() && waitsForTree();
+    boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER) && waitsForTree();
     if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity)))g.explode();
     if(g.canBigBang() && (g.bigBangs()<6 || (g.bigBangs()<8 && g.bodiesMature()>=g.bigBangSkyRequirement()))){
         double current=elapsed/3600;

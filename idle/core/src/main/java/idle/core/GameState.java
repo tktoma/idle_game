@@ -104,6 +104,8 @@ public final class GameState {
     private boolean autoMolecules = true;
     /** La création automatique suit aussi la liste de courses : elle crée ce que le prochain pas demande. */
     private boolean autoFollowList = true;
+    /** Option facultative : entretien des substances utiles aux besoins de matière du prochain objectif. */
+    private boolean autoFollowMatter = false;
     /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
     private final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
     private List<String> substancesSeen;
@@ -831,6 +833,9 @@ public final class GameState {
     public void setAutoFollowList(boolean follow) {
         autoFollowList = follow;
     }
+
+    public boolean autoFollowMatter() { return autoFollowMatter; }
+    public void setAutoFollowMatter(boolean enabled) { autoFollowMatter = enabled; }
 
     public boolean autoMolecules() {
         return autoMolecules;
@@ -1597,6 +1602,7 @@ public final class GameState {
         autoHold = true;
         autoMolecules = true;
         autoFollowList = true;
+        autoFollowMatter = false;
         automatedMolecules.clear();
         spaceUpgrades.clear();
         automationPaused = false;
@@ -1858,6 +1864,7 @@ public final class GameState {
         data.put("autoHold", autoHold);
         data.put("autoMolecules", autoMolecules);
         data.put("autoFollowList", autoFollowList);
+        data.put("autoFollowMatter", autoFollowMatter);
         data.putList("automatedMolecules", automatedMolecules);
         data.putList("spaceUpgrades", spaceUpgrades);
         data.putList("darkPlan", darkPlan);
@@ -2019,6 +2026,7 @@ public final class GameState {
         autoHold = data.flag("autoHold", true);
         autoMolecules = data.flag("autoMolecules", true);
         autoFollowList = data.flag("autoFollowList", true);
+        autoFollowMatter = data.flag("autoFollowMatter", false);
         automatedMolecules.addAll(data.list("automatedMolecules"));
         spaceUpgrades.addAll(data.list("spaceUpgrades"));
         setDarkPlan(data.list("darkPlan"));
