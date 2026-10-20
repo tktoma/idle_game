@@ -23,6 +23,8 @@ public class RobotCosmosPlanner {
   boolean abandoned=false;
   /** Vrai quand c'est le robot qui a coupé la fusion et la synthèse automatiques (avant un Big Bang) : il les rallume ensuite. */
   boolean fusionPausedByRobot=false;
+  /** La fusion automatique n'est suspendue pour Patience d'ange que par le robot expert. */
+  boolean patientFusionPausedByRobot=false;
   /** Réserve initiale, à restaurer après l'achat prioritaire de Persistance. */
   BigNum persistencePreviousReserve=BigNum.ZERO;
   boolean persistenceReserveApplied=false;
@@ -86,23 +88,46 @@ public class RobotCosmosPlanner {
    * La condition Big Bang vérifie la réserve DISPONIBLE, pas la matière noire totale gagnée.
    * Dès que les défis et les succès sont acquis, arrêter les dépenses qui compromettraient 500.
    */
+  /** Respecte seulement la réserve réelle du Big Bang, sans seuil arbitraire de 700 matières noires. */
+  static boolean affordableDark(Game g,DarkUpgrade upgrade,boolean bankForBang){
+    if(!g.canBuyDark(upgrade.id()))return false;
+    if(upgrade.branch()!=DarkUpgrade.Branch.DARK_MATTER)return true;
+    return DarkMatterReservePolicy.allowPurchase(bankForBang,g.state().darkMatter(),
+        g.darkCostOf(upgrade.id()),Game.BIG_BANG_DARK_MATTER);
+  }
+  /** Les cases indispensables passent avant les niveaux répétables : les liaisons ne doivent pas être affamées. */
   static void dark(Game g,int limit){
     boolean bankForBang=g.bigBangs()<8 && g.completedChallenges()==g.challenges().size()
-            && g.achievementCount()>=40;
+            && g.achievementCount()>=Game.BIG_BANG_ACHIEVEMENTS;
     for(int i=0;i<limit;i++){
-      boolean bought=false;
+      DarkUpgrade chosen=null;
+      // 1. Arbre et liaisons : une case par branche ou le premier niveau d'une case illimitée.
       for(DarkUpgrade u:g.darkUpgrades()){
-        if(!g.canBuyDark(u.id()))continue;
-        boolean costsDark=u.branch()==DarkUpgrade.Branch.DARK_MATTER || u.isLink();
-        if(costsDark){
-          BigNum held=g.state().darkMatter();
-          BigNum cost=g.darkCostOf(u.id());
-          if(!DarkMatterReservePolicy.allowPurchase(bankForBang, held, cost, Game.BIG_BANG_DARK_MATTER)) continue;
-          if(!bankForBang && g.darkLevelOf("dark_density")>=3 && held.lt(BigNum.of(700)))continue;
-        }
-        if(g.buyDark(u.id())){bought=true;break;}
+        if(!u.inTree() || (!u.hasLimit() && g.darkLevelOf(u.id())>0))continue;
+        if(affordableDark(g,u,bankForBang)){chosen=u;break;}
       }
-      if(!bought)break;
+      // 2. Boutique : ouvrir chacune des améliorations, puis compléter les niveaux limités.
+      if(chosen==null)for(DarkUpgrade u:g.darkUpgrades()){
+        if(u.inTree() || (!u.hasLimit() && g.darkLevelOf(u.id())>0))continue;
+        if(affordableDark(g,u,bankForBang)){chosen=u;break;}
+      }
+      // 3. Boutique répétable : équilibre entre atomes et cadence, sans dépenser
+      // plus de 5 % de la réserve actuelle pour un niveau supplémentaire.
+      if(chosen==null)for(DarkUpgrade u:g.darkUpgrades()){
+        if(u.inTree() || u.hasLimit() || g.darkLevelOf(u.id())==0
+            || !affordableDark(g,u,bankForBang)
+            || g.darkCostOf(u.id()).gt(g.state().darkMatter().multiply(0.05)))continue;
+        if(chosen==null || g.darkLevelOf(u.id())<g.darkLevelOf(chosen.id()))chosen=u;
+      }
+      // 4. Répétitions dans l'arbre : au plus 1 % de la ressource de la branche.
+      if(chosen==null)for(DarkUpgrade u:g.darkUpgrades()){
+        if(!u.inTree() || u.hasLimit() || g.darkLevelOf(u.id())==0
+            || !affordableDark(g,u,bankForBang)
+            || g.darkCostOf(u.id()).gt(g.darkBalance(u.branch()).multiply(Game.TREE_REPEAT_SHARE)))continue;
+        chosen=u;
+        break;
+      }
+      if(chosen==null || !g.buyDark(chosen.id()))break;
     }
   }
   void collider(){
@@ -330,6 +355,8 @@ public class RobotCosmosPlanner {
   static boolean skyReadyForNextBigBang(Game game){
     return game.bigBangSkyRequirement()==0 || game.isBigBangConditionMet(BigBangCondition.SKY);
   }
+  /** Le mode expert peut conserver une partie 30 min pour un succès temporel. */
+  boolean holdForPatienceAchievement(){return false;}
   void resourceLoop(){
     prioritizePersistence();
     logBigBangDiagnostic();
@@ -343,13 +370,21 @@ public class RobotCosmosPlanner {
         && g.isBigBangConditionMet(BigBangCondition.PARTICLES)
         && skyReadyForNextBigBang(g);
     boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
+    boolean patientWait=holdForPatienceAchievement();
     if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);fusionPausedByRobot=true;}
     else if(fusionPausedByRobot){
-      // Correctif du 19/10/2026 : après le Big Bang, la fusion et la synthèse coupées pour le préparer restaient
-      // coupées pour toujours (d'où les profils 11, 12 et 17 bloqués). Le robot les rallume dès qu'il n'en a plus besoin.
       g.setAutomationEnabled("auto_fusion",true);g.setAutomationEnabled("auto_synthesis",true);fusionPausedByRobot=false;
     }
-    for(int i=0;i<5 && !stopFusion && g.canFuse();i++){
+    if(patientWait){
+      if(g.isAutomationEnabled("auto_fusion")){
+        g.setAutomationEnabled("auto_fusion",false);
+        patientFusionPausedByRobot=true;
+      }
+    }else if(patientFusionPausedByRobot){
+      if(!stopFusion)g.setAutomationEnabled("auto_fusion",true);
+      patientFusionPausedByRobot=false;
+    }
+    for(int i=0;i<5 && !stopFusion && !patientWait && g.canFuse();i++){
       g.fuse();
       prioritizePersistence();
       if(!finalMode)atoms(g,50);
@@ -362,6 +397,10 @@ public class RobotCosmosPlanner {
         if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
         if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
       }
+    }
+    if(patientWait && g.isAutomationEnabled("auto_fusion")){
+      g.setAutomationEnabled("auto_fusion",false);
+      patientFusionPausedByRobot=true;
     }
     if(!finalMode)atoms(g,60);
     if(!needsPersistence(g))for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
