@@ -116,6 +116,9 @@ class SkinsObtenusTest {
         assertFalse(game.isTrialUnlocked(Trial.DETECTOR), "le détecteur élargi au niveau 3");
         game.state().setColliderUpgradeLevel(ColliderUpgrade.WINDOW, 3);
         assertTrue(game.isTrialUnlocked(Trial.DETECTOR));
+        game.state().setOverheatLeft(5);
+        assertFalse(game.canStartTrial(Trial.NO_OVERHEAT), "interdite pendant une surchauffe existante");
+        game.state().setOverheatLeft(0);
         assertTrue(game.startTrial(Trial.NO_OVERHEAT));
         game.state().setOverheatLeft(5);
         game.tick(0.1);
@@ -129,6 +132,35 @@ class SkinsObtenusTest {
         game.tick(Trial.DETECTOR.seconds() + 1);
         assertNull(game.activeTrial());
         assertFalse(game.isTrialCompleted(Trial.DETECTOR));
+    }
+
+    @Test
+    void pleineChargeAfficheLaProductionDepuisLeDepart() {
+        Game game = skins();
+        game.state().setExplosions(1);
+        game.state().setColliderEnergyProduced(10_000);
+        assertTrue(game.startTrial(Trial.FULL_CHARGE));
+        assertEquals(0, game.trialProgress(), 1e-12);
+        game.state().setColliderEnergyProduced(10_000 +
+                (game.state().trialBase() - 10_000) / 2);
+        assertEquals(0.5, game.trialProgress(), 1e-9);
+    }
+
+    @Test
+    void bonusRapideResteActifPendantUnGrandPas() {
+        Game longTick = skins();
+        Game smallTicks = skins();
+        longTick.state().setLevel("generator", Game.REGIME_GENERATORS - 1);
+        smallTicks.state().setLevel("generator", Game.REGIME_GENERATORS - 1);
+        longTick.tick(0);
+        smallTicks.tick(0);
+        assertTrue(longTick.startRegime());
+        assertTrue(smallTicks.startRegime());
+        longTick.tick(20);
+        for (int n = 0; n < 20; n++) smallTicks.tick(1);
+        assertEquals(smallTicks.state().particles().toDouble(),
+                longTick.state().particles().toDouble(),
+                Math.max(1e-8, smallTicks.state().particles().toDouble() * 1e-7));
     }
 
     @Test

@@ -162,7 +162,8 @@ public final class SkinsPage extends VBox {
             if (trial == running) {
                 state = Card.State.ON;
                 double left = game.trialLeft();
-                mark = "en cours " + ElementText.percent(game.trialProgress());
+                mark = "en cours " + ElementText.percent(game.trialProgress())
+                        + " (" + Math.round(game.trialProgress() * 10000) / 100.0 + " %)";
                 price = (Double.isInfinite(left) ? "" : Format.duration(left) + " — ") + "Abandonner";
             } else if (!game.isTrialUnlocked(trial)) {
                 state = Card.State.LOCKED;
@@ -172,7 +173,10 @@ public final class SkinsPage extends VBox {
                 price = done ? "Rejouer" : "Commencer";
             } else {
                 state = done ? Card.State.DONE : Card.State.WAITING;
-                price = running != null ? "Une autre est en cours" : "Un seul générateur pour commencer";
+                price = running != null ? "Une autre est en cours"
+                        : trial == Trial.NO_OVERHEAT && game.overheatLeft() > 0
+                        ? "Surchauffe : " + Format.duration(game.overheatLeft()) + " restantes"
+                        : "Un seul générateur pour commencer";
             }
             entry.getValue().show(state, "", mark, trial.label(), trial.rule(), "", price, "Skin « " + trial.skin().label() + " »");
         }
