@@ -68,7 +68,11 @@ public class AdvancedLab extends RobotCosmosPlanner {
        if(mode.equals("EXPERT_COMPLET")||mode.equals("DEPENDANCES")){cosmos();cosmos();}
        else if(mode.equals("ECONOMISTE")){cosmos();extraChemistry();}
        else if(mode.equals("SANS_LISTE")){
-         g.setMoleculeAutomationEnabled(true);for(Molecule m:g.molecules())if(g.canCreateMolecule(m.id())){g.createMolecule(m.id());break;}
+         // Le profil sans liste ne doit pas utiliser la liste automatiquement non plus.
+         g.setAutoFollowList(false);
+         if(g.isAutoFollowingMatter())g.setAutoFollowMatter(false);
+         g.setMoleculeAutomationEnabled(true);
+         for(Molecule m:g.molecules())if(g.canCreateMolecule(m.id())){g.createMolecule(m.id());break;}
          g.formAllSubstances();g.formAllAssemblies();g.formAllBodies();
        } else cosmos();
     }
