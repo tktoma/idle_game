@@ -190,6 +190,16 @@ class BotsTest {
     }
 
     @Test
+    void expertTermineLePremierUniversDepuisLeSeptiemeBigBang(@TempDir Path out) throws Exception {
+        Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
+        AdvancedLab expert = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
+        expert.runLab(12, out);
+        assertTrue(g.hasCosmos(idle.core.sky.Cosmos.UNIVERSE),
+                "Le bot expert doit terminer le premier univers depuis un checkpoint de progression");
+        assertTrue(Files.exists(out.resolve("winner.save")));
+    }
+
+    @Test
     void toutesLesSauvegardesDesBotsSeRelisent() throws Exception {
         int count = 0;
         for (String folder : List.of("reference", "profils_bloques", "victoires_corrigees", "victoires_historiques")) {
