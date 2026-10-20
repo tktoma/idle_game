@@ -94,12 +94,39 @@ public class RobotCosmosPlanner {
     }
     if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
   }
-  void probes(){if(!g.isProbesUnlocked())return;
+  /** Exploite les retours de sondes avant d'engager les prochaines missions.
+   * L'onde chimique d'urgence est particulièrement utile quand un astre attend des éléments.
+   */
+  void probes(){
+    if(!g.isProbesUnlocked())return;
     for(Probe p:new ArrayList<>(g.landedProbes()))g.claimAllProbeRewards(p.id());
-    for(ProbeUpgrade u:ProbeUpgrade.values())if(g.canBuyProbeUpgrade(u))g.buyProbeUpgrade(u);
-    for(ProbeDestination d:ProbeDestination.values()){
-       if(g.canLaunchProbe(d,ProbeTrip.SHORT))g.launchProbe(d,ProbeTrip.SHORT);
+    for(ProbeUpgrade u:ProbeUpgrade.values()){
+      while(g.canBuyProbeUpgrade(u))g.buyProbeUpgrade(u);
     }
+    // Priorité au dépannage des éléments manquants pour la construction du ciel.
+    if(g.canLaunchUrgentWave() && !g.shoppingList().items().isEmpty())g.launchUrgentWave();
+    // Quand il reste des places, cibler les rayons dont les recettes demandées
+    // utilisent les éléments rapportés. Les sondes partent seulement si leur destination est ouverte.
+    java.util.Map<Integer,Integer> shortages=new HashMap<>();
+    for(ShoppingList.Item item:g.shoppingList().items()){
+      if(item.missing()<=0)continue;
+      for(Integer z:item.molecule().recipe().keySet())
+        shortages.merge(z,item.missing(),Integer::sum);
+    }
+    java.util.List<ProbeDestination> targets=new ArrayList<>();
+    for(ProbeDestination destination:ProbeDestination.values())
+      if(g.isProbeDestinationOpen(destination))targets.add(destination);
+    targets.sort((a,b)->Integer.compare(probePriority(b,shortages),probePriority(a,shortages)));
+    ProbeTrip trip=g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT;
+    for(ProbeDestination destination:targets){
+      if(g.canLaunchProbe(destination,trip))g.launchProbe(destination,trip);
+    }
+  }
+  int probePriority(ProbeDestination destination,Map<Integer,Integer> shortage){
+    int score=0;
+    for(Integer element:g.probeElements(destination))
+      score+=shortage.getOrDefault(element,0);
+    return score;
   }
   void systems(){
      if(!g.isSolarSystemsUnlocked())return;
