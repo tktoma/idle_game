@@ -4,6 +4,8 @@ import idle.core.achievements.Achievements;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
+import idle.core.elements.ElementCategory;
+import idle.core.elements.PeriodicTable;
 import idle.core.molecules.Molecule;
 import idle.core.upgrades.Upgrade;
 
@@ -137,6 +139,39 @@ final class FirstUniversePolicy {
         return DarkMatterReservePolicy.allowPurchase(
                 bank, game.state().darkMatter(), game.darkCostOf(upgrade.id()),
                 Game.BIG_BANG_DARK_MATTER);
+    }
+
+    /**
+     * Cible la famille d'éléments qui rationne le plus la fabrication des grandes
+     * réserves de matière. La synthèse aléatoire disperse les tirages sur 118
+     * éléments : pour un amas massif, elle n'approvisionne pas assez ses recettes.
+     */
+    static ElementCategory chemistryTarget(Game game) {
+        if (!game.isTargetedSynthesisUnlocked()) return null;
+        Molecule.State state = null;
+        double largestShortfall = 0;
+        for (var e : game.shoppingList().matter().entrySet()) {
+            if (e.getValue() <= 0) continue;
+            double deficit = e.getValue();
+            if (deficit > largestShortfall) {
+                largestShortfall = deficit;
+                state = e.getKey();
+            }
+        }
+        if (state == null) return null;
+        Molecule molecule = matterTarget(game, state);
+        if (molecule == null) return null;
+        ElementCategory category = null;
+        double worstStock = Double.POSITIVE_INFINITY;
+        for (var e : molecule.recipe().entrySet()) {
+            // Les derniers exemplaires ne sont jamais consommés.
+            double supply = Math.max(0, game.elementCount(e.getKey()) - 1.0) / e.getValue();
+            if (supply < worstStock) {
+                worstStock = supply;
+                category = PeriodicTable.element(e.getKey()).category();
+            }
+        }
+        return category;
     }
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
