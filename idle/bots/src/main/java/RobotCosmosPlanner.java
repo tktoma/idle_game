@@ -23,6 +23,9 @@ public class RobotCosmosPlanner {
   boolean abandoned=false;
   /** Vrai quand c'est le robot qui a coupé la fusion et la synthèse automatiques (avant un Big Bang) : il les rallume ensuite. */
   boolean fusionPausedByRobot=false;
+  /** Réserve initiale, à restaurer après l'achat prioritaire de Persistance. */
+  BigNum persistencePreviousReserve=BigNum.ZERO;
+  boolean persistenceReserveApplied=false;
   /** Durée de l'absence en cours, en secondes réelles : le jeu n'en rejoue que {@link Absence#MAX_SECONDS} au plus. */
   double awaySeconds=0;
 
@@ -47,7 +50,38 @@ public class RobotCosmosPlanner {
   static int cosmosStage(Game g){return g.hasCosmos(Cosmos.UNIVERSE)?Cosmos.values().length:g.cosmosFormed();}
   RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;prevBangs=g.bigBangs();csv.add("total_hours,bigbangs,explosions,challenges,achievements,elements,molecules,substances,assemblies,bodies,mature,systems,cosmos,space,freeSpace,spaceRate,shopping");}
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
-  static void atoms(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.ATOMS))if(!u.id().equals("atom_keep") && g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
+  /** Après l'ouverture des automatismes (30 atomes créés), réserver 25 atomes pour Persistance. */
+  static boolean needsPersistence(Game g){
+    return !g.keepsUpgradesOnFusion() && g.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS);
+  }
+  /** Priorité absolue sur les autres achats en atomes : sinon le bot dépense toujours ses 25 atomes. */
+  static void atoms(Game g,int limit){
+    if(needsPersistence(g)){
+      if(g.canBuy("atom_keep"))g.buy("atom_keep");
+      if(needsPersistence(g))return;
+    }
+    for(int i=0;i<limit;i++){
+      Upgrade b=null;
+      for(Upgrade u:g.upgrades(Resource.ATOMS))
+        if(!u.id().equals("atom_keep") && g.canBuy(u.id()) && (b==null || g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;
+      if(b==null)break;
+      g.buy(b.id());
+    }
+  }
+  /** Évite aussi que la synthèse automatique vide la réserve pendant le rattrapage de temps. */
+  void prioritizePersistence(){
+    if(needsPersistence(g) && g.canBuy("atom_keep"))g.buy("atom_keep");
+    if(needsPersistence(g)){
+      if(!persistenceReserveApplied){
+        persistencePreviousReserve=g.synthesisReserve();
+        persistenceReserveApplied=true;
+      }
+      if(g.synthesisReserve().lt(g.costOf("atom_keep")))g.setSynthesisReserve(g.costOf("atom_keep"));
+    }else if(persistenceReserveApplied){
+      g.setSynthesisReserve(persistencePreviousReserve);
+      persistenceReserveApplied=false;
+    }
+  }
   /**
    * La condition Big Bang vérifie la réserve DISPONIBLE, pas la matière noire totale gagnée.
    * Dès que les défis et les succès sont acquis, arrêter les dépenses qui compromettraient 500.
@@ -270,6 +304,7 @@ public class RobotCosmosPlanner {
       g.completedChallenges(),g.achievementCount());
   }
   void resourceLoop(){
+    prioritizePersistence();
     logBigBangDiagnostic();
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
@@ -281,10 +316,22 @@ public class RobotCosmosPlanner {
       // coupées pour toujours (d'où les profils 11, 12 et 17 bloqués). Le robot les rallume dès qu'il n'en a plus besoin.
       g.setAutomationEnabled("auto_fusion",true);g.setAutomationEnabled("auto_synthesis",true);fusionPausedByRobot=false;
     }
-    for(int i=0;i<5 && !stopFusion && g.canFuse();i++){g.fuse();if(!finalMode)atoms(g,50);particle(g,200);}
-    for(Automation a:g.automations()){if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());}
+    for(int i=0;i<5 && !stopFusion && g.canFuse();i++){
+      g.fuse();
+      prioritizePersistence();
+      if(!finalMode)atoms(g,50);
+      particle(g,200);
+    }
+    // Les automatismes et les synthèses manuelles dépensent les mêmes atomes :
+    // ils attendent que le niveau unique de Persistance ait été acheté.
+    if(!needsPersistence(g)){
+      for(Automation a:g.automations()){
+        if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
+        if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
+      }
+    }
     if(!finalMode)atoms(g,60);
-    for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
+    if(!needsPersistence(g))for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
     // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
@@ -372,7 +419,8 @@ public class RobotCosmosPlanner {
    */
   void hunt(){
     if(!g.hasAchievement(Achievements.HOLD_LOCK) && g.isHoldLockUnlocked())g.setHoldLocked(true);
-    if(!g.hasAchievement("step_keep") && g.canBuy("atom_keep"))g.buy("atom_keep");
+    // Ne pas dépendre du succès : il peut déjà avoir été gagné dans un ancien cycle.
+    prioritizePersistence();
     if(g.isTargetedSynthesisUnlocked()){
       boolean wantActinide=!g.hasAchievement(Achievements.TARGETED_ACTINIDE);
       if(wantActinide && g.synthesisTarget()!=idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(idle.core.elements.ElementCategory.ACTINIDE);
