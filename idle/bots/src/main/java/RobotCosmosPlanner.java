@@ -326,12 +326,22 @@ public class RobotCosmosPlanner {
       g.isBigBangConditionMet(BigBangCondition.ATOMS),
       g.completedChallenges(),g.achievementCount());
   }
+  /** Vérifie aussi le nombre d'astres mûrs du prochain Big Bang (18, 24 ou 28). */
+  static boolean skyReadyForNextBigBang(Game game){
+    return game.bigBangSkyRequirement()==0 || game.isBigBangConditionMet(BigBangCondition.SKY);
+  }
   void resourceLoop(){
     prioritizePersistence();
     logBigBangDiagnostic();
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
-    boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.isBigBangConditionMet(BigBangCondition.PARTICLES);
+    // Ne pas couper fusion et synthèse pendant la construction des 18/24/28 astres mûrs.
+    // Sinon le tableau manque d'éléments, et les planètes ne se forment plus.
+    boolean finalMode=g.completedChallenges()==g.challenges().size()
+        && g.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER)
+        && g.achievementCount()>=Game.BIG_BANG_ACHIEVEMENTS
+        && g.isBigBangConditionMet(BigBangCondition.PARTICLES)
+        && skyReadyForNextBigBang(g);
     boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
     if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);fusionPausedByRobot=true;}
     else if(fusionPausedByRobot){
@@ -427,6 +437,11 @@ public class RobotCosmosPlanner {
       return;
     }
     challengeStart=-1;
+    // Commencer un défi efface atomes et éléments. Au sixième Big Bang et au-delà,
+    // la maturation des astres est indépendante des défis : la finir d'abord évite
+    // de redémarrer « Absence » en boucle pendant la fabrication des planètes.
+    // Un défi déjà en cours reste géré par le bloc précédent.
+    if(!skyReadyForNextBigBang(g))return;
     if(g.completedChallenges()>=g.challenges().size() || g.state().explosions()<10)return;
     for(Challenge c:g.challenges()){
       if(!g.isChallengeUnlocked(c.id()) || g.isChallengeCompleted(c.id()))continue;
