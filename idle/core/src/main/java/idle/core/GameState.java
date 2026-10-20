@@ -27,7 +27,7 @@ import java.util.TreeMap;
  *
  * <p>Aucune règle du jeu ici : les règles sont dans {@link Game}.
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code GameState}. De la base au bout :
  * {@link GameStateBase}, {@link GameStateUnlocks}, {@link GameStateCollider}, {@link GameStateResets}.
  * Quand une partie a besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en
@@ -159,6 +159,10 @@ public final class GameState extends GameStateResets {
         data.put("extraUniverses", extraUniverses);
         data.put("universeSeeds", universeSeeds);
         data.put("voidEnergy", voidEnergy);
+        data.put("dimensionShards", dimensionShards);
+        data.put("linePhase", linePhase);
+        data.put("lineYieldLevel", lineYieldLevel);
+        data.put("lineTicksLevel", lineTicksLevel);
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -352,13 +356,17 @@ public final class GameState extends GameStateResets {
         setCometVisible(data.real("cometVisible", 0));
         setCometBoost(data.real("cometBoost", 0));
         setCometsCaught(data.whole("cometsCaught", 0));
-        // Une sauvegarde d'avant la 0.68 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
+        // Une sauvegarde d'avant la 0.068 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
         endSeen = data.flag("endSeen", data.whole("cosmos", 0) >= 3);
-        // Une sauvegarde d'avant la 0.83 dont l'univers est formé : la remise à zéro se fera au chargement (Game.restored).
+        // Une sauvegarde d'avant la 0.083 dont l'univers est formé : la remise à zéro se fera au chargement (Game.restored).
         universeFormed = data.flag("universeFormed", data.whole("cosmos", 0) >= 3);
         setExtraUniverses(data.whole("extraUniverses", 0));
         setUniverseSeeds(data.big("universeSeeds", BigNum.ZERO));
         setVoidEnergy(data.big("voidEnergy", BigNum.ZERO));
+        setDimensionShards(data.real("dimensionShards", 0));
+        setLinePhase(data.real("linePhase", 0));
+        setLineYieldLevel(data.whole("lineYieldLevel", 0));
+        setLineTicksLevel(data.whole("lineTicksLevel", 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));
@@ -407,7 +415,7 @@ public final class GameState extends GameStateResets {
                 // une saveur d'une autre version : écartée
             }
         });
-        // Avant la version 0.62, l'énergie produite n'était pas comptée : l'énergie en réserve en tient lieu.
+        // Avant la version 0.062, l'énergie produite n'était pas comptée : l'énergie en réserve en tient lieu.
         setColliderEnergyProduced(data.real("colliderEnergyProduced", colliderEnergy));
         collisions.clear();
         for (String line : data.list("collisions")) {

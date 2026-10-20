@@ -107,7 +107,7 @@ public abstract class GameBigBang extends GameDarkMatter {
      */
     public boolean bigBang() {
         if (!canBigBang()) return false;
-        // Le Big Bang à froid (version 0.88) : le Big Bang le réussit.
+        // Le Big Bang à froid (version 0.088) : le Big Bang le réussit.
         if (inTrial(idle.core.universe.Trial.COLD_BANG)) completeTrial();
         noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
@@ -132,7 +132,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     /**
      * Rouvre les bifurcations : leurs voies et les liaisons qui en dépendent repartent de zéro, et la
      * matière noire des liaisons cesse d'être comptée comme dépensée. Ce que fait chaque Big Bang ; et
-     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.84).
+     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.084).
      */
     void reopenForks() {
         for (DarkUpgrade dark : darkUpgrades.values()) {
@@ -147,7 +147,7 @@ public abstract class GameBigBang extends GameDarkMatter {
 
     /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
     private void clearForBigBang() {
-        // Le petit arbre du deuxième univers (version 0.87) : le Big Bang rend le choix, gratuitement.
+        // Le petit arbre du deuxième univers (version 0.087) : le Big Bang rend le choix, gratuitement.
         state.setCycleChoice(null);
         boolean keepsTree = bigBangKeepsDarkTree();
         java.util.Set<String> keptChallenges = bigBangKeepsChallenges()
@@ -157,7 +157,7 @@ public abstract class GameBigBang extends GameDarkMatter {
             state.clearDarkMatterKeepingTree();
             // Les bifurcations se rouvrent à chaque Big Bang, même quand l'arbre reste : le joueur peut changer de voie.
             // Les liaisons, qui en dépendent, repartent avec elles ; la matière noire qu'elles avaient coûté
-            // cesse d'être comptée comme dépensée. Avec la Superposition (0.70), il n'y a plus de choix à refaire :
+            // cesse d'être comptée comme dépensée. Avec la Superposition (0.070), il n'y a plus de choix à refaire :
             // voies et liaisons restent.
             if (!hasSuperposition()) reopenForks();
         } else {

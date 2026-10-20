@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Les paliers de Big Bang : onze, répartis sur les huit premiers Big Bangs (le deuxième en donne
- * deux, le troisième trois, dont les sondes). Les trois derniers (version 0.54) donnent une raison
+ * deux, le troisième trois, dont les sondes). Les trois derniers (version 0.054) donnent une raison
  * aux Big Bangs six à huit : les systèmes solaires, des places de plus, les matières exotiques ; la
  * galaxie demande les premiers et les derniers. Au-delà du cinquième, un Big Bang n'apporte plus que ce qu'il apporte toujours : une unité
  * d'espace de plus par seconde.

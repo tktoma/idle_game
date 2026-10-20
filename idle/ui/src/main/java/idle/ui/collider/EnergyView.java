@@ -15,14 +15,14 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'anneau d'énergie du collisionneur (version 0.57, collisions en 0.59) : un grand anneau ovale où
+ * L'anneau d'énergie du collisionneur (version 0.057, collisions en 0.059) : un grand anneau ovale où
  * deux faisceaux tournent en sens contraires. Chaque fois qu'ils se croisent dans le détecteur, des
  * étincelles jaillissent ; quand le croisement donne une collision, une onde part du détecteur et
  * le quark obtenu s'envole, de la couleur de sa saveur, sa lettre dessus. Un clic au moment du
  * croisement capte {@link Game#CROSSING_SECONDS} secondes de production et assure une collision
  * au butin doublé.
  *
- * <p>Version 0.78 : lancées assez vite (« Faisceaux rapides » au niveau 3), les boules prennent
+ * <p>Version 0.078 : lancées assez vite (« Faisceaux rapides » au niveau 3), les boules prennent
  * feu, une flamme qui traîne derrière elles et grandit avec la vitesse ; et à chaque croisement,
  * de l'électricité crépite entre elles.
  */
@@ -171,7 +171,7 @@ public final class EnergyView extends Canvas {
         showCollisions();
         for (Wave wave : waves) wave.age += elapsed;
         waves.removeIf(wave -> wave.age >= 1.2);
-        // Un effet coupé l'est tout de suite : les ondes et les étincelles déjà lancées disparaissent (version 0.67).
+        // Un effet coupé l'est tout de suite : les ondes et les étincelles déjà lancées disparaissent (version 0.067).
         if (!motion) waves.clear();
         if (!sparksOn) sparks.removeIf(spark -> spark.quark == null && spark.text == null);
         for (Spark spark : sparks) {
@@ -411,7 +411,7 @@ public final class EnergyView extends Canvas {
     }
 
     /**
-     * Le néon (version 0.89) : l'anneau en tubes de néon rose et cyan, coupés en segments comme une
+     * Le néon (version 0.089) : l'anneau en tubes de néon rose et cyan, coupés en segments comme une
      * enseigne, qui grésillent ; l'injecteur et le détecteur en contours lumineux.
      */
     private void neonRing(GraphicsContext g) {
@@ -474,7 +474,7 @@ public final class EnergyView extends Canvas {
     private final List<double[]> goldDust = new ArrayList<>();
 
     /**
-     * Le faisceau doré (version 0.89) : chaque faisceau devient un ruban d'or massif qui remplit
+     * Le faisceau doré (version 0.089) : chaque faisceau devient un ruban d'or massif qui remplit
      * l'anneau depuis l'injecteur jusqu'à sa tête, une grande étoile dorée à six branches qui tourne
      * dans un halo, et qui sème des paillettes qui tombent. Au croisement, les arcs sont dorés.
      */

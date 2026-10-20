@@ -17,7 +17,7 @@ public enum BigBangCondition {
     /** Tous les défis d'explosion réussis au moins une fois. */
     CHALLENGES,
     /**
-     * Assez d'astres mûrs (version 0.54) : seulement pour les Big Bangs six à huit, qui donnent les
+     * Assez d'astres mûrs (version 0.054) : seulement pour les Big Bangs six à huit, qui donnent les
      * derniers paliers ({@link Game#bigBangSkyRequirement()}). Avant, la condition n'existe pas.
      */
     SKY

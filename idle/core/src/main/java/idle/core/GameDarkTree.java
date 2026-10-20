@@ -61,7 +61,7 @@ public abstract class GameDarkTree extends GameSystems {
         return result;
     }
 
-    /** Les liaisons entre branches (version 0.70), dans l'ordre du catalogue. */
+    /** Les liaisons entre branches (version 0.070), dans l'ordre du catalogue. */
     public List<DarkUpgrade> darkLinks() {
         List<DarkUpgrade> result = new ArrayList<>();
         for (DarkUpgrade dark : darkUpgrades.values()) if (dark.isLink()) result.add(dark);
@@ -79,7 +79,7 @@ public abstract class GameDarkTree extends GameSystems {
 
     /**
      * Vrai si la case est accessible : la matière noire existe et la case du dessus est acquise
-     * (s'il y en a une). Depuis la version 0.70, aucune case n'attend plus un nombre de matières noires
+     * (s'il y en a une). Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires
      * gagnées : seuls les prix rythment l'arbre.
      */
     public boolean isDarkAvailable(String darkUpgradeId) {
@@ -108,7 +108,7 @@ public abstract class GameDarkTree extends GameSystems {
 
     /**
      * L'autre voie de la bifurcation, si le joueur l'a prise : elle ferme celle-ci jusqu'au prochain
-     * Big Bang (version 0.69). {@code null} si la case n'est pas une voie, ou si l'autre n'est pas prise.
+     * Big Bang (version 0.069). {@code null} si la case n'est pas une voie, ou si l'autre n'est pas prise.
      */
     public DarkUpgrade darkForkRival(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
@@ -120,7 +120,7 @@ public abstract class GameDarkTree extends GameSystems {
     }
 
     /**
-     * Vrai une fois la « Superposition » du collisionneur prise (version 0.70) : les deux voies de chaque
+     * Vrai une fois la « Superposition » du collisionneur prise (version 0.070) : les deux voies de chaque
      * bifurcation se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre.
      */
     public boolean hasSuperposition() {
@@ -135,7 +135,7 @@ public abstract class GameDarkTree extends GameSystems {
 
     @SuppressWarnings("unchecked")
     <T> T darkMemo(Object key, java.util.function.Supplier<T> compute) {
-        // Depuis la version 0.70, les défis et leurs récompenses changent ce que valent les cases : ils comptent aussi.
+        // Depuis la version 0.070, les défis et leurs récompenses changent ce que valent les cases : ils comptent aussi.
         long stamp = state.darkVersion() * 1_000_003L + state.challengesVersion() * 31L
                 + (state.activeChallenge() == null ? 0 : state.activeChallenge().hashCode());
         if (darkMemoVersion != stamp) {

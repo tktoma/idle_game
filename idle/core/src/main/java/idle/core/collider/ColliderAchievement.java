@@ -1,7 +1,7 @@
 package idle.core.collider;
 
 /**
- * Les succès du collisionneur (version 0.60) : ils se gagnent en achetant des générateurs et en
+ * Les succès du collisionneur (version 0.060) : ils se gagnent en achetant des générateurs et en
  * enchaînant les collisions, et chacun renforce les générateurs d'une façon. Pour chaque
  * générateur, un premier succès double sa production, un second divise ses prix par deux ; trois
  * succès d'ensemble renforcent l'énergie, tous les générateurs, et la chance de collision. Ils se

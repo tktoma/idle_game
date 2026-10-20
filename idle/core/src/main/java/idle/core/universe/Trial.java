@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les épreuves du deuxième univers (version 0.88) : facultatives, une à la fois, et leur seul gain
+ * Les épreuves du deuxième univers (version 0.088) : facultatives, une à la fois, et leur seul gain
  * est un skin. Chacune dit sa contrainte et son but ; une épreuve à durée limitée échoue au bout de
  * son temps, les autres attendent leur but tant qu'on ne les abandonne pas.
  *

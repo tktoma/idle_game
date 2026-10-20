@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.86 : l'onde d'urgence chimique, et les sondes qui servent pendant l'absence. */
+/** Version 0.086 : l'onde d'urgence chimique, et les sondes qui servent pendant l'absence. */
 class SondesAbsenceTest {
 
     /** Une partie au troisième Big Bang, le troisième acte ouvert, et quelques éléments découverts. */

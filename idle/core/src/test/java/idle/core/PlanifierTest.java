@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.85 : planifier plusieurs astres, plafonner la création par état, réserver par recette, cibler le prochain astre. */
+/** Version 0.085 : planifier plusieurs astres, plafonner la création par état, réserver par recette, cibler le prochain astre. */
 class PlanifierTest {
 
     private static Game game() {

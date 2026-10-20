@@ -37,7 +37,7 @@ public abstract class GameUniverse extends GameAtoms {
     // ------------------------------------------------------------------
 
     // ------------------------------------------------------------------
-    // La partie secondaire (version 0.81) : les univers, sans logique pour l'instant
+    // La partie secondaire (version 0.081) : les univers, sans logique pour l'instant
     // ------------------------------------------------------------------
 
     /** Nombre de dimensions à ouvrir, une par univers jusqu'au dixième. */
@@ -48,17 +48,17 @@ public abstract class GameUniverse extends GameAtoms {
         return isUniverseFormed() ? 1 + state.extraUniverses() : 0;
     }
 
-    /** Vrai une fois un univers formé, même pendant la partie qui mène au suivant (version 0.87). */
+    /** Vrai une fois un univers formé, même pendant la partie qui mène au suivant (version 0.087). */
     public boolean isUniverseFormed() {
         return state.universeFormed() || state.cosmosLevel() >= Cosmos.values().length;
     }
 
-    /** Vrai à partir du deuxième univers : la sous-page des dimensions s'ouvre. */
+    /** Vrai dès le premier univers (version 0.100 ; avant, au deuxième) : la sous-page des dimensions s'ouvre. */
     public boolean isDimensionsUnlocked() {
-        return universes() >= 2;
+        return universes() >= 1;
     }
 
-    /** Dimensions ouvertes : les deux premières dès le deuxième univers, puis une par univers, dix au plus. */
+    /** Dimensions ouvertes : une par univers, la première dès le premier, dix au plus. */
     public int dimensionsUnlocked() {
         return isDimensionsUnlocked() ? Math.min(MAX_DIMENSIONS, universes()) : 0;
     }
@@ -92,6 +92,108 @@ public abstract class GameUniverse extends GameAtoms {
         state.setUniverseSeeds(state.universeSeeds().add(amount));
     }
 
+    /**
+     * Le vide (version 0.099), deuxième acte de la partie secondaire : un palier du collisionneur, avec sa
+     * ressource, l'énergie du vide. Il s'ouvre au premier Big Bang du deuxième univers. Pour l'instant
+     * sans logique : il ne fait que se montrer.
+     */
+    public boolean isVoidUnlocked() {
+        return isSecondUniverse() && state.bigBangs() > 0;
+    }
+
+    // ------------------------------------------------------------------
+    // La ligne, première dimension (version 0.101)
+    // ------------------------------------------------------------------
+
+    /** Secondes que met la boule de la ligne pour aller d'un bout à l'autre. */
+    public static final double LINE_HALF_TRIP = 2.4;
+    /** Éclats de dimension que donne chaque trait touché, avant l'amélioration. */
+    public static final double LINE_SHARD = 0.1;
+    /** Traits ajoutés au plus entre les deux bouts : la ligne en compte alors quarante. */
+    public static final int LINE_MAX_EXTRA_TICKS = 38;
+    /** Prix des deux améliorations de la ligne, en éclats, et leur croissance à chaque niveau. */
+    public static final double LINE_YIELD_COST = 1, LINE_TICKS_COST = 2, LINE_COST_GROWTH = 3;
+
+    /** Vrai dès que la première dimension est ouverte : la boule court, les éclats tombent. */
+    public boolean isLineOpen() {
+        return dimensionsUnlocked() >= 1;
+    }
+
+    /** Traits sur la ligne, ses deux bouts compris, également espacés. */
+    public int lineTicks() {
+        return 2 + state.lineTicksLevel();
+    }
+
+    /** Éclats de chaque trait touché : 0,1, et 0,1 de plus par niveau de l'amélioration. */
+    public double lineShardsPerTouch() {
+        return LINE_SHARD * (1 + state.lineYieldLevel());
+    }
+
+    /** Où est la boule sur la ligne : 0 au début, 1 au bout. */
+    public double linePosition() {
+        double phase = state.linePhase();
+        return phase <= 1 ? phase : 2 - phase;
+    }
+
+    /** Vrai tant que la boule va vers le bout de la ligne ; faux au retour. */
+    public boolean lineGoingOut() {
+        return state.linePhase() < 1;
+    }
+
+    /** Éclats par seconde : chaque aller (ou retour) touche tous les traits sauf celui d'où elle part. */
+    public double lineShardsPerSecond() {
+        return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() / LINE_HALF_TRIP : 0;
+    }
+
+    /**
+     * Fait avancer la boule de {@code dt} secondes et donne les éclats des traits touchés. L'aller et
+     * le retour mis bout à bout font une seule route de longueur 2 où les traits tombent tous les
+     * 1/(traits − 1) : le compte est exact quel que soit le pas, même pour une longue absence.
+     */
+    void runLine(double dt) {
+        if (!isLineOpen() || dt <= 0) return;
+        int gaps = lineTicks() - 1;
+        double from = state.linePhase(), to = from + dt / LINE_HALF_TRIP;
+        long touches = (long) Math.floor(to * gaps + 1e-9) - (long) Math.floor(from * gaps + 1e-9);
+        if (touches > 0) state.setDimensionShards(state.dimensionShards() + touches * lineShardsPerTouch());
+        state.setLinePhase(to % 2);
+    }
+
+    /** Prix du prochain niveau de l'amélioration qui augmente les éclats de chaque trait. */
+    public double lineYieldCost() {
+        return LINE_YIELD_COST * Math.pow(LINE_COST_GROWTH, state.lineYieldLevel());
+    }
+
+    /** Prix du prochain trait intermédiaire ; infini une fois la ligne pleine. */
+    public double lineTicksCost() {
+        return state.lineTicksLevel() >= LINE_MAX_EXTRA_TICKS ? Double.POSITIVE_INFINITY
+                : LINE_TICKS_COST * Math.pow(LINE_COST_GROWTH, state.lineTicksLevel());
+    }
+
+    public boolean canBuyLineYield() {
+        return isLineOpen() && state.dimensionShards() >= lineYieldCost() - 1e-9;
+    }
+
+    public boolean canBuyLineTicks() {
+        return isLineOpen() && state.lineTicksLevel() < LINE_MAX_EXTRA_TICKS && state.dimensionShards() >= lineTicksCost() - 1e-9;
+    }
+
+    /** Achète un niveau : chaque trait touché donne 0,1 éclat de plus. */
+    public boolean buyLineYield() {
+        if (!canBuyLineYield()) return false;
+        state.setDimensionShards(Math.max(0, state.dimensionShards() - lineYieldCost()));
+        state.setLineYieldLevel(state.lineYieldLevel() + 1);
+        return true;
+    }
+
+    /** Achète un trait de plus : les traits se répartissent à égale distance entre les deux bouts. */
+    public boolean buyLineTicks() {
+        if (!canBuyLineTicks()) return false;
+        state.setDimensionShards(Math.max(0, state.dimensionShards() - lineTicksCost()));
+        state.setLineTicksLevel(state.lineTicksLevel() + 1);
+        return true;
+    }
+
     /** Outil d'essai : de l'énergie du vide en plus. */
     public void testAddVoidEnergy(BigNum amount) {
         state.setVoidEnergy(state.voidEnergy().add(amount));
@@ -107,6 +209,10 @@ public abstract class GameUniverse extends GameAtoms {
         state.setExtraUniverses(0);
         state.setUniverseSeeds(BigNum.ZERO);
         state.setVoidEnergy(BigNum.ZERO);
+        state.setDimensionShards(0);
+        state.setLinePhase(0);
+        state.setLineYieldLevel(0);
+        state.setLineTicksLevel(0);
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
             state.setUniverseUpgradeLevel(upgrade.id(), 0);
         }
@@ -114,8 +220,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Vrai si cette échelle du cosmos est formée. */
     public boolean hasCosmos(Cosmos scale) {
-        // L'univers reste formé après la remise à zéro qui l'accompagne (version 0.83), quand le cosmos repart de rien.
-        // Pendant la partie du deuxième univers (version 0.87), seul compte ce que cette partie a formé.
+        // L'univers reste formé après la remise à zéro qui l'accompagne (version 0.083), quand le cosmos repart de rien.
+        // Pendant la partie du deuxième univers (version 0.087), seul compte ce que cette partie a formé.
         if (scale == Cosmos.UNIVERSE && state.universeFormed() && !state.replaying()) return true;
         return state.cosmosLevel() > scale.ordinal();
     }
@@ -159,7 +265,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Temps de jeu qu'il faut laisser à l'échelle d'avant pour se rassembler avant de former l'amas,
-     * puis l'univers (version 0.73) : 45 minutes chacun. Un joueur qui réunit la matière plus vite
+     * puis l'univers (version 0.073) : 45 minutes chacun. Un joueur qui réunit la matière plus vite
      * attend ; l'infatigable, qui met déjà près d'une heure à chaque échelle, ne le voit pas.
      */
     public static final double COSMOS_SETTLE_SECONDS = 45 * 60;
@@ -228,7 +334,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // Le deuxième univers (version 0.87)
+    // Le deuxième univers (version 0.087)
     // ------------------------------------------------------------------
 
     /** Fusions du deuxième univers qu'il faut pour ouvrir l'onglet Skins. */
@@ -273,7 +379,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Rouvre les paliers (version 0.87) : les anciens onglets reviennent, pour une partie neuve, celle
+     * Rouvre les paliers (version 0.087) : les anciens onglets reviennent, pour une partie neuve, celle
      * de l'univers suivant. La partie a déjà été remise à zéro par la formation de l'univers. Former
      * l'univers à la fin de cette partie crée l'univers suivant, avec une remise à zéro et une graine de plus.
      */
@@ -491,7 +597,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
-    // Les skins à obtenir (version 0.88)
+    // Les skins à obtenir (version 0.088)
     // ------------------------------------------------------------------
 
     /** Le record de reconstruction qui donne le skin « Éclair » : de la fusion au dixième générateur en une minute au plus. */
@@ -708,11 +814,11 @@ public abstract class GameUniverse extends GameAtoms {
         if (trial.seconds() > 0 && state.timePlayed() - state.trialStart() >= trial.seconds()) failTrial();
     }
 
-    /** Graines d'univers que donne la formation de l'univers (version 0.83). */
+    /** Graines d'univers que donne la formation de l'univers (version 0.083). */
     public static final int SEEDS_PER_UNIVERSE = 1;
 
     /**
-     * L'univers se forme (version 0.83) : tout ce qui y a mené est remis à zéro
+     * L'univers se forme (version 0.083) : tout ce qui y a mené est remis à zéro
      * ({@link GameState#startUniverse()}), et le joueur reçoit {@link #SEEDS_PER_UNIVERSE} graine
      * d'univers. Les succès gagnés par la formation sont relevés avant.
      */
@@ -724,7 +830,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** La remise à zéro de l'univers, son bilan relevé avant, et sa graine. */
     void resetForUniverse() {
-        // Un univers de plus (version 0.87) : celui-ci était déjà formé, la partie rejouée en forme un autre.
+        // Un univers de plus (version 0.087) : celui-ci était déjà formé, la partie rejouée en forme un autre.
         boolean another = state.universeFormed();
         state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
         state.startUniverse();

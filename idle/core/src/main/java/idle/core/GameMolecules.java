@@ -393,7 +393,7 @@ public abstract class GameMolecules extends GameUniverse {
         return (1 + moleculeBoosts.getOrDefault(stat, 0.0)) * cosmosFactor() * Math.pow(1 + COSMOS_MILESTONE_GAIN, cosmosMilestones());
     }
 
-    /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière (version 0.68). */
+    /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière (version 0.068). */
     public double cosmosFactor() {
         double factor = 1;
         for (Cosmos scale : Cosmos.values()) if (hasCosmos(scale)) factor *= scale.factor();
@@ -408,7 +408,7 @@ public abstract class GameMolecules extends GameUniverse {
     public static final double COSMOS_MILESTONE_GAIN = 0.10;
 
     /**
-     * Les jalons de la fin de partie (version 0.68) : chaque état de la matière réuni pour l'amas de
+     * Les jalons de la fin de partie (version 0.068) : chaque état de la matière réuni pour l'amas de
      * galaxies, puis pour l'univers, une fois l'échelle en vue. Une échelle formée compte tous les
      * siens. Dix en tout.
      */
@@ -428,7 +428,7 @@ public abstract class GameMolecules extends GameUniverse {
         return count;
     }
 
-    /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon (version 0.68). */
+    /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon (version 0.068). */
     public boolean isCosmosMilestoneMet(Cosmos scale, Molecule.State matter) {
         Integer need = scale.matter().get(matter);
         return need != null && (hasCosmos(scale) || isCosmosUnlocked(scale) && gatheredInState(matter) >= need);

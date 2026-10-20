@@ -296,7 +296,7 @@ public final class Card extends VBox {
     }
 
     /**
-     * Ce que fait un clic, quel que soit l'état de la carte, avant son action (version 0.84) : montrer
+     * Ce que fait un clic, quel que soit l'état de la carte, avant son action (version 0.084) : montrer
      * quelque chose, sans rien acheter. {@code null} : rien.
      */
     public void setOnLook(Runnable look) {
@@ -493,7 +493,7 @@ public final class Card extends VBox {
 
     /**
      * Une couleur {@code #rrggbb} avec cette transparence en deux chiffres ; une couleur qui en a déjà
-     * une ({@code #rrggbbaa}) la remplace, sans quoi JavaFX refuse la couleur (version 0.90).
+     * une ({@code #rrggbbaa}) la remplace, sans quoi JavaFX refuse la couleur (version 0.090).
      */
     static String alpha(String color, String alpha) {
         String base = color.length() > 7 ? color.substring(0, 7) : color;

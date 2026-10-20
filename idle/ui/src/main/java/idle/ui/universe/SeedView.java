@@ -5,7 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * La graine d'univers (version 0.83), le visuel de son sous-onglet : une graine en amande, dorée,
+ * La graine d'univers (version 0.083), le visuel de son sous-onglet : une graine en amande, dorée,
  * qui respire au centre d'un halo, une pousse qui sort de sa pointe et grandit avec le nombre de
  * graines, des ondes de germination qui partent d'elle, et une poussière qui monte. Les graines de
  * plus tournent autour d'elle, plus petites, jusqu'à {@link #MAX_ORBITING}.

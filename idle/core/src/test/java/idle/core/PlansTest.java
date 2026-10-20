@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.84 : les plans de l'arbre et des systèmes solaires, en code texte, et la réouverture des bifurcations. */
+/** Version 0.084 : les plans de l'arbre et des systèmes solaires, en code texte, et la réouverture des bifurcations. */
 class PlansTest {
 
     /** Une partie où la bifurcation « matière » est ouverte, ses deux voies payables. */

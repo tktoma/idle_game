@@ -28,7 +28,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Le collisionneur de quarks (version 0.59) : trois parties, une par sous-onglet. L'énergie : l'anneau
+ * Le collisionneur de quarks (version 0.059) : trois parties, une par sous-onglet. L'énergie : l'anneau
  * où les faisceaux se croisent et où sortent les quarks, les saveurs ouvertes et leur part, les huit
  * générateurs. La chaîne : les quarks, et ce que l'énergie et les quarks renforcent ailleurs. Les améliorations, avec
  * le huitième générateur. Rien de ce qui s'y gagne ne se perd à l'explosion ni au Big Bang.
@@ -49,7 +49,7 @@ public final class ColliderPane extends VBox {
     private final FlowPane flavors = new FlowPane(8, 6);
     private final Map<Quark, Label> flavorLabels = new EnumMap<>(Quark.class);
     private final Label quarksLabel = new Label();
-    /** Les quarks, dans le sous-onglet de la chaîne : elle les dépense (version 0.62). */
+    /** Les quarks, dans le sous-onglet de la chaîne : elle les dépense (version 0.062). */
     private final Label quarksOnChain = new Label();
     private final Button topButton = new Button();
     private final Label overheatLabel = new Label();
@@ -164,7 +164,7 @@ public final class ColliderPane extends VBox {
             grid.setMaxWidth(780);
             upgradeTitles.put(family, title);
             upgradeGrids.put(family, grid);
-            // La chaîne a son sous-onglet (version 0.61) ; le reste vit dans les améliorations.
+            // La chaîne a son sous-onglet (version 0.061) ; le reste vit dans les améliorations.
             if (family != ColliderUpgrade.Section.CHAIN) upgradeGroup.getChildren().addAll(title, grid);
         }
         for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
@@ -232,7 +232,7 @@ public final class ColliderPane extends VBox {
 
     /**
      * Un nombre entier du collisionneur (énergie, générateurs, quarks) : tel quel sous mille, puis
-     * dans la notation choisie, comme partout dans le jeu (version 0.64 ; avant, l'entier restait
+     * dans la notation choisie, comme partout dans le jeu (version 0.064 ; avant, l'entier restait
      * écrit en entier jusqu'au million).
      */
     static String whole(double value) {

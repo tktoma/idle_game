@@ -62,7 +62,7 @@ import javafx.scene.input.KeyCode;
  * <p>La fenêtre ne contient aucune règle : elle appelle {@code game.tick()},
  * affiche l'état, et transmet les clics à {@code game.buy()}.
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code GameApp}. De la base au bout :
  * {@link GameAppBase}, {@link GameAppWindow}, {@link GameAppTabs}. Quand une partie a besoin d'une méthode
  * définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les
@@ -139,7 +139,7 @@ public final class GameApp extends GameAppTabs {
 
         // Après une explosion, les atomes ont disparu mais l'onglet « Matière noire » reste.
         // L'onglet « Atomes » n'existe qu'à partir du premier atome.
-        // La partie secondaire (version 0.81) : une fois l'univers formé, tous les anciens onglets disparaissent,
+        // La partie secondaire (version 0.081) : une fois l'univers formé, tous les anciens onglets disparaissent,
         // particules et collisionneur compris ; restent l'univers et les pages pour s'y retrouver.
         boolean phase = universePhase();
         particlesTab.setVisible(!phase);
@@ -180,7 +180,7 @@ public final class GameApp extends GameAppTabs {
         bigBangTab.setText((narrow ? "Big Bang" : "Big Bang (" + game.bigBangs() + ")") + Readiness.dot(readiness.bigBang()));
         if (lastBigBangs >= 0 && game.bigBangs() > lastBigBangs) {
             selectTab(Tab.BIG_BANG);
-            // Le skin du Big Bang (version 0.89) : son animation plein écran.
+            // Le skin du Big Bang (version 0.089) : son animation plein écran.
             idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
             if (bang != null && settings.effect(Settings.Effect.FLASH)) burst.play(bang, 3.5);
         }
@@ -188,19 +188,25 @@ public final class GameApp extends GameAppTabs {
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
 
-        // L'onglet « Univers » (version 0.80) s'ouvre quand l'univers est formé. S'il vient de se former,
+        // L'onglet « Univers » (version 0.080) s'ouvre quand l'univers est formé. S'il vient de se former,
         // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
         boolean universe = game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
-        // Pendant la partie de l'univers suivant (version 0.87), l'onglet reste : les univers déjà formés sont là.
+        // Pendant la partie de l'univers suivant (version 0.087), l'onglet reste : les univers déjà formés sont là.
         universeTab.setVisible(game.universes() > 0);
         universeTab.setManaged(game.universes() > 0);
         if (universe && hadUniverse == 0) {
-            // Former l'univers a tout remis à zéro (version 0.83) : les anciens onglets, cachés, repartent de rien.
+            // Former l'univers a tout remis à zéro (version 0.083) : les anciens onglets, cachés, repartent de rien.
             forgetOldPages();
             selectTab(Tab.UNIVERSE);
             universePage.playBirth();
         }
         hadUniverse = universe ? 1 : 0;
+
+        // Le vide (version 0.099) : au premier Big Bang du deuxième univers, le deuxième acte de la partie secondaire.
+        boolean vacuum = game.isVoidUnlocked() && !phase;
+        voidTab.setVisible(vacuum);
+        voidTab.setManaged(vacuum);
+        if (selectedTab == Tab.VOID) voidPage.refresh();
 
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
         // n'existe que si le jeu en a.
@@ -210,7 +216,7 @@ public final class GameApp extends GameAppTabs {
         if (selectedTab == Tab.ACHIEVEMENTS) achievementsPage.refresh();
         if (selectedTab == Tab.STATS) statsPage.refresh();
         settingsTab.setText(!settings.paused() ? "Réglages" : narrow ? "En pause" : "Réglages (pause)");
-        // Les skins (version 0.87) : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
+        // Les skins (version 0.087) : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
         boolean skins = game.isSkinsUnlocked();
         skinsTab.setVisible(skins);
         skinsTab.setManaged(skins);
@@ -221,7 +227,7 @@ public final class GameApp extends GameAppTabs {
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
                 || (selectedTab == Tab.UNIVERSE && !universe) || (selectedTab == Tab.PARTICLES && phase)
-                || (selectedTab == Tab.COLLIDER && !collider)) {
+                || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)) {
             selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();

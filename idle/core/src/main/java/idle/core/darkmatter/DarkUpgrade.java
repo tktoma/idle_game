@@ -17,7 +17,7 @@ import idle.core.upgrades.Upgrade;
  * @param maxLevel   nombre maximal de niveaux, ou {@link Upgrade#NO_LIMIT}
  * @param requires   amélioration à posséder avant celle-ci (la case du dessus), ou {@code null}
  * @param effect     ce que rapporte chaque niveau
- * @param fork       la bifurcation dont elle est une des deux voies (version 0.69), ou {@code null} :
+ * @param fork       la bifurcation dont elle est une des deux voies (version 0.069), ou {@code null} :
  *                   prendre une voie ferme l'autre jusqu'au prochain Big Bang. Une case qui suit une
  *                   bifurcation la désigne par {@code requires = "fork:<nom>"} : l'une ou l'autre voie suffit
  */
@@ -28,14 +28,14 @@ public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost
     public static final String FORK_PREFIX = "fork:";
 
     /**
-     * Préfixe d'une liaison (version 0.70) : {@code requires = "any:<id>|<id>"}. La case s'ouvre dès que
+     * Préfixe d'une liaison (version 0.070) : {@code requires = "any:<id>|<id>"}. La case s'ouvre dès que
      * l'une des voies nommées est prise. Les liaisons se paient en matière noire et se dessinent entre
      * deux branches de l'arbre.
      */
     public static final String LINK_PREFIX = "any:";
 
     /**
-     * Préfixe d'un accord (version 0.70) : {@code requires = "all:<id>|<id>|<id>"}. C'est une liaison qui
+     * Préfixe d'un accord (version 0.070) : {@code requires = "all:<id>|<id>|<id>"}. C'est une liaison qui
      * demande toutes les voies nommées à la fois : un ensemble cohérent de voies, plutôt qu'un tirage.
      */
     public static final String ALL_PREFIX = "all:";
@@ -56,7 +56,7 @@ public record DarkUpgrade(String id, String name, Branch branch, BigNum baseCost
         return requires != null && requires.startsWith(FORK_PREFIX) ? requires.substring(FORK_PREFIX.length()) : null;
     }
 
-    /** Vrai pour une liaison entre deux branches (version 0.70) : elle demande l'une ou l'autre de ses voies. */
+    /** Vrai pour une liaison entre deux branches (version 0.070) : elle demande l'une ou l'autre de ses voies. */
     public boolean isLink() {
         return requires != null && (requires.startsWith(LINK_PREFIX) || requires.startsWith(ALL_PREFIX));
     }

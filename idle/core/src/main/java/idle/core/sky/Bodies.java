@@ -143,7 +143,7 @@ public final class Bodies {
             Body.of(Body.Tier.BLACK_HOLE, "black_hole", "Trou noir", Body.Look.VOID, "#ff9a3a", "#ffe0a0", Molecule.Stat.DARK_GROWTH)
                     .from("neutron_star", "blue_giant").made("accretion_disc", "heavy_ashes").matter(GAS, 22000)
                     .matter(CRYSTAL, 6000).molecules("H2", 19000),
-            // Les matières exotiques (version 0.54), ouvertes au huitième Big Bang : sans assemblage, faites
+            // Les matières exotiques (version 0.054), ouvertes au huitième Big Bang : sans assemblage, faites
             // d'astres déjà formés et de beaucoup de matière rassemblée.
             Body.of(Body.Tier.EXOTIC, "pulsar", "Pulsar", Body.Look.BEAMING, "#e6f0ff", "#9ac8ff", Molecule.Stat.PARTICLES)
                     .from("neutron_star").matter(METAL, 900).matter(CRYSTAL, 18000),
@@ -161,7 +161,7 @@ public final class Bodies {
                     .matter(GAS, 30000).matter(CRYSTAL, 10000).matter(LIQUID, 6000).molecules("H2", 26000)));
 
     /**
-     * Ce que les astres demandent à partir des lunes, multiplié (version 0.54) : la route vers la
+     * Ce que les astres demandent à partir des lunes, multiplié (version 0.054) : la route vers la
      * galaxie s'allonge en création, pas en attente. Les matières exotiques ont déjà leurs nombres.
      */
     static final double LATER_BODIES = 1.5;

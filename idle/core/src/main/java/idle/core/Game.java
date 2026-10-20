@@ -68,7 +68,7 @@ import java.util.random.RandomGenerator;
  *       {@link #synthesize()}…).</li>
  * </ul>
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code Game}. De la base au bout :
  * {@link GameBase}, {@link GameSystems}, {@link GameDarkTree}, {@link GameCollider}, {@link GamePlans},
  * {@link GameAtoms}, {@link GameUniverse}, {@link GameMolecules}, {@link GameMatterAutomation},
@@ -153,7 +153,7 @@ public final class Game extends GameBigBang {
                 bodies.keySet(), spaceUpgrades.keySet(), PeriodicTable.ELEMENTS.size()));
         newAchievements.clear();
         newRecords.clear();
-        // Une sauvegarde d'avant la 0.83 dont l'univers est formé : la remise à zéro de l'univers ne s'était pas faite.
+        // Une sauvegarde d'avant la 0.083 dont l'univers est formé : la remise à zéro de l'univers ne s'était pas faite.
         if (state.universeFormed() && state.cosmosLevel() >= Cosmos.values().length) resetForUniverse();
         forgetDerived();
         return dropped;
@@ -209,7 +209,7 @@ public final class Game extends GameBigBang {
 
     /**
      * Fait avancer le jeu comme {@link #tick(double)}, mais pendant une absence rejouée : l'accord
-     * d'absence (version 0.71) peut alors y tenter les défis ouverts.
+     * d'absence (version 0.071) peut alors y tenter les défis ouverts.
      */
     public void tickAway(double dt) {
         away = true;
@@ -221,7 +221,7 @@ public final class Game extends GameBigBang {
     }
 
     /**
-     * En absence (version 0.73) : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
+     * En absence (version 0.073) : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
      * d'absence, si elle est payable. Qui ne choisit pas joue le style de l'absence.
      */
     private void takeAbsenceVoies() {
@@ -236,7 +236,7 @@ public final class Game extends GameBigBang {
     }
 
     /**
-     * Les sondes en absence (version 0.86) : une sonde arrivée vide son butin et repart pour le même
+     * Les sondes en absence (version 0.086) : une sonde arrivée vide son butin et repart pour le même
      * voyage, comme le ferait le joueur. Joueur présent, rien ne change : le butin attend son clic,
      * et les sondes restent un à-côté, jamais une obligation.
      */
@@ -262,7 +262,7 @@ public final class Game extends GameBigBang {
     private final List<String> awayVoies = new ArrayList<>();
     private final List<String> awayChallengesStarted = new ArrayList<>();
 
-    /** Ce que l'absence rejouée a fait à la place du joueur (version 0.73), puis l'oublie. */
+    /** Ce que l'absence rejouée a fait à la place du joueur (version 0.073), puis l'oublie. */
     public List<String> takeAwayVoies() {
         List<String> taken = new ArrayList<>(awayVoies);
         awayVoies.clear();
@@ -294,7 +294,7 @@ public final class Game extends GameBigBang {
      */
     public double offlineRate() {
         if (hasCosmos(Cosmos.UNIVERSE)) return OFFLINE_RATE_UNIVERSE;
-        // Les voies d'absence de l'arbre (version 0.70) en rendent une part de plus, jusqu'à tout le temps.
+        // Les voies d'absence de l'arbre (version 0.070) en rendent une part de plus, jusqu'à tout le temps.
         if (state.bigBangs() > 0) return Math.min(1, OFFLINE_RATE_BIG_BANG + darkOfflineBonus());
         if (isDarkMatterUnlocked()) return Math.min(1, OFFLINE_RATE_DARK_MATTER + darkOfflineBonus());
         return OFFLINE_RATE_PARTICLES;
@@ -343,6 +343,7 @@ public final class Game extends GameBigBang {
         runAutoForm(dt);
         runPlans(dt);
         runSecondUniverse(dt);
+        runLine(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -454,7 +455,7 @@ public final class Game extends GameBigBang {
     }
 
     /**
-     * Les relevés d'un historique, suivis d'un relevé de l'instant (version 0.64). Les relevés
+     * Les relevés d'un historique, suivis d'un relevé de l'instant (version 0.064). Les relevés
      * s'espacent avec le temps de jeu (plusieurs minutes après quelques heures) : sans ce dernier
      * point, une courbe toute neuve, ou une statistique apparue depuis le dernier relevé, resterait
      * vide jusqu'au suivant. Le relevé de l'instant n'est pas gardé.

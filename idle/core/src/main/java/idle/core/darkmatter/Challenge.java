@@ -31,13 +31,13 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         INERT_ELEMENTS,
         /** Les éléments se désintègrent : chaque exemplaire a une demi-vie de 35 secondes. */
         DECAY,
-        /** Version 0.70 : les voies d'absence de l'arbre n'agissent plus, ni l'accord d'absence. Seules comptent celles de présence. */
+        /** Version 0.070 : les voies d'absence de l'arbre n'agissent plus, ni l'accord d'absence. Seules comptent celles de présence. */
         PRESENCE_ONLY,
-        /** Version 0.70 : les voies de présence n'agissent plus, ni l'accord de présence. Seules comptent celles d'absence. */
+        /** Version 0.070 : les voies de présence n'agissent plus, ni l'accord de présence. Seules comptent celles d'absence. */
         ABSENCE_ONLY,
-        /** Version 0.70 : la branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
+        /** Version 0.070 : la branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
         CUT_BRANCH,
-        /** Version 0.70 : aucune voie, aucune liaison n'agit : il ne reste que le tronc de l'arbre. */
+        /** Version 0.070 : aucune voie, aucune liaison n'agit : il ne reste que le tronc de l'arbre. */
         BARE_TREE
     }
 

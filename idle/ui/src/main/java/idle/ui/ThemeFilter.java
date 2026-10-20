@@ -19,7 +19,7 @@ import javafx.scene.paint.Color;
  * teinter le tout d'une couleur (multipliée : le noir reste noir). Pages, dessins et graphiques
  * suivent donc tous ensemble.
  *
- * <p>Avant la version 0.63, seul le thème clair existait, dans une classe {@code LightTheme}.
+ * <p>Avant la version 0.063, seul le thème clair existait, dans une classe {@code LightTheme}.
  */
 final class ThemeFilter {
 

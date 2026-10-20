@@ -42,7 +42,7 @@ import java.util.List;
  * vitesse, et le reste au moins cher, Surcharge comprise : l'acheter plus tôt ou plus tard ne
  * déplace la fin que d'une vingtaine de minutes.
  *
- * <p>Le début (premier atome vers une heure depuis la version 0.95, par le premier élan, {@link idle.core.Game#FIRST_RUN_PACE}) est la
+ * <p>Le début (premier atome vers une heure depuis la version 0.095, par le premier élan, {@link idle.core.Game#FIRST_RUN_PACE}) est la
  * partie où le joueur clique. Ce sont les phases automatisées qui durent, par la cadence des
  * automatismes ({@link Automation#DEFAULT_INTERVAL}), le Rendement, et les éléments qui
  * accélèrent la synthèse elle-même (voir {@link PeriodicTable}).
@@ -141,7 +141,7 @@ public final class Upgrades {
                     BigNum.of(40), 1, 1,
                     new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09)),
 
-            // ----- Le confort (idée 34, version 0.47) -----
+            // ----- Le confort (idée 34, version 0.047) -----
 
             // L'achat par dix et « max » des améliorations en atomes, dès les premiers atomes : avant, il
             // fallait attendre la première explosion et sa matière noire.

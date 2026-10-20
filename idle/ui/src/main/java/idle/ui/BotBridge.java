@@ -6,7 +6,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * Les bots dans le profil de test (version 0.84) : le bot V2 du module {@code bots}
+ * Les bots dans le profil de test (version 0.084) : le bot V2 du module {@code bots}
  * ({@code AdvancedLab}) joue la partie en cours, en direct ou en avance rapide.
  *
  * <p>Les bots ne font pas partie du jeu : ils vivent dans leur module, sans paquet Java, et

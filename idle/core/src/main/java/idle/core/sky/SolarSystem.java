@@ -3,7 +3,7 @@ package idle.core.sky;
 import java.util.List;
 
 /**
- * Un système solaire (version 0.54) : une étoile formée, ses planètes de la plus proche à la plus
+ * Un système solaire (version 0.054) : une étoile formée, ses planètes de la plus proche à la plus
  * lointaine, et des lunes. Chaque astre n'appartient qu'à un système. Un système est complet à
  * partir de {@link Game#SYSTEM_MIN_PLANETS} planètes ; la galaxie en demande
  * {@link Game#SYSTEMS_FOR_GALAXY}.

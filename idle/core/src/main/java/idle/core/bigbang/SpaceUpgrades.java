@@ -54,7 +54,7 @@ public final class SpaceUpgrades {
             new SpaceUpgrade("space_auto_hold", "Appui automatique", BigNum.of(6_000), null,
                     new SpaceUpgrade.AutoHold()),
             // Le confort : créer en tenant le clic, puis tout rassembler, assembler ou former d'un geste.
-            // Version 0.47 : moins chères, pour venir dès les premières minutes après le Big Bang (avant 800 et 15 000).
+            // Version 0.047 : moins chères, pour venir dès les premières minutes après le Big Bang (avant 800 et 15 000).
             new SpaceUpgrade("space_hold_create", "Création continue", BigNum.of(100), null,
                     new SpaceUpgrade.HoldCreate()),
             new SpaceUpgrade("space_bulk_form", "Gestes groupés", BigNum.of(1_500), "space_states",

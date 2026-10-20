@@ -6,7 +6,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineCap;
 
 /**
- * La petite icône animée d'un onglet (version 0.59), dans la couleur de l'onglet : des particules
+ * La petite icône animée d'un onglet (version 0.059), dans la couleur de l'onglet : des particules
  * qui tournent, un engrenage, une spirale de matière noire, deux faisceaux qui se croisent, un
  * éclair de Big Bang, une étoile qui scintille, des barres qui montent, des curseurs qui glissent.
  * Elle ne bouge que si les effets sont permis ; immobile, elle reste lisible.
@@ -14,13 +14,13 @@ import javafx.scene.shape.StrokeLineCap;
 public final class TabIcon extends Canvas {
 
     /** Ce que montre l'icône : un dessin par onglet. */
-    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     private final Kind kind;
     private final Color color;
     private double time;
     private boolean bright;
-    /** La vitesse de l'animation : 1 d'habitude, plus quand ce que montre l'onglet s'accélère (version 0.61). */
+    /** La vitesse de l'animation : 1 d'habitude, plus quand ce que montre l'onglet s'accélère (version 0.061). */
     private double speed = 1;
 
     public void setSpeed(double speed) {
@@ -141,6 +141,26 @@ public final class TabIcon extends Canvas {
                 }
                 g.fillOval(c - 2.5, c - 2.5, 5, 5);
             }
+            case VOID -> {
+                // Le vide (version 0.099) : une paire qui s'écarte, se rejoint et s'annule dans un éclair.
+                double cycle = (time * 0.7) % 1;
+                double open = Math.sin(Math.PI * Math.min(1, cycle / 0.85));
+                double a = 0.6 + Math.floor(time * 0.7) * 1.9;
+                double dx = Math.cos(a) * s * 0.3 * open, dy = Math.sin(a) * s * 0.3 * open;
+                g.setLineWidth(1);
+                g.setGlobalAlpha((bright ? 1 : 0.7) * 0.4);
+                g.strokeLine(c - dx, c - dy, c + dx, c + dy);
+                g.setGlobalAlpha(bright ? 1 : 0.7);
+                g.fillOval(c + dx - 2.2, c + dy - 2.2, 4.4, 4.4);
+                g.setFill(Color.web("#d9a6ff"));
+                g.fillOval(c - dx - 2.2, c - dy - 2.2, 4.4, 4.4);
+                if (cycle > 0.85) {
+                    g.setFill(Color.WHITE);
+                    g.setGlobalAlpha((1 - (cycle - 0.85) / 0.15) * 0.9);
+                    double r = 2 + 6 * (cycle - 0.85) / 0.15;
+                    g.fillOval(c - r, c - r, r * 2, r * 2);
+                }
+            }
             case ACHIEVEMENTS -> {
                 double twinkle = 0.85 + 0.15 * Math.sin(time * 3);
                 double[] xs = new double[10], ys = new double[10];
@@ -174,7 +194,7 @@ public final class TabIcon extends Canvas {
                 }
             }
             case SKINS -> {
-                // Une palette (version 0.87) : trois pastilles qui changent de teinte tour à tour.
+                // Une palette (version 0.087) : trois pastilles qui changent de teinte tour à tour.
                 g.fillOval(s * 0.1, s * 0.18, s * 0.8, s * 0.64);
                 g.setFill(Color.web("#0e131b"));
                 g.fillOval(s * 0.58, s * 0.52, s * 0.16, s * 0.16);

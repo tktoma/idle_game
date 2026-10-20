@@ -35,7 +35,7 @@ public abstract class GameCollider extends GameDarkTree {
 
 
     // ------------------------------------------------------------------
-    // Le collisionneur de quarks (version 0.50, refait en 0.59) : un jeu en parallèle, dont rien
+    // Le collisionneur de quarks (version 0.050, refait en 0.059) : un jeu en parallèle, dont rien
     // ne se perd ni à l'explosion ni au Big Bang ; seule la remise à zéro le reprend
     // ------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ public abstract class GameCollider extends GameDarkTree {
         return multiplier;
     }
 
-    // Les succès du Big Bang (version 0.61).
+    // Les succès du Big Bang (version 0.061).
 
     /** Vrai une fois le premier Big Bang passé : les succès du Big Bang se montrent. */
     public boolean isBangAchievementsUnlocked() {
@@ -139,7 +139,7 @@ public abstract class GameCollider extends GameDarkTree {
         return 1 + sum;
     }
 
-    // Les succès du collisionneur (version 0.60).
+    // Les succès du collisionneur (version 0.060).
 
     /** Générateurs achetés en tout, toutes sortes confondues. */
     public int colliderGeneratorsBoughtTotal() {
@@ -178,7 +178,7 @@ public abstract class GameCollider extends GameDarkTree {
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
     public double colliderGeneratorOutput(ColliderGenerator generator) {
-        // L'épreuve « Un seul générateur » (version 0.88) : la chaîne s'arrête, seul le premier produit.
+        // L'épreuve « Un seul générateur » (version 0.088) : la chaîne s'arrête, seul le premier produit.
         if (generator.previous() != null && inTrial(idle.core.universe.Trial.LONE_COLLIDER)) return 0;
         return state.colliderGenerators(generator) * generator.power() * colliderOutputMultiplier(generator);
     }
@@ -226,7 +226,7 @@ public abstract class GameCollider extends GameDarkTree {
         state.setColliderEnergyProduced(state.colliderEnergyProduced() + gain);
     }
 
-    /** L'énergie produite depuis le début : ce qui ouvre les deux trous noirs (version 0.62). */
+    /** L'énergie produite depuis le début : ce qui ouvre les deux trous noirs (version 0.062). */
     public double colliderEnergyProduced() {
         return state.colliderEnergyProduced();
     }
@@ -280,7 +280,7 @@ public abstract class GameCollider extends GameDarkTree {
         long crossing = currentCrossing();
         state.setColliderCaught(crossing);
         catchStreak++;
-        // Les épreuves du collisionneur (version 0.88) comptent les croisements captés à la main.
+        // Les épreuves du collisionneur (version 0.088) comptent les croisements captés à la main.
         if (activeTrial() != null && activeTrial().isCollider()) state.setTrialCount(state.trialCount() + 1);
         return caught(crossing);
     }
@@ -485,7 +485,7 @@ public abstract class GameCollider extends GameDarkTree {
     /** Vrai si cette amélioration s'offre : la première dès l'ouverture, les autres quand celle qui les ouvre a le niveau voulu. */
     public boolean isColliderUpgradeOpen(ColliderUpgrade upgrade) {
         if (!isColliderUpgradesUnlocked()) return false;
-        // La Superposition attend aussi le cinquième Big Bang (version 0.73) : jusque-là, les choix de l'arbre comptent.
+        // La Superposition attend aussi le cinquième Big Bang (version 0.073) : jusque-là, les choix de l'arbre comptent.
         if (upgrade == ColliderUpgrade.SUPERPOSITION && state.bigBangs() < SUPERPOSITION_BIG_BANGS) return false;
         return upgrade.requires() == null || state.colliderUpgradeLevel(upgrade.requires()) >= upgrade.requiredLevel();
     }
@@ -497,7 +497,7 @@ public abstract class GameCollider extends GameDarkTree {
         return upgrade.cost(state.colliderUpgradeLevel(upgrade));
     }
 
-    /** Les quarks que demande le prochain niveau de cette amélioration (la chaîne, version 0.62) ; 0 pour les autres. */
+    /** Les quarks que demande le prochain niveau de cette amélioration (la chaîne, version 0.062) ; 0 pour les autres. */
     public int colliderUpgradeQuarks(ColliderUpgrade upgrade) {
         return upgrade.quarkCost(state.colliderUpgradeLevel(upgrade));
     }
@@ -537,7 +537,7 @@ public abstract class GameCollider extends GameDarkTree {
         }
     }
 
-    /** L'énergie produite qu'il faut au trou noir (version 0.62), puis au trou noir supermassif, le dernier avant la galaxie. */
+    /** L'énergie produite qu'il faut au trou noir (version 0.062), puis au trou noir supermassif, le dernier avant la galaxie. */
     public static final double BLACK_HOLE_ENERGY = 1e12;
     public static final double SUPERMASSIVE_ENERGY = 1e15;
 
@@ -658,7 +658,7 @@ public abstract class GameCollider extends GameDarkTree {
         runColliderAutomations();
     }
 
-    /** Les collisions d'une sauvegarde d'avant la version 0.59 se terminent d'un coup, avec leur butin d'alors. */
+    /** Les collisions d'une sauvegarde d'avant la version 0.059 se terminent d'un coup, avec leur butin d'alors. */
     private void finishOldCollisions() {
         if (state.collisions().isEmpty()) return;
         for (Collision collision : state.collisions()) {

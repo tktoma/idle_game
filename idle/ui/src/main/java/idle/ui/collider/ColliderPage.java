@@ -11,10 +11,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
- * L'onglet du collisionneur (version 0.57, refait en 0.59), ouvert à la première explosion : trois
+ * L'onglet du collisionneur (version 0.057, refait en 0.059), ouvert à la première explosion : trois
  * sous-onglets : l'énergie (les faisceaux, leurs collisions et les huit générateurs), la chaîne
  * (énergie → molécules, payée en énergie et en quarks) et les améliorations, qui n'apparaissent
- * qu'avec le huitième générateur. Les hadrons ont disparu en 0.62.
+ * qu'avec le huitième générateur. Les hadrons ont disparu en 0.062.
  */
 public final class ColliderPage extends VBox {
 

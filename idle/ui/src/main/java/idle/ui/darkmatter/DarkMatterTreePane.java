@@ -46,7 +46,7 @@ import javafx.scene.text.TextAlignment;
  * traits : ils suivent la largeur de la fenêtre. Dans une fenêtre étroite, les branches ne
  * tiennent plus côte à côte : elles se rangent en deux étages de deux, reliés par le tronc.
  *
- * <p>Les liaisons et les accords (versions 0.70 et 0.71) s'ouvrent avec les voies des bifurcations.
+ * <p>Les liaisons et les accords (versions 0.070 et 0.071) s'ouvrent avec les voies des bifurcations.
  * Ils ont leur planche sous la case du Big Bang, un rang par rang de bifurcations, et chaque carte
  * dit, voie par voie, ce qui l'ouvre : des traits à travers tout l'arbre se lisaient mal.
  *
@@ -101,7 +101,7 @@ public final class DarkMatterTreePane extends Pane {
         final Line link = new Line();
         /** Petit trait horizontal du tronc à la case, pour une branche en éventail ; pour une voie de bifurcation, le trait qui rejoint la case d'après. */
         final Line elbow = new Line();
-        /** Une voie de bifurcation (version 0.69) : 0 à gauche, 1 à droite ; −1 pour une case ordinaire. */
+        /** Une voie de bifurcation (version 0.069) : 0 à gauche, 1 à droite ; −1 pour une case ordinaire. */
         final int side;
         /** Sa place à la dernière mise en page : les traits des liaisons en partent. */
         double x, y, width;
@@ -115,7 +115,7 @@ public final class DarkMatterTreePane extends Pane {
     }
 
     /**
-     * Une liaison ou un accord (versions 0.70 et 0.71) : sa carte, les voies qui l'ouvrent, et le rang
+     * Une liaison ou un accord (versions 0.070 et 0.071) : sa carte, les voies qui l'ouvrent, et le rang
      * de bifurcations auquel elle appartient (le premier ou le second de chaque branche).
      */
     private static final class LinkCell {
@@ -164,7 +164,7 @@ public final class DarkMatterTreePane extends Pane {
     private final Line stem = new Line();
     /** Secondes qu'il reste pour confirmer le Big Bang ; 0 quand aucun premier clic n'attend. */
     private double armedFor = 0;
-    /** Durée du surlignage du chemin d'une bifurcation, en secondes (version 0.84). */
+    /** Durée du surlignage du chemin d'une bifurcation, en secondes (version 0.084). */
     public static final double LIT_SECONDS = 6;
     /** Les cases surlignées : la voie ou la liaison cliquée, et tout ce qu'il faut au-dessus d'elle. */
     private final java.util.Set<Cell> lit = new java.util.LinkedHashSet<>();
@@ -274,7 +274,7 @@ public final class DarkMatterTreePane extends Pane {
                 game.buyDark(cell.upgrade.id());
                 refresh();
             });
-            // Une voie cliquée (version 0.84), prenable ou non : le chemin qui y mène s'allume.
+            // Une voie cliquée (version 0.084), prenable ou non : le chemin qui y mène s'allume.
             if (cell.upgrade.isFork()) cell.card.setOnLook(() -> {
                 light(cell, null);
                 refresh();
@@ -423,8 +423,8 @@ public final class DarkMatterTreePane extends Pane {
             boolean oneTime = upgrade.maxLevel() == 1;
             DarkUpgrade rival = game.darkForkRival(upgrade.id());
             if (upgrade.isFork() && (rival != null || level == 0)) {
-                // Une voie de bifurcation (version 0.69) : prise, ouverte au choix, ou fermée par l'autre jusqu'au prochain Big Bang.
-                // Avec la Superposition du collisionneur (0.70), les deux voies se prennent.
+                // Une voie de bifurcation (version 0.069) : prise, ouverte au choix, ou fermée par l'autre jusqu'au prochain Big Bang.
+                // Avec la Superposition du collisionneur (0.070), les deux voies se prennent.
                 boolean both = game.hasSuperposition();
                 boolean absence = game.darkStyle(upgrade) == Game.Style.ABSENCE;
                 cell.card.show(rival != null ? Card.State.LOCKED : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
@@ -465,7 +465,7 @@ public final class DarkMatterTreePane extends Pane {
         refreshBang();
     }
 
-    /** Vrai si cette case attend dans le plan de l'arbre (version 0.84). */
+    /** Vrai si cette case attend dans le plan de l'arbre (version 0.084). */
     private boolean planned(DarkUpgrade upgrade) {
         return game.darkLevelOf(upgrade.id()) == 0 && game.state().darkPlan().contains(upgrade.id());
     }
@@ -489,7 +489,7 @@ public final class DarkMatterTreePane extends Pane {
         return names == null ? "" : ". Ouvre, sous l'arbre : " + String.join(", ", names);
     }
 
-    /** Ce que dit le style d'une voie (version 0.70), en mode détails. */
+    /** Ce que dit le style d'une voie (version 0.070), en mode détails. */
     private String style(DarkUpgrade upgrade) {
         return game.darkStyle(upgrade) == Game.Style.ABSENCE
                 ? ". Voie d'absence : un peu moins forte tant que vous êtes là, mais elle rend "
@@ -744,7 +744,7 @@ public final class DarkMatterTreePane extends Pane {
     private static final double LINK_GAP = 10;
 
     /**
-     * La planche des liaisons et des accords (version 0.71), sous la case du Big Bang : un titre, puis
+     * La planche des liaisons et des accords (version 0.071), sous la case du Big Bang : un titre, puis
      * un rang par rang de bifurcations, liaisons d'abord, accords ensuite, chacun sur une ligne qui
      * passe à la suivante quand la fenêtre est étroite. Pas de traits : chaque carte dit ses voies.
      *

@@ -84,7 +84,7 @@ public final class DarkMatterView extends Canvas {
     }
 
     /**
-     * Le skin de la boule (version 0.89) : {@code null} pour le classique. « Obsidienne » : une pierre
+     * Le skin de la boule (version 0.089) : {@code null} pour le classique. « Obsidienne » : une pierre
      * noire taillée en facettes, aux arêtes violettes et aux reflets vifs. « Nébuleuse » : un nuage de
      * gaz rose et bleu qui ondule, piqué d'étoiles naissantes. « Contractée » : un cœur très dense
      * vers lequel des anneaux se resserrent sans fin.
@@ -100,7 +100,7 @@ public final class DarkMatterView extends Canvas {
     }
 
     /**
-     * Le skin de l'animation (version 0.89) : {@code null} pour le classique, où la matière ne tombe
+     * Le skin de l'animation (version 0.089) : {@code null} pour le classique, où la matière ne tombe
      * en spirale que pendant la croissance. « Vortex » : un tourbillon de cinq bras violets qui tourne
      * sans cesse autour du point et l'alimente, bien plus vite quand on le fait grossir. « Pulsar » :
      * deux faisceaux qui balaient la vue en tournant et des anneaux qui battent depuis le point.
@@ -142,14 +142,14 @@ public final class DarkMatterView extends Canvas {
     }
 
     /**
-     * Avance l'animation et redessine (version 0.61) : quand la matière noire grossit, de la
+     * Avance l'animation et redessine (version 0.061) : quand la matière noire grossit, de la
      * matière tombe vers elle en spirale, d'autant plus vite et plus dense que sa croissance est forte.
      *
      * @param momentum l'élan de la croissance ({@link idle.core.Game#darkMatterMomentum()})
      */
     void frame(double elapsed, BigNum size, boolean growing, double momentum) {
         double wanted = fallOn && growing && momentum > 0 ? Math.max(0.15, Math.min(1, Math.log10(1 + momentum) / 2)) : 0;
-        // Coupée, la chute s'arrête tout de suite au lieu de s'éteindre peu à peu (version 0.67).
+        // Coupée, la chute s'arrête tout de suite au lieu de s'éteindre peu à peu (version 0.067).
         fall = fallOn ? fall + (wanted - fall) * Math.min(1, Math.min(elapsed, 0.1) * 2) : 0;
         spiral += Math.min(elapsed, 0.1) * (0.4 + 3 * fall);
         double dt = Math.min(elapsed, 0.1);

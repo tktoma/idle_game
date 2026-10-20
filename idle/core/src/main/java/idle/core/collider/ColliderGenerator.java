@@ -1,7 +1,7 @@
 package idle.core.collider;
 
 /**
- * Les huit générateurs du collisionneur (version 0.57, moins chers en 0.60 : les huit en trois heures environ). Le premier fait se croiser les faisceaux,
+ * Les huit générateurs du collisionneur (version 0.057, moins chers en 0.060 : les huit en trois heures environ). Le premier fait se croiser les faisceaux,
  * et chaque croisement donne de l'énergie ; chacun des suivants produit, peu à peu, des exemplaires
  * du précédent. Ils s'achètent avec l'énergie, et rien ne s'y perd ni à l'explosion ni au Big Bang.
  */

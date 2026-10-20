@@ -377,7 +377,7 @@ public abstract class GameAtoms extends GamePlans {
     /**
      * Masse du tableau périodique : 1 avant la première explosion, puis multipliée par
      * {@link #TABLE_WEIGHT_GROWTH} à chaque explosion qui compte, {@link #TABLE_WEIGHT_MAX_LEVEL}
-     * fois au plus. Un défi se joue sur un tableau de masse {@link #CHALLENGE_WEIGHT} (1 avant la version 0.97).
+     * fois au plus. Un défi se joue sur un tableau de masse {@link #CHALLENGE_WEIGHT} (1 avant la version 0.097).
      */
     public BigNum tableWeight() {
         if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT;
@@ -503,7 +503,7 @@ public abstract class GameAtoms extends GamePlans {
         // Le garde-fou du hasard : après trop de synthèses sans rien de nouveau, celle-ci donne un élément inconnu.
         boolean rescue = target == null && !guaranteed && LUCK_FLOOR > 0 && state.drySyntheses() >= LUCK_FLOOR;
         obtained.add(target != null ? drawTargeted(target) : rescue ? drawUnknown() : drawElement(guaranteed));
-        // La préférence graduée (version 0.87) : chaque tirage au hasard la renforce un peu.
+        // La préférence graduée (version 0.087) : chaque tirage au hasard la renforce un peu.
         if (target == null && preferredFamily() != null) state.setPreferenceDraws(state.preferenceDraws() + 1);
         // Les éléments en plus de la matière noire, tant qu'il en reste à obtenir.
         for (int extra = elementsPerSynthesis() - 1; extra > 0 && !isPeriodicTableComplete(); extra--) {

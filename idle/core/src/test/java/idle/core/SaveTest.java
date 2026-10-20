@@ -193,6 +193,10 @@ class SaveTest {
         state.setRecipeReservation(true);
         state.stats().noteUniverseTally(8, 5_000, 300, 12);
         state.setUniverseSeeds(BigNum.of(7.5, 12));
+        state.setDimensionShards(12.3);
+        state.setLinePhase(1.25);
+        state.setLineYieldLevel(2);
+        state.setLineTicksLevel(3);
         state.setVoidEnergy(BigNum.of(42));
         state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);
@@ -892,7 +896,7 @@ class SaveTest {
         }
     }
 
-    /** Les courbes gardées dans la sauvegarde (version 0.64) : une colonne relue se réécrit à l'identique. */
+    /** Les courbes gardées dans la sauvegarde (version 0.064) : une colonne relue se réécrit à l'identique. */
     @Nested
     class Courbes {
 

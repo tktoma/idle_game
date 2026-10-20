@@ -11,7 +11,7 @@ import idle.core.universe.Skin;
 import idle.core.universe.Trial;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.88 : comment s'obtiennent les skins — record, recherches, paliers et épreuves. */
+/** Version 0.088 : comment s'obtiennent les skins — record, recherches, paliers et épreuves. */
 class SkinsObtenusTest {
 
     /** Le deuxième univers, l'onglet Skins ouvert. */

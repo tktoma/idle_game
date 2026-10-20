@@ -15,7 +15,7 @@ import javafx.scene.paint.Stop;
  * Animation d'un générateur : des poussières convergent vers le centre,
  * le noyau grossit, et quand il est complet une particule est créée (onde + remise à zéro).
  *
- * <p>Depuis la version 0.61, l'allure suit la vitesse du générateur ({@link #intensity(double)}) :
+ * <p>Depuis la version 0.061, l'allure suit la vitesse du générateur ({@link #intensity(double)}) :
  * lent, des poussières bleues et un noyau calme ; plus vite, les poussières laissent des traînées
  * et tournent en spirale, des anneaux d'accrétion apparaissent et tournent, le noyau bat plus
  * vite et se couronne de rayons ; très vite, la couleur passe du bleu au violet puis à l'or, et des
@@ -80,7 +80,7 @@ public final class ParticleView extends Canvas {
         speedLook = on;
     }
     /**
-     * Le skin de la fusion (version 0.89), pour tous les générateurs : {@code null} pour le classique.
+     * Le skin de la fusion (version 0.089), pour tous les générateurs : {@code null} pour le classique.
      * « Éclair » : des éclairs qui convergent, un noyau en étoile, des ondes en dents de scie.
      * « Prisme » : des éclats triangulaires aux couleurs de l'arc-en-ciel, un cristal hexagonal à facettes.
      * « Solitaire » : en noir et blanc, une seule lune sur son orbite et un anneau qui se remplit.
@@ -127,7 +127,7 @@ public final class ParticleView extends Canvas {
         sinceLastRing += dt;
         boolean fast = rate > FAST_RATE;
         // La vitesse s'installe en une demi-seconde : pas de saut quand un palier l'accélère d'un coup.
-        // Un effet coupé l'est tout de suite : rien ne finit de s'éteindre (version 0.67).
+        // Un effet coupé l'est tout de suite : rien ne finit de s'éteindre (version 0.067).
         if (speedLook) intensity += (intensity(rate) - intensity) * Math.min(1, dt * 2);
         else intensity = 0;
         if (!speedLook) arcs.clear();

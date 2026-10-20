@@ -145,7 +145,7 @@ public final class StatsHistory {
         /** Sortes de molécules rassemblées. */
         SUBSTANCES,
 
-        // ----- Collisionneur (version 0.64) -----
+        // ----- Collisionneur (version 0.064) -----
         /** Énergie du collisionneur en réserve, en puissance de dix. */
         COLLIDER_ENERGY,
         /** Énergie produite par le collisionneur depuis le début, en puissance de dix. */

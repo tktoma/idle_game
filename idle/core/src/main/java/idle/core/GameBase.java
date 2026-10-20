@@ -134,7 +134,7 @@ public abstract class GameBase {
     /** Vitesse de départ d'un générateur : deux particules par seconde. */
     public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
     /**
-     * Le premier élan (version 0.95, par paliers depuis la 0.96) : dans la toute première partie,
+     * Le premier élan (version 0.095, par paliers depuis la 0.096) : dans la toute première partie,
      * avant la première explosion, la création prend son élan peu à peu. Elle va
      * {@code FIRST_RUN_PACE} fois moins vite jusqu'au premier atome (une heure environ), puis
      * {@link #FIRST_ATOMS_PACE} fois moins vite jusqu'au cinquième atome créé (deux heures), puis
@@ -165,7 +165,7 @@ public abstract class GameBase {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le premier Big Bang : 10³⁸⁰⁰⁰ depuis la version 0.97 (10³²⁰⁰⁰ avant). C'est ce
+     * Particules à avoir en main pour le premier Big Bang : 10³⁸⁰⁰⁰ depuis la version 0.097 (10³²⁰⁰⁰ avant). C'est ce
      * qui fait durer le deuxième acte six heures en jeu parfait : à la fin de l'arbre, les parties qu'on laisse
      * tourner gagnent quelques milliers d'ordres de grandeur par heure, et les six cases du seuil du Big Bang
      * (de 10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰) jalonnent la montée.
@@ -173,7 +173,7 @@ public abstract class GameBase {
     public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 38000);
 
     /**
-     * Particules des Big Bangs suivants, au troisième acte : 10³⁰⁰⁰, comme avant la 0.73. Chaque cycle
+     * Particules des Big Bangs suivants, au troisième acte : 10³⁰⁰⁰, comme avant la 0.073. Chaque cycle
      * du troisième acte refait un deuxième acte en raccourci ; il n'a pas à redurer cinq heures.
      */
     public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 3000);
@@ -234,19 +234,19 @@ public abstract class GameBase {
     public static final int TABLE_WEIGHT_MAX_LEVEL = 10;
 
     /**
-     * Masse du tableau pendant les défis « Présence » et « Absence » (version 0.73) : un tableau très
+     * Masse du tableau pendant les défis « Présence » et « Absence » (version 0.073) : un tableau très
      * lourd, qu'on ne remplit vite qu'avec les voies du bon style.
      */
     public static final BigNum STYLE_CHALLENGE_WEIGHT = BigNum.of(3, 6);
 
     /**
-     * Masse du tableau pendant les huit premiers défis (version 0.97 ; 1 avant) : ils demandent quelques minutes
+     * Masse du tableau pendant les huit premiers défis (version 0.097 ; 1 avant) : ils demandent quelques minutes
      * chacun au lieu de quelques secondes, et s'étalent sur la deuxième demi-heure de la matière noire.
      */
     public static final BigNum CHALLENGE_WEIGHT = BigNum.of(5000);
 
     /**
-     * La matière noire de chaque explosion avant le premier Big Bang (version 0.97) : ×0,8. Le deuxième acte
+     * La matière noire de chaque explosion avant le premier Big Bang (version 0.097) : ×0,8. Le deuxième acte
      * s'étale ainsi vers six heures, au lieu de cinq.
      */
     public static final double FIRST_CYCLE_DARK_MATTER = 0.8;

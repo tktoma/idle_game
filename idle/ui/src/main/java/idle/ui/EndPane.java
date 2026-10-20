@@ -14,7 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'écran de fin (version 0.68), par-dessus la fenêtre, une seule fois par partie : l'univers est
+ * L'écran de fin (version 0.068), par-dessus la fenêtre, une seule fois par partie : l'univers est
  * formé. Il dit le temps de jeu, la durée de chaque acte et ce que valent les records, quelques
  * chiffres de la partie, puis laisse continuer. Le jeu continue de tourner derrière.
  */
@@ -81,7 +81,7 @@ final class EndPane extends StackPane {
         summary.setText("Tout ce que vous avez créé tient maintenant dans un univers. Temps de jeu : " + Format.duration(end)
                 + record(GameStats.Step.UNIVERSE, end) + ".");
         acts.setText(String.join("\n", actLines(stats, end)));
-        // Le bilan d'avant la remise à zéro de l'univers (version 0.83).
+        // Le bilan d'avant la remise à zéro de l'univers (version 0.083).
         long[] tally = stats.universeTally();
         numbers.setText(Format.whole(stats.fusions()) + " fusions, " + Format.whole(stats.timedExplosions()) + " explosions, "
                 + Format.whole(tally[0]) + " Big Bangs, " + Format.whole(tally[1]) + " molécules, "

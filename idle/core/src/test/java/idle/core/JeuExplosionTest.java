@@ -138,7 +138,7 @@ class JeuExplosionTest extends GameTestSupport {
 
         @Test
         void lArbreNAttendAucuneMatiereNoire() {
-            // Depuis la version 0.70, plus aucun seuil : une seule matière noire, et chaque case dont celle du
+            // Depuis la version 0.070, plus aucun seuil : une seule matière noire, et chaque case dont celle du
             // dessus est prise s'offre. Seuls les prix rythment l'arbre.
             Game game = newGame();
             game.state().setExplosions(1);
@@ -258,7 +258,7 @@ class JeuExplosionTest extends GameTestSupport {
             return game;
         }
 
-        /** Les bifurcations (0.69) : prendre une voie ferme l'autre ; la case d'après demande l'une ou l'autre. */
+        /** Les bifurcations (0.069) : prendre une voie ferme l'autre ; la case d'après demande l'une ou l'autre. */
         @Test
         void uneBifurcationFermeLAutreVoie() {
             Game game = gameWithDarkMatter(12);
@@ -269,7 +269,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertFalse(game.isDarkAvailable("dark_machines"));            // la case d'après attend une voie
             int before = game.elementsPerSynthesis();
             assertTrue(game.buyDark("dark_fine_synthesis"));
-            assertEquals(before + 2, game.elementsPerSynthesis());   // deux éléments depuis la 0.70
+            assertEquals(before + 2, game.elementsPerSynthesis());   // deux éléments depuis la 0.070
             assertEquals("dark_fine_synthesis", game.darkForkRival("dark_rich_fusion").id());
             assertFalse(game.isDarkAvailable("dark_rich_fusion"));
             assertFalse(game.buyDark("dark_rich_fusion"));                  // l'autre voie est fermée

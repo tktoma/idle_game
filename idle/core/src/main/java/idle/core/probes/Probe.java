@@ -12,7 +12,7 @@ package idle.core.probes;
  */
 public record Probe(ProbeDestination destination, ProbeTrip trip, double left, double total, long id) {
 
-    /** Une sonde sans numéro, comme dans les sauvegardes d'avant la version 0.56. */
+    /** Une sonde sans numéro, comme dans les sauvegardes d'avant la version 0.056. */
     public Probe(ProbeDestination destination, ProbeTrip trip, double left, double total) {
         this(destination, trip, left, total, -1);
     }

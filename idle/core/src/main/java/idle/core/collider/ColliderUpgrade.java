@@ -1,13 +1,13 @@
 package idle.core.collider;
 
 /**
- * Les améliorations du collisionneur (version 0.59, refaites en 0.60), payées en énergie. Elles
+ * Les améliorations du collisionneur (version 0.059, refaites en 0.060), payées en énergie. Elles
  * s'ouvrent quand les huit générateurs sont là ; au début, seule la première s'offre, « Collisions »,
  * qui donne aux croisements leur chance de collision. Chacune en ouvre d'autres, rangées en quatre
  * familles ({@link Section}) : les collisions et leurs saveurs, une à une ; les faisceaux ; les
  * générateurs et leurs automates ; et la chaîne qui fait passer l'énergie dans le reste du jeu,
- * des particules au dédoublement des molécules, rangée depuis la version 0.61 dans son propre
- * sous-onglet, et payée aussi en quarks depuis la 0.62. Comme tout le collisionneur, elles traversent
+ * des particules au dédoublement des molécules, rangée depuis la version 0.061 dans son propre
+ * sous-onglet, et payée aussi en quarks depuis la 0.062. Comme tout le collisionneur, elles traversent
  * l'explosion et le Big Bang ; seule la remise à zéro les reprend.
  */
 public enum ColliderUpgrade {
@@ -28,8 +28,8 @@ public enum ColliderUpgrade {
             5, 3e11, 8, FLAVOR_STRANGE, 1, null),
     TOP_LIFE(Section.COLLISIONS, "Top stable", "Le quark top attend deux fois plus longtemps, la surchauffe dure 50 % de plus, par niveau",
             3, 1e16, 20, FLAVOR_TOP, 1, null),
-    // Version 0.70 : la condition qui ouvre toutes les bifurcations de l'arbre de matière noire. Elle attend
-    // aussi le cinquième Big Bang (version 0.73, {@link idle.core.Game#isColliderUpgradeOpen}).
+    // Version 0.070 : la condition qui ouvre toutes les bifurcations de l'arbre de matière noire. Elle attend
+    // aussi le cinquième Big Bang (version 0.073, {@link idle.core.Game#isColliderUpgradeOpen}).
     SUPERPOSITION(Section.COLLISIONS, "Superposition", "À partir du cinquième Big Bang : les bifurcations de l'arbre de matière noire s'ouvrent des deux côtés : "
             + "les deux voies se prennent, et elles restent, avec les liaisons, d'un Big Bang à l'autre",
             1, 1e24, 1, FLAVOR_TOP, 1, null),
@@ -88,7 +88,7 @@ public enum ColliderUpgrade {
     private final int requiredLevel;
     private final ColliderGenerator generator;
     private final Quark flavor;
-    /** La chaîne se paie aussi en quarks (version 0.62) : leur saveur, et le prix du premier niveau, qui double ensuite. */
+    /** La chaîne se paie aussi en quarks (version 0.062) : leur saveur, et le prix du premier niveau, qui double ensuite. */
     private final Quark quark;
     private final int quarkBase;
 
@@ -147,7 +147,7 @@ public enum ColliderUpgrade {
     }
 
     /**
-     * Ce que fait l'amélioration, en quelques mots, pour la carte (version 0.64) ; l'explication
+     * Ce que fait l'amélioration, en quelques mots, pour la carte (version 0.064) ; l'explication
      * complète ({@link #effect()}) n'apparaît qu'en mode détails.
      */
     public String brief() {

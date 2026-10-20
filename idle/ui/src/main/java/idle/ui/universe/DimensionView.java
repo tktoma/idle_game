@@ -1,14 +1,23 @@
 package idle.ui.universe;
 
+import idle.core.Game;
+import java.util.ArrayList;
+import java.util.List;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 
 /**
- * Le visuel d'une dimension, dans sa fenêtre (version 0.81) : une tentative, sans logique, pour
+ * Le visuel d'une dimension, dans sa fenêtre (version 0.081) : une tentative, sans logique, pour
  * chacune des dix. De la ligne (un point qui va et vient) au point qui contient tout, en passant
  * par le plan, le cube qui tourne, ses instants mis bout à bout, les embranchements du temps,
  * tous les débuts, et d'autres lois.
+ *
+ * <p>La ligne a sa logique depuis la version 0.101 : la boule est celle du jeu ({@link Game#linePosition()}),
+ * un trait à chaque bout et, avec l'amélioration, d'autres à égale distance entre les deux. Chaque trait
+ * touché s'allume et laisse monter les éclats qu'il donne.
  */
 public final class DimensionView extends Canvas {
 
@@ -17,17 +26,34 @@ public final class DimensionView extends Canvas {
             Color.web("#9fd0ff"), Color.web("#ffd27f"), Color.web("#c9a6ff"), Color.web("#9be7a8"), Color.web("#ff9eb5"),
             Color.web("#7fe0d4"), Color.web("#ffb36b"), Color.web("#a8b8ff"), Color.web("#ff7ad9"), Color.web("#fff1c9")};
 
+    /** Un trait qui vient d'être touché : son éclat et les éclats qui montent. */
+    private static final class Touch {
+        double at, age;
+    }
+
+    private final Game game;
+    private final List<Touch> touches = new ArrayList<>();
+    /** La route de la boule à l'image d'avant, pour voir les traits passés depuis. */
+    private double lastPhase = Double.NaN;
     private Dimension dimension = Dimension.LINE;
     private double time;
 
-    public DimensionView() {
+    public DimensionView(Game game) {
         super(800, 480);
+        this.game = game;
     }
 
     /** La dimension à montrer ; son animation repart du début. */
     public void show(Dimension dimension) {
         this.dimension = dimension;
         time = 0;
+        touches.clear();
+        lastPhase = Double.NaN;
+    }
+
+    /** Les traits allumés à l'instant : pour les vérifications. */
+    public int touchesShown() {
+        return touches.size();
     }
 
     public Dimension dimension() {
@@ -36,7 +62,30 @@ public final class DimensionView extends Canvas {
 
     public void frame(double elapsed, boolean moving) {
         if (moving) time += Math.min(elapsed, 0.1);
+        if (dimension == Dimension.LINE) noteTouches(Math.min(elapsed, 0.1), moving);
         draw();
+    }
+
+    /** Les traits que la boule a touchés depuis l'image d'avant : chacun s'allume. */
+    private void noteTouches(double elapsed, boolean moving) {
+        for (Touch touch : touches) touch.age += elapsed;
+        touches.removeIf(touch -> touch.age > 1.2);
+        double phase = game.state().linePhase();
+        if (!Double.isNaN(lastPhase) && moving) {
+            double to = phase < lastPhase ? phase + 2 : phase;
+            // Plus d'un aller depuis la dernière image (la fenêtre était fermée) : rien à rejouer.
+            if (to - lastPhase < 1) {
+                int gaps = game.lineTicks() - 1;
+                long first = (long) Math.floor(lastPhase * gaps + 1e-9) + 1, last = (long) Math.floor(to * gaps + 1e-9);
+                for (long m = first; m <= last; m++) {
+                    double unfolded = (double) (m % (2L * gaps)) / gaps;
+                    Touch touch = new Touch();
+                    touch.at = unfolded <= 1 ? unfolded : 2 - unfolded;
+                    touches.add(touch);
+                }
+            }
+        }
+        lastPhase = phase;
     }
 
     private Color color() {
@@ -67,24 +116,47 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // 1. Un point qui va et vient sur une ligne, sa traînée derrière lui.
+    // 1. La ligne (version 0.101) : la boule du jeu va et vient, un trait à chaque bout et d'autres à égale
+    // distance ; chaque trait touché s'allume, et ses éclats montent.
     private void line(GraphicsContext g, double w, double cx, double cy, double u) {
         Color c = color();
+        double x0 = w * 0.1, x1 = w * 0.9;
         g.setStroke(c);
         g.setLineWidth(2);
         g.setGlobalAlpha(0.35);
-        g.strokeLine(w * 0.08, cy, w * 0.92, cy);
-        for (int k = 0; k <= 20; k++) {
-            double x = w * 0.08 + w * 0.84 * k / 20;
-            g.setGlobalAlpha(0.25);
-            g.strokeLine(x, cy - 5, x, cy + 5);
+        g.strokeLine(x0, cy, x1, cy);
+        int gaps = game.lineTicks() - 1;
+        for (int k = 0; k <= gaps; k++) {
+            double at = (double) k / gaps, x = x0 + (x1 - x0) * at;
+            double lit = 0;
+            for (Touch touch : touches) if (Math.abs(touch.at - at) < 1e-9) lit = Math.max(lit, 1 - touch.age / 0.6);
+            boolean end = k == 0 || k == gaps;
+            double half = (end ? 16 : 10) + 6 * Math.max(0, lit);
+            g.setLineWidth(end ? 3 : 2);
+            g.setStroke(lit > 0 ? Color.WHITE : c);
+            g.setGlobalAlpha(0.55 + 0.45 * Math.max(0, lit));
+            g.strokeLine(x, cy - half, x, cy + half);
+            if (lit > 0) UniverseView.glow(g, x, cy, u * 0.035 * lit + 4, c, 0.8 * lit);
         }
-        for (int k = 14; k >= 0; k--) {
-            double t = time - k * 0.03;
-            double x = cx + w * 0.4 * Math.sin(t * 1.3);
-            UniverseView.glow(g, x, cy, u * 0.03 * (1 - k / 16.0), c, 0.8 * (1 - k / 15.0));
+        // Les éclats de chaque trait touché montent et s'effacent.
+        g.setFont(Font.font(13));
+        g.setTextAlign(TextAlignment.CENTER);
+        String gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.lineShardsPerTouch()));
+        for (Touch touch : touches) {
+            double x = x0 + (x1 - x0) * touch.at;
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(Math.max(0, 1 - touch.age / 1.2));
+            g.fillText(gain, x, cy - 26 - touch.age * 30);
         }
-        double x = cx + w * 0.4 * Math.sin(time * 1.3);
+        // La boule, et sa traînée le long de la route qu'elle vient de faire.
+        double phase = game.state().linePhase();
+        for (int k = 14; k >= 1; k--) {
+            double back = phase - k * 0.012;
+            if (back < 0) back += 2;
+            double pos = back <= 1 ? back : 2 - back;
+            UniverseView.glow(g, x0 + (x1 - x0) * pos, cy, u * 0.03 * (1 - k / 16.0), c, 0.8 * (1 - k / 15.0));
+        }
+        double x = x0 + (x1 - x0) * game.linePosition();
         UniverseView.glow(g, x, cy, u * 0.06, c, 0.9);
         g.setGlobalAlpha(1);
         g.setFill(Color.WHITE);

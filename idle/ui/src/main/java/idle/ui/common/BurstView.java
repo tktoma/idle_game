@@ -10,7 +10,7 @@ import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
 
 /**
- * Les animations plein écran des skins (version 0.89), par-dessus toute la fenêtre et sans prendre
+ * Les animations plein écran des skins (version 0.089), par-dessus toute la fenêtre et sans prendre
  * les clics : l'explosion de matière noire sous « Vortex » ou « Pulsar », et le Big Bang sous
  * « Aurore », « Supernova » ou « Cristal ». Le classique garde ses animations à lui.
  *

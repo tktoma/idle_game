@@ -16,7 +16,7 @@ import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.87 : le deuxième univers, la partie rejouée, l'onglet Skins et ce qui ne s'ouvre qu'à partir de là. */
+/** Version 0.087 : le deuxième univers, la partie rejouée, l'onglet Skins et ce qui ne s'ouvre qu'à partir de là. */
 class DeuxiemeUniversTest {
 
     /** Une méthode du jeu, cherchée dans toute la chaîne de ses parties. */
@@ -170,6 +170,90 @@ class DeuxiemeUniversTest {
         assertEquals(1 + Game.PERFECT_GAIN, game.perfectCycleMultiplier(), 1e-12);
         game.tick(Game.PERFECT_SECONDS + 1);
         assertEquals(1, game.perfectCycleMultiplier(), 0, "elle s'éteint");
+    }
+
+    /** Une partie au premier univers formé : la première dimension est ouverte. */
+    private static Game firstUniverse() {
+        Game game = new Game();
+        game.start();
+        formUniverse(game);
+        return game;
+    }
+
+    @Test
+    void laLigneDonneUnDixiemeDEclatParTraitTouche() {
+        Game before = new Game();
+        before.start();
+        before.tick(100);
+        assertFalse(before.isLineOpen(), "avant l'univers, pas de dimension");
+        assertEquals(0, before.state().dimensionShards(), 0);
+        Game game = firstUniverse();
+        assertTrue(game.isLineOpen());
+        assertEquals(2, game.lineTicks(), "un trait au début, un à la fin");
+        game.state().setLinePhase(0);
+        game.state().setDimensionShards(0);
+        game.tick(Game.LINE_HALF_TRIP * 0.5);
+        assertEquals(0, game.state().dimensionShards(), 1e-9, "à mi-chemin, aucun trait touché");
+        assertEquals(0.5, game.linePosition(), 1e-9);
+        game.tick(Game.LINE_HALF_TRIP * 0.5);
+        assertEquals(0.1, game.state().dimensionShards(), 1e-9, "le bout : 0,1 éclat");
+        game.tick(Game.LINE_HALF_TRIP);
+        assertEquals(0.2, game.state().dimensionShards(), 1e-9, "retour au début : 0,1 de plus");
+        // Un grand pas compte autant que beaucoup de petits.
+        Game big = firstUniverse(), small = firstUniverse();
+        big.state().setLinePhase(0);
+        small.state().setLinePhase(0);
+        big.state().setDimensionShards(0);
+        small.state().setDimensionShards(0);
+        big.tick(100);
+        for (int k = 0; k < 1000; k++) small.tick(0.1);
+        assertEquals(big.state().dimensionShards(), small.state().dimensionShards(), 1e-6);
+        assertEquals(Math.floor(100 / Game.LINE_HALF_TRIP) * 0.1, big.state().dimensionShards(), 1e-6);
+    }
+
+    @Test
+    void lesDeuxAmeliorationsDeLaLigne() {
+        Game game = firstUniverse();
+        game.state().setLinePhase(0);
+        game.state().setDimensionShards(0.5);
+        assertFalse(game.canBuyLineYield(), "il faut " + Game.LINE_YIELD_COST + " éclat");
+        game.state().setDimensionShards(Game.LINE_YIELD_COST);
+        assertTrue(game.buyLineYield());
+        assertEquals(0, game.state().dimensionShards(), 1e-9);
+        assertEquals(0.2, game.lineShardsPerTouch(), 1e-9, "0,1 de plus par trait");
+        assertEquals(Game.LINE_YIELD_COST * Game.LINE_COST_GROWTH, game.lineYieldCost(), 1e-9);
+        game.state().setDimensionShards(Game.LINE_TICKS_COST);
+        assertTrue(game.buyLineTicks());
+        assertEquals(3, game.lineTicks(), "un trait au milieu");
+        game.state().setDimensionShards(0);
+        game.state().setLinePhase(0);
+        game.tick(Game.LINE_HALF_TRIP * 0.5);
+        assertEquals(0.2, game.state().dimensionShards(), 1e-9, "le trait du milieu, à égale distance des bouts");
+        game.tick(Game.LINE_HALF_TRIP * 0.5);
+        assertEquals(0.4, game.state().dimensionShards(), 1e-9);
+        assertEquals(2 * 0.2 / Game.LINE_HALF_TRIP, game.lineShardsPerSecond(), 1e-12);
+        game.state().setLineTicksLevel(Game.LINE_MAX_EXTRA_TICKS);
+        game.state().setDimensionShards(1e9);
+        assertFalse(game.canBuyLineTicks(), "quarante traits au plus");
+        // Les éclats et les améliorations traversent les univers.
+        game.state().setDimensionShards(5);
+        assertTrue(game.startNextUniverse());
+        assertEquals(5, game.state().dimensionShards(), 1e-9);
+        assertEquals(1, game.state().lineYieldLevel());
+    }
+
+    @Test
+    void leVideSOuvreAuPremierBigBangDuDeuxiemeUnivers() {
+        Game first = new Game();
+        first.state().setBigBangs(3);
+        assertFalse(first.isVoidUnlocked(), "pas dans le premier univers, même après des Big Bangs");
+        Game game = second();
+        assertFalse(game.isVoidUnlocked(), "avant le premier Big Bang du deuxième univers");
+        game.state().setBigBangs(1);
+        assertTrue(game.isVoidUnlocked());
+        assertEquals(0, game.state().voidEnergy().sign(), "pour l'instant sans logique : rien ne s'y gagne");
+        game.tick(60);
+        assertEquals(0, game.state().voidEnergy().sign());
     }
 
     @Test

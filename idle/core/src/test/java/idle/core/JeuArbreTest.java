@@ -63,7 +63,7 @@ class JeuArbreTest extends GameTestSupport {
                 if (dark.isLink()) continue;                    // les liaisons (0.70) sont vérifiées à part
                 count.merge(dark.branch(), 1, Integer::sum);
                 if (!dark.branch().inTree()) continue;         // celles payées en matière noire ne sont pas dans l'arbre
-                // Une bifurcation (0.69) : ses deux voies partent de la même case ; la case d'après demande la bifurcation.
+                // Une bifurcation (0.069) : ses deux voies partent de la même case ; la case d'après demande la bifurcation.
                 if (dark.isFork()) {
                     String fork = DarkUpgrade.FORK_PREFIX + dark.fork();
                     if (!fork.equals(previous.get(dark.branch()))) {
@@ -117,7 +117,7 @@ class JeuArbreTest extends GameTestSupport {
             game.state().setParticles(BigNum.of(1, 45));
             assertFalse(game.isDarkAvailable("dark_swarm"));   // la case du dessus manque
             assertTrue(game.buyDark("dark_density"));
-            assertTrue(game.buyDark("dark_swarm"));            // une seule matière noire suffit depuis la 0.70
+            assertTrue(game.buyDark("dark_swarm"));            // une seule matière noire suffit depuis la 0.070
             assertEquals(1, game.state().darkMatter().toDouble()); // la matière noire n'est pas dépensée
         }
 

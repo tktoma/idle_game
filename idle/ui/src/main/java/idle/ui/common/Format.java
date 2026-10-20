@@ -194,7 +194,7 @@ public final class Format {
     }
 
     /**
-     * Quantité de matière noire (version 0.97) : elle peut avoir un dixième depuis que le premier cycle en donne
+     * Quantité de matière noire (version 0.097) : elle peut avoir un dixième depuis que le premier cycle en donne
      * ×0,8 par explosion. « 12 », « 0.8 », « 499.6 », puis en notation scientifique. Arrondie vers le bas, comme
      * {@link #count} : 499,96 s'affiche 499.9, pas 500.
      */

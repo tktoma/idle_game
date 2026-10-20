@@ -44,18 +44,18 @@ public final class Absence {
      * @param space             espace gagné
      * @param moleculeCreations créations de molécules
      * @param achievements      succès obtenus
-     * @param voies             voies d'absence que l'arbre a prises seul (version 0.73)
-     * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.73)
+     * @param voies             voies d'absence que l'arbre a prises seul (version 0.073)
+     * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.073)
      * @param challengesDone    défis réussis pendant l'absence
      * @param challengeRunning  le défi en cours au retour, ou {@code null}
-     * @param probeTrips        voyages de sonde que l'absence a vidés et relancés seule (version 0.86)
+     * @param probeTrips        voyages de sonde que l'absence a vidés et relancés seule (version 0.086)
      */
     public record Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                          BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
                          long moleculeCreations, int achievements, java.util.List<String> voies,
                          java.util.List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
 
-        /** Un bilan sans sondes : celui d'avant la 0.86. */
+        /** Un bilan sans sondes : celui d'avant la 0.086. */
         public Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                       BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
                       long moleculeCreations, int achievements, java.util.List<String> voies,

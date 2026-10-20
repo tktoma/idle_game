@@ -150,7 +150,7 @@ public final class ChallengesPane extends VBox {
         });
     }
 
-    /** Pour les défis qui jouent sur l'arbre (version 0.70) : les voies prises en ce moment. */
+    /** Pour les défis qui jouent sur l'arbre (version 0.070) : les voies prises en ce moment. */
     private String paths(Challenge challenge) {
         if (challenge.rule() != Challenge.Rule.PRESENCE_ONLY && challenge.rule() != Challenge.Rule.ABSENCE_ONLY) return "";
         return "\nVoies prises : " + game.darkVoiesOwned(Game.Style.PRESENCE) + " de présence, "

@@ -44,7 +44,7 @@ public abstract class GameSystems extends GameBase {
     public abstract int colliderUpgradeLevel(ColliderUpgrade upgrade);
 
     // ------------------------------------------------------------------
-    // Les sondes (version 0.52) : des voyages dont le butin se réclame d'un clic
+    // Les sondes (version 0.052) : des voyages dont le butin se réclame d'un clic
     // ------------------------------------------------------------------
 
     /** Secondes d'expansion que vaut une récompense d'espace de valeur 1 (un saut court). */
@@ -232,7 +232,7 @@ public abstract class GameSystems extends GameBase {
         state.setProbeRuns(run + 1);
         double value = probeValue(probe.trip());
         ProbeDestination where = probe.destination();
-        // L'onde d'urgence (version 0.86) : un seul lot, de l'élément le plus demandé à son retour ; rien s'il n'y en a plus.
+        // L'onde d'urgence (version 0.086) : un seul lot, de l'élément le plus demandé à son retour ; rien s'il n'y en a plus.
         if (probe.trip().isUrgent()) {
             int element = urgentElement();
             return element > 0 ? List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, String.valueOf(element), value, where, probe.id()))
@@ -382,7 +382,7 @@ public abstract class GameSystems extends GameBase {
         return taken;
     }
     // ------------------------------------------------------------------
-    // La maturation des astres (version 0.53) : un astre formé mûrit avant de compter pleinement
+    // La maturation des astres (version 0.053) : un astre formé mûrit avant de compter pleinement
     // ------------------------------------------------------------------
 
     /** Part de son bonus que donne un astre pendant qu'il mûrit. */
@@ -506,7 +506,7 @@ public abstract class GameSystems extends GameBase {
         return taken;
     }
     // ------------------------------------------------------------------
-    // Les systèmes solaires (version 0.54) : une étoile, ses planètes, ses lunes
+    // Les systèmes solaires (version 0.054) : une étoile, ses planètes, ses lunes
     // ------------------------------------------------------------------
 
     /** Systèmes solaires complets que demande la galaxie. */
@@ -680,7 +680,7 @@ public abstract class GameSystems extends GameBase {
     }
 
     /**
-     * Le meilleur ordre des planètes de ce système (version 0.59) : celui qui donne le plus
+     * Le meilleur ordre des planètes de ce système (version 0.059) : celui qui donne le plus
      * d'harmonie, et à égalité celui qui bouge le moins de planètes. Les lunes ne changent pas.
      */
     public SolarSystem bestArrangement(SolarSystem system) {

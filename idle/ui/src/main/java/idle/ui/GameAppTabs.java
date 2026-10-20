@@ -27,7 +27,7 @@ public abstract class GameAppTabs extends GameAppWindow {
 
 
     // ------------------------------------------------------------------
-    // L'ordre des onglets, qu'on change en les glissant (version 0.60)
+    // L'ordre des onglets, qu'on change en les glissant (version 0.060)
     // ------------------------------------------------------------------
 
     /** Temps d'appui avant qu'un onglet ne se laisse glisser, en nanosecondes : un clic bref reste un clic. */
@@ -44,7 +44,7 @@ public abstract class GameAppTabs extends GameAppWindow {
                 // un onglet d'une autre version, ou rien : écarté
             }
         }
-        // Un onglet que l'ordre ne cite pas (un nouveau, comme l'univers en 0.80) se range après celui qui le
+        // Un onglet que l'ordre ne cite pas (un nouveau, comme l'univers en 0.080) se range après celui qui le
         // précède d'habitude, pas au bout : les pages pour s'y retrouver restent à part.
         Tab[] natural = Tab.values();
         for (int k = 0; k < natural.length; k++) {
@@ -208,7 +208,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         exploding = true;
         blast.setVisible(true);
         flash.setOpacity(0);
-        // Le skin de l'animation (version 0.89) : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
+        // Le skin de l'animation (version 0.089) : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION);
         boolean skinned = look == idle.core.universe.Skin.DARK_VORTEX || look == idle.core.universe.Skin.DARK_PULSAR;
         flash.setStyle("-fx-background-color: " + (look == idle.core.universe.Skin.DARK_VORTEX ? "#12061f"
@@ -331,7 +331,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * Vrai dans la partie secondaire (version 0.81) : l'univers est formé, et les anciens onglets sont
+     * Vrai dans la partie secondaire (version 0.081) : l'univers est formé, et les anciens onglets sont
      * cachés (sauf si l'outil d'essai les a fait revenir).
      */
     boolean universePhase() {
@@ -339,7 +339,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * Les fenêtres d'explication (version 0.89) : chaque onglet qui s'ouvre, puis les nouveautés du
+     * Les fenêtres d'explication (version 0.089) : chaque onglet qui s'ouvre, puis les nouveautés du
      * deuxième univers. Elles attendent qu'aucune autre fenêtre n'ait la main.
      */
     void checkPopups() {
@@ -375,6 +375,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case COLLIDER -> "Collisionneur";
             case BIG_BANG -> "Big Bang";
             case UNIVERSE -> "Univers";
+            case VOID -> "Le vide";
             case ACHIEVEMENTS -> "Succès";
             case STATS -> "Statistiques";
             case SETTINGS -> "Réglages";
@@ -391,6 +392,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case COLLIDER -> ColliderPane.COLOR;
             case BIG_BANG -> BIG_BANG_COLOR;
             case UNIVERSE -> UniversePage.COLOR;
+            case VOID -> idle.ui.vacuum.VoidPage.COLOR;
             case ACHIEVEMENTS -> ACHIEVEMENTS_COLOR;
             case STATS -> STATS_COLOR;
             case SETTINGS -> SETTINGS_COLOR;
@@ -476,6 +478,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         colliderPage.setVisible(tab == Tab.COLLIDER);
         bigBangPage.setVisible(tab == Tab.BIG_BANG);
         universePage.setVisible(tab == Tab.UNIVERSE);
+        voidPage.setVisible(tab == Tab.VOID);
         achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
         settingsScroll.setVisible(tab == Tab.SETTINGS);
@@ -497,7 +500,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
         boolean icons = tabsLeftApplied || !narrow;
-        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
+        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
         for (int i = 0; i < tabButtons.length; i++) tabButtons[i].setGraphic(icons ? graphics[i] : null);
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
@@ -505,7 +508,7 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     private static TabRole roleOf(Tab tab) {
         return switch (tab) {
-            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE -> TabRole.ACT;
+            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE, VOID -> TabRole.ACT;
             case AUTOMATION, COLLIDER -> TabRole.SIDE;
             case ACHIEVEMENTS, STATS, SETTINGS, SKINS -> TabRole.META;
         };
@@ -520,6 +523,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case COLLIDER -> colliderIcon;
             case BIG_BANG -> bigBangIcon;
             case UNIVERSE -> universeIcon;
+            case VOID -> voidIcon;
             case ACHIEVEMENTS -> achievementsIcon;
             case STATS -> statsIcon;
             case SETTINGS -> settingsIcon;
@@ -528,7 +532,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     }
 
     /**
-     * L'allure d'un onglet selon son rôle (version 0.59). Les actes ont un cadre plein dans leur
+     * L'allure d'un onglet selon son rôle (version 0.059). Les actes ont un cadre plein dans leur
      * couleur ; ce qui tourne à côté, un cadre en pointillés ; les pages pour s'y retrouver, aucun
      * cadre tant qu'elles ne sont pas affichées. L'onglet affiché est rempli d'un voile de sa couleur
      * et brille. L'épaisseur du cadre, les marges et la police ne changent jamais d'un état à
@@ -607,6 +611,9 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
         if (selectedTab == Tab.UNIVERSE) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
+        }
+        if (selectedTab == Tab.VOID) {
+            voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
         dimensionWindow.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         lootPane.frame(dt);

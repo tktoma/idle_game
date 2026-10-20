@@ -12,7 +12,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Les univers de l'onglet du même nom. Version 0.80 : une toile d'amas ; version 0.81 : chaque
+ * Les univers de l'onglet du même nom. Version 0.080 : une toile d'amas ; version 0.081 : chaque
  * univers est une bulle ronde, un nuage coloré qui dérive à l'intérieur, une poussière d'étoiles et
  * un anneau incliné qui dit sous quel angle on la voit.
  *

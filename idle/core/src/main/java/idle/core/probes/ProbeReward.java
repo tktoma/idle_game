@@ -12,7 +12,7 @@ package idle.core.probes;
  */
 public record ProbeReward(Type type, String target, double value, ProbeDestination destination, long probe) {
 
-    /** Une récompense sans sonde, comme dans les sauvegardes d'avant la version 0.56. */
+    /** Une récompense sans sonde, comme dans les sauvegardes d'avant la version 0.056. */
     public ProbeReward(Type type, String target, double value, ProbeDestination destination) {
         this(type, target, value, destination, -1);
     }

@@ -315,7 +315,7 @@ public final class AutomationPage extends VBox {
         wrapped(followMatterHint, "-fx-font-size: 11px; -fx-text-fill: #93b4c8;");
         followMatterHint.setMaxWidth(690);
         getChildren().add(followMatterBox);
-        // Les plafonds par état (version 0.85) : une liste par état de la matière.
+        // Les plafonds par état (version 0.085) : une liste par état de la matière.
         capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         capsTitle.setWrapText(true);
         capsTitle.setMaxWidth(760);
@@ -605,7 +605,7 @@ public final class AutomationPage extends VBox {
             }
             anyDark = true;
             boolean on = game.isDarkAutomationEnabled(automation.id());
-            boolean suspended = false;   // depuis la 0.47, même l'automatisme qui offre les automatismes agit pendant les défis
+            boolean suspended = false;   // depuis la 0.047, même l'automatisme qui offre les automatismes agit pendant les défis
             card.show(on && !suspended ? Card.State.ON : Card.State.OFF, "",
                     suspended ? "suspendu" : on ? "en marche" : "coupé",
                     automation.name(), brief(automation),

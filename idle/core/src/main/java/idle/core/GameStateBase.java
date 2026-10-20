@@ -88,9 +88,9 @@ public abstract class GameStateBase {
     final Set<String> substances = new java.util.LinkedHashSet<>();
     final Set<String> assemblies = new java.util.LinkedHashSet<>();
     final Set<String> bodies = new java.util.LinkedHashSet<>();
-    /** Les systèmes solaires (version 0.54). */
+    /** Les systèmes solaires (version 0.054). */
     final List<SolarSystem> solarSystems = new ArrayList<>();
-    /** Les astres formés qui mûrissent encore (version 0.53), avec les secondes qu'il leur reste. */
+    /** Les astres formés qui mûrissent encore (version 0.053), avec les secondes qu'il leur reste. */
     final Map<String, Double> maturing = new java.util.LinkedHashMap<>();
     /**
      * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
@@ -127,21 +127,21 @@ public abstract class GameStateBase {
     double cometVisible = 0;
     double cometBoost = 0;
     int cometsCaught = 0;
-    /** Vrai une fois l'écran de fin vu (version 0.68) : il ne s'ouvre qu'une fois par partie. */
+    /** Vrai une fois l'écran de fin vu (version 0.068) : il ne s'ouvre qu'une fois par partie. */
     boolean endSeen = false;
-    // La partie secondaire (version 0.81), sans logique pour l'instant : les univers créés après le
+    // La partie secondaire (version 0.081), sans logique pour l'instant : les univers créés après le
     // premier, les graines d'univers, l'énergie du vide, et le niveau des améliorations de l'univers.
     int extraUniverses = 0;
     boolean universeFormed = false;
-    // Les plans de l'arbre et des systèmes solaires (version 0.84).
+    // Les plans de l'arbre et des systèmes solaires (version 0.084).
     final List<String> darkPlan = new ArrayList<>();
-    /** Les emplacements de sauvegarde des plans (version 0.86) : {@link #PLAN_SLOTS} chacun, vides au départ. */
+    /** Les emplacements de sauvegarde des plans (version 0.086) : {@link #PLAN_SLOTS} chacun, vides au départ. */
     public static final int PLAN_SLOTS = 5;
     final List<String> savedDarkPlans = emptySlots();
     final List<SolarSystem> systemPlan = new ArrayList<>();
     final List<String> savedSystemPlans = emptySlots();
 
-    /** Relit des emplacements ; une sauvegarde de la 0.84 ou 0.85 n'en avait qu'un, sous l'ancienne clé. */
+    /** Relit des emplacements ; une sauvegarde de la 0.084 ou 0.085 n'en avait qu'un, sous l'ancienne clé. */
     static void readSlots(SaveData data, String key, String oldKey, List<String> slots) {
         java.util.Collections.fill(slots, "");
         List<String> read = data.has(key) ? data.list(key) : List.of(String.join("", data.list(oldKey)));
@@ -152,11 +152,11 @@ public abstract class GameStateBase {
         return new ArrayList<>(java.util.Collections.nCopies(PLAN_SLOTS, ""));
     }
     boolean forkResetArmed = false;
-    // Planifier la matière (version 0.85).
+    // Planifier la matière (version 0.085).
     final List<String> plannedBodies = new ArrayList<>();
     final Map<String, Double> stateCaps = new TreeMap<>();
     boolean recipeReservation = false;
-    // Le deuxième univers (version 0.87).
+    // Le deuxième univers (version 0.087).
     boolean replaying = false;
     long fusionsAtUniverse = 0;
     boolean skinsOpen = false;
@@ -172,47 +172,55 @@ public abstract class GameStateBase {
     String preferredFamily = null;
     int preferenceDraws = 0;
     int freeElementsUsed = 0;
-    // Les skins à obtenir (version 0.88).
+    // Les skins à obtenir (version 0.088).
     String activeTrial = null;
     double trialStart = 0;
     double trialBase = 0;
     int trialCount = 0;
     final Set<String> completedTrials = new java.util.TreeSet<>();
-    /** Les fenêtres d'explication déjà montrées (version 0.89) : onglets ouverts et nouveautés du deuxième univers. */
+    /** Les fenêtres d'explication déjà montrées (version 0.089) : onglets ouverts et nouveautés du deuxième univers. */
     final Set<String> seenPopups = new java.util.TreeSet<>();
-    /** Vrai une fois les fenêtres d'une partie d'avant la 0.89 marquées vues, sans les montrer. */
+    /** Vrai une fois les fenêtres d'une partie d'avant la 0.089 marquées vues, sans les montrer. */
     boolean popupsPrimed = false;
     double rebuildRecord = 0;
     boolean rebuildPending = false;
     final Set<String> researches = new java.util.TreeSet<>();
     BigNum universeSeeds = BigNum.ZERO;
     BigNum voidEnergy = BigNum.ZERO;
+    /**
+     * La ligne, première dimension (version 0.101) : ses éclats, où en est la boule (0 au début de la
+     * ligne, 1 au bout, 2 de retour au début) et le niveau de ses deux améliorations.
+     */
+    double dimensionShards = 0;
+    double linePhase = 0;
+    int lineYieldLevel = 0;
+    int lineTicksLevel = 0;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;
-    // Le collisionneur de quarks (version 0.50) : rien ne s'y perd à l'explosion ni au Big Bang.
+    // Le collisionneur de quarks (version 0.050) : rien ne s'y perd à l'explosion ni au Big Bang.
     double colliderEnergy = 0;
-    /** Les générateurs du collisionneur (version 0.57) : ce qu'on en a, et combien ont été achetés. */
+    /** Les générateurs du collisionneur (version 0.057) : ce qu'on en a, et combien ont été achetés. */
     final java.util.EnumMap<ColliderGenerator, Double> colliderGenerators = new java.util.EnumMap<>(ColliderGenerator.class);
     final java.util.EnumMap<ColliderGenerator, Integer> colliderGeneratorsBought = new java.util.EnumMap<>(ColliderGenerator.class);
     /**
-     * Les faisceaux (version 0.59) : leur phase, de 0 à 1 (ils se croisent à 0,5), le nombre de
+     * Les faisceaux (version 0.059) : leur phase, de 0 à 1 (ils se croisent à 0,5), le nombre de
      * croisements depuis le début, et le numéro du dernier croisement capté d'un clic.
      */
     double colliderPhase = 0;
     long colliderCrossings = 0;
     long colliderCaught = -1;
-    /** Les améliorations du collisionneur (version 0.59) et les automates mis en pause par le joueur. */
+    /** Les améliorations du collisionneur (version 0.059) et les automates mis en pause par le joueur. */
     final java.util.EnumMap<ColliderUpgrade, Integer> colliderUpgrades = new java.util.EnumMap<>(ColliderUpgrade.class);
     final java.util.EnumSet<ColliderUpgrade> colliderPaused = java.util.EnumSet.noneOf(ColliderUpgrade.class);
     final java.util.EnumMap<Quark, Integer> quarks = new java.util.EnumMap<>(Quark.class);
-    /** L'énergie produite depuis le début (version 0.62) : elle ouvre les deux trous noirs. */
+    /** L'énergie produite depuis le début (version 0.062) : elle ouvre les deux trous noirs. */
     double colliderEnergyProduced = 0;
     final List<Collision> collisions = new ArrayList<>();
     long collisionRuns = 0;
     double topLeft = 0;
     double overheatLeft = 0;
-    // Les sondes (version 0.52) : comme le collisionneur, elles traversent l'explosion et le Big Bang.
+    // Les sondes (version 0.052) : comme le collisionneur, elles traversent l'explosion et le Big Bang.
     final List<Probe> probes = new ArrayList<>();
     final List<ProbeReward> probeRewards = new ArrayList<>();
     final java.util.EnumMap<ProbeUpgrade, Integer> probeUpgrades = new java.util.EnumMap<>(ProbeUpgrade.class);
@@ -706,7 +714,7 @@ public abstract class GameStateBase {
     }
 
     /**
-     * Le plan de l'arbre (version 0.84) : les voies et les liaisons que le jeu prend dès qu'elles
+     * Le plan de l'arbre (version 0.084) : les voies et les liaisons que le jeu prend dès qu'elles
      * sont payables, dans cet ordre. Vide : pas de plan.
      */
     public List<String> darkPlan() {
@@ -736,7 +744,7 @@ public abstract class GameStateBase {
         setSavedDarkPlan(0, code);
     }
 
-    /** Le plan des systèmes solaires (version 0.84) : ce que le jeu place dès que les astres sont mûrs et libres. */
+    /** Le plan des systèmes solaires (version 0.084) : ce que le jeu place dès que les astres sont mûrs et libres. */
     public List<SolarSystem> systemPlan() {
         return Collections.unmodifiableList(systemPlan);
     }
@@ -764,7 +772,7 @@ public abstract class GameStateBase {
         setSavedSystemPlan(0, code);
     }
 
-    /** Les astres planifiés ensemble (version 0.85), trois au plus, dans l'ordre du choix. */
+    /** Les astres planifiés ensemble (version 0.085), trois au plus, dans l'ordre du choix. */
     public List<String> plannedBodies() {
         return Collections.unmodifiableList(plannedBodies);
     }

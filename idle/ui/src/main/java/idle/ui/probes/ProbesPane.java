@@ -128,7 +128,7 @@ public final class ProbesPane extends VBox {
             tripButtons.put(trip, button);
             trips.getChildren().add(button);
         }
-        // L'onde d'urgence chimique (version 0.86) : sans destination, elle rapporte l'élément le plus demandé.
+        // L'onde d'urgence chimique (version 0.086) : sans destination, elle rapporte l'élément le plus demandé.
         urgent.setStyle(BUTTON_STYLE);
         urgent.setFocusTraversable(false);
         urgent.setOnAction(event -> {

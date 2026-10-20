@@ -81,7 +81,7 @@ public final class DarkMatterPage extends VBox {
     /** Le mode d'emploi de l'arbre : en mode détails seulement. */
     private final Label mockNotice = new Label();
     private final ScrollPane treeScroll = new ScrollPane(treePane);
-    /** Le plan des voies (version 0.84), et la réouverture des bifurcations à la prochaine explosion. */
+    /** Le plan des voies (version 0.084), et la réouverture des bifurcations à la prochaine explosion. */
     private final idle.ui.common.PlanBar treePlan;
     private final javafx.scene.control.Button reopen = new javafx.scene.control.Button();
 
@@ -226,7 +226,7 @@ public final class DarkMatterPage extends VBox {
         refresh();
     }
 
-    /** Le plan des voies et le bouton de réouverture (version 0.84). */
+    /** Le plan des voies et le bouton de réouverture (version 0.084). */
     private void refreshPlan() {
         treePlan.refresh();
         boolean armed = game.state().forkResetArmed();

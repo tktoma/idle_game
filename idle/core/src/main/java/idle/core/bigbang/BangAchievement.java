@@ -1,7 +1,7 @@
 package idle.core.bigbang;
 
 /**
- * Les succès du Big Bang (version 0.61), ouverts au premier Big Bang. Ils se déduisent de ce que le
+ * Les succès du Big Bang (version 0.061), ouverts au premier Big Bang. Ils se déduisent de ce que le
  * troisième acte a bâti : les Big Bangs, les molécules, les astres, la galaxie, les systèmes, les
  * sondes et les comètes. Rien de tout cela ne se perd au Big Bang : un succès gagné le reste, sauf
  * à la remise à zéro. Chacun renforce une grandeur ({@link Reward}).

@@ -246,7 +246,7 @@ public final class AtomsPage extends VBox {
         // un atome dépensé quitte le visuel.
         int orbs = (int) Math.min(AtomModelView.MAX_ORBS, atoms.toDouble());
         atomView.setOrbs(orbs);
-        // Au-delà, des copies de l'atome autour du grand (version 0.77) : un ordre de grandeur de plus, quelques copies de plus.
+        // Au-delà, des copies de l'atome autour du grand (version 0.077) : un ordre de grandeur de plus, quelques copies de plus.
         BigNum extra = atoms.subtract(BigNum.of(AtomModelView.MAX_ORBS));
         atomView.setExtraDecades(extra.sign() > 0 ? extra.add(BigNum.ONE).log10() : 0);
         // Le tableau périodique n'apparaît qu'une fois assez d'atomes créés, comme l'onglet Automatisation.

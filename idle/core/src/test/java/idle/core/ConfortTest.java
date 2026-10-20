@@ -71,7 +71,7 @@ class ConfortTest {
             Game game = afterBigBang();
             game.tick(299);
             assertFalse(game.ownsSpaceUpgrade("space_primordial_atoms"));
-            // Seule « Création continue » (100 d'espace depuis la 0.47) est venue avant.
+            // Seule « Création continue » (100 d'espace depuis la 0.047) est venue avant.
             assertEquals(List.of("space_hold_create"), game.takeNewSpaceUpgrades().stream().map(SpaceUpgrade::id).toList());
             game.tick(2);
             assertTrue(game.ownsSpaceUpgrade("space_primordial_atoms"));

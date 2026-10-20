@@ -18,7 +18,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'onglet « Skins » (version 0.87), sous les réglages : il s'ouvre dans le deuxième univers, après
+ * L'onglet « Skins » (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après
  * cinq fusions. Une section par visuel du jeu, avec son apparence classique et ses skins : un skin
  * débloqué se choisit d'un clic, un skin verrouillé dit comment l'obtenir. Chaque skin débloqué
  * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers.
@@ -50,7 +50,7 @@ public final class SkinsPage extends VBox {
         summary.setMaxWidth(760);
         summary.setTextAlignment(TextAlignment.CENTER);
         getChildren().addAll(title, summary);
-        // Version 0.88 : les recherches, le record et les épreuves qui donnent les skins.
+        // Version 0.088 : les recherches, le record et les épreuves qui donnent les skins.
         record.setStyle("-fx-font-size: 12px; -fx-text-fill: #cfe3ff;");
         TileGrid research = new TileGrid(260, 2, 8);
         research.setMaxWidth(820);

@@ -1,7 +1,7 @@
 package idle.ui.universe;
 
 /**
- * Les dix dimensions de la sous-page du même nom (version 0.81) : un nom et une phrase chacune,
+ * Les dix dimensions de la sous-page du même nom (version 0.081) : un nom et une phrase chacune,
  * de la ligne au point qui contient tout. Sans logique pour l'instant : chacune ouvre sa fenêtre,
  * une tentative de visuel ({@link DimensionView}).
  */

@@ -97,7 +97,7 @@ public final class Settings {
         AURORA("Aurore", false, -0.35, 0.25, 0, 0.05, null, null),
         /** Monochrome : sans couleur, en gris. */
         MONOCHROME("Monochrome", false, 0, -1, 0, 0.1, null, null),
-        /** Contraste fort : des couleurs plus vives et plus tranchées, sans noyer les tons sombres (adouci en 0.64). */
+        /** Contraste fort : des couleurs plus vives et plus tranchées, sans noyer les tons sombres (adouci en 0.064). */
         CONTRAST("Contraste fort", false, 0, 0.35, 0.12, 0.25, null, null),
         /** Sépia : une vieille photographie. */
         SEPIA("Sépia", false, 0, -1, 0.05, 0, "#f0cf9c", Cosmetic.SEPIA),
@@ -174,7 +174,7 @@ public final class Settings {
     }
 
     /**
-     * Les effets visuels qu'on peut couper un par un (version 0.63). Le grand interrupteur des
+     * Les effets visuels qu'on peut couper un par un (version 0.063). Le grand interrupteur des
      * effets les coupe tous ; sinon, chacun suit son propre réglage.
      */
     public enum Effect {
@@ -281,7 +281,7 @@ public final class Settings {
     }
 
     /**
-     * Les formats de fenêtre prédéfinis (version 0.93), en pixels d'écran, puis le plein écran fenêtré
+     * Les formats de fenêtre prédéfinis (version 0.093), en pixels d'écran, puis le plein écran fenêtré
      * (la fenêtre agrandie) et le vrai plein écran. Un format plus grand que l'écran est grisé.
      */
     public enum WindowSize {
@@ -321,7 +321,7 @@ public final class Settings {
         }
     }
 
-    /** La plus petite fenêtre où tout reste utilisable, à la taille normale de l'interface (version 0.92). */
+    /** La plus petite fenêtre où tout reste utilisable, à la taille normale de l'interface (version 0.092). */
     public static final double MIN_WINDOW_WIDTH = 820;
     public static final double MIN_WINDOW_HEIGHT = 600;
 
@@ -382,16 +382,16 @@ public final class Settings {
     private boolean stateSigns = true;
     private boolean chrono = true;
     private boolean sound = true;
-    /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.57) ; sinon, la disposition d'avant. */
+    /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.057) ; sinon, la disposition d'avant. */
     private boolean tabsLeft = false;
-    /** L'ordre des onglets choisi en les glissant (version 0.60) : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
+    /** L'ordre des onglets choisi en les glissant (version 0.060) : leurs noms, séparés par des virgules ; vide pour l'ordre d'origine. */
     private String tabOrder = "";
-    /** Les effets coupés un par un (version 0.63). */
+    /** Les effets coupés un par un (version 0.063). */
     private final java.util.EnumSet<Effect> effectsOff = java.util.EnumSet.noneOf(Effect.class);
     private SaveDelay saveDelay = SaveDelay.THIRTY;
     /** Vrai si le temps passé jeu fermé est rejoué au retour. */
     private boolean offline = true;
-    /** Les thèmes et notations débloqués (version 0.63). */
+    /** Les thèmes et notations débloqués (version 0.063). */
     private final java.util.EnumSet<Cosmetic> cosmetics = java.util.EnumSet.noneOf(Cosmetic.class);
     private int volume = DEFAULT_VOLUME;
     private FrameRate frameRate = FrameRate.HIGH;

@@ -22,7 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.63 en cinq
+ * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.063 en cinq
  * sous-onglets ({@link Section}).
  * <ul>
  *   <li><b>Affichage</b> : la notation des grands nombres (dont trois à débloquer), le thème (dont
@@ -44,7 +44,7 @@ import javafx.scene.text.TextAlignment;
  */
 public final class SettingsPage extends VBox {
 
-    /** Les sous-onglets des réglages (version 0.63). */
+    /** Les sous-onglets des réglages (version 0.063). */
     public enum Section {
         DISPLAY("Affichage"),
         EFFECTS("Effets et sons"),
@@ -295,7 +295,7 @@ public final class SettingsPage extends VBox {
         block("Taille de l'interface", "Agrandit ou réduit tout ensemble : les textes, les boutons et les dessins.");
         target.getChildren().add(scales);
 
-        // Les formats de fenêtre (version 0.92) : un clic redimensionne et recentre la fenêtre.
+        // Les formats de fenêtre (version 0.092) : un clic redimensionne et recentre la fenêtre.
         javafx.scene.layout.FlowPane sizes = new javafx.scene.layout.FlowPane(8, 8);
         sizes.setAlignment(Pos.CENTER);
         sizes.setMaxWidth(760);
@@ -906,7 +906,7 @@ public final class SettingsPage extends VBox {
     }
 
     /**
-     * Ce que font les boutons des formats de fenêtre (version 0.92) : redimensionner, dire si un format
+     * Ce que font les boutons des formats de fenêtre (version 0.092) : redimensionner, dire si un format
      * tient sur l'écran, et lequel est en cours.
      */
     public void setWindowSizes(java.util.function.Consumer<Settings.WindowSize> apply,

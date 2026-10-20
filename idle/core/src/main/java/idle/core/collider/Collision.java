@@ -1,7 +1,7 @@
 package idle.core.collider;
 
 /**
- * Une collision lancée avant la version 0.59, quand on les achetait une à une : lue dans une
+ * Une collision lancée avant la version 0.059, quand on les achetait une à une : lue dans une
  * ancienne sauvegarde, elle se termine aussitôt et donne son butin.
  *
  * @param tier      son énergie

@@ -60,7 +60,7 @@ public final class BodiesPane extends VBox {
     private final List<Label> maturingLabels = new java.util.ArrayList<>();
     private final List<javafx.scene.control.Button> hastenButtons = new java.util.ArrayList<>();
     private final List<String> maturingShown = new java.util.ArrayList<>();
-    /** Le plan de plusieurs astres (version 0.85) : ses besoins réunis, ce qui manque d'abord. */
+    /** Le plan de plusieurs astres (version 0.085) : ses besoins réunis, ce qui manque d'abord. */
     private final VBox planBox = new VBox(4);
     private final Label planTitle = new Label();
     private final Label planMissing = new Label();
@@ -200,7 +200,7 @@ public final class BodiesPane extends VBox {
             boolean maturing = game.isBodyMaturing(body.id());
             int met = game.bodyConditionsMet(body.id());
             String gain = BigBangPage.what(body.boost().stat()) + " +" + ElementText.percent(body.boost().perMolecule());
-            // L'étoile de la planification (version 0.85) : un clic l'ajoute au plan, ou l'en retire.
+            // L'étoile de la planification (version 0.085) : un clic l'ajoute au plan, ou l'en retire.
             if (game.isBodyPlanningUnlocked() && !formed) {
                 card.setPin(() -> {
                     game.togglePlannedBody(body.id());

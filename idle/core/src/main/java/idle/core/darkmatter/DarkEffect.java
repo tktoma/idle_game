@@ -113,19 +113,19 @@ public sealed interface DarkEffect {
     record UncapAtoms() implements DarkEffect {}
 
     /**
-     * Version 0.70 : {@code points} de plus dans la part du temps d'absence rejouée au retour
+     * Version 0.070 : {@code points} de plus dans la part du temps d'absence rejouée au retour
      * ({@link Game#offlineRate()}), 0.10 = dix points, par niveau.
      */
     record OfflineBonus(double points) implements DarkEffect {}
 
     /**
-     * Version 0.71 : pendant le temps d'absence rejoué ({@link idle.core.Absence}), chaque partie qui
+     * Version 0.071 : pendant le temps d'absence rejoué ({@link idle.core.Absence}), chaque partie qui
      * commence tente le prochain défi ouvert et pas encore réussi, comme si le joueur l'avait lancé.
      */
     record ChallengesWhileAway() implements DarkEffect {}
 
     /**
-     * Version 0.73 : chaque palier de vitesse multiplie les particules par {@code extra} de plus, par
+     * Version 0.073 : chaque palier de vitesse multiplie les particules par {@code extra} de plus, par
      * niveau (×2,5 au lieu de ×2 pour 0,5). C'est ce qui accélère une partie qu'on laisse tourner.
      */
     record StrongerMilestones(double extra) implements DarkEffect {}

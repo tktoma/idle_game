@@ -270,7 +270,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
         int next = 0;
         if (perDot == 1) {
             // Les molécules rassemblées d'une sorte sont déjà placées dans leurs amas ; le reste de la sorte, libre,
-            // prend sa place ici (version 0.90 : avant, toute la sorte était sautée et des places restaient vides).
+            // prend sa place ici (version 0.090 : avant, toute la sorte était sautée et des places restaient vides).
             java.util.Map<String, Integer> skip = new java.util.HashMap<>();
             for (String id : game.state().substances()) {
                 if (game.gatheredMolecules(id) > 0) skip.put(id, game.gatheredMolecules(id));
@@ -297,7 +297,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
                 }
             }
         }
-        // Version 0.90 : le compte des molécules peut dépasser le journal (molécules d'avant le journal, sortes
+        // Version 0.090 : le compte des molécules peut dépasser le journal (molécules d'avant le journal, sortes
         // retirées du catalogue…). Les places restées vides prennent une sorte réellement possédée, sinon se cachent :
         // une place sans dessin faisait tomber toute la vue.
         java.util.List<Molecule> owned = new java.util.ArrayList<>();

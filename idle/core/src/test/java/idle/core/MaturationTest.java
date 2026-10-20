@@ -9,7 +9,7 @@ import idle.core.sky.Cosmos;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** La maturation des astres (version 0.53) : un astre formé mûrit avant de compter pleinement. */
+/** La maturation des astres (version 0.053) : un astre formé mûrit avant de compter pleinement. */
 class MaturationTest {
 
     private static Game game() {

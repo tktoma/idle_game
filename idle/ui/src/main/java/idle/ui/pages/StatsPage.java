@@ -37,8 +37,8 @@ import javafx.scene.text.TextAlignment;
  *   <li>« Tableau périodique » : dès que le tableau est ouvert ;</li>
  *   <li>« Matière noire » : dès la première explosion ;</li>
  *   <li>« Big Bang » : dès le premier Big Bang ;</li>
- *   <li>« Collisionneur » : dès la première explosion, avec lui (version 0.63) ;</li>
- *   <li>« Records » : toujours là, acte par acte (version 0.63) ;</li>
+ *   <li>« Collisionneur » : dès la première explosion, avec lui (version 0.063) ;</li>
+ *   <li>« Records » : toujours là, acte par acte (version 0.063) ;</li>
  *   <li>« Journal » : toujours là.</li>
  * </ul>
  * Une sous-page débloquée le reste, même si une explosion fait disparaître la ressource. À
@@ -62,7 +62,7 @@ import javafx.scene.text.TextAlignment;
  * <p>Rien n'est calculé ici : les compteurs viennent de {@link GameStats}, les valeurs du moment
  * de {@link Game}. Seule la sous-page affichée est mise à jour.
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code StatsPage}. De la base au bout :
  * {@link StatsPageBase}, {@link StatsPageLines}. Quand une partie a besoin d'une méthode définie plus loin
  * dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent les parties suivantes ».
@@ -98,7 +98,7 @@ public final class StatsPage extends StatsPageLines {
      * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
      * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
      */
-    /** Le collisionneur (version 0.63) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
+    /** Le collisionneur (version 0.063) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
     void collider() {
         page("Collisionneur", "#6fe3ff", game::isColliderUnlocked, "à la première explosion");
         curves();
@@ -130,7 +130,7 @@ public final class StatsPage extends StatsPageLines {
     }
 
     /**
-     * Les records, acte par acte (version 0.63). Les temps des étapes traversent la remise à zéro
+     * Les records, acte par acte (version 0.063). Les temps des étapes traversent la remise à zéro
      * du jeu ; les autres valent depuis le début de la partie.
      */
     void records() {

@@ -237,7 +237,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     }
 
     // ------------------------------------------------------------------
-    // Planifier la matière (version 0.85)
+    // Planifier la matière (version 0.085)
     // ------------------------------------------------------------------
 
     /** Astres formés qu'il faut pour planifier plusieurs astres à la fois. */
@@ -756,7 +756,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     /**
      * Ce dont dépend la liste de courses. Les molécules ne suffisaient pas : un assemblage ou un astre
      * formé, un rassemblement, une explosion qui vide le tableau, une amélioration d'espace ou un Big
-     * Bang la changent aussi. Avant la 0.47, elle pouvait rester sur un astre déjà formé et ne plus
+     * Bang la changent aussi. Avant la 0.047, elle pouvait rester sur un astre déjà formé et ne plus
      * rien montrer.
      */
     private long shoppingKey() {

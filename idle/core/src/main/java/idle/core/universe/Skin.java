@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les skins du deuxième univers (version 0.87 pour l'onglet, 0.88 pour la façon de les obtenir) :
+ * Les skins du deuxième univers (version 0.087 pour l'onglet, 0.88 pour la façon de les obtenir) :
  * des apparences de rechange pour les visuels du jeu. Chacun débloqué ajoute
  * {@link #BONUS} à toutes les ressources d'en dessous de l'univers ; le choisir ne change que l'apparence.
  *

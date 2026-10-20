@@ -19,7 +19,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
 
 
     /**
-     * Le plafond de la création automatique pour un état de la matière (version 0.85) : la part de
+     * Le plafond de la création automatique pour un état de la matière (version 0.085) : la part de
      * l'espace que ses molécules peuvent occuper, de 0 à 1 ; 1 (sans plafond) s'il n'est pas réglé.
      */
     public double stateCap(String matter) {
@@ -37,7 +37,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
         return Collections.unmodifiableMap(stateCaps);
     }
 
-    // ----- Le deuxième univers (version 0.87) -----
+    // ----- Le deuxième univers (version 0.087) -----
 
     /** Vrai pendant la partie qui mène à l'univers suivant : les anciens onglets sont revenus. */
     public boolean replaying() {
@@ -178,7 +178,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
         freeElementsUsed = Math.max(0, used);
     }
 
-    // ----- Les skins à obtenir (version 0.88) -----
+    // ----- Les skins à obtenir (version 0.088) -----
 
     /** L'épreuve en cours, par son nom ; {@code null} sans épreuve. */
     public String activeTrial() {
@@ -268,7 +268,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
         if (research != null && !research.isBlank()) researches.add(research);
     }
 
-    /** Vrai si la réservation par recette est allumée (version 0.85). */
+    /** Vrai si la réservation par recette est allumée (version 0.085). */
     public boolean recipeReservation() {
         return recipeReservation;
     }
@@ -277,7 +277,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
         recipeReservation = on;
     }
 
-    /** Vrai si les bifurcations se rouvriront à la prochaine explosion (version 0.84). */
+    /** Vrai si les bifurcations se rouvriront à la prochaine explosion (version 0.084). */
     public boolean forkResetArmed() {
         return forkResetArmed;
     }

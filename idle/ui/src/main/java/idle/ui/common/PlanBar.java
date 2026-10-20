@@ -12,7 +12,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 
 /**
- * La barre d'un plan (version 0.84) : sauvegarder ce qui est en place, le recharger, le copier en
+ * La barre d'un plan (version 0.084) : sauvegarder ce qui est en place, le recharger, le copier en
  * texte ou coller un texte, et oublier le plan suivi. Elle sert à l'arbre de matière noire (ses
  * voies et ses liaisons) et aux systèmes solaires (leur disposition).
  *
@@ -64,7 +64,7 @@ public final class PlanBar extends VBox {
     private final Button paste = button("Coller un code");
     private final Button forget = button("Oublier le plan");
     private final FlowPane buttons;
-    /** Les emplacements de sauvegarde (version 0.86) : une liste, chacun avec ce qu'il contient. */
+    /** Les emplacements de sauvegarde (version 0.086) : une liste, chacun avec ce qu'il contient. */
     private final javafx.scene.control.ComboBox<String> slots = new javafx.scene.control.ComboBox<>();
     private int slot = 0;
     private boolean filling = false;

@@ -16,7 +16,7 @@ import javafx.scene.paint.Color;
  * couches électroniques du dernier élément du tableau périodique : 2, 8, 18, 32, 32, 18, 8,
  * soit 118 orbes au maximum.
  *
- * <p>Au-delà de 118 atomes (version 0.77), le grand atome ne change pas : des copies de lui,
+ * <p>Au-delà de 118 atomes (version 0.077), le grand atome ne change pas : des copies de lui,
  * complètes (noyau, couches et 118 orbes), apparaissent autour. Elles ne sont jamais plus
  * grandes que lui, ont des tailles variées et sont vues de biais, chacune sous son angle.
  * Il en vient de plus en plus à mesure que les atomes en trop grandissent, jusqu'à
@@ -75,7 +75,7 @@ final class AtomModelView extends Canvas {
     private double layoutHeight = -1;
 
     /**
-     * Le skin de l'atome (version 0.89) : {@code null} pour le classique. « Noyau dense » : un noyau
+     * Le skin de l'atome (version 0.089) : {@code null} pour le classique. « Noyau dense » : un noyau
      * de protons et de neutrons serrés, des couches en pointillés, des électrons bleus qui laissent
      * une traînée. « Noyau stellaire » : un petit soleil couronné de rayons, et des planètes de
      * toutes les couleurs sur leurs orbites.

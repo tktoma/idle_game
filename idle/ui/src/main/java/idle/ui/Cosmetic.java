@@ -1,7 +1,7 @@
 package idle.ui;
 
 /**
- * Les thèmes et les notations à débloquer (version 0.63). Rien ne les annonce : chacun s'ouvre en
+ * Les thèmes et les notations à débloquer (version 0.063). Rien ne les annonce : chacun s'ouvre en
  * faisant quelque chose de très précis, qu'un indice sibyllin suggère dans les réglages. Ils ne
  * changent rien aux règles, seulement à l'allure du jeu. Ce qui est débloqué est gardé dans les
  * réglages ({@link Settings}), pas dans la partie : une nouvelle partie le garde.

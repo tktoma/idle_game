@@ -1,7 +1,7 @@
 package idle.core.collider;
 
 /**
- * Les cinq énergies du collisionneur (version 0.60 : elles s'ouvrent une à une par les
+ * Les cinq énergies du collisionneur (version 0.060 : elles s'ouvrent une à une par les
  * améliorations). Chacune ajoute une saveur de quark à ce que peut donner un croisement des
  * faisceaux ; l'amélioration qui l'ouvre est {@link ColliderUpgrade#flavorOf(Quark)}.
  */

@@ -8,7 +8,7 @@ import javafx.scene.paint.Color;
 /**
  * Fond animé : des poussières qui dérivent lentement en scintillant.
  * C'est la matière brute, visible dès l'écran de démarrage, que les générateurs attirent ensuite.
- * Depuis la version 0.61, elles suivent la production : plus elle est forte, plus elles filent
+ * Depuis la version 0.061, elles suivent la production : plus elle est forte, plus elles filent
  * vite, en traînées, et se teintent comme les générateurs.
  */
 public final class AmbientView extends Canvas {

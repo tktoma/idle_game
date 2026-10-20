@@ -23,12 +23,12 @@ import javafx.scene.layout.VBox;
 
 /**
  * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé
- * (version 0.80, refaite en 0.81). Quatre sous-onglets, sans logique pour l'instant :
+ * (version 0.080, refaite en 0.081). Quatre sous-onglets, sans logique pour l'instant :
  * <ul>
  *   <li>« Univers » : les univers en bulles, les graines d'univers, les quatre améliorations (Brane,
  *       Bulk, Paysage, Omnivers) et les outils d'essai ;</li>
- *   <li>« Graine d'univers » (version 0.83) : la ressource principale, en grand, et son visuel ;</li>
- *   <li>« Dimensions », dès le deuxième univers : dix points autour d'un onzième, une dimension
+ *   <li>« Graine d'univers » (version 0.083) : la ressource principale, en grand, et son visuel ;</li>
+ *   <li>« Dimensions », dès le premier univers (version 0.100) : dix points autour d'un onzième, une dimension
  *       de plus par univers ; chacune ouvre sa fenêtre ;</li>
  *   <li>« Vide », le deuxième acte de la partie secondaire, dès qu'il y a de l'énergie du vide.</li>
  * </ul>
@@ -38,7 +38,7 @@ public final class UniversePage extends VBox {
     /** La couleur de l'univers : un bleu pervenche, à part des autres onglets. */
     public static final String COLOR = "#a8b8ff";
     /** La couleur du Vide : un cyan pâle. */
-    static final String VOID_COLOR = "#9fe6ff";
+    public static final String VOID_COLOR = "#9fe6ff";
 
     static final int MAIN = 0;
     static final int DIMENSIONS = 1;
@@ -71,7 +71,7 @@ public final class UniversePage extends VBox {
     private final Button replay = tool("Revoir la naissance");
     private final Button oldTabs = tool("Montrer les anciens onglets");
     private final Button reset = tool("Tout remettre à zéro");
-    /** Rouvrir les paliers (version 0.87) : jouer la partie qui formera l'univers suivant. */
+    /** Rouvrir les paliers (version 0.087) : jouer la partie qui formera l'univers suivant. */
     private final Button next = new Button();
     private final Label nextLine = new Label();
     private Runnable onNextUniverse = () -> { };

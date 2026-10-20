@@ -89,7 +89,7 @@ final class DebugBar extends VBox {
 
     private CosmeticTools cosmetics;
 
-    // Les bots (version 0.84)
+    // Les bots (version 0.084)
     private final javafx.scene.control.ComboBox<String> botMode = new javafx.scene.control.ComboBox<>();
     private final Button botLive = new Button();
     /** L'avance rapide procède par petites tranches sur le fil JavaFX et reste annulable. */
@@ -258,7 +258,7 @@ final class DebugBar extends VBox {
                 }),
                 tool("Refaire l'acte 3", () -> game.state().clearBigBangAct()),
                 tool("Vider le collisionneur", () -> game.state().clearCollider()));
-        // Le deuxième univers (version 0.87) : y entrer sans rejouer toute la partie, et les skins.
+        // Le deuxième univers (version 0.087) : y entrer sans rejouer toute la partie, et les skins.
         group("Deuxième univers",
                 tool("Former l'univers", game::testFormUniverse),
                 tool("Rouvrir les paliers", game::startNextUniverse),
@@ -273,8 +273,8 @@ final class DebugBar extends VBox {
             cosmeticTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
         }
         group("Thèmes et notations", cosmeticTools.toArray(new Button[0]));
-        // Les bots (version 0.84) : le bot V2 joue la partie en cours, en direct ou en avance rapide.
-        // La politique se choisit dans une liste déroulante (version 0.85), plus en cliquant plusieurs fois.
+        // Les bots (version 0.084) : le bot V2 joue la partie en cours, en direct ou en avance rapide.
+        // La politique se choisit dans une liste déroulante (version 0.085), plus en cliquant plusieurs fois.
         botMode.getItems().setAll(BotBridge.modes());
         botMode.setValue(BotBridge.modes().get(modeIndex));
         botMode.setVisibleRowCount(12);

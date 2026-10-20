@@ -5,7 +5,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /**
- * Le Vide (version 0.81), le deuxième acte de la partie secondaire, pour l'instant un simple
+ * Le Vide (version 0.081), le deuxième acte de la partie secondaire, pour l'instant un simple
  * visuel : un noir presque parfait où des paires de grains naissent, s'écartent un instant et
  * s'annulent, comme l'écume du vide.
  */

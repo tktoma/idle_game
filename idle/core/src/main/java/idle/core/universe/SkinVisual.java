@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les visuels du jeu qui peuvent changer d'apparence (version 0.87) : l'onglet Skins en donne un
+ * Les visuels du jeu qui peuvent changer d'apparence (version 0.087) : l'onglet Skins en donne un
  * choix pour chacun. « Classique » est l'apparence d'origine, toujours là.
  */
 public enum SkinVisual {

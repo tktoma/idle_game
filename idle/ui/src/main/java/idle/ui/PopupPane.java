@@ -14,7 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Les fenêtres d'explication (version 0.89), par-dessus la fenêtre, une seule fois chacune :
+ * Les fenêtres d'explication (version 0.089), par-dessus la fenêtre, une seule fois chacune :
  * <ul>
  *   <li>à l'ouverture d'un onglet, ce qu'est sa ressource et comment elle marche, en deux ou trois phrases ;</li>
  *   <li>dans le deuxième univers, chaque nouveauté des trois actes au moment où elle s'ouvre.</li>
@@ -163,6 +163,9 @@ final class PopupPane extends StackPane {
                     + "l'énergie ; un clic au bon moment en donne bien plus, et certaines collisions libèrent des quarks.";
             case "BIG_BANG" -> "Le Big Bang fait repartir la partie du premier générateur. En échange, l'espace s'ouvre : il "
                     + "s'étend de lui-même, et s'y forment des molécules, puis des astres.";
+            case "VOID" -> "Le deuxième acte de la partie secondaire : le vide, et sa ressource, l'énergie du vide. Le vide "
+                    + "n'est jamais tout à fait vide : des paires de particules y naissent et s'annulent sans cesse. Pour "
+                    + "l'instant, il se regarde seulement.";
             case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
                     + "des améliorations qui restent, et « Rouvrir les paliers » relance une partie pour former l'univers suivant.";
             case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute 2\u00a0% à toutes les "

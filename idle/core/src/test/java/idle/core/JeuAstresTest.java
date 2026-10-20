@@ -333,7 +333,7 @@ class JeuAstresTest extends GameTestSupport {
         void apresLaGalaxieViennentLAmasDeGalaxiesPuisLUnivers() {
             Game game = game();
             assertEquals(List.of(Cosmos.GALAXY, Cosmos.CLUSTER, Cosmos.UNIVERSE), List.of(Cosmos.values()));
-            // Depuis la 0.68, chaque échelle multiplie : ×4, puis ×2, puis ×2 ; l'univers demande quatre fois la matière de l'amas.
+            // Depuis la 0.068, chaque échelle multiplie : ×4, puis ×2, puis ×2 ; l'univers demande quatre fois la matière de l'amas.
             assertEquals(4, Game.GALAXY_FACTOR, 0);
             assertEquals(Game.GALAXY_FACTOR, Cosmos.GALAXY.factor(), 0);
             assertEquals(2, Cosmos.CLUSTER.factor(), 0);
@@ -371,7 +371,7 @@ class JeuAstresTest extends GameTestSupport {
             Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS) - 1);    // il en manque une
             assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));
-            // Les jalons (0.68) : un par état réuni, +10 % à toutes les grandeurs chacun.
+            // Les jalons (0.068) : un par état réuni, +10 % à toutes les grandeurs chacun.
             assertEquals(4, game.cosmosMilestones());
             assertFalse(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.GAS));
             assertTrue(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.LIQUID));
@@ -381,7 +381,7 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(5, game.cosmosMilestones());
             assertEquals(withFour * 1.1, game.matterBoost(Molecule.Stat.ATOMS), withFour * 0.02);   // le gaz ajoute aussi un peu de matière lui-même
             assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withFour * 1.1 - 1e-9);
-            // Le délai de rassemblement (0.73) : 45 minutes après la galaxie.
+            // Le délai de rassemblement (0.073) : 45 minutes après la galaxie.
             double galaxyAt = game.stats().reachedAt(GameStats.Step.GALAXY);
             assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
@@ -395,7 +395,7 @@ class JeuAstresTest extends GameTestSupport {
             game.state().setTimePlayed(7000);
             assertTrue(game.formCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
-            // Rien n'est consommé, et toutes les grandeurs doublent (0.68 : avant, l'amas ajoutait 2 048).
+            // Rien n'est consommé, et toutes les grandeurs doublent (0.068 : avant, l'amas ajoutait 2 048).
             assertEquals(molecules, game.moleculesCreated());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
                 assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
@@ -411,7 +411,7 @@ class JeuAstresTest extends GameTestSupport {
             game.state().setTimePlayed(9000);
             assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé à 7 000 s, se rassemble encore
             game.state().setTimePlayed(9800);
-            // L'univers à la main, sans sa remise à zéro (version 0.83) : il double toutes les grandeurs.
+            // L'univers à la main, sans sa remise à zéro (version 0.083) : il double toutes les grandeurs.
             String atCluster = idle.core.save.SaveCodec.write(game.state(), 0);
             game.state().setCosmosLevel(3);
             assertEquals(3, game.cosmosFormed());
@@ -430,7 +430,7 @@ class JeuAstresTest extends GameTestSupport {
             assertFalse(game.hasGalaxy());
             assertThrows(IllegalArgumentException.class, () -> game.state().setCosmosLevel(4));
 
-            // Pour de bon (version 0.83) : former l'univers remet tout à zéro, sauf ce qui appartient à l'univers.
+            // Pour de bon (version 0.083) : former l'univers remet tout à zéro, sauf ce qui appartient à l'univers.
             try {
                 idle.core.save.SaveCodec.readInto(game.state(), atCluster);
             } catch (Exception unreadable) {
@@ -475,7 +475,7 @@ class JeuAstresTest extends GameTestSupport {
 
         @Test
         void uneSauvegardeDAvantLaRemiseAZeroDeLUniversSeRemetAZeroAuChargement() {
-            // Une partie d'avant la 0.83 : l'univers formé, sans la clé universeFormed, et tout ce qui y a mené.
+            // Une partie d'avant la 0.083 : l'univers formé, sans la clé universeFormed, et tout ce qui y a mené.
             Game game = game();
             game.state().setCosmosLevel(3);
             game.state().setBigBangs(8);
@@ -503,14 +503,15 @@ class JeuAstresTest extends GameTestSupport {
         void lesUniversEtLeursDimensionsSansLogique() {
             Game game = game();
             assertEquals(0, game.universes());
+            assertFalse(game.isDimensionsUnlocked());             // pas avant l'univers
             assertFalse(game.testAddUniverse());                  // pas d'univers à dupliquer avant le premier
             game.state().setCosmosLevel(3);
             assertEquals(1, game.universes());
-            assertFalse(game.isDimensionsUnlocked());
-            assertEquals(0, game.dimensionsUnlocked());
+            assertTrue(game.isDimensionsUnlocked());              // dès le premier univers (version 0.100)
+            assertEquals(1, game.dimensionsUnlocked());
             assertTrue(game.testAddUniverse());
             assertEquals(2, game.universes());
-            assertEquals(2, game.dimensionsUnlocked());           // les deux premières, d'emblée
+            assertEquals(2, game.dimensionsUnlocked());           // une de plus par univers
             for (int k = 0; k < 10; k++) game.testAddUniverse();
             assertEquals(12, game.universes());
             assertEquals(Game.MAX_DIMENSIONS, game.dimensionsUnlocked());
@@ -697,7 +698,7 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(firstBody + 9000, game.stats().reachedAt(GameStats.Step.GALAXY), 1e-9);
             assertEquals(firstBody, game.stats().reachedAt(GameStats.Step.FIRST_BODY), 1e-9);
             assertTrue(game.hasGalaxy() && !game.canFormGalaxy() && !game.formGalaxy());
-            // Rien n'est consommé, et toutes les grandeurs sont multipliées d'autant (0.68 : avant, la galaxie s'y ajoutait).
+            // Rien n'est consommé, et toutes les grandeurs sont multipliées d'autant (0.068 : avant, la galaxie s'y ajoutait).
             assertEquals(35, game.bodiesFormed());
             assertEquals(molecules, game.moleculesCreated());
             assertEquals(0, game.cosmosMilestones());

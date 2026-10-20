@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public final class GameStats {
 
-    // Le bilan de la partie qui a mené à l'univers (version 0.83).
+    // Le bilan de la partie qui a mené à l'univers (version 0.083).
     private long universeBigBangs;
     private long universeMolecules;
     private long universeCollisions;
@@ -329,7 +329,7 @@ public final class GameStats {
     }
 
     /**
-     * Le bilan de la partie qui a mené à l'univers (version 0.83), relevé juste avant la remise à
+     * Le bilan de la partie qui a mené à l'univers (version 0.083), relevé juste avant la remise à
      * zéro : Big Bangs, molécules créées, collisions et comètes saisies. Tout à zéro avant l'univers.
      */
     public long[] universeTally() {
@@ -570,7 +570,7 @@ public final class GameStats {
         bestAtomsPerFusion = bestAtomsPerFusion.max(atoms);
         lastFusionTime = seconds;
         // 0 = pas encore de record : une durée nulle (temps non daté) n'en est pas un, et un record à 0 relu d'une
-        // ancienne sauvegarde ne bloque plus les suivants (version 0.65).
+        // ancienne sauvegarde ne bloque plus les suivants (version 0.065).
         if (seconds > 0 && (fastestFusionTime <= 0 || seconds < fastestFusionTime)) fastestFusionTime = seconds;
     }
 

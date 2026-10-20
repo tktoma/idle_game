@@ -342,7 +342,7 @@ class JeuBigBangTest extends GameTestSupport {
             // L'arbre est resté : ses cases, ce qu'elles ont coûté, ses automatismes, ses réglages.
             assertEquals(4, game.darkLevelOf("dark_density"));
             assertEquals(1, game.darkLevelOf("dark_overflow"));
-            // Les bifurcations se rouvrent (0.69) : la voie prise est rendue, ce qui la suivait reste.
+            // Les bifurcations se rouvrent (0.069) : la voie prise est rendue, ce qui la suivait reste.
             assertEquals(0, game.darkLevelOf("dark_gravity"));
             assertEquals(2, game.darkLevelOf("dark_horizon"));
             assertTrue(game.darkForkRival("dark_harvest") == null);

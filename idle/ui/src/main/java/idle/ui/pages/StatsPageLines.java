@@ -184,7 +184,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         int count = 0;
         java.util.Set<String> forks = new java.util.HashSet<>();
         for (DarkUpgrade upgrade : game.darkUpgrades()) {
-            // Une bifurcation ne compte qu'une case : on n'en prend qu'une voie (version 0.69), sauf avec la Superposition (0.70).
+            // Une bifurcation ne compte qu'une case : on n'en prend qu'une voie (version 0.069), sauf avec la Superposition (0.070).
             if (upgrade.inTree() == inTree && (!upgrade.isFork() || game.hasSuperposition() || forks.add(upgrade.fork()))) count++;
         }
         return count;

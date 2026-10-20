@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Les retours de jeu de la version 0.47 : l'achat groupé en atomes dès le début, les gestes de
+ * Les retours de jeu de la version 0.047 : l'achat groupé en atomes dès le début, les gestes de
  * confort moins chers, l'automatisme des automatismes pendant les défis, et la liste de courses
  * qui suit les assemblages et les astres formés.
  */

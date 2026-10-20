@@ -60,7 +60,7 @@ import javafx.util.Duration;
  */
 public final class PeriodicTablePage extends VBox {
 
-    /** Le tableau des cases (version 0.88). */
+    /** Le tableau des cases (version 0.088). */
     private GridPane tableGrid;
     /** Le skin dont les cases sont peintes : {@code null} pour le classique. */
     private idle.core.universe.Skin tableSkin;
@@ -129,10 +129,10 @@ public final class PeriodicTablePage extends VBox {
     private Element selected = null;
     /** Côté actuel d'une case, en pixels. */
     private double cellSize = 36;
-    /** Le filtre « utiles au prochain astre » (version 0.85), et les éléments qu'il éclaire au dernier affichage. */
+    /** Le filtre « utiles au prochain astre » (version 0.085), et les éléments qu'il éclaire au dernier affichage. */
     private final Button nextFilter = new Button();
     private boolean filterOn = false;
-    /** La préférence de famille graduée (version 0.87), et les éléments gratuits, tous les dix découverts. */
+    /** La préférence de famille graduée (version 0.087), et les éléments gratuits, tous les dix découverts. */
     private final javafx.scene.control.ComboBox<String> preference = new javafx.scene.control.ComboBox<>();
     private final Label preferenceLabel = new Label();
     private final javafx.scene.layout.HBox preferenceRow = new javafx.scene.layout.HBox(8);
@@ -254,7 +254,7 @@ public final class PeriodicTablePage extends VBox {
             refresh();
         });
         getChildren().add(nextFilter);
-        // La préférence de famille (version 0.87) : une liste, « aucune » d'abord.
+        // La préférence de famille (version 0.087) : une liste, « aucune » d'abord.
         preference.getItems().add("Aucune");
         for (ElementCategory category : ElementCategory.values()) preference.getItems().add(category.label());
         preference.setValue("Aucune");
@@ -299,7 +299,7 @@ public final class PeriodicTablePage extends VBox {
      *                retour que si elle était restée affichée.
      */
     void refresh(boolean visible) {
-        // Le skin du tableau (version 0.89) : les cases se redessinent quand il change.
+        // Le skin du tableau (version 0.089) : les cases se redessinent quand il change.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.TABLE);
         if (look != tableSkin) {
             tableSkin = look;
@@ -362,7 +362,7 @@ public final class PeriodicTablePage extends VBox {
 
     /** Les tuiles, les bonus et l'annonce du dernier élément obtenu : seulement quand le tableau a changé. */
     /**
-     * Un clic sur une case : avec un élément gratuit à prendre (version 0.87), un élément pas encore
+     * Un clic sur une case : avec un élément gratuit à prendre (version 0.087), un élément pas encore
      * découvert est pris ; sinon, son détail s'affiche sous le tableau.
      */
     private void clickCell(Element element) {
@@ -585,7 +585,7 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /**
-     * Une case sous un skin (version 0.89). « Plomb » : des plaques de métal brut, carrées, au relief
+     * Une case sous un skin (version 0.089). « Plomb » : des plaques de métal brut, carrées, au relief
      * marqué, la famille en liseré du haut et la lettre gravée en caractères de machine. « Or » : des
      * lingots dorés, arrondis, la lettre embossée en brun ; pas encore obtenu, un moule vide.
      */

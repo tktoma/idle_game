@@ -341,6 +341,10 @@ public abstract class GameStateResets extends GameStateCollider {
         researches.clear();
         universeSeeds = BigNum.ZERO;
         voidEnergy = BigNum.ZERO;
+        dimensionShards = 0;
+        linePhase = 0;
+        lineYieldLevel = 0;
+        lineTicksLevel = 0;
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;
@@ -428,7 +432,7 @@ public abstract class GameStateResets extends GameStateCollider {
      * le nombre d'explosions et le temps de jeu.
      */
     public void clearMatter() {
-        // Le deuxième univers (version 0.87) : ce qui suit le tableau repart avec lui.
+        // Le deuxième univers (version 0.087) : ce qui suit le tableau repart avec lui.
         preferenceDraws = 0;
         freeElementsUsed = 0;
         perfectStreak = 0;

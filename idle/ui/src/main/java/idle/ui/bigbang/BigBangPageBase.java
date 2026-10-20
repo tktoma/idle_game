@@ -336,7 +336,7 @@ public abstract class BigBangPageBase extends VBox {
 
         getChildren().add(StableHeight.of(countLabel));
         getChildren().add(StableHeight.of(sinceLabel));
-        // Le petit arbre du cycle (version 0.87) : trois choix, un seul jusqu'au prochain Big Bang.
+        // Le petit arbre du cycle (version 0.087) : trois choix, un seul jusqu'au prochain Big Bang.
         cycleTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         cycleRow.setAlignment(Pos.CENTER);
         cycleRow.getChildren().add(cycleTitle);
@@ -465,7 +465,7 @@ public abstract class BigBangPageBase extends VBox {
     /** L'achat simple : une molécule du rayon affiché, tirée au hasard, utile au prochain pas d'abord. */
     final Button randomButton = new Button("Au hasard dans ce rayon");
     private final HBox bestBar = new HBox(8, bestButton, randomButton, sortButton, bestLabel);
-    /** La réservation par recette (version 0.85) : ce qu'il faut encore au prochain assemblage, sur chaque carte. */
+    /** La réservation par recette (version 0.085) : ce qu'il faut encore au prochain assemblage, sur chaque carte. */
     final Button reservationButton = new Button();
     final HBox reservationBar = new HBox(reservationButton);
     /** Ce que demande le prochain pas, rayon par rayon et état par état. */

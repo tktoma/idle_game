@@ -11,18 +11,18 @@ import java.util.Map;
  * rien, et chacune multiplie toutes les grandeurs que la matière augmente ({@link #factor()}) :
  * rien ne les défait, ni l'explosion ni le Big Bang. L'univers clôt la partie.
  *
- * <p>Jusqu'à la version 0.67, chacune <em>ajoutait</em> son gain (1 024, 2 048, 4 096) aux bonus de
+ * <p>Jusqu'à la version 0.067, chacune <em>ajoutait</em> son gain (1 024, 2 048, 4 096) aux bonus de
  * la matière ; mais à la galaxie, la matière multiplie déjà l'espace par plus de cent mille, et
- * ces milliers ne pesaient plus qu'un pour cent. Depuis la 0.68, elles multiplient.
+ * ces milliers ne pesaient plus qu'un pour cent. Depuis la 0.068, elles multiplient.
  *
  * <p>La galaxie demande tous les astres du catalogue ({@link Bodies}). Les deux suivantes
  * demandent la précédente et de la matière rassemblée, comptée par état comme pour un astre
  * ({@link Game#gatheredInState(Molecule.State)}) : la matière de plusieurs galaxies pour un amas,
- * quatre fois plus encore pour l'univers (dix fois moins avant la version 0.68 : la réserve d'espace
+ * quatre fois plus encore pour l'univers (dix fois moins avant la version 0.068 : la réserve d'espace
  * accumulée en attendant les derniers astres payait tout en quelques minutes) ; et de la variété : un nombre de sortes rassemblées dans
  * chaque état ({@link #sorts()}), pour que la fin de partie ne se joue pas avec quatre molécules.
  * Chaque état réuni pour l'amas, puis pour l'univers, est un jalon ({@link idle.core.Game#cosmosMilestones()})
- * qui accélère l'espace. Les quantités sont calées par la simulation (version 0.68) : le joueur
+ * qui accélère l'espace. Les quantités sont calées par la simulation (version 0.068) : le joueur
  * arrive à la galaxie avec une grosse réserve d'espace, que les astres ne lui demandaient plus.
  */
 public enum Cosmos {

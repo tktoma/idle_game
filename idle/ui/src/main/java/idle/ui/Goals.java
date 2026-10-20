@@ -80,13 +80,13 @@ public final class Goals {
         if (game.canFormCosmos(scale)) return "former " + scale.phrase();
         // La galaxie formée, il ne reste qu'à réunir la matière de l'échelle suivante.
         if (scale != Cosmos.GALAXY) {
-            // Toute la matière est là, mais l'échelle d'avant se rassemble encore (version 0.73).
+            // Toute la matière est là, mais l'échelle d'avant se rassemble encore (version 0.073).
             double settle = game.cosmosSettleRemaining(scale);
             if (settle > 0 && game.cosmosConditionsMet(scale) == game.cosmosConditions(scale)) {
                 return "attendre que " + scale.previous().phrase() + " se rassemble pour former " + scale.phrase()
                         + " (encore " + (long) Math.ceil(settle / 60) + " min)";
             }
-            // L'état le plus en retard (version 0.68) : c'est lui qu'il faut pousser.
+            // L'état le plus en retard (version 0.068) : c'est lui qu'il faut pousser.
             Molecule.State behind = null;
             double worst = 1;
             for (java.util.Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {

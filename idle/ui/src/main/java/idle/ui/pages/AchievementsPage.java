@@ -25,7 +25,7 @@ import javafx.scene.text.TextAlignment;
 
 /**
  * Contenu de l'onglet « Succès » : le compte, ce que les succès rapportent en tout, puis une
- * tuile par succès ({@link Card}), obtenu ou non. Suivent, depuis la version 0.61, les succès du
+ * tuile par succès ({@link Card}), obtenu ou non. Suivent, depuis la version 0.061, les succès du
  * collisionneur (avec la matière noire) et ceux du Big Bang (au premier Big Bang).
  *
  * <p>Les tuiles sont rangées dans l'ordre du catalogue, qui est celui où un joueur les obtient
@@ -44,7 +44,7 @@ public final class AchievementsPage extends VBox {
     private final Label bonusLabel = new Label();
     private final Label hintLabel = new Label();
     private final Map<Achievement, Card> tiles = new LinkedHashMap<>();
-    /** Les succès du collisionneur, ouverts avec la matière noire, et ceux du Big Bang, au premier Big Bang (version 0.61). */
+    /** Les succès du collisionneur, ouverts avec la matière noire, et ceux du Big Bang, au premier Big Bang (version 0.061). */
     private final Label colliderTitle = new Label();
     private final TileGrid colliderGrid = new TileGrid(150, 5, 6);
     private final Map<ColliderAchievement, Card> colliderTiles = new java.util.EnumMap<>(ColliderAchievement.class);

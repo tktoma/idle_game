@@ -64,7 +64,7 @@ final class Notifier {
     private int speedMilestones;
     /** L'énergie produite au dernier relevé : pour annoncer une fois les paliers des trous noirs. */
     private double blackHoleEnergySeen = 0;
-    /** Les jalons du cosmos déjà vus (version 0.68) : « CLUSTER:GAS »… */
+    /** Les jalons du cosmos déjà vus (version 0.068) : « CLUSTER:GAS »… */
     private final java.util.Set<String> cosmosMilestonesSeen = new HashSet<>();
     private int landmarks;
     private final Set<String> darkAutomations = new HashSet<>();
@@ -77,8 +77,8 @@ final class Notifier {
     private final Map<Molecule.Kind, Integer> collections = new java.util.EnumMap<>(Molecule.Kind.class);
     private int bangChallengesDone;
     private BangChallenge bangChallenge;
-    /** Les skins débloqués au dernier relevé (version 0.89) : chacun s'annonce avec le bonus cumulé. */
-    /** Le ralentissement du premier élan au dernier relevé (version 0.95, par paliers en 0.96). */
+    /** Les skins débloqués au dernier relevé (version 0.089) : chacun s'annonce avec le bonus cumulé. */
+    /** Le ralentissement du premier élan au dernier relevé (version 0.095, par paliers en 0.096). */
     private double slowSeen = 1;
     private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
 
@@ -126,7 +126,7 @@ final class Notifier {
             news.add("Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
         }
 
-        // Le premier élan (version 0.95, par paliers en 0.96) : chaque palier s'annonce.
+        // Le premier élan (version 0.095, par paliers en 0.096) : chaque palier s'annonce.
         double slow = game.firstRunSlowdown();
         if (slow < slowSeen) {
             news.add(slow <= 1 ? "La création a pris tout son élan : elle va à pleine vitesse."
@@ -134,7 +134,7 @@ final class Notifier {
                             + " : la création prend de l'élan, encore " + idle.ui.common.ElementText.number(slow) + " fois moins vite qu'à plein régime.");
         }
         slowSeen = slow;
-        // Un skin débloqué (version 0.89) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
+        // Un skin débloqué (version 0.089) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
             if (skinsSeen.contains(skin) || !game.hasSkin(skin)) continue;
             skinsSeen.add(skin);
@@ -156,7 +156,7 @@ final class Notifier {
                     ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
                     : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
         }
-        // Les deux trous noirs (version 0.62) : l'énergie produite qu'ils demandent est atteinte.
+        // Les deux trous noirs (version 0.062) : l'énergie produite qu'ils demandent est atteinte.
         double produced = game.colliderEnergyProduced();
         if (blackHoleEnergySeen < Game.BLACK_HOLE_ENERGY && produced >= Game.BLACK_HOLE_ENERGY) {
             news.add("Collisionneur : assez d'énergie produite pour le trou noir.");
@@ -165,7 +165,7 @@ final class Notifier {
             news.add("Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
         }
         blackHoleEnergySeen = produced;
-        // Les jalons de la fin de partie (version 0.68) : un état de la matière réuni pour l'amas ou l'univers.
+        // Les jalons de la fin de partie (version 0.068) : un état de la matière réuni pour l'amas ou l'univers.
         for (idle.core.sky.Cosmos scale : new idle.core.sky.Cosmos[] {idle.core.sky.Cosmos.CLUSTER, idle.core.sky.Cosmos.UNIVERSE}) {
             if (game.hasCosmos(scale)) continue;
             for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {

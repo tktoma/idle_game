@@ -48,7 +48,7 @@ class JeuDefisTest extends GameTestSupport {
         @Test
         void ilYADixDefisChacunAvecSaContrainteEtSaRecompense() {
             Game game = darkGame(100);
-            assertEquals(10, game.challenges().size());     // quatre de plus en 0.70
+            assertEquals(10, game.challenges().size());     // quatre de plus en 0.070
             assertEquals(10, game.challenges().stream().map(Challenge::id).distinct().count());
             assertEquals(10, game.challenges().stream().map(Challenge::rule).distinct().count());
             assertEquals(10, game.challenges().stream().map(Challenge::reward).distinct().count());
@@ -117,7 +117,7 @@ class JeuDefisTest extends GameTestSupport {
             assertEquals(BigNum.ZERO, game.state().totalAtoms());
             assertValue(8, game.particlesPerCreation());
             game.tick(30);
-            // Depuis la 0.47, l'automatisme qui offre les automatismes agit aussi pendant un défi.
+            // Depuis la 0.047, l'automatisme qui offre les automatismes agit aussi pendant un défi.
             assertTrue(game.ownsAutomation("autoSpeed"));
 
             game.abandonChallenge();                           // la partie ordinaire retrouve tout
@@ -170,7 +170,7 @@ class JeuDefisTest extends GameTestSupport {
             game.state().setTableWeightLevel(12);
             assertTrue(game.atomCap().gt(BigNum.of(118).multiply(Game.CHALLENGE_WEIGHT)));
             game.startChallenge("challenge_heavy");
-            assertEquals(Game.CHALLENGE_WEIGHT.toDouble(), game.tableWeight().toDouble(), 1e-9);   // 5 000 depuis la 0.97
+            assertEquals(Game.CHALLENGE_WEIGHT.toDouble(), game.tableWeight().toDouble(), 1e-9);   // 5 000 depuis la 0.097
             assertValue(118 * 5000, game.atomCap());
             game.abandonChallenge();
             assertTrue(game.atomCap().gt(BigNum.of(118)));   // la partie ordinaire retrouve son poids
@@ -760,7 +760,7 @@ class JeuDefisTest extends GameTestSupport {
         /**
          * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit
          * débloquer le dixième générateur en 50 à 70 minutes avec le catalogue du jeu, premier
-         * élan compris ({@link Game#FIRST_RUN_PACE}, version 0.95 ; 3 min 30 à 6 minutes avant).
+         * élan compris ({@link Game#FIRST_RUN_PACE}, version 0.095 ; 3 min 30 à 6 minutes avant).
          * Si ce test échoue après un changement dans {@link Upgrades}, c'est que la durée
          * de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
          */
@@ -787,7 +787,7 @@ class JeuDefisTest extends GameTestSupport {
          * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
          * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
          * économiser pour Persistance) doit créer son trentième atome entre 2 h 20 et 2 h 50, premier
-         * élan compris (version 0.96 ; 22 à 34 minutes avant la 0.95, 2 h 45 à 3 h 45 avant le réglage du rythme).
+         * élan compris (version 0.096 ; 22 à 34 minutes avant la 0.095, 2 h 45 à 3 h 45 avant le réglage du rythme).
          * Là, la création a pris tout son élan. Plus tôt, le début perd son intérêt ;
          * plus tard, il faut tout racheter à la main des dizaines de fois.
          */

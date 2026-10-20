@@ -187,7 +187,7 @@ public final class GalaxyPane extends VBox {
         int met = game.cosmosConditionsMet(scale);
         StringBuilder lines = new StringBuilder("Particules, atomes, espace et matière noire ×" + ElementText.number(scale.factor()));
         lines.append('\n').append(open ? "● " : "○ ").append(scale.previous().label());
-        // Le délai de rassemblement (version 0.73) : l'échelle d'avant doit avoir eu le temps de se rassembler.
+        // Le délai de rassemblement (version 0.073) : l'échelle d'avant doit avoir eu le temps de se rassembler.
         double settle = game.cosmosSettleRemaining(scale);
         if (open && !formed) {
             lines.append('\n').append(settle > 0 ? "○ " : "● ").append("Rassemblement : ")

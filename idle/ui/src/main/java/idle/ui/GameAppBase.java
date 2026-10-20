@@ -131,7 +131,7 @@ public abstract class GameAppBase extends Application {
     static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     final Game game = new Game();
     final Settings settings = Settings.load();
@@ -155,30 +155,33 @@ public abstract class GameAppBase extends Application {
     final Button darkMatterTab = new Button();
     final Button colliderTab = new Button("Collisionneur");
     final Button bigBangTab = new Button("Big Bang");
-    /** L'onglet de l'univers (version 0.80), qui s'ouvre quand l'univers est formé : le quatrième acte. */
+    /** L'onglet de l'univers (version 0.080), qui s'ouvre quand l'univers est formé : le quatrième acte. */
     final Button universeTab = new Button("Univers");
+    /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du deuxième univers. */
+    final Button voidTab = new Button("Le vide");
     final Button achievementsTab = new Button("Succès");
     final Button statsTab = new Button("Statistiques");
     final Button settingsTab = new Button("Réglages");
-    /** Le régime rapide des générateurs (version 0.87), et la ligne de la synergie et de la prime. */
+    /** Le régime rapide des générateurs (version 0.087), et la ligne de la synergie et de la prime. */
     final Button regimeButton = new Button();
     final Label secondLabel = new Label();
     final HBox secondRow = new HBox(10, regimeButton, secondLabel);
-    /** L'onglet des skins (version 0.87), sous les réglages : il s'ouvre dans le deuxième univers, après cinq fusions. */
+    /** L'onglet des skins (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après cinq fusions. */
     final Button skinsTab = new Button("Skins");
     final AtomView atomsTabIcon = new AtomView(22);
-    /** Les icônes animées des autres onglets (version 0.59), chacune dans la couleur de son onglet. */
+    /** Les icônes animées des autres onglets (version 0.059), chacune dans la couleur de son onglet. */
     final TabIcon particlesIcon = new TabIcon(TabIcon.Kind.PARTICLES, PARTICLES_COLOR, 20);
     final TabIcon automationIcon = new TabIcon(TabIcon.Kind.AUTOMATION, AUTOMATION_COLOR, 20);
     final TabIcon darkMatterIcon = new TabIcon(TabIcon.Kind.DARK_MATTER, DARK_MATTER_COLOR, 20);
     final TabIcon colliderIcon = new TabIcon(TabIcon.Kind.COLLIDER, ColliderPane.COLOR, 20);
     final TabIcon bigBangIcon = new TabIcon(TabIcon.Kind.BIG_BANG, BIG_BANG_COLOR, 20);
     final TabIcon universeIcon = new TabIcon(TabIcon.Kind.UNIVERSE, UniversePage.COLOR, 20);
+    final TabIcon voidIcon = new TabIcon(TabIcon.Kind.VOID, idle.ui.vacuum.VoidPage.COLOR, 20);
     final TabIcon achievementsIcon = new TabIcon(TabIcon.Kind.ACHIEVEMENTS, ACHIEVEMENTS_COLOR, 20);
     final TabIcon statsIcon = new TabIcon(TabIcon.Kind.STATS, STATS_COLOR, 20);
     final TabIcon settingsIcon = new TabIcon(TabIcon.Kind.SETTINGS, SETTINGS_COLOR, 20);
     final TabIcon skinsIcon = new TabIcon(TabIcon.Kind.SKINS, idle.ui.pages.SkinsPage.COLOR, 20);
-    final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon,
+    final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon,
             achievementsIcon, statsIcon, settingsIcon, skinsIcon};
     /**
      * Le rôle d'un onglet, qui décide de son allure : les actes du jeu (cadre plein), ce qui tourne
@@ -187,7 +190,7 @@ public abstract class GameAppBase extends Application {
     enum TabRole { ACT, SIDE, META }
     /** Les onglets, dans l'ordre, et l'écart qui sépare les pages pour s'y retrouver des autres. */
     final Button[] tabButtons = {particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, achievementsTab, statsTab, settingsTab, skinsTab};
+            universeTab, voidTab, achievementsTab, statsTab, settingsTab, skinsTab};
     final javafx.scene.layout.Region tabGap = new javafx.scene.layout.Region();
     /** À gauche, l'espace qui pousse les pages pour s'y retrouver en bas de la colonne. */
     final javafx.scene.layout.Region sideSpacer = new javafx.scene.layout.Region();
@@ -198,7 +201,7 @@ public abstract class GameAppBase extends Application {
     long pressedAt;
     boolean justDragged;
     final HBox tabBar = new HBox(4, particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, tabGap, achievementsTab, statsTab, settingsTab, skinsTab);
+            universeTab, voidTab, tabGap, achievementsTab, statsTab, settingsTab, skinsTab);
     /** À gauche, le nom de l'onglet affiché quand il n'a pas de sous-onglets : la barre du haut garde sa hauteur. */
     final Label tabTitle = new Label();
     /** À gauche : la colonne de droite, avec le haut de la fenêtre et les pages ; la colonne des onglets descend jusqu'en bas. */
@@ -211,8 +214,9 @@ public abstract class GameAppBase extends Application {
     final ColliderPage colliderPage = new ColliderPage(game);
     final BigBangPage bigBangPage = new BigBangPage(game);
     final UniversePage universePage = new UniversePage(game);
-    /** La fenêtre d'une dimension (version 0.81), par-dessus tout le jeu, avec son bouton de retour. */
-    final DimensionWindow dimensionWindow = new DimensionWindow();
+    final idle.ui.vacuum.VoidPage voidPage = new idle.ui.vacuum.VoidPage(game);
+    /** La fenêtre d'une dimension (version 0.081), par-dessus tout le jeu, avec son bouton de retour. */
+    final DimensionWindow dimensionWindow = new DimensionWindow(game);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
     final StatsPage statsPage = new StatsPage(game);
     final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
@@ -228,7 +232,7 @@ public abstract class GameAppBase extends Application {
     final VBox controls = new VBox(12, particlesLabel, productionLabel);
     Button startButton;
     final BorderPane root = new BorderPane();
-    /** La disposition à gauche (version 0.57) : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
+    /** La disposition à gauche (version 0.057) : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
     final VBox sideBar = new VBox(2);
     final StackPane subTabHolder = new StackPane();
     /** Une barre de sous-onglets, et d'où elle vient dans sa page : la disposition d'avant l'y remet. */
@@ -259,7 +263,7 @@ public abstract class GameAppBase extends Application {
     final StackPane flash = new StackPane();
     final Circle shockwave = new Circle(24, Color.web(DARK_MATTER_COLOR));
     final StackPane blast = new StackPane(flash, shockwave);
-    /** Les animations plein écran des skins : l'explosion sous Vortex ou Pulsar, le Big Bang sous ses trois skins (version 0.89). */
+    /** Les animations plein écran des skins : l'explosion sous Vortex ou Pulsar, le Big Bang sous ses trois skins (version 0.089). */
     final idle.ui.common.BurstView burst = new idle.ui.common.BurstView();
     /** Toute la fenêtre : l'animation des skins en prend la taille. */
     StackPane windowPane;
@@ -279,10 +283,10 @@ public abstract class GameAppBase extends Application {
     // La sauvegarde : le temps écoulé depuis la dernière écriture, et le retour après une absence.
     double sinceSave = 0;
     final AbsencePane absencePane = new AbsencePane(this::save);
-    /** Les fenêtres d'explication : un onglet qui s'ouvre, une nouveauté du deuxième univers (version 0.89). */
+    /** Les fenêtres d'explication : un onglet qui s'ouvre, une nouveauté du deuxième univers (version 0.089). */
     final PopupPane popupPane = new PopupPane(game);
     List<PopupPane.Entry> popupEntries;
-    /** L'écran de fin (version 0.68) : une fois par partie, quand l'univers se forme. */
+    /** L'écran de fin (version 0.068) : une fois par partie, quand l'univers se forme. */
     final EndPane endPane = new EndPane(game);
     /** Le butin d'une sonde, par-dessus la fenêtre : une carte à la fois. */
     final LootPane lootPane = new LootPane(game, this::refresh);
@@ -344,7 +348,7 @@ public abstract class GameAppBase extends Application {
             amounts.getChildren().add(button);
         }
         controls.getChildren().add(amounts);
-        // Le deuxième univers (version 0.87) : le régime des générateurs, la synergie et la prime de cycle parfait.
+        // Le deuxième univers (version 0.087) : le régime des générateurs, la synergie et la prime de cycle parfait.
         regimeButton.setFocusTraversable(false);
         regimeButton.setOnAction(event -> {
             game.startRegime();
@@ -392,7 +396,7 @@ public abstract class GameAppBase extends Application {
         achievementsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
-                universePage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
+                universePage, voidPage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
         skinsScroll.setFitToWidth(true);
         skinsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         skinsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
@@ -403,6 +407,7 @@ public abstract class GameAppBase extends Application {
         colliderTab.setOnAction(event -> open(Tab.COLLIDER));
         bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
         universeTab.setOnAction(event -> open(Tab.UNIVERSE));
+        voidTab.setOnAction(event -> open(Tab.VOID));
         achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> open(Tab.STATS));
         settingsTab.setOnAction(event -> open(Tab.SETTINGS));
@@ -414,6 +419,7 @@ public abstract class GameAppBase extends Application {
         colliderTab.setGraphic(colliderIcon);
         bigBangTab.setGraphic(bigBangIcon);
         universeTab.setGraphic(universeIcon);
+        voidTab.setGraphic(voidIcon);
         achievementsTab.setGraphic(achievementsIcon);
         statsTab.setGraphic(statsIcon);
         settingsTab.setGraphic(settingsIcon);
@@ -480,7 +486,7 @@ public abstract class GameAppBase extends Application {
         dock(Tab.UNIVERSE, universePage, universePage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());
-        // Rouvrir les paliers (version 0.87) : les anciens onglets reviennent, la partie de l'univers suivant commence.
+        // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
             refresh();
             selectTab(Tab.PARTICLES);

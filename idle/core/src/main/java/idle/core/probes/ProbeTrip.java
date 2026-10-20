@@ -10,7 +10,7 @@ public enum ProbeTrip {
     LONG("Long voyage", 4 * 60 * 60, 24, 4),
     NIGHT("Expédition", 8 * 60 * 60, 56, 5),
     /**
-     * L'onde d'urgence chimique (version 0.86) : 20 minutes, un seul petit lot de l'élément déjà
+     * L'onde d'urgence chimique (version 0.086) : 20 minutes, un seul petit lot de l'élément déjà
      * découvert que l'astre visé demande le plus ; jamais un élément inconnu. Elle s'ouvre au troisième Big Bang.
      */
     URGENT("Onde d'urgence chimique", 20 * 60, 2, 1);

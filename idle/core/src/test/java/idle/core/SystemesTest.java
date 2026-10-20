@@ -13,7 +13,7 @@ import idle.core.sky.SolarSystem;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Les paliers six à huit (version 0.54) : systèmes solaires, places de plus, matières exotiques. */
+/** Les paliers six à huit (version 0.054) : systèmes solaires, places de plus, matières exotiques. */
 class SystemesTest {
 
     private static Game game(int bigBangs) {

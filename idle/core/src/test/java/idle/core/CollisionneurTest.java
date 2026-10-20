@@ -561,7 +561,7 @@ class CollisionneurTest {
         }
     }
 
-    /** Les outils de test de la version 0.63 : la série de croisements captés, et les remises à zéro par acte. */
+    /** Les outils de test de la version 0.063 : la série de croisements captés, et les remises à zéro par acte. */
     @Nested
     class OutilsDeTest {
 

@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Le petit arbre du deuxième univers (version 0.87) : trois choix qui ne se cumulent pas, un seul
+ * Le petit arbre du deuxième univers (version 0.087) : trois choix qui ne se cumulent pas, un seul
  * par cycle, d'un Big Bang au suivant. Le Big Bang le rend, gratuitement : le choix se refait.
  */
 public enum CycleChoice {

@@ -28,7 +28,7 @@ public abstract class GamePlans extends GameCollider {
 
 
     // ------------------------------------------------------------------
-    // Les plans de l'arbre et des systèmes solaires (version 0.84)
+    // Les plans de l'arbre et des systèmes solaires (version 0.084)
     // ------------------------------------------------------------------
 
     /** Le début d'un code de l'arbre. */
@@ -122,7 +122,7 @@ public abstract class GamePlans extends GameCollider {
         saveDarkPlan(0);
     }
 
-    /** Garde le code de l'arbre actuel dans cet emplacement (version 0.86), pour le recharger plus tard. */
+    /** Garde le code de l'arbre actuel dans cet emplacement (version 0.086), pour le recharger plus tard. */
     public void saveDarkPlan(int slot) {
         state.setSavedDarkPlan(slot, darkTreeCode());
     }
@@ -277,7 +277,7 @@ public abstract class GamePlans extends GameCollider {
         saveSystemPlan(0);
     }
 
-    /** Garde la disposition actuelle des systèmes dans cet emplacement (version 0.86). */
+    /** Garde la disposition actuelle des systèmes dans cet emplacement (version 0.086). */
     public void saveSystemPlan(int slot) {
         state.setSavedSystemPlan(slot, systemsCode());
     }
@@ -404,7 +404,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Le niveau qui agit (version 0.70) : celui que possède le joueur, éteint par certains défis
+     * Le niveau qui agit (version 0.070) : celui que possède le joueur, éteint par certains défis
      * (« Présence », « Absence », « Branche coupée », « Tronc nu ») et doublé par certaines récompenses.
      * Tous les effets de l'arbre passent par lui ; les prix et l'accès suivent le niveau possédé.
      */
@@ -412,7 +412,7 @@ public abstract class GamePlans extends GameCollider {
         int level = state.darkLevelOf(dark.id());
         if (level == 0) return 0;
         Style style = darkStyle(dark);
-        // « Présence » et « Absence » (corsés en 0.73) : seules agissent les voies et les accords du style, tout le
+        // « Présence » et « Absence » (corsés en 0.073) : seules agissent les voies et les accords du style, tout le
         // reste de l'arbre est éteint. Avec les bonnes voies, le défi reste court ; sans, c'est presque un premier acte.
         if (ruled(Challenge.Rule.PRESENCE_ONLY) && dark.branch() != DarkUpgrade.Branch.DARK_MATTER | dark.isLink()
                 && style != Style.PRESENCE) return 0;
@@ -427,7 +427,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /**
-     * Les deux styles de l'arbre (version 0.70). Dans chaque bifurcation, la voie de gauche est celle
+     * Les deux styles de l'arbre (version 0.070). Dans chaque bifurcation, la voie de gauche est celle
      * de la présence : la plus forte tant que le joueur est là. Celle de droite est celle de l'absence :
      * un peu moins forte, mais chacune rend {@link #ABSENCE_VOIE_BONUS} de plus du temps passé jeu
      * fermé ({@link #offlineRate()}). Un accord a le style de ses voies.

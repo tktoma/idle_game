@@ -55,7 +55,7 @@ public final class GeneratorPane extends Pane {
         ambient.frame(dt);
     }
 
-    /** Efface le fond animé : coupé, il disparaît tout de suite au lieu de rester figé (version 0.67). */
+    /** Efface le fond animé : coupé, il disparaît tout de suite au lieu de rester figé (version 0.067). */
     public void clearBackground() {
         ambient.getGraphicsContext2D().clearRect(0, 0, ambient.getWidth(), ambient.getHeight());
     }

@@ -468,7 +468,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
                 assertEquals(null, dark.requires());
                 assertTrue(game.isDarkAvailable(dark.id()));   // dès la première matière noire
             }
-            assertEquals(19, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());   // six cases du seuil du Big Bang en 0.97
+            assertEquals(19, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());   // six cases du seuil du Big Bang en 0.097
         }
 
         @Test

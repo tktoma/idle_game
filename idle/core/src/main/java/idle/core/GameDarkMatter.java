@@ -95,9 +95,9 @@ public abstract class GameDarkMatter extends GameParticles {
         clearRun();
         state.stats().endRun();
         if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
-        // La contraction douce (version 0.88) : l'explosion la réussit.
+        // La contraction douce (version 0.088) : l'explosion la réussit.
         if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) completeTrial();
-        // Demandé par le joueur (version 0.84) : les bifurcations se rouvrent avec cette explosion.
+        // Demandé par le joueur (version 0.084) : les bifurcations se rouvrent avec cette explosion.
         if (state.forkResetArmed()) {
             if (!hasSuperposition()) reopenForks();
             state.setForkResetArmed(false);
@@ -646,7 +646,7 @@ public abstract class GameDarkMatter extends GameParticles {
         if (inChallenge()) return false;
         for (DarkUpgrade upgrade : darkUpgrades.values()) {
             if (!upgrade.hasLimit() && (!upgrade.inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
-            // Les bifurcations restent au joueur : c'est lui qui choisit sa voie (version 0.69).
+            // Les bifurcations restent au joueur : c'est lui qui choisit sa voie (version 0.069).
             if (upgrade.isFork()) continue;
             if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;
         }
@@ -675,7 +675,7 @@ public abstract class GameDarkMatter extends GameParticles {
      * @return {@code true} si un automatisme a été offert
      */
     private boolean grantAutomation() {
-        // Les défis gardent cet automatisme (version 0.47) : sans lui, chaque défi obligeait à racheter
+        // Les défis gardent cet automatisme (version 0.047) : sans lui, chaque défi obligeait à racheter
         // les automatismes à la main. Les autres mémoires de la matière noire restent sans effet en défi.
         for (Automation automation : automations.values()) {
             if (state.ownsAutomation(automation.id())) continue;

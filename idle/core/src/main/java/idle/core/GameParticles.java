@@ -35,7 +35,7 @@ public abstract class GameParticles extends GameMatterAutomation {
 
 
     // ------------------------------------------------------------------
-    // L'impulsion : le clic du joueur actif (version 0.48)
+    // L'impulsion : le clic du joueur actif (version 0.048)
     // ------------------------------------------------------------------
 
     /** Charges d'impulsion au plus : deux minutes d'avance, pour qui revient un instant. */
@@ -237,7 +237,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         return 1;
     }
 
-    /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan (version 0.95). */
+    /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan (version 0.095). */
     public boolean isFirstRun() {
         return state.stats().fusions() == 0;
     }
@@ -292,7 +292,7 @@ public abstract class GameParticles extends GameMatterAutomation {
                 + darkMilestoneExtra();
     }
 
-    /** Ce que l'arbre ajoute au facteur de chaque palier de vitesse (version 0.73) : les voies de présence de l'élan. */
+    /** Ce que l'arbre ajoute au facteur de chaque palier de vitesse (version 0.073) : les voies de présence de l'élan. */
     public double darkMilestoneExtra() {
         return this.<Double>darkMemo("milestoneExtra", () -> {
             double extra = 0;
@@ -641,7 +641,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         BigNum atoms = state.atoms().add(gained);
         state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
         notePerfectCycle(!isAtomCapLifted() && atoms.gte(atomCap()));
-        // Les skins (version 0.88) : la reconstruction se chronomètre, la contraction compte ses fusions.
+        // Les skins (version 0.088) : la reconstruction se chronomètre, la contraction compte ses fusions.
         if (isSkinsUnlocked()) state.setRebuildPending(true);
         if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) state.setTrialCount(state.trialCount() + 1);
         state.setTotalAtoms(state.totalAtoms().add(gained));
@@ -763,7 +763,7 @@ public abstract class GameParticles extends GameMatterAutomation {
 
     public boolean canBuy(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
-        // L'épreuve du premier générateur seul (version 0.88) : pas d'autre générateur.
+        // L'épreuve du premier générateur seul (version 0.088) : pas d'autre générateur.
         if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(idle.core.universe.Trial.LONE_GENERATOR)) return false;
         return state.started() && !isMaxed(upgradeId) && balance(upgrade.resource()).gte(costOf(upgradeId));
     }

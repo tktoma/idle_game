@@ -53,7 +53,7 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     /**
-     * La plus petite fenêtre (version 0.92) : en dessous, plus rien ne tient. Elle suit la taille de
+     * La plus petite fenêtre (version 0.092) : en dessous, plus rien ne tient. Elle suit la taille de
      * l'interface, sans dépasser l'écran ; une fenêtre déjà plus petite est agrandie jusqu'à elle.
      */
     void applyMinWindow() {
@@ -101,7 +101,7 @@ public abstract class GameAppWindow extends GameAppBase {
         return null;
     }
 
-    /** Donne à la fenêtre un format prédéfini, recentrée sur son écran (version 0.92, plein écrans en 0.93). */
+    /** Donne à la fenêtre un format prédéfini, recentrée sur son écran (version 0.092, plein écrans en 0.093). */
     void applyWindowSize(Settings.WindowSize size) {
         if (stage == null) return;
         if (size == Settings.WindowSize.FULL) {
@@ -132,7 +132,7 @@ public abstract class GameAppWindow extends GameAppBase {
     /** Remet la fenêtre où elle était à la dernière fermeture, si cet endroit est encore sur un écran. */
     void placeWindow() {
         double[] place = settings.window();
-        // Première ouverture (version 0.94) : le format Petit, recentré et ramené à l'écran s'il est plus petit.
+        // Première ouverture (version 0.094) : le format Petit, recentré et ramené à l'écran s'il est plus petit.
         if (place == null) {
             applyWindowSize(Settings.WindowSize.SMALL);
             return;
@@ -278,7 +278,7 @@ public abstract class GameAppWindow extends GameAppBase {
 
     /**
      * Les anciens onglets oublient ce qu'ils montraient : la partie vient de repartir de zéro, par
-     * « Recommencer » ou par la formation de l'univers (version 0.83).
+     * « Recommencer » ou par la formation de l'univers (version 0.083).
      */
     void forgetOldPages() {
         exploding = false;

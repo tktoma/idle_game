@@ -59,7 +59,7 @@ import javafx.scene.control.Button;
  * <p>Les cartes d'un rayon ne sont construites que la première fois qu'on l'ouvre : le catalogue
  * compte plusieurs centaines de molécules.
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code BigBangPage}. De la base au bout :
  * {@link BigBangPageBase}, {@link BigBangPageControls}, {@link BigBangPageRefresh}. Quand une partie a
  * besoin d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que
@@ -291,7 +291,7 @@ public final class BigBangPage extends BigBangPageRefresh {
                 : !reachable ? "Hors de portée : " + recipe(cost, false)
                 : !elements ? "Il faut " + recipe(cost, true)
                 : "Il manque " + Format.count(volume.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
-        // La réservation par recette (version 0.85) : ce qu'il reste à créer pour le prochain assemblage, et l'alerte.
+        // La réservation par recette (version 0.085) : ce qu'il reste à créer pour le prochain assemblage, et l'alerte.
         int remaining = game.isRecipeReservationOn() ? game.recipeRemaining(molecule.id()) : -1;
         String recipe = remaining < 0 ? "" : remaining > 0 ? "\nRecette : encore " + Format.count(BigNum.of(remaining))
                 : "\nRecette : assez";

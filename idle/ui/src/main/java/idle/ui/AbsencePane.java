@@ -164,11 +164,11 @@ final class AbsencePane extends StackPane {
         if (report.achievements() > 0) {
             lines.add(report.achievements() + (report.achievements() > 1 ? " succès obtenus" : " succès obtenu"));
         }
-        // Les sondes (version 0.86) : en votre absence, elles vident leur butin et repartent.
+        // Les sondes (version 0.086) : en votre absence, elles vident leur butin et repartent.
         if (report.probeTrips() > 0) {
             lines.add(report.probeTrips() + (report.probeTrips() > 1 ? " voyages de sonde vidés et relancés" : " voyage de sonde vidé et relancé"));
         }
-        // Ce que l'arbre a fait à votre place (version 0.73) : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
+        // Ce que l'arbre a fait à votre place (version 0.073) : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
         if (!report.voies().isEmpty()) {
             lines.add("Voies d'absence prises à votre place : " + String.join(", ", report.voies()));
         }

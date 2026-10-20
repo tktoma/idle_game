@@ -75,7 +75,7 @@ import javafx.scene.text.TextAlignment;
  * <p>L'ensemble tourne très lentement, et chaque molécule sur elle-même : c'est une image de
  * l'espace, pas une mesure.
  *
- * <p>Le code est rangé en parties (version 0.98) : une chaîne de classes abstraites, une par thème, dont
+ * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code SpaceView}. De la base au bout :
  * {@link SpaceViewBase}, {@link SpaceViewPlacement}, {@link SpaceViewPacking}. Quand une partie a besoin
  * d'une méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que
@@ -159,7 +159,7 @@ public final class SpaceView extends SpaceViewPacking {
         g.fillRect(0, 0, w, h);
         double originX = w / 2 - centerX * scale;
         double originY = h / 2 - centerY * scale;
-        // Le skin du Big Bang (version 0.89) : tout le fond de la vue, puis l'espace créé à sa façon.
+        // Le skin du Big Bang (version 0.089) : tout le fond de la vue, puis l'espace créé à sa façon.
         if (look != null) skinSky(g, w, h, look);
 
         // L'espace créé : un disque un peu plus clair que le vide. Son bord est tracé plus bas, par-dessus le gaz.
@@ -602,7 +602,7 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** Un fond d'étoiles fixes, les mêmes d'une image à l'autre, qui scintillent à peine. */
     private void drawStars(GraphicsContext g, double w, double h) {
-        // Le skin du Big Bang (version 0.89) habille aussi le fond de l'espace.
+        // Le skin du Big Bang (version 0.089) habille aussi le fond de l'espace.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
         if (look != null) {
             skinStars(g, w, h, look);
@@ -621,7 +621,7 @@ public final class SpaceView extends SpaceViewPacking {
     }
 
     // ------------------------------------------------------------------
-    // Les skins du Big Bang (version 0.89) : le vide, le ciel entier, l'espace créé et son bord.
+    // Les skins du Big Bang (version 0.089) : le vide, le ciel entier, l'espace créé et son bord.
     // ------------------------------------------------------------------
 
     private static Color skinVoid(idle.core.universe.Skin look) {

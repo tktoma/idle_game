@@ -20,7 +20,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Les systèmes solaires, sous-page du Big Bang (version 0.54, redessinée en 0.59). En haut, les trois
+ * Les systèmes solaires, sous-page du Big Bang (version 0.054, redessinée en 0.059). En haut, les trois
  * pas à suivre et où l'on en est. Puis un cadre par système : son dessin, où chaque orbite dit si sa
  * planète est à sa place, les planètes à déplacer ou retirer, celles qu'on peut ajouter avec la
  * place qui leur convient, et « Ranger au mieux » quand un autre ordre rapporterait plus.
@@ -47,7 +47,7 @@ public final class SystemsPane extends VBox {
     private final VBox systems = new VBox(14);
     private final List<SystemView> views = new ArrayList<>();
     private String shown = "";
-    /** Le plan de la disposition (version 0.84) : la sauvegarder, la recharger, la copier en texte. */
+    /** Le plan de la disposition (version 0.084) : la sauvegarder, la recharger, la copier en texte. */
     private final idle.ui.common.PlanBar plan;
 
     SystemsPane(Game game, Runnable changed) {

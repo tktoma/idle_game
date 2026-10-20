@@ -105,14 +105,14 @@ Résultat, bot V2 `DEPENDANCES` depuis une partie neuve : 44 succès et les 10 d
 
 ## Former l'univers remet tout à zéro (0.83)
 
-Depuis la 0.83, former l'univers remet à zéro tout ce qui y a mené : Big Bangs, matière noire, molécules, astres, cosmos. L'univers, lui, reste formé (`g.hasCosmos(Cosmos.UNIVERSE)`), mais `g.cosmosFormed()` retombe à 0. Pour cette raison :
+Depuis la 0.083, former l'univers remet à zéro tout ce qui y a mené : Big Bangs, matière noire, molécules, astres, cosmos. L'univers, lui, reste formé (`g.hasCosmos(Cosmos.UNIVERSE)`), mais `g.cosmosFormed()` retombe à 0. Pour cette raison :
 - les bots repèrent l'univers par `RobotCosmosPlanner.cosmosStage(g)`, qui vaut 3 une fois l'univers formé ;
 - le bilan du bot V2 (`result.csv`) garde les Big Bangs et les astres d'avant la remise à zéro ;
 - la ligne `RESULT` des 24 profils montre, elle, l'état d'après : `bb=0`, `bodies=0`. Le bilan d'avant est dans `g.stats().universeTally()` ;
 - `winner.save` et `checkpoint_universe_finished.save` sont désormais des parties remises à zéro, dans l'univers ;
-- la partie « fin de partie » de l'empreinte change donc entre la 0.82 et la 0.83 : c'est voulu.
+- la partie « fin de partie » de l'empreinte change donc entre la 0.082 et la 0.083 : c'est voulu.
 
-Les durées jusqu'à l'univers ne changent pas : 6 h 42 pour `DEPENDANCES` et 6 h 54 pour le profil 1, comme en 0.82.
+Les durées jusqu'à l'univers ne changent pas : 6 h 42 pour `DEPENDANCES` et 6 h 54 pour le profil 1, comme en 0.082.
 
 ## Les bots dans le jeu (0.84)
 
@@ -144,7 +144,7 @@ Pourquoi pas au bit près : `Math.pow`, `Math.log`… peuvent changer de dernier
 
 ## À savoir avant de lire les résultats
 
-- **Version du moteur.** Les anciennes campagnes (leurs CSV sont retirés du dépôt) ont tourné sur le moteur copié dans l'ancien kit. Ce moteur est identique au cœur du jeu en 0.79 et 0.80 ; la 0.81 n'a rien changé avant l'univers.
+- **Version du moteur.** Les anciennes campagnes (leurs CSV sont retirés du dépôt) ont tourné sur le moteur copié dans l'ancien kit. Ce moteur est identique au cœur du jeu en 0.079 et 0.080 ; la 0.081 n'a rien changé avant l'univers.
 - **Résultats reproduits sur la version actuelle.** Le 19 octobre 2026, ces résultats sont retombés exactement sur les mêmes valeurs :
   - `DEPENDANCES` : 7 h 38 ;
   - profil 1 : 8 h 17 ;

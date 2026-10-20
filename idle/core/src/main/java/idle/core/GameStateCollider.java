@@ -332,7 +332,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /**
-     * Vrai une fois le premier univers formé (version 0.83) : il reste formé après la remise à
+     * Vrai une fois le premier univers formé (version 0.083) : il reste formé après la remise à
      * zéro qui l'accompagne ({@link #startUniverse()}), quand l'échelle du cosmos repart de rien.
      */
     public boolean universeFormed() {
@@ -344,7 +344,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /**
-     * Le premier univers se forme (version 0.83) : tout ce qui y a mené est effacé, comme pour une
+     * Le premier univers se forme (version 0.083) : tout ce qui y a mené est effacé, comme pour une
      * nouvelle partie ({@link #reset()}). Restent les succès, le temps de jeu, les statistiques,
      * l'écran de fin déjà vu, et tout ce qui appartient à l'onglet Univers : les univers, leurs
      * graines, l'énergie du vide et les quatre améliorations. La partie reste commencée, pour que
@@ -358,9 +358,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         int extra = extraUniverses;
         BigNum seeds = universeSeeds;
         BigNum energy = voidEnergy;
+        double shards = dimensionShards, phase = linePhase;
+        int yieldLevel = lineYieldLevel, ticksLevel = lineTicksLevel;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
-        // Les skins (version 0.87) sont des apparences : ils restent d'un univers à l'autre.
+        // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
         boolean skins = skinsOpen;
         Set<String> skinsUnlocked = new java.util.TreeSet<>(unlockedSkins);
         Map<String, String> skinsChosen = new TreeMap<>(chosenSkins);
@@ -371,7 +373,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double rebuild = rebuildRecord;
         long fusions = stats.fusions();
         reset();
-        // Les plans gardés par « Sauvegarder » (version 0.84) servent d'une partie à l'autre.
+        // Les plans gardés par « Sauvegarder » (version 0.084) servent d'une partie à l'autre.
         for (int i = 0; i < PLAN_SLOTS; i++) {
             savedDarkPlans.set(i, treeCodes.get(i));
             savedSystemPlans.set(i, systemsCodes.get(i));
@@ -380,10 +382,10 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         unlockedSkins.addAll(skinsUnlocked);
         chosenSkins.putAll(skinsChosen);
         fusionsAtUniverse = fusions;
-        // Les épreuves réussies, les recherches et le record de reconstruction (version 0.88) restent aussi.
+        // Les épreuves réussies, les recherches et le record de reconstruction (version 0.088) restent aussi.
         completedTrials.addAll(trialsDone);
         researches.addAll(researchesDone);
-        // Les fenêtres d'explication déjà vues (version 0.89) ne reviennent pas.
+        // Les fenêtres d'explication déjà vues (version 0.089) ne reviennent pas.
         seenPopups.addAll(popups);
         popupsPrimed = popupsReady;
         rebuildRecord = rebuild;
@@ -397,10 +399,51 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         extraUniverses = extra;
         universeSeeds = seeds;
         voidEnergy = energy;
+        // La ligne (version 0.101) appartient à la partie secondaire : elle traverse les univers.
+        dimensionShards = shards;
+        linePhase = phase;
+        lineYieldLevel = yieldLevel;
+        lineTicksLevel = ticksLevel;
         universeUpgrades.putAll(upgrades);
     }
 
-    /** Univers créés après le premier (version 0.81). */
+    /** Éclats de dimension, gagnés sur la ligne (version 0.101). */
+    public double dimensionShards() {
+        return dimensionShards;
+    }
+
+    public void setDimensionShards(double shards) {
+        dimensionShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Où en est la boule de la ligne : de 0 (au début) à 1 (au bout) à l'aller, puis de 1 à 2 au retour. */
+    public double linePhase() {
+        return linePhase;
+    }
+
+    public void setLinePhase(double phase) {
+        linePhase = phase >= 0 && phase < 2 ? phase : 0;
+    }
+
+    /** Niveau de l'amélioration qui augmente les éclats de chaque trait touché. */
+    public int lineYieldLevel() {
+        return lineYieldLevel;
+    }
+
+    public void setLineYieldLevel(int level) {
+        lineYieldLevel = Math.max(0, level);
+    }
+
+    /** Niveau de l'amélioration qui ajoute des traits sur la ligne : un trait de plus par niveau. */
+    public int lineTicksLevel() {
+        return lineTicksLevel;
+    }
+
+    public void setLineTicksLevel(int level) {
+        lineTicksLevel = Math.max(0, level);
+    }
+
+    /** Univers créés après le premier (version 0.081). */
     public int extraUniverses() {
         return extraUniverses;
     }
@@ -409,7 +452,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         extraUniverses = Math.max(0, count);
     }
 
-    /** Graines d'univers : la ressource principale de l'onglet Univers (version 0.81). */
+    /** Graines d'univers : la ressource principale de l'onglet Univers (version 0.081). */
     public BigNum universeSeeds() {
         return universeSeeds;
     }
@@ -418,7 +461,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         universeSeeds = seeds == null || seeds.sign() < 0 ? BigNum.ZERO : seeds;
     }
 
-    /** Énergie du vide : la ressource du deuxième acte de la partie secondaire, le Vide (version 0.81). */
+    /** Énergie du vide : la ressource du deuxième acte de la partie secondaire, le Vide (version 0.081). */
     public BigNum voidEnergy() {
         return voidEnergy;
     }

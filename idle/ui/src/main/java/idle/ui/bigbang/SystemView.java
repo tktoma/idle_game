@@ -14,7 +14,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Le dessin d'un système solaire (version 0.59) : l'étoile à gauche, une orbite par planète, de la
+ * Le dessin d'un système solaire (version 0.059) : l'étoile à gauche, une orbite par planète, de la
  * plus proche à la plus lointaine, les lunes autour de leur planète. Chaque orbite dit d'un coup
  * d'œil si sa planète est à sa place : verte quand elle l'est, orange sinon. La zone habitable d'un
  * Soleil ou d'une naine rouge est un voile vert sur les orbites 2 et 3.

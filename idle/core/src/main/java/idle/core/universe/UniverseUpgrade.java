@@ -1,7 +1,7 @@
 package idle.core.universe;
 
 /**
- * Les améliorations de l'onglet Univers (version 0.81), payées plus tard en graines d'univers.
+ * Les améliorations de l'onglet Univers (version 0.081), payées plus tard en graines d'univers.
  * Pour l'instant elles n'ont que leur nom et une phrase : leur niveau monte avec un bouton d'essai,
  * sans rien coûter ni rien changer.
  */

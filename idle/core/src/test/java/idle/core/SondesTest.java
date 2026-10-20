@@ -18,7 +18,7 @@ import idle.core.save.SaveCodec;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Les sondes (version 0.52) : le départ, le retour, le butin réclamé d'un clic, les améliorations. */
+/** Les sondes (version 0.052) : le départ, le retour, le butin réclamé d'un clic, les améliorations. */
 class SondesTest {
 
     /** Une partie au troisième Big Bang, l'hydrogène et le fer découverts. */

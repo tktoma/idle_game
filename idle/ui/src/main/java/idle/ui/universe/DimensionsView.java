@@ -8,7 +8,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
 /**
- * La carte des dimensions (version 0.81) : dix points en cercle, et un onzième au milieu, relié à
+ * La carte des dimensions (version 0.081) : dix points en cercle, et un onzième au milieu, relié à
  * tous. Les dimensions ouvertes brillent, leur numéro et leur nom dessous ; les autres restent
  * éteintes, un point d'interrogation dedans. Des éclats partent du milieu vers celles qui sont
  * ouvertes. Un clic sur une dimension ouverte l'ouvre dans sa fenêtre.
