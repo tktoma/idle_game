@@ -727,7 +727,7 @@ public final class AutomationPage extends VBox {
             darkNext.setText((anyDark ? "Prochain automatisme de matière noire à "
                     : "Un automatisme de matière noire apparaîtra à ")
                     + Format.count(next.darkMatter()) + " matières noires gagnées (vous : "
-                    + Format.count(game.darkMatterEarned()) + ").");
+                    + Format.darkMatter(game.darkMatterEarned()) + ").");
         }
     }
 

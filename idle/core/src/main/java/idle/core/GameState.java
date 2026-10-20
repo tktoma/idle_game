@@ -156,6 +156,35 @@ public final class GameState {
     private final List<String> plannedBodies = new ArrayList<>();
     private final Map<String, Double> stateCaps = new TreeMap<>();
     private boolean recipeReservation = false;
+    // Le deuxième univers (version 0.87).
+    private boolean replaying = false;
+    private long fusionsAtUniverse = 0;
+    private boolean skinsOpen = false;
+    private final Set<String> unlockedSkins = new java.util.TreeSet<>();
+    private final Map<String, String> chosenSkins = new TreeMap<>();
+    private boolean regimeOpen = false;
+    private double regimeLeft = 0;
+    private double regimeRest = 0;
+    private boolean synergyOpen = false;
+    private int perfectStreak = 0;
+    private double perfectLeft = 0;
+    private String cycleChoice = null;
+    private String preferredFamily = null;
+    private int preferenceDraws = 0;
+    private int freeElementsUsed = 0;
+    // Les skins à obtenir (version 0.88).
+    private String activeTrial = null;
+    private double trialStart = 0;
+    private double trialBase = 0;
+    private int trialCount = 0;
+    private final Set<String> completedTrials = new java.util.TreeSet<>();
+    /** Les fenêtres d'explication déjà montrées (version 0.89) : onglets ouverts et nouveautés du deuxième univers. */
+    private final Set<String> seenPopups = new java.util.TreeSet<>();
+    /** Vrai une fois les fenêtres d'une partie d'avant la 0.89 marquées vues, sans les montrer. */
+    private boolean popupsPrimed = false;
+    private double rebuildRecord = 0;
+    private boolean rebuildPending = false;
+    private final Set<String> researches = new java.util.TreeSet<>();
     private BigNum universeSeeds = BigNum.ZERO;
     private BigNum voidEnergy = BigNum.ZERO;
     private final Map<String, Integer> universeUpgrades = new HashMap<>();
@@ -764,6 +793,237 @@ public final class GameState {
         return Collections.unmodifiableMap(stateCaps);
     }
 
+    // ----- Le deuxième univers (version 0.87) -----
+
+    /** Vrai pendant la partie qui mène à l'univers suivant : les anciens onglets sont revenus. */
+    public boolean replaying() {
+        return replaying;
+    }
+
+    public void setReplaying(boolean on) {
+        replaying = on;
+    }
+
+    /** Les fusions du jeu au moment où le dernier univers s'est formé : l'onglet Skins s'ouvre cinq fusions plus tard. */
+    public long fusionsAtUniverse() {
+        return fusionsAtUniverse;
+    }
+
+    public void setFusionsAtUniverse(long fusions) {
+        fusionsAtUniverse = Math.max(0, fusions);
+    }
+
+    /** Vrai une fois l'onglet Skins ouvert : il ne se referme plus. */
+    public boolean skinsOpen() {
+        return skinsOpen;
+    }
+
+    public void setSkinsOpen(boolean open) {
+        skinsOpen = open;
+    }
+
+    /** Les skins débloqués, par identifiant. */
+    public Set<String> unlockedSkins() {
+        return Collections.unmodifiableSet(unlockedSkins);
+    }
+
+    public void unlockSkin(String id) {
+        if (id != null && !id.isBlank()) unlockedSkins.add(id);
+    }
+
+    public void lockSkin(String id) {
+        unlockedSkins.remove(id);
+        chosenSkins.values().remove(id);
+    }
+
+    /** Le skin choisi pour chaque visuel ; absent : l'apparence classique. */
+    public Map<String, String> chosenSkins() {
+        return Collections.unmodifiableMap(chosenSkins);
+    }
+
+    public void chooseSkin(String visual, String skin) {
+        if (skin == null || skin.isBlank()) chosenSkins.remove(visual);
+        else chosenSkins.put(visual, skin);
+    }
+
+    public boolean regimeOpen() {
+        return regimeOpen;
+    }
+
+    public void setRegimeOpen(boolean open) {
+        regimeOpen = open;
+    }
+
+    /** Secondes de régime rapide qu'il reste ; 0 hors régime. */
+    public double regimeLeft() {
+        return regimeLeft;
+    }
+
+    public void setRegimeLeft(double seconds) {
+        regimeLeft = Math.max(0, seconds);
+    }
+
+    /** Secondes de repos du régime qu'il reste avant de pouvoir le relancer. */
+    public double regimeRest() {
+        return regimeRest;
+    }
+
+    public void setRegimeRest(double seconds) {
+        regimeRest = Math.max(0, seconds);
+    }
+
+    public boolean synergyOpen() {
+        return synergyOpen;
+    }
+
+    public void setSynergyOpen(boolean open) {
+        synergyOpen = open;
+    }
+
+    /** Fusions de suite sans atteindre le plafond d'atomes, pour la prime de cycle parfait. */
+    public int perfectStreak() {
+        return perfectStreak;
+    }
+
+    public void setPerfectStreak(int streak) {
+        perfectStreak = Math.max(0, streak);
+    }
+
+    /** Secondes qu'il reste à la prime de cycle parfait. */
+    public double perfectLeft() {
+        return perfectLeft;
+    }
+
+    public void setPerfectLeft(double seconds) {
+        perfectLeft = Math.max(0, seconds);
+    }
+
+    /** Le choix du petit arbre pour ce cycle, par son nom ; {@code null} tant qu'il n'est pas fait. */
+    public String cycleChoice() {
+        return cycleChoice;
+    }
+
+    public void setCycleChoice(String choice) {
+        cycleChoice = choice == null || choice.isBlank() ? null : choice;
+    }
+
+    /** La famille préférée de la synthèse, par son nom ; {@code null} sans préférence. */
+    public String preferredFamily() {
+        return preferredFamily;
+    }
+
+    public void setPreferredFamily(String family) {
+        preferredFamily = family == null || family.isBlank() ? null : family;
+    }
+
+    /** Tirages faits depuis le choix de la famille préférée, ou depuis la dernière explosion. */
+    public int preferenceDraws() {
+        return preferenceDraws;
+    }
+
+    public void setPreferenceDraws(int draws) {
+        preferenceDraws = Math.max(0, draws);
+    }
+
+    /** Éléments gratuits déjà pris depuis la dernière explosion. */
+    public int freeElementsUsed() {
+        return freeElementsUsed;
+    }
+
+    public void setFreeElementsUsed(int used) {
+        freeElementsUsed = Math.max(0, used);
+    }
+
+    // ----- Les skins à obtenir (version 0.88) -----
+
+    /** L'épreuve en cours, par son nom ; {@code null} sans épreuve. */
+    public String activeTrial() {
+        return activeTrial;
+    }
+
+    public void setActiveTrial(String trial) {
+        activeTrial = trial == null || trial.isBlank() ? null : trial;
+    }
+
+    /** Temps de jeu au début de l'épreuve en cours. */
+    public double trialStart() {
+        return trialStart;
+    }
+
+    public void setTrialStart(double time) {
+        trialStart = time;
+    }
+
+    /** Ce que l'épreuve en cours a noté au départ (une énergie produite, un rythme). */
+    public double trialBase() {
+        return trialBase;
+    }
+
+    public void setTrialBase(double base) {
+        trialBase = base;
+    }
+
+    /** Ce que l'épreuve en cours a compté (croisements captés, fusions). */
+    public int trialCount() {
+        return trialCount;
+    }
+
+    public void setTrialCount(int count) {
+        trialCount = Math.max(0, count);
+    }
+
+    public Set<String> seenPopups() {
+        return Collections.unmodifiableSet(seenPopups);
+    }
+
+    /** Retient qu'une fenêtre a été montrée ; vrai si elle ne l'avait pas encore été. */
+    public boolean addSeenPopup(String id) {
+        return id != null && !id.isBlank() && seenPopups.add(id);
+    }
+
+    public boolean popupsPrimed() {
+        return popupsPrimed;
+    }
+
+    public void setPopupsPrimed(boolean primed) {
+        popupsPrimed = primed;
+    }
+
+    public Set<String> completedTrials() {
+        return Collections.unmodifiableSet(completedTrials);
+    }
+
+    public void addCompletedTrial(String trial) {
+        if (trial != null && !trial.isBlank()) completedTrials.add(trial);
+    }
+
+    /** Le record de reconstruction, en secondes : de la fusion au dixième générateur ; 0 sans record. */
+    public double rebuildRecord() {
+        return rebuildRecord;
+    }
+
+    public void setRebuildRecord(double seconds) {
+        rebuildRecord = Math.max(0, seconds);
+    }
+
+    /** Vrai entre une fusion et le dixième générateur suivant : une reconstruction est chronométrée. */
+    public boolean rebuildPending() {
+        return rebuildPending;
+    }
+
+    public void setRebuildPending(boolean pending) {
+        rebuildPending = pending;
+    }
+
+    /** Les recherches facultatives faites : « prism », « dense1 » à « dense4 ». */
+    public Set<String> researches() {
+        return Collections.unmodifiableSet(researches);
+    }
+
+    public void addResearch(String research) {
+        if (research != null && !research.isBlank()) researches.add(research);
+    }
+
     /** Vrai si la réservation par recette est allumée (version 0.85). */
     public boolean recipeReservation() {
         return recipeReservation;
@@ -1216,12 +1476,33 @@ public final class GameState {
         BigNum energy = voidEnergy;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
+        // Les skins (version 0.87) sont des apparences : ils restent d'un univers à l'autre.
+        boolean skins = skinsOpen;
+        Set<String> skinsUnlocked = new java.util.TreeSet<>(unlockedSkins);
+        Map<String, String> skinsChosen = new TreeMap<>(chosenSkins);
+        Set<String> trialsDone = new java.util.TreeSet<>(completedTrials);
+        Set<String> popups = new java.util.TreeSet<>(seenPopups);
+        boolean popupsReady = popupsPrimed;
+        Set<String> researchesDone = new java.util.TreeSet<>(researches);
+        double rebuild = rebuildRecord;
+        long fusions = stats.fusions();
         reset();
         // Les plans gardés par « Sauvegarder » (version 0.84) servent d'une partie à l'autre.
         for (int i = 0; i < PLAN_SLOTS; i++) {
             savedDarkPlans.set(i, treeCodes.get(i));
             savedSystemPlans.set(i, systemsCodes.get(i));
         }
+        skinsOpen = skins;
+        unlockedSkins.addAll(skinsUnlocked);
+        chosenSkins.putAll(skinsChosen);
+        fusionsAtUniverse = fusions;
+        // Les épreuves réussies, les recherches et le record de reconstruction (version 0.88) restent aussi.
+        completedTrials.addAll(trialsDone);
+        researches.addAll(researchesDone);
+        // Les fenêtres d'explication déjà vues (version 0.89) ne reviennent pas.
+        seenPopups.addAll(popups);
+        popupsPrimed = popupsReady;
+        rebuildRecord = rebuild;
         started = true;
         timePlayed = played;
         stats = keptStats;
@@ -1626,6 +1907,31 @@ public final class GameState {
         plannedBodies.clear();
         stateCaps.clear();
         recipeReservation = false;
+        replaying = false;
+        fusionsAtUniverse = 0;
+        skinsOpen = false;
+        unlockedSkins.clear();
+        chosenSkins.clear();
+        regimeOpen = false;
+        regimeLeft = 0;
+        regimeRest = 0;
+        synergyOpen = false;
+        perfectStreak = 0;
+        perfectLeft = 0;
+        cycleChoice = null;
+        preferredFamily = null;
+        preferenceDraws = 0;
+        freeElementsUsed = 0;
+        activeTrial = null;
+        trialStart = 0;
+        trialBase = 0;
+        trialCount = 0;
+        completedTrials.clear();
+        seenPopups.clear();
+        popupsPrimed = false;
+        rebuildRecord = 0;
+        rebuildPending = false;
+        researches.clear();
         universeSeeds = BigNum.ZERO;
         voidEnergy = BigNum.ZERO;
         universeUpgrades.clear();
@@ -1715,6 +2021,10 @@ public final class GameState {
      * le nombre d'explosions et le temps de jeu.
      */
     public void clearMatter() {
+        // Le deuxième univers (version 0.87) : ce qui suit le tableau repart avec lui.
+        preferenceDraws = 0;
+        freeElementsUsed = 0;
+        perfectStreak = 0;
         particles = BigNum.ZERO;
         atoms = BigNum.ZERO;
         totalAtoms = BigNum.ZERO;
@@ -1877,6 +2187,33 @@ public final class GameState {
         data.putList("plannedBodies", plannedBodies);
         data.putDoubles("stateCaps", new TreeMap<>(stateCaps));
         data.put("recipeReservation", recipeReservation);
+        data.put("replaying", replaying);
+        data.put("fusionsAtUniverse", fusionsAtUniverse);
+        data.put("skinsOpen", skinsOpen);
+        data.putList("unlockedSkins", unlockedSkins);
+        List<String> chosen = new ArrayList<>();
+        chosenSkins.forEach((visual, skin) -> chosen.add(visual + ">" + skin));
+        data.putList("chosenSkins", chosen);
+        data.put("regimeOpen", regimeOpen);
+        data.put("regimeLeft", regimeLeft);
+        data.put("regimeRest", regimeRest);
+        data.put("synergyOpen", synergyOpen);
+        data.put("perfectStreak", perfectStreak);
+        data.put("perfectLeft", perfectLeft);
+        if (cycleChoice != null) data.putList("cycleChoice", List.of(cycleChoice));
+        if (preferredFamily != null) data.putList("preferredFamily", List.of(preferredFamily));
+        data.put("preferenceDraws", preferenceDraws);
+        data.put("freeElementsUsed", freeElementsUsed);
+        if (activeTrial != null) data.putList("activeTrial", List.of(activeTrial));
+        data.put("trialStart", trialStart);
+        data.put("trialBase", trialBase);
+        data.put("trialCount", trialCount);
+        data.putList("completedTrials", completedTrials);
+        data.putList("seenPopups", seenPopups);
+        data.put("popupsPrimed", popupsPrimed);
+        data.put("rebuildRecord", rebuildRecord);
+        data.put("rebuildPending", rebuildPending);
+        data.putList("researches", researches);
         data.put("automationPaused", automationPaused);
         data.putList("favoriteMolecules", favoriteMolecules);
         data.put("autoGather", autoGather);
@@ -2042,6 +2379,39 @@ public final class GameState {
         stateCaps.clear();
         data.doubles("stateCaps").forEach(this::setStateCap);
         recipeReservation = data.flag("recipeReservation", false);
+        replaying = data.flag("replaying", false);
+        fusionsAtUniverse = data.count("fusionsAtUniverse", 0);
+        skinsOpen = data.flag("skinsOpen", false);
+        unlockedSkins.clear();
+        for (String id : data.list("unlockedSkins")) unlockSkin(id);
+        chosenSkins.clear();
+        for (String pair : data.list("chosenSkins")) {
+            int arrow = pair.indexOf('>');
+            if (arrow > 0) chosenSkins.put(pair.substring(0, arrow), pair.substring(arrow + 1));
+        }
+        regimeOpen = data.flag("regimeOpen", false);
+        setRegimeLeft(data.real("regimeLeft", 0));
+        setRegimeRest(data.real("regimeRest", 0));
+        synergyOpen = data.flag("synergyOpen", false);
+        setPerfectStreak(data.whole("perfectStreak", 0));
+        setPerfectLeft(data.real("perfectLeft", 0));
+        setCycleChoice(String.join("", data.list("cycleChoice")));
+        setPreferredFamily(String.join("", data.list("preferredFamily")));
+        setPreferenceDraws(data.whole("preferenceDraws", 0));
+        setFreeElementsUsed(data.whole("freeElementsUsed", 0));
+        setActiveTrial(String.join("", data.list("activeTrial")));
+        trialStart = data.real("trialStart", 0);
+        trialBase = data.real("trialBase", 0);
+        setTrialCount(data.whole("trialCount", 0));
+        completedTrials.clear();
+        for (String id : data.list("completedTrials")) addCompletedTrial(id);
+        seenPopups.clear();
+        for (String id : data.list("seenPopups")) addSeenPopup(id);
+        popupsPrimed = data.flag("popupsPrimed", false);
+        setRebuildRecord(data.real("rebuildRecord", 0));
+        rebuildPending = data.flag("rebuildPending", false);
+        researches.clear();
+        for (String id : data.list("researches")) addResearch(id);
         automationPaused = data.flag("automationPaused", false);
         favoriteMolecules.addAll(data.list("favoriteMolecules"));
         autoGather = data.flag("autoGather", true);

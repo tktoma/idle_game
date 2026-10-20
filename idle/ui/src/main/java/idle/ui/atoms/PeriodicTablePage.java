@@ -60,6 +60,11 @@ import javafx.util.Duration;
  */
 public final class PeriodicTablePage extends VBox {
 
+    /** Le tableau des cases (version 0.88). */
+    private GridPane tableGrid;
+    /** Le skin dont les cases sont peintes : {@code null} pour le classique. */
+    private idle.core.universe.Skin tableSkin;
+
     /** Le tableau fait 18 cases de large, séparées par un petit espace. */
     private static final int COLUMNS = 18;
     private static final double CELL_GAP = 2;
@@ -127,6 +132,12 @@ public final class PeriodicTablePage extends VBox {
     /** Le filtre « utiles au prochain astre » (version 0.85), et les éléments qu'il éclaire au dernier affichage. */
     private final Button nextFilter = new Button();
     private boolean filterOn = false;
+    /** La préférence de famille graduée (version 0.87), et les éléments gratuits, tous les dix découverts. */
+    private final javafx.scene.control.ComboBox<String> preference = new javafx.scene.control.ComboBox<>();
+    private final Label preferenceLabel = new Label();
+    private final javafx.scene.layout.HBox preferenceRow = new javafx.scene.layout.HBox(8);
+    private final Label freeLabel = new Label();
+    private boolean fillingPreference = false;
     private java.util.Set<Integer> filtered = java.util.Set.of();
 
     PeriodicTablePage(Game game) {
@@ -189,6 +200,7 @@ public final class PeriodicTablePage extends VBox {
 
         // Le tableau : sept périodes, puis les lanthanides et les actinides sur deux lignes à part.
         GridPane table = new GridPane();
+        tableGrid = table;
         table.setHgap(CELL_GAP);
         table.setVgap(CELL_GAP);
         table.setAlignment(Pos.CENTER);
@@ -198,10 +210,7 @@ public final class PeriodicTablePage extends VBox {
             cell.setPrefSize(cellSize, cellSize);
             cell.setAlignment(Pos.CENTER);
             cell.setTextAlignment(TextAlignment.CENTER);
-            cell.setOnMouseClicked(event -> {
-                selected = element;
-                showDetail();
-            });
+            cell.setOnMouseClicked(event -> clickCell(element));
             Tooltip tooltip = new Tooltip();
             Tooltip.install(cell, tooltip);
             cells.put(element.number(), cell);
@@ -245,6 +254,27 @@ public final class PeriodicTablePage extends VBox {
             refresh();
         });
         getChildren().add(nextFilter);
+        // La préférence de famille (version 0.87) : une liste, « aucune » d'abord.
+        preference.getItems().add("Aucune");
+        for (ElementCategory category : ElementCategory.values()) preference.getItems().add(category.label());
+        preference.setValue("Aucune");
+        preference.setVisibleRowCount(ElementCategory.values().length + 1);
+        preference.setFocusTraversable(false);
+        preference.setStyle("-fx-font-size: 12px;");
+        preference.setOnAction(event -> {
+            if (fillingPreference) return;
+            int index = preference.getItems().indexOf(preference.getValue()) - 1;
+            game.setPreferredFamily(index < 0 ? null : ElementCategory.values()[index]);
+            refresh();
+        });
+        Label preferenceTitle = new Label("Famille préférée :");
+        preferenceTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffe9c2;");
+        preferenceLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        preferenceRow.setAlignment(Pos.CENTER);
+        preferenceRow.getChildren().addAll(preferenceTitle, preference, preferenceLabel);
+        freeLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
+        getChildren().add(preferenceRow);
+        getChildren().add(freeLabel);
         getChildren().add(table);
         getChildren().add(detailLabel);
         getChildren().add(bonusLabel);
@@ -269,6 +299,12 @@ public final class PeriodicTablePage extends VBox {
      *                retour que si elle était restée affichée.
      */
     void refresh(boolean visible) {
+        // Le skin du tableau (version 0.89) : les cases se redessinent quand il change.
+        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.TABLE);
+        if (look != tableSkin) {
+            tableSkin = look;
+            paintCells();
+        }
         ElementCategory target = game.synthesisTarget();
         int left = game.synthesisTriesLeft();
         int count = game.state().synthesisCount();
@@ -325,7 +361,63 @@ public final class PeriodicTablePage extends VBox {
     }
 
     /** Les tuiles, les bonus et l'annonce du dernier élément obtenu : seulement quand le tableau a changé. */
+    /**
+     * Un clic sur une case : avec un élément gratuit à prendre (version 0.87), un élément pas encore
+     * découvert est pris ; sinon, son détail s'affiche sous le tableau.
+     */
+    private void clickCell(Element element) {
+        if (game.freeElementsAvailable() > 0 && game.elementCount(element.number()) == 0 && game.claimFreeElement(element.number())) {
+            resultLabel.setText("Élément gratuit : " + element.name() + " (" + element.symbol() + ").");
+            refresh();
+            return;
+        }
+        selected = element;
+        showDetail();
+    }
+
+    /** Un clic sur la case de cet élément, comme le joueur : pour les vérifications. */
+    public void clickElement(int number) {
+        clickCell(PeriodicTable.element(number));
+    }
+
+    /** La préférence et les éléments gratuits : cachés hors du deuxième univers. */
+    private void refreshSecondUniverse() {
+        boolean open = game.isFamilyPreferenceUnlocked();
+        preferenceRow.setVisible(open);
+        preferenceRow.setManaged(open);
+        if (open) {
+            ElementCategory preferred = game.preferredFamily();
+            String wanted = preferred == null ? "Aucune" : preferred.label();
+            if (!wanted.equals(preference.getValue())) {
+                fillingPreference = true;
+                preference.setValue(wanted);
+                fillingPreference = false;
+            }
+            preferenceLabel.setText(preferred == null ? "ses chances montent à chaque tirage au hasard, ×2 au plus"
+                    : "chances ×" + String.format(java.util.Locale.ROOT, "%.2f", game.preferenceMultiplier(preferred))
+                            + " (+" + Math.round(Game.PREFERENCE_STEP * 100) + " % par tirage au hasard, ×2 au plus ; l'explosion la remet à ×1)");
+        }
+        int free = game.freeElementsAvailable();
+        boolean second = game.isSecondUniverse();
+        freeLabel.setVisible(second);
+        freeLabel.setManaged(second);
+        freeLabel.setText(free > 0 ? free + (free > 1 ? " éléments gratuits" : " élément gratuit") + " : cliquez un élément pas encore découvert pour le prendre"
+                : "Éléments gratuits : un tous les " + Game.FREE_ELEMENT_EVERY + " éléments découverts (prochain à "
+                        + ((game.discoveredElements() / Game.FREE_ELEMENT_EVERY + 1) * Game.FREE_ELEMENT_EVERY) + ")");
+    }
+
+    /** La liste de la famille préférée : pour les vérifications. */
+    public javafx.scene.control.ComboBox<String> preferenceChoice() {
+        return preference;
+    }
+
+    /** La ligne des éléments gratuits : pour les vérifications. */
+    public String freeText() {
+        return freeLabel.getText();
+    }
+
     private void refreshTable() {
+        refreshSecondUniverse();
         // Le filtre du prochain astre : caché avant le premier Big Bang, et repeint quand ce qu'il éclaire change.
         boolean filter = game.isNextBodyFilterUnlocked();
         nextFilter.setVisible(filter);
@@ -473,6 +565,13 @@ public final class PeriodicTablePage extends VBox {
             cell.setText(unique ? element.symbol() + "\n★"
                     : copies > 0 ? element.symbol() + "\n" + Math.min(copies, max) + "/" + max : element.symbol());
             // Pas encore obtenu : éteint. Possédé : allumé. Au maximum : couleur pleine.
+            if (tableSkin != null) {
+                cell.setStyle(font + skinStyle(tableSkin, color, copies > 0, maxed)
+                        + (!filterOn ? "" : filtered.contains(element.number()) ? " -fx-border-color: #ffd27f; -fx-border-width: 2;"
+                                : " -fx-opacity: 0.3;"));
+                tooltips.get(element.number()).setText(detail(element, "\n"));
+                continue;
+            }
             cell.setStyle(font + CELL_STYLE + (maxed
                     ? " -fx-text-fill: #10151f; -fx-background-color: " + color + "; -fx-border-color: #ffffff;"
                     : copies > 0
@@ -483,6 +582,27 @@ public final class PeriodicTablePage extends VBox {
                             : " -fx-opacity: 0.3;"));
             tooltips.get(element.number()).setText(detail(element, "\n"));
         }
+    }
+
+    /**
+     * Une case sous un skin (version 0.89). « Plomb » : des plaques de métal brut, carrées, au relief
+     * marqué, la famille en liseré du haut et la lettre gravée en caractères de machine. « Or » : des
+     * lingots dorés, arrondis, la lettre embossée en brun ; pas encore obtenu, un moule vide.
+     */
+    static String skinStyle(idle.core.universe.Skin skin, String family, boolean owned, boolean maxed) {
+        if (skin == idle.core.universe.Skin.TABLE_LEAD) {
+            String face = maxed ? "linear-gradient(to bottom, #8a919a, #4a5058)" : owned ? "linear-gradient(to bottom, #5d636b, #33373d)"
+                    : "linear-gradient(to bottom, #2a2d32, #1c1e22)";
+            return "-fx-font-family: 'Courier New', monospace; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 0;"
+                    + " -fx-border-radius: 0; -fx-background-color: " + face + "; -fx-text-fill: " + (owned ? "#e6e9ec" : "#6d737b") + ";"
+                    + " -fx-border-color: " + family + (owned ? "" : "66") + " #15181c #0c0e10 #15181c; -fx-border-width: 3 1 3 1;";
+        }
+        String face = maxed ? "linear-gradient(to bottom, #fff6c4, #f0c24c 50%, #b07a12)"
+                : owned ? "linear-gradient(to bottom, #f5dc8a, #c99a2e 55%, #8a5f10)" : "#1f1808";
+        return "-fx-font-family: Georgia, serif; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 10 10 4 4;"
+                + " -fx-border-radius: 10 10 4 4; -fx-background-color: " + face + "; -fx-text-fill: " + (owned ? "#4a2f05" : "#8a6a2a") + ";"
+                + " -fx-border-color: " + (owned ? "#fff3c0 #7a5210 " + family + " #7a5210" : "#6b5220") + ";"
+                + " -fx-border-width: " + (owned ? "1 1 3 1" : "1") + ";" + (owned ? "" : " -fx-border-style: dashed;");
     }
 
     /** Affiche les éléments gagnés depuis le dernier affichage et fait grossir leur case un instant. */

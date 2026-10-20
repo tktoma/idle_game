@@ -594,7 +594,7 @@ public final class DarkMatterTreePane extends Pane {
                     + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")";
             case ATOMS -> Format.count(Game.BIG_BANG_ATOMS) + " atomes (" + Format.count(game.state().atoms()) + ")";
             case DARK_MATTER -> Format.count(Game.BIG_BANG_DARK_MATTER) + " matières noires en réserve ("
-                    + Format.count(game.state().darkMatter()) + ")";
+                    + Format.darkMatter(game.state().darkMatter()) + ")";
             case ACHIEVEMENTS -> Game.BIG_BANG_ACHIEVEMENTS + " succès (" + game.achievementCount() + ")";
             case CHALLENGES -> "Les " + game.challenges().size() + " défis réussis (" + game.completedChallenges() + ")";
             case SKY -> game.bigBangSkyRequirement() + " astres mûrs (" + game.bodiesMature() + ")";

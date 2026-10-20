@@ -535,10 +535,10 @@ public final class StatsPage extends VBox {
         count("Paliers de taille", "sur " + SizeScale.MILESTONES.size(), ChartPane.TEAL, StatsHistory.Stat.LANDMARKS, () -> true);
 
         section("Quantités");
-        row("Matière noire disponible", () -> Format.count(game.state().darkMatter()));
-        charted("Matière noire gagnée", row("Gagnée depuis le début", () -> Format.count(game.darkMatterEarned())));
-        row("Dépensée en améliorations", () -> Format.count(game.state().darkMatterSpent()));
-        row("Par explosion", () -> "+" + Format.count(game.darkMatterPerExplosion()));
+        row("Matière noire disponible", () -> Format.darkMatter(game.state().darkMatter()));
+        charted("Matière noire gagnée", row("Gagnée depuis le début", () -> Format.darkMatter(game.darkMatterEarned())));
+        row("Dépensée en améliorations", () -> Format.darkMatter(game.state().darkMatterSpent()));
+        row("Par explosion", () -> "+" + Format.darkMatter(game.darkMatterPerExplosion()));
 
         section("Explosions");
         charted("Explosions", row("Explosions", () -> Format.whole(game.state().explosions())));

@@ -157,7 +157,12 @@ public final class EnergyView extends Canvas {
         return cy() - ry() * Math.cos(angle);
     }
 
+    /** Les secondes de la dernière image, et la couleur des arcs du croisement (dorés sous le faisceau doré). */
+    private double lastElapsed;
+    private Color lightningColor = LIGHT;
+
     public void frame(double elapsed) {
+        lastElapsed = Math.min(elapsed, 0.1);
         if (motion) time += elapsed;
         boolean crossing = game.isCrossing();
         // Chaque croisement fait jaillir des étincelles, même sans clic : les faisceaux produisent toujours.
@@ -251,19 +256,41 @@ public final class EnergyView extends Canvas {
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
-        g.setFill(BACK);
+        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER);
+        g.setFill(look == idle.core.universe.Skin.COLLIDER_NEON ? Color.web("#05020a")
+                : look == idle.core.universe.Skin.COLLIDER_PLASMA ? Color.web("#0c0408")
+                : look == idle.core.universe.Skin.COLLIDER_ICE ? Color.web("#06121c") : BACK);
         g.fillRect(0, 0, w, h);
-        g.setFill(Color.web("#9ab4d0"));
-        for (int i = 0; i < 80; i++) {
-            g.setGlobalAlpha(0.12 + 0.25 * (0.5 + 0.5 * Math.sin(time * 0.6 + i)));
-            g.fillOval((i * 0.754877666 % 1) * w, (i * 0.569840291 % 1) * h, 1.4, 1.4);
+        if (look == idle.core.universe.Skin.COLLIDER_ICE) {
+            // La glace : des flocons qui descendent lentement.
+            g.setStroke(Color.web("#cfefff"));
+            g.setLineWidth(0.8);
+            for (int i = 0; i < 26; i++) {
+                double x = (i * 0.754877666 % 1) * w, y = ((i * 0.569840291 + time * 0.03 * (1 + i % 3)) % 1) * h;
+                g.setGlobalAlpha(0.35);
+                for (int k = 0; k < 3; k++) {
+                    double a = Math.PI * k / 3 + time * 0.2;
+                    g.strokeLine(x - 3 * Math.cos(a), y - 3 * Math.sin(a), x + 3 * Math.cos(a), y + 3 * Math.sin(a));
+                }
+            }
+        } else {
+            g.setFill(look == idle.core.universe.Skin.COLLIDER_PLASMA ? Color.web("#ffb07a") : Color.web("#9ab4d0"));
+            for (int i = 0; i < 80; i++) {
+                g.setGlobalAlpha(0.12 + 0.25 * (0.5 + 0.5 * Math.sin(time * 0.6 + i)));
+                g.fillOval((i * 0.754877666 % 1) * w, (i * 0.569840291 % 1) * h, 1.4, 1.4);
+            }
         }
         g.setGlobalAlpha(1);
         double phase = game.colliderBeamPhase();
         boolean crossing = game.isCrossing(), catchable = game.canCatchCrossing();
         // L'anneau.
-        ellipse(g, 0, 2 * Math.PI, RING, 10, 1);
-        ellipse(g, 0, 2 * Math.PI, LIGHT, 2, 0.25 + 0.1 * Math.sin(time * 2));
+        if (look == idle.core.universe.Skin.COLLIDER_NEON) neonRing(g);
+        else if (look == idle.core.universe.Skin.COLLIDER_PLASMA) plasmaRing(g);
+        else if (look == idle.core.universe.Skin.COLLIDER_ICE) iceRing(g);
+        else {
+            ellipse(g, 0, 2 * Math.PI, RING, 10, 1);
+            ellipse(g, 0, 2 * Math.PI, LIGHT, 2, 0.25 + 0.1 * Math.sin(time * 2));
+        }
         // La zone du croisement, autour du détecteur.
         double half = Math.PI * game.colliderWindow();
         ellipse(g, Math.PI - half, Math.PI + half, GOLD, catchable ? 8 : 5, catchable ? 1 : 0.4);
@@ -274,10 +301,19 @@ public final class EnergyView extends Canvas {
         g.fillRoundRect(px(Math.PI) - 13, py(Math.PI) - 7, 26, 14, 4, 4);
         // Les deux faisceaux : partis ensemble de l'injecteur, ils se croisent dans le détecteur.
         double angle = 2 * Math.PI * phase;
-        beam(g, angle, 1, BEAM_A);
-        beam(g, -angle, -1, BEAM_B);
+        boolean gold = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER_BEAM) == idle.core.universe.Skin.BEAM_GOLD;
+        if (!gold) goldDust.clear();
+        if (gold) {
+            goldBeam(g, angle, 1);
+            goldBeam(g, -angle, -1);
+            drawGoldDust(g, lastElapsed);
+        } else {
+            beam(g, angle, 1, BEAM_A);
+            beam(g, -angle, -1, BEAM_B);
+        }
         // Quand les boules se croisent dans le détecteur, de l'électricité saute entre elles.
         arcs = 0;
+        lightningColor = gold ? Color.web("#ffcf4a") : LIGHT;
         if (crossing && sparksOn) lightning(g, angle);
         if (catchable) glow(g, px(Math.PI), py(Math.PI), 46, GOLD, 0.5);
         // Les ondes des collisions.
@@ -374,6 +410,136 @@ public final class EnergyView extends Canvas {
         g.fillOval(px(angle) - 3.5, py(angle) - 3.5, 7, 7);
     }
 
+    /**
+     * Le néon (version 0.89) : l'anneau en tubes de néon rose et cyan, coupés en segments comme une
+     * enseigne, qui grésillent ; l'injecteur et le détecteur en contours lumineux.
+     */
+    private void neonRing(GraphicsContext g) {
+        int segments = 14;
+        for (int k = 0; k < segments; k++) {
+            double from = 2 * Math.PI * k / segments + 0.04, to = 2 * Math.PI * (k + 1) / segments - 0.04;
+            boolean off = Math.sin(time * 9 + k * 5.3) > 0.97;          // un segment qui grésille
+            Color color = k % 2 == 0 ? Color.web("#ff4fd8") : Color.web("#3ff0ff");
+            ellipse(g, from, to, color, 9, off ? 0.05 : 0.18);
+            ellipse(g, from, to, color, 4, off ? 0.1 : 0.45);
+            ellipse(g, from, to, Color.WHITE, 1.4, off ? 0.2 : 0.9);
+        }
+    }
+
+    /** Le plasma : un tube de gaz brûlant, des bulles orange et violettes qui roulent et des filaments qui ondulent. */
+    private void plasmaRing(GraphicsContext g) {
+        ellipse(g, 0, 2 * Math.PI, Color.web("#2a0c14"), 14, 1);
+        for (int k = 0; k < 40; k++) {
+            double a = 2 * Math.PI * k / 40 + time * (k % 2 == 0 ? 0.3 : -0.2);
+            double size = 8 + 5 * Math.sin(time * 3 + k * 1.3);
+            glow(g, px(a), py(a), size, k % 3 == 0 ? Color.web("#b04cff") : Color.web("#ff7a2a"), 0.35);
+        }
+        for (int f = 0; f < 2; f++) {
+            for (int k = 0; k <= STEPS; k++) {
+                double a = 2 * Math.PI * k / STEPS;
+                double wave = 4 * Math.sin(a * 9 + time * (4 + f * 2) + f * 2);
+                XS[k] = cx() + (rx() + wave) * Math.sin(a);
+                YS[k] = cy() - (ry() + wave) * Math.cos(a);
+            }
+            g.setStroke(f == 0 ? Color.web("#ffd27f") : Color.web("#ff9ff0"));
+            g.setLineWidth(1.2);
+            g.setGlobalAlpha(0.7);
+            g.strokePolyline(XS, YS, STEPS + 1);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** La glace : un anneau épais bleu pâle, hérissé de cristaux qui pointent vers l'extérieur. */
+    private void iceRing(GraphicsContext g) {
+        ellipse(g, 0, 2 * Math.PI, Color.web("#7fb8d8"), 11, 0.55);
+        ellipse(g, 0, 2 * Math.PI, Color.web("#e8f8ff"), 2.5, 0.85);
+        g.setFill(Color.web("#d8f3ff"));
+        int spikes = 36;
+        for (int k = 0; k < spikes; k++) {
+            double a = 2 * Math.PI * k / spikes;
+            double x = px(a), y = py(a);
+            double nx = x - cx(), ny = y - cy(), length = Math.max(1e-9, Math.hypot(nx, ny));
+            nx /= length;
+            ny /= length;
+            double tall = 6 + 6 * Math.abs(Math.sin(k * 2.3));
+            double side = 2.4;
+            g.setGlobalAlpha(0.75);
+            g.fillPolygon(new double[] {x - ny * side, x + ny * side, x + nx * tall},
+                    new double[] {y + nx * side, y - nx * side, y + ny * tall}, 3);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Les paillettes d'or qui tombent du faisceau doré : x, y, vitesse x, vitesse y, âge. */
+    private final List<double[]> goldDust = new ArrayList<>();
+
+    /**
+     * Le faisceau doré (version 0.89) : chaque faisceau devient un ruban d'or massif qui remplit
+     * l'anneau depuis l'injecteur jusqu'à sa tête, une grande étoile dorée à six branches qui tourne
+     * dans un halo, et qui sème des paillettes qui tombent. Au croisement, les arcs sont dorés.
+     */
+    private void goldBeam(GraphicsContext g, double angle, int direction) {
+        // Le ruban : de l'injecteur à la tête, de plus en plus épais et vif.
+        int steps = Math.max(2, (int) Math.ceil(Math.abs(angle) / (2 * Math.PI) * STEPS));
+        for (int pass = 0; pass < 3; pass++) {
+            for (int k = 0; k < steps; k++) {
+                double a0 = angle * k / steps, a1 = angle * (k + 1) / steps;
+                double u = (k + 1) / (double) steps;
+                g.setStroke(pass == 0 ? Color.web("#b8860b") : pass == 1 ? Color.web("#ffcf4a") : Color.web("#fff8dc"));
+                g.setLineWidth(pass == 0 ? 3 + 9 * u : pass == 1 ? 1.5 + 4 * u : 0.8 + 1.4 * u);
+                g.setGlobalAlpha((pass == 0 ? 0.25 : pass == 1 ? 0.75 : 0.9) * (0.25 + 0.75 * u));
+                g.strokeLine(px(a0), py(a0), px(a1), py(a1));
+            }
+        }
+        double x = px(angle), y = py(angle);
+        // Les paillettes semées par la tête.
+        if (motion && goldDust.size() < 160) {
+            for (int k = 0; k < 2; k++) {
+                double seed = random((long) (time * 1000) + k * 31 + direction * 7);
+                goldDust.add(new double[] {x, y, (seed - 0.5) * 40, -20 - 30 * seed, 0});
+            }
+        }
+        double heat = flameHeat();
+        if (heat > 0) flame(g, angle, direction, heat);
+        glow(g, x, y, 30, Color.web("#ffb23f"), 0.9);
+        glow(g, x, y, 14, Color.WHITE, 0.9);
+        g.setGlobalAlpha(1);
+        g.setFill(Color.web("#ffd36b"));
+        star(g, x, y, 15, 5, 6, time * 5 * direction);
+        g.setFill(Color.web("#fffbe8"));
+        star(g, x, y, 8, 3, 6, time * 5 * direction + Math.PI / 6);
+    }
+
+    /** Fait tomber et dessine les paillettes d'or. */
+    private void drawGoldDust(GraphicsContext g, double elapsed) {
+        g.setFill(Color.web("#ffe08a"));
+        for (double[] dust : goldDust) {
+            if (motion) {
+                dust[0] += dust[2] * elapsed;
+                dust[1] += dust[3] * elapsed;
+                dust[3] += 70 * elapsed;
+                dust[4] += elapsed;
+            }
+            double fade = Math.max(0, 1 - dust[4] / 1.4);
+            g.setGlobalAlpha(fade);
+            double size = 1.5 + 2 * fade;
+            g.fillPolygon(new double[] {dust[0], dust[0] + size / 2, dust[0], dust[0] - size / 2},
+                    new double[] {dust[1] - size, dust[1], dust[1] + size, dust[1]}, 4);
+        }
+        goldDust.removeIf(dust -> dust[4] >= 1.4);
+        g.setGlobalAlpha(1);
+    }
+
+    private static void star(GraphicsContext g, double cx, double cy, double outer, double inner, int points, double turn) {
+        double[] xs = new double[points * 2], ys = new double[points * 2];
+        for (int k = 0; k < points * 2; k++) {
+            double r = k % 2 == 0 ? outer : inner, a = turn + Math.PI * k / points;
+            xs[k] = cx + r * Math.cos(a);
+            ys[k] = cy + r * Math.sin(a);
+        }
+        g.fillPolygon(xs, ys, points * 2);
+    }
+
     /** Nombre d'arcs électriques dessinés à la dernière image : pour les vérifications. */
     private int arcs;
 
@@ -423,7 +589,7 @@ public final class EnergyView extends Canvas {
                 xs[p] = fromX + (toX - fromX) * t + nx * offset;
                 ys[p] = fromY + (toY - fromY) * t + ny * offset;
             }
-            g.setStroke(LIGHT);
+            g.setStroke(lightningColor);
             g.setLineWidth(4);
             g.setGlobalAlpha(0.3);
             g.strokePolyline(xs, ys, points + 1);

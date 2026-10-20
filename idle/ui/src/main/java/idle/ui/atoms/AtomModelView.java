@@ -1,5 +1,6 @@
 package idle.ui.atoms;
 
+import idle.core.universe.Skin;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.canvas.Canvas;
@@ -72,6 +73,25 @@ final class AtomModelView extends Canvas {
     private List<Copy> layout = List.of();
     private double layoutWidth = -1;
     private double layoutHeight = -1;
+
+    /**
+     * Le skin de l'atome (version 0.89) : {@code null} pour le classique. « Noyau dense » : un noyau
+     * de protons et de neutrons serrés, des couches en pointillés, des électrons bleus qui laissent
+     * une traînée. « Noyau stellaire » : un petit soleil couronné de rayons, et des planètes de
+     * toutes les couleurs sur leurs orbites.
+     */
+    private Skin skin;
+
+    void setSkin(Skin chosen) {
+        skin = chosen == Skin.ATOM_DENSE || chosen == Skin.ATOM_STELLAR ? chosen : null;
+    }
+
+    Skin skin() {
+        return skin;
+    }
+
+    private static final Color[] PLANETS = {Color.web("#7fc8ff"), Color.web("#ff9f6b"), Color.web("#9be7a8"),
+            Color.web("#e2c48f"), Color.web("#c9a6ff"), Color.web("#ff7a9a")};
 
     /** @param size côté de la vue au départ, en pixels */
     AtomModelView(double size) {
@@ -229,10 +249,19 @@ final class AtomModelView extends Canvas {
             remaining -= onShell;
             double radius = innerRadius + (outerRadius - innerRadius) * (shell + 1) / shells;
 
-            g.setStroke(SHELL);
+            g.setStroke(skin == Skin.ATOM_STELLAR ? Color.web("#ffcf6b") : skin == Skin.ATOM_DENSE ? Color.web("#7fd0ff") : SHELL);
             g.setLineWidth(1);
-            g.setGlobalAlpha(0.3 * fade);
-            if (flat) {
+            g.setGlobalAlpha((skin == Skin.ATOM_STELLAR ? 0.18 : 0.3) * fade);
+            if (skin == Skin.ATOM_DENSE) {
+                // Des couches en pointillés.
+                int dots = 24 + shell * 10;
+                for (int p = 0; p < dots; p++) {
+                    double t = 2 * Math.PI * p / dots + clock * 0.05;
+                    double ux = radius * Math.cos(t), uy = radius * Math.sin(t);
+                    g.setFill(Color.web("#7fd0ff"));
+                    g.fillOval(cx + a * ux + b * uy - 0.8, cy + b * ux + d * uy - 0.8, 1.6, 1.6);
+                }
+            } else if (flat) {
                 g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
             } else {
                 int points = 48;
@@ -265,12 +294,84 @@ final class AtomModelView extends Canvas {
                     g.setGlobalAlpha(0.5 * (1 - t));
                     g.fillOval(x - halo, y - halo, halo * 2, halo * 2);
                 }
-                g.setFill(ORB);
-                g.setGlobalAlpha(fade);
-                g.fillOval(x - orbRadius, y - orbRadius, orbRadius * 2, orbRadius * 2);
+                if (skin == Skin.ATOM_DENSE) {
+                    // Un électron bleu, et sa traînée le long de la couche.
+                    for (int k = 3; k >= 1; k--) {
+                        double back = angle - direction * k * 0.06;
+                        double bx = radius * Math.cos(back), by = radius * Math.sin(back);
+                        g.setFill(Color.web("#7fd0ff"));
+                        g.setGlobalAlpha(fade * 0.25 * (4 - k) / 3);
+                        double r = orbRadius * (1 - 0.2 * k);
+                        g.fillOval(cx + a * bx + b * by - r, cy + b * bx + d * by - r, r * 2, r * 2);
+                    }
+                    g.setFill(Color.web("#d8f1ff"));
+                    g.setGlobalAlpha(fade);
+                    g.fillOval(x - orbRadius, y - orbRadius, orbRadius * 2, orbRadius * 2);
+                } else if (skin == Skin.ATOM_STELLAR) {
+                    // Une planète, sa couleur et sa taille à elle, éclairée du côté du soleil.
+                    double r = orbRadius * (1.1 + 0.5 * ((i * 7 + shell) % 3));
+                    g.setFill(PLANETS[(i + shell * 3) % PLANETS.length]);
+                    g.setGlobalAlpha(fade);
+                    g.fillOval(x - r, y - r, r * 2, r * 2);
+                    double away = Math.max(1e-9, Math.hypot(x - cx, y - cy));
+                    double sx = (x - cx) / away * r * 0.45, sy = (y - cy) / away * r * 0.45;
+                    g.setFill(Color.web("#0b0e14"));
+                    g.setGlobalAlpha(fade * 0.55);
+                    g.fillOval(x + sx - r * 0.8, y + sy - r * 0.8, r * 1.6, r * 1.6);
+                    if ((i + shell) % 5 == 0) {
+                        // Quelques-unes ont un anneau.
+                        g.setStroke(Color.web("#e2c48f"));
+                        g.setGlobalAlpha(fade * 0.8);
+                        g.strokeLine(x - r * 1.8, y + r * 0.5, x + r * 1.8, y - r * 0.5);
+                    }
+                } else {
+                    g.setFill(ORB);
+                    g.setGlobalAlpha(fade);
+                    g.fillOval(x - orbRadius, y - orbRadius, orbRadius * 2, orbRadius * 2);
+                }
             }
         }
 
+        if (skin == Skin.ATOM_DENSE) {
+            // Le noyau dense : des protons rouges et des neutrons gris serrés en grappe.
+            int nucleons = 19;
+            double ball = nucleus * 0.42;
+            for (int k = nucleons - 1; k >= 0; k--) {
+                double r = nucleus * 0.95 * Math.sqrt(k / (double) nucleons);
+                double t = k * 2.39996 + clock * 0.2;
+                double x = cx + r * Math.cos(t), y = cy + r * Math.sin(t) * (flat ? 1 : 0.9);
+                g.setFill(k % 2 == 0 ? Color.web("#ff6b5b") : Color.web("#c9ced6"));
+                g.setGlobalAlpha(fade);
+                g.fillOval(x - ball, y - ball, ball * 2, ball * 2);
+                g.setFill(Color.WHITE);
+                g.setGlobalAlpha(fade * 0.5);
+                g.fillOval(x - ball * 0.55, y - ball * 0.6, ball * 0.6, ball * 0.6);
+            }
+            return;
+        }
+        if (skin == Skin.ATOM_STELLAR) {
+            // Le noyau stellaire : un soleil, sa couronne de rayons qui tournent et ses éruptions.
+            int rays = 14;
+            g.setStroke(Color.web("#ffb23f"));
+            g.setLineWidth(Math.max(1, size * 0.004));
+            for (int k = 0; k < rays; k++) {
+                double t = clock * 0.3 + 2 * Math.PI * k / rays;
+                double length = nucleus * (1.6 + 0.5 * Math.sin(clock * 2 + k * 1.3));
+                g.setGlobalAlpha(0.55 * fade);
+                g.strokeLine(cx + nucleus * 1.05 * Math.cos(t), cy + nucleus * 1.05 * Math.sin(t),
+                        cx + length * Math.cos(t), cy + length * Math.sin(t));
+            }
+            g.setFill(Color.web("#ff8a2a"));
+            g.setGlobalAlpha(0.25 * fade);
+            double corona = nucleus * 1.45;
+            g.fillOval(cx - corona, cy - corona, corona * 2, corona * 2);
+            g.setFill(Color.web("#ffd27f"));
+            g.setGlobalAlpha(fade);
+            g.fillOval(cx - nucleus, cy - nucleus, nucleus * 2, nucleus * 2);
+            g.setFill(Color.web("#fff6d8"));
+            g.fillOval(cx - nucleus * 0.55, cy - nucleus * 0.55, nucleus * 1.1, nucleus * 1.1);
+            return;
+        }
         // Le noyau, avec un halo qui respire doucement.
         double halo = nucleus * (1.5 + 0.12 * Math.sin(clock * 3));
         g.setFill(NUCLEUS);

@@ -151,6 +151,10 @@ public final class SettingsPage extends VBox {
     private boolean notesShown = false;
     private final Map<Settings.Theme, Button> themeButtons = new EnumMap<>(Settings.Theme.class);
     private final Map<Settings.Scale, Button> scaleButtons = new EnumMap<>(Settings.Scale.class);
+    private final Map<Settings.WindowSize, Button> sizeButtons = new EnumMap<>(Settings.WindowSize.class);
+    private java.util.function.Consumer<Settings.WindowSize> windowSize = size -> { };
+    private java.util.function.Predicate<Settings.WindowSize> sizeFits = size -> true;
+    private java.util.function.Supplier<Settings.WindowSize> sizeNow = () -> null;
     private final Button notificationsButton = new Button();
     private final Button goalButton = new Button();
     private final Button signsButton = new Button();
@@ -290,6 +294,23 @@ public final class SettingsPage extends VBox {
         }
         block("Taille de l'interface", "Agrandit ou réduit tout ensemble : les textes, les boutons et les dessins.");
         target.getChildren().add(scales);
+
+        // Les formats de fenêtre (version 0.92) : un clic redimensionne et recentre la fenêtre.
+        javafx.scene.layout.FlowPane sizes = new javafx.scene.layout.FlowPane(8, 8);
+        sizes.setAlignment(Pos.CENTER);
+        sizes.setMaxWidth(760);
+        for (Settings.WindowSize size : Settings.WindowSize.values()) {
+            Button button = new Button(size.text());
+            button.setOnAction(event -> {
+                windowSize.accept(size);
+                refresh();
+            });
+            sizeButtons.put(size, button);
+            sizes.getChildren().add(button);
+        }
+        block("Taille de la fenêtre", "Un format prédéfini, recentré sur l'écran. La fenêtre se redimensionne toujours à la main, "
+                + "mais pas en dessous d'une taille où tout reste utilisable ; cette limite grandit avec la taille de l'interface.");
+        target.getChildren().add(sizes);
 
         block("Notifications", "Un message de quelques secondes, en bas à droite, quand il se passe quelque chose : "
                 + "nouvel élément, ensemble réuni, succès, déblocage, explosion possible.");
@@ -780,6 +801,12 @@ public final class SettingsPage extends VBox {
         offlineButton.setText(settings.offline() ? "Temps hors ligne : rejoué au retour" : "Temps hors ligne : ignoré");
         offlineButton.setStyle(settings.offline() ? ON_STYLE : OFF_STYLE);
         scaleButtons.forEach((scale, button) -> button.setStyle(scale == settings.scale() ? ON_STYLE : OFF_STYLE));
+        Settings.WindowSize current = sizeNow.get();
+        sizeButtons.forEach((size, button) -> {
+            boolean fits = sizeFits.test(size);
+            button.setDisable(!fits);
+            button.setStyle(size == current ? ON_STYLE : OFF_STYLE);
+        });
         notificationsButton.setText(settings.notifications() ? "Notifications : affichées" : "Notifications : coupées");
         notificationsButton.setStyle(settings.notifications() ? ON_STYLE : OFF_STYLE);
         goalButton.setText(settings.showGoal() ? "Objectif : affiché" : "Objectif : caché");
@@ -876,5 +903,22 @@ public final class SettingsPage extends VBox {
         label.setText(text);
         label.setVisible(!text.isEmpty());
         label.setManaged(!text.isEmpty());
+    }
+
+    /**
+     * Ce que font les boutons des formats de fenêtre (version 0.92) : redimensionner, dire si un format
+     * tient sur l'écran, et lequel est en cours.
+     */
+    public void setWindowSizes(java.util.function.Consumer<Settings.WindowSize> apply,
+            java.util.function.Predicate<Settings.WindowSize> fits, java.util.function.Supplier<Settings.WindowSize> current) {
+        windowSize = apply;
+        sizeFits = fits;
+        sizeNow = current;
+        refresh();
+    }
+
+    /** Le bouton d'un format de fenêtre : pour les vérifications. */
+    public Button sizeButton(Settings.WindowSize size) {
+        return sizeButtons.get(size);
     }
 }

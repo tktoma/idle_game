@@ -77,6 +77,10 @@ final class Notifier {
     private final Map<Molecule.Kind, Integer> collections = new java.util.EnumMap<>(Molecule.Kind.class);
     private int bangChallengesDone;
     private BangChallenge bangChallenge;
+    /** Les skins débloqués au dernier relevé (version 0.89) : chacun s'annonce avec le bonus cumulé. */
+    /** Le ralentissement du premier élan au dernier relevé (version 0.95, par paliers en 0.96). */
+    private double slowSeen = 1;
+    private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
 
     Notifier(Game game) {
         this.game = game;
@@ -120,6 +124,23 @@ final class Notifier {
             if (bangAchievementsSeen.contains(achievement) || !game.hasBangAchievement(achievement)) continue;
             bangAchievementsSeen.add(achievement);
             news.add("Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
+        }
+
+        // Le premier élan (version 0.95, par paliers en 0.96) : chaque palier s'annonce.
+        double slow = game.firstRunSlowdown();
+        if (slow < slowSeen) {
+            news.add(slow <= 1 ? "La création a pris tout son élan : elle va à pleine vitesse."
+                    : (game.stats().fusions() <= 1 ? "Premier atome" : Game.FIRST_ATOMS_UNTIL + " atomes")
+                            + " : la création prend de l'élan, encore " + idle.ui.common.ElementText.number(slow) + " fois moins vite qu'à plein régime.");
+        }
+        slowSeen = slow;
+        // Un skin débloqué (version 0.89) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
+        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+            if (skinsSeen.contains(skin) || !game.hasSkin(skin)) continue;
+            skinsSeen.add(skin);
+            news.add("Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
+                    + ElementText.percent(idle.core.universe.Skin.BONUS) + " à toutes les ressources, soit +"
+                    + ElementText.percent(game.skinBoost() - 1) + " au total, choisi ou non.");
         }
 
         List<String> matured = game.takeMaturedBodies();
@@ -220,7 +241,7 @@ final class Notifier {
         if (game.state().explosions() > explosions) {
             // Une explosion qui compte alourdit le tableau ; celle d'un défi rejoué ne change rien.
             news.add(game.state().tableWeightLevel() > weightLevel
-                    ? "Explosion : +" + Format.count(prime ? game.darkMatterPerExplosion().add(game.speedPrime())
+                    ? "Explosion : +" + Format.darkMatter(prime ? game.darkMatterPerExplosion().add(game.speedPrime())
                                     : game.darkMatterPerExplosion()) + " matière noire"
                             + (prime ? ", prime de vitesse comprise" : "")
                             + (game.state().tableWeightLevel() <= Game.TABLE_WEIGHT_MAX_LEVEL
@@ -316,6 +337,9 @@ final class Notifier {
     /** Retient l'état du jeu, pour le comparer au prochain relevé. */
     private void snapshot() {
         started = game.isStarted();
+        slowSeen = game.firstRunSlowdown();
+        skinsSeen.clear();
+        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
         colliderAchievementsSeen.clear();
         for (ColliderAchievement achievement : ColliderAchievement.values()) {

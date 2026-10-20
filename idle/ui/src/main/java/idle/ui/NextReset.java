@@ -120,7 +120,7 @@ public final class NextReset {
             case ATOMS -> Format.count(lacking(Game.BIG_BANG_ATOMS, game.state().atoms())) + " atomes";
             case DARK_MATTER -> {
                 BigNum lacking = lacking(Game.BIG_BANG_DARK_MATTER, game.state().darkMatter());
-                yield Format.count(lacking) + (lacking.gt(BigNum.ONE) ? " matières noires" : " matière noire");
+                yield Format.darkMatter(lacking) + (lacking.gt(BigNum.ONE) ? " matières noires" : " matière noire");
             }
             case ACHIEVEMENTS -> Math.max(1, Game.BIG_BANG_ACHIEVEMENTS - game.achievementCount()) + " succès";
             case CHALLENGES -> {

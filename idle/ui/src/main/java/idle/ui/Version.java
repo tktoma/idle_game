@@ -23,6 +23,91 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.97", "Une matière noire plus étalée", List.of(
+                    "Avant le premier Big Bang, chaque explosion donne ×0,8 de matière noire : le deuxième acte dure six heures "
+                            + "environ au lieu de cinq. La matière noire s'affiche avec son dixième.",
+                    "Les huit premiers défis se jouent sur un tableau de masse 5 000 au lieu de 1 : quelques minutes chacun au "
+                            + "lieu de quelques secondes.",
+                    "Le seuil du Big Bang : huit cases nouvelles au bout de l'arbre, six dans la branche des particules "
+                            + "(Proto-étoiles, Nuage primordial, Seuil, Point zéro, Fluctuation primordiale, Veille du Big Bang, de "
+                            + "10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰ particules) et deux dans celle de la taille (Fond diffus, Mur de Planck). Elles "
+                            + "jalonnent la montée vers le premier Big Bang, qui demande maintenant 10³⁸⁰⁰⁰ particules.")),
+            new Note("0.96", "Le premier élan par paliers", List.of(
+                    "Dans la toute première partie, la création prend son élan par paliers : 13 fois moins vite jusqu'au "
+                            + "premier atome (1 h), 9 fois jusqu'au cinquième (2 h), 2,8 fois jusqu'au trentième (vers 2 h 40), où "
+                            + "s'ouvrent l'automatisation et le tableau. Chaque palier s'annonce.",
+                    "Persistance vers 2 h 55, 118 éléments et première explosion vers 5 h 15. Rien ne change après la "
+                            + "première explosion.")),
+            new Note("0.95", "Le premier élan", List.of(
+                    "Jusqu'au tout premier atome d'une partie neuve, la création va 13 fois moins vite : ce début dure environ "
+                            + "une heure au lieu de cinq minutes. Le détail des particules l'indique (« dont ÷13, premier élan »).",
+                    "Dès le premier atome, la création prend son élan pour de bon, et le jeu l'annonce. Rien ne ralentit plus "
+                            + "ensuite : ni les fusions suivantes, ni après une explosion, ni dans l'univers suivant.",
+                    "La suite ne bouge pas : 30 atomes vers 1 h 23, Persistance vers 1 h 40, 118 éléments et première "
+                            + "explosion vers 4 h (3 h avant).")),
+            new Note("0.94", "Fenêtre en Petit", List.of(
+                    "À la première ouverture, la fenêtre prend le format Petit (1280 × 800), recentrée sur l'écran et ramenée "
+                            + "à sa taille s'il est plus petit. Ensuite, elle se rouvre à la place et à la taille de la dernière fois, ou en Petit si cette place n'est plus sur un écran.")),
+            new Note("0.93", "Formats de fenêtre", List.of(
+                    "Les formats de fenêtre deviennent Petit (1280 × 800), Moyen (1600 × 900) et Grand (1920 × 1080) ; "
+                            + "Compacte disparaît.",
+                    "Deux plein écrans : Plein écran fenêtré, la fenêtre agrandie au maximum, et Plein écran, tout l'écran "
+                            + "sans barre, dont Échap fait sortir.")),
+            new Note("0.92", "Taille de la fenêtre", List.of(
+                    "La fenêtre ne se rétrécit plus en dessous de 820 × 600, où tout reste utilisable ; la limite grandit avec "
+                            + "la taille de l'interface (984 × 720 en Grande).",
+                    "Dans Réglages, Affichage : des formats prédéfinis, Compacte (1024 × 680), Moyenne (1280 × 800), Grande "
+                            + "(1600 × 900), Très grande (1920 × 1080) et Plein écran. Un clic redimensionne et recentre la fenêtre ; "
+                            + "un format plus grand que l'écran est grisé.")),
+            new Note("0.91", "Correctifs", List.of(
+                    "L'expansion de la matière ne plante plus quand une place de l'espace reste sans molécule : la place prend "
+                            + "une sorte réellement possédée.",
+                    "Les étiquettes des cartes n'écrivent plus une couleur invalide (transparence écrite deux fois), qui faisait "
+                            + "râler JavaFX dans la console.")),
+            new Note("0.90", "Skins plus marqués", List.of(
+                    "Faisceau doré : chaque faisceau devient un ruban d'or massif qui remplit l'anneau jusqu'à une grande étoile "
+                            + "dorée, qui sème des paillettes ; les arcs du croisement sont dorés.",
+                    "Vortex et Pulsar habillent aussi l'onglet Matière noire en permanence : un tourbillon violet qui alimente le "
+                            + "point, ou deux faisceaux qui balaient la vue. L'explosion sous Vortex assombrit tout l'écran au lieu de le blanchir.",
+                    "Aurore, Supernova et Cristal redessinent tout l'espace du Big Bang : le ciel entier, l'espace créé et son bord.",
+                    "Les animations plein écran prennent toute la fenêtre, quelle que soit sa taille, et sont plus longues et plus fortes.")),
+            new Note("0.89", "Skins redessinés et fenêtres d'explication", List.of(
+                    "Chaque skin est un vrai dessin à lui, plus un simple changement de couleurs : éclairs, cristal à facettes ou "
+                            + "lune solitaire pour la fusion ; noyau de protons ou petit soleil et ses planètes pour l'atome ; plaques "
+                            + "de plomb ou lingots d'or pour le tableau ; pierre taillée, nuage de gaz ou cœur contracté pour la "
+                            + "matière noire ; néon, plasma ou glace pour le collisionneur, et une comète dorée pour le faisceau.",
+                    "Vortex et Pulsar remplacent l'onde de l'explosion par une spirale ou deux faisceaux qui balaient l'écran. "
+                            + "Aurore, Supernova et Cristal jouent leur animation à chaque Big Bang et habillent le fond de l'espace.",
+                    "Chaque skin débloqué s'annonce, avec le bonus total : +2 % par skin, cumulés, qu'il soit choisi ou non.",
+                    "À l'ouverture d'un onglet, une fenêtre dit en quelques phrases ce qu'est sa ressource et comment elle marche. "
+                            + "Dans le deuxième univers, chaque nouveauté des trois actes s'annonce de même au moment où elle s'ouvre.",
+                    "Chaque fenêtre ne s'affiche qu'une fois ; une partie déjà commencée ne revoit pas ce qu'elle connaît.")),
+            new Note("0.88", "Les skins à obtenir", List.of(
+                    "Dans l'onglet Skins, les dix-neuf skins s'obtiennent : des paliers de matière noire (100, 1 000, 10 000, 100 000 "
+                            + "gagnés) et de Big Bangs (1 et 3), qui se débloquent seuls, et un record de reconstruction : de la fusion "
+                            + "aux dix générateurs en une minute au plus.",
+                    "Deux recherches facultatives : « Fusion prismatique », 1e50 particules ; le noyau dense, ouvert à un million "
+                            + "d'atomes créés, quatre paliers payés en atomes (100, 1 000, 100 000, 1e8).",
+                    "Sept épreuves volontaires, une à la fois, qu'on peut abandonner sans rien perdre : premier générateur seul, "
+                            + "contraction douce, Big Bang à froid, et quatre au collisionneur (détecteur, sans surchauffe, pleine "
+                            + "charge, un seul générateur). Chacune donne son skin.",
+                    "Un skin choisi change la palette de ce qu'il habille : la fusion, l'atome, le tableau, la boule de matière "
+                            + "noire, l'onde de l'explosion, le Big Bang, le collisionneur et son faisceau.",
+                    "Les épreuves réussies, les recherches et le record traversent l'univers suivant.")),
+            new Note("0.87", "Le deuxième univers", List.of(
+                    "Dans l'onglet Univers, « Rouvrir les paliers » : les anciens onglets reviennent pour une partie neuve, celle "
+                            + "de l'univers suivant. Former l'univers à la fin de cette partie le crée : une remise à zéro et une "
+                            + "graine de plus. Tout ce qui suit ne s'ouvre qu'à partir du deuxième univers.",
+                    "L'onglet Skins, sous les réglages, s'ouvre à la cinquième fusion du deuxième univers. Chaque skin débloqué "
+                            + "donne +2 % à toutes les ressources d'en dessous de l'univers ; les choisir ne change que l'apparence.",
+                    "Régime des générateurs, dès trois générateurs : +15 % de cadence pendant 20 s, puis 40 s de repos, toujours à "
+                            + "la main. Synergie par rang, dès le dixième : +0,5 % au plus à chaque générateur.",
+                    "Prime de cycle parfait, une fois Persistance achetée : trois fusions de suite sans le plafond d'atomes donnent "
+                            + "+10 % de particules pendant une minute, sans se cumuler.",
+                    "Dès le premier Big Bang, un petit arbre de trois choix pour le cycle : fusion, synthèse ou réserve. Un seul, "
+                            + "rendu gratuitement par le Big Bang suivant.",
+                    "Avec la synthèse ciblée, une famille préférée dont les chances montent à chaque tirage au hasard, jusqu'à ×2. "
+                            + "Et tous les dix éléments découverts, un élément gratuit : un clic sur un élément pas encore découvert le prend.")),
             new Note("0.86", "Sondes : l'urgence et l'absence", List.of(
                     "Dès le troisième Big Bang, l'onde d'urgence chimique : un voyage de 20 minutes, sans destination, qui ramène "
                             + "un petit lot de l'élément déjà découvert que l'astre visé demande le plus. Jamais un élément inconnu.",

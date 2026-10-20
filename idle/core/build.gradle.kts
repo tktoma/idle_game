@@ -21,4 +21,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Version 0.95 : les tests de règles coupent le premier élan (création ÷13 avant le premier atome) ;
+    // les tests de rythme le remettent eux-mêmes.
+    systemProperty("idle.sansPremierElan", "true")
 }

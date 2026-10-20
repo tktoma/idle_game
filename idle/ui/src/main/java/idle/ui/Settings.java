@@ -280,6 +280,56 @@ public final class Settings {
         }
     }
 
+    /**
+     * Les formats de fenêtre prédéfinis (version 0.93), en pixels d'écran, puis le plein écran fenêtré
+     * (la fenêtre agrandie) et le vrai plein écran. Un format plus grand que l'écran est grisé.
+     */
+    public enum WindowSize {
+        SMALL("Petit", 1280, 800),
+        MEDIUM("Moyen", 1600, 900),
+        LARGE("Grand", 1920, 1080),
+        /** La fenêtre agrandie au maximum, avec sa barre de titre et la barre des tâches. */
+        MAXIMIZED("Plein écran fenêtré", 0, 0),
+        /** Tout l'écran, sans barre : Échap en sort. */
+        FULL("Plein écran", 0, 0);
+
+        private final String label;
+        private final double width;
+        private final double height;
+
+        WindowSize(String label, double width, double height) {
+            this.label = label;
+            this.width = width;
+            this.height = height;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public double width() {
+            return width;
+        }
+
+        public double height() {
+            return height;
+        }
+
+        /** Le texte du bouton : son nom et ses dimensions. */
+        public String text() {
+            return width <= 0 ? label : label + " (" + (int) width + " × " + (int) height + ")";
+        }
+    }
+
+    /** La plus petite fenêtre où tout reste utilisable, à la taille normale de l'interface (version 0.92). */
+    public static final double MIN_WINDOW_WIDTH = 820;
+    public static final double MIN_WINDOW_HEIGHT = 600;
+
+    /** La plus petite fenêtre pour cette taille de l'interface : elle grandit avec elle. */
+    public static double[] minWindow(Scale scale) {
+        return new double[] {Math.round(MIN_WINDOW_WIDTH * scale.factor()), Math.round(MIN_WINDOW_HEIGHT * scale.factor())};
+    }
+
     private static final String NOTATION = "notation";
     private static final String THEME = "theme";
     private static final String SCALE = "scale";

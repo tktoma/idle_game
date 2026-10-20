@@ -193,6 +193,18 @@ public final class Format {
         return value.lt(MILLION) ? String.valueOf((long) Math.floor(value.toDouble() + 1e-9)) : big(value);
     }
 
+    /**
+     * Quantité de matière noire (version 0.97) : elle peut avoir un dixième depuis que le premier cycle en donne
+     * ×0,8 par explosion. « 12 », « 0.8 », « 499.6 », puis en notation scientifique. Arrondie vers le bas, comme
+     * {@link #count} : 499,96 s'affiche 499.9, pas 500.
+     */
+    public static String darkMatter(BigNum value) {
+        if (!value.lt(MILLION)) return big(value);
+        double tenths = Math.floor(value.toDouble() * 10 + 1e-6) / 10;
+        if (tenths == Math.floor(tenths)) return String.valueOf((long) tenths);
+        return String.format(java.util.Locale.ROOT, "%.1f", tenths);
+    }
+
     /** Multiplicateur : « ×2 », « ×1.25 », puis en notation scientifique. */
     public static String multiplier(BigNum value) {
         if (!value.lt(THOUSAND)) return "×" + big(value);

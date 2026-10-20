@@ -481,7 +481,7 @@ public final class Card extends VBox {
                 + (isClickable() ? " -fx-cursor: hand;" : ""));
         corner.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiet + ";");
         mark.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 0 6; -fx-background-radius: 3;"
-                + " -fx-border-radius: 3; -fx-text-fill: " + quiet + "; -fx-border-color: " + quiet + "66;");
+                + " -fx-border-radius: 3; -fx-text-fill: " + quiet + "; -fx-border-color: " + alpha(quiet, "66") + ";");
         title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + name + ";");
         line.setStyle("-fx-font-size: 12px; -fx-text-fill: " + ink + ";");
         boolean solid = state == State.DONE || state == State.ARMED;
@@ -489,5 +489,14 @@ public final class Card extends VBox {
         price.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: "
                 + (state == State.READY ? "#ffffff" : solid ? name : quiet) + ";");
         aside.setStyle("-fx-font-size: 11px; -fx-text-fill: " + quiet + ";");
+    }
+
+    /**
+     * Une couleur {@code #rrggbb} avec cette transparence en deux chiffres ; une couleur qui en a déjà
+     * une ({@code #rrggbbaa}) la remplace, sans quoi JavaFX refuse la couleur (version 0.90).
+     */
+    static String alpha(String color, String alpha) {
+        String base = color.length() > 7 ? color.substring(0, 7) : color;
+        return base + alpha;
     }
 }

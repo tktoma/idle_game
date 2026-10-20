@@ -71,6 +71,10 @@ public final class UniversePage extends VBox {
     private final Button replay = tool("Revoir la naissance");
     private final Button oldTabs = tool("Montrer les anciens onglets");
     private final Button reset = tool("Tout remettre à zéro");
+    /** Rouvrir les paliers (version 0.87) : jouer la partie qui formera l'univers suivant. */
+    private final Button next = new Button();
+    private final Label nextLine = new Label();
+    private Runnable onNextUniverse = () -> { };
     private final VBox mainPane;
 
     // Sous-onglet « Dimensions »
@@ -162,7 +166,20 @@ public final class UniversePage extends VBox {
             if (selected != MAIN) select(MAIN);
             refresh();
         });
-        mainPane = new VBox(8, resources, holder, upgrades, toolsBox);
+        next.setFocusTraversable(false);
+        next.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 8;"
+                + " -fx-border-radius: 8; -fx-text-fill: #0b0e14; -fx-background-color: " + COLOR + "; -fx-border-color: #ffffff;");
+        next.setOnAction(event -> {
+            if (game.startNextUniverse()) onNextUniverse.run();
+            refresh();
+        });
+        nextLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
+        nextLine.setWrapText(true);
+        nextLine.setMaxWidth(640);
+        nextLine.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        VBox nextBox = new VBox(4, next, nextLine);
+        nextBox.setAlignment(Pos.CENTER);
+        mainPane = new VBox(8, resources, nextBox, holder, upgrades, toolsBox);
         mainPane.setAlignment(Pos.TOP_CENTER);
 
         // « Dimensions » : la carte, et une ligne.
@@ -215,6 +232,16 @@ public final class UniversePage extends VBox {
     /** Ce que fait l'outil « Montrer les anciens onglets » : vrai pour les montrer. */
     public void setOnOldTabs(Consumer<Boolean> action) {
         onOldTabs = action == null ? shown -> { } : action;
+    }
+
+    /** Ce que fait l'application quand la partie de l'univers suivant commence : montrer les anciens onglets. */
+    public void setOnNextUniverse(Runnable action) {
+        onNextUniverse = action == null ? () -> { } : action;
+    }
+
+    /** Le bouton « Rouvrir les paliers » : pour les vérifications. */
+    public Button nextButton() {
+        return next;
     }
 
     /** Ce que fait un clic sur une dimension ouverte : son numéro, de 1 à 10. */
@@ -293,6 +320,14 @@ public final class UniversePage extends VBox {
                     upgrade.flavor(), "Pas encore d'effet : un clic monte son niveau, pour essayer.", "Essai : +1 niveau", "");
         }
         removeUniverse.setDisable(universes <= 1);
+        boolean replaying = game.isReplaying();
+        next.setVisible(!replaying);
+        next.setManaged(!replaying);
+        next.setText("Rouvrir les paliers : jouer l'univers " + (universes + 1));
+        nextLine.setText(replaying
+                ? "La partie de l'univers " + (universes + 1) + " est en cours, dans les anciens onglets : former l'univers, à la fin, le crée."
+                : "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant : une remise à zéro et une graine de plus."
+                        + (game.isSkinsUnlocked() ? "" : " Dès la cinquième fusion de cette partie, l'onglet Skins s'ouvre."));
         oldTabs.setText(showOldTabs ? "Cacher les anciens onglets" : "Montrer les anciens onglets");
         int open = game.dimensionsUnlocked();
         dimensions.setUnlocked(open);

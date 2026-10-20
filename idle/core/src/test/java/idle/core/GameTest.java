@@ -2858,15 +2858,15 @@ class GameTest {
                 assertEquals(previous.get(dark.branch()), dark.requires());   // la case du dessus
                 previous.put(dark.branch(), dark.id());
             }
-            assertEquals(13, count.get(DarkUpgrade.Branch.PARTICLES).intValue());
+            assertEquals(19, count.get(DarkUpgrade.Branch.PARTICLES).intValue());   // + six cases du seuil du Big Bang (0.97)
             assertEquals(12, count.get(DarkUpgrade.Branch.ATOMS).intValue());
-            assertEquals(13, count.get(DarkUpgrade.Branch.SIZE).intValue());
+            assertEquals(15, count.get(DarkUpgrade.Branch.SIZE).intValue());        // + Fond diffus et Mur de Planck (0.97)
             assertEquals(6, count.get(DarkUpgrade.Branch.DARK_MATTER).intValue());
             assertEquals(7, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::fork).filter(java.util.Objects::nonNull).distinct().count());
             assertEquals(10, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isLink).count());   // six liaisons, quatre accords
             assertEquals(4, DarkUpgrades.DEFAULT.stream().filter(DarkUpgrade::isAccord).count());
-            assertEquals(54, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());
-            assertEquals(54, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());
+            assertEquals(62, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::id).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
+            assertEquals(62, DarkUpgrades.DEFAULT.stream().map(DarkUpgrade::name).distinct().count());   // 54 avant les huit cases du seuil du Big Bang (0.97)
         }
 
         @Test
@@ -3959,7 +3959,7 @@ class GameTest {
                 assertEquals(null, dark.requires());
                 assertTrue(game.isDarkAvailable(dark.id()));   // dès la première matière noire
             }
-            assertEquals(13, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());
+            assertEquals(19, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());   // six cases du seuil du Big Bang en 0.97
         }
 
         @Test
@@ -5409,13 +5409,13 @@ class GameTest {
         }
 
         @Test
-        void unDefiSeJoueAvecUnTableauDeMasseUn() {
+        void unDefiSeJoueSurUnTableauDeMasseFixe() {
             Game game = darkGame(30);
-            game.state().setTableWeightLevel(4);
-            assertTrue(game.atomCap().gt(BigNum.of(118)));
+            game.state().setTableWeightLevel(12);
+            assertTrue(game.atomCap().gt(BigNum.of(118).multiply(Game.CHALLENGE_WEIGHT)));
             game.startChallenge("challenge_heavy");
-            assertValue(1, game.tableWeight());
-            assertValue(118, game.atomCap());
+            assertEquals(Game.CHALLENGE_WEIGHT.toDouble(), game.tableWeight().toDouble(), 1e-9);   // 5 000 depuis la 0.97
+            assertValue(118 * 5000, game.atomCap());
             game.abandonChallenge();
             assertTrue(game.atomCap().gt(BigNum.of(118)));   // la partie ordinaire retrouve son poids
         }
@@ -6003,20 +6003,24 @@ class GameTest {
 
         /**
          * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit
-         * débloquer le dixième générateur en 3 min 30 à 6 minutes avec le catalogue du jeu
-         * (30 à 45 minutes avant le réglage du rythme, voir {@link Game#TEMPO}).
+         * débloquer le dixième générateur en 50 à 70 minutes avec le catalogue du jeu, premier
+         * élan compris ({@link Game#FIRST_RUN_PACE}, version 0.95 ; 3 min 30 à 6 minutes avant).
          * Si ce test échoue après un changement dans {@link Upgrades}, c'est que la durée
          * de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
          */
         @Test
-        void laPremierePartieDureEntre3Min30Et6Minutes() {
+        void laPremierePartieDureEnvironUneHeure() {
             Game game = new Game();
+            game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
             double minutes = minutesUntilFusion(game);
 
             assertEquals(Upgrades.MAX_GENERATORS, game.maxGeneratorCount());
             assertTrue(game.canFuse());
-            assertTrue(minutes >= 3.5 && minutes <= 6, "durée de la première partie : " + minutes + " min");
+            assertTrue(minutes >= 50 && minutes <= 70, "durée de la première partie : " + minutes + " min");
+            assertTrue(game.firstRunSlowdown() == Game.FIRST_RUN_PACE, "le premier élan dure jusqu'à la première fusion");
+            assertTrue(game.fuse());
+            assertEquals(Game.FIRST_ATOMS_PACE, game.firstRunSlowdown(), 0, "dès le premier atome, la création prend de l'élan");
             // L'animation se lit création par création sous 6 par seconde et par générateur ; au-delà,
             // la particule reste pleine et palpite. Le rythme a multiplié la vitesse de départ : la
             // première partie finit dans ce second mode, mais la vitesse ne doit pas s'envoler pour autant.
@@ -6026,13 +6030,15 @@ class GameTest {
         /**
          * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
          * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
-         * économiser pour Persistance) doit créer son trentième atome entre 22 et 34 minutes
-         * (2 h 45 à 3 h 45 avant le réglage du rythme). Plus tôt, le début perd son intérêt ;
+         * économiser pour Persistance) doit créer son trentième atome entre 2 h 20 et 2 h 50, premier
+         * élan compris (version 0.96 ; 22 à 34 minutes avant la 0.95, 2 h 45 à 3 h 45 avant le réglage du rythme).
+         * Là, la création a pris tout son élan. Plus tôt, le début perd son intérêt ;
          * plus tard, il faut tout racheter à la main des dizaines de fois.
          */
         @Test
-        void automatisationEtTableauArriventEntre22Et34Minutes() {
+        void automatisationEtTableauArriventVers2h35() {
             Game game = new Game();
+            game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
             double minutes = 0;
             while (!game.isAutomationUnlocked() && minutes < 10 * 60) {
@@ -6052,7 +6058,8 @@ class GameTest {
             assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
             assertEquals(0, game.levelOf("atom_keep"));
             assertValue(25, game.costOf("atom_keep"));
-            assertTrue(minutes >= 22 && minutes <= 34, "trentième atome créé après " + minutes + " min");
+            assertTrue(minutes >= 140 && minutes <= 170, "trentième atome créé après " + minutes + " min");
+            assertEquals(1, game.firstRunSlowdown(), 0, "trente atomes : la création a tout son élan");
         }
 
         /**

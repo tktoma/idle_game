@@ -75,7 +75,7 @@ public final class DarkText {
                     "Chaque fusion fait grossir la matière noire comme " + ElementText.number(pulse.seconds()) + " s d'appui";
             case DarkEffect.AddDarkMatterPerExplosion add ->
                     "+" + ElementText.number(add.perLevel()) + (add.perLevel() >= 2 ? " matières noires" : " matière noire") + " par explosion, à chaque niveau. Actuellement "
-                            + Format.count(game.darkMatterPerExplosion()) + " par explosion";
+                            + Format.darkMatter(game.darkMatterPerExplosion()) + " par explosion";
             case DarkEffect.StrongerMilestones more ->
                     "Chaque palier de vitesse multiplie les particules par " + ElementText.number(more.extra()) + " de plus, à chaque "
                             + "niveau : c'est ce qui fait grandir une partie qu'on laisse tourner";

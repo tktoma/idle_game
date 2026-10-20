@@ -258,6 +258,13 @@ final class DebugBar extends VBox {
                 }),
                 tool("Refaire l'acte 3", () -> game.state().clearBigBangAct()),
                 tool("Vider le collisionneur", () -> game.state().clearCollider()));
+        // Le deuxième univers (version 0.87) : y entrer sans rejouer toute la partie, et les skins.
+        group("Deuxième univers",
+                tool("Former l'univers", game::testFormUniverse),
+                tool("Rouvrir les paliers", game::startNextUniverse),
+                tool("+5 fusions", () -> game.testAddFusions(Game.SKINS_FUSIONS)),
+                tool("Tous les skins", () -> game.testAllSkins(true)),
+                tool("Aucun skin", () -> game.testAllSkins(false)));
         // Un bouton par thème et par notation à débloquer : un clic l'ouvre, un second le referme.
         java.util.List<Button> cosmeticTools = new java.util.ArrayList<>();
         cosmeticTools.add(tool("Tout débloquer", () -> { if (cosmetics != null) cosmetics.unlockAll(); }));

@@ -14,7 +14,7 @@ import javafx.scene.shape.StrokeLineCap;
 public final class TabIcon extends Canvas {
 
     /** Ce que montre l'icône : un dessin par onglet. */
-    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS }
+    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     private final Kind kind;
     private final Color color;
@@ -171,6 +171,19 @@ public final class TabIcon extends Canvas {
                     g.strokeLine(s * 0.12, y, s * 0.88, y);
                     double x = s * (0.5 + 0.3 * Math.sin(time * 0.9 + k * 2));
                     g.fillOval(x - 2.6, y - 2.6, 5.2, 5.2);
+                }
+            }
+            case SKINS -> {
+                // Une palette (version 0.87) : trois pastilles qui changent de teinte tour à tour.
+                g.fillOval(s * 0.1, s * 0.18, s * 0.8, s * 0.64);
+                g.setFill(Color.web("#0e131b"));
+                g.fillOval(s * 0.58, s * 0.52, s * 0.16, s * 0.16);
+                Color[] dots = {Color.web("#ff9fd6"), Color.web("#9fe6ff"), Color.web("#ffe08a")};
+                for (int k = 0; k < 3; k++) {
+                    double glow = 0.55 + 0.45 * Math.sin(time * 1.6 + k * 2.1);
+                    g.setFill(dots[k]);
+                    g.setGlobalAlpha((bright ? 1 : 0.7) * glow);
+                    g.fillOval(s * (0.22 + 0.17 * k), s * (0.3 + (k == 1 ? -0.04 : 0.02)), s * 0.15, s * 0.15);
                 }
             }
         }

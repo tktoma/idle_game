@@ -334,6 +334,8 @@ public final class DarkMatterPage extends VBox {
      *                la page le sera à son retour. Elle ne cesse pas pour autant de guetter le Big Bang.
      */
     public void refresh(boolean visible) {
+        view.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DARK_BALL));
+        view.setAnimation(game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION));
         // Un Big Bang vient d'avoir lieu : la page reviendra sur sa première sous-page, à la prochaine explosion.
         if (game.bigBangs() != bigBangs) {
             bigBangs = game.bigBangs();
@@ -344,7 +346,7 @@ public final class DarkMatterPage extends VBox {
         BigNum darkMatter = game.state().darkMatter();
         BigNum earned = game.darkMatterEarned();
         int explosions = game.state().explosions();
-        balanceLabel.setText(Format.count(darkMatter) + " matière noire"
+        balanceLabel.setText(Format.darkMatter(darkMatter) + " matière noire"
                 + (earned.gt(darkMatter) ? " disponible, " + Format.count(earned) + " gagnée" : "")
                 + "   (" + explosions + (explosions > 1 ? " explosions)" : " explosion)"));
         balanceBreakdown.refresh();

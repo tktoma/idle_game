@@ -1,5 +1,6 @@
 package idle.ui.particles;
 
+import idle.core.universe.Skin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -78,6 +79,24 @@ public final class ParticleView extends Canvas {
     public static void setSpeedLook(boolean on) {
         speedLook = on;
     }
+    /**
+     * Le skin de la fusion (version 0.89), pour tous les générateurs : {@code null} pour le classique.
+     * « Éclair » : des éclairs qui convergent, un noyau en étoile, des ondes en dents de scie.
+     * « Prisme » : des éclats triangulaires aux couleurs de l'arc-en-ciel, un cristal hexagonal à facettes.
+     * « Solitaire » : en noir et blanc, une seule lune sur son orbite et un anneau qui se remplit.
+     */
+    private static Skin skin;
+
+    /** Le skin de la fusion, choisi dans l'onglet Skins. */
+    public static void setSkin(Skin chosen) {
+        skin = chosen == Skin.FUSION_FLASH || chosen == Skin.FUSION_PRISM || chosen == Skin.FUSION_LONE ? chosen : null;
+    }
+
+    /** Le skin dessiné : pour les vérifications. */
+    public static Skin skin() {
+        return skin;
+    }
+
     /** L'angle des anneaux d'accrétion, qui tournent plus vite avec la vitesse. */
     private double spin = 0;
     /** Les arcs d'énergie en cours : leur angle et leur âge. */
@@ -199,6 +218,13 @@ public final class ParticleView extends Canvas {
         g.clearRect(0, 0, getWidth(), getHeight());
 
         Color color = heat(intensity);
+        if (skin == Skin.FUSION_FLASH) color = Color.web("#fff36b").interpolate(Color.WHITE, 0.4 * intensity);
+        else if (skin == Skin.FUSION_PRISM) color = Color.hsb((time * 40) % 360, 0.55, 1);
+        else if (skin == Skin.FUSION_LONE) color = Color.gray(0.82);
+        if (skin != null) {
+            drawSkin(g, cx, cy, maxRadius, scale, birth, fadeIn, progress, fast, color);
+            return;
+        }
 
         // Un halo de fond, plus large et plus vif avec la vitesse.
         double halo = maxRadius * (0.45 + 0.4 * intensity) * birth;
@@ -317,6 +343,188 @@ public final class ParticleView extends Canvas {
         g.setFill(CORE);
         g.setGlobalAlpha(1);
         circle(g, cx, cy, coreRadius);
+    }
+
+    /** La fusion sous un skin : mêmes mouvements que le classique, autres formes. */
+    private void drawSkin(GraphicsContext g, double cx, double cy, double maxRadius, double scale, double birth, double fadeIn,
+            double progress, boolean fast, Color color) {
+        double unit = Math.max(scale, 0.8);
+        if (skin == Skin.FUSION_PRISM) {
+            // Un halo en arc-en-ciel.
+            double halo = maxRadius * (0.5 + 0.35 * intensity) * birth;
+            for (int k = 0; k < 6; k++) {
+                Color band = Color.hsb((time * 40 + k * 60) % 360, 0.6, 1, 0.05 + 0.05 * intensity);
+                g.setGlobalAlpha(fadeIn);
+                g.setFill(band);
+                double r = halo * (1 - k * 0.12);
+                polygon(g, cx, cy, r, 6, spin * 0.2 + k * 0.17, true);
+            }
+        } else if (skin == Skin.FUSION_FLASH) {
+            double halo = maxRadius * (0.45 + 0.4 * intensity) * birth;
+            g.setGlobalAlpha(fadeIn);
+            g.setFill(new RadialGradient(0, 0, cx, cy, Math.max(1, halo), false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.color(1, 0.95, 0.4, 0.22)), new Stop(1, Color.color(1, 0.95, 0.4, 0))));
+            g.fillOval(cx - halo, cy - halo, halo * 2, halo * 2);
+        }
+        if (skin == Skin.FUSION_LONE) {
+            // Une seule orbite, une seule lune : le générateur solitaire.
+            double orbit = maxRadius * 0.62 * birth;
+            g.setStroke(Color.gray(0.55));
+            g.setLineWidth(unit);
+            g.setGlobalAlpha(0.6 * fadeIn);
+            dashedCircle(g, cx, cy, orbit, 36, spin * 0.1);
+            double a = spin * 0.8;
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(fadeIn);
+            circle(g, cx + orbit * Math.cos(a), cy + orbit * Math.sin(a), 4.5 * unit);
+            g.setFill(Color.gray(0.1));
+            circle(g, cx + orbit * Math.cos(a) + 1.6 * unit, cy + orbit * Math.sin(a) - 1.2 * unit, 3.4 * unit);
+        } else {
+            // Les poussières : des éclairs brisés, ou des éclats triangulaires.
+            for (Dust d : dust) {
+                double t = d.age / d.flight;
+                double radius = maxRadius * d.distance * (1 - t * t);
+                double angle = d.angle + d.swirl * t;
+                double x = cx + radius * Math.cos(angle), y = cy + radius * Math.sin(angle);
+                double alpha = Math.min(1, t * 4) * fadeIn;
+                if (skin == Skin.FUSION_FLASH) {
+                    double back = Math.max(0, t - 0.12);
+                    double rb = maxRadius * d.distance * (1 - back * back);
+                    double ab = d.angle + d.swirl * back;
+                    double bx = cx + rb * Math.cos(ab), by = cy + rb * Math.sin(ab);
+                    double mx = (x + bx) / 2 + (y - by) * 0.35, my = (y + by) / 2 - (x - bx) * 0.35;
+                    g.setStroke(color);
+                    g.setLineWidth(d.size * unit * 0.55);
+                    g.setGlobalAlpha(alpha);
+                    g.strokePolyline(new double[] {bx, mx, x}, new double[] {by, my, y}, 3);
+                } else {
+                    g.setFill(Color.hsb(Math.toDegrees(d.angle) % 360, 0.7, 1));
+                    g.setGlobalAlpha(alpha);
+                    polygon(g, x, y, d.size * unit * 1.1, 3, angle + time * 3, true);
+                }
+            }
+        }
+        // Les ondes de création : en dents de scie, en hexagones, ou en pointillés.
+        g.setLineWidth(2 * unit);
+        for (double ringAge : rings) {
+            double t = ringAge / RING_SECONDS;
+            double radius = (16 + 60 * t) * scale;
+            g.setGlobalAlpha(1 - t);
+            g.setStroke(skin == Skin.FUSION_LONE ? Color.WHITE : color);
+            if (skin == Skin.FUSION_FLASH) jagged(g, cx, cy, radius, 14, 0.18, (long) (ringAge * 1000));
+            else if (skin == Skin.FUSION_PRISM) polygon(g, cx, cy, radius, 6, spin * 0.2, false);
+            else dashedCircle(g, cx, cy, radius, 18, t);
+        }
+        double coreRadius = 3 + 13 * Math.sqrt(progress);
+        if (fast) coreRadius += (1.5 + 1.5 * intensity) * Math.sin(time * (8 + 16 * intensity));
+        coreRadius *= scale * birth * birth;
+        if (coreRadius <= 0) return;
+        g.setGlobalAlpha(fadeIn);
+        if (skin == Skin.FUSION_FLASH) {
+            // Une étoile à quatre branches qui crépite.
+            double flicker = 1 + 0.15 * Math.sin(time * 37);
+            g.setFill(color);
+            star(g, cx, cy, coreRadius * 1.9 * flicker, coreRadius * 0.45, 4, spin * 0.3);
+            g.setFill(Color.WHITE);
+            star(g, cx, cy, coreRadius * 1.1 * flicker, coreRadius * 0.3, 4, spin * 0.3 + Math.PI / 4);
+            for (double[] arc : arcs) {
+                g.setStroke(Color.WHITE);
+                g.setGlobalAlpha(0.8 * (1 - arc[1] / 0.25));
+                double ex = cx + maxRadius * 0.8 * Math.cos(arc[0]), ey = cy + maxRadius * 0.8 * Math.sin(arc[0]);
+                g.setLineWidth(1.4 * unit);
+                g.strokePolyline(new double[] {cx, (cx + ex) / 2 + 8 * unit, ex}, new double[] {cy, (cy + ey) / 2 - 8 * unit, ey}, 3);
+            }
+        } else if (skin == Skin.FUSION_PRISM) {
+            // Un cristal hexagonal : ses facettes, chacune de sa couleur, et ses arêtes blanches.
+            double turn = spin * 0.25;
+            for (int k = 0; k < 6; k++) {
+                double a0 = turn + k * Math.PI / 3, a1 = a0 + Math.PI / 3;
+                g.setFill(Color.hsb((k * 60 + time * 40) % 360, 0.45, 1));
+                g.fillPolygon(new double[] {cx, cx + coreRadius * 1.4 * Math.cos(a0), cx + coreRadius * 1.4 * Math.cos(a1)},
+                        new double[] {cy, cy + coreRadius * 1.4 * Math.sin(a0), cy + coreRadius * 1.4 * Math.sin(a1)}, 3);
+            }
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(unit);
+            polygon(g, cx, cy, coreRadius * 1.4, 6, turn, false);
+            for (int k = 0; k < 3; k++) {
+                double a = turn + k * Math.PI / 3;
+                g.strokeLine(cx - coreRadius * 1.4 * Math.cos(a), cy - coreRadius * 1.4 * Math.sin(a),
+                        cx + coreRadius * 1.4 * Math.cos(a), cy + coreRadius * 1.4 * Math.sin(a));
+            }
+        } else {
+            // Un anneau creux qui se remplit, en arc, à mesure que la particule se forme.
+            double r = 16 * scale * birth;
+            g.setStroke(Color.gray(0.35));
+            g.setLineWidth(3 * unit);
+            dashedCircle(g, cx, cy, r, 1, 0);
+            int steps = Math.max(1, (int) Math.round(48 * (fast ? 1 : progress)));
+            double[] xs = new double[steps + 1], ys = new double[steps + 1];
+            for (int k = 0; k <= steps; k++) {
+                double a = -Math.PI / 2 + 2 * Math.PI * (fast ? 1 : progress) * k / steps;
+                xs[k] = cx + r * Math.cos(a);
+                ys[k] = cy + r * Math.sin(a);
+            }
+            g.setStroke(Color.WHITE);
+            g.strokePolyline(xs, ys, steps + 1);
+            g.setFill(Color.WHITE);
+            circle(g, cx, cy, Math.max(1.5 * unit, coreRadius * 0.25));
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Un polygone régulier, plein ou en contour. */
+    static void polygon(GraphicsContext g, double cx, double cy, double r, int sides, double turn, boolean fill) {
+        double[] xs = new double[sides + 1], ys = new double[sides + 1];
+        for (int k = 0; k <= sides; k++) {
+            double a = turn + 2 * Math.PI * k / sides;
+            xs[k] = cx + r * Math.cos(a);
+            ys[k] = cy + r * Math.sin(a);
+        }
+        if (fill) g.fillPolygon(xs, ys, sides);
+        else g.strokePolyline(xs, ys, sides + 1);
+    }
+
+    /** Une étoile pleine à {@code points} branches. */
+    static void star(GraphicsContext g, double cx, double cy, double outer, double inner, int points, double turn) {
+        double[] xs = new double[points * 2], ys = new double[points * 2];
+        for (int k = 0; k < points * 2; k++) {
+            double r = k % 2 == 0 ? outer : inner, a = turn + Math.PI * k / points;
+            xs[k] = cx + r * Math.cos(a);
+            ys[k] = cy + r * Math.sin(a);
+        }
+        g.fillPolygon(xs, ys, points * 2);
+    }
+
+    /** Un cercle en dents de scie : une onde électrique. */
+    static void jagged(GraphicsContext g, double cx, double cy, double r, int teeth, double depth, long seed) {
+        int n = teeth * 2;
+        double[] xs = new double[n + 1], ys = new double[n + 1];
+        for (int k = 0; k <= n; k++) {
+            double jitter = Math.sin((k % n) * 12.9898 + seed * 0.001) * 0.5 + 0.5;
+            double rr = r * (k % 2 == 0 ? 1 + depth * jitter : 1 - depth * 0.5);
+            double a = 2 * Math.PI * k / n;
+            xs[k] = cx + rr * Math.cos(a);
+            ys[k] = cy + rr * Math.sin(a);
+        }
+        g.strokePolyline(xs, ys, n + 1);
+    }
+
+    /** Un cercle en pointillés ({@code dashes} traits), ou plein avec un seul trait. */
+    static void dashedCircle(GraphicsContext g, double cx, double cy, double r, int dashes, double turn) {
+        if (dashes <= 1) {
+            g.strokeOval(cx - r, cy - r, r * 2, r * 2);
+            return;
+        }
+        for (int k = 0; k < dashes; k++) {
+            double a0 = turn + 2 * Math.PI * k / dashes, a1 = a0 + Math.PI / dashes;
+            double[] xs = new double[5], ys = new double[5];
+            for (int p = 0; p < 5; p++) {
+                double a = a0 + (a1 - a0) * p / 4;
+                xs[p] = cx + r * Math.cos(a);
+                ys[p] = cy + r * Math.sin(a);
+            }
+            g.strokePolyline(xs, ys, 5);
+        }
     }
 
     /** Une ellipse inclinée, tracée point par point. */

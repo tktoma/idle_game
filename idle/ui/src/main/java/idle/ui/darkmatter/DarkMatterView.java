@@ -3,6 +3,7 @@ package idle.ui.darkmatter;
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
 import idle.core.math.BigNum;
+import idle.core.universe.Skin;
 import idle.ui.common.Format;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -81,6 +82,41 @@ public final class DarkMatterView extends Canvas {
     double fall() {
         return fall;
     }
+
+    /**
+     * Le skin de la boule (version 0.89) : {@code null} pour le classique. « Obsidienne » : une pierre
+     * noire taillée en facettes, aux arêtes violettes et aux reflets vifs. « Nébuleuse » : un nuage de
+     * gaz rose et bleu qui ondule, piqué d'étoiles naissantes. « Contractée » : un cœur très dense
+     * vers lequel des anneaux se resserrent sans fin.
+     */
+    private Skin skin;
+
+    void setSkin(Skin chosen) {
+        skin = chosen == Skin.DARK_OBSIDIAN || chosen == Skin.DARK_NEBULA || chosen == Skin.DARK_CONTRACTED ? chosen : null;
+    }
+
+    Skin skin() {
+        return skin;
+    }
+
+    /**
+     * Le skin de l'animation (version 0.89) : {@code null} pour le classique, où la matière ne tombe
+     * en spirale que pendant la croissance. « Vortex » : un tourbillon de cinq bras violets qui tourne
+     * sans cesse autour du point et l'alimente, bien plus vite quand on le fait grossir. « Pulsar » :
+     * deux faisceaux qui balaient la vue en tournant et des anneaux qui battent depuis le point.
+     */
+    private Skin animation;
+
+    void setAnimation(Skin chosen) {
+        animation = chosen == Skin.DARK_VORTEX || chosen == Skin.DARK_PULSAR ? chosen : null;
+    }
+
+    Skin animation() {
+        return animation;
+    }
+
+    /** L'angle du tourbillon ou des faisceaux, qui avance même au repos. */
+    private double whirl = 0;
 
     DarkMatterView(double width, double height) {
         super(width, height);
@@ -170,8 +206,11 @@ public final class DarkMatterView extends Canvas {
             if (beyond) break;
         }
 
+        if (motion) whirl += dt * (animation == Skin.DARK_PULSAR ? 1.2 + 3 * fall : 0.5 + 3.5 * fall + (growing ? 1 : 0));
+        if (animation == Skin.DARK_VORTEX) vortex(g, cx, cy, small, growing);
+        else if (animation == Skin.DARK_PULSAR) pulsar(g, cx, cy, w, h, growing);
         // La matière qui tombe : des grains en spirale, plus nombreux et plus rapides avec la croissance.
-        if (fall > 0.02) {
+        if (fall > 0.02 && animation == null) {
             int grains = (int) (14 + 46 * fall);
             g.setFill(GLOW);
             for (int i = 0; i < grains; i++) {
@@ -188,6 +227,11 @@ public final class DarkMatterView extends Canvas {
 
         // Le point : un halo qui bat quand on appuie, d'autant plus vite qu'il grossit fort, et un cœur clair.
         double pulse = growing && motion ? 1 + (0.08 + 0.06 * fall) * Math.sin(time * (9 + 12 * fall)) : 1;
+        if (skin != null) {
+            drawSkin(g, cx, cy, blobRadius * pulse, growing);
+            drawRuler(g, h);
+            return;
+        }
         g.setFill(GLOW);
         g.setGlobalAlpha(growing ? 0.22 : 0.12);
         double halo = blobRadius * 1.5 * pulse;
@@ -200,6 +244,174 @@ public final class DarkMatterView extends Canvas {
         g.fillOval(cx - blobRadius, cy - blobRadius, blobRadius * 2, blobRadius * 2);
 
         drawRuler(g, h);
+    }
+
+    /** Le tourbillon : cinq bras de grains qui s'enroulent jusqu'au point, et un disque d'accrétion. */
+    private void vortex(GraphicsContext g, double cx, double cy, double small, boolean growing) {
+        double outer = small * 0.48, inner = Math.max(blobRadius * 1.05, 4);
+        int arms = 5;
+        double strength = 0.45 + 0.55 * Math.max(fall, growing ? 0.6 : 0);
+        for (int arm = 0; arm < arms; arm++) {
+            int steps = 50;
+            double[] xs = new double[steps], ys = new double[steps];
+            for (int k = 0; k < steps; k++) {
+                double u = k / (double) (steps - 1);
+                double r = inner + (outer - inner) * u;
+                double a = -whirl + arm * 2 * Math.PI / arms + (1 - u) * 5;
+                xs[k] = cx + r * Math.cos(a);
+                ys[k] = cy + r * Math.sin(a) * 0.8;
+            }
+            g.setStroke(arm % 2 == 0 ? Color.web("#7a3cff") : Color.web("#c06bff"));
+            g.setLineWidth(10);
+            g.setGlobalAlpha(0.12 * strength);
+            g.strokePolyline(xs, ys, steps);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.6 * strength);
+            g.strokePolyline(xs, ys, steps);
+        }
+        // Les grains qui suivent les bras vers le centre.
+        int grains = growing ? 90 : 50;
+        g.setFill(Color.web("#efe4ff"));
+        for (int i = 0; i < grains; i++) {
+            double seed = (i * 0.618034) % 1;
+            double phase = (seed + whirl * 0.12) % 1;
+            double r = inner + (outer - inner) * (1 - phase);
+            double a = -whirl + (i % arms) * 2 * Math.PI / arms + phase * 5 + seed * 0.4;
+            double size = 1.2 + 2 * phase;
+            g.setGlobalAlpha(0.85 * strength * Math.sin(Math.PI * phase));
+            g.fillOval(cx + r * Math.cos(a) - size / 2, cy + r * Math.sin(a) * 0.8 - size / 2, size, size);
+        }
+        // Le disque d'accrétion, serré contre le point.
+        g.setStroke(Color.web("#e0c8ff"));
+        for (int k = 0; k < 3; k++) {
+            double r = inner * (1.25 + 0.2 * k);
+            g.setLineWidth(1.5);
+            g.setGlobalAlpha(0.5 * strength);
+            g.strokeOval(cx - r, cy - r * 0.8, r * 2, r * 1.6);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Le pulsar : deux faisceaux qui tournent depuis le point, et des anneaux qui battent. */
+    private void pulsar(GraphicsContext g, double cx, double cy, double w, double h, boolean growing) {
+        double far = Math.hypot(w, h);
+        double strength = growing ? 1 : 0.6;
+        for (int side = 0; side < 2; side++) {
+            double a = whirl + side * Math.PI;
+            double spread = 0.07;
+            g.setFill(Color.web("#3cf0ff"));
+            g.setGlobalAlpha(0.18 * strength);
+            g.fillPolygon(new double[] {cx, cx + far * Math.cos(a - spread), cx + far * Math.cos(a + spread)},
+                    new double[] {cy, cy + far * Math.sin(a - spread), cy + far * Math.sin(a + spread)}, 3);
+            g.setStroke(Color.web("#bff8ff"));
+            g.setLineWidth(1.5);
+            g.setGlobalAlpha(0.8 * strength);
+            g.strokeLine(cx, cy, cx + far * Math.cos(a), cy + far * Math.sin(a));
+        }
+        g.setStroke(Color.web("#7fe8ff"));
+        for (int k = 0; k < 3; k++) {
+            double phase = (time * 0.8 + k / 3.0) % 1;
+            double r = blobRadius * 1.1 + phase * Math.min(w, h) * 0.5;
+            g.setLineWidth(2.5 * (1 - phase) + 0.5);
+            g.setGlobalAlpha(0.7 * (1 - phase) * strength);
+            g.strokeOval(cx - r, cy - r, r * 2, r * 2);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** La boule sous un skin. */
+    private void drawSkin(GraphicsContext g, double cx, double cy, double r, boolean growing) {
+        r = Math.max(r, 3);
+        if (skin == Skin.DARK_OBSIDIAN) {
+            // Une pierre taillée : neuf facettes, chacune de sa nuance, qui tournent lentement.
+            int sides = 9;
+            double turn = time * 0.15;
+            double[] xs = new double[sides], ys = new double[sides];
+            for (int k = 0; k < sides; k++) {
+                double rr = r * (0.88 + 0.12 * Math.sin(k * 2.7 + 1));
+                xs[k] = cx + rr * Math.cos(turn + 2 * Math.PI * k / sides);
+                ys[k] = cy + rr * Math.sin(turn + 2 * Math.PI * k / sides);
+            }
+            g.setGlobalAlpha(growing ? 0.35 : 0.2);
+            g.setFill(GLOW);
+            g.fillOval(cx - r * 1.3, cy - r * 1.3, r * 2.6, r * 2.6);
+            for (int k = 0; k < sides; k++) {
+                int next = (k + 1) % sides;
+                double shade = 0.06 + 0.12 * (0.5 + 0.5 * Math.sin(k * 1.9 + time * 0.6));
+                g.setGlobalAlpha(1);
+                g.setFill(Color.color(shade, shade * 0.8, shade * 1.4 > 1 ? 1 : shade * 1.4));
+                g.fillPolygon(new double[] {cx + r * 0.15, xs[k], xs[next]}, new double[] {cy - r * 0.1, ys[k], ys[next]}, 3);
+            }
+            g.setStroke(Color.web("#a07cff"));
+            g.setLineWidth(1.2);
+            g.setGlobalAlpha(0.9);
+            for (int k = 0; k < sides; k++) {
+                int next = (k + 1) % sides;
+                g.strokeLine(xs[k], ys[k], xs[next], ys[next]);
+                g.setGlobalAlpha(0.35);
+                g.strokeLine(cx + r * 0.15, cy - r * 0.1, xs[k], ys[k]);
+                g.setGlobalAlpha(0.9);
+            }
+            // Un reflet qui glisse sur la pierre.
+            double shine = Math.sin(time * 0.8);
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(0.55);
+            g.fillPolygon(new double[] {cx - r * 0.5 + shine * r * 0.2, cx - r * 0.2 + shine * r * 0.2, cx - r * 0.35 + shine * r * 0.2},
+                    new double[] {cy - r * 0.55, cy - r * 0.6, cy - r * 0.2}, 3);
+        } else if (skin == Skin.DARK_NEBULA) {
+            // Un nuage : des volutes roses et bleues qui ondulent, plus larges que le point.
+            Color[] gas = {Color.web("#ff7ad9"), Color.web("#7fb8ff"), Color.web("#c9a6ff")};
+            for (int k = 0; k < 16; k++) {
+                double a = k * 2.39996 + time * (0.1 + 0.03 * (k % 4));
+                double d = r * (0.25 + 0.6 * ((k * 0.618034) % 1));
+                double size = r * (0.55 + 0.25 * Math.sin(time * 0.7 + k));
+                double x = cx + d * Math.cos(a), y = cy + d * Math.sin(a) * 0.8;
+                Color c = gas[k % gas.length];
+                g.setGlobalAlpha(1);
+                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, size, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                        new javafx.scene.paint.Stop(0, Color.color(c.getRed(), c.getGreen(), c.getBlue(), growing ? 0.35 : 0.25)),
+                        new javafx.scene.paint.Stop(1, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0))));
+                g.fillOval(x - size, y - size, size * 2, size * 2);
+            }
+            // Des étoiles qui naissent dans le nuage.
+            g.setFill(Color.WHITE);
+            for (int k = 0; k < 12; k++) {
+                double a = k * 1.7 + 0.3, d = r * (0.1 + 0.8 * ((k * 0.381966) % 1));
+                double twinkle = 0.5 + 0.5 * Math.sin(time * (1.5 + k * 0.2) + k);
+                double size = 1 + 1.6 * twinkle;
+                g.setGlobalAlpha(0.4 + 0.6 * twinkle);
+                g.fillOval(cx + d * Math.cos(a) - size / 2, cy + d * Math.sin(a) * 0.8 - size / 2, size, size);
+            }
+        } else {
+            // Contractée : des anneaux qui se resserrent sans fin vers un cœur minuscule et très vif.
+            g.setStroke(GLOW);
+            for (int k = 0; k < 6; k++) {
+                double phase = ((time * 0.5 + k / 6.0) % 1);
+                double rr = r * 1.6 * (1 - phase) + r * 0.2 * phase;
+                g.setLineWidth(1 + 2.5 * phase);
+                g.setGlobalAlpha(0.15 + 0.7 * phase);
+                g.strokeOval(cx - rr, cy - rr, rr * 2, rr * 2);
+            }
+            // Des flèches qui pointent vers le centre.
+            g.setStroke(Color.web("#e0c8ff"));
+            g.setLineWidth(1.2);
+            for (int k = 0; k < 8; k++) {
+                double a = 2 * Math.PI * k / 8 + time * 0.2;
+                double out = r * 1.5, in = r * 1.15;
+                g.setGlobalAlpha(0.6);
+                g.strokeLine(cx + out * Math.cos(a), cy + out * Math.sin(a), cx + in * Math.cos(a), cy + in * Math.sin(a));
+                g.strokeLine(cx + in * Math.cos(a), cy + in * Math.sin(a), cx + (in + r * 0.1) * Math.cos(a + 0.08), cy + (in + r * 0.1) * Math.sin(a + 0.08));
+                g.strokeLine(cx + in * Math.cos(a), cy + in * Math.sin(a), cx + (in + r * 0.1) * Math.cos(a - 0.08), cy + (in + r * 0.1) * Math.sin(a - 0.08));
+            }
+            double core = r * 0.35;
+            g.setGlobalAlpha(0.5);
+            g.setFill(GLOW);
+            g.fillOval(cx - core * 1.8, cy - core * 1.8, core * 3.6, core * 3.6);
+            g.setGlobalAlpha(1);
+            g.setFill(Color.WHITE);
+            g.fillOval(cx - core, cy - core, core * 2, core * 2);
+        }
+        g.setGlobalAlpha(1);
     }
 
     /**

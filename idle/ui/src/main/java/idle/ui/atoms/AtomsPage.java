@@ -240,6 +240,7 @@ public final class AtomsPage extends VBox {
      *                périodique, pour que la page soit au retour comme si elle était restée affichée.
      */
     public void refresh(boolean visible) {
+        atomView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.ATOM));
         BigNum atoms = game.state().atoms();
         // Une orbe par atome disponible, jusqu'au nombre d'éléments du tableau périodique :
         // un atome dépensé quitte le visuel.

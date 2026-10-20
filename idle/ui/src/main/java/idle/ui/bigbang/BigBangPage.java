@@ -104,6 +104,9 @@ public final class BigBangPage extends VBox {
 
     private final Game game;
     private final Label countLabel = new Label();
+    private final Label cycleTitle = new Label();
+    private final HBox cycleRow = new HBox(8);
+    private final Map<idle.core.universe.CycleChoice, Button> cycleButtons = new java.util.EnumMap<>(idle.core.universe.CycleChoice.class);
     private final Label sinceLabel = new Label();
     private final Button moleculesTab = new Button("Molécules");
     private final Button expansionTab = new Button("Expansion de la matière");
@@ -540,7 +543,22 @@ public final class BigBangPage extends VBox {
 
         getChildren().add(StableHeight.of(countLabel));
         getChildren().add(StableHeight.of(sinceLabel));
+        // Le petit arbre du cycle (version 0.87) : trois choix, un seul jusqu'au prochain Big Bang.
+        cycleTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+        cycleRow.setAlignment(Pos.CENTER);
+        cycleRow.getChildren().add(cycleTitle);
+        for (idle.core.universe.CycleChoice choice : idle.core.universe.CycleChoice.values()) {
+            Button button = new Button(choice.label());
+            button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                game.chooseCycle(choice);
+                refresh();
+            });
+            cycleButtons.put(choice, button);
+            cycleRow.getChildren().add(button);
+        }
         getChildren().add(subTabs);
+        getChildren().add(cycleRow);
         getChildren().add(shoppingPane);
         getChildren().add(pages);
         selectKind(kind);
@@ -958,6 +976,29 @@ public final class BigBangPage extends VBox {
     }
 
     /** La sous-page de la galaxie : pour les vérifications. */
+    /** Le petit arbre du cycle : le choix fait éclairé, les autres fermés jusqu'au prochain Big Bang. */
+    private void refreshCycle() {
+        boolean open = game.isCycleChoiceUnlocked();
+        cycleRow.setVisible(open);
+        cycleRow.setManaged(open);
+        if (!open) return;
+        idle.core.universe.CycleChoice chosen = game.cycleChoice();
+        cycleTitle.setText(chosen == null ? "Choix du cycle, jusqu'au prochain Big Bang :" : "Choix du cycle : " + chosen.effect());
+        cycleButtons.forEach((choice, button) -> {
+            boolean on = choice == chosen;
+            button.setDisable(chosen != null && !on);
+            button.setText(choice.label() + (chosen == null ? " : " + choice.effect() : ""));
+            button.setStyle("-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                    + (on ? " -fx-text-fill: #10151f; -fx-background-color: " + GameApp.BIG_BANG_COLOR + ";"
+                            : " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;"));
+        });
+    }
+
+    /** Les boutons du petit arbre du cycle : pour les vérifications. */
+    public Button cycleButton(idle.core.universe.CycleChoice choice) {
+        return cycleButtons.get(choice);
+    }
+
     /** Les systèmes solaires : pour les vérifications. */
     public SystemsPane systemsPane() {
         return systemsPane;
@@ -1010,6 +1051,7 @@ public final class BigBangPage extends VBox {
     public void refresh() {
         int count = game.bigBangs();
         countLabel.setText(count + (count > 1 ? " Big Bangs" : " Big Bang"));
+        refreshCycle();
         sinceLabel.setText("Partie en cours depuis " + Format.duration(game.stats().runTime())
                 + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
         long created = game.moleculesCreated();

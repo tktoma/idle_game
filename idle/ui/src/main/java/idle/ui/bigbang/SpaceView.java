@@ -893,8 +893,18 @@ public final class SpaceView extends Canvas {
         blocks = block.toArray(new Assembly[0]);
         int next = 0;
         if (perDot == 1) {
+            // Les molécules rassemblées d'une sorte sont déjà placées dans leurs amas ; le reste de la sorte, libre,
+            // prend sa place ici (version 0.90 : avant, toute la sorte était sautée et des places restaient vides).
+            java.util.Map<String, Integer> skip = new java.util.HashMap<>();
+            for (String id : game.state().substances()) {
+                if (game.gatheredMolecules(id) > 0) skip.put(id, game.gatheredMolecules(id));
+            }
             for (String id : log) {
-                if (game.gatheredMolecules(id) > 0) continue;
+                int left = skip.getOrDefault(id, 0);
+                if (left > 0) {
+                    skip.put(id, left - 1);
+                    continue;
+                }
                 while (next < count && owner[next] >= 0) next++;
                 if (next >= count) break;
                 settle(next++, game.molecule(id), null);
@@ -902,13 +912,31 @@ public final class SpaceView extends Canvas {
         } else {
             // Un point pour plusieurs molécules : l'ordre de création ne se lit plus, les sortes passent dans celui du catalogue.
             for (Molecule molecule : game.molecules()) {
-                if (game.gatheredMolecules(molecule.id()) > 0) continue;
-                for (int left = dots(game.moleculeCount(molecule.id())); left > 0; left--) {
+                int gathered = game.gatheredMolecules(molecule.id());
+                int free = Math.max(0, dots(game.moleculeCount(molecule.id())) - (gathered > 0 ? dots(gathered) : 0));
+                for (int left = free; left > 0; left--) {
                     while (next < count && owner[next] >= 0) next++;
                     if (next >= count) break;
                     settle(next++, molecule, null);
                 }
             }
+        }
+        // Version 0.90 : le compte des molécules peut dépasser le journal (molécules d'avant le journal, sortes
+        // retirées du catalogue…). Les places restées vides prennent une sorte réellement possédée, sinon se cachent :
+        // une place sans dessin faisait tomber toute la vue.
+        java.util.List<Molecule> owned = new java.util.ArrayList<>();
+        for (Molecule molecule : game.molecules()) {
+            if (game.moleculeCount(molecule.id()) > 0) owned.add(molecule);
+        }
+        boolean stand = owned.isEmpty();
+        if (stand) owned = game.molecules();
+        int nextOwned = 0;
+        refilled = 0;
+        for (int cell = 0; cell < count && !owned.isEmpty(); cell++) {
+            if (shapes[cell] != null) continue;
+            refilled++;
+            settle(cell, owned.get(nextOwned++ % owned.size()), null);
+            if (stand) hidden[cell] = true;
         }
         collide(x, y, owner, span, grid);
         clear(x, y, owner, span, grid);
@@ -1815,7 +1843,11 @@ public final class SpaceView extends Canvas {
     }
 
     /** Installe une molécule à une place de la spirale, dans le lieu de {@code state} ou hors de tout lieu ({@code null}). */
+    /** Places restées vides à la dernière mise en place, reprises par une sorte possédée : pour les vérifications. */
+    private int refilled;
+
     private void settle(int cell, Molecule molecule, Molecule.State state) {
+        if (molecule == null) return;     // une sorte inconnue (sauvegarde d'une autre version) : la place sera reprise plus loin
         // Une grosse molécule est dessinée un peu plus grande qu'une petite, sans dépasser sa place.
         radii[cell] = SMALLEST + (1 - SMALLEST) * Math.min(1, Math.sqrt(molecule.atoms() / (double) BIGGEST_ATOMS));
         shapes[cell] = MoleculeArt.of(molecule);
@@ -1911,16 +1943,23 @@ public final class SpaceView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         g.setGlobalAlpha(1);
-        g.setFill(VOID);
+        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+        g.setFill(look == null ? VOID : skinVoid(look));
         g.fillRect(0, 0, w, h);
         double originX = w / 2 - centerX * scale;
         double originY = h / 2 - centerY * scale;
+        // Le skin du Big Bang (version 0.89) : tout le fond de la vue, puis l'espace créé à sa façon.
+        if (look != null) skinSky(g, w, h, look);
 
         // L'espace créé : un disque un peu plus clair que le vide. Son bord est tracé plus bas, par-dessus le gaz.
         double edge = radius * scale;
         if (edge > 0.5) {
-            g.setFill(SPACE);
-            g.fillOval(originX - edge, originY - edge, 2 * edge, 2 * edge);
+            if (look != null) {
+                skinSpace(g, originX, originY, edge, look);
+            } else {
+                g.setFill(SPACE);
+                g.fillOval(originX - edge, originY - edge, 2 * edge, 2 * edge);
+            }
         }
         // Les molécules se partagent le cœur utilisé à parts égales : la taille d'un dessin vient de sa
         // place, pas du volume de sa molécule, et rien ne dépasse du cœur, ni un dessin ni un amas.
@@ -2058,7 +2097,9 @@ public final class SpaceView extends Canvas {
             g.setLineWidth(1);
             g.strokeOval(originX - core, originY - core, 2 * core, 2 * core);
         }
-        if (edge > 0.5) {
+        if (edge > 0.5 && look != null) {
+            skinEdge(g, originX, originY, edge, look);
+        } else if (edge > 0.5) {
             g.setStroke(EDGE);
             g.setLineWidth(1.5);
             g.strokeOval(originX - edge, originY - edge, 2 * edge, 2 * edge);
@@ -2350,6 +2391,12 @@ public final class SpaceView extends Canvas {
 
     /** Un fond d'étoiles fixes, les mêmes d'une image à l'autre, qui scintillent à peine. */
     private void drawStars(GraphicsContext g, double w, double h) {
+        // Le skin du Big Bang (version 0.89) habille aussi le fond de l'espace.
+        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+        if (look != null) {
+            skinStars(g, w, h, look);
+            return;
+        }
         g.setFill(STAR);
         for (int star = 0; star < STARS; star++) {
             double x = STAR_X[star] * w;
@@ -2358,6 +2405,233 @@ public final class SpaceView extends Canvas {
             g.setGlobalAlpha(Math.max(0.05, Math.min(1, twinkle)));
             double size = star % 9 == 0 ? 1.6 : 1;
             g.fillOval(x - size / 2, y - size / 2, size, size);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    // ------------------------------------------------------------------
+    // Les skins du Big Bang (version 0.89) : le vide, le ciel entier, l'espace créé et son bord.
+    // ------------------------------------------------------------------
+
+    private static Color skinVoid(idle.core.universe.Skin look) {
+        return switch (look) {
+            case BANG_AURORA -> Color.web("#020d14");
+            case BANG_SUPERNOVA -> Color.web("#0d0306");
+            default -> Color.web("#04081a");
+        };
+    }
+
+    private static Color tint(Color c, double alpha) {
+        return Color.color(c.getRed(), c.getGreen(), c.getBlue(), Math.max(0, Math.min(1, alpha)));
+    }
+
+    /**
+     * Le ciel de toute la vue. Aurore : des rideaux de lumière verte, bleue et violette sur toute la
+     * hauteur. Supernova : une nébuleuse de filaments rouges et orangés qui part d'un coin. Cristal :
+     * un réseau de facettes sur toute la vue, des facettes allumées çà et là.
+     */
+    private void skinSky(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+        double small = Math.min(w, h);
+        switch (look) {
+            case BANG_AURORA -> {
+                Color[] tints = {Color.web("#5dffa8"), Color.web("#6fc8ff"), Color.web("#b77bff"), Color.web("#5dffa8")};
+                int steps = 90;
+                for (int band = 0; band < tints.length; band++) {
+                    double base = h * (0.1 + 0.22 * band);
+                    for (int k = 0; k < steps; k++) {
+                        double x = w * k / (steps - 1);
+                        double top = base + Math.sin(x / w * 7 + time * 0.4 + band * 1.7) * h * 0.08
+                                + Math.sin(x / w * 19 + band) * h * 0.02;
+                        double tall = h * (0.35 + 0.12 * Math.sin(x / w * 11 + band * 2 + time * 0.3));
+                        g.setGlobalAlpha(1);
+                        g.setFill(new javafx.scene.paint.LinearGradient(0, top, 0, top + tall, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                                new javafx.scene.paint.Stop(0, tint(tints[band], 0)),
+                                new javafx.scene.paint.Stop(0.25, tint(tints[band], 0.22)),
+                                new javafx.scene.paint.Stop(1, tint(tints[band], 0))));
+                        g.fillRect(x - w / steps, top, w / steps * 2, tall);
+                    }
+                }
+            }
+            case BANG_SUPERNOVA -> {
+                double cx = w * 0.85, cy = h * 0.15;
+                double far = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy));
+                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, cx, cy, far, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                        new javafx.scene.paint.Stop(0, tint(Color.web("#ff9a3c"), 0.35)),
+                        new javafx.scene.paint.Stop(0.35, tint(Color.web("#a01e3a"), 0.22)),
+                        new javafx.scene.paint.Stop(1, tint(Color.web("#2a0610"), 0))));
+                g.setGlobalAlpha(1);
+                g.fillRect(0, 0, w, h);
+                // Les filaments : des traits qui rayonnent du reste de l'étoile jusqu'aux bords.
+                for (int k = 0; k < 140; k++) {
+                    double a = k * 2.39996;
+                    double r0 = far * (0.05 + 0.25 * fraction(k * 1.31));
+                    double r1 = r0 + far * (0.15 + 0.5 * fraction(k * 2.77));
+                    double bend = 0.15 * Math.sin(k + time * 0.2);
+                    g.setStroke(k % 3 == 0 ? Color.web("#ffb35a") : k % 3 == 1 ? Color.web("#ff4a5a") : Color.web("#d15aff"));
+                    g.setLineWidth(0.6 + 1.6 * fraction(k * 4.1));
+                    g.setGlobalAlpha(0.18 + 0.25 * fraction(k * 5.3));
+                    g.strokePolyline(new double[] {cx + r0 * Math.cos(a), cx + (r0 + r1) / 2 * Math.cos(a + bend), cx + r1 * Math.cos(a + bend * 2)},
+                            new double[] {cy + r0 * Math.sin(a), cy + (r0 + r1) / 2 * Math.sin(a + bend), cy + r1 * Math.sin(a + bend * 2)}, 3);
+                }
+                // Le reste de l'étoile : un pulsar minuscule qui bat.
+                double beat = 0.6 + 0.4 * Math.sin(time * 6);
+                g.setGlobalAlpha(1);
+                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, cx, cy, small * 0.08, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                        new javafx.scene.paint.Stop(0, tint(Color.WHITE, 0.9 * beat)), new javafx.scene.paint.Stop(1, tint(Color.web("#ff9a3c"), 0))));
+                g.fillOval(cx - small * 0.08, cy - small * 0.08, small * 0.16, small * 0.16);
+            }
+            default -> {
+                double cell = Math.max(28, small / 9);
+                for (double y = 0; y < h + cell; y += cell * 0.866) {
+                    int row = (int) Math.round(y / (cell * 0.866));
+                    for (double x = row % 2 == 0 ? 0 : cell / 2; x < w + cell; x += cell) {
+                        double[] xs = new double[6], ys = new double[6];
+                        for (int k = 0; k < 6; k++) {
+                            double a = Math.PI / 6 + k * Math.PI / 3;
+                            xs[k] = x + cell * 0.5 * Math.cos(a);
+                            ys[k] = y + cell * 0.5 * Math.sin(a);
+                        }
+                        double glint = fraction(x * 0.37 + y * 0.71);
+                        double lit = Math.max(0, Math.sin(time * 0.8 + glint * 20));
+                        g.setGlobalAlpha(0.03 + 0.12 * lit * glint);
+                        g.setFill(glint > 0.5 ? Color.web("#9fd8ff") : Color.web("#d6c8ff"));
+                        g.fillPolygon(xs, ys, 6);
+                        g.setGlobalAlpha(0.12);
+                        g.setStroke(Color.web("#9fd8ff"));
+                        g.setLineWidth(0.7);
+                        g.strokePolyline(new double[] {xs[0], xs[1], xs[2], xs[3], xs[4], xs[5], xs[0]},
+                                new double[] {ys[0], ys[1], ys[2], ys[3], ys[4], ys[5], ys[0]}, 7);
+                    }
+                }
+            }
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** L'espace créé, rempli à la façon du skin : un voile d'aurore, une boule de feu, un cristal taillé. */
+    private void skinSpace(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+        g.setGlobalAlpha(1);
+        switch (look) {
+            case BANG_AURORA -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, r, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                    new javafx.scene.paint.Stop(0, Color.web("#0f3a3a")), new javafx.scene.paint.Stop(0.7, Color.web("#122a40")),
+                    new javafx.scene.paint.Stop(1, Color.web("#2a1a4a"))));
+            case BANG_SUPERNOVA -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, r, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                    new javafx.scene.paint.Stop(0, Color.web("#3a1a10")), new javafx.scene.paint.Stop(0.75, Color.web("#2a0c12")),
+                    new javafx.scene.paint.Stop(1, Color.web("#5a1a10"))));
+            default -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                    new javafx.scene.paint.Stop(0, Color.web("#1c3050")), new javafx.scene.paint.Stop(1, Color.web("#0a1428"))));
+        }
+        if (look == idle.core.universe.Skin.BANG_CRYSTAL) {
+            // Un cristal à douze faces au lieu d'un disque, et ses facettes.
+            int sides = 12;
+            double[] xs = new double[sides], ys = new double[sides];
+            for (int k = 0; k < sides; k++) {
+                double a = time * 0.05 + 2 * Math.PI * k / sides;
+                xs[k] = x + r * Math.cos(a);
+                ys[k] = y + r * Math.sin(a);
+            }
+            g.fillPolygon(xs, ys, sides);
+            g.setStroke(Color.web("#9fd8ff"));
+            g.setLineWidth(1);
+            for (int k = 0; k < sides; k += 2) {
+                g.setGlobalAlpha(0.18);
+                g.strokeLine(x, y, xs[k], ys[k]);
+            }
+        } else {
+            g.fillOval(x - r, y - r, 2 * r, 2 * r);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Le bord de l'espace : une lisière qui ondule, un front de flammes, ou les arêtes du cristal. */
+    private void skinEdge(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+        int steps = 120;
+        double[] xs = new double[steps + 1], ys = new double[steps + 1];
+        switch (look) {
+            case BANG_AURORA -> {
+                for (int band = 0; band < 2; band++) {
+                    for (int k = 0; k <= steps; k++) {
+                        double a = 2 * Math.PI * k / steps;
+                        double rr = r * (1 + 0.025 * Math.sin(a * 9 + time * (1 + band) + band * 2));
+                        xs[k] = x + rr * Math.cos(a);
+                        ys[k] = y + rr * Math.sin(a);
+                    }
+                    g.setStroke(band == 0 ? Color.web("#5dffa8") : Color.web("#b77bff"));
+                    g.setLineWidth(band == 0 ? 3 : 1.5);
+                    g.setGlobalAlpha(band == 0 ? 0.7 : 0.9);
+                    g.strokePolyline(xs, ys, steps + 1);
+                }
+            }
+            case BANG_SUPERNOVA -> {
+                for (int k = 0; k <= steps; k++) {
+                    double a = 2 * Math.PI * k / steps;
+                    double flame = 0.04 * (0.5 + 0.5 * Math.sin(a * 23 + time * 3)) + 0.03 * fraction(k * 7.7 + Math.floor(time * 4));
+                    double rr = r * (1 + (k % 2 == 0 ? flame : 0));
+                    xs[k] = x + rr * Math.cos(a);
+                    ys[k] = y + rr * Math.sin(a);
+                }
+                g.setStroke(Color.web("#ff5a2a"));
+                g.setLineWidth(4);
+                g.setGlobalAlpha(0.45);
+                g.strokePolyline(xs, ys, steps + 1);
+                g.setStroke(Color.web("#ffd27f"));
+                g.setLineWidth(1.5);
+                g.setGlobalAlpha(0.95);
+                g.strokePolyline(xs, ys, steps + 1);
+            }
+            default -> {
+                int sides = 12;
+                double[] cx = new double[sides + 1], cy = new double[sides + 1];
+                for (int k = 0; k <= sides; k++) {
+                    double a = time * 0.05 + 2 * Math.PI * k / sides;
+                    cx[k] = x + r * Math.cos(a);
+                    cy[k] = y + r * Math.sin(a);
+                }
+                g.setStroke(Color.web("#e8f8ff"));
+                g.setLineWidth(2);
+                g.setGlobalAlpha(0.9);
+                g.strokePolyline(cx, cy, sides + 1);
+                // Des éclats de lumière aux sommets.
+                g.setFill(Color.WHITE);
+                for (int k = 0; k < sides; k++) {
+                    double glow = Math.max(0, Math.sin(time * 1.5 + k * 1.3));
+                    double size = 2 + 5 * glow;
+                    g.setGlobalAlpha(0.3 + 0.7 * glow);
+                    g.fillPolygon(new double[] {cx[k], cx[k] + size / 3, cx[k], cx[k] - size / 3}, new double[] {cy[k] - size, cy[k], cy[k] + size, cy[k]}, 4);
+                }
+            }
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Les étoiles sous un skin du Big Bang : vertes et douces, à branches, ou en losange. */
+    private void skinStars(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+        for (int star = 0; star < STARS; star++) {
+            double x = STAR_X[star] * w, y = STAR_Y[star] * h;
+            double twinkle = Math.max(0.05, Math.min(1, 0.3 + 0.25 * Math.sin(time * STAR_PACE[star] * 1.5 + star)));
+            g.setGlobalAlpha(twinkle);
+            switch (look) {
+                case BANG_AURORA -> {
+                    g.setFill(Color.web("#d8ffe9"));
+                    g.fillOval(x - 0.6, y - 0.6, 1.2, 1.2);
+                }
+                case BANG_SUPERNOVA -> {
+                    if (star % 6 == 0) {
+                        g.setStroke(Color.web("#ffe6c2"));
+                        g.setLineWidth(0.8);
+                        g.strokeLine(x - 4, y, x + 4, y);
+                        g.strokeLine(x, y - 4, x, y + 4);
+                    } else {
+                        g.setFill(Color.web("#ffd0b0"));
+                        g.fillOval(x - 0.5, y - 0.5, 1, 1);
+                    }
+                }
+                default -> {
+                    double size = star % 9 == 0 ? 3.5 : 1.8;
+                    g.setFill(Color.web("#e8f8ff"));
+                    g.fillPolygon(new double[] {x, x + size / 2, x, x - size / 2}, new double[] {y - size, y, y + size, y}, 4);
+                }
+            }
         }
         g.setGlobalAlpha(1);
     }

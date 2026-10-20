@@ -74,6 +74,9 @@ public final class Breakdown {
                 lines.add("Particules par seconde : " + Format.amount(game.productionPerSecond()));
                 lines.add("Générateurs en activité : " + game.generatorCount());
                 lines.add("Créations par seconde et par générateur : " + Format.amount(game.speed()));
+                // Le premier élan (version 0.95) : la création va moins vite jusqu'au tout premier atome.
+                if (game.firstRunSlowdown() > 1) lines.add("  dont ÷" + idle.ui.common.ElementText.number(game.firstRunSlowdown())
+                        + "  premier élan : la création accélère au premier atome, au cinquième, puis au trentième");
                 BigNum perCreation = game.particlesPerCreation();
                 lines.add("Particules par création : " + Format.amount(perCreation) + ", faites de");
                 BigNum listed = BigNum.ONE;

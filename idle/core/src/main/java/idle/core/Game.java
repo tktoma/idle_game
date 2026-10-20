@@ -116,6 +116,27 @@ public final class Game {
 
     /** Vitesse de départ d'un générateur : deux particules par seconde. */
     public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
+    /**
+     * Le premier élan (version 0.95, par paliers depuis la 0.96) : dans la toute première partie,
+     * avant la première explosion, la création prend son élan peu à peu. Elle va
+     * {@code FIRST_RUN_PACE} fois moins vite jusqu'au premier atome (une heure environ), puis
+     * {@link #FIRST_ATOMS_PACE} fois moins vite jusqu'au cinquième atome créé (deux heures), puis
+     * {@link #FIRST_GAME_PACE} fois moins vite jusqu'au trentième, où s'ouvrent l'automatisation et le
+     * tableau périodique : de là, elle a tout son élan. Rien ne ralentit plus ensuite, ni après une
+     * explosion, ni dans l'univers suivant. Seule une partie neuve repasse par là.
+     */
+    public static final double FIRST_RUN_PACE = 13;
+    public static final double FIRST_ATOMS_PACE = 9;
+    public static final double FIRST_GAME_PACE = 2.8;
+    /** Atomes créés où la création passe au palier suivant de son élan : 1, 5, puis 30. */
+    public static final int FIRST_ATOMS_UNTIL = 5;
+    /**
+     * Les tests unitaires qui vérifient une règle sur une partie neuve, sans la regarder durer, coupent le
+     * premier élan avec la propriété système {@code idle.sansPremierElan}, et avec lui la matière noire réduite
+     * du premier cycle ({@link #FIRST_CYCLE_DARK_MATTER}) ; le jeu, les robots et les tests de rythme les gardent.
+     */
+    private static final boolean NO_FIRST_RUN_PACE = Boolean.getBoolean("idle.sansPremierElan");
+    private double firstRunPace = NO_FIRST_RUN_PACE ? 1 : FIRST_RUN_PACE;
 
     /** Atomes gagnés à chaque fusion, avant les bonus. */
     public static final BigNum ATOMS_PER_FUSION = BigNum.ONE;
@@ -127,12 +148,12 @@ public final class Game {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le premier Big Bang : 10³²⁰⁰⁰. Depuis la version 0.73, c'est ce qui fait durer le
-     * deuxième acte cinq heures en jeu parfait : à la fin de l'arbre, les parties qu'on laisse tourner
-     * gagnent quelques milliers d'ordres de grandeur par heure, d'autant plus vite que les paliers de
-     * vitesse sont forts (les voies de présence les renforcent).
+     * Particules à avoir en main pour le premier Big Bang : 10³⁸⁰⁰⁰ depuis la version 0.97 (10³²⁰⁰⁰ avant). C'est ce
+     * qui fait durer le deuxième acte six heures en jeu parfait : à la fin de l'arbre, les parties qu'on laisse
+     * tourner gagnent quelques milliers d'ordres de grandeur par heure, et les six cases du seuil du Big Bang
+     * (de 10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰) jalonnent la montée.
      */
-    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 32000);
+    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 38000);
 
     /**
      * Particules des Big Bangs suivants, au troisième acte : 10³⁰⁰⁰, comme avant la 0.73. Chaque cycle
@@ -200,6 +221,18 @@ public final class Game {
      * lourd, qu'on ne remplit vite qu'avec les voies du bon style.
      */
     public static final BigNum STYLE_CHALLENGE_WEIGHT = BigNum.of(3, 6);
+
+    /**
+     * Masse du tableau pendant les huit premiers défis (version 0.97 ; 1 avant) : ils demandent quelques minutes
+     * chacun au lieu de quelques secondes, et s'étalent sur la deuxième demi-heure de la matière noire.
+     */
+    public static final BigNum CHALLENGE_WEIGHT = BigNum.of(5000);
+
+    /**
+     * La matière noire de chaque explosion avant le premier Big Bang (version 0.97) : ×0,8. Le deuxième acte
+     * s'étale ainsi vers six heures, au lieu de cinq.
+     */
+    public static final double FIRST_CYCLE_DARK_MATTER = 0.8;
 
     /**
      * Nombre d'atomes à avoir créés depuis le début de la partie (dépensés ou non) pour débloquer
@@ -717,6 +750,7 @@ public final class Game {
         runMoleculeAutomation(dt);
         runAutoForm(dt);
         runPlans(dt);
+        runSecondUniverse(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -1297,11 +1331,11 @@ public final class Game {
     /**
      * Masse du tableau périodique : 1 avant la première explosion, puis multipliée par
      * {@link #TABLE_WEIGHT_GROWTH} à chaque explosion qui compte, {@link #TABLE_WEIGHT_MAX_LEVEL}
-     * fois au plus. Un défi se joue toujours avec un tableau de masse 1, comme une toute première partie.
+     * fois au plus. Un défi se joue sur un tableau de masse {@link #CHALLENGE_WEIGHT} (1 avant la version 0.97).
      */
     public BigNum tableWeight() {
         if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT;
-        return inChallenge() ? BigNum.ONE
+        return inChallenge() ? CHALLENGE_WEIGHT
                 : BigNum.of(TABLE_WEIGHT_GROWTH).pow(Math.min(state.tableWeightLevel(), TABLE_WEIGHT_MAX_LEVEL));
     }
 
@@ -1322,7 +1356,8 @@ public final class Game {
     public BigNum synthesisCost() {
         BigNum cost = SYNTHESIS_BASE_COST.multiply(BigNum.of(2).pow(state.synthesisCount())).min(atomCap());
         double divisor = bonuses().costDivisor(ElementEffect.CostTarget.SYNTHESIS) * darkSynthesisDivisor()
-                * (1 + achievementBonus(Achievement.Bonus.SYNTHESIS_COST));
+                * (1 + achievementBonus(Achievement.Bonus.SYNTHESIS_COST))
+                / (cycleChoice() == idle.core.universe.CycleChoice.SYNTHESIS ? 1 - idle.core.universe.CycleChoice.SYNTHESIS_SAVING : 1);
         return divisor == 1 ? cost : Upgrade.roundUp(cost.divide(divisor)).max(BigNum.ONE);
     }
 
@@ -1422,6 +1457,8 @@ public final class Game {
         // Le garde-fou du hasard : après trop de synthèses sans rien de nouveau, celle-ci donne un élément inconnu.
         boolean rescue = target == null && !guaranteed && LUCK_FLOOR > 0 && state.drySyntheses() >= LUCK_FLOOR;
         obtained.add(target != null ? drawTargeted(target) : rescue ? drawUnknown() : drawElement(guaranteed));
+        // La préférence graduée (version 0.87) : chaque tirage au hasard la renforce un peu.
+        if (target == null && preferredFamily() != null) state.setPreferenceDraws(state.preferenceDraws() + 1);
         // Les éléments en plus de la matière noire, tant qu'il en reste à obtenir.
         for (int extra = elementsPerSynthesis() - 1; extra > 0 && !isPeriodicTableComplete(); extra--) {
             obtained.add(drawElement(false));
@@ -1625,7 +1662,7 @@ public final class Game {
     /** Poids d'une famille dans le tirage : sa chance de base, augmentée si elle est rare, nulle si elle est épuisée. */
     private double drawWeight(ElementCategory category) {
         if (availableElements(category).isEmpty()) return 0;
-        return category.chance() * (category.rare() ? bonuses().luckMultiplier() : 1);
+        return category.chance() * (category.rare() ? bonuses().luckMultiplier() : 1) * preferenceMultiplier(category);
     }
 
     /** Probabilité actuelle qu'une synthèse tombe dans cette famille, chance et familles épuisées comprises. */
@@ -1765,6 +1802,8 @@ public final class Game {
         clearRun();
         state.stats().endRun();
         if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
+        // La contraction douce (version 0.88) : l'explosion la réussit.
+        if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) completeTrial();
         // Demandé par le joueur (version 0.84) : les bifurcations se rouvrent avec cette explosion.
         if (state.forkResetArmed()) {
             if (!hasSuperposition()) reopenForks();
@@ -2212,7 +2251,8 @@ public final class Game {
             }
         }
         if (rewarded(Challenge.Reward.EXTRA_DARK_MATTER)) amount = amount.add(BigNum.ONE);
-        double factor = bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER);
+        double factor = (state.bigBangs() == 0 && firstRunPace > 1 ? FIRST_CYCLE_DARK_MATTER : 1) * bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER)
+                * (cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1);
         return factor == 1 ? amount : amount.multiply(factor);
     }
 
@@ -2401,6 +2441,8 @@ public final class Game {
      */
     public boolean bigBang() {
         if (!canBigBang()) return false;
+        // Le Big Bang à froid (version 0.88) : le Big Bang le réussit.
+        if (inTrial(idle.core.universe.Trial.COLD_BANG)) completeTrial();
         noteHeldPeaks();
         state.stats().noteProduction(productionAtFusion());
         // Un défi de Big Bang en cours est réussi : sa récompense est acquise, son temps noté.
@@ -2439,6 +2481,8 @@ public final class Game {
 
     /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
     private void clearForBigBang() {
+        // Le petit arbre du deuxième univers (version 0.87) : le Big Bang rend le choix, gratuitement.
+        state.setCycleChoice(null);
         boolean keepsTree = bigBangKeepsDarkTree();
         java.util.Set<String> keptChallenges = bigBangKeepsChallenges()
                 ? new java.util.LinkedHashSet<>(state.completedChallenges()) : java.util.Set.of();
@@ -3627,7 +3671,8 @@ public final class Game {
      */
     public double moleculeBoost(Molecule.Stat stat) {
         refreshMoleculeBonuses();
-        return matterBoost(stat) * upgradeBoosts.getOrDefault(stat, 1.0) * bigBangMilestoneBoost(stat) * collectionBoost(stat);
+        return matterBoost(stat) * upgradeBoosts.getOrDefault(stat, 1.0) * bigBangMilestoneBoost(stat) * collectionBoost(stat)
+                * skinBoost();
     }
 
     /**
@@ -4713,7 +4758,12 @@ public final class Game {
 
     /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après (créés pour l'instant par les outils d'essai). */
     public int universes() {
-        return hasCosmos(Cosmos.UNIVERSE) ? 1 + state.extraUniverses() : 0;
+        return isUniverseFormed() ? 1 + state.extraUniverses() : 0;
+    }
+
+    /** Vrai une fois un univers formé, même pendant la partie qui mène au suivant (version 0.87). */
+    public boolean isUniverseFormed() {
+        return state.universeFormed() || state.cosmosLevel() >= Cosmos.values().length;
     }
 
     /** Vrai à partir du deuxième univers : la sous-page des dimensions s'ouvre. */
@@ -4738,7 +4788,7 @@ public final class Game {
 
     /** Outil d'essai : un univers de plus, une fois le premier formé. Faux s'il n'y en a pas encore. */
     public boolean testAddUniverse() {
-        if (!hasCosmos(Cosmos.UNIVERSE)) return false;
+        if (!isUniverseFormed()) return false;
         state.setExtraUniverses(state.extraUniverses() + 1);
         return true;
     }
@@ -4778,7 +4828,8 @@ public final class Game {
     /** Vrai si cette échelle du cosmos est formée. */
     public boolean hasCosmos(Cosmos scale) {
         // L'univers reste formé après la remise à zéro qui l'accompagne (version 0.83), quand le cosmos repart de rien.
-        if (scale == Cosmos.UNIVERSE && state.universeFormed()) return true;
+        // Pendant la partie du deuxième univers (version 0.87), seul compte ce que cette partie a formé.
+        if (scale == Cosmos.UNIVERSE && state.universeFormed() && !state.replaying()) return true;
         return state.cosmosLevel() > scale.ordinal();
     }
 
@@ -4889,6 +4940,487 @@ public final class Game {
         return true;
     }
 
+    // ------------------------------------------------------------------
+    // Le deuxième univers (version 0.87)
+    // ------------------------------------------------------------------
+
+    /** Fusions du deuxième univers qu'il faut pour ouvrir l'onglet Skins. */
+    public static final int SKINS_FUSIONS = 5;
+    /** Générateurs qu'il faut pour le régime des générateurs. */
+    public static final int REGIME_GENERATORS = 3;
+    /** Ce que le régime rapide ajoute à la cadence des générateurs, et combien de temps. */
+    public static final double REGIME_GAIN = 0.15;
+    public static final double REGIME_SECONDS = 20;
+    /** Le repos qui suit le régime rapide, avant de pouvoir le relancer. */
+    public static final double REGIME_REST_SECONDS = 40;
+    /** Générateurs qu'il faut pour la synergie par rang. */
+    public static final int SYNERGY_GENERATORS = 10;
+    /** Ce que la synergie ajoute, au plus, à chaque générateur : +0,5 %. */
+    public static final double SYNERGY_MAX = 0.005;
+    /** Fusions de suite sans le plafond d'atomes pour la prime de cycle parfait, sa durée et son gain. */
+    public static final int PERFECT_FUSIONS = 3;
+    public static final double PERFECT_SECONDS = 60;
+    public static final double PERFECT_GAIN = 0.10;
+    /** Ce que chaque tirage ajoute à la famille préférée, et le nombre de tirages qui comptent au plus (×2). */
+    public static final double PREFERENCE_STEP = 0.05;
+    public static final int PREFERENCE_MAX_DRAWS = 20;
+    /** Un élément gratuit à choisir tous les tant d'éléments découverts. */
+    public static final int FREE_ELEMENT_EVERY = 10;
+
+    /**
+     * Vrai dans le deuxième univers et au-delà : un univers est déjà formé. C'est là que s'ouvre
+     * tout ce que la liste des idées range sous « tout se débloque lors du deuxième univers ».
+     */
+    public boolean isSecondUniverse() {
+        return state.universeFormed();
+    }
+
+    /** Vrai pendant la partie qui mène à l'univers suivant : les anciens onglets et leurs paliers sont revenus. */
+    public boolean isReplaying() {
+        return state.universeFormed() && state.replaying();
+    }
+
+    /** Vrai si l'on peut rouvrir les paliers pour jouer l'univers suivant. */
+    public boolean canStartNextUniverse() {
+        return state.universeFormed() && !state.replaying();
+    }
+
+    /**
+     * Rouvre les paliers (version 0.87) : les anciens onglets reviennent, pour une partie neuve, celle
+     * de l'univers suivant. La partie a déjà été remise à zéro par la formation de l'univers. Former
+     * l'univers à la fin de cette partie crée l'univers suivant, avec une remise à zéro et une graine de plus.
+     */
+    public boolean startNextUniverse() {
+        if (!canStartNextUniverse()) return false;
+        state.setReplaying(true);
+        return true;
+    }
+
+    /** Fusions faites depuis que le dernier univers s'est formé. */
+    public long fusionsSinceUniverse() {
+        return Math.max(0, state.stats().fusions() - state.fusionsAtUniverse());
+    }
+
+    /** Vrai une fois l'onglet Skins ouvert : cinq fusions dans le deuxième univers. */
+    public boolean isSkinsUnlocked() {
+        return state.skinsOpen();
+    }
+
+    /** Vrai si ce skin est débloqué. */
+    public boolean hasSkin(idle.core.universe.Skin skin) {
+        return state.unlockedSkins().contains(skin.id());
+    }
+
+    /** Nombre de skins débloqués. */
+    public int skinsUnlocked() {
+        int count = 0;
+        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (hasSkin(skin)) count++;
+        return count;
+    }
+
+    /** Débloque un skin ; vrai s'il ne l'était pas. */
+    public boolean unlockSkin(idle.core.universe.Skin skin) {
+        if (hasSkin(skin)) return false;
+        state.unlockSkin(skin.id());
+        moleculeBonusesVersion = -1;
+        return true;
+    }
+
+    /** Le skin choisi pour ce visuel, ou {@code null} pour l'apparence classique. */
+    public idle.core.universe.Skin chosenSkin(idle.core.universe.SkinVisual visual) {
+        idle.core.universe.Skin skin = idle.core.universe.Skin.byId(state.chosenSkins().get(visual.name()));
+        return skin != null && skin.visual() == visual && hasSkin(skin) ? skin : null;
+    }
+
+    /** Choisit un skin débloqué pour son visuel ; {@code null} revient à l'apparence classique de ce visuel. */
+    public boolean chooseSkin(idle.core.universe.SkinVisual visual, idle.core.universe.Skin skin) {
+        if (skin != null && (skin.visual() != visual || !hasSkin(skin))) return false;
+        state.chooseSkin(visual.name(), skin == null ? null : skin.id());
+        return true;
+    }
+
+    /** Ce que les skins débloqués multiplient, sur toutes les ressources d'en dessous de l'univers. */
+    public double skinBoost() {
+        return 1 + idle.core.universe.Skin.BONUS * skinsUnlocked();
+    }
+
+    public boolean isRegimeUnlocked() {
+        return state.regimeOpen();
+    }
+
+    /** Vrai si le régime rapide peut être lancé : ouvert, ni en cours ni au repos. */
+    public boolean canStartRegime() {
+        return isRegimeUnlocked() && state.regimeLeft() <= 0 && state.regimeRest() <= 0;
+    }
+
+    /** Lance le régime rapide : +15 % de cadence pendant 20 s, puis 40 s de repos. Un geste à la main, jamais automatique. */
+    public boolean startRegime() {
+        if (!canStartRegime()) return false;
+        state.setRegimeLeft(REGIME_SECONDS);
+        return true;
+    }
+
+    /** La cadence du régime rapide : ×1,15 pendant qu'il dure. */
+    public double regimeMultiplier() {
+        return state.regimeLeft() > 0 ? 1 + REGIME_GAIN : 1;
+    }
+
+    public boolean isSynergyUnlocked() {
+        return state.synergyOpen();
+    }
+
+    /** La synergie par rang : +0,5 % au plus à chaque générateur, selon les autres rangs possédés dans le cycle. */
+    public double synergyMultiplier() {
+        if (!isSynergyUnlocked()) return 1;
+        int others = Math.max(0, generatorCount() - 1);
+        return 1 + SYNERGY_MAX * Math.min(1, others / (double) (SYNERGY_GENERATORS - 1));
+    }
+
+    /** Vrai une fois la prime de cycle parfait ouverte : Persistance achetée, dans le deuxième univers. */
+    public boolean isPerfectCycleUnlocked() {
+        return isSecondUniverse() && keepsUpgradesOnFusion();
+    }
+
+    /** Ce que la prime de cycle parfait multiplie dans les particules, pendant qu'elle dure : elle ne se cumule pas. */
+    public double perfectCycleMultiplier() {
+        return state.perfectLeft() > 0 ? 1 + PERFECT_GAIN : 1;
+    }
+
+    private void notePerfectCycle(boolean capped) {
+        if (!isPerfectCycleUnlocked()) return;
+        if (capped) {
+            state.setPerfectStreak(0);
+            return;
+        }
+        state.setPerfectStreak(state.perfectStreak() + 1);
+        if (state.perfectStreak() >= PERFECT_FUSIONS) {
+            state.setPerfectStreak(0);
+            state.setPerfectLeft(PERFECT_SECONDS);
+        }
+    }
+
+    public boolean isCycleChoiceUnlocked() {
+        return isSecondUniverse() && state.bigBangs() > 0;
+    }
+
+    /** Le choix du petit arbre pour ce cycle, ou {@code null}. */
+    public idle.core.universe.CycleChoice cycleChoice() {
+        if (!isCycleChoiceUnlocked() || state.cycleChoice() == null) return null;
+        try {
+            return idle.core.universe.CycleChoice.valueOf(state.cycleChoice());
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+    }
+
+    /** Fait le choix du cycle : un seul, jusqu'au prochain Big Bang. */
+    public boolean chooseCycle(idle.core.universe.CycleChoice choice) {
+        if (!isCycleChoiceUnlocked() || choice == null || cycleChoice() != null) return false;
+        state.setCycleChoice(choice.name());
+        return true;
+    }
+
+    public boolean isFamilyPreferenceUnlocked() {
+        return isSecondUniverse() && isTargetedSynthesisUnlocked();
+    }
+
+    /** La famille préférée, ou {@code null}. */
+    public ElementCategory preferredFamily() {
+        if (!isFamilyPreferenceUnlocked() || state.preferredFamily() == null) return null;
+        try {
+            return ElementCategory.valueOf(state.preferredFamily());
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+    }
+
+    /** Choisit la famille préférée ({@code null} : aucune) ; la préférence repart de zéro. */
+    public boolean setPreferredFamily(ElementCategory family) {
+        if (!isFamilyPreferenceUnlocked()) return false;
+        state.setPreferredFamily(family == null ? null : family.name());
+        state.setPreferenceDraws(0);
+        return true;
+    }
+
+    /** Ce par quoi la préférence multiplie les chances de sa famille : +5 % par tirage au hasard, ×2 au plus. */
+    public double preferenceMultiplier(ElementCategory category) {
+        ElementCategory preferred = preferredFamily();
+        if (preferred == null || preferred != category) return 1;
+        return 1 + PREFERENCE_STEP * Math.min(PREFERENCE_MAX_DRAWS, state.preferenceDraws());
+    }
+
+    /** Éléments gratuits à choisir maintenant : un tous les dix éléments découverts, dans le deuxième univers. */
+    public int freeElementsAvailable() {
+        if (!isSecondUniverse()) return 0;
+        return Math.max(0, discoveredElements() / FREE_ELEMENT_EVERY - state.freeElementsUsed());
+    }
+
+    /** Prend gratuitement un élément pas encore découvert. */
+    public boolean claimFreeElement(int atomicNumber) {
+        if (freeElementsAvailable() <= 0 || elementCount(atomicNumber) > 0) return false;
+        state.setElementCount(PeriodicTable.element(atomicNumber).number(), 1);
+        state.setFreeElementsUsed(state.freeElementsUsed() + 1);
+        return true;
+    }
+
+    /** Outil d'essai : forme l'univers sur-le-champ, comme si ses conditions étaient réunies (remise à zéro comprise). */
+    public void testFormUniverse() {
+        state.setCosmosLevel(Cosmos.values().length);
+        noteStep(GameStats.Step.UNIVERSE);
+        formUniverse();
+    }
+
+    /** Outil d'essai : compte des fusions de plus dans les statistiques, sans rien changer d'autre. */
+    public void testAddFusions(int count) {
+        for (int i = 0; i < count; i++) state.stats().noteFusion(BigNum.ONE, 1);
+    }
+
+    /** Outil d'essai : débloque tous les skins, ou les reverrouille tous. */
+    public void testAllSkins(boolean unlocked) {
+        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+            if (unlocked) state.unlockSkin(skin.id());
+            else state.lockSkin(skin.id());
+        }
+        moleculeBonusesVersion = -1;
+    }
+
+    /** Ce qui s'ouvre et s'écoule dans le deuxième univers, à chaque instant. */
+    private void runSecondUniverse(double dt) {
+        if (!isSecondUniverse()) return;
+        if (!state.skinsOpen() && fusionsSinceUniverse() >= SKINS_FUSIONS) state.setSkinsOpen(true);
+        if (!state.regimeOpen() && generatorCount() >= REGIME_GENERATORS) state.setRegimeOpen(true);
+        if (!state.synergyOpen() && generatorCount() >= SYNERGY_GENERATORS) state.setSynergyOpen(true);
+        if (dt <= 0) return;
+        if (state.regimeLeft() > 0) {
+            double left = state.regimeLeft() - dt;
+            state.setRegimeLeft(left);
+            if (left <= 0) state.setRegimeRest(REGIME_REST_SECONDS + Math.min(0, left));
+        } else if (state.regimeRest() > 0) {
+            state.setRegimeRest(state.regimeRest() - dt);
+        }
+        if (state.perfectLeft() > 0) state.setPerfectLeft(state.perfectLeft() - dt);
+        noteSkinUnlocks();
+        runTrial(dt);
+    }
+
+    // ------------------------------------------------------------------
+    // Les skins à obtenir (version 0.88)
+    // ------------------------------------------------------------------
+
+    /** Le record de reconstruction qui donne le skin « Éclair » : de la fusion au dixième générateur en une minute au plus. */
+    public static final double REBUILD_FAST_SECONDS = 60;
+    /** Le prix de la recherche « Fusion prismatique », en particules. */
+    public static final BigNum PRISM_COST = BigNum.of(1, 50);
+    /** Atomes créés qu'il faut pour la recherche sur le noyau dense, et le prix de ses quatre paliers, en atomes. */
+    public static final BigNum DENSE_UNLOCK_ATOMS = BigNum.of(1, 6);
+    public static final BigNum[] DENSE_COSTS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 5), BigNum.of(1, 8)};
+    private static final idle.core.universe.Skin[] DENSE_SKINS = {idle.core.universe.Skin.ATOM_DENSE, idle.core.universe.Skin.TABLE_LEAD,
+            idle.core.universe.Skin.ATOM_STELLAR, idle.core.universe.Skin.TABLE_GOLD};
+    /** Les paliers de la matière noire (gagnée dans le deuxième univers) et leurs skins. */
+    public static final BigNum[] DARK_TIERS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 4), BigNum.of(1, 5)};
+    private static final idle.core.universe.Skin[] DARK_SKINS = {idle.core.universe.Skin.DARK_OBSIDIAN, idle.core.universe.Skin.DARK_VORTEX,
+            idle.core.universe.Skin.DARK_NEBULA, idle.core.universe.Skin.DARK_PULSAR};
+    /** Les paliers du Big Bang (Big Bangs du deuxième univers) et leurs skins. */
+    public static final int[] BANG_TIERS = {1, 3};
+    private static final idle.core.universe.Skin[] BANG_SKINS = {idle.core.universe.Skin.BANG_AURORA, idle.core.universe.Skin.BANG_SUPERNOVA};
+
+    /** Les paliers de la matière noire atteints, de 0 à 4. */
+    public int darkSkinTiers() {
+        int tiers = 0;
+        for (BigNum tier : DARK_TIERS) if (darkMatterEarned().gte(tier)) tiers++;
+        return tiers;
+    }
+
+    /** Les paliers du Big Bang atteints, de 0 à 2. */
+    public int bangSkinTiers() {
+        int tiers = 0;
+        for (int tier : BANG_TIERS) if (state.bigBangs() >= tier) tiers++;
+        return tiers;
+    }
+
+    /** Les skins des paliers et du record se débloquent seuls, dès que l'onglet Skins est ouvert. */
+    private void noteSkinUnlocks() {
+        if (!isSkinsUnlocked()) return;
+        for (int i = 0; i < darkSkinTiers(); i++) unlockSkin(DARK_SKINS[i]);
+        for (int i = 0; i < bangSkinTiers(); i++) unlockSkin(BANG_SKINS[i]);
+        if (state.rebuildPending() && generatorCount() >= generatorsPerAtom()) {
+            double time = state.timeSinceFusion();
+            state.setRebuildPending(false);
+            if (state.rebuildRecord() <= 0 || time < state.rebuildRecord()) state.setRebuildRecord(time);
+            if (time <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.FUSION_FLASH);
+        }
+    }
+
+    /** Le record de reconstruction, en secondes ; 0 sans record. */
+    public double rebuildRecord() {
+        return state.rebuildRecord();
+    }
+
+    /** Vrai si la recherche « Fusion prismatique » est faite. */
+    public boolean hasPrismResearch() {
+        return state.researches().contains("prism");
+    }
+
+    public boolean canBuyPrismResearch() {
+        return isSkinsUnlocked() && !hasPrismResearch() && state.particles().gte(PRISM_COST);
+    }
+
+    /** La recherche facultative en particules : elle donne le skin « Prisme » de la fusion. */
+    public boolean buyPrismResearch() {
+        if (!canBuyPrismResearch()) return false;
+        state.setParticles(state.particles().subtract(PRISM_COST).max(BigNum.ZERO));
+        state.stats().addParticlesSpent(PRISM_COST);
+        state.addResearch("prism");
+        unlockSkin(idle.core.universe.Skin.FUSION_PRISM);
+        return true;
+    }
+
+    /** Vrai une fois la recherche sur le noyau dense ouverte : un million d'atomes créés, dans le deuxième univers. */
+    public boolean isDenseResearchUnlocked() {
+        return isSkinsUnlocked() && state.stats().atomsCreated().gte(DENSE_UNLOCK_ATOMS);
+    }
+
+    /** Paliers de la recherche sur le noyau dense déjà faits, de 0 à 4. */
+    public int denseTiers() {
+        int tiers = 0;
+        while (tiers < DENSE_COSTS.length && state.researches().contains("dense" + (tiers + 1))) tiers++;
+        return tiers;
+    }
+
+    public boolean canBuyDenseTier() {
+        int next = denseTiers();
+        return isDenseResearchUnlocked() && next < DENSE_COSTS.length && state.atoms().gte(DENSE_COSTS[next]);
+    }
+
+    /** Le palier suivant de la recherche sur le noyau dense : un skin d'atome ou de tableau à chaque palier. */
+    public boolean buyDenseTier() {
+        if (!canBuyDenseTier()) return false;
+        int next = denseTiers();
+        state.setAtoms(state.atoms().subtract(DENSE_COSTS[next]).max(BigNum.ZERO));
+        state.stats().addAtomsSpent(DENSE_COSTS[next]);
+        state.addResearch("dense" + (next + 1));
+        unlockSkin(DENSE_SKINS[next]);
+        return true;
+    }
+
+    /** L'épreuve en cours, ou {@code null}. */
+    public idle.core.universe.Trial activeTrial() {
+        if (state.activeTrial() == null) return null;
+        try {
+            return idle.core.universe.Trial.valueOf(state.activeTrial());
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+    }
+
+    /** Vrai pendant cette épreuve. */
+    public boolean inTrial(idle.core.universe.Trial trial) {
+        return trial.name().equals(state.activeTrial());
+    }
+
+    /** Vrai si cette épreuve a déjà été réussie. */
+    public boolean isTrialCompleted(idle.core.universe.Trial trial) {
+        return state.completedTrials().contains(trial.name());
+    }
+
+    /** Vrai si cette épreuve est ouverte : l'onglet Skins, et ce qu'elle demande. */
+    public boolean isTrialUnlocked(idle.core.universe.Trial trial) {
+        if (!isSkinsUnlocked()) return false;
+        return switch (trial) {
+            case LONE_GENERATOR -> state.explosions() > 0;
+            case SOFT_CONTRACTION -> isDarkMatterUnlocked();
+            case COLD_BANG -> state.bigBangs() > 0;
+            case DETECTOR -> isColliderUnlocked() && colliderUpgradeLevel(ColliderUpgrade.WINDOW) >= 3;
+            case NO_OVERHEAT, FULL_CHARGE, LONE_COLLIDER -> isColliderUnlocked();
+        };
+    }
+
+    /** Vrai si l'épreuve peut commencer : ouverte, aucune autre en cours, et pour le premier générateur, un seul générateur. */
+    public boolean canStartTrial(idle.core.universe.Trial trial) {
+        if (!isTrialUnlocked(trial) || activeTrial() != null) return false;
+        return trial != idle.core.universe.Trial.LONE_GENERATOR || generatorCount() == 1;
+    }
+
+    /** Commence une épreuve. */
+    public boolean startTrial(idle.core.universe.Trial trial) {
+        if (!canStartTrial(trial)) return false;
+        state.setActiveTrial(trial.name());
+        state.setTrialStart(state.timePlayed());
+        state.setTrialCount(0);
+        state.setTrialBase(trial == idle.core.universe.Trial.FULL_CHARGE
+                ? colliderEnergyProduced() + colliderEnergyPerSecond() * idle.core.universe.Trial.FULL_CHARGE_SECONDS : 0);
+        return true;
+    }
+
+    /** Abandonne l'épreuve en cours : rien n'est perdu, rien n'est gagné. */
+    public boolean abandonTrial() {
+        if (activeTrial() == null) return false;
+        state.setActiveTrial(null);
+        return true;
+    }
+
+    /** Secondes qu'il reste à l'épreuve en cours ; l'infini sans limite, 0 sans épreuve. */
+    public double trialLeft() {
+        idle.core.universe.Trial trial = activeTrial();
+        if (trial == null) return 0;
+        if (trial.seconds() <= 0) return Double.POSITIVE_INFINITY;
+        return Math.max(0, trial.seconds() - (state.timePlayed() - state.trialStart()));
+    }
+
+    /** Où en est l'épreuve en cours, de 0 à 1. */
+    public double trialProgress() {
+        idle.core.universe.Trial trial = activeTrial();
+        if (trial == null) return 0;
+        return switch (trial) {
+            case LONE_GENERATOR -> Math.min(1, Math.max(0, state.particles().log10() / idle.core.universe.Trial.LONE_GOAL_LOG10));
+            case SOFT_CONTRACTION, COLD_BANG -> 0;
+            case FULL_CHARGE -> state.trialBase() <= 0 ? 0 : Math.min(1, colliderEnergyProduced() / state.trialBase());
+            default -> Math.min(1, state.trialCount() / (double) trial.goal());
+        };
+    }
+
+    /** Ce que la contraction douce ajoute aux atomes de chaque fusion : +5 % par fusion du cycle, ×2 au plus. */
+    public double contractionAtomsMultiplier() {
+        if (!inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) return 1;
+        return Math.min(idle.core.universe.Trial.CONTRACTION_MAX, 1 + idle.core.universe.Trial.CONTRACTION_FUSION_GAIN * state.trialCount());
+    }
+
+    private void completeTrial() {
+        idle.core.universe.Trial trial = activeTrial();
+        if (trial == null) return;
+        state.setActiveTrial(null);
+        state.addCompletedTrial(trial.name());
+        unlockSkin(trial.skin());
+    }
+
+    private void failTrial() {
+        state.setActiveTrial(null);
+    }
+
+    /** L'épreuve en cours : sa contrainte au fil du temps, son but, sa limite. */
+    private void runTrial(double dt) {
+        idle.core.universe.Trial trial = activeTrial();
+        if (trial == null) return;
+        if (trial == idle.core.universe.Trial.SOFT_CONTRACTION && dt > 0) {
+            state.setParticles(state.particles().multiply(Math.pow(1 - idle.core.universe.Trial.CONTRACTION_LOSS, dt / idle.core.universe.Trial.CONTRACTION_EVERY)));
+        }
+        if (trial == idle.core.universe.Trial.NO_OVERHEAT && state.overheatLeft() > 0) {
+            failTrial();
+            return;
+        }
+        boolean done = switch (trial) {
+            case LONE_GENERATOR -> state.particles().log10() >= idle.core.universe.Trial.LONE_GOAL_LOG10;
+            case SOFT_CONTRACTION, COLD_BANG -> false;
+            case FULL_CHARGE -> state.trialBase() > 0 && colliderEnergyProduced() >= state.trialBase();
+            default -> state.trialCount() >= trial.goal();
+        };
+        if (done) {
+            completeTrial();
+            return;
+        }
+        if (trial.seconds() > 0 && state.timePlayed() - state.trialStart() >= trial.seconds()) failTrial();
+    }
+
     /** Graines d'univers que donne la formation de l'univers (version 0.83). */
     public static final int SEEDS_PER_UNIVERSE = 1;
 
@@ -4905,8 +5437,11 @@ public final class Game {
 
     /** La remise à zéro de l'univers, son bilan relevé avant, et sa graine. */
     private void resetForUniverse() {
+        // Un univers de plus (version 0.87) : celui-ci était déjà formé, la partie rejouée en forme un autre.
+        boolean another = state.universeFormed();
         state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
         state.startUniverse();
+        if (another) state.setExtraUniverses(state.extraUniverses() + 1);
         state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));
     }
 
@@ -4930,6 +5465,7 @@ public final class Game {
     public BigNum steadySpacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
         return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
+                * (inTrial(idle.core.universe.Trial.COLD_BANG) ? idle.core.universe.Trial.COLD_EXPANSION : 1)
                 * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier()
                 * bangAchievementMultiplier(BangAchievement.Reward.SPACE));
     }
@@ -5091,6 +5627,8 @@ public final class Game {
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */
     public double colliderGeneratorOutput(ColliderGenerator generator) {
+        // L'épreuve « Un seul générateur » (version 0.88) : la chaîne s'arrête, seul le premier produit.
+        if (generator.previous() != null && inTrial(idle.core.universe.Trial.LONE_COLLIDER)) return 0;
         return state.colliderGenerators(generator) * generator.power() * colliderOutputMultiplier(generator);
     }
 
@@ -5191,6 +5729,8 @@ public final class Game {
         long crossing = currentCrossing();
         state.setColliderCaught(crossing);
         catchStreak++;
+        // Les épreuves du collisionneur (version 0.88) comptent les croisements captés à la main.
+        if (activeTrial() != null && activeTrial().isCollider()) state.setTrialCount(state.trialCount() + 1);
         return caught(crossing);
     }
 
@@ -5340,6 +5880,7 @@ public final class Game {
             for (long crossing = first; crossing < first + count; crossing++) {
                 if (state.colliderCaught() == crossing) continue;      // déjà capté d'un clic, juste avant le milieu
                 catchStreak = 0;
+                if (inTrial(idle.core.universe.Trial.DETECTOR)) failTrial();      // un croisement laissé passer
                 if (every > 0 && crossing % every == 0) {
                     state.setColliderCaught(crossing);
                     caught(crossing);
@@ -5351,6 +5892,7 @@ public final class Game {
         }
         // En moyenne : les captés du déclencheur, puis la chance sur les autres.
         catchStreak = 0;
+        if (inTrial(idle.core.universe.Trial.DETECTOR)) failTrial();
         long autoCaught = every > 0 ? count / every : 0;
         double free = count - autoCaught;
         addColliderEnergy(colliderEnergyPerSecond() * CROSSING_SECONDS * autoCaught);
@@ -6965,12 +7507,39 @@ public final class Game {
                         .pow(state.levelOf(upgrade.id()) + startingSpeedLevels()));
             }
         }
+        double slowdown = firstRunSlowdown();
+        if (slowdown > 1) speed = speed.divide(slowdown);
         return speed;
+    }
+
+    /** Pour les tests de rythme : remet (ou coupe, avec 1) le premier élan, quelle que soit la propriété système. */
+    void setFirstRunPace(double pace) {
+        firstRunPace = Math.max(1, pace);
+    }
+
+    /**
+     * Ce par quoi la création est divisée en ce moment par le premier élan : {@link #FIRST_RUN_PACE}
+     * avant le premier atome, {@link #FIRST_ATOMS_PACE} jusqu'au cinquième, {@link #FIRST_GAME_PACE}
+     * jusqu'au trentième, 1 ensuite et dès qu'une explosion a eu lieu.
+     */
+    public double firstRunSlowdown() {
+        if (firstRunPace <= 1 || state.stats().timedExplosions() > 0 || state.explosions() > 0) return 1;
+        if (isFirstRun()) return FIRST_RUN_PACE;
+        if (state.stats().atomsCreated().lt(BigNum.of(FIRST_ATOMS_UNTIL))) return FIRST_ATOMS_PACE;
+        if (!hasCreatedEnoughAtoms()) return FIRST_GAME_PACE;
+        return 1;
+    }
+
+    /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan (version 0.95). */
+    public boolean isFirstRun() {
+        return state.stats().fusions() == 0;
     }
 
     /** Vitesse d'un générateur (numéroté à partir de 0), en créations par seconde. */
     public BigNum speed(int generator) {
-        return speed().multiply(generatorSpeedMultiplier(generator));
+        double second = regimeMultiplier() * synergyMultiplier();
+        BigNum speed = speed().multiply(generatorSpeedMultiplier(generator));
+        return second == 1 ? speed : speed.multiply(second);
     }
 
     /**
@@ -7160,7 +7729,8 @@ public final class Game {
                 .multiply(moleculeBoost(Molecule.Stat.PARTICLES))
                 .multiply(speedMilestoneMultiplier())
                 .multiply(colliderParticlesMultiplier())
-                .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES));
+                .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES))
+                .multiply(perfectCycleMultiplier());
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade, state.levelOf(upgrade.id()), generators));
         }
@@ -7201,7 +7771,8 @@ public final class Game {
             case Effect.Overload overload -> BigNum.of(overload.perLevel()).pow(level);
             // Additif, pas exponentiel : chaque niveau ajoute la même part par autre générateur.
             case Effect.MultiplyByGenerators coupling ->
-                    BigNum.of(1 + coupling.perGenerator() * level * Math.max(0, generators - 1));
+                    BigNum.of(1 + coupling.perGenerator() * level * (inTrial(idle.core.universe.Trial.LONE_GENERATOR)
+                            ? 2 * (generatorsPerAtom() - 1) : Math.max(0, generators - 1)));
             // Les paliers de vitesse sont comptés à part : ils tiennent compte des niveaux offerts.
             case Effect.MultiplySpeed speed -> BigNum.ONE;
             case Effect.AddGenerator generator -> BigNum.ONE;
@@ -7259,7 +7830,9 @@ public final class Game {
                 .multiply(colliderAtomsMultiplier())
                 .multiply(bangAchievementMultiplier(BangAchievement.Reward.ATOMS))
                 .multiply(fusionYield())
-                .multiply(fusionGroups() * fusionGroupBonus());
+                .multiply(fusionGroups() * fusionGroupBonus())
+                .multiply(cycleChoice() == idle.core.universe.CycleChoice.FUSION ? 1 + idle.core.universe.CycleChoice.FUSION_GAIN : 1)
+                .multiply(contractionAtomsMultiplier());
     }
 
     /**
@@ -7360,6 +7933,10 @@ public final class Game {
         if (state.stats().fusions() == 1) noteStep(GameStats.Step.FIRST_FUSION);
         BigNum atoms = state.atoms().add(gained);
         state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
+        notePerfectCycle(!isAtomCapLifted() && atoms.gte(atomCap()));
+        // Les skins (version 0.88) : la reconstruction se chronomètre, la contraction compte ses fusions.
+        if (isSkinsUnlocked()) state.setRebuildPending(true);
+        if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) state.setTrialCount(state.trialCount() + 1);
         state.setTotalAtoms(state.totalAtoms().add(gained));
         state.setParticles(BigNum.ZERO);
         state.clearFormations();
@@ -7479,6 +8056,8 @@ public final class Game {
 
     public boolean canBuy(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
+        // L'épreuve du premier générateur seul (version 0.88) : pas d'autre générateur.
+        if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(idle.core.universe.Trial.LONE_GENERATOR)) return false;
         return state.started() && !isMaxed(upgradeId) && balance(upgrade.resource()).gte(costOf(upgradeId));
     }
 
