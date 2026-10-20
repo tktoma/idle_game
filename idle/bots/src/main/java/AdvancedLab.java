@@ -37,7 +37,6 @@ public class AdvancedLab extends RobotCosmosPlanner {
     return mode.equals("EXPERT_COMPLET")
         && !g.hasAchievement(idle.core.achievements.Achievements.PATIENT_FUSION)
         && !g.inChallenge()
-        && g.canFuse()
         && g.state().timeSinceFusion()<idle.core.achievements.Achievements.PATIENT_SECONDS;
   }
   boolean getsPlanning(){
