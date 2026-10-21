@@ -44,6 +44,12 @@ class Profiles24LongCampaignTest {
             Path dir = out.resolve(String.format("%02d_%s", id, p.name()));
             bot.execute(24, dir);
             boolean win = game.hasCosmos(Cosmos.UNIVERSE);
+            // Le test long doit mesurer un vrai jalon, et pas seulement
+            // l'absence de crash (comme les tests courts).
+            Cosmos minimum = id == 1 ? Cosmos.CLUSTER : Cosmos.GALAXY;
+            assertTrue(win || game.hasCosmos(minimum),
+                    p.name() + " doit atteindre au moins " + minimum
+                    + " apres 24 h ; objectif=" + game.shoppingList().target());
             if (win) completed++;
             assertTrue(game.state().started(), "Le jeu doit rester demarre : " + p.name());
             assertTrue(bot.actions > 0, "Le bot doit prendre des decisions : " + p.name());
