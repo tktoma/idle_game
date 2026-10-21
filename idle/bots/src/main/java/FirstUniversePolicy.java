@@ -148,16 +148,7 @@ final class FirstUniversePolicy {
      */
     static ElementCategory chemistryTarget(Game game) {
         if (!game.isTargetedSynthesisUnlocked()) return null;
-        Molecule.State state = null;
-        double largestShortfall = 0;
-        for (var e : game.shoppingList().matter().entrySet()) {
-            if (e.getValue() <= 0) continue;
-            double deficit = e.getValue();
-            if (deficit > largestShortfall) {
-                largestShortfall = deficit;
-                state = e.getKey();
-            }
-        }
+        Molecule.State state = focusMatterState(game);
         if (state == null) return null;
         Molecule molecule = matterTarget(game, state);
         if (molecule == null) return null;
@@ -174,20 +165,35 @@ final class FirstUniversePolicy {
         return category;
     }
 
-    /** Concentre la matière sur un seul objectif massif au lieu de disperser
-     * les éléments limitants entre cinq recettes simultanées.
-     * L'état suivant devient prioritaire dès que le précédent est complet.
+    /** Compare les déficits en proportion du besoin, pas en nombres bruts.
+     * Avec 5 millions de gaz manquants sur 400 millions et 3 millions de métaux
+     * sur 4 millions, il faut d'abord produire les métaux. L'ancienne priorité
+     * sur les nombres bruts empêchait l'univers de se former en 25 heures.
      */
     static Molecule.State focusMatterState(Game game) {
-        Molecule.State state = null;
-        long largest = 0;
-        for (var entry : game.shoppingList().matter().entrySet()) {
-            long missing = entry.getValue();
-            if (missing <= largest) continue;
-            largest = missing;
-            state = entry.getKey();
+        java.util.Map<Molecule.State,Integer> needs = game.shoppingList().matter();
+        java.util.Map<Molecule.State,Integer> objectives = java.util.Map.of();
+        if (game.nextCosmos() != null) objectives = game.nextCosmos().matter();
+        else if (game.nextBody() != null) objectives = game.nextBody().matter();
+        return focusMatterState(needs, objectives);
+    }
+
+    static Molecule.State focusMatterState(
+            java.util.Map<Molecule.State,Integer> missing,
+            java.util.Map<Molecule.State,Integer> objectives) {
+        Molecule.State choice = null;
+        double highestRatio = 0;
+        for (var entry : missing.entrySet()) {
+            long lack = Math.max(0, entry.getValue());
+            if (lack == 0) continue;
+            int target = objectives.getOrDefault(entry.getKey(), 0);
+            double ratio = target > 0 ? (double) lack / target : lack;
+            if (ratio > highestRatio) {
+                highestRatio = ratio;
+                choice = entry.getKey();
+            }
         }
-        return state;
+        return choice;
     }
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
