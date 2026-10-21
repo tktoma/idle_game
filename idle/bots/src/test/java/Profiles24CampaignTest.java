@@ -27,6 +27,29 @@ import org.junit.jupiter.api.io.TempDir;
  * victoire dans un délai fixe n'est PAS un invariant pour ces profils.
  */
 class Profiles24CampaignTest {
+    // Un segment n'est utilisé qu'en CI ; par défaut, les 24 profils sont testés.
+    private static final int FIRST = Integer.getInteger("idle.testProfilesStart", 1);
+    private static final int LAST = Integer.getInteger("idle.testProfilesEnd", 24);
+
+    private static boolean selected(IdleProfiles24.Profile p) {
+        return p.id() >= FIRST && p.id() <= LAST;
+    }
+
+    private static void validateRange() {
+        assertTrue(FIRST >= 1 && LAST <= 24 && FIRST <= LAST,
+                "Bornes de campagne invalides : " + FIRST + "-" + LAST);
+        assertEquals(24, IdleProfiles24.PROFILES.length,
+                "Le nombre de profils a changé : mettre à jour la matrice CI");
+    }
+
+    private static void validateCoverage(java.util.Set<Integer> visited) {
+        assertEquals(LAST - FIRST + 1, visited.size(),
+                "Segment incomplet : " + FIRST + "-" + LAST + " : " + visited);
+        for (int id = FIRST; id <= LAST; id++) {
+            assertTrue(visited.contains(id), "Profil omis du segment : " + id);
+        }
+    }
+
     private static Game fresh(long seed) {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT,
                 DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
@@ -84,8 +107,11 @@ class Profiles24CampaignTest {
 
     @Test
     void tousLesProfilsProgressentDepuisLeDebut(@TempDir Path out) throws Exception {
-        int visited = 0;
+        validateRange();
+        java.util.Set<Integer> visited = new java.util.HashSet<>();
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
+            if (!selected(p)) continue;
+            assertTrue(visited.add(p.id()), "Profil frais en double : " + p.id());
             long seed = 200 + p.id();
             Game g = fresh(seed);
             var bot = new IdleProfiles24(g, p, seed, 60);
@@ -99,16 +125,18 @@ class Profiles24CampaignTest {
             System.out.printf("PROFIL24_FRESH,%d,%s,actions=%d,fusions=%d,explosions=%d,bb=%d,heures=%.3f%n",
                     p.id(), p.name(), bot.actions, g.state().stats().fusions(),
                     g.state().explosions(), g.bigBangs(), g.state().timePlayed() / 3600);
-            visited++;
         }
-        assertEquals(24, visited);
+        validateCoverage(visited);
     }
 
     @Test
     void tousLesProfilsJouentSeizeHeuresAvancees(@TempDir Path out) throws Exception {
-        int visited = 0;
+        validateRange();
+        java.util.Set<Integer> visited = new java.util.HashSet<>();
         int winners = 0;
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
+            if (!selected(p)) continue;
+            assertTrue(visited.add(p.id()), "Profil avancé en double : " + p.id());
             long seed = 300 + p.id();
             Game g = late(seed);
             int bbBefore = g.bigBangs();
@@ -117,7 +145,7 @@ class Profiles24CampaignTest {
             var bot = new IdleProfiles24(g, p, seed, 60);
             bot.execute(16, out.resolve("late").resolve(p.name()));
             assertTrue(g.state().started(), p.name() + " : sauvegarde perdue");
-            assertTrue(bot.actions > 0, p.name() + " : aucune decision en 8 h");
+            assertTrue(bot.actions > 0, p.name() + " : aucune decision en 16 h");
             boolean won = g.hasCosmos(Cosmos.UNIVERSE);
             // Former l'univers remet volontairement les compteurs a zero :
             // une victoire n'est pas une regression de Big Bangs/astres/cosmos.
@@ -133,9 +161,9 @@ class Profiles24CampaignTest {
                     p.id(), p.name(), bot.actions, g.bigBangs(), g.bodiesMature(),
                     g.cosmosFormed(), won, bot.onlineSeconds / 3600,
                     bot.creditedOfflineSeconds / 3600);
-            visited++;
         }
-        assertEquals(24, visited);
-        System.out.printf("PROFIL24_BILAN,valides=%d,victoiresEn16h=%d%n", visited, winners);
+        validateCoverage(visited);
+        System.out.printf("PROFIL24_BILAN,segment=%d-%d,valides=%d,victoiresEn16h=%d%n",
+                FIRST, LAST, visited.size(), winners);
     }
 }

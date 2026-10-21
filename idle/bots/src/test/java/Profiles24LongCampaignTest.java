@@ -24,6 +24,10 @@ import org.junit.jupiter.api.io.TempDir;
  * pas être déclaré gagnant simplement parce que le programme n'a pas planté.
  */
 class Profiles24LongCampaignTest {
+    // L'absence de paramètre exécute les quatre profils en local.
+    private static final int FIRST = Integer.getInteger("idle.testProfilesStart", 1);
+    private static final int LAST = Integer.getInteger("idle.testProfilesEnd", 24);
+
     private static Game checkpoint(long seed) throws Exception {
         GameState state = SaveCodec.read(Files.readString(Path.of(
                 "sauvegardes/reference/checkpoint_before_eighth.save"))).state();
@@ -34,8 +38,13 @@ class Profiles24LongCampaignTest {
     @Test
     void profilsRapideEtHistoriqueSurVingtQuatreHeures(@TempDir Path out) throws Exception {
         int[] ids = {1, 11, 12, 17};
+        assertTrue(FIRST >= 1 && LAST <= 24 && FIRST <= LAST,
+                "Segment de tests longs invalide : " + FIRST + "-" + LAST);
         int completed = 0;
+        int checked = 0;
         for (int id : ids) {
+            if (id < FIRST || id > LAST) continue;
+            checked++;
             IdleProfiles24.Profile p = IdleProfiles24.PROFILES[id - 1];
             long seed = 300L + id;
             Game game = checkpoint(seed);
@@ -91,6 +100,9 @@ class Profiles24LongCampaignTest {
                 }
             }
         }
-        System.out.printf("PROFIL24_LONG_BILAN,profils=%d,victoires=%d%n", ids.length, completed);
+        long expected = java.util.Arrays.stream(ids).filter(id -> id >= FIRST && id <= LAST).count();
+        assertTrue(checked == expected, "Profils longs manquants du segment");
+        System.out.printf("PROFIL24_LONG_BILAN,segment=%d-%d,profils=%d,victoires=%d%n",
+                FIRST, LAST, checked, completed);
     }
 }

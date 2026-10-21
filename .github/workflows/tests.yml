@@ -41,7 +41,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y xvfb
 
       - name: Tous les tests, et la compilation de l'interface
-        run: xvfb-run -a sh ./gradlew toutTester --continue --no-daemon
+        run: xvfb-run -a sh ./gradlew toutTester --continue --no-daemon -PciWithoutProfiles=true
 
       - name: Garder le rapport quand un test échoue
         if: failure()
@@ -49,3 +49,48 @@ jobs:
         with:
           name: rapport-des-tests
           path: idle/*/build/reports/tests/test
+
+  # Les 24 profils sont TOUS joués avec leur durée complète, graine inchangée,
+  # sans état Java partagé. Chaque segment vérifie la couverture exacte des IDs.
+  # Les autres tests (dont expert et UI) tournent dans le job général ci-dessus.
+  profiles:
+    name: Campagne bots profils ${{ matrix.first }}-${{ matrix.last }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - first: 1
+            last: 6
+          - first: 7
+            last: 12
+          - first: 13
+            last: 18
+          - first: 19
+            last: 24
+    defaults:
+      run:
+        working-directory: idle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tous les profils du segment (2 h neuves + 16 h avancees + diagnostiques 24 h)
+        run: >-
+          sh ./gradlew :bots:test --continue --no-daemon
+          --tests Profiles24CampaignTest --tests Profiles24LongCampaignTest
+          -PciProfilesStart=${{ matrix.first }} -PciProfilesEnd=${{ matrix.last }}
+
+      - name: Garder le rapport si un profil echoue
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-profils-${{ matrix.first }}-${{ matrix.last }}
+          path: idle/bots/build/reports/tests/test
