@@ -5,8 +5,12 @@
 
 name: Tests
 
+# Eviter deux campagnes lourdes simultanees pour le meme commit.
+# Une branche de fonctionnalite est testee via pull_request ; master via push.
 on:
   push:
+    branches:
+      - master
   pull_request:
 
 jobs:
