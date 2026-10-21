@@ -56,9 +56,6 @@ class Profiles24LongCampaignTest {
             // Le test long doit mesurer un vrai jalon, et pas seulement
             // l'absence de crash (comme les tests courts).
             Cosmos minimum = id == 1 ? Cosmos.CLUSTER : Cosmos.GALAXY;
-            assertTrue(win || game.hasCosmos(minimum),
-                    p.name() + " doit atteindre au moins " + minimum
-                    + " apres 24 h ; objectif=" + game.shoppingList().target());
             if (win) completed++;
             assertTrue(game.state().started(), "Le jeu doit rester demarre : " + p.name());
             assertTrue(bot.actions > 0, "Le bot doit prendre des decisions : " + p.name());
@@ -99,6 +96,11 @@ class Profiles24LongCampaignTest {
                     }
                 }
             }
+            // Les diagnostics complets precedents restent disponibles
+            // meme si l'objectif minimal est manque : pas de faux succes.
+            assertTrue(win || game.hasCosmos(minimum),
+                    p.name() + " doit atteindre au moins " + minimum
+                    + " apres 24 h ; objectif=" + game.shoppingList().target());
         }
         long expected = java.util.Arrays.stream(ids).filter(id -> id >= FIRST && id <= LAST).count();
         assertTrue(checked == expected, "Profils longs manquants du segment");
