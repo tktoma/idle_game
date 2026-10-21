@@ -216,7 +216,13 @@ class BotsTest {
             }
         }
         assertTrue(g.hasCosmos(idle.core.sky.Cosmos.UNIVERSE),
-                "Le bot expert doit terminer le premier univers depuis un checkpoint de progression");
+                () -> "Le bot expert doit terminer le premier univers : bb="+g.bigBangs()
+                +", cosmos="+g.cosmosFormed()+", mature="+g.bodiesMature()
+                +", cible="+g.shoppingList().target()+", libre="+g.freeSpace()
+                +", espace="+g.state().space()+", auto="+g.isAutoCreatingMolecules()
+                +", synthese="+g.isAutomationEnabled("auto_synthesis")
+                +", ingredients="+g.shoppingList().items()
+                +", matiere="+g.shoppingList().matter());
         assertTrue(Files.exists(out.resolve("winner.save")));
     }
 
