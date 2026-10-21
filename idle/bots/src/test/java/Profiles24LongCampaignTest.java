@@ -73,6 +73,22 @@ class Profiles24LongCampaignTest {
                         "PROFIL24_LONG_MATTER,%d,%s,manque=%d,reuni=%d,sortes=%d%n",
                         id, state, shortage.getValue(), game.gatheredInState(state),
                         game.sortsInState(state));
+                Molecule target = FirstUniversePolicy.matterTarget(game, state);
+                if (target != null) {
+                    System.out.printf(
+                            "PROFIL24_LONG_TARGET,%d,%s,id=%s,amas=%d,parClic=%d,creable=%s,auto=%s,autoActive=%s,intervalle=%.3f%n",
+                            id, state, target.id(), game.moleculeCount(target.id()),
+                            game.moleculesPerCreation(target.id()),
+                            game.canCreateMolecule(target.id()),
+                            game.isMoleculeAutomated(target.id()),
+                            game.isAutoCreatingMolecules(), game.moleculeAutomationInterval());
+                    for (var ingredient : target.recipe().entrySet()) {
+                        System.out.printf(
+                                "PROFIL24_LONG_ELEMENT,%d,%s,numero=%d,stock=%d,cout=%d%n",
+                                id, state, ingredient.getKey(),
+                                game.elementCount(ingredient.getKey()), ingredient.getValue());
+                    }
+                }
             }
         }
         System.out.printf("PROFIL24_LONG_BILAN,profils=%d,victoires=%d%n", ids.length, completed);
