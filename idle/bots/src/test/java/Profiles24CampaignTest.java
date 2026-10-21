@@ -77,11 +77,15 @@ class Profiles24CampaignTest {
             bot.execute(8, out.resolve("late").resolve(p.name()));
             assertTrue(g.state().started(), p.name() + " : sauvegarde perdue");
             assertTrue(bot.actions > 0, p.name() + " : aucune decision en 8 h");
-            assertTrue(g.bigBangs() >= bbBefore, p.name() + " : Big Bangs perdus");
-            assertTrue(g.bodiesMature() >= bodiesBefore || g.bigBangs() > bbBefore,
-                    p.name() + " : perte des astres sans nouveau Big Bang");
-            assertTrue(g.cosmosFormed() >= cosmosBefore, p.name() + " : cosmos perdu");
             boolean won = g.hasCosmos(Cosmos.UNIVERSE);
+            // Former l'univers remet volontairement les compteurs a zero :
+            // une victoire n'est pas une regression de Big Bangs/astres/cosmos.
+            assertTrue(won || g.bigBangs() >= bbBefore,
+                    p.name() + " : Big Bangs perdus sans formation d'univers");
+            assertTrue(won || g.bodiesMature() >= bodiesBefore || g.bigBangs() > bbBefore,
+                    p.name() + " : perte des astres sans nouveau Big Bang");
+            assertTrue(won || g.cosmosFormed() >= cosmosBefore,
+                    p.name() + " : cosmos perdu sans formation d'univers");
             if (won) winners++;
             System.out.printf(
                     "PROFIL24_LATE,%d,%s,actions=%d,bb=%d,astres=%d,cosmos=%d,victoire=%s,enligne=%.3f,offline=%.3f%n",
