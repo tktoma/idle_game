@@ -54,6 +54,35 @@ class Profiles24CampaignTest {
     }
 
     @Test
+    void cadenceDeVingtSecondesRespecteeMalgreUnTickDeSoixante(@TempDir Path out) throws Exception {
+        Game rapide = fresh(101);
+        IdleProfiles24 speedy = new IdleProfiles24(
+                rapide, IdleProfiles24.PROFILES[0], 101, 60);
+        speedy.execute(0.05, out.resolve("rapide"));
+        assertEquals(9, speedy.actions,
+                "Le speedrunner doit pouvoir décider 3 fois par tick de 60 s");
+
+        Game absent = fresh(102);
+        IdleProfiles24 afk = new IdleProfiles24(
+                absent, IdleProfiles24.PROFILES[16], 102, 60);
+        afk.execute(0.05, out.resolve("afk"));
+        assertEquals(1, afk.actions,
+                "Le profil AFK doit garder sa cadence d'une fois par heure");
+    }
+
+    @Test
+    void aucuneExplosionDActionsAuRetourDuneAbsence(@TempDir Path out) throws Exception {
+        Game game = fresh(103);
+        IdleProfiles24 mobile = new IdleProfiles24(
+                game, IdleProfiles24.PROFILES[18], 103, 60);
+        mobile.execute(2, out.resolve("mobile"));
+        assertTrue(mobile.actions > 0,
+                "Le profil intermittent doit agir quand il est en ligne");
+        assertTrue(mobile.actions <= 12,
+                "Les decisions manquees hors ligne ne doivent pas se rejouer d'un coup");
+    }
+
+    @Test
     void tousLesProfilsProgressentDepuisLeDebut(@TempDir Path out) throws Exception {
         int visited = 0;
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
