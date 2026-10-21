@@ -67,6 +67,19 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
   @Override void probes(){ if(rng.nextDouble()<p.techAttention()) { super.probes(); techActions++; } }
   @Override void collider(){ if(rng.nextDouble()<p.techAttention()) super.collider(); }
 
+  /** Les explosions de style « prestige » sont en supplément de la politique
+   * normale. Elles ne doivent ni effacer la preparation du ciel des BB 6-8,
+   * ni saboter la chimie apres le huitieme Big Bang.
+   */
+  static boolean allowExtraPrestige(Game game){
+    return game.bigBangs()<8
+        && !game.canBigBang()
+        && !FirstUniversePolicy.finalBangPreparation(game)
+        && FirstUniversePolicy.skyReady(game)
+        && !game.inChallenge()
+        && game.activeBangChallenge()==null;
+  }
+
   // Maintient les mêmes règles du jeu, mais pas les mêmes choix et fréquences.
   @Override void cosmos(){
     if(rng.nextDouble()>=p.planning())return;
@@ -85,8 +98,12 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     if(p.bias().equals("random") && rng.nextDouble()<.60)return;
     if(p.shopMode()==1 && rng.nextDouble()<.22)return;
     super.cosmos();
-    if(p.bias().equals("chemistry") || p.bias().equals("doubleplan")){
-      if(rng.nextDouble()<.50)super.cosmos();
+    if(p.bias().equals("doubleplan")){
+      // Le speedrunner est le temoin optimaliste : deux passages complets
+      // a chaque decision, comme le bot expert, plutot qu'une chance sur deux.
+      super.cosmos();
+    }else if(p.bias().equals("chemistry") && rng.nextDouble()<.50){
+      super.cosmos();
     }
     if(p.bias().equals("auto"))g.setMoleculeAutomationEnabled(true);
   }
@@ -100,11 +117,14 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     }
     if(p.bias().equals("hoard") && rng.nextDouble()<.50){
       // Il optimise seulement une décision sur deux, par peur de dépenser ses réserves.
-      if(g.canExplode() && rng.nextDouble()<.2)g.explode();
+      if(allowExtraPrestige(g) && g.canExplode() && rng.nextDouble()<.2)g.explode();
       return;
     }
     super.resourceLoop();
-    if(p.bias().equals("prestige") && g.canExplode())g.explode();
+    // Un joueur optimaliste peut executer deux passes economiques par decision
+    // (priorites d'atomes, chimie, boosts). Les autres profils gardent leur rythme.
+    if(p.bias().equals("doubleplan"))super.resourceLoop();
+    if(p.bias().equals("prestige") && allowExtraPrestige(g) && g.canExplode())g.explode();
     if(p.bias().equals("auto")){g.setMoleculeAutomationEnabled(true);g.setAutoGatherEnabled(true);g.setAutoFormEnabled(true);}
   }
 
@@ -123,7 +143,11 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     // de 20s sont min et celles de plus de 20s sont des décisions moins fréquentes.
     double dt=step;
     int count=(int)Math.ceil(horizonWallHours*3600/dt);
-    double nextActionAt=0;
+    // Les décisions peuvent être plus fréquentes que le pas de temps du moteur.
+    // Exemple : 3 interventions / minute pour un profil à 20 s avec tick(60).
+    // Seules les décisions sont rattrapées : le moteur n'avance pas plus vite.
+    double actionInterval=Math.max(1,p.actionEverySeconds());
+    double nextActionAt=Math.min(actionInterval,dt);
     double startGameTime=g.state().timePlayed();
     int startBang=g.bigBangs(),startBody=g.bodiesFormed();
     StringBuilder logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
@@ -132,13 +156,26 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
       if(isOnline){back();g.tick(dt);onlineSeconds+=dt;}
       else creditedOfflineSeconds+=away(dt);
       wallSeconds+=dt;
-      if(isOnline && wallSeconds>=nextActionAt && rng.nextDouble()<p.attention()){
-        actions++;
-        if(g.isCometVisible() && rng.nextDouble()<p.skyAttention())g.catchComet();
-        if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention())for(int k=0;k<g.pulseCharges();k++)g.pulse();
-        if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
-        probes();cosmos();resourceLoop();
-        nextActionAt=wallSeconds+p.actionEverySeconds();
+      if(isOnline){
+        // Plusieurs interventions peuvent échoir dans un seul pas. Ne sauter
+        // ni les profils de 20/40 secondes ni les coups manqués par attention.
+        // Ne jamais rejouer les heures passées hors ligne (voir else).
+        int opportunities=0;
+        int maxOpportunities=(int)Math.ceil(dt/actionInterval)+1;
+        while(wallSeconds+0.000001>=nextActionAt && opportunities++<maxOpportunities){
+          nextActionAt+=actionInterval;
+          if(rng.nextDouble()>=p.attention())continue;
+          actions++;
+          if(g.isCometVisible() && rng.nextDouble()<p.skyAttention())g.catchComet();
+          if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention())for(int k=0;k<g.pulseCharges();k++)g.pulse();
+          if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
+          probes();cosmos();resourceLoop();
+        }
+      }else{
+        // Une absence n'est pas un stock d'actions humaines. À son retour,
+        // l'utilisateur peut agir mais n'exécute pas toutes les décisions
+        // qu'il aurait prises si le jeu était resté au premier plan.
+        nextActionAt=Math.max(nextActionAt,wallSeconds+Math.min(actionInterval,dt));
       }
       if(lastBang<8 && g.bigBangs()>=8){first8=i;event("BB8");}
       if(!g.hasCosmos(Cosmos.GALAXY) && lastCosmos>=1){} // événements captés via les transitions ci-dessous
