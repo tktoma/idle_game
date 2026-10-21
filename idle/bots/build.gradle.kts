@@ -37,6 +37,12 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Conserver le bilan des 24 profils dans les journaux GitHub Actions,
+    // même lorsque tous les tests sont verts : les succès et les blocages
+    // doivent rester consultables, et pas seulement le nombre de tests.
+    testLogging {
+        showStandardStreams = true
+    }
     // Les bots lisent leurs sauvegardes et écrivent leurs sorties en chemins relatifs à ce dossier.
     workingDir = projectDir
 }
