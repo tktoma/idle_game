@@ -23,6 +23,43 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.108", "La brindille rouvre vraiment l'univers", List.of(
+                    "La brindille ouvrait le deuxième univers seulement au clic qui la faisait pousser : une brindille "
+                            + "déjà là (arrosée avant la 0.106) n'ouvrait rien. Elle l'ouvre maintenant dès qu'elle est là.",
+                    "Ouvrir l'univers suivant remet les trois actes entièrement à zéro, même si quelque chose s'est joué "
+                            + "depuis la formation de l'univers. Restent la partie secondaire : univers, graine, dimensions, "
+                            + "skins, succès et temps de jeu.")),
+            new Note("0.107", "Un point plus petit", List.of(
+                    "Dans le plan, le point du joueur part beaucoup plus petit (rayon 0,025 au lieu de 0,06), et chaque "
+                            + "niveau de Taille l'agrandit de 25 % au lieu de 15 % : l'amélioration se sent vraiment.")),
+            new Note("0.106", "La brindille", List.of(
+                    "Au trentième arrosage, le germe de la graine devient une brindille : une tige de bois, plus épaisse, "
+                            + "avec deux rameaux.",
+                    "La brindille ouvre le deuxième univers : le jeu recommence aussitôt, comme univers n° 2, et l'onglet "
+                            + "Univers reste ouvert. Avant elle, « Rouvrir les paliers » ne s'affiche plus ; les univers "
+                            + "suivants s'ouvrent comme avant.")),
+            new Note("0.105", "La graine se laisse germer", List.of(
+                    "Le bouton « Faire germer la graine » restait grisé une fois l'objectif de la dimension 1 atteint : il "
+                            + "demandait en plus une graine en réserve. Il ne demande plus que l'objectif.",
+                    "Il n'y a qu'une graine : son compteur disparaît de la sous-page, de son onglet et de la page Univers.")),
+            new Note("0.104", "Le plan se joue", List.of(
+                    "Deuxième dimension : le plan se joue au clavier, sur sa grille en perspective. Z Q S D (ou les flèches) "
+                            + "mènent le point, qui ne sort pas de la grille et dessine la courbe de son passage ; des éclats "
+                            + "apparaissent au hasard, et passer dessus les ramasse.",
+                    "Chaque dimension a ses propres éclats : ceux de la ligne s'appellent maintenant éclats de la ligne, "
+                            + "ceux du plan éclats du plan.",
+                    "Cinq améliorations du plan, payées en éclats du plan : Valeur, Réapparition, Nombre, Vitesse du point "
+                            + "et Taille du point.")),
+            new Note("0.103", "La graine germe", List.of(
+                    "Sous-page « Graine d'univers » : un bouton s'ouvre avec l'objectif de la dimension 1 (100 éclats "
+                            + "de dimension gagnés). Le premier clic fait germer la graine ; les suivants font tomber une goutte "
+                            + "d'eau sur le germe, qui grandit et prend des feuilles. Pour l'instant, c'est un visuel.",
+                    "La pousse ne grandit plus seule avec le nombre de graines : elle attend la germination.")),
+            new Note("0.102", "Plus de boules, plus de lignes", List.of(
+                    "Trois améliorations de plus pour la ligne : Élan (les boules vont 25 % plus vite par niveau), "
+                            + "Boules (une boule de plus sur chaque ligne, jusqu'à dix) et Lignes (une ligne de plus, jusqu'à cinq).",
+                    "Le seuil de la ligne : à 100 éclats de dimension gagnés en tout, la dimension 1 porte un rond vert "
+                            + "dans la sous-page Dimensions.")),
             new Note("0.101", "La ligne prend vie", List.of(
                     "Première dimension : la ligne n'a plus qu'un trait à chaque bout. Chaque trait que touche la boule "
                             + "donne 0,1 éclat de dimension, la nouvelle ressource ; la boule court même fenêtre fermée.",

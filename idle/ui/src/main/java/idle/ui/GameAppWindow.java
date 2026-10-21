@@ -390,6 +390,8 @@ public abstract class GameAppWindow extends GameAppBase {
     }
 
     boolean keyPressed(KeyCode code) {
+        // Le plan (version 0.104) : Z Q S D et les flèches déplacent son point, avant tout raccourci.
+        if (dimensionWindow.key(code, true)) return true;
         if (settingsPage.isCapturing()) {
             settingsPage.capture(code);
             return true;
@@ -422,6 +424,7 @@ public abstract class GameAppWindow extends GameAppBase {
 
     /** Une touche vient d'être relâchée : elle cesse de se répéter ; si c'est la touche de détail tenue, les détails se referment. */
     boolean keyReleased(KeyCode code) {
+        if (dimensionWindow.key(code, false)) return true;
         if (heldKeys.remove(code) != null) return true;
         if (code != settings.detailKey()) return false;
         releaseDetailKey();

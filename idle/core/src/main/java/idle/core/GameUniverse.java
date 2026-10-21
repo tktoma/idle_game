@@ -105,23 +105,63 @@ public abstract class GameUniverse extends GameAtoms {
     // La ligne, première dimension (version 0.101)
     // ------------------------------------------------------------------
 
-    /** Secondes que met la boule de la ligne pour aller d'un bout à l'autre. */
+    /** Secondes que met la boule de la ligne pour aller d'un bout à l'autre, avant l'accélération. */
     public static final double LINE_HALF_TRIP = 2.4;
     /** Éclats de dimension que donne chaque trait touché, avant l'amélioration. */
     public static final double LINE_SHARD = 0.1;
     /** Traits ajoutés au plus entre les deux bouts : la ligne en compte alors quarante. */
     public static final int LINE_MAX_EXTRA_TICKS = 38;
-    /** Prix des deux améliorations de la ligne, en éclats, et leur croissance à chaque niveau. */
+    /** Chaque niveau de vitesse : +25 % de vitesse, vingt niveaux au plus (×6). */
+    public static final double LINE_SPEED_STEP = 0.25;
+    public static final int LINE_MAX_SPEED = 20;
+    /** Boules et lignes en plus, au plus : dix boules par ligne, cinq lignes. */
+    public static final int LINE_MAX_EXTRA_BALLS = 9, LINE_MAX_EXTRA_LINES = 4;
+    /** Le seuil de la ligne (version 0.102) : tant d'éclats gagnés en tout, et la dimension 1 est marquée. */
+    public static final double LINE_THRESHOLD = 100;
+
+    /** Prix des deux premières améliorations de la ligne, en éclats, et leur croissance à chaque niveau. */
     public static final double LINE_YIELD_COST = 1, LINE_TICKS_COST = 2, LINE_COST_GROWTH = 3;
 
-    /** Vrai dès que la première dimension est ouverte : la boule court, les éclats tombent. */
+    /** Les améliorations de la ligne : leur prix de départ en éclats, et la croissance à chaque niveau. */
+    public enum LineUpgrade {
+        YIELD(LINE_YIELD_COST, LINE_COST_GROWTH), TICKS(LINE_TICKS_COST, LINE_COST_GROWTH), SPEED(5, 3), BALLS(10, 4), LINES(25, 5);
+
+        private final double cost, growth;
+
+        LineUpgrade(double cost, double growth) {
+            this.cost = cost;
+            this.growth = growth;
+        }
+    }
+
+    /** Vrai dès que la première dimension est ouverte : les boules courent, les éclats tombent. */
     public boolean isLineOpen() {
         return dimensionsUnlocked() >= 1;
     }
 
-    /** Traits sur la ligne, ses deux bouts compris, également espacés. */
+    /** Traits sur chaque ligne, ses deux bouts compris, également espacés. */
     public int lineTicks() {
         return 2 + state.lineTicksLevel();
+    }
+
+    /** Boules sur chaque ligne. */
+    public int lineBalls() {
+        return 1 + state.lineBallsLevel();
+    }
+
+    /** Lignes. */
+    public int lineCount() {
+        return 1 + state.lineCountLevel();
+    }
+
+    /** La vitesse des boules, ×1 au départ. */
+    public double lineSpeed() {
+        return 1 + LINE_SPEED_STEP * state.lineSpeedLevel();
+    }
+
+    /** Secondes pour un aller, à la vitesse actuelle. */
+    public double lineHalfTrip() {
+        return LINE_HALF_TRIP / lineSpeed();
     }
 
     /** Éclats de chaque trait touché : 0,1, et 0,1 de plus par niveau de l'amélioration. */
@@ -129,68 +169,343 @@ public abstract class GameUniverse extends GameAtoms {
         return LINE_SHARD * (1 + state.lineYieldLevel());
     }
 
-    /** Où est la boule sur la ligne : 0 au début, 1 au bout. */
-    public double linePosition() {
-        double phase = state.linePhase();
+    /**
+     * Le décalage d'une boule sur la route (aller puis retour, longueur 2) : les boules d'une même ligne
+     * se répartissent également, et chaque ligne est un peu décalée de la précédente.
+     */
+    public double lineOffset(int line, int ball) {
+        return (2.0 * ball / lineBalls() + 0.5 * line / lineCount()) % 2;
+    }
+
+    /** Où est cette boule de cette ligne : 0 au début, 1 au bout. */
+    public double linePosition(int line, int ball) {
+        double phase = (state.linePhase() + lineOffset(line, ball)) % 2;
         return phase <= 1 ? phase : 2 - phase;
     }
 
-    /** Vrai tant que la boule va vers le bout de la ligne ; faux au retour. */
+    /** Où est la première boule de la première ligne. */
+    public double linePosition() {
+        return linePosition(0, 0);
+    }
+
+    /** Vrai tant que la première boule va vers le bout de la ligne ; faux au retour. */
     public boolean lineGoingOut() {
         return state.linePhase() < 1;
     }
 
-    /** Éclats par seconde : chaque aller (ou retour) touche tous les traits sauf celui d'où elle part. */
+    /** Éclats par seconde : chaque aller d'une boule touche tous les traits sauf celui d'où elle part. */
     public double lineShardsPerSecond() {
-        return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() / LINE_HALF_TRIP : 0;
+        return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() * lineBalls() * lineCount() / lineHalfTrip() : 0;
+    }
+
+    /** Vrai une fois le seuil de la ligne atteint : {@link #LINE_THRESHOLD} éclats gagnés en tout. */
+    public boolean isLineThresholdReached() {
+        return state.dimensionShardsEarned() >= LINE_THRESHOLD - 1e-9;
     }
 
     /**
-     * Fait avancer la boule de {@code dt} secondes et donne les éclats des traits touchés. L'aller et
+     * Fait avancer les boules de {@code dt} secondes et donne les éclats des traits touchés. L'aller et
      * le retour mis bout à bout font une seule route de longueur 2 où les traits tombent tous les
      * 1/(traits − 1) : le compte est exact quel que soit le pas, même pour une longue absence.
      */
     void runLine(double dt) {
         if (!isLineOpen() || dt <= 0) return;
         int gaps = lineTicks() - 1;
-        double from = state.linePhase(), to = from + dt / LINE_HALF_TRIP;
-        long touches = (long) Math.floor(to * gaps + 1e-9) - (long) Math.floor(from * gaps + 1e-9);
-        if (touches > 0) state.setDimensionShards(state.dimensionShards() + touches * lineShardsPerTouch());
-        state.setLinePhase(to % 2);
+        double from = state.linePhase(), move = dt / lineHalfTrip();
+        long touches = 0;
+        for (int line = 0; line < lineCount(); line++) {
+            for (int ball = 0; ball < lineBalls(); ball++) {
+                double start = from + lineOffset(line, ball);
+                touches += (long) Math.floor((start + move) * gaps + 1e-9) - (long) Math.floor(start * gaps + 1e-9);
+            }
+        }
+        if (touches > 0) {
+            double gain = touches * lineShardsPerTouch();
+            state.setDimensionShards(state.dimensionShards() + gain);
+            state.setDimensionShardsEarned(state.dimensionShardsEarned() + gain);
+        }
+        state.setLinePhase((from + move) % 2);
     }
 
-    /** Prix du prochain niveau de l'amélioration qui augmente les éclats de chaque trait. */
-    public double lineYieldCost() {
-        return LINE_YIELD_COST * Math.pow(LINE_COST_GROWTH, state.lineYieldLevel());
+    /** Le niveau d'une amélioration de la ligne. */
+    public int lineLevel(LineUpgrade upgrade) {
+        return switch (upgrade) {
+            case YIELD -> state.lineYieldLevel();
+            case TICKS -> state.lineTicksLevel();
+            case SPEED -> state.lineSpeedLevel();
+            case BALLS -> state.lineBallsLevel();
+            case LINES -> state.lineCountLevel();
+        };
     }
 
-    /** Prix du prochain trait intermédiaire ; infini une fois la ligne pleine. */
-    public double lineTicksCost() {
-        return state.lineTicksLevel() >= LINE_MAX_EXTRA_TICKS ? Double.POSITIVE_INFINITY
-                : LINE_TICKS_COST * Math.pow(LINE_COST_GROWTH, state.lineTicksLevel());
+    /** Le niveau le plus haut d'une amélioration de la ligne ; sans limite pour la densité. */
+    public int lineMaxLevel(LineUpgrade upgrade) {
+        return switch (upgrade) {
+            case YIELD -> Integer.MAX_VALUE;
+            case TICKS -> LINE_MAX_EXTRA_TICKS;
+            case SPEED -> LINE_MAX_SPEED;
+            case BALLS -> LINE_MAX_EXTRA_BALLS;
+            case LINES -> LINE_MAX_EXTRA_LINES;
+        };
     }
 
-    public boolean canBuyLineYield() {
-        return isLineOpen() && state.dimensionShards() >= lineYieldCost() - 1e-9;
+    /** Prix du prochain niveau, en éclats ; infini une fois au plus haut. */
+    public double lineCost(LineUpgrade upgrade) {
+        int level = lineLevel(upgrade);
+        return level >= lineMaxLevel(upgrade) ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
     }
 
-    public boolean canBuyLineTicks() {
-        return isLineOpen() && state.lineTicksLevel() < LINE_MAX_EXTRA_TICKS && state.dimensionShards() >= lineTicksCost() - 1e-9;
+    public boolean canBuyLine(LineUpgrade upgrade) {
+        return isLineOpen() && lineLevel(upgrade) < lineMaxLevel(upgrade) && state.dimensionShards() >= lineCost(upgrade) - 1e-9;
     }
 
-    /** Achète un niveau : chaque trait touché donne 0,1 éclat de plus. */
-    public boolean buyLineYield() {
-        if (!canBuyLineYield()) return false;
-        state.setDimensionShards(Math.max(0, state.dimensionShards() - lineYieldCost()));
-        state.setLineYieldLevel(state.lineYieldLevel() + 1);
+    /** Achète un niveau d'une amélioration de la ligne. */
+    public boolean buyLine(LineUpgrade upgrade) {
+        if (!canBuyLine(upgrade)) return false;
+        state.setDimensionShards(Math.max(0, state.dimensionShards() - lineCost(upgrade)));
+        int level = lineLevel(upgrade) + 1;
+        switch (upgrade) {
+            case YIELD -> state.setLineYieldLevel(level);
+            case TICKS -> state.setLineTicksLevel(level);
+            case SPEED -> state.setLineSpeedLevel(level);
+            case BALLS -> state.setLineBallsLevel(level);
+            case LINES -> state.setLineCountLevel(level);
+        }
         return true;
     }
 
-    /** Achète un trait de plus : les traits se répartissent à égale distance entre les deux bouts. */
+    // Les deux premières, sous leur nom de la 0.101.
+    public double lineYieldCost() {
+        return lineCost(LineUpgrade.YIELD);
+    }
+
+    public double lineTicksCost() {
+        return lineCost(LineUpgrade.TICKS);
+    }
+
+    public boolean canBuyLineYield() {
+        return canBuyLine(LineUpgrade.YIELD);
+    }
+
+    public boolean canBuyLineTicks() {
+        return canBuyLine(LineUpgrade.TICKS);
+    }
+
+    public boolean buyLineYield() {
+        return buyLine(LineUpgrade.YIELD);
+    }
+
     public boolean buyLineTicks() {
-        if (!canBuyLineTicks()) return false;
-        state.setDimensionShards(Math.max(0, state.dimensionShards() - lineTicksCost()));
-        state.setLineTicksLevel(state.lineTicksLevel() + 1);
+        return buyLine(LineUpgrade.TICKS);
+    }
+
+    // ------------------------------------------------------------------
+    // Le plan, deuxième dimension (version 0.104)
+    // ------------------------------------------------------------------
+
+    /** Le plan va de −1 à 1 dans les deux sens : le point du joueur n'en sort pas. */
+    public static final double PLANE_EDGE = 1;
+    /**
+     * Rayon des éclats qui apparaissent, et rayon de départ du point du joueur : 0,025 depuis la version
+     * 0.107 (0,06 avant), pour que l'amélioration de taille compte.
+     */
+    public static final double PLANE_SHARD_RADIUS = 0.03, PLANE_PLAYER_RADIUS = 0.025;
+    /** Chaque niveau de taille : +25 % de rayon (version 0.107 ; +15 % avant). */
+    public static final double PLANE_SIZE_STEP = 0.25;
+    /** Au départ : un éclat toutes les 3 s, trois au plus à la fois, et le point parcourt 0,6 par seconde. */
+    public static final double PLANE_SPAWN_SECONDS = 3, PLANE_SPEED = 0.6;
+    public static final int PLANE_MAX_SHARDS = 3;
+
+    /** Les améliorations du plan : leur prix de départ en éclats du plan, la croissance, le plafond. */
+    public enum PlaneUpgrade {
+        VALUE(5, 3, Integer.MAX_VALUE), SPAWN(3, 2.5, 15), COUNT(4, 3, 17), SPEED(3, 2.5, 15), SIZE(4, 2.5, 15);
+
+        private final double cost, growth;
+        private final int max;
+
+        PlaneUpgrade(double cost, double growth, int max) {
+            this.cost = cost;
+            this.growth = growth;
+            this.max = max;
+        }
+
+        public int max() {
+            return max;
+        }
+    }
+
+    /** Un éclat posé sur le plan : il attend qu'on passe dessus. */
+    public record PlaneShard(double x, double y) {
+    }
+
+    // Ce qui ne se sauvegarde pas : où est le point, où sont les éclats, la direction tenue.
+    private double planeX, planeY, planeInputX, planeInputY, planeSpawnTimer;
+    private final java.util.List<PlaneShard> planeShardsOnBoard = new java.util.ArrayList<>();
+    private final java.util.Random planeRandom = new java.util.Random(2);
+    private long planeCollected;
+
+    /** Vrai dès que la deuxième dimension est ouverte. */
+    public boolean isPlaneOpen() {
+        return dimensionsUnlocked() >= 2;
+    }
+
+    public int planeLevel(PlaneUpgrade upgrade) {
+        return state.planeLevel(upgrade.ordinal());
+    }
+
+    /** Éclats du plan que donne chaque éclat ramassé : 1, et 1 de plus par niveau. */
+    public double planeValue() {
+        return 1 + planeLevel(PlaneUpgrade.VALUE);
+    }
+
+    /** Secondes entre deux apparitions : 3, ×0,85 par niveau. */
+    public double planeSpawnSeconds() {
+        return PLANE_SPAWN_SECONDS * Math.pow(0.85, planeLevel(PlaneUpgrade.SPAWN));
+    }
+
+    /** Éclats présents à la fois, au plus : 3, et 1 de plus par niveau (vingt au plus). */
+    public int planeMaxShards() {
+        return PLANE_MAX_SHARDS + planeLevel(PlaneUpgrade.COUNT);
+    }
+
+    /** Vitesse du point du joueur : 0,6 par seconde, +20 % par niveau. */
+    public double planeSpeed() {
+        return PLANE_SPEED * (1 + 0.2 * planeLevel(PlaneUpgrade.SPEED));
+    }
+
+    /** Rayon du point du joueur : 0,025, +25 % par niveau (quinze niveaux : ×4,75). */
+    public double planePlayerRadius() {
+        return PLANE_PLAYER_RADIUS * (1 + PLANE_SIZE_STEP * planeLevel(PlaneUpgrade.SIZE));
+    }
+
+    public double planeX() {
+        return planeX;
+    }
+
+    public double planeY() {
+        return planeY;
+    }
+
+    /** Les éclats posés sur le plan, dans l'ordre où ils sont apparus. */
+    public java.util.List<PlaneShard> planeShardsOnBoard() {
+        return java.util.Collections.unmodifiableList(planeShardsOnBoard);
+    }
+
+    /** Éclats ramassés depuis le lancement : l'interface y voit ceux de la dernière image. */
+    public long planeCollected() {
+        return planeCollected;
+    }
+
+    /** La direction que tient le joueur, de −1 à 1 sur chaque axe (ZQSD) ; 0, 0 pour s'arrêter. */
+    public void setPlaneInput(double dx, double dy) {
+        planeInputX = Math.max(-1, Math.min(1, dx));
+        planeInputY = Math.max(-1, Math.min(1, dy));
+    }
+
+    /** Pose le point du joueur : pour les essais. */
+    public void setPlanePosition(double x, double y) {
+        planeX = clampPlane(x, planePlayerRadius());
+        planeY = clampPlane(y, planePlayerRadius());
+    }
+
+    /** Outil d'essai : retire tous les éclats posés sur le plan. */
+    public void testClearPlane() {
+        planeShardsOnBoard.clear();
+        planeSpawnTimer = 0;
+    }
+
+    /** Pose un éclat sur le plan : pour les essais. */
+    public void addPlaneShard(double x, double y) {
+        if (planeShardsOnBoard.size() < planeMaxShards()) planeShardsOnBoard.add(new PlaneShard(x, y));
+    }
+
+    private static double clampPlane(double value, double radius) {
+        return Math.max(-PLANE_EDGE + radius, Math.min(PLANE_EDGE - radius, value));
+    }
+
+    /**
+     * Le plan avance de {@code dt} secondes : un éclat apparaît à son rythme tant qu'il en manque, le point
+     * suit la direction tenue sans sortir du plan, et ramasse les éclats qu'il touche.
+     */
+    void runPlane(double dt) {
+        if (!isPlaneOpen() || dt <= 0) return;
+        planeSpawnTimer += dt;
+        double every = planeSpawnSeconds();
+        while (planeSpawnTimer >= every && planeShardsOnBoard.size() < planeMaxShards()) {
+            planeSpawnTimer -= every;
+            double margin = PLANE_SHARD_RADIUS * 2;
+            planeShardsOnBoard.add(new PlaneShard((planeRandom.nextDouble() * 2 - 1) * (PLANE_EDGE - margin),
+                    (planeRandom.nextDouble() * 2 - 1) * (PLANE_EDGE - margin)));
+        }
+        // Plein : le minuteur attend, il ne s'accumule pas.
+        if (planeShardsOnBoard.size() >= planeMaxShards()) planeSpawnTimer = Math.min(planeSpawnTimer, every);
+        double length = Math.hypot(planeInputX, planeInputY);
+        if (length > 0) {
+            double step = planeSpeed() * Math.min(dt, 0.25) / Math.max(1, length);
+            setPlanePosition(planeX + planeInputX * step, planeY + planeInputY * step);
+        }
+        double reach = planePlayerRadius() + PLANE_SHARD_RADIUS;
+        for (java.util.Iterator<PlaneShard> it = planeShardsOnBoard.iterator(); it.hasNext(); ) {
+            PlaneShard shard = it.next();
+            if (Math.hypot(shard.x() - planeX, shard.y() - planeY) > reach) continue;
+            it.remove();
+            planeCollected++;
+            state.setPlaneShards(state.planeShards() + planeValue());
+            state.setPlaneShardsEarned(state.planeShardsEarned() + planeValue());
+        }
+    }
+
+    /** Prix du prochain niveau, en éclats du plan ; infini une fois au plus haut. */
+    public double planeCost(PlaneUpgrade upgrade) {
+        int level = planeLevel(upgrade);
+        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+    }
+
+    public boolean canBuyPlane(PlaneUpgrade upgrade) {
+        return isPlaneOpen() && planeLevel(upgrade) < upgrade.max && state.planeShards() >= planeCost(upgrade) - 1e-9;
+    }
+
+    public boolean buyPlane(PlaneUpgrade upgrade) {
+        if (!canBuyPlane(upgrade)) return false;
+        state.setPlaneShards(Math.max(0, state.planeShards() - planeCost(upgrade)));
+        state.setPlaneLevel(upgrade.ordinal(), planeLevel(upgrade) + 1);
+        return true;
+    }
+
+    // ------------------------------------------------------------------
+    // La graine qui germe (version 0.103)
+    // ------------------------------------------------------------------
+
+    /**
+     * Vrai si le bouton de la graine peut servir : l'univers est formé (il n'y a qu'une graine, la sienne)
+     * et l'objectif de la dimension 1 (son seuil, {@link #isLineThresholdReached()}) est atteint. Version
+     * 0.105 : il ne demande plus de graine en réserve, ce qui le laissait grisé une fois l'objectif atteint.
+     */
+    public boolean canTendSeed() {
+        return isUniverseFormed() && isLineThresholdReached();
+    }
+
+    /** Arrosages qui font du germe une brindille (version 0.106) : c'est elle qui ouvre le deuxième univers. */
+    public static final long SEED_TWIG_WATERINGS = 30;
+
+    /** Vrai une fois le germe devenu brindille. */
+    public boolean isSeedTwig() {
+        return state.seedSprouted() && state.seedWaterings() >= SEED_TWIG_WATERINGS;
+    }
+
+    /**
+     * Vrai si l'univers suivant peut s'ouvrir depuis la page Univers (version 0.106) : le deuxième attend que le
+     * germe de la graine soit devenu brindille ; les suivants s'ouvrent comme avant.
+     */
+    public boolean canOpenNextUniverse() {
+        return canStartNextUniverse() && (universes() >= 2 || isSeedTwig());
+    }
+
+    /** Le premier clic fait germer la graine ; les suivants arrosent son germe, qui grandit. Faux si fermé. */
+    public boolean tendSeed() {
+        if (!canTendSeed()) return false;
+        if (!state.seedSprouted()) state.setSeedSprouted(true);
+        else state.setSeedWaterings(state.seedWaterings() + 1);
         return true;
     }
 
@@ -213,6 +528,15 @@ public abstract class GameUniverse extends GameAtoms {
         state.setLinePhase(0);
         state.setLineYieldLevel(0);
         state.setLineTicksLevel(0);
+        state.setLineSpeedLevel(0);
+        state.setLineBallsLevel(0);
+        state.setLineCountLevel(0);
+        state.setDimensionShardsEarned(0);
+        state.setSeedSprouted(false);
+        state.setSeedWaterings(0);
+        state.setPlaneShards(0);
+        state.setPlaneShardsEarned(0);
+        for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
             state.setUniverseUpgradeLevel(upgrade.id(), 0);
         }
@@ -385,6 +709,11 @@ public abstract class GameUniverse extends GameAtoms {
      */
     public boolean startNextUniverse() {
         if (!canStartNextUniverse()) return false;
+        // Version 0.108 : les trois actes repartent vraiment de zéro, même si quelque chose s'est joué depuis la
+        // formation de l'univers (les anciens onglets montrés, une partie d'avant). La partie secondaire reste :
+        // univers, graine, dimensions, skins, succès et temps de jeu.
+        state.startUniverse();
+        forgetDerived();
         state.setReplaying(true);
         return true;
     }

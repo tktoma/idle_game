@@ -197,6 +197,15 @@ class SaveTest {
         state.setLinePhase(1.25);
         state.setLineYieldLevel(2);
         state.setLineTicksLevel(3);
+        state.setLineSpeedLevel(4);
+        state.setLineBallsLevel(1);
+        state.setLineCountLevel(2);
+        state.setDimensionShardsEarned(140.5);
+        state.setSeedSprouted(true);
+        state.setSeedWaterings(17);
+        state.setPlaneShards(9.5);
+        state.setPlaneShardsEarned(31);
+        for (int i = 0; i < 5; i++) state.setPlaneLevel(i, i + 1);
         state.setVoidEnergy(BigNum.of(42));
         state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);

@@ -243,6 +243,144 @@ class DeuxiemeUniversTest {
     }
 
     @Test
+    void vitesseBoulesEtLignesMultiplientLesEclats() {
+        Game game = firstUniverse();
+        double base = game.lineShardsPerSecond();
+        assertEquals(0.1 / Game.LINE_HALF_TRIP, base, 1e-12);
+        game.state().setDimensionShards(1e6);
+        assertTrue(game.buyLine(Game.LineUpgrade.SPEED));
+        assertEquals(1.25, game.lineSpeed(), 1e-12, "+25 % de vitesse");
+        assertEquals(Game.LINE_HALF_TRIP / 1.25, game.lineHalfTrip(), 1e-12);
+        assertTrue(game.buyLine(Game.LineUpgrade.BALLS));
+        assertEquals(2, game.lineBalls());
+        assertTrue(game.buyLine(Game.LineUpgrade.LINES));
+        assertEquals(2, game.lineCount());
+        assertEquals(base * 1.25 * 2 * 2, game.lineShardsPerSecond(), 1e-12);
+        // Le compte exact suit le débit annoncé, sur un long moment.
+        game.state().setDimensionShards(0);
+        game.state().setLinePhase(0);
+        game.tick(600);
+        assertEquals(game.lineShardsPerSecond() * 600, game.state().dimensionShards(), 0.5);
+        // Les boules d'une ligne sont réparties : la deuxième est au bout quand la première part.
+        game.state().setLinePhase(0);
+        assertEquals(0, game.linePosition(0, 0), 1e-12);
+        assertEquals(1, game.linePosition(0, 1), 1e-12);
+        game.state().setLineCountLevel(Game.LINE_MAX_EXTRA_LINES);
+        assertFalse(game.canBuyLine(Game.LineUpgrade.LINES), "cinq lignes au plus");
+    }
+
+    @Test
+    void leSeuilDeLaLigneCompteLesEclatsGagnes() {
+        Game game = firstUniverse();
+        assertFalse(game.isLineThresholdReached());
+        game.state().setDimensionShards(0);
+        game.state().setLinePhase(0);
+        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD - 0.1);
+        game.tick(Game.LINE_HALF_TRIP);
+        assertTrue(game.isLineThresholdReached(), "le centième éclat gagné");
+        game.state().setDimensionShards(Game.LINE_YIELD_COST);
+        assertTrue(game.buyLineYield());
+        assertTrue(game.isLineThresholdReached(), "dépenser ne fait pas redescendre sous le seuil");
+    }
+
+    @Test
+    void laGraineGermeAuSeuilDeLaDimensionUnPuisSArrose() {
+        Game game = firstUniverse();
+        assertTrue(!game.state().universeSeeds().lt(idle.core.math.BigNum.ONE), "former l'univers donne une graine");
+        assertFalse(game.canTendSeed(), "sous le seuil de la dimension 1");
+        assertFalse(game.tendSeed());
+        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
+        // Il n'y a qu'une graine, celle de l'univers : le bouton ne demande pas de graine en réserve (0.105).
+        game.state().setUniverseSeeds(idle.core.math.BigNum.ZERO);
+        assertTrue(game.canTendSeed(), "l'objectif atteint suffit");
+        assertTrue(game.tendSeed());
+        assertTrue(game.state().seedSprouted(), "le premier clic la fait germer");
+        assertEquals(0, game.state().seedWaterings());
+        assertTrue(game.tendSeed());
+        assertTrue(game.tendSeed());
+        assertEquals(2, game.state().seedWaterings(), "les suivants arrosent le germe");
+        assertTrue(game.startNextUniverse());
+        assertTrue(game.state().seedSprouted(), "le germe traverse les univers");
+        assertEquals(2, game.state().seedWaterings());
+    }
+
+    @Test
+    void lePlanSeJoueAuClavierEtRamasseSesEclats() {
+        Game game = firstUniverse();
+        assertFalse(game.isPlaneOpen(), "un seul univers : la deuxième dimension est fermée");
+        game.testAddUniverse();
+        assertTrue(game.isPlaneOpen());
+        game.tick(Game.PLANE_SPAWN_SECONDS * 10);
+        assertEquals(Game.PLANE_MAX_SHARDS, game.planeShardsOnBoard().size(), "trois éclats au plus");
+        // Le point va à droite, et ne sort pas du plan.
+        game.setPlanePosition(0, 0);
+        game.setPlaneInput(1, 0);
+        for (int k = 0; k < 200; k++) game.tick(0.1);
+        assertEquals(Game.PLANE_EDGE - game.planePlayerRadius(), game.planeX(), 1e-9, "arrêté au bord");
+        game.setPlaneInput(0, 0);
+        // Passer sur un éclat le ramasse : un éclat du plan, propre à cette dimension.
+        double line = game.state().dimensionShards();
+        game.state().setPlaneShards(0);
+        game.setPlanePosition(0, 0);
+        int before = game.planeShardsOnBoard().size();
+        java.util.List<Game.PlaneShard> left = new java.util.ArrayList<>(game.planeShardsOnBoard());
+        for (Game.PlaneShard shard : left) game.setPlanePosition(shard.x(), shard.y());
+        game.setPlanePosition(left.get(0).x(), left.get(0).y());
+        game.tick(0.01);
+        assertTrue(game.state().planeShards() >= 1, "au moins un éclat ramassé");
+        assertTrue(game.planeShardsOnBoard().size() < before);
+        assertEquals(line, game.state().dimensionShards(), 1e-6, "les éclats de la ligne ne bougent pas");
+    }
+
+    @Test
+    void lesCinqAmeliorationsDuPlan() {
+        Game game = firstUniverse();
+        game.testAddUniverse();
+        game.state().setPlaneShards(1e6);
+        for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) assertTrue(game.buyPlane(upgrade), upgrade.name());
+        assertEquals(2, game.planeValue(), 1e-12);
+        assertEquals(Game.PLANE_SPAWN_SECONDS * 0.85, game.planeSpawnSeconds(), 1e-12);
+        assertEquals(Game.PLANE_MAX_SHARDS + 1, game.planeMaxShards());
+        assertEquals(Game.PLANE_SPEED * 1.2, game.planeSpeed(), 1e-12);
+        assertEquals(Game.PLANE_PLAYER_RADIUS * (1 + Game.PLANE_SIZE_STEP), game.planePlayerRadius(), 1e-12);
+        game.state().setPlaneLevel(Game.PlaneUpgrade.COUNT.ordinal(), Game.PlaneUpgrade.COUNT.max());
+        assertFalse(game.canBuyPlane(Game.PlaneUpgrade.COUNT), "vingt éclats au plus");
+        assertEquals(20, game.planeMaxShards());
+        game.state().setPlaneShards(7);
+        assertTrue(game.startNextUniverse());
+        assertEquals(7, game.state().planeShards(), 1e-9, "les éclats du plan traversent les univers");
+    }
+
+    @Test
+    void laBrindilleOuvreLeDeuxiemeUnivers() {
+        Game game = firstUniverse();
+        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
+        assertFalse(game.canOpenNextUniverse(), "pas avant la brindille");
+        assertTrue(game.tendSeed());
+        for (long k = 1; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
+        assertFalse(game.isSeedTwig(), "encore un germe à " + (Game.SEED_TWIG_WATERINGS - 1) + " arrosages");
+        assertTrue(game.tendSeed());
+        assertTrue(game.isSeedTwig(), "la brindille au trentième arrosage");
+        assertTrue(game.canOpenNextUniverse());
+        // Ce qui aurait été joué entre-temps (anciens onglets montrés, partie d'avant) ne passe pas dans l'univers 2.
+        game.state().setParticles(idle.core.math.BigNum.of(1, 50));
+        game.state().setAtoms(idle.core.math.BigNum.of(1, 9));
+        game.state().setBigBangs(3);
+        game.state().setDarkMatter(idle.core.math.BigNum.of(500));
+        double shards = game.state().dimensionShards();
+        assertTrue(game.startNextUniverse());
+        assertTrue(game.isReplaying(), "le jeu recommence, pour l'univers 2");
+        assertEquals(0, game.state().particles().sign(), "les trois actes repartent de zéro : les particules");
+        assertEquals(0, game.state().atoms().sign(), "les atomes");
+        assertEquals(0, game.state().bigBangs(), "les Big Bangs");
+        assertEquals(0, game.state().darkMatter().sign(), "la matière noire");
+        assertTrue(game.isSeedTwig(), "la graine garde sa brindille");
+        assertEquals(shards, game.state().dimensionShards(), 1e-9, "les dimensions gardent leurs éclats");
+        assertEquals(1, game.universes(), "l'onglet Univers reste : un univers déjà formé");
+        assertFalse(game.canOpenNextUniverse(), "pendant la partie, on ne rouvre rien");
+    }
+
+    @Test
     void leVideSOuvreAuPremierBigBangDuDeuxiemeUnivers() {
         Game first = new Game();
         first.state().setBigBangs(3);

@@ -18,8 +18,8 @@ import javafx.scene.layout.VBox;
  * La fenêtre d'une dimension (version 0.081) : elle couvre tout le jeu, avec son visuel, son nom et
  * une phrase, et un bouton « Retour » pour revenir au jeu. Le jeu continue de tourner derrière.
  *
- * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, et ses deux
- * améliorations sous le visuel. Les neuf autres restent des visuels.
+ * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, son seuil et ses
+ * cinq améliorations (version 0.102) sous le visuel. Les neuf autres restent des visuels.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -30,9 +30,15 @@ public final class DimensionWindow extends BorderPane {
     private final DimensionView view;
     /** La ligne : ses éclats, et ses deux améliorations. */
     private final Label shards = new Label();
-    private final Button yieldButton = new Button();
-    private final Button ticksButton = new Button();
+    private final Label threshold = new Label();
+    private final java.util.Map<Game.LineUpgrade, Button> buttons = new java.util.EnumMap<>(Game.LineUpgrade.class);
     private final VBox linePane;
+    /** Le plan (version 0.104) : ses éclats, la manière de jouer, et ses cinq améliorations. */
+    private final Label planeShards = new Label();
+    private final java.util.Map<Game.PlaneUpgrade, Button> planeButtons = new java.util.EnumMap<>(Game.PlaneUpgrade.class);
+    private final VBox planePane;
+    /** Les touches de direction tenues : Z, Q, S, D et les flèches. */
+    private final java.util.Set<javafx.scene.input.KeyCode> held = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     private final Label title = new Label();
     private final Label line = new Label();
     private final Button back = new Button("← Retour");
@@ -67,47 +73,144 @@ public final class DimensionWindow extends BorderPane {
         CanvasPane holder = CanvasPane.filling(view);
         setCenter(holder);
         shards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + UniversePage.COLOR + ";");
-        for (Button button : new Button[] {yieldButton, ticksButton}) {
+        threshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        javafx.scene.layout.FlowPane row = new javafx.scene.layout.FlowPane(12, 10);
+        row.setAlignment(Pos.CENTER);
+        for (Game.LineUpgrade upgrade : Game.LineUpgrade.values()) {
+            Button button = new Button();
             button.setStyle(BUTTON_STYLE);
             button.setFocusTraversable(false);
             button.setWrapText(true);
-            button.setMaxWidth(360);
+            button.setPrefWidth(250);
+            button.setMinHeight(64);
             button.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            button.setOnAction(event -> {
+                game.buyLine(upgrade);
+                refresh();
+            });
+            buttons.put(upgrade, button);
+            row.getChildren().add(button);
         }
-        yieldButton.setOnAction(event -> {
-            game.buyLineYield();
-            refresh();
-        });
-        ticksButton.setOnAction(event -> {
-            game.buyLineTicks();
-            refresh();
-        });
-        HBox buttons = new HBox(14, yieldButton, ticksButton);
-        buttons.setAlignment(Pos.CENTER);
-        linePane = new VBox(10, shards, buttons);
+        linePane = new VBox(10, shards, threshold, row);
         linePane.setAlignment(Pos.CENTER);
         linePane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(linePane);
+        planeShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffd27f;");
+        Label planeHint = new Label("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser.");
+        planeHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        javafx.scene.layout.FlowPane planeRow = new javafx.scene.layout.FlowPane(12, 10);
+        planeRow.setAlignment(Pos.CENTER);
+        for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) {
+            Button button = new Button();
+            button.setStyle(BUTTON_STYLE);
+            button.setFocusTraversable(false);
+            button.setWrapText(true);
+            button.setPrefWidth(250);
+            button.setMinHeight(64);
+            button.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            button.setOnAction(event -> {
+                game.buyPlane(upgrade);
+                refresh();
+            });
+            planeButtons.put(upgrade, button);
+            planeRow.getChildren().add(button);
+        }
+        planePane = new VBox(10, planeShards, planeHint, planeRow);
+        planePane.setAlignment(Pos.CENTER);
+        planePane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane));
         setVisible(false);
     }
 
-    /** Recopie la ligne : ses éclats, et ce que coûtent ses deux améliorations. */
+    /** Recopie la ligne ou le plan : leurs éclats, et ce que coûtent leurs améliorations. */
     private void refresh() {
+        boolean plane = view.dimension() == Dimension.PLANE && game.isPlaneOpen();
+        planePane.setVisible(plane);
+        planePane.setManaged(plane);
+        if (plane) refreshPlane();
         boolean line = view.dimension() == Dimension.LINE && game.isLineOpen();
         linePane.setVisible(line);
         linePane.setManaged(line);
         if (!line) return;
-        shards.setText("Éclats de dimension : " + Format.darkMatter(BigNum.of(game.state().dimensionShards()))
+        shards.setText("Éclats de la ligne : " + shardText(game.state().dimensionShards())
                 + "   (+" + rate(game.lineShardsPerSecond()) + " par seconde)");
-        yieldButton.setText("Densité (niveau " + game.state().lineYieldLevel() + ") : chaque trait touché donne "
-                + Format.darkMatter(BigNum.of(game.lineShardsPerTouch() + Game.LINE_SHARD)) + " éclat au lieu de "
-                + Format.darkMatter(BigNum.of(game.lineShardsPerTouch())) + "\nPrix : " + Format.darkMatter(BigNum.of(game.lineYieldCost())) + " éclats");
-        yieldButton.setDisable(!game.canBuyLineYield());
-        boolean full = game.state().lineTicksLevel() >= Game.LINE_MAX_EXTRA_TICKS;
-        ticksButton.setText(full ? "Graduation : la ligne est pleine (" + game.lineTicks() + " traits)"
-                : "Graduation (" + game.lineTicks() + " traits) : un trait de plus, tous à égale distance\nPrix : "
-                        + Format.darkMatter(BigNum.of(game.lineTicksCost())) + " éclats");
-        ticksButton.setDisable(!game.canBuyLineTicks());
+        threshold.setText(game.isLineThresholdReached()
+                ? "Seuil atteint : " + shardText(Game.LINE_THRESHOLD) + " éclats de la ligne gagnés, la dimension 1 porte son rond vert"
+                : "Seuil : " + shardText(game.state().dimensionShardsEarned()) + " / " + shardText(Game.LINE_THRESHOLD) + " éclats de la ligne gagnés");
+        for (Game.LineUpgrade upgrade : Game.LineUpgrade.values()) {
+            Button button = buttons.get(upgrade);
+            boolean full = game.lineLevel(upgrade) >= game.lineMaxLevel(upgrade);
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(game.lineCost(upgrade)) + (game.lineCost(upgrade) < 2 ? " éclat" : " éclats")));
+            button.setDisable(!game.canBuyLine(upgrade));
+        }
+    }
+
+    private void refreshPlane() {
+        planeShards.setText("Éclats du plan : " + shardText(game.state().planeShards()));
+        for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) {
+            Button button = planeButtons.get(upgrade);
+            boolean full = game.planeLevel(upgrade) >= upgrade.max();
+            double cost = game.planeCost(upgrade);
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(cost) + (cost < 2 ? " éclat du plan" : " éclats du plan")));
+            button.setDisable(!game.canBuyPlane(upgrade));
+        }
+    }
+
+    /** Une amélioration du plan : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.PlaneUpgrade upgrade) {
+        return switch (upgrade) {
+            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + 1);
+            case SPAWN -> "Réapparition : un éclat toutes les " + seconds(game.planeSpawnSeconds()) + " s, 15 % plus vite";
+            case COUNT -> "Nombre : " + game.planeMaxShards() + " éclats à la fois au plus, un de plus";
+            case SPEED -> "Vitesse du point : 20 % plus vite (×" + shardText(game.planeSpeed() / Game.PLANE_SPEED) + ")";
+            case SIZE -> "Taille du point (×" + shardText(game.planePlayerRadius() / Game.PLANE_PLAYER_RADIUS) + ") : 25 % plus gros, il ramasse de plus loin";
+        };
+    }
+
+    private static String seconds(double value) {
+        return String.format(java.util.Locale.ROOT, "%.1f", value);
+    }
+
+    /**
+     * Une touche, quand la fenêtre du plan est ouverte : Z Q S D et les flèches déplacent le point.
+     * Vrai si la touche a servi (le reste du jeu ne la voit pas).
+     */
+    public boolean key(javafx.scene.input.KeyCode code, boolean down) {
+        if (!isVisible() || view.dimension() != Dimension.PLANE || !game.isPlaneOpen()) return false;
+        switch (code) {
+            case Z, Q, S, D, UP, DOWN, LEFT, RIGHT -> { }
+            default -> {
+                return false;
+            }
+        }
+        if (down) held.add(code);
+        else held.remove(code);
+        steer();
+        return true;
+    }
+
+    private void steer() {
+        double dx = 0, dy = 0;
+        if (held.contains(javafx.scene.input.KeyCode.Q) || held.contains(javafx.scene.input.KeyCode.LEFT)) dx -= 1;
+        if (held.contains(javafx.scene.input.KeyCode.D) || held.contains(javafx.scene.input.KeyCode.RIGHT)) dx += 1;
+        if (held.contains(javafx.scene.input.KeyCode.Z) || held.contains(javafx.scene.input.KeyCode.UP)) dy -= 1;
+        if (held.contains(javafx.scene.input.KeyCode.S) || held.contains(javafx.scene.input.KeyCode.DOWN)) dy += 1;
+        game.setPlaneInput(dx, dy);
+    }
+
+    /** Une amélioration de la ligne : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.LineUpgrade upgrade) {
+        return switch (upgrade) {
+            case YIELD -> "Densité (niveau " + game.lineLevel(upgrade) + ") : " + shardText(game.lineShardsPerTouch())
+                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD) + " éclat par trait touché";
+            case TICKS -> "Graduation (" + game.lineTicks() + " traits) : un trait de plus, tous à égale distance";
+            case SPEED -> "Élan (vitesse ×" + shardText(game.lineSpeed()) + ") : les boules vont 25 % plus vite";
+            case BALLS -> "Boules (" + game.lineBalls() + " par ligne) : une boule de plus sur chaque ligne";
+            case LINES -> "Lignes (" + game.lineCount() + ") : une ligne de plus, avec ses traits et ses boules";
+        };
+    }
+
+    private static String shardText(double value) {
+        return Format.darkMatter(BigNum.of(value));
     }
 
     /** Un débit d'éclats : deux décimales sous 1, une au-delà. */
@@ -120,15 +223,21 @@ public final class DimensionWindow extends BorderPane {
     public void open(Dimension dimension) {
         view.show(dimension);
         title.setText("Dimension " + dimension.number() + " : " + dimension.label());
-        line.setText(dimension == Dimension.LINE
-                ? dimension.line() + " Chaque trait que touche la boule donne des éclats de dimension."
-                : dimension.line() + " Il n'y a rien à y faire pour l'instant.");
+        held.clear();
+        game.setPlaneInput(0, 0);
+        line.setText(switch (dimension) {
+            case LINE -> dimension.line() + " Chaque trait que touche la boule donne des éclats de la ligne.";
+            case PLANE -> dimension.line() + " Chaque éclat ramassé donne des éclats du plan, propres à cette dimension.";
+            default -> dimension.line() + " Il n'y a rien à y faire pour l'instant.";
+        });
         setVisible(true);
         refresh();
     }
 
     /** Referme la fenêtre : retour au jeu. */
     public void close() {
+        held.clear();
+        game.setPlaneInput(0, 0);
         setVisible(false);
     }
 
@@ -156,13 +265,30 @@ public final class DimensionWindow extends BorderPane {
         return view;
     }
 
-    /** Les deux améliorations de la ligne : pour les vérifications. */
+    /** Le bouton d'une amélioration de la ligne : pour les vérifications. */
+    public Button lineButton(Game.LineUpgrade upgrade) {
+        return buttons.get(upgrade);
+    }
+
     public Button yieldButton() {
-        return yieldButton;
+        return buttons.get(Game.LineUpgrade.YIELD);
     }
 
     public Button ticksButton() {
-        return ticksButton;
+        return buttons.get(Game.LineUpgrade.TICKS);
+    }
+
+    /** Le bouton d'une amélioration du plan : pour les vérifications. */
+    public Button planeButton(Game.PlaneUpgrade upgrade) {
+        return planeButtons.get(upgrade);
+    }
+
+    public String planeShardsText() {
+        return planeShards.getText();
+    }
+
+    public String thresholdText() {
+        return threshold.getText();
     }
 
     public String shardsText() {

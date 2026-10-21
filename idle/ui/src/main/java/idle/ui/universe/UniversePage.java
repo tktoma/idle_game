@@ -90,6 +90,8 @@ public final class UniversePage extends VBox {
     // Sous-onglet « Graine d'univers »
     private final SeedView seedView = new SeedView();
     private final Label seedLine = new Label();
+    /** Le bouton de la graine (version 0.103) : il la fait germer, puis arrose son germe. */
+    private final Button tendSeed = new Button();
     private final VBox seedPane;
 
     private final StackPane pages;
@@ -170,7 +172,7 @@ public final class UniversePage extends VBox {
         next.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 8;"
                 + " -fx-border-radius: 8; -fx-text-fill: #0b0e14; -fx-background-color: " + COLOR + "; -fx-border-color: #ffffff;");
         next.setOnAction(event -> {
-            if (game.startNextUniverse()) onNextUniverse.run();
+            if (game.canOpenNextUniverse() && game.startNextUniverse()) onNextUniverse.run();
             refresh();
         });
         nextLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
@@ -201,14 +203,30 @@ public final class UniversePage extends VBox {
 
         // « Graine d'univers » : le nombre, en grand, et la graine.
         seedLine.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + SEED_COLOR + ";");
-        Label seedHint = new Label("La ressource principale de l'univers. Former l'univers en donne une, et remet à zéro tout ce qui y a mené."
-                + " Elle ne sert à rien pour l'instant : la suite viendra.");
+        Label seedHint = new Label("La graine de l'univers, la seule. Elle germe une fois l'objectif de la dimension 1 atteint ;"
+                + " chaque arrosage fait ensuite grandir son germe.");
         seedHint.setWrapText(true);
         seedHint.setMaxWidth(560);
         seedHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8ab80; -fx-text-alignment: center;");
         CanvasPane seedHolder = CanvasPane.filling(seedView);
         VBox.setVgrow(seedHolder, Priority.ALWAYS);
-        seedPane = new VBox(8, seedLine, seedHint, seedHolder);
+        tendSeed.setStyle("-fx-font-size: 14px; -fx-padding: 8 20; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + " -fx-text-fill: #10151f; -fx-background-color: " + SEED_COLOR + "; -fx-border-color: #fff6d2;");
+        tendSeed.setFocusTraversable(false);
+        tendSeed.setWrapText(true);
+        tendSeed.setMaxWidth(560);
+        tendSeed.setOnAction(event -> {
+            boolean watering = game.state().seedSprouted(), wasTwig = game.isSeedTwig();
+            if (!game.tendSeed()) return;
+            if (watering) seedView.water();
+            // La brindille (version 0.106) ouvre le deuxième univers : le jeu recommence, l'onglet Univers reste.
+            if (!wasTwig && game.isSeedTwig() && game.canOpenNextUniverse() && game.startNextUniverse()) {
+                seedView.celebrate();
+                onNextUniverse.run();
+            }
+            refresh();
+        });
+        seedPane = new VBox(8, seedLine, seedHint, tendSeed, seedHolder);
         seedPane.setAlignment(Pos.TOP_CENTER);
 
         pages = new StackPane(mainPane, dimensionsPane, voidPane, seedPane);
@@ -309,9 +327,7 @@ public final class UniversePage extends VBox {
         voidTab.setVisible(voidOpen);
         voidTab.setManaged(voidOpen);
         if ((selected == DIMENSIONS && !dims) || (selected == VOID && !voidOpen)) select(MAIN);
-        resources.setText(Format.count(game.state().universeSeeds())
-                + (game.state().universeSeeds().gt(BigNum.ONE) ? " graines d'univers" : " graine d'univers")
-                + "   |   " + universes + (universes > 1 ? " univers" : " univers")
+        resources.setText(universes + " univers"
                 + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : ""));
         for (Map.Entry<UniverseUpgrade, Card> entry : upgradeCards.entrySet()) {
             UniverseUpgrade upgrade = entry.getKey();
@@ -321,23 +337,42 @@ public final class UniversePage extends VBox {
         }
         removeUniverse.setDisable(universes <= 1);
         boolean replaying = game.isReplaying();
-        next.setVisible(!replaying);
-        next.setManaged(!replaying);
+        // Le deuxième univers (version 0.106) attend la brindille de la graine ; il s'ouvre alors tout seul.
+        boolean nextOpen = game.canOpenNextUniverse();
+        next.setVisible(nextOpen);
+        next.setManaged(nextOpen);
         next.setText("Rouvrir les paliers : jouer l'univers " + (universes + 1));
         nextLine.setText(replaying
                 ? "La partie de l'univers " + (universes + 1) + " est en cours, dans les anciens onglets : former l'univers, à la fin, le crée."
-                : "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant : une remise à zéro et une graine de plus."
+                : !nextOpen ? "Le deuxième univers s'ouvre quand le germe de la graine devient une brindille : "
+                        + Math.min(game.state().seedWaterings(), Game.SEED_TWIG_WATERINGS) + " / " + Game.SEED_TWIG_WATERINGS
+                        + " arrosages" + (game.state().seedSprouted() ? "." : ", une fois la graine germée.")
+                : "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant, et remet tout à zéro."
                         + (game.isSkinsUnlocked() ? "" : " Dès la cinquième fusion de cette partie, l'onglet Skins s'ouvre."));
         oldTabs.setText(showOldTabs ? "Cacher les anciens onglets" : "Montrer les anciens onglets");
         int open = game.dimensionsUnlocked();
         dimensions.setUnlocked(open);
+        dimensions.setMarked(1, game.isLineThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
-        BigNum seeds = game.state().universeSeeds();
-        seedLine.setText(Format.count(seeds) + (seeds.gt(BigNum.ONE) ? " graines d'univers" : " graine d'univers"));
-        seedView.setSeeds(seeds.toDouble());
-        seedTab.setText("Graine d'univers (" + Format.count(seeds) + ")");
+        // Il n'y a qu'une graine (version 0.105) : pas de compteur, la graine est là dès que l'univers est formé.
+        seedLine.setText("La graine d'univers");
+        seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
+        seedView.setSprout(game.state().seedSprouted(), game.state().seedWaterings());
+        boolean seedOpen = game.canTendSeed();
+        tendSeed.setDisable(!seedOpen);
+        long waterings = game.state().seedWaterings();
+        seedView.setTwig(game.isSeedTwig());
+        tendSeed.setText(game.isSeedTwig()
+                ? "Arroser la brindille (" + waterings + " arrosages)"
+                : game.state().seedSprouted()
+                ? "Arroser le germe (" + waterings + (waterings > 1 ? " arrosages" : " arrosage") + " sur " + Game.SEED_TWIG_WATERINGS + ")"
+                : seedOpen ? "Faire germer la graine"
+                : "Faire germer la graine : il faut l'objectif de la dimension 1, "
+                        + Format.darkMatter(BigNum.of(Math.min(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD)))
+                        + " / " + Format.darkMatter(BigNum.of(Game.LINE_THRESHOLD)) + " éclats de la ligne gagnés");
+        seedTab.setText("Graine d'univers");
         mainTab.setText("Univers (" + universes + ")");
         dimensionsTab.setText("Dimensions (" + open + "/" + Game.MAX_DIMENSIONS + ")");
     }
@@ -369,6 +404,11 @@ public final class UniversePage extends VBox {
     }
 
     /** La graine d'univers : pour les vérifications. */
+    /** Le bouton de la graine : pour les vérifications. */
+    public Button tendSeedButton() {
+        return tendSeed;
+    }
+
     public SeedView seedView() {
         return seedView;
     }

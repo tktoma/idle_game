@@ -20,9 +20,12 @@ public final class DimensionsView extends Canvas {
     private static final Color ON = Color.web("#d6c2ff");
     private static final Color OFF = Color.web("#3a4160");
     private static final Color CENTER = Color.web("#ffe2b0");
+    private static final Color MARK = Color.web("#3ddc6a");
 
     private double time;
     private int unlocked;
+    /** Les dimensions dont le seuil est atteint (version 0.102) : un rond vert dans leur point. */
+    private final boolean[] marked = new boolean[Dimension.values().length + 1];
     private IntConsumer onOpen = number -> { };
 
     public DimensionsView() {
@@ -45,6 +48,15 @@ public final class DimensionsView extends Canvas {
 
     public int unlocked() {
         return unlocked;
+    }
+
+    /** Marque une dimension (1 à 10) d'un rond vert : son seuil est atteint. */
+    public void setMarked(int number, boolean mark) {
+        if (number >= 1 && number < marked.length) marked[number] = mark;
+    }
+
+    public boolean isMarked(int number) {
+        return number >= 1 && number < marked.length && marked[number];
     }
 
     private double cx() {
@@ -136,6 +148,14 @@ public final class DimensionsView extends Canvas {
             g.setGlobalAlpha(1);
             g.setFill(open ? ON : OFF);
             g.fillOval(x - dot, y - dot, 2 * dot, 2 * dot);
+            if (open && marked[number]) {
+                // Le seuil atteint : un rond vert dans le point, autour du numéro.
+                g.setStroke(MARK);
+                g.setLineWidth(Math.max(2, dot * 0.16));
+                g.setGlobalAlpha(0.9 + 0.1 * Math.sin(time * 3));
+                g.strokeOval(x - dot * 0.72, y - dot * 0.72, dot * 1.44, dot * 1.44);
+                g.setGlobalAlpha(1);
+            }
             g.setFill(open ? Color.web("#1a1430") : Color.web("#8a91b0"));
             g.setFont(Font.font(dot * 1.05));
             g.fillText(open ? String.valueOf(number) : "?", x, y + dot * 0.38);

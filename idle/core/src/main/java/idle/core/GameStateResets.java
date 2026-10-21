@@ -345,6 +345,15 @@ public abstract class GameStateResets extends GameStateCollider {
         linePhase = 0;
         lineYieldLevel = 0;
         lineTicksLevel = 0;
+        lineSpeedLevel = 0;
+        lineBallsLevel = 0;
+        lineCountLevel = 0;
+        dimensionShardsEarned = 0;
+        seedSprouted = false;
+        seedWaterings = 0;
+        planeShards = 0;
+        planeShardsEarned = 0;
+        for (int i = 0; i < 5; i++) setPlaneLevel(i, 0);
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;

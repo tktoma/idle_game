@@ -28,11 +28,8 @@ jobs:
       # « sh » : gradlew n'est pas marqué exécutable dans le dépôt.
       # « toutTester » lance les tests de tous les modules, ceux d'aujourd'hui et ceux à venir ; il compile
       # aussi l'interface et l'application : une erreur de compilation fait échouer l'envoi.
-      - name: Préparer l'affichage virtuel des tests JavaFX
-        run: sudo apt-get update -qq && sudo apt-get install -y xvfb
-
       - name: Tous les tests, et la compilation de l'interface
-        run: xvfb-run -a sh ./gradlew toutTester --continue --no-daemon
+        run: sh ./gradlew toutTester --continue --no-daemon
 
       - name: Garder le rapport quand un test échoue
         if: failure()

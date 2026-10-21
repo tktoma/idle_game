@@ -188,6 +188,15 @@ public final class GameApp extends GameAppTabs {
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
 
+        // La brindille de la graine (version 0.108) ouvre le deuxième univers, même atteinte avant cette version,
+        // ou pendant que la page Univers n'était pas affichée : les trois actes repartent de zéro.
+        if (game.isSeedTwig() && game.universes() == 1 && game.canStartNextUniverse() && game.startNextUniverse()) {
+            forgetOldPages();
+            selectTab(Tab.PARTICLES);
+            refresh();
+            return;
+        }
+
         // L'onglet « Univers » (version 0.080) s'ouvre quand l'univers est formé. S'il vient de se former,
         // on y va et sa naissance se joue ; l'écran de fin attend qu'elle soit finie.
         boolean universe = game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
@@ -226,7 +235,7 @@ public final class GameApp extends GameAppTabs {
         // Un onglet qui vient de disparaître (après une explosion) ne peut pas rester affiché.
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
-                || (selectedTab == Tab.UNIVERSE && !universe) || (selectedTab == Tab.PARTICLES && phase)
+                || (selectedTab == Tab.UNIVERSE && game.universes() == 0) || (selectedTab == Tab.PARTICLES && phase)
                 || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)) {
             selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
@@ -275,7 +284,7 @@ public final class GameApp extends GameAppTabs {
         // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
         String chrono = goal && settings.chrono() ? Goals.chrono(game) : "";
         goalLabel.setText(goal && phase ? "Quatrième acte : l'univers. " + game.universes() + (game.universes() > 1 ? " univers" : " univers")
-                + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked() + " dimensions sur " + Game.MAX_DIMENSIONS : "")
+                + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked() + (game.dimensionsUnlocked() > 1 ? " dimensions sur " : " dimension sur ") + Game.MAX_DIMENSIONS : "")
                 + ". La suite viendra."
                 : goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
                 + (bang.isEmpty() ? "" : "   |   Prochain Big Bang : " + bang)

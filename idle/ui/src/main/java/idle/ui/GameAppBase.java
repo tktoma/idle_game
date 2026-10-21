@@ -80,6 +80,7 @@ public abstract class GameAppBase extends Application {
     abstract void showStartButton();
     abstract void resetGame();
     abstract Card fuseCard();
+    abstract void forgetOldPages();
     abstract boolean keyPressed(KeyCode code);
     abstract boolean keyReleased(KeyCode code);
     abstract void repeatHeldKeys(double dt);
@@ -488,6 +489,8 @@ public abstract class GameAppBase extends Application {
         universePage.setOnOldTabs(shown -> refresh());
         // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
+            // Les trois actes repartent de zéro (version 0.108) : les pages oublient ce qu'elles montraient.
+            forgetOldPages();
             refresh();
             selectTab(Tab.PARTICLES);
             refresh();

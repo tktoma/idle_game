@@ -28,11 +28,26 @@ public final class DimensionView extends Canvas {
 
     /** Un trait qui vient d'être touché : son éclat et les éclats qui montent. */
     private static final class Touch {
+        int line;
         double at, age;
     }
 
+    /** Un éclat du plan qui vient d'être ramassé (version 0.104). */
+    private static final class Pickup {
+        double x, y, age;
+        String text;
+    }
+
+    private static final Color SHARD = Color.web("#ffd27f");
+
     private final Game game;
     private final List<Touch> touches = new ArrayList<>();
+    private final List<Pickup> pickups = new ArrayList<>();
+    private long lastCollected = -1;
+    /** La traînée du point du plan : ses dernières positions, la plus récente en tête. */
+    private static final int TRAIL = 90;
+    private final double[] trailX = new double[TRAIL], trailY = new double[TRAIL];
+    private int trailHead, trailCount;
     /** La route de la boule à l'image d'avant, pour voir les traits passés depuis. */
     private double lastPhase = Double.NaN;
     private Dimension dimension = Dimension.LINE;
@@ -48,7 +63,10 @@ public final class DimensionView extends Canvas {
         this.dimension = dimension;
         time = 0;
         touches.clear();
+        pickups.clear();
+        trailCount = 0;
         lastPhase = Double.NaN;
+        lastCollected = -1;
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -63,25 +81,58 @@ public final class DimensionView extends Canvas {
     public void frame(double elapsed, boolean moving) {
         if (moving) time += Math.min(elapsed, 0.1);
         if (dimension == Dimension.LINE) noteTouches(Math.min(elapsed, 0.1), moving);
+        if (dimension == Dimension.PLANE) notePickups(Math.min(elapsed, 0.1));
         draw();
     }
 
-    /** Les traits que la boule a touchés depuis l'image d'avant : chacun s'allume. */
+    /** Les éclats ramassés depuis l'image d'avant : un éclat là où est le point. */
+    private void notePickups(double elapsed) {
+        for (Pickup pickup : pickups) pickup.age += elapsed;
+        pickups.removeIf(pickup -> pickup.age > 0.9);
+        // La traînée suit le point, une position par image.
+        trailX[trailHead] = game.planeX();
+        trailY[trailHead] = game.planeY();
+        trailHead = (trailHead + 1) % TRAIL;
+        trailCount = Math.min(TRAIL, trailCount + 1);
+        long collected = game.planeCollected();
+        if (lastCollected >= 0 && collected > lastCollected) {
+            double[] at = onPlane(getWidth(), getHeight(), getWidth() / 2, game.planeX(), game.planeY());
+            Pickup pickup = new Pickup();
+            pickup.x = at[0];
+            pickup.y = at[1];
+            pickup.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.planeValue() * (collected - lastCollected)));
+            if (pickups.size() < 20) pickups.add(pickup);
+        }
+        lastCollected = collected;
+    }
+
+    /** Les éclats ramassés à l'instant : pour les vérifications. */
+    public int pickupsShown() {
+        return pickups.size();
+    }
+
+    /** Les traits que les boules ont touchés depuis l'image d'avant : chacun s'allume. */
     private void noteTouches(double elapsed, boolean moving) {
         for (Touch touch : touches) touch.age += elapsed;
         touches.removeIf(touch -> touch.age > 1.2);
         double phase = game.state().linePhase();
         if (!Double.isNaN(lastPhase) && moving) {
-            double to = phase < lastPhase ? phase + 2 : phase;
+            double move = phase < lastPhase ? phase + 2 - lastPhase : phase - lastPhase;
             // Plus d'un aller depuis la dernière image (la fenêtre était fermée) : rien à rejouer.
-            if (to - lastPhase < 1) {
+            if (move < 1) {
                 int gaps = game.lineTicks() - 1;
-                long first = (long) Math.floor(lastPhase * gaps + 1e-9) + 1, last = (long) Math.floor(to * gaps + 1e-9);
-                for (long m = first; m <= last; m++) {
-                    double unfolded = (double) (m % (2L * gaps)) / gaps;
-                    Touch touch = new Touch();
-                    touch.at = unfolded <= 1 ? unfolded : 2 - unfolded;
-                    touches.add(touch);
+                for (int line = 0; line < game.lineCount(); line++) {
+                    for (int ball = 0; ball < game.lineBalls(); ball++) {
+                        double start = lastPhase + game.lineOffset(line, ball);
+                        long first = (long) Math.floor(start * gaps + 1e-9) + 1, last = (long) Math.floor((start + move) * gaps + 1e-9);
+                        for (long m = first; m <= last && touches.size() < 400; m++) {
+                            double unfolded = (double) (m % (2L * gaps)) / gaps;
+                            Touch touch = new Touch();
+                            touch.line = line;
+                            touch.at = unfolded <= 1 ? unfolded : 2 - unfolded;
+                            touches.add(touch);
+                        }
+                    }
                 }
             }
         }
@@ -116,9 +167,16 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // 1. La ligne (version 0.101) : la boule du jeu va et vient, un trait à chaque bout et d'autres à égale
-    // distance ; chaque trait touché s'allume, et ses éclats montent.
+    // 1. La ligne (version 0.101) : les boules du jeu vont et viennent, un trait à chaque bout et d'autres à
+    // égale distance ; chaque trait touché s'allume, et ses éclats montent. Avec l'amélioration (0.102),
+    // plusieurs lignes l'une sous l'autre, et plusieurs boules sur chacune.
     private void line(GraphicsContext g, double w, double cx, double cy, double u) {
+        int lines = game.lineCount();
+        double h = getHeight(), spacing = Math.min(h * 0.8 / lines, 140);
+        for (int l = 0; l < lines; l++) oneLine(g, w, cy + (l - (lines - 1) / 2.0) * spacing, u, l);
+    }
+
+    private void oneLine(GraphicsContext g, double w, double cy, double u, int index) {
         Color c = color();
         double x0 = w * 0.1, x1 = w * 0.9;
         g.setStroke(c);
@@ -129,7 +187,7 @@ public final class DimensionView extends Canvas {
         for (int k = 0; k <= gaps; k++) {
             double at = (double) k / gaps, x = x0 + (x1 - x0) * at;
             double lit = 0;
-            for (Touch touch : touches) if (Math.abs(touch.at - at) < 1e-9) lit = Math.max(lit, 1 - touch.age / 0.6);
+            for (Touch touch : touches) if (touch.line == index && Math.abs(touch.at - at) < 1e-9) lit = Math.max(lit, 1 - touch.age / 0.6);
             boolean end = k == 0 || k == gaps;
             double half = (end ? 16 : 10) + 6 * Math.max(0, lit);
             g.setLineWidth(end ? 3 : 2);
@@ -143,27 +201,32 @@ public final class DimensionView extends Canvas {
         g.setTextAlign(TextAlignment.CENTER);
         String gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.lineShardsPerTouch()));
         for (Touch touch : touches) {
+            if (touch.line != index) continue;
             double x = x0 + (x1 - x0) * touch.at;
             g.setFill(Color.WHITE);
             g.setGlobalAlpha(Math.max(0, 1 - touch.age / 1.2));
             g.fillText(gain, x, cy - 26 - touch.age * 30);
         }
-        // La boule, et sa traînée le long de la route qu'elle vient de faire.
-        double phase = game.state().linePhase();
-        for (int k = 14; k >= 1; k--) {
-            double back = phase - k * 0.012;
-            if (back < 0) back += 2;
-            double pos = back <= 1 ? back : 2 - back;
-            UniverseView.glow(g, x0 + (x1 - x0) * pos, cy, u * 0.03 * (1 - k / 16.0), c, 0.8 * (1 - k / 15.0));
+        // Les boules, chacune avec sa traînée le long de la route qu'elle vient de faire.
+        double phase = game.state().linePhase(), trail = 0.012 * game.lineSpeed();
+        for (int ball = 0; ball < game.lineBalls(); ball++) {
+            double own = (phase + game.lineOffset(index, ball)) % 2;
+            for (int k = 14; k >= 1; k--) {
+                double back = own - k * trail;
+                if (back < 0) back += 2;
+                double pos = back <= 1 ? back : 2 - back;
+                UniverseView.glow(g, x0 + (x1 - x0) * pos, cy, u * 0.03 * (1 - k / 16.0), c, 0.8 * (1 - k / 15.0));
+            }
+            double x = x0 + (x1 - x0) * game.linePosition(index, ball);
+            UniverseView.glow(g, x, cy, u * 0.06, c, 0.9);
+            g.setGlobalAlpha(1);
+            g.setFill(Color.WHITE);
+            g.fillOval(x - 5, cy - 5, 10, 10);
         }
-        double x = x0 + (x1 - x0) * game.linePosition();
-        UniverseView.glow(g, x, cy, u * 0.06, c, 0.9);
-        g.setGlobalAlpha(1);
-        g.setFill(Color.WHITE);
-        g.fillOval(x - 5, cy - 5, 10, 10);
     }
 
-    // 2. Une grille vue en perspective, et un point qui y dessine une courbe.
+    // 2. Le plan : la grille vue en perspective (version 0.081), où le joueur mène le point (Z Q S D,
+    // version 0.104) ; sa traînée dessine la courbe de son passage, et les éclats attendent sur la grille.
     private void plane(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         Color c = color();
         double top = h * 0.25, bottom = h * 0.9;
@@ -180,21 +243,63 @@ public final class DimensionView extends Canvas {
             g.setGlobalAlpha(0.2);
             g.strokeLine(cx + k * w * 0.0225, top, cx + k * w * 0.0625, bottom);
         }
-        int steps = 90;
-        double[] xs = new double[steps], ys = new double[steps];
-        for (int k = 0; k < steps; k++) {
-            double t = time - k * 0.02;
-            double px = Math.sin(t * 1.1), py = 0.5 + 0.5 * Math.sin(t * 1.7 + 1);
-            double y = top + (bottom - top) * py * py;
-            double half = w * (0.18 + 0.32 * py * py);
-            xs[k] = cx + px * half * 0.9;
-            ys[k] = y;
+        // Les éclats : des losanges posés sur la grille, plus petits au loin.
+        int k = 0;
+        for (Game.PlaneShard shard : game.planeShardsOnBoard()) {
+            double[] at = onPlane(w, h, cx, shard.x(), shard.y());
+            double r = Math.max(3, Game.PLANE_SHARD_RADIUS * w * 0.4 * at[2]) * (1 + 0.15 * Math.sin(time * 4 + k++));
+            UniverseView.glow(g, at[0], at[1], r * 2.6, SHARD, 0.6);
+            g.setGlobalAlpha(1);
+            g.setFill(SHARD);
+            g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r * 1.3, at[1], at[1] + r * 1.3, at[1]}, 4);
         }
-        g.setStroke(Color.WHITE);
-        g.setLineWidth(2);
-        g.setGlobalAlpha(0.7);
-        g.strokePolyline(xs, ys, steps);
-        UniverseView.glow(g, xs[0], ys[0], u * 0.04, c, 0.9);
+        // La traînée : la courbe que dessine le point en passant.
+        if (trailCount > 1) {
+            double[] xs = new double[trailCount], ys = new double[trailCount];
+            for (int i = 0; i < trailCount; i++) {
+                int at = Math.floorMod(trailHead - 1 - i, TRAIL);
+                double[] q = onPlane(w, h, cx, trailX[at], trailY[at]);
+                xs[i] = q[0];
+                ys[i] = q[1];
+            }
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.7);
+            g.strokePolyline(xs, ys, trailCount);
+        }
+        // Ce qui vient d'être ramassé : un éclat et le gain qui monte.
+        g.setFont(Font.font(14));
+        g.setTextAlign(TextAlignment.CENTER);
+        for (Pickup pickup : pickups) {
+            double t = pickup.age / 0.9;
+            UniverseView.glow(g, pickup.x, pickup.y, 10 + 30 * t, SHARD, 0.7 * (1 - t));
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.fillText(pickup.text, pickup.x, pickup.y - 18 - 30 * t);
+        }
+        // Le point du joueur, à sa taille, plus petit au loin.
+        double[] p = onPlane(w, h, cx, game.planeX(), game.planeY());
+        // Un plancher bas : au départ, le point est petit, et la taille se voit grandir à chaque niveau.
+        double pr = Math.max(2.5, game.planePlayerRadius() * w * 0.4 * p[2]);
+        UniverseView.glow(g, p[0], p[1], pr * 2.6 + 4, c, 0.9);
+        g.setGlobalAlpha(1);
+        g.setFill(Color.WHITE);
+        g.fillOval(p[0] - pr * 0.6, p[1] - pr * 0.6, pr * 1.2, pr * 1.2);
+        g.setStroke(c);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.8);
+        g.strokeOval(p[0] - pr, p[1] - pr, pr * 2, pr * 2);
+    }
+
+    /**
+     * Un point du plan (−1 à 1 dans les deux sens) sur la grille en perspective : x et y à l'écran,
+     * et l'échelle à cette profondeur (1 au premier plan).
+     */
+    private static double[] onPlane(double w, double h, double cx, double x, double y) {
+        double top = h * 0.25, bottom = h * 0.9;
+        double depth = (y + 1) / 2;
+        double half = w * (0.18 + 0.32 * depth * depth);
+        return new double[] {cx + x * half * 0.9, top + (bottom - top) * depth * depth, half / (w * 0.5)};
     }
 
     // 3. Un cube qui tourne, et un plus petit dedans, dans l'autre sens.

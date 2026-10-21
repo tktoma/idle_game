@@ -344,6 +344,7 @@ public final class Game extends GameBigBang {
         runPlans(dt);
         runSecondUniverse(dt);
         runLine(dt);
+        runPlane(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;

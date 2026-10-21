@@ -195,6 +195,21 @@ public abstract class GameStateBase {
     double linePhase = 0;
     int lineYieldLevel = 0;
     int lineTicksLevel = 0;
+    /** La ligne (version 0.102) : vitesse, boules et lignes en plus, et tous les éclats gagnés, dépensés ou non. */
+    int lineSpeedLevel = 0;
+    int lineBallsLevel = 0;
+    int lineCountLevel = 0;
+    double dimensionShardsEarned = 0;
+    /** La graine d'univers (version 0.103) : germée ou non, et combien de fois son germe a été arrosé. */
+    boolean seedSprouted = false;
+    long seedWaterings = 0;
+    /**
+     * Le plan, deuxième dimension (version 0.104) : ses éclats, propres à lui, tous ceux gagnés, et le
+     * niveau de ses cinq améliorations (valeur, réapparition, nombre, vitesse, taille), dans cet ordre.
+     */
+    double planeShards = 0;
+    double planeShardsEarned = 0;
+    int planeValueLevel = 0, planeSpawnLevel = 0, planeCountLevel = 0, planeSpeedLevel = 0, planeSizeLevel = 0;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

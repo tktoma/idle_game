@@ -163,6 +163,15 @@ public final class GameState extends GameStateResets {
         data.put("linePhase", linePhase);
         data.put("lineYieldLevel", lineYieldLevel);
         data.put("lineTicksLevel", lineTicksLevel);
+        data.put("lineSpeedLevel", lineSpeedLevel);
+        data.put("lineBallsLevel", lineBallsLevel);
+        data.put("lineCountLevel", lineCountLevel);
+        data.put("dimensionShardsEarned", dimensionShardsEarned);
+        data.put("seedSprouted", seedSprouted);
+        data.put("seedWaterings", seedWaterings);
+        data.put("planeShards", planeShards);
+        data.put("planeShardsEarned", planeShardsEarned);
+        for (int i = 0; i < 5; i++) data.put("planeLevel" + i, planeLevel(i));
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -367,6 +376,16 @@ public final class GameState extends GameStateResets {
         setLinePhase(data.real("linePhase", 0));
         setLineYieldLevel(data.whole("lineYieldLevel", 0));
         setLineTicksLevel(data.whole("lineTicksLevel", 0));
+        setLineSpeedLevel(data.whole("lineSpeedLevel", 0));
+        setLineBallsLevel(data.whole("lineBallsLevel", 0));
+        setLineCountLevel(data.whole("lineCountLevel", 0));
+        // Une sauvegarde de la 0.101 n'a pas ce total : les éclats en réserve en sont le minimum.
+        setDimensionShardsEarned(data.real("dimensionShardsEarned", dimensionShards));
+        setSeedSprouted(data.flag("seedSprouted", false));
+        setSeedWaterings(data.count("seedWaterings", 0));
+        setPlaneShards(data.real("planeShards", 0));
+        setPlaneShardsEarned(data.real("planeShardsEarned", 0));
+        for (int i = 0; i < 5; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

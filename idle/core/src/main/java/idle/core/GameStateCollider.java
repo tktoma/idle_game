@@ -360,6 +360,12 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         BigNum energy = voidEnergy;
         double shards = dimensionShards, phase = linePhase;
         int yieldLevel = lineYieldLevel, ticksLevel = lineTicksLevel;
+        int speedLevel = lineSpeedLevel, ballsLevel = lineBallsLevel, countLevel = lineCountLevel;
+        double earned = dimensionShardsEarned;
+        boolean sprouted = seedSprouted;
+        long waterings = seedWaterings;
+        double planeKept = planeShards, planeEarned = planeShardsEarned;
+        int[] planeKeptLevels = {planeValueLevel, planeSpawnLevel, planeCountLevel, planeSpeedLevel, planeSizeLevel};
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -404,6 +410,15 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         linePhase = phase;
         lineYieldLevel = yieldLevel;
         lineTicksLevel = ticksLevel;
+        lineSpeedLevel = speedLevel;
+        lineBallsLevel = ballsLevel;
+        lineCountLevel = countLevel;
+        dimensionShardsEarned = earned;
+        seedSprouted = sprouted;
+        seedWaterings = waterings;
+        planeShards = planeKept;
+        planeShardsEarned = planeEarned;
+        for (int i = 0; i < planeKeptLevels.length; i++) setPlaneLevel(i, planeKeptLevels[i]);
         universeUpgrades.putAll(upgrades);
     }
 
@@ -441,6 +456,102 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setLineTicksLevel(int level) {
         lineTicksLevel = Math.max(0, level);
+    }
+
+    /** Niveau de l'amélioration qui accélère la boule. */
+    public int lineSpeedLevel() {
+        return lineSpeedLevel;
+    }
+
+    public void setLineSpeedLevel(int level) {
+        lineSpeedLevel = Math.max(0, level);
+    }
+
+    /** Niveau de l'amélioration qui ajoute des boules : une de plus par niveau, sur chaque ligne. */
+    public int lineBallsLevel() {
+        return lineBallsLevel;
+    }
+
+    public void setLineBallsLevel(int level) {
+        lineBallsLevel = Math.max(0, level);
+    }
+
+    /** Niveau de l'amélioration qui ajoute des lignes : une de plus par niveau. */
+    public int lineCountLevel() {
+        return lineCountLevel;
+    }
+
+    public void setLineCountLevel(int level) {
+        lineCountLevel = Math.max(0, level);
+    }
+
+    /** Tous les éclats de dimension gagnés, dépensés ou non : c'est eux que compte le seuil. */
+    public double dimensionShardsEarned() {
+        return dimensionShardsEarned;
+    }
+
+    public void setDimensionShardsEarned(double earned) {
+        dimensionShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Vrai une fois la graine d'univers germée. */
+    public boolean seedSprouted() {
+        return seedSprouted;
+    }
+
+    public void setSeedSprouted(boolean sprouted) {
+        seedSprouted = sprouted;
+    }
+
+    /** Combien de fois le germe a été arrosé. */
+    public long seedWaterings() {
+        return seedWaterings;
+    }
+
+    public void setSeedWaterings(long waterings) {
+        seedWaterings = Math.max(0, waterings);
+    }
+
+    /** Éclats du plan (version 0.104) : propres à la deuxième dimension. */
+    public double planeShards() {
+        return planeShards;
+    }
+
+    public void setPlaneShards(double shards) {
+        planeShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Tous les éclats du plan gagnés, dépensés ou non. */
+    public double planeShardsEarned() {
+        return planeShardsEarned;
+    }
+
+    public void setPlaneShardsEarned(double earned) {
+        planeShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration du plan, dans l'ordre de {@code Game.PlaneUpgrade}. */
+    public int planeLevel(int index) {
+        return switch (index) {
+            case 0 -> planeValueLevel;
+            case 1 -> planeSpawnLevel;
+            case 2 -> planeCountLevel;
+            case 3 -> planeSpeedLevel;
+            case 4 -> planeSizeLevel;
+            default -> 0;
+        };
+    }
+
+    public void setPlaneLevel(int index, int level) {
+        int value = Math.max(0, level);
+        switch (index) {
+            case 0 -> planeValueLevel = value;
+            case 1 -> planeSpawnLevel = value;
+            case 2 -> planeCountLevel = value;
+            case 3 -> planeSpeedLevel = value;
+            case 4 -> planeSizeLevel = value;
+            default -> { }
+        }
     }
 
     /** Univers créés après le premier (version 0.081). */
