@@ -47,8 +47,9 @@ class Profiles24CampaignTest {
         g.state().setBigBangs(8);
         assertFalse(IdleProfiles24.allowExtraPrestige(g),
                 "Le huitieme Big Bang marque la fin des explosions supplementaires");
-        g.state().setBigBangs(5);
-        assertFalse(IdleProfiles24.allowExtraPrestige(g),
+        Game sky = fresh(43);
+        sky.state().setBigBangs(5);
+        assertFalse(IdleProfiles24.allowExtraPrestige(sky),
                 "Le ciel incomplet du sixieme Big Bang doit etre preserve");
     }
 
