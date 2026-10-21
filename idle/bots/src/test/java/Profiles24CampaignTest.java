@@ -76,7 +76,7 @@ class Profiles24CampaignTest {
     }
 
     @Test
-    void tousLesProfilsJouentUneCampagneAvancee(@TempDir Path out) throws Exception {
+    void tousLesProfilsJouentSeizeHeuresAvancees(@TempDir Path out) throws Exception {
         int visited = 0;
         int winners = 0;
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
@@ -86,7 +86,7 @@ class Profiles24CampaignTest {
             int bodiesBefore = g.bodiesMature();
             int cosmosBefore = g.cosmosFormed();
             var bot = new IdleProfiles24(g, p, seed, 60);
-            bot.execute(8, out.resolve("late").resolve(p.name()));
+            bot.execute(16, out.resolve("late").resolve(p.name()));
             assertTrue(g.state().started(), p.name() + " : sauvegarde perdue");
             assertTrue(bot.actions > 0, p.name() + " : aucune decision en 8 h");
             boolean won = g.hasCosmos(Cosmos.UNIVERSE);
@@ -107,6 +107,6 @@ class Profiles24CampaignTest {
             visited++;
         }
         assertEquals(24, visited);
-        System.out.printf("PROFIL24_BILAN,valides=%d,victoiresEn8h=%d%n", visited, winners);
+        System.out.printf("PROFIL24_BILAN,valides=%d,victoiresEn16h=%d%n", visited, winners);
     }
 }
