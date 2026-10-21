@@ -67,6 +67,19 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
   @Override void probes(){ if(rng.nextDouble()<p.techAttention()) { super.probes(); techActions++; } }
   @Override void collider(){ if(rng.nextDouble()<p.techAttention()) super.collider(); }
 
+  /** Les explosions de style « prestige » sont en supplément de la politique
+   * normale. Elles ne doivent ni effacer la preparation du ciel des BB 6-8,
+   * ni saboter la chimie apres le huitieme Big Bang.
+   */
+  static boolean allowExtraPrestige(Game game){
+    return game.bigBangs()<8
+        && !game.canBigBang()
+        && !FirstUniversePolicy.finalBangPreparation(game)
+        && FirstUniversePolicy.skyReady(game)
+        && !game.inChallenge()
+        && game.activeBangChallenge()==null;
+  }
+
   // Maintient les mêmes règles du jeu, mais pas les mêmes choix et fréquences.
   @Override void cosmos(){
     if(rng.nextDouble()>=p.planning())return;
@@ -100,11 +113,11 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     }
     if(p.bias().equals("hoard") && rng.nextDouble()<.50){
       // Il optimise seulement une décision sur deux, par peur de dépenser ses réserves.
-      if(g.canExplode() && rng.nextDouble()<.2)g.explode();
+      if(allowExtraPrestige(g) && g.canExplode() && rng.nextDouble()<.2)g.explode();
       return;
     }
     super.resourceLoop();
-    if(p.bias().equals("prestige") && g.canExplode())g.explode();
+    if(p.bias().equals("prestige") && allowExtraPrestige(g) && g.canExplode())g.explode();
     if(p.bias().equals("auto")){g.setMoleculeAutomationEnabled(true);g.setAutoGatherEnabled(true);g.setAutoFormEnabled(true);}
   }
 
