@@ -12,6 +12,8 @@ on:
     branches:
       - master
   pull_request:
+  # Lancement manuel de secours si GitHub ne declenche pas les jobs apres un commit API.
+  workflow_dispatch:
 
 # Sur une meme PR, ne conserver que les tests du dernier commit.
 concurrency:
