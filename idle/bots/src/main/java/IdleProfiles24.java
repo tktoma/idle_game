@@ -98,8 +98,12 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     if(p.bias().equals("random") && rng.nextDouble()<.60)return;
     if(p.shopMode()==1 && rng.nextDouble()<.22)return;
     super.cosmos();
-    if(p.bias().equals("chemistry") || p.bias().equals("doubleplan")){
-      if(rng.nextDouble()<.50)super.cosmos();
+    if(p.bias().equals("doubleplan")){
+      // Le speedrunner est le temoin optimaliste : deux passages complets
+      // a chaque decision, comme le bot expert, plutot qu'une chance sur deux.
+      super.cosmos();
+    }else if(p.bias().equals("chemistry") && rng.nextDouble()<.50){
+      super.cosmos();
     }
     if(p.bias().equals("auto"))g.setMoleculeAutomationEnabled(true);
   }
@@ -117,6 +121,9 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
       return;
     }
     super.resourceLoop();
+    // Un joueur optimaliste peut executer deux passes economiques par decision
+    // (priorites d'atomes, chimie, boosts). Les autres profils gardent leur rythme.
+    if(p.bias().equals("doubleplan"))super.resourceLoop();
     if(p.bias().equals("prestige") && allowExtraPrestige(g) && g.canExplode())g.explode();
     if(p.bias().equals("auto")){g.setMoleculeAutomationEnabled(true);g.setAutoGatherEnabled(true);g.setAutoFormEnabled(true);}
   }
