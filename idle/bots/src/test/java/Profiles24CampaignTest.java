@@ -42,6 +42,17 @@ class Profiles24CampaignTest {
     }
 
     @Test
+    void profilsPrestigeEtEpargneNeSabotentPasLeCosmos() throws Exception {
+        Game g = late(42);
+        g.state().setBigBangs(8);
+        assertFalse(IdleProfiles24.allowExtraPrestige(g),
+                "Le huitieme Big Bang marque la fin des explosions supplementaires");
+        g.state().setBigBangs(5);
+        assertFalse(IdleProfiles24.allowExtraPrestige(g),
+                "Le ciel incomplet du sixieme Big Bang doit etre preserve");
+    }
+
+    @Test
     void tousLesProfilsProgressentDepuisLeDebut(@TempDir Path out) throws Exception {
         int visited = 0;
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
