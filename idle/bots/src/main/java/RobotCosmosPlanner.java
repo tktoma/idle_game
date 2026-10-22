@@ -56,9 +56,9 @@ public class RobotCosmosPlanner {
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
   static void atoms(Game g,int limit){FirstUniversePolicy.atoms(g,limit);}
   static void dark(Game g,int limit){FirstUniversePolicy.dark(g,limit);}
-  /** Réserve les 25 atomes nécessaires à Persistance, sans sacrifier le solde antérieur. */
+  /** Réserve les 25 atomes nécessaires à Persistance seulement après l'automatisation. */
   void prioritizePersistence(){
-    if(FirstUniversePolicy.needsPersistence(g)){
+    if(FirstUniversePolicy.readyForPersistence(g)){
       if(g.canBuy("atom_keep"))g.buy("atom_keep");
       if(FirstUniversePolicy.needsPersistence(g)){
         if(!persistenceReserveManaged){
@@ -69,7 +69,7 @@ public class RobotCosmosPlanner {
           g.setSynthesisReserve(g.costOf("atom_keep"));
       }
     }
-    if(!FirstUniversePolicy.needsPersistence(g) && persistenceReserveManaged){
+    if(!FirstUniversePolicy.readyForPersistence(g) && persistenceReserveManaged){
       // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser.
       if(g.synthesisReserve().equals(BigNum.of(25)))
         g.setSynthesisReserve(previousPersistenceReserve);
@@ -320,6 +320,7 @@ public class RobotCosmosPlanner {
     return false;
   }
   void resourceLoop(){
+    FirstUniversePolicy.bootstrapAutomations(g);
     prioritizePersistence();
     if(bangChallenges())return;
     logBigBangDiagnostic();
@@ -352,6 +353,8 @@ public class RobotCosmosPlanner {
       if(!finalMode)atoms(g,50);
       particle(g,200);
     }
+    FirstUniversePolicy.bootstrapAutomations(g);
+    prioritizePersistence();
     if(!FirstUniversePolicy.needsPersistence(g))for(Automation a:g.automations()){
       if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
       if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
@@ -373,6 +376,13 @@ public class RobotCosmosPlanner {
     // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
     // et 0 défi, et n'atteignait jamais son premier Big Bang (il en faut 40 et les 10 défis).
     hunt();
+    // La synthèse ciblée doit alimenter les recettes des astres, pas tirer au hasard
+    // pendant les dizaines d'heures où manque le même élément (modèle §8.3 et §15).
+    if(g.isTargetedSynthesisUnlocked()
+        && g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
+      ElementCategory need=FirstUniversePolicy.chemistryTarget(g);
+      if(need!=g.synthesisTarget())g.setSynthesisTarget(need);
+    }
     challenges();
     // Ne pas exploser avec une branche de densité incomplète : laisser les particules
     // croître jusqu'au coût astronomique du niveau 3.

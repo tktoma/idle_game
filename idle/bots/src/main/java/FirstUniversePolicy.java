@@ -39,10 +39,33 @@ final class FirstUniversePolicy {
                 && skyReady(game);
     }
 
-    /** L'achat unique de Persistance passe avant toute dépense d'atomes, automatisme compris. */
+    /** Persistance n'est rentable qu'après les automatismes qui accélèrent les fusions (modèle 0.123, §14.1). */
+    static boolean readyForPersistence(Game game) {
+        if (!needsPersistence(game)) return false;
+        // Ne pas pénaliser les sauvegardes avancées qui ont déjà dépassé cette phase.
+        if (game.bigBangs() > 0 || game.state().explosions() > 0) return true;
+        return game.ownsAutomation("auto_generator")
+                && game.ownsAutomation("auto_fusion")
+                && game.automationSpeedLevel("auto_generator") >= 2;
+    }
+
+    /** Garantit le générateur automatique, la fusion automatique et deux niveaux de cadence. */
+    static int bootstrapAutomations(Game game) {
+        if (!needsPersistence(game) || readyForPersistence(game)) return 0;
+        int bought = 0;
+        if (game.canBuyAutomation("auto_generator") && game.buyAutomation("auto_generator")) bought++;
+        if (game.canBuyAutomation("auto_fusion") && game.buyAutomation("auto_fusion")) bought++;
+        while (game.ownsAutomation("auto_generator")
+                && game.automationSpeedLevel("auto_generator") < 2
+                && game.canSpeedUpAutomation("auto_generator")
+                && game.speedUpAutomation("auto_generator")) bought++;
+        return bought;
+    }
+
+    /** Réserver Persistance seulement après l'amorçage des automatismes. */
     static int atoms(Game game, int limit) {
         int count = 0;
-        if (needsPersistence(game)) {
+        if (readyForPersistence(game)) {
             if (game.canBuy("atom_keep") && game.buy("atom_keep")) count++;
             if (needsPersistence(game)) return count;
         }
@@ -59,7 +82,22 @@ final class FirstUniversePolicy {
                     }
                 }
             }
-            // Priorités qui rendent la progression stable avant de financer les répétitions.
+            // Ouverture recommandée par le modèle : dédoublement, patience, masse,
+            // deuxième dédoublement, catalyseur, compression. Ensuite, acheter au prix.
+            if (choice == null && game.state().explosions() == 0 && game.bigBangs() == 0) {
+                String[] opening = {"atom_double", "atom_patience", "atom_mass",
+                        "atom_double", "atom_boost", "atom_discount"};
+                int[] minLevels = {1, 1, 1, 2, 1, 1};
+                for (int i = 0; i < opening.length; i++) {
+                    if (game.levelOf(opening[i]) >= minLevels[i]) continue;
+                    if (game.canBuy(opening[i])) {
+                        for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
+                            if (upgrade.id().equals(opening[i])) { choice = upgrade; break; }
+                        }
+                    }
+                    break; // préserver l'ordre ; si inaccessible, laisser acheter au prix.
+                }
+            }
             if (choice == null) {
                 for (String id : new String[]{"atom_double", "atom_mass", "atom_patience", "atom_boost",
                         "atom_discount", "atom_yield", "atom_bulk"}) {
@@ -147,15 +185,28 @@ final class FirstUniversePolicy {
      * éléments : pour un amas massif, elle n'approvisionne pas assez ses recettes.
      */
     static ElementCategory chemistryTarget(Game game) {
-        if (!game.isTargetedSynthesisUnlocked()) return null;
+        if (!game.isTargetedSynthesisUnlocked() || game.bigBangs() == 0) return null;
+        // Le document §15 confirme qu'une recette requiert chaque élément + 1.
+        // Approvisionner d'abord la première recette bloquée de la liste.
+        for (var item : game.shoppingList().items()) {
+            if (item.missing() <= 0 || !game.isMoleculeWithinReach(item.molecule().id())
+                    || game.hasElementsForMolecule(item.molecule().id())) continue;
+            ElementCategory scarce = scarceFamily(game, item.molecule());
+            if (scarce != null) return scarce;
+        }
         Molecule.State state = focusMatterState(game);
         if (state == null) return null;
         Molecule molecule = matterTarget(game, state);
         if (molecule == null) return null;
+        return scarceFamily(game, molecule);
+    }
+
+    private static ElementCategory scarceFamily(Game game, Molecule molecule) {
         ElementCategory category = null;
         double worstStock = Double.POSITIVE_INFINITY;
-        for (var e : molecule.recipe().entrySet()) {
-            // Les derniers exemplaires ne sont jamais consommés.
+        // nextMoleculeCost tient compte de la recette restante ; protéger le dernier exemplaire.
+        for (var e : game.nextMoleculeCost(molecule.id()).entrySet()) {
+            if (e.getValue() <= 0) continue;
             double supply = Math.max(0, game.elementCount(e.getKey()) - 1.0) / e.getValue();
             if (supply < worstStock) {
                 worstStock = supply;

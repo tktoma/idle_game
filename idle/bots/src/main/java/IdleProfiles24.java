@@ -132,7 +132,19 @@ nextActionAt+=actionInterval;
 if(rng.nextDouble()>=p.attention())continue;
 actions++;
 if(g.isCometVisible() && rng.nextDouble()<p.skyAttention())g.catchComet();
-if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention())for(int k=0;k<g.pulseCharges();k++)g.pulse();
+if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
+      int charges=g.pulseCharges();
+      for(int k=0;k<charges;k++){
+        // Pour les conditions 18/24/28 astres et les 35 astres de la galaxie,
+        // une minute de maturation gagne davantage qu'une impulsion d'espace.
+        boolean needsMaturation=g.bigBangs()>=5
+            && (g.bigBangs()<8 && !FirstUniversePolicy.skyReady(g)
+                || g.bigBangs()>=8 && g.bodiesMature()<35);
+        if(needsMaturation && !g.maturingBodies().isEmpty()){
+          if(!g.hastenMaturation(g.maturingBodies().get(0)))g.pulse();
+        }else g.pulse();
+      }
+    }
 if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
 probes();cosmos();resourceLoop();
 }
