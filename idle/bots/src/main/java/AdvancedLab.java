@@ -32,6 +32,13 @@ public class AdvancedLab extends RobotCosmosPlanner {
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
     events.add("wall_h,event,detail");
   }
+  @Override
+  boolean waitForPatientFusion(){
+    return mode.equals("EXPERT_COMPLET")
+        && !g.hasAchievement(idle.core.achievements.Achievements.PATIENT_FUSION)
+        && !g.inChallenge()
+        && g.state().timeSinceFusion()<idle.core.achievements.Achievements.PATIENT_SECONDS;
+  }
   boolean getsPlanning(){
     switch(mode){
       case "DEBUTANT_APPRENANT":return policyRandom.nextDouble()<Math.min(.95,.28+.10*(wall/3600));
@@ -61,12 +68,16 @@ public class AdvancedLab extends RobotCosmosPlanner {
        if(mode.equals("EXPERT_COMPLET")||mode.equals("DEPENDANCES")){cosmos();cosmos();}
        else if(mode.equals("ECONOMISTE")){cosmos();extraChemistry();}
        else if(mode.equals("SANS_LISTE")){
-         g.setMoleculeAutomationEnabled(true);for(Molecule m:g.molecules())if(g.canCreateMolecule(m.id())){g.createMolecule(m.id());break;}
+         // Le profil sans liste ne doit pas utiliser la liste automatiquement non plus.
+         g.setAutoFollowList(false);
+         if(g.isAutoFollowingMatter())g.setAutoFollowMatter(false);
+         g.setMoleculeAutomationEnabled(true);
+         for(Molecule m:g.molecules())if(g.canCreateMolecule(m.id())){g.createMolecule(m.id());break;}
          g.formAllSubstances();g.formAllAssemblies();g.formAllBodies();
        } else cosmos();
     }
     if(mode.equals("ECONOMISTE")){g.setAutoMoleculeReserve(0.25);}
-    if(mode.equals("PLAN_PRESTIGE")){resourceLoop();if(g.canExplode())g.explode();}
+    if(mode.equals("PLAN_PRESTIGE")){resourceLoop();if(g.canExplode() && !FirstUniversePolicy.holdExplosions(g))g.explode();}
     else if(mode.equals("DEBUTANT_APPRENANT")){if(policyRandom.nextDouble()<Math.min(1,.35+wall/144000))resourceLoop();}
     else if(mode.equals("EXPERT_COMPLET")){resourceLoop();resourceLoop();}
     else if(mode.equals("RECUPERATION")){resourceLoop();if(wall-lastMilestone>3600){cosmos();extraChemistry();}}

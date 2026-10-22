@@ -23,7 +23,7 @@ Le contenu des `donnees/`, `sauvegardes/`, `docs/` et `scripts_originals/` est i
 - **Les bots suivent le jeu.** `run.py` recompile le moteur depuis `idle/core/src/main/java` dès qu'une source a changé. Une modification du jeu est donc prise en compte au lancement suivant.
 - **Un test à chaque envoi.** `BotsTest` (dans `src/test/java`) tourne avec les autres tests du projet (`./gradlew toutTester`, et l'action GitHub). Il vérifie quatre choses :
   - les bots compilent contre le moteur actuel ;
-  - les 32 sauvegardes se relisent ;
+  - les 33 sauvegardes se relisent ;
   - les 24 sauvegardes de victoire sont toujours des victoires ;
   - les bots V2, les 24 profils et les profils de début tournent quelques minutes sans planter.
 
@@ -62,7 +62,7 @@ Avec Gradle, depuis `idle/` :
 | `src/main/java/` | Les 13 bots compilés. `AdvancedLab` contient les 12 politiques V2, `IdleProfiles24` les 24 profils de fin de partie et `FreshPhaseProfiles` les mêmes profils depuis une partie neuve. Il y a aussi `CorrectedCoach`, les audits (`DependencyAudit`, `EconomyAudit`, `DiagnoseState`), `OfflineBenchmark`, `RescueBench`, `RecreateLosers`, `RobotPhase3` et `VerifyVictory`. |
 | `src/test/java/` | `BotsTest` : la vérification de cohérence avec le jeu. |
 | `historique/` | Une trentaine d'anciens robots et sondes, écrits pour d'anciennes versions du jeu. Ils sont gardés pour mémoire et ne sont **pas compilés** : leur API n'est plus garantie. Pour en relancer un, il faut le copier dans `src/main/java` et l'adapter. |
-| `sauvegardes/` | `reference/` : 6 points de départ, dont la partie à 7 Big Bangs. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties. `victoires_historiques/` : les 21 victoires. |
+| `sauvegardes/` | `reference/` : 7 points de départ, dont la partie à 7 Big Bangs et une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201). `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties. `victoires_historiques/` : les 21 victoires. |
 | `donnees/` | Les CSV bruts des campagnes, sans retraitement. |
 | `docs/` | Le rapport consolidé (PDF et Word), le rapport du laboratoire V2, les synthèses, 25 graphiques et 3 classeurs Excel. |
 | `scripts_originals/` | Les scripts Python et shell d'origine. Ils sont gardés pour mémoire et pointent vers les anciens dossiers `/mnt/data/...` ; `run.py` les remplace. |
@@ -94,6 +94,54 @@ Résultats depuis la partie à 7 Big Bangs, graine 42, horizon 14 jours :
 
 Le correctif 2 a un revers : il montre qu'un joueur qui laisse la création automatique sur « suivre la liste » reste lent. Le jeu ne lui crée pas la matière des astres et du cosmos. Seul celui qui choisit lui-même ses amas avance seul.
 
+## Les bots partis de zéro suivent le modèle 0.123 (22 octobre 2026)
+
+Le document « Idle : modèle mathématique du jeu pour les bots » (version 0.123) donne l'ordre d'achat
+mesuré le meilleur et les pièges d'un bot. Deux écarts empêchaient les bots partis de zéro de finir l'univers.
+
+1. **Acte 1 : la synthèse attendait Persistance** (§4, §14.1, §14.2). Le tableau s'ouvrait vers 3 h 10, mais
+   rien ne se synthétisait avant 4 h 30 ; ensuite les atomes partaient dans la Surcharge. `FirstUniversePolicy`
+   suit maintenant l'ordre du §14.1 (`OPENING` : Dédoublement, Patience, Masse, Dédoublement 2, Catalyseur,
+   Compression, automatismes générateurs et fusion, deux cadences des générateurs, Persistance, automatisme
+   de vitesse, cadence de la fusion, 3e cadence des générateurs, Rendement), synthétise dès l'ouverture du
+   tableau en gardant les atomes de la prochaine étape, pèse chaque amélioration répétable contre une synthèse
+   et limite la Surcharge à 13 niveaux sous le plafond.
+2. **Acte 3 : le tableau était vidé en permanence** (§8.3, §15). Après le 5e Big Bang, le bot et l'explosion
+   automatique explosaient environ 450 fois toutes les 10 minutes. Chaque explosion efface les éléments que
+   les molécules consomment : le carbone ne dépassait pas 6 exemplaires, le Bitume (C14H10, 14 carbones)
+   ne se créait pas, et le ciel restait à 3 astres mûrs plus de 7 h. `FirstUniversePolicy.holdExplosions`
+   suspend les explosions (et `dark_auto_explosion`) tant que la matière noire en main suffit au Big Bang et
+   que la liste de courses demande des molécules.
+
+Partie neuve, graine 200 + id, une décision toutes les 20 s, moteur de `master` au 22 octobre :
+
+| Étape | Document (bot 0.123) | Profil 1 avant | Profil 1 après | Profil 2 après |
+|---|---|---|---|---|
+| Première explosion | 5 h 12 | 7 h 00 | 6 h 20 | |
+| Premier Big Bang | 11 h 10 | 11 h 30 | 10 h 30 | |
+| 5e Big Bang | 13 h 54 | vers 13 h | 12 h 00 | |
+| 8e Big Bang | 18 h 38 | jamais (5 BB, 3 astres à 21 h) | 13 h 52 | 14 h 36 |
+| Univers formé | 27 h 02 | jamais | **16 h 26** | **17 h 37** |
+
+`FreshUniverseAudit` sur 10 des 24 profils, partie neuve, plafond de 168 h réelles (22 octobre 2026) :
+
+| Profil | Verdict | Univers formé (heures réelles) |
+|---|---|---|
+| 1 Speedrunner | WIN | 16 h 26 |
+| 2 Vétéran | WIN | 17 h 37 |
+| 3 Régulier | WIN | 25 h 49 |
+| 5 Chasseur de succès | WIN | 24 h 49 |
+| 11 Fan de prestige | WIN | 22 h 36 |
+| 12 Avare | WIN | 77 h 26 |
+| 16 Débutant | WIN | 90 h 06 |
+| 24 Expert intermittent | WIN | 153 h 00 (75 h de jeu) |
+| 21 Joueur du soir | LIMIT | galaxie formée, 8 Big Bangs, 35 astres à 168 h (14 h en ligne) |
+| 17 AFK jeu ouvert | LIMIT | aucun Big Bang : une visite par heure ne permet qu'une fusion par visite |
+
+Le profil 17 bute sur la règle du jeu plus que sur sa politique : sans automatisme avant 30 atomes créés, une
+fusion par visite horaire demande environ 88 h pour ouvrir le tableau ; l'explosion efface ensuite les
+automatismes, et 0,8 matière noire ne paie ni « Départ lancé » (2) ni les automatismes offerts (3).
+
 ## Les bots partis de zéro : succès et défis (0.86)
 
 Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :
@@ -105,7 +153,7 @@ Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 
 
 Résultat, bot V2 `DEPENDANCES` depuis une partie neuve : 44 succès et les 10 défis vers 11 h de jeu.
 
-**Ce qui reste :** sa production plafonne vers 1e63 par seconde, et le premier Big Bang en demande 1e32000. Depuis zéro, le bot n'atteint donc toujours pas le premier Big Bang ; il faudrait une vraie stratégie de l'arbre et des explosions. Les durées de fin de partie, depuis la partie à 7 Big Bangs, ne bougent pas : 6 h 42 pour le bot V2, 6 h 53 pour le profil 1.
+**Ce qui restait (dépassé au 22 octobre 2026, voir plus haut) :** sa production plafonne vers 1e63 par seconde, et le premier Big Bang en demande 1e32000. Depuis zéro, le bot n'atteint donc toujours pas le premier Big Bang ; il faudrait une vraie stratégie de l'arbre et des explosions. Les durées de fin de partie, depuis la partie à 7 Big Bangs, ne bougent pas : 6 h 42 pour le bot V2, 6 h 53 pour le profil 1.
 
 ## Former l'univers remet tout à zéro (0.83)
 

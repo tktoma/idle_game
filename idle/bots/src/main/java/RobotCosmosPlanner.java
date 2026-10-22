@@ -23,6 +23,13 @@ public class RobotCosmosPlanner {
   boolean abandoned=false;
   /** Vrai quand c'est le robot qui a coupé la fusion et la synthèse automatiques (avant un Big Bang) : il les rallume ensuite. */
   boolean fusionPausedByRobot=false;
+  boolean patiencePausedByRobot=false;
+  boolean persistenceReserveManaged=false;
+  BigNum previousPersistenceReserve=BigNum.ZERO;
+  /** La variante experte sait quand différer volontairement une fusion. */
+  boolean waitForPatientFusion(){return false;}
+  /** Certains profils veulent volontairement éviter l'usage d'une fonctionnalité. */
+  boolean useBangChallenges(){return true;}
   /** Durée de l'absence en cours, en secondes réelles : le jeu n'en rejoue que {@link Absence#MAX_SECONDS} au plus. */
   double awaySeconds=0;
 
@@ -47,30 +54,30 @@ public class RobotCosmosPlanner {
   static int cosmosStage(Game g){return g.hasCosmos(Cosmos.UNIVERSE)?Cosmos.values().length:g.cosmosFormed();}
   RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;prevBangs=g.bigBangs();csv.add("total_hours,bigbangs,explosions,challenges,achievements,elements,molecules,substances,assemblies,bodies,mature,systems,cosmos,space,freeSpace,spaceRate,shopping");}
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
-  static void atoms(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.ATOMS))if(!u.id().equals("atom_keep") && g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
-  /**
-   * La condition Big Bang vérifie la réserve DISPONIBLE, pas la matière noire totale gagnée.
-   * Dès que les défis et les succès sont acquis, arrêter les dépenses qui compromettraient 500.
-   */
-  static void dark(Game g,int limit){
-    boolean bankForBang=g.bigBangs()<8 && g.completedChallenges()==g.challenges().size()
-            && g.achievementCount()>=40;
-    for(int i=0;i<limit;i++){
-      boolean bought=false;
-      for(DarkUpgrade u:g.darkUpgrades()){
-        if(!g.canBuyDark(u.id()))continue;
-        boolean costsDark=u.branch()==DarkUpgrade.Branch.DARK_MATTER || u.isLink();
-        if(costsDark){
-          BigNum held=g.state().darkMatter();
-          BigNum cost=g.darkCostOf(u.id());
-          if(!DarkMatterReservePolicy.allowPurchase(bankForBang, held, cost, Game.BIG_BANG_DARK_MATTER)) continue;
-          if(!bankForBang && g.darkLevelOf("dark_density")>=3 && held.lt(BigNum.of(700)))continue;
+  static void atoms(Game g,int limit){FirstUniversePolicy.atoms(g,limit);}
+  static void dark(Game g,int limit){FirstUniversePolicy.dark(g,limit);}
+  /** Réserve les 25 atomes nécessaires à Persistance seulement après l'automatisation. */
+  void prioritizePersistence(){
+    if(FirstUniversePolicy.readyForPersistence(g)){
+      if(g.canBuy("atom_keep"))g.buy("atom_keep");
+      if(FirstUniversePolicy.needsPersistence(g)){
+        if(!persistenceReserveManaged){
+          previousPersistenceReserve=g.synthesisReserve();
+          persistenceReserveManaged=true;
         }
-        if(g.buyDark(u.id())){bought=true;break;}
+        if(g.synthesisReserve().lt(g.costOf("atom_keep")))
+          g.setSynthesisReserve(g.costOf("atom_keep"));
       }
-      if(!bought)break;
+    }
+    if(!FirstUniversePolicy.readyForPersistence(g) && persistenceReserveManaged){
+      // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser.
+      if(g.synthesisReserve().equals(BigNum.of(25)))
+        g.setSynthesisReserve(previousPersistenceReserve);
+      persistenceReserveManaged=false;
     }
   }
+  /** La préparation d'un Big Bang ne doit pas stopper la chimie avant les 18/24/28 astres mûrs. */
+  static boolean skyReadyForNextBigBang(Game g){return FirstUniversePolicy.skyReady(g);}
   void collider(){
     if(!g.isColliderUnlocked())return;
     for(int i=0;i<70;i++){
@@ -87,12 +94,42 @@ public class RobotCosmosPlanner {
     }
     if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
   }
-  void probes(){if(!g.isProbesUnlocked())return;
+  /** Exploite les retours de sondes avant d'engager les prochaines missions.
+   * L'onde chimique d'urgence est particulièrement utile quand un astre attend des éléments.
+   */
+  void probes(){
+    if(!g.isProbesUnlocked())return;
     for(Probe p:new ArrayList<>(g.landedProbes()))g.claimAllProbeRewards(p.id());
-    for(ProbeUpgrade u:ProbeUpgrade.values())if(g.canBuyProbeUpgrade(u))g.buyProbeUpgrade(u);
-    for(ProbeDestination d:ProbeDestination.values()){
-       if(g.canLaunchProbe(d,ProbeTrip.SHORT))g.launchProbe(d,ProbeTrip.SHORT);
+    for(ProbeUpgrade u:ProbeUpgrade.values()){
+      while(g.canBuyProbeUpgrade(u))g.buyProbeUpgrade(u);
     }
+    // Priorité au dépannage des éléments manquants pour la construction du ciel.
+    if(g.canLaunchUrgentWave() && !g.shoppingList().items().isEmpty())g.launchUrgentWave();
+    // Quand il reste des places, cibler les rayons dont les recettes demandées
+    // utilisent les éléments rapportés. Les sondes partent seulement si leur destination est ouverte.
+    java.util.Map<Integer,Integer> shortages=new HashMap<>();
+    for(ShoppingList.Item item:g.shoppingList().items()){
+      if(item.missing()<=0)continue;
+      for(Integer z:item.molecule().recipe().keySet())
+        shortages.merge(z,item.missing(),Integer::sum);
+    }
+    java.util.List<ProbeDestination> targets=new ArrayList<>();
+    for(ProbeDestination destination:ProbeDestination.values())
+      if(g.isProbeDestinationOpen(destination))targets.add(destination);
+    targets.sort((a,b)->Integer.compare(probePriority(b,shortages),probePriority(a,shortages)));
+    // La matière des astres/du cosmos demande des réapprovisionnements fréquents :
+    // les sauts courts restent utiles ; les longs voyages servent quand la liste est vide.
+    ProbeTrip trip=!g.shoppingList().matter().isEmpty() || !g.shoppingList().items().isEmpty()
+        ? ProbeTrip.SHORT : (g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT);
+    for(ProbeDestination destination:targets){
+      if(g.canLaunchProbe(destination,trip))g.launchProbe(destination,trip);
+    }
+  }
+  int probePriority(ProbeDestination destination,Map<Integer,Integer> shortage){
+    int score=0;
+    for(Integer element:g.probeElements(destination))
+      score+=shortage.getOrDefault(element,0);
+    return score;
   }
   void systems(){
      if(!g.isSolarSystemsUnlocked())return;
@@ -154,15 +191,12 @@ public class RobotCosmosPlanner {
     // Cela évite de mélanger les deux politiques pendant les tests A/B.
     if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
-    // La liste du jeu donne ce qui MANQUE dans chaque état (rien n'y figure quand l'état est complet).
+    // Les cinq états ont des exigences indépendantes pour le cosmos.
+    // Leurs automatismes doivent progresser simultanément : le ciblage
+    // d'un état unique sous-utilisait les matières disponibles.
     for(var need:g.shoppingList().matter().entrySet()){
       if(need.getValue()<=0)continue;
-      Molecule best=null;double min=Double.POSITIVE_INFINITY;
-      for(Molecule m:g.molecules()){
-        if(!m.hasState()||m.state()!=need.getKey()||!g.hasSubstance(m.id()))continue;
-        double v=g.moleculeVolume(m.id()).toDouble();
-        if(v<min){best=m;min=v;}
-      }
+      Molecule best=FirstUniversePolicy.matterTarget(g,need.getKey());
       if(best!=null&&g.setMoleculeAutomated(best.id(),true))chosen.add(best.id());
     }
     for(String id:new ArrayList<>(g.state().automatedMolecules()))if(!chosen.contains(id))g.setMoleculeAutomated(id,false);
@@ -179,7 +213,8 @@ public class RobotCosmosPlanner {
     // Maintenant, comme un joueur avisé : pour chaque état dont le prochain pas demande de la matière, l'amas
     // rassemblé le moins encombrant est confié à la création automatique (les autres lui sont retirés), et la
     // création automatique ne tourne que tant qu'il y a de la matière à réunir. La réserve d'espace reste de 10 %.
-    g.setMoleculeAutomationEnabled(automateMatter() || g.isAutoFollowingMatter());
+    automateMatter();
+    g.setMoleculeAutomationEnabled(true);
     g.setAutoGatherEnabled(true);
     g.setAutoFormEnabled(true);
     for(int i=0;i<5;i++){
@@ -212,7 +247,10 @@ public class RobotCosmosPlanner {
          if(g.canFormSubstance(m.id())){g.formSubstance(m.id());left--;}
        }
     }
+    // La synthèse et la fabrication de gaz ne doivent pas affamer les
+    // quatre autres états. Répartir les achats manuels à chaque décision.
     for(var e:wish.matter().entrySet()){
+      if(e.getValue()<=0)continue;
       long target=g.gatheredInState(e.getKey())+e.getValue(); // shoppingList.matter contient le MANQUE, pas le seuil absolu
       Molecule choice=null;double min=Double.POSITIVE_INFINITY;
       for(Molecule m:g.molecules())if(m.hasState()&&m.state()==e.getKey()&&g.hasSubstance(m.id())&&g.canCreateMolecule(m.id())){
@@ -267,28 +305,92 @@ public class RobotCosmosPlanner {
       g.isBigBangConditionMet(BigBangCondition.ATOMS),
       g.completedChallenges(),g.achievementCount());
   }
+  /** Les trois défis de Big Bang se tentent sur les passages 6, 7 et 8,
+   * après le ciel mais avant de sacrifier une partie déjà prête à Big Bang. */
+  boolean bangChallenges(){
+    if(!useBangChallenges() || g.bigBangs()<Game.BANG_CHALLENGES_BIG_BANGS
+        || g.bigBangs()>=8 || !skyReadyForNextBigBang(g)
+        || g.completedChallenges()<g.challenges().size()
+        || g.achievementCount()<Game.BIG_BANG_ACHIEVEMENTS
+        || g.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)
+        || !g.canStartBangChallenge() || g.canBigBang())return false;
+    for(BangChallenge challenge:g.bangChallenges()){
+      if(!g.isBangChallengeCompleted(challenge) && g.startBangChallenge(challenge))return true;
+    }
+    return false;
+  }
   void resourceLoop(){
+    FirstUniversePolicy.bootstrapAutomations(g);
+    prioritizePersistence();
+    if(bangChallenges())return;
     logBigBangDiagnostic();
     g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
-    boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.isBigBangConditionMet(BigBangCondition.PARTICLES);
+    boolean finalMode=FirstUniversePolicy.finalBangPreparation(g);
     boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
-    if(stopFusion){g.setAutomationEnabled("auto_fusion",false);g.setAutomationEnabled("auto_synthesis",false);fusionPausedByRobot=true;}
-    else if(fusionPausedByRobot){
-      // Correctif du 19/10/2026 : après le Big Bang, la fusion et la synthèse coupées pour le préparer restaient
-      // coupées pour toujours (d'où les profils 11, 12 et 17 bloqués). Le robot les rallume dès qu'il n'en a plus besoin.
-      g.setAutomationEnabled("auto_fusion",true);g.setAutomationEnabled("auto_synthesis",true);fusionPausedByRobot=false;
+    boolean patientWait=waitForPatientFusion() && !stopFusion;
+    if(stopFusion){
+      g.setAutomationEnabled("auto_fusion",false);
+      g.setAutomationEnabled("auto_synthesis",false);
+      fusionPausedByRobot=true;
+    }else if(fusionPausedByRobot){
+      g.setAutomationEnabled("auto_fusion",true);
+      g.setAutomationEnabled("auto_synthesis",true);
+      fusionPausedByRobot=false;
     }
-    for(int i=0;i<5 && !stopFusion && g.canFuse();i++){g.fuse();if(!finalMode)atoms(g,50);particle(g,200);}
-    for(Automation a:g.automations()){if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());}
+    if(patientWait){
+      if(g.isAutomationEnabled("auto_fusion")){
+        g.setAutomationEnabled("auto_fusion",false);
+        patiencePausedByRobot=true;
+      }
+    }else if(patiencePausedByRobot){
+      g.setAutomationEnabled("auto_fusion",true);
+      patiencePausedByRobot=false;
+    }
+    for(int i=0;i<5 && !stopFusion && !patientWait && g.canFuse();i++){
+      g.fuse();
+      prioritizePersistence();
+      if(!finalMode)atoms(g,50);
+      particle(g,200);
+    }
+    FirstUniversePolicy.bootstrapAutomations(g);
+    prioritizePersistence();
+    // Les automatismes et cadences hors de l'ordre du §14.1 viennent après lui (« ensuite le moins cher »).
+    if(FirstUniversePolicy.openingDone(g))for(Automation a:g.automations()){
+      if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
+      if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
+    }
+    if(patientWait && g.isAutomationEnabled("auto_fusion")){
+      g.setAutomationEnabled("auto_fusion",false);
+      patiencePausedByRobot=true;
+    }
     if(!finalMode)atoms(g,60);
-    for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
+    // Modèle 0.123 §4 et §14.2 : synthétiser dès l'ouverture du tableau, en gardant seulement les atomes
+    // de la prochaine étape de l'ouverture. Avant, rien ne se synthétisait jusqu'à Persistance :
+    // le tableau restait vide de 3 h 10 à 4 h 30 et la première explosion venait à 7 h au lieu de 5 h 12.
+    if(!finalMode)FirstUniversePolicy.synthesize(g,20);
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
+    // Les automatismes sombres ouverts gratuitement doivent rester actifs,
+    // sauf si le mode « à la main » du défi de Big Bang interdit leur action.
+    boolean hold=FirstUniversePolicy.holdExplosions(g);
+    for(DarkAutomation automation:g.darkAutomations()){
+      if(!g.isDarkAutomationUnlocked(automation.id()) || g.isHandOnly())continue;
+      // §15 : couper l'explosion automatique tant que les molécules du ciel ont besoin des éléments.
+      boolean wanted=!(hold && automation.kind()==DarkAutomation.Kind.EXPLOSION);
+      if(g.isDarkAutomationEnabled(automation.id())!=wanted)g.setDarkAutomationEnabled(automation.id(),wanted);
+    }
     // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
     // et 0 défi, et n'atteignait jamais son premier Big Bang (il en faut 40 et les 10 défis).
     hunt();
+    // La synthèse ciblée doit alimenter les recettes des astres, pas tirer au hasard
+    // pendant les dizaines d'heures où manque le même élément (modèle §8.3 et §15).
+    if(g.isTargetedSynthesisUnlocked()
+        && g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
+      var need=FirstUniversePolicy.chemistryTarget(g);
+      if(need!=g.synthesisTarget())g.setSynthesisTarget(need);
+    }
     challenges();
     // Ne pas exploser avec une branche de densité incomplète : laisser les particules
     // croître jusqu'au coût astronomique du niveau 3.
@@ -296,9 +398,10 @@ public class RobotCosmosPlanner {
     // les atomes des cases chères de l'arbre (Densité…) : sa production plafonnait vers 1e45. Il laisse maintenant
     // grandir la partie tant qu'une case de l'arbre, ouverte mais trop chère, peut le devenir, au plus 20 minutes.
     boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER) && waitsForTree();
-    if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity)))g.explode();
+    if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity && !hold)))g.explode();
     if(g.canBigBang() && (g.bigBangs()<6 || (g.bigBangs()<8 && g.bodiesMature()>=g.bigBangSkyRequirement()))){
-        double current=elapsed/3600;
+        // Temps de jeu : « elapsed » n'avance pas quand un profil pilote lui-même la boucle (IdleProfiles24).
+        double current=g.state().timePlayed()/3600;
         int old=g.bigBangs();
         if(g.bigBang()){System.out.printf("BIGBANG_DONE,%.4f,%d,%d%n",current,old,g.bigBangs());abandoned=true;}
     }
@@ -356,6 +459,8 @@ public class RobotCosmosPlanner {
       return;
     }
     challengeStart=-1;
+    // Les défis effacent le tableau. Finir les astres de ce Big Bang avant de recommencer.
+    if(!skyReadyForNextBigBang(g))return;
     if(g.completedChallenges()>=g.challenges().size() || g.state().explosions()<10)return;
     for(Challenge c:g.challenges()){
       if(!g.isChallengeUnlocked(c.id()) || g.isChallengeCompleted(c.id()))continue;
@@ -371,7 +476,7 @@ public class RobotCosmosPlanner {
    */
   void hunt(){
     if(!g.hasAchievement(Achievements.HOLD_LOCK) && g.isHoldLockUnlocked())g.setHoldLocked(true);
-    if(!g.hasAchievement("step_keep") && g.canBuy("atom_keep"))g.buy("atom_keep");
+    prioritizePersistence();
     if(g.isTargetedSynthesisUnlocked()){
       boolean wantActinide=!g.hasAchievement(Achievements.TARGETED_ACTINIDE);
       if(wantActinide && g.synthesisTarget()!=idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(idle.core.elements.ElementCategory.ACTINIDE);

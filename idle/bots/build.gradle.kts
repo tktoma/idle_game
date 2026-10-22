@@ -37,6 +37,32 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Conserver le bilan des 24 profils dans les journaux GitHub Actions,
+    // même lorsque tous les tests sont verts : les succès et les blocages
+    // doivent rester consultables, et pas seulement le nombre de tests.
+    testLogging {
+        showStandardStreams = true
+    }
+    // Les campagnes restent exécutées en totalité avec ':bots:test' en local.
+    // En CI, le job général exécute les autres tests et les campagnes tournent
+    // dans quatre JVM indépendantes sur quatre runners (sans état partagé).
+    if (providers.gradleProperty("ciWithoutProfiles").orNull == "true") {
+        exclude("**/Profiles24CampaignTest.class", "**/Profiles24LongCampaignTest.class")
+    }
+    val profileStart = providers.gradleProperty("ciProfilesStart").orNull
+    val profileEnd = providers.gradleProperty("ciProfilesEnd").orNull
+    check((profileStart == null) == (profileEnd == null)) {
+        "Un segment de profils doit avoir une borne de début et de fin"
+    }
+    if (profileStart != null) {
+        val first = profileStart.toInt()
+        val last = profileEnd!!.toInt()
+        require(first in 1..24 && last in first..24) {
+            "Segment de profils invalide : $first-$last"
+        }
+        systemProperty("idle.testProfilesStart", first)
+        systemProperty("idle.testProfilesEnd", last)
+    }
     // Les bots lisent leurs sauvegardes et écrivent leurs sorties en chemins relatifs à ce dossier.
     workingDir = projectDir
 }
