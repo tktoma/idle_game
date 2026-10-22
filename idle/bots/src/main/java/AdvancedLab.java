@@ -77,7 +77,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
        } else cosmos();
     }
     if(mode.equals("ECONOMISTE")){g.setAutoMoleculeReserve(0.25);}
-    if(mode.equals("PLAN_PRESTIGE")){resourceLoop();if(g.canExplode())g.explode();}
+    if(mode.equals("PLAN_PRESTIGE")){resourceLoop();if(g.canExplode() && !FirstUniversePolicy.holdExplosions(g))g.explode();}
     else if(mode.equals("DEBUTANT_APPRENANT")){if(policyRandom.nextDouble()<Math.min(1,.35+wall/144000))resourceLoop();}
     else if(mode.equals("EXPERT_COMPLET")){resourceLoop();resourceLoop();}
     else if(mode.equals("RECUPERATION")){resourceLoop();if(wall-lastMilestone>3600){cosmos();extraChemistry();}}

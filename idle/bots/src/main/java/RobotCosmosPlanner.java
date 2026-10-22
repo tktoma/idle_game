@@ -355,7 +355,8 @@ public class RobotCosmosPlanner {
     }
     FirstUniversePolicy.bootstrapAutomations(g);
     prioritizePersistence();
-    if(!FirstUniversePolicy.needsPersistence(g))for(Automation a:g.automations()){
+    // Les automatismes et cadences hors de l'ordre du §14.1 viennent après lui (« ensuite le moins cher »).
+    if(FirstUniversePolicy.openingDone(g))for(Automation a:g.automations()){
       if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
       if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
     }
@@ -364,15 +365,21 @@ public class RobotCosmosPlanner {
       patiencePausedByRobot=true;
     }
     if(!finalMode)atoms(g,60);
-    if(!FirstUniversePolicy.needsPersistence(g))
-      for(int i=0;i<20 && !finalMode && g.canSynthesize();i++)g.synthesize();
+    // Modèle 0.123 §4 et §14.2 : synthétiser dès l'ouverture du tableau, en gardant seulement les atomes
+    // de la prochaine étape de l'ouverture. Avant, rien ne se synthétisait jusqu'à Persistance :
+    // le tableau restait vide de 3 h 10 à 4 h 30 et la première explosion venait à 7 h au lieu de 5 h 12.
+    if(!finalMode)FirstUniversePolicy.synthesize(g,20);
     if(g.state().explosions()>0)g.growDarkMatter(step);
     dark(g,50);
     // Les automatismes sombres ouverts gratuitement doivent rester actifs,
     // sauf si le mode « à la main » du défi de Big Bang interdit leur action.
-    for(DarkAutomation automation:g.darkAutomations())
-      if(g.isDarkAutomationUnlocked(automation.id()) && !g.isDarkAutomationEnabled(automation.id())
-          && !g.isHandOnly())g.setDarkAutomationEnabled(automation.id(),true);
+    boolean hold=FirstUniversePolicy.holdExplosions(g);
+    for(DarkAutomation automation:g.darkAutomations()){
+      if(!g.isDarkAutomationUnlocked(automation.id()) || g.isHandOnly())continue;
+      // §15 : couper l'explosion automatique tant que les molécules du ciel ont besoin des éléments.
+      boolean wanted=!(hold && automation.kind()==DarkAutomation.Kind.EXPLOSION);
+      if(g.isDarkAutomationEnabled(automation.id())!=wanted)g.setDarkAutomationEnabled(automation.id(),wanted);
+    }
     // Les succès et les défis (correctif du 19/10/2026, 0.86) : sans eux, un bot parti de zéro restait à 37 succès
     // et 0 défi, et n'atteignait jamais son premier Big Bang (il en faut 40 et les 10 défis).
     hunt();
@@ -390,9 +397,10 @@ public class RobotCosmosPlanner {
     // les atomes des cases chères de l'arbre (Densité…) : sa production plafonnait vers 1e45. Il laisse maintenant
     // grandir la partie tant qu'une case de l'arbre, ouverte mais trop chère, peut le devenir, au plus 20 minutes.
     boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER) && waitsForTree();
-    if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity)))g.explode();
+    if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity && !hold)))g.explode();
     if(g.canBigBang() && (g.bigBangs()<6 || (g.bigBangs()<8 && g.bodiesMature()>=g.bigBangSkyRequirement()))){
-        double current=elapsed/3600;
+        // Temps de jeu : « elapsed » n'avance pas quand un profil pilote lui-même la boucle (IdleProfiles24).
+        double current=g.state().timePlayed()/3600;
         int old=g.bigBangs();
         if(g.bigBang()){System.out.printf("BIGBANG_DONE,%.4f,%d,%d%n",current,old,g.bigBangs());abandoned=true;}
     }

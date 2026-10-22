@@ -60,6 +60,7 @@ static boolean allowExtraPrestige(Game game){
 return game.bigBangs()<8
 && !game.canBigBang()
 && !FirstUniversePolicy.finalBangPreparation(game)
+&& !FirstUniversePolicy.holdExplosions(game)
 && FirstUniversePolicy.skyReady(game)
 && !game.inChallenge()
 && game.activeBangChallenge()==null;

@@ -39,6 +39,24 @@ final class FirstUniversePolicy {
                 && skyReady(game);
     }
 
+    /**
+     * Modèle 0.123, §8.3 et §15 : au troisième acte, les molécules consomment les exemplaires des éléments, et
+     * chaque explosion efface tout le tableau. Le bot (et l'explosion automatique) explosait encore plusieurs fois
+     * par seconde après le 5e Big Bang : le carbone ne dépassait jamais 6 exemplaires, le Bitume (C14H10) ne se
+     * créait pas, et le ciel restait à 3 astres mûrs pendant plus de 7 h. On n'explose donc plus tant que la
+     * matière noire en main suffit au Big Bang et que le prochain pas du ciel ou du cosmos demande des molécules.
+     */
+    static boolean holdExplosions(Game game) {
+        if (game.bigBangs() == 0 || game.inChallenge()) return false;
+        if (game.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)) return false;
+        var list = game.shoppingList();
+        for (var item : list.items())
+            if (item.missing() > 0 || item.gather()) return true;
+        for (var need : list.matter().values()) if (need > 0) return true;
+        for (var need : list.sorts().values()) if (need > 0) return true;
+        return false;
+    }
+
     /** Persistance n'est rentable qu'après les automatismes qui accélèrent les fusions (modèle 0.123, §14.1). */
     static boolean readyForPersistence(Game game) {
         if (!needsPersistence(game)) return false;
@@ -62,7 +80,108 @@ final class FirstUniversePolicy {
         return bought;
     }
 
-    /** Réserver Persistance seulement après l'amorçage des automatismes. */
+    /** Une étape de l'ordre d'ouverture : niveau d'amélioration, automatisme possédé ou niveau de cadence. */
+    record Step(Kind kind, String id, int level) {
+        enum Kind { UPGRADE, AUTOMATION, CADENCE }
+    }
+
+    /**
+     * L'ordre d'achat en atomes « mesuré le meilleur » (modèle 0.123, §14.1) : Dédoublement, Patience,
+     * Masse atomique, Dédoublement 2, Catalyseur, Compression ; puis automatismes générateurs et fusion,
+     * deux niveaux de cadence des générateurs, Persistance, automatisme de vitesse, cadence de la
+     * fusion, 3e cadence des générateurs, Rendement. Ensuite seulement, le moins cher.
+     */
+    static final Step[] OPENING = {
+            new Step(Step.Kind.UPGRADE, "atom_double", 1),
+            new Step(Step.Kind.UPGRADE, "atom_patience", 1),
+            new Step(Step.Kind.UPGRADE, "atom_mass", 1),
+            new Step(Step.Kind.UPGRADE, "atom_double", 2),
+            new Step(Step.Kind.UPGRADE, "atom_boost", 1),
+            new Step(Step.Kind.UPGRADE, "atom_discount", 1),
+            new Step(Step.Kind.AUTOMATION, "auto_generator", 1),
+            new Step(Step.Kind.AUTOMATION, "auto_fusion", 1),
+            new Step(Step.Kind.CADENCE, "auto_generator", 2),
+            new Step(Step.Kind.UPGRADE, "atom_keep", 1),
+            new Step(Step.Kind.AUTOMATION, "auto_speed", 1),
+            new Step(Step.Kind.CADENCE, "auto_fusion", 1),
+            new Step(Step.Kind.CADENCE, "auto_generator", 3),
+            new Step(Step.Kind.UPGRADE, "atom_yield", 1),
+    };
+
+    static boolean done(Game game, Step step) {
+        return switch (step.kind()) {
+            case UPGRADE -> game.levelOf(step.id()) >= step.level() || game.isMaxed(step.id());
+            case AUTOMATION -> game.ownsAutomation(step.id());
+            case CADENCE -> game.automationSpeedLevel(step.id()) >= step.level()
+                    || (game.ownsAutomation(step.id()) && game.isAutomationMaxed(step.id()));
+        };
+    }
+
+    /** Prix de l'étape, ou {@code null} tant qu'elle n'est pas encore ouverte (automatismes avant 30 atomes créés). */
+    static BigNum costOf(Game game, Step step) {
+        return switch (step.kind()) {
+            case UPGRADE -> game.costOf(step.id());
+            case AUTOMATION -> {
+                if (!game.isAutomationAvailable(step.id())) yield null;
+                for (idle.core.upgrades.Automation a : game.automations())
+                    if (a.id().equals(step.id())) yield a.cost();
+                yield null;
+            }
+            case CADENCE -> game.ownsAutomation(step.id()) ? game.automationSpeedCost(step.id()) : null;
+        };
+    }
+
+    static boolean buy(Game game, Step step) {
+        return switch (step.kind()) {
+            case UPGRADE -> game.canBuy(step.id()) && game.buy(step.id());
+            case AUTOMATION -> game.canBuyAutomation(step.id()) && game.buyAutomation(step.id());
+            case CADENCE -> game.canSpeedUpAutomation(step.id()) && game.speedUpAutomation(step.id());
+        };
+    }
+
+    /** Première étape de l'ouverture pas encore faite, ou {@code null} quand l'ouverture est terminée. */
+    static Step nextStep(Game game) {
+        for (Step step : OPENING) {
+            if (done(game, step)) continue;
+            // Les automatismes s'ouvrent avec le tableau : après, une étape fermée (défi, règle) ne doit pas tout bloquer.
+            if (costOf(game, step) == null && game.isPeriodicTableUnlocked()) continue;
+            return step;
+        }
+        return null;
+    }
+
+    /** Vrai quand tout l'ordre du §14.1 est acheté : le reste des atomes suit alors le prix le plus bas. */
+    static boolean openingDone(Game game) {
+        return nextStep(game) == null;
+    }
+
+    /**
+     * Atomes à garder pour la prochaine étape de l'ouverture (§14.2 : « garder une réserve d'atomes
+     * avant une amélioration chère »). Zéro si l'étape n'est pas encore ouverte ou dépasse le plafond.
+     */
+    static BigNum openingReserve(Game game) {
+        Step step = nextStep(game);
+        if (step == null) return BigNum.ZERO;
+        BigNum cost = costOf(game, step);
+        if (cost == null || (!game.isAtomCapLifted() && cost.gt(game.atomCap()))) return BigNum.ZERO;
+        return cost;
+    }
+
+    /** Sous le plafond de 118 atomes, la Surcharge se limite à 13 niveaux (§14.1). */
+    static final int OVERLOAD_UNDER_CAP = 13;
+
+    /**
+     * Une amélioration répétable, une fois l'ouverture faite, « se pèse contre une synthèse » (§14.1) :
+     * tant que le tableau n'est pas complet, elle ne passe que si elle coûte moins qu'une synthèse.
+     */
+    static boolean worthAgainstSynthesis(Game game, String upgradeId) {
+        if (upgradeId.equals("atom_overload") && !game.isAtomCapLifted()
+                && game.levelOf(upgradeId) >= OVERLOAD_UNDER_CAP) return false;
+        if (!game.isPeriodicTableUnlocked() || game.isPeriodicTableComplete()) return true;
+        return game.costOf(upgradeId).lte(game.synthesisCost());
+    }
+
+    /** Persistance d'abord une fois prête, puis l'ordre du §14.1, puis le moins cher pesé contre une synthèse. */
     static int atoms(Game game, int limit) {
         int count = 0;
         if (readyForPersistence(game)) {
@@ -82,41 +201,38 @@ final class FirstUniversePolicy {
                     }
                 }
             }
-            // Ouverture recommandée par le modèle : dédoublement, patience, masse,
-            // deuxième dédoublement, catalyseur, compression. Ensuite, acheter au prix.
-            if (choice == null && game.state().explosions() == 0 && game.bigBangs() == 0) {
-                String[] opening = {"atom_double", "atom_patience", "atom_mass",
-                        "atom_double", "atom_boost", "atom_discount"};
-                int[] minLevels = {1, 1, 1, 2, 1, 1};
-                for (int i = 0; i < opening.length; i++) {
-                    if (game.levelOf(opening[i]) >= minLevels[i]) continue;
-                    if (game.canBuy(opening[i])) {
-                        for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
-                            if (upgrade.id().equals(opening[i])) { choice = upgrade; break; }
-                        }
-                    }
-                    break; // préserver l'ordre ; si inaccessible, laisser acheter au prix.
-                }
-            }
             if (choice == null) {
-                for (String id : new String[]{"atom_double", "atom_mass", "atom_patience", "atom_boost",
-                        "atom_discount", "atom_yield", "atom_bulk"}) {
-                    for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
-                        if (upgrade.id().equals(id) && game.canBuy(id)) {
-                            choice = upgrade;
-                            break;
-                        }
-                    }
-                    if (choice != null) break;
+                Step step = nextStep(game);
+                if (step != null) {
+                    // Respecter l'ordre : une étape pas encore payable ou pas encore ouverte retient les atomes.
+                    if (!buy(game, step)) break;
+                    count++;
+                    continue;
                 }
             }
             // Les achats répétables et les nouveaux catalogues suivent le prix le plus bas.
             if (choice == null) for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
-                if (upgrade.id().equals("atom_keep") || !game.canBuy(upgrade.id())) continue;
+                if (upgrade.id().equals("atom_keep") || !game.canBuy(upgrade.id())
+                        || !worthAgainstSynthesis(game, upgrade.id())) continue;
                 if (choice == null || game.costOf(upgrade.id()).lt(game.costOf(choice.id())))
                     choice = upgrade;
             }
             if (choice == null || !game.buy(choice.id())) break;
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     * Synthèses à la main, dès l'ouverture du tableau (§4), sans toucher aux atomes que réclame la
+     * prochaine étape de l'ouverture ni à la réserve réglée dans le jeu.
+     */
+    static int synthesize(Game game, int limit) {
+        int count = 0;
+        BigNum keep = game.synthesisReserve().max(openingReserve(game));
+        for (int n = 0; n < limit && game.canSynthesize(); n++) {
+            if (game.state().atoms().subtract(game.synthesisCost()).lt(keep)) break;
+            game.synthesize();
             count++;
         }
         return count;
