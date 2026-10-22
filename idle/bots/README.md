@@ -123,6 +123,25 @@ Partie neuve, graine 200 + id, une décision toutes les 20 s, moteur de `master`
 | 8e Big Bang | 18 h 38 | jamais (5 BB, 3 astres à 21 h) | 13 h 52 | 14 h 36 |
 | Univers formé | 27 h 02 | jamais | **16 h 26** | **17 h 37** |
 
+`FreshUniverseAudit` sur 10 des 24 profils, partie neuve, plafond de 168 h réelles (22 octobre 2026) :
+
+| Profil | Verdict | Univers formé (heures réelles) |
+|---|---|---|
+| 1 Speedrunner | WIN | 16 h 26 |
+| 2 Vétéran | WIN | 17 h 37 |
+| 3 Régulier | WIN | 25 h 49 |
+| 5 Chasseur de succès | WIN | 24 h 49 |
+| 11 Fan de prestige | WIN | 22 h 36 |
+| 12 Avare | WIN | 77 h 26 |
+| 16 Débutant | WIN | 90 h 06 |
+| 24 Expert intermittent | WIN | 153 h 00 (75 h de jeu) |
+| 21 Joueur du soir | LIMIT | galaxie formée, 8 Big Bangs, 35 astres à 168 h (14 h en ligne) |
+| 17 AFK jeu ouvert | LIMIT | aucun Big Bang : une visite par heure ne permet qu'une fusion par visite |
+
+Le profil 17 bute sur la règle du jeu plus que sur sa politique : sans automatisme avant 30 atomes créés, une
+fusion par visite horaire demande environ 88 h pour ouvrir le tableau ; l'explosion efface ensuite les
+automatismes, et 0,8 matière noire ne paie ni « Départ lancé » (2) ni les automatismes offerts (3).
+
 ## Les bots partis de zéro : succès et défis (0.86)
 
 Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :
