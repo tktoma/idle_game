@@ -126,6 +126,7 @@ class SaveTest {
         state.setDarkAutomationEnabled("dark_auto", true);
         state.setDarkAutomationTimer("dark_auto", 1.5);
         state.setBigBangs(5);
+        state.addBoughtMilestone("Gravité");
         state.addMolecules("H2O", 12);
         state.addMolecules("Ca5(PO4)3F", 3);
         state.addMolecules("H2O", 1_000_000);
@@ -165,6 +166,7 @@ class SaveTest {
         state.setAutoFollowMatter(true);
         state.setReplaying(true);
         state.setFusionsAtUniverse(42);
+        state.setExplosionsAtUniverse(17);
         state.setSkinsOpen(true);
         state.unlockSkin("dark_vortex");
         state.chooseSkin("DARK_ANIMATION", "dark_vortex");
@@ -206,6 +208,7 @@ class SaveTest {
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);
+        state.setBangCalm(77.5);
         state.setPlaneShards(9.5);
         state.setPlaneShardsEarned(31);
         for (int i = 0; i < 5; i++) state.setPlaneLevel(i, i + 1);
@@ -775,7 +778,7 @@ class SaveTest {
             assertEquals(0.10, game.offlineRate());
             game.state().setExplosions(1);
             assertEquals(0.40, game.offlineRate());
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setExplosions(0);
             assertEquals(0.70, game.offlineRate());
             game.state().setCosmosLevel(2);

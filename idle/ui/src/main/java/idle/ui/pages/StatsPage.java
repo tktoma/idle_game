@@ -129,6 +129,51 @@ public final class StatsPage extends StatsPageLines {
         row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
     }
 
+    /** Le détail des multiplicateurs (version 0.123) : ce qui fait grandir chaque grandeur, aspect par aspect. */
+    void multipliers() {
+        page("Multiplicateurs", "#ffd27f", game::isStarted, "en créant le premier générateur");
+        Label intro = new Label("D'où vient chaque grandeur : la part de chaque aspect du jeu dans ses ordres de grandeur, "
+                + "comme le détail des multiplicateurs d'Antimatter Dimensions.");
+        intro.setStyle(NAME_STYLE);
+        intro.setWrapText(true);
+        intro.setMaxWidth(MAX_WIDTH);
+        building.content.getChildren().add(intro);
+        multiplierPane = new MultiplierPane(game);
+        building.content.getChildren().add(multiplierPane);
+        building.updaters.add(multiplierPane::refresh);
+        multiplierPage = building;
+    }
+
+    // Sans valeur de départ : ils sont posés pendant la construction de la page, appelée par le constructeur de la base.
+    private MultiplierPane multiplierPane;
+    private SubPage multiplierPage;
+
+    /** Ouvre la sous-page des multiplicateurs : pour les vérifications. */
+    public void openMultipliers() {
+        select(multiplierPage);
+        refresh();
+    }
+
+    /** Les lignes du détail affiché, « aspect | valeur | part » : pour les vérifications. */
+    public List<String> multiplierLines() {
+        return multiplierPane.shownLines();
+    }
+
+    /** Choisit la grandeur détaillée : pour les vérifications. */
+    public void chooseMultiplier(idle.core.Multipliers.Quantity quantity) {
+        multiplierPane.choose(quantity);
+    }
+
+    /** Déplie ou replie un aspect : pour les vérifications. */
+    public void toggleMultiplier(idle.core.Multipliers.Aspect aspect) {
+        multiplierPane.toggle(aspect);
+    }
+
+    /** Nombre de lignes du détail, facteurs dépliés compris : pour les vérifications. */
+    public int multiplierLineCount() {
+        return multiplierPane.lineCount();
+    }
+
     /**
      * Les records, acte par acte (version 0.063). Les temps des étapes traversent la remise à zéro
      * du jeu ; les autres valent depuis le début de la partie.

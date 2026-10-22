@@ -502,9 +502,11 @@ class JeuMatiereNoireTest extends GameTestSupport {
             Game game = gameWithDarkMatter(3);                    // trois générateurs à vitesse doublée
             game.state().setParticles(BigNum.ZERO);
             assertValue(6 * BASE, game.darkBalance(DarkUpgrade.Branch.PARTICLES));
-            game.state().setParticles(BigNum.of(40));
-            assertValue(40, game.darkBalance(DarkUpgrade.Branch.PARTICLES));   // les particules en main, si elles valent plus
-            assertFalse(game.canBuyDark("dark_density"));         // 1 000 particules : ni l'un ni l'autre n'y suffit
+            game.state().setParticles(BigNum.of(19));
+            assertValue(Math.max(19, 6 * BASE), game.darkBalance(DarkUpgrade.Branch.PARTICLES));   // les particules en main, si elles valent plus
+            assertFalse(game.canBuyDark("dark_density"));         // 20 particules : ni l'un ni l'autre n'y suffit
+            game.state().setParticles(BigNum.of(20));
+            assertTrue(game.canBuyDark("dark_density"));
         }
 
         @Test
@@ -622,9 +624,9 @@ class JeuMatiereNoireTest extends GameTestSupport {
                 // Celui qui rachète l'arbre attend un premier Big Bang.
                 assertEquals(automation.kind() != DarkAutomation.Kind.DARK_TREE, game.isDarkAutomationUnlocked(automation.id()), automation.id());
             }
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_tree"));
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             assertThrows(IllegalArgumentException.class, () -> game.isDarkAutomationUnlocked("inconnu"));
         }
 

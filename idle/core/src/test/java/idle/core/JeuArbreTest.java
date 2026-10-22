@@ -124,12 +124,12 @@ class JeuArbreTest extends GameTestSupport {
         @Test
         void lesParticulesSontDepenseesEtLePrixMonte() {
             Game game = darkGame();
-            game.state().setParticles(BigNum.of(2.5, 3));
-            assertValue(1e3, game.darkCostOf("dark_density"));
+            game.state().setParticles(BigNum.of(25));
+            assertValue(20, game.darkCostOf("dark_density"));       // version 0.124 : 20 particules, puis ×2,51·10¹⁷
             assertTrue(game.buyDark("dark_density"));
-            assertValue(1.5e3, game.state().particles());
+            assertValue(5, game.state().particles());
             assertEquals(1, game.darkLevelOf("dark_density"));
-            assertValue(1e43, game.darkCostOf("dark_density"));
+            assertValue(20 * 2.51e17, game.darkCostOf("dark_density"));
             assertFalse(game.canBuyDark("dark_density"));
         }
 

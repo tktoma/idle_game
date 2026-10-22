@@ -38,7 +38,7 @@ class LisibiliteTest {
     /** Après un premier Big Bang, tout ouvert jusqu'aux astres, sans les automatismes de rassemblement et de formation. */
     private static Game openGame(double space) {
         Game game = newGame();
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         game.state().setSpace(BigNum.of(space));
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
@@ -59,7 +59,7 @@ class LisibiliteTest {
         void aucunAvantLesAstres() {
             Game game = newGame();
             assertNull(game.nextBody());
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             assertNull(game.nextBody());
         }
 

@@ -333,6 +333,7 @@ public abstract class GameAtoms extends GamePlans {
             bought++;
         }
         if (bought == 0) return false;
+        state.setBangCalm(0);
         state.setParticles(particles);
         state.setLevel(upgrade.id(), level + bought);
         return true;

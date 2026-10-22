@@ -48,7 +48,7 @@ class AutomatisationTest {
     /** Après un Big Bang, de l'espace, et les améliorations d'espace données par leur identifiant. */
     private static Game spaceGame(double space, String... upgrades) {
         Game game = newGame();
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         game.state().setSpace(BigNum.of(space));
         for (String id : upgrades) game.state().addSpaceUpgrade(id);
         return game;
@@ -261,7 +261,7 @@ class AutomatisationTest {
             Game game = darkGame();
             assertFalse(game.isDarkAutomationUnlocked("dark_auto_tree"));
             assertFalse(game.setDarkAutomationEnabled("dark_auto_tree", true));
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_tree"));
             assertTrue(game.setDarkAutomationEnabled("dark_auto_tree", true));
         }
@@ -269,7 +269,7 @@ class AutomatisationTest {
         @Test
         void ilAcheteLesCasesEtLesAmeliorationsLimiteesMaisPasLesAutres() {
             Game game = darkGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setDarkMatter(BigNum.of(1, 9));
             game.state().setParticles(BigNum.of(1, 300));
             game.state().setAtoms(BigNum.of(1, 300));
@@ -309,7 +309,7 @@ class AutomatisationTest {
             Game game = darkGame();
             game.state().setDarkMatter(BigNum.ZERO);                     // rien d'autre à acheter…
             game.state().setDarkMatterSpent(BigNum.of(1, 9));           // …mais assez gagné pour que l'automatisme soit ouvert
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setDarkLevel("dark_density", 1);
             BigNum second = game.darkCostOf("dark_density");             // le prix du niveau 2
             assertTrue(game.setDarkAutomationEnabled("dark_auto_tree", true));
@@ -329,7 +329,7 @@ class AutomatisationTest {
         @Test
         void ilNAcheteRienPendantUnDefiNiCoupe() {
             Game game = darkGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setDarkMatter(BigNum.of(1, 9));
             assertTrue(game.setDarkAutomationEnabled("dark_auto_tree", true));
             game.setAutomationPaused(true);
@@ -348,7 +348,7 @@ class AutomatisationTest {
 
         private Game game(double space) {
             Game game = spaceGame(space, "space_states");
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             fillTable(game, 500);
             return game;
         }
@@ -423,7 +423,7 @@ class AutomatisationTest {
         @Test
         void toutConfierNeFaitRienSansLAutomatisme() {
             Game game = game(1e9);
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             give(game, "H2O", 3);
             assertEquals(0, game.setAllMoleculesAutomated(true));
             assertEquals(0, game.automatedMolecules());
@@ -484,7 +484,7 @@ class AutomatisationTest {
         @Test
         void lesAssemblagesEtLesAstresPretsSeFormentSeuls() {
             Game game = newGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
                 if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
@@ -508,7 +508,7 @@ class AutomatisationTest {
         @Test
         void coupeeLaFormationNeFaitRien() {
             Game game = newGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
                 if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());

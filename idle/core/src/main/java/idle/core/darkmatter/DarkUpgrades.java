@@ -42,7 +42,7 @@ import java.util.List;
  * <p>Réglage vérifié par simulation (version 0.073, robot qui choisit bien) : deuxième acte de 5 h
  * avec toutes les voies de présence, 5 h 30 avec toutes celles d'absence. Les cases du bas de
  * chaque branche s'étalent jusqu'à la fin de l'acte : Singularité en trente niveaux, Réacteur en
- * huit, Horizon en dix. Le premier Big Bang demande 10³⁸⁰⁰⁰ particules depuis la version 0.097 ({@link Game#BIG_BANG_PARTICLES}).
+ * huit, Horizon en dix. Le premier Big Bang demande 10¹⁶⁵³⁰ particules depuis la version 0.124 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en ordres de grandeur).
  */
 public final class DarkUpgrades {
 
@@ -50,75 +50,75 @@ public final class DarkUpgrades {
             // ----- Particules -----
             // Particules de base ×2 par niveau.
             new DarkUpgrade("dark_density", "Densité", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 3), 1e40, Upgrade.NO_LIMIT, null,
+                    BigNum.of(20), 2.51e17, Upgrade.NO_LIMIT, null,
                     new DarkEffect.MultiplyBaseParticles(2)),
             // Jusqu'à 100 générateurs ; la fusion rapporte ses atomes une fois par groupe de 10.
             new DarkUpgrade("dark_swarm", "Essaim", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 40), 1, 1, "dark_density",
+                    BigNum.of(1, 17), 1, 1, "dark_density",
                     new DarkEffect.UncapGenerators(100)),
             // La fusion automatique attend le nombre de générateurs choisi : c'est ce qui rend l'Essaim utile.
             new DarkUpgrade("dark_threshold", "Seuil de fusion", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 50), 1, 1, "dark_swarm",
+                    BigNum.of(1, 22), 1, 1, "dark_swarm",
                     new DarkEffect.FusionThreshold()),
             // +1 générateur au départ par niveau, jusqu'à repartir avec les dix.
             new DarkUpgrade("dark_seeds", "Germes", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 55), 1e12, 9, "dark_threshold",
+                    BigNum.of(1, 24), 1.66e5, 9, "dark_threshold",
                     new DarkEffect.StartingGenerators(1)),
             // +10 niveaux de vitesse offerts par niveau, cinq niveaux.
             new DarkUpgrade("dark_priming", "Amorçage", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 70), 1e10, 5, "dark_seeds",
+                    BigNum.of(1, 30), 2.24e4, 5, "dark_seeds",
                     new DarkEffect.StartingSpeedLevels(10)),
             // Particules ×2 pour chaque matière noire possédée.
             new DarkUpgrade("dark_mass", "Masse sombre", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 88), 1, 1, "dark_priming",
+                    BigNum.of(1, 38), 1, 1, "dark_priming",
                     new DarkEffect.ParticlesByDarkMatter(2)),
             // Délai minimal des automatismes : 0,05 s au lieu de 0,1 s.
             // Bifurcation « tempo » (0.69, refaite en 0.073) : paliers de vitesse +0,5, ou automatismes +50 % de cadence par matière noire gagnée.
             new DarkUpgrade("dark_flow", "Croissance continue", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 92), 1, 1, "dark_mass",
+                    BigNum.of(1, 40), 1, 1, "dark_mass",
                     new DarkEffect.StrongerMilestones(0.5), "tempo"),
             new DarkUpgrade("dark_burst", "Cadence sombre", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 92), 1, 1, "dark_mass",
+                    BigNum.of(1, 40), 1, 1, "dark_mass",
                     new DarkEffect.AutomationsByDarkMatter(0.5), "tempo"),
             new DarkUpgrade("dark_reflexes", "Automatismes vifs", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 300), 1, 1, DarkUpgrade.FORK_PREFIX + "tempo",
+                    BigNum.of(1, 130), 1, 1, DarkUpgrade.FORK_PREFIX + "tempo",
                     new DarkEffect.FasterAutomations(0.05)),
             // Particules × (taille en années-lumière)².
             new DarkUpgrade("dark_resonance", "Résonance", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 1500), 1, 1, "dark_reflexes",
+                    BigNum.of(1, 652), 1, 1, "dark_reflexes",
                     new DarkEffect.ParticlesByLightYears(2)),
             // Bifurcation « élan » (0.70, refaite en 0.073) : paliers de vitesse +1, ou +0,3 pour la voie d'absence.
             new DarkUpgrade("dark_impetus", "Poussée", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 4000), 1, 1, "dark_resonance",
+                    BigNum.of(1, 1740), 1, 1, "dark_resonance",
                     new DarkEffect.StrongerMilestones(1), "elan"),
             new DarkUpgrade("dark_shadow_echo", "Écho sombre", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 4000), 1, 1, "dark_resonance",
+                    BigNum.of(1, 1740), 1, 1, "dark_resonance",
                     new DarkEffect.StrongerMilestones(0.3), "elan"),
             // Le bout de la branche (0.069) : particules ×100 par niveau, trente niveaux (0.073), à 10⁸⁰⁰⁰ particules puis ×10³⁰⁰.
             new DarkUpgrade("dark_singularity", "Singularité", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 8000), 1e300, 30, DarkUpgrade.FORK_PREFIX + "elan",
+                    BigNum.of(1, 3480), 3.16e130, 30, DarkUpgrade.FORK_PREFIX + "elan",
                     new DarkEffect.MultiplyBaseParticles(100)),
-            // Le seuil du Big Bang (version 0.097) : six cases au-delà de la Singularité, de 10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰
-            // particules, pendant la montée vers les 10³⁸⁰⁰⁰ du premier Big Bang : la fin du deuxième acte a encore
+            // Le seuil du Big Bang (version 0.097) : six cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰
+            // particules (0.124), pendant la montée vers les 10¹⁶⁵³⁰ du premier Big Bang : la fin du deuxième acte a encore
             // des étapes, une toutes les vingt à trente minutes. Chacune demande la précédente ; elles donnent
             // particules ×10³⁰⁰ ou +1 matière noire par explosion.
             new DarkUpgrade("dark_protostars", "Proto-étoiles", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 14000), 1, 1, "dark_singularity",
+                    BigNum.of(1, 6090), 1, 1, "dark_singularity",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
             new DarkUpgrade("dark_primordial", "Nuage primordial", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 18000), 1, 1, "dark_protostars",
+                    BigNum.of(1, 7830), 1, 1, "dark_protostars",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
             new DarkUpgrade("dark_threshold_bang", "Seuil", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 22000), 1, 1, "dark_primordial",
+                    BigNum.of(1, 9570), 1, 1, "dark_primordial",
                     new DarkEffect.AddDarkMatterPerExplosion(1)),
             new DarkUpgrade("dark_point_zero", "Point zéro", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 26000), 1, 1, "dark_threshold_bang",
+                    BigNum.of(1, 11310), 1, 1, "dark_threshold_bang",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
             new DarkUpgrade("dark_fluctuation", "Fluctuation primordiale", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 30000), 1, 1, "dark_point_zero",
+                    BigNum.of(1, 13050), 1, 1, "dark_point_zero",
                     new DarkEffect.AddDarkMatterPerExplosion(1)),
             new DarkUpgrade("dark_eve", "Veille du Big Bang", DarkUpgrade.Branch.PARTICLES,
-                    BigNum.of(1, 34000), 1, 1, "dark_fluctuation",
+                    BigNum.of(1, 14790), 1, 1, "dark_fluctuation",
                     new DarkEffect.MultiplyBaseParticles(1e300)),
 
             // ----- Atomes -----

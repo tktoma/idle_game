@@ -100,7 +100,7 @@ class RetoursTest {
 
         private Game afterBigBang() {
             Game game = newGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             return game;
         }
 
@@ -157,7 +157,7 @@ class RetoursTest {
 
         private Game afterBigBangs(int bigBangs) {
             Game game = newGame();
-            game.state().setBigBangs(bigBangs);
+            GameTestSupport.bangs(game, bigBangs);
             game.state().setSpace(BigNum.of(1, 6));
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             return game;
@@ -218,7 +218,7 @@ class RetoursTest {
         @Test
         void unAstreFormeChangeLaListeMemeSansToucherAuxMolecules() {
             Game game = newGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             for (String id : new String[] {"space_states", "space_assemblies", "space_bodies"}) game.state().addSpaceUpgrade(id);
             ShoppingList first = game.shoppingList();
             assertEquals(ShoppingList.Kind.BODY, first.kind());
@@ -232,7 +232,7 @@ class RetoursTest {
         @Test
         void unAssemblageFormeChangeAussiLaListe() {
             Game game = newGame();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             for (String id : new String[] {"space_states", "space_assemblies"}) game.state().addSpaceUpgrade(id);
             ShoppingList first = game.shoppingList();
             assertEquals(ShoppingList.Kind.ASSEMBLY, first.kind());

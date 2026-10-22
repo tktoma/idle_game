@@ -165,18 +165,18 @@ public abstract class GameBase {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le premier Big Bang : 10³⁸⁰⁰⁰ depuis la version 0.097 (10³²⁰⁰⁰ avant). C'est ce
-     * qui fait durer le deuxième acte six heures en jeu parfait : à la fin de l'arbre, les parties qu'on laisse
-     * tourner gagnent quelques milliers d'ordres de grandeur par heure, et les six cases du seuil du Big Bang
-     * (de 10¹⁴⁰⁰⁰ à 10³⁴⁰⁰⁰) jalonnent la montée.
+     * Particules à avoir en main pour le premier Big Bang : 10¹⁶⁵³⁰ depuis la version 0.124 (10³⁸⁰⁰⁰ de la 0.097
+     * à la 0.123 ; tous les prix en particules du deuxième acte ont été ramenés à 0,435 fois leurs ordres de grandeur
+     * quand la vitesse s'est mise à s'essouffler). C'est ce qui fait durer le deuxième acte six heures en jeu parfait,
+     * et les six cases du seuil du Big Bang (de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰) jalonnent la montée.
      */
-    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 38000);
+    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 16530);
 
     /**
-     * Particules des Big Bangs suivants, au troisième acte : 10³⁰⁰⁰, comme avant la 0.073. Chaque cycle
+     * Particules des Big Bangs suivants, au troisième acte : 10¹³⁰⁵ depuis la version 0.124 (10³⁰⁰⁰ avant). Chaque cycle
      * du troisième acte refait un deuxième acte en raccourci ; il n'a pas à redurer cinq heures.
      */
-    public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 3000);
+    public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 1305);
 
     /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants. */
     public BigNum bigBangParticles() {
@@ -243,7 +243,9 @@ public abstract class GameBase {
     /** La part du seuil de particules déjà effacée par le calme, de 0 à 1 ; 0 sans la récompense. */
     public double bigBangCalmRelief() {
         if (!state.completedChallenges().contains(idle.core.darkmatter.Challenges.LEAK.id())) return 0;
-        return Math.min(1, state.upgradeCalm() / BIG_BANG_CALM_SECONDS);
+        // Version 0.124 : la barre haute ne se contourne pas en attendant.
+        if (raisedBar()) return 0;
+        return Math.min(1, state.bangCalm() / BIG_BANG_CALM_SECONDS);
     }
 
     /**

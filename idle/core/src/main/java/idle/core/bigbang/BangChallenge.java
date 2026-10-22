@@ -12,7 +12,7 @@ package idle.core.bigbang;
 public enum BangChallenge {
     /** La matière ne compte plus : molécules, amas, assemblages, astres et cosmos ne multiplient rien. */
     VOID("Univers vide", "La matière ne multiplie plus rien", "La matière ne donne plus rien : ni les molécules, ni les amas, ni les assemblages, ni les astres, "
-            + "ni la galaxie. Restent les améliorations d'espace, les collections et les paliers.",
+            + "ni la galaxie, et la puissance du ciel tombe de moitié. Restent les améliorations d'espace, les collections et les paliers.",
             Reward.SPACE, "Espace par seconde ×2"),
     /** Les paliers de Big Bang qui multiplient quelque chose n'agissent plus. */
     FORGOTTEN("Sans mémoire", "Les paliers ne multiplient plus rien", "Les paliers de Big Bang ne multiplient plus rien : matière noire des explosions, espace, "

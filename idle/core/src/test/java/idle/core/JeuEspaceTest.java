@@ -40,7 +40,7 @@ class JeuEspaceTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(space));
             return game;
         }
@@ -106,7 +106,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertValue(4, game.spacePerSecond());
             assertEquals(4, game.spaceUpgradeBoost(Molecule.Stat.SPACE), 0);
             // Chaque Big Bang compte toujours, avec son palier, et les molécules aussi.
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             assertValue(3 * 2 * 4, game.spacePerSecond());
             game.state().setMoleculeCount("CO2", 1);                  // +1,5 %
             assertValue(24 * 1.015, game.spacePerSecond());
@@ -137,19 +137,19 @@ class JeuEspaceTest extends GameTestSupport {
             assertEquals(List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3), new BigBangMilestone.KeepDarkTree()),
                     milestones.get(7).effects());
             Game game = game(0);
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             assertEquals(milestones, game.bigBangMilestones());
             assertEquals(0, game.bigBangMilestonesReached());
             assertEquals(milestones.get(0), game.nextBigBangMilestone());
             int[] reached = {0, 1, 3, 6, 7, 8, 9, 10, 11};
             for (int bigBangs = 1; bigBangs <= 8; bigBangs++) {
-                game.state().setBigBangs(bigBangs);
+                GameTestSupport.bangs(game, bigBangs);
                 assertEquals(reached[bigBangs], game.bigBangMilestonesReached());
                 assertEquals(bigBangs < 8 ? milestones.get(reached[bigBangs]) : null, game.nextBigBangMilestone());
             }
             // Au-delà du huitième, plus de palier ; et depuis le cinquième, plus aucun multiplicateur.
             double space = game.bigBangMilestoneBoost(Molecule.Stat.SPACE);
-            game.state().setBigBangs(9);
+            GameTestSupport.bangs(game, 9);
             assertEquals(11, game.bigBangMilestonesReached());
             assertEquals(space, game.bigBangMilestoneBoost(Molecule.Stat.SPACE), 0);
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(0, "Rien", List.of(new BigBangMilestone.DarkMatter(2))));
@@ -162,10 +162,10 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void lePremierPalierDoubleLaMatiereNoireDesExplosions() {
             Game game = game(0);
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             double before = game.darkMatterPerExplosion().toDouble();
             assertEquals(1, game.bigBangDarkMatterFactor(), 0);
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             assertEquals(2, game.bigBangDarkMatterFactor(), 0);
             assertEquals(2 * before, game.darkMatterPerExplosion().toDouble(), 1e-9);
             // Une explosion la laisse vraiment.
@@ -182,7 +182,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertTrue(game.formSubstance("H2O"));
             assertEquals(1, game.accretionFactor(), 0);
             assertEquals(11, game.moleculesPerCreation("H2O"));
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             assertEquals(2, game.accretionFactor(), 0);
             assertEquals(21, game.moleculesPerCreation("H2O"));
             game.state().setMoleculeCount("H2O", 10_000);
@@ -195,12 +195,12 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void leQuatriemePalierFaitDependreLExpansionDeLaMatiereNoire() {
             Game game = game(1);
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             game.state().setDarkMatter(BigNum.of(400));
             // Avant le palier, la matière noire ne change rien à l'expansion.
             assertEquals(1, game.darkMatterSpaceBoost(), 0);
             assertValue(3 * 2, game.spacePerSecond());
-            game.state().setBigBangs(4);
+            GameTestSupport.bangs(game, 4);
             // 1 + 0,1 × √400 = 3 : trois fois plus d'espace avec 400 de matière noire en réserve.
             assertEquals(3, game.darkMatterSpaceBoost(), 1e-12);
             assertValue(4 * 2 * 3, game.spacePerSecond());
@@ -217,7 +217,7 @@ class JeuEspaceTest extends GameTestSupport {
             // Il ne touche ni les atomes ni les particules, et se multiplie avec le cinquième palier.
             assertEquals(1, game.bigBangMilestoneBoost(Molecule.Stat.ATOMS), 0);
             assertEquals(1, game.bigBangMilestoneBoost(Molecule.Stat.PARTICLES), 0);
-            game.state().setBigBangs(5);
+            GameTestSupport.bangs(game, 5);
             game.state().setDarkMatter(BigNum.of(400));
             assertEquals(6, game.bigBangMilestoneBoost(Molecule.Stat.SPACE), 0);
             assertValue(5 * 6 * 3, game.spacePerSecond());
@@ -269,7 +269,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertEquals(12, stats.moleculeElementsSpent());
 
             // L'automatisme : ses créations se comptent à part, et dans le total.
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             assertTrue(game.setMoleculeAutomated("H2O", true));
             game.tick(Game.MOLECULE_AUTOMATION_SECONDS);
             assertEquals(8, game.moleculeCount("H2O"));                // 1 + √5 : trois d'un coup
@@ -288,7 +288,7 @@ class JeuEspaceTest extends GameTestSupport {
         void laPartDeLaMatiereSeLitSansLesAmeliorationsNiLesPaliers() {
             Game game = game(1e9);
             for (Molecule.Stat stat : Molecule.Stat.values()) assertEquals(1, game.matterBoost(stat), 0);
-            game.state().setBigBangs(2);                               // le palier du deuxième Big Bang : espace ×2
+            GameTestSupport.bangs(game, 2);                               // le palier du deuxième Big Bang : espace ×2
             game.state().addSpaceUpgrade("space_inflation_1");         // l'inflation : espace ×2
             assertEquals(1, game.matterBoost(Molecule.Stat.SPACE), 0);
             assertEquals(4, game.moleculeBoost(Molecule.Stat.SPACE), 1e-12);
@@ -316,7 +316,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertFalse(game.isMoleculeAutomationUnlocked());
             assertFalse(game.setMoleculeAutomated("H2O", true));
             assertFalse(game.setMoleculeAutomationEnabled(false));
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             assertTrue(game.isMoleculeAutomationUnlocked());
             assertTrue(game.isMoleculeAutomationEnabled());
             assertFalse(game.isAutoCreatingMolecules());              // aucun amas ne lui est confié
@@ -365,7 +365,7 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void quandLEspaceManqueLaCreationAutomatiqueSertLesAmasATourDeRole() {
             Game game = game(1e9);
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             for (String id : new String[] {"space_states", "space_acid", "space_salt"}) game.state().addSpaceUpgrade(id);
             game.state().setMoleculeCount("NaCl", 3);
             game.state().setMoleculeCount("KCl", 3);
@@ -413,7 +413,7 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void rienNeSAcheteAvantLePremierBigBang() {
             Game game = game(1e9);
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             assertFalse(game.isSpaceUpgradeAvailable("space_acid"));
             assertFalse(game.buySpaceUpgrade("space_acid"));
         }
@@ -510,7 +510,7 @@ class JeuEspaceTest extends GameTestSupport {
             game.state().setMoleculeCount("H2O", 3);
             assertEquals(8_000.0, game.secondsUntilSpace(BigNum.of(10_000)), 1e-6);
             // Deux Big Bangs : deux fois plus vite, et le palier du deuxième double encore.
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             assertEquals(2_000.0, game.secondsUntilSpace(BigNum.of(10_000)), 1e-6);
         }
 
@@ -527,6 +527,7 @@ class JeuEspaceTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.ownsSpaceUpgrade("space_acid"));
             game.reset();
             assertFalse(game.state().ownsSpaceUpgrade("space_acid"));
@@ -552,7 +553,7 @@ class JeuEspaceTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             game.state().addSpaceUpgrade("space_states");
             for (String id : moleculeIds) game.state().setMoleculeCount(id, count);
@@ -632,7 +633,7 @@ class JeuEspaceTest extends GameTestSupport {
             Game closed = game(3, WATER);
             closed.reset();
             closed.start();
-            closed.state().setBigBangs(1);
+            GameTestSupport.bangs(closed, 1);
             closed.state().setSpace(BigNum.of(1, 9));
             closed.state().setMoleculeCount(WATER, 3);
             assertFalse(closed.isStatesUnlocked());
@@ -925,6 +926,7 @@ class JeuEspaceTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.hasSubstance(WATER));
             assertEquals(3, game.gatheredMolecules(WATER));
             assertValue(600, game.reservedSpace());

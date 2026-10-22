@@ -28,6 +28,8 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 /**
@@ -71,7 +73,12 @@ final class DebugBar extends VBox {
             + " -fx-text-fill: #2a1416; -fx-background-color: " + ACCENT + "; -fx-border-color: #ffffff;";
 
     private final Game game;
+    /** Les groupes des onglets, à gauche. */
     private final FlowPane header = new FlowPane(8, 6);
+    /** À droite (version 0.122) : la vitesse, le temps, les bots, les paliers, le résumé de la partie. */
+    private final FlowPane right = new FlowPane(8, 6);
+    /** Le groupe de chaque onglet du jeu, par le nom de l'onglet : la barre suit l'onglet affiché. */
+    private final Map<String, Button> tabGroups = new LinkedHashMap<>();
     private final Label status = new Label();
     /** Les groupes d'outils : le bouton qui déplie chacun, et sa ligne de boutons. */
     private final Map<Button, FlowPane> groups = new LinkedHashMap<>();
@@ -119,9 +126,16 @@ final class DebugBar extends VBox {
 
         Label title = new Label("PROFIL DE TEST");
         title.setStyle("-fx-text-fill: " + ACCENT + "; -fx-font-weight: bold;");
-        header.getChildren().add(title);
 
-        // La vitesse du temps reste sur la première ligne : c'est l'outil qu'on touche le plus.
+        // Version 0.122 : à gauche, un groupe d'outils par onglet du jeu, qui suit l'onglet affiché ; à droite, ce qui
+        // sert partout : la vitesse, le temps, les bots, la remise à zéro des paliers, et le résumé de la partie.
+        header.setAlignment(Pos.CENTER_LEFT);
+        right.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(header, Priority.ALWAYS);
+        HBox top = new HBox(10, title, header, right);
+        top.setAlignment(Pos.CENTER_LEFT);
+        getChildren().add(top);
+
         Button time = new Button("Vitesse ×1");
         time.setStyle(TOOL_STYLE);
         time.setFocusTraversable(false);
@@ -129,31 +143,33 @@ final class DebugBar extends VBox {
             timeIndex = (timeIndex + 1) % TIME_FACTORS.length;
             time.setText("Vitesse ×" + (int) timeFactor());
         });
-        header.getChildren().add(time);
-        getChildren().add(header);
+        right.getChildren().add(time);
 
-        group("Temps",
-                tool("+10 min", () -> skip(600)),
-                tool("+1 h", () -> skip(3600)));
-        group("Ressources",
+        tabGroup("PARTICLES", "Particules",
                 tool("+1 000 particules", () -> game.state().setParticles(game.state().particles().add(BigNum.of(1000)))),
                 tool("Particules ×10", () -> game.state().setParticles(game.state().particles().multiply(10))),
                 tool("Particules ×1e10", () -> game.state().setParticles(
                         game.state().particles().max(BigNum.ONE).multiply(BigNum.of(1, 10)))),
                 tool("+1 générateur", () -> addGenerators(1)),
                 tool("Tous les générateurs", () -> addGenerators(Integer.MAX_VALUE)),
+                tool("Régime prêt", () -> {
+                    game.state().setRegimeLeft(0);
+                    game.state().setRegimeRest(0);
+                }));
+        tabGroup("ATOMS", "Atomes",
                 tool("+1 atome", () -> addAtoms(BigNum.ONE)),
                 tool("+10 atomes", () -> addAtoms(BigNum.of(10))),
-                tool("Atomes au plafond", () -> addAtoms(game.atomCap())));
-        group("Étapes",
+                tool("Atomes au plafond", () -> addAtoms(game.atomCap())),
                 tool("30 atomes créés", this::unlockTable),
                 tool("Améliorations d'atomes au maximum", this::maxAtomUpgrades),
-                tool("Automatismes au maximum", this::maxAutomations),
                 tool("Un élément unique", () -> give(2, 1)),
                 tool("1 de chaque élément", () -> fillTable(false)),
                 tool("Tableau complet", () -> fillTable(true)),
-                tool("Vider le tableau", this::emptyTable));
-        group("Matière noire",
+                tool("Vider le tableau", this::emptyTable),
+                tool("+1 élément gratuit", () -> game.state().setFreeElementsUsed(Math.max(0, game.state().freeElementsUsed() - 1))));
+        tabGroup("AUTOMATION", "Automatisation",
+                tool("Automatismes au maximum", this::maxAutomations));
+        tabGroup("DARK_MATTER", "Matière noire",
                 tool("Exploser maintenant", this::explodeNow),
                 tool("+1 matière noire", () -> addDarkMatter(1)),
                 tool("+10 matières noires", () -> addDarkMatter(10)),
@@ -161,16 +177,57 @@ final class DebugBar extends VBox {
                 tool("Taille ×1e10", () -> growDarkMatter(10)),
                 tool("Arbre complet", this::fillTree),
                 tool("Défi suivant réussi", this::completeNextChallenge),
+                tool("Les dix défis réussis", () -> {
+                    for (idle.core.darkmatter.Challenge challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
+                }),
+                tool("Fuite réussie", () -> game.state().addCompletedChallenge(idle.core.darkmatter.Challenges.LEAK.id())),
+                tool("Calme du Big Bang complet", () -> game.state().setUpgradeCalm(Game.BIG_BANG_CALM_SECONDS)),
                 tool("Tableau plus lourd", () -> game.state().setTableWeightLevel(game.state().tableWeightLevel() + 1)),
                 tool("Tableau à sa masse du début", () -> game.state().setTableWeightLevel(0)));
-        group("Succès",
-                tool("Tous les succès", this::grantAchievements));
-        group("Big Bang",
+        tabGroup("COLLIDER", "Collisionneur",
+                tool("Énergie ×1 000", () -> {
+                    unlockCollider();
+                    game.state().setColliderEnergy(Math.max(game.state().colliderEnergy(), 1000) * 1000);
+                }),
+                tool("Les 8 générateurs", () -> {
+                    unlockCollider();
+                    for (ColliderGenerator generator : ColliderGenerator.values()) {
+                        if (game.state().colliderGeneratorsBought(generator) == 0) {
+                            game.state().setColliderGeneratorsBought(generator, 1);
+                            game.state().setColliderGenerators(generator, Math.max(1, game.state().colliderGenerators(generator)));
+                        }
+                    }
+                }),
+                tool("Collisions et saveurs", () -> {
+                    unlockCollider();
+                    for (ColliderUpgrade upgrade : java.util.List.of(ColliderUpgrade.COLLISIONS, ColliderUpgrade.FLAVOR_STRANGE,
+                            ColliderUpgrade.FLAVOR_CHARM, ColliderUpgrade.FLAVOR_BOTTOM, ColliderUpgrade.FLAVOR_TOP)) {
+                        game.state().setColliderUpgradeLevel(upgrade, Math.max(1, game.colliderUpgradeLevel(upgrade)));
+                    }
+                }),
+                tool("Toutes les améliorations", () -> {
+                    unlockCollider();
+                    for (ColliderUpgrade upgrade : ColliderUpgrade.values()) game.state().setColliderUpgradeLevel(upgrade, upgrade.maxLevel());
+                }),
+                tool("+100 quarks de chaque", () -> {
+                    unlockCollider();
+                    for (Quark quark : Quark.values()) game.state().setQuarks(quark, game.quarks(quark) + 100);
+                }),
+                tool("Un quark top", () -> {
+                    unlockCollider();
+                    game.state().setTopLeft(Game.TOP_SECONDS);
+                }),
+                tool("Énergie des trous noirs", () -> {
+                    unlockCollider();
+                    game.state().setColliderEnergyProduced(Math.max(game.state().colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
+                }));
+        tabGroup("BIG_BANG", "Big Bang",
                 tool("Conditions réunies", this::readyForBigBang),
                 tool("Big Bang maintenant", () -> {
                     readyForBigBang();
                     game.bigBang();
                 }),
+                tool("Paliers ouverts payés", () -> bangsAtLeast(0)),
                 tool("Une molécule de chaque", () -> {
                     for (Molecule molecule : game.molecules()) {
                         game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + 1);
@@ -215,67 +272,72 @@ final class DebugBar extends VBox {
                     // l'échelle laissait un univers à moitié formé, que la brindille ne pouvait pas faire suivre.
                     if (next == Cosmos.UNIVERSE) game.testFormUniverse();
                     else if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
-                }));
-        group("Collisionneur",
-                tool("Énergie ×1 000", () -> {
-                    unlockCollider();
-                    game.state().setColliderEnergy(Math.max(game.state().colliderEnergy(), 1000) * 1000);
                 }),
-                tool("Les 8 générateurs", () -> {
-                    unlockCollider();
-                    for (ColliderGenerator generator : ColliderGenerator.values()) {
-                        if (game.state().colliderGeneratorsBought(generator) == 0) {
-                            game.state().setColliderGeneratorsBought(generator, 1);
-                            game.state().setColliderGenerators(generator, Math.max(1, game.state().colliderGenerators(generator)));
-                        }
+                tool("Défi de Big Bang suivant réussi", () -> {
+                    for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) {
+                        if (!game.isBangChallengeCompleted(challenge)) { game.state().addCompletedBangChallenge(challenge.name()); break; }
                     }
                 }),
-                tool("Collisions et saveurs", () -> {
-                    unlockCollider();
-                    for (ColliderUpgrade upgrade : java.util.List.of(ColliderUpgrade.COLLISIONS, ColliderUpgrade.FLAVOR_STRANGE,
-                            ColliderUpgrade.FLAVOR_CHARM, ColliderUpgrade.FLAVOR_BOTTOM, ColliderUpgrade.FLAVOR_TOP)) {
-                        game.state().setColliderUpgradeLevel(upgrade, Math.max(1, game.colliderUpgradeLevel(upgrade)));
-                    }
-                }),
-                tool("Toutes les améliorations", () -> {
-                    unlockCollider();
-                    for (ColliderUpgrade upgrade : ColliderUpgrade.values()) game.state().setColliderUpgradeLevel(upgrade, upgrade.maxLevel());
-                }),
-                tool("+100 quarks de chaque", () -> {
-                    unlockCollider();
-                    for (Quark quark : Quark.values()) game.state().setQuarks(quark, game.quarks(quark) + 100);
-                }),
-                tool("Un quark top", () -> {
-                    unlockCollider();
-                    game.state().setTopLeft(Game.TOP_SECONDS);
-                }),
-                tool("Énergie des trous noirs", () -> {
-                    unlockCollider();
-                    game.state().setColliderEnergyProduced(Math.max(game.state().colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
+                tool("Tous les défis de Big Bang", () -> {
+                    for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) game.state().addCompletedBangChallenge(challenge.name());
                 }));
-        group("Actes",
-                tool("Refaire l'acte 1", () -> game.state().clearMatter()),
-                tool("Refaire l'acte 2", () -> {
-                    game.state().clearMatter();
-                    game.state().clearDarkMatter();
-                }),
-                tool("Refaire l'acte 3", () -> game.state().clearBigBangAct()),
-                tool("Vider le collisionneur", () -> game.state().clearCollider()));
-        // Le deuxième univers (version 0.087) : y entrer sans rejouer toute la partie, et les skins.
-        group("Deuxième univers",
+        tabGroup("UNIVERSE", "Univers",
                 tool("Former l'univers", game::testFormUniverse),
                 tool("Rouvrir les paliers", game::startNextUniverse),
+                tool("+1 univers", game::testAddUniverse),
+                tool("−1 univers", game::testRemoveUniverse),
+                tool("Palier suivant de la graine", this::nextSeedStage),
+                tool("+1 arrosage", () -> {
+                    game.state().setSeedSprouted(true);
+                    game.state().setSeedWaterings(game.state().seedWaterings() + 1);
+                }),
+                tool("Graine à zéro", () -> {
+                    game.state().setSeedSprouted(false);
+                    game.state().setSeedWaterings(0);
+                }));
+        group("Dimensions",
+                tool("+100 éclats de la ligne", () -> {
+                    game.state().setDimensionShards(game.state().dimensionShards() + 100);
+                    game.state().setDimensionShardsEarned(game.state().dimensionShardsEarned() + 100);
+                }),
+                tool("Seuil de la ligne", () -> game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD))),
+                tool("Ligne au maximum", () -> {
+                    game.state().setLineYieldLevel(game.lineMaxLevel(Game.LineUpgrade.YIELD));
+                    game.state().setLineTicksLevel(game.lineMaxLevel(Game.LineUpgrade.TICKS));
+                    game.state().setLineSpeedLevel(game.lineMaxLevel(Game.LineUpgrade.SPEED));
+                    game.state().setLineBallsLevel(game.lineMaxLevel(Game.LineUpgrade.BALLS));
+                    game.state().setLineCountLevel(game.lineMaxLevel(Game.LineUpgrade.LINES));
+                }),
+                tool("+100 éclats du plan", () -> {
+                    game.state().setPlaneShards(game.state().planeShards() + 100);
+                    game.state().setPlaneShardsEarned(game.state().planeShardsEarned() + 100);
+                }),
+                tool("Seuil du plan", () -> game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD))),
+                tool("Plan au maximum", () -> {
+                    for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) game.state().setPlaneLevel(upgrade.ordinal(), upgrade.max());
+                }));
+        tabGroup("VOID", "Le vide",
+                tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
+                tool("+1 000 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1000))));
+        tabGroup("ACHIEVEMENTS", "Succès",
+                tool("Tous les succès", this::grantAchievements));
+        // Les skins, et avec eux les thèmes et les notations à débloquer (version 0.122 : plus de groupe à part).
+        java.util.List<javafx.scene.Node> skinTools = new java.util.ArrayList<>(java.util.List.of(
                 tool("+5 fusions", () -> game.testAddFusions(Game.SKINS_FUSIONS)),
                 tool("Tous les skins", () -> game.testAllSkins(true)),
-                tool("Aucun skin", () -> game.testAllSkins(false)));
-        // Un bouton par thème et par notation à débloquer : un clic l'ouvre, un second le referme.
-        java.util.List<Button> cosmeticTools = new java.util.ArrayList<>();
-        cosmeticTools.add(tool("Tout débloquer", () -> { if (cosmetics != null) cosmetics.unlockAll(); }));
-        cosmeticTools.add(tool("Tout refermer", () -> { if (cosmetics != null) cosmetics.lockAll(); }));
+                tool("Aucun skin", () -> game.testAllSkins(false)),
+                tool("Tous les thèmes et notations", () -> { if (cosmetics != null) cosmetics.unlockAll(); }),
+                tool("Aucun thème ni notation", () -> { if (cosmetics != null) cosmetics.lockAll(); })));
         for (idle.ui.Cosmetic cosmetic : idle.ui.Cosmetic.values()) {
-            cosmeticTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
+            skinTools.add(tool(cosmeticName(cosmetic), () -> { if (cosmetics != null) cosmetics.toggle(cosmetic); }));
         }
-        group("Thèmes et notations", cosmeticTools.toArray(new Button[0]));
+        tabGroup("SKINS", "Skins", skinTools.toArray(new javafx.scene.Node[0]));
+
+        // À droite : le temps, les bots, la remise à zéro des paliers.
+        groupRight("Temps",
+                tool("+10 min", () -> skip(600)),
+                tool("+1 h", () -> skip(3600)),
+                tool("+6 h", () -> skip(6 * 3600)));
         // Les bots (version 0.084) : le bot V2 joue la partie en cours, en direct ou en avance rapide.
         // La politique se choisit dans une liste déroulante (version 0.085), plus en cliquant plusieurs fois.
         botMode.getItems().setAll(BotBridge.modes());
@@ -305,7 +367,7 @@ final class DebugBar extends VBox {
         botCancel.setStyle(TOOL_STYLE);
         botCancel.setOnAction(event -> cancelFastForward());
         botCancel.setDisable(true);
-        group("Bots", botTitle, botMode, botLive, botCancel,
+        groupRight("Bots", botTitle, botMode, botLive, botCancel,
                 tool("+10 min avec le bot", () -> skipWithBot(600)),
                 tool("+1 h avec le bot", () -> skipWithBot(3600)),
                 tool("+6 h avec le bot", () -> skipWithBot(6 * 3600)),
@@ -315,9 +377,19 @@ final class DebugBar extends VBox {
                     if (b != null) note(b.act() ? "Le bot a joué une décision." : "Le bot a échoué : il ne suit plus le jeu.");
                 }));
 
+        groupRight("Paliers",
+                tool("Refaire l'acte 1", () -> game.state().clearMatter()),
+                tool("Refaire l'acte 2", () -> {
+                    game.state().clearMatter();
+                    game.state().clearDarkMatter();
+                }),
+                tool("Refaire l'acte 3", () -> game.state().clearBigBangAct()),
+                tool("Vider le collisionneur", () -> game.state().clearCollider()),
+                tool("Univers à zéro", game::testResetUniverses));
+
         status.setStyle("-fx-font-size: 11px; -fx-text-fill: #ffd9d4;");
-        header.getChildren().add(status);
-        header.getChildren().add(botNote);
+        right.getChildren().add(status);
+        right.getChildren().add(botNote);
         refreshBots();
         refresh();
     }
@@ -459,8 +531,47 @@ final class DebugBar extends VBox {
                 + (game.bigBangs() > 0 ? "   |   " + game.bigBangs() + " Big Bang" + (game.bigBangs() > 1 ? "s" : "") : ""));
     }
 
+    /** Un groupe d'outils lié à un onglet du jeu : il s'ouvre quand on va sur cet onglet. */
+    private void tabGroup(String tab, String name, javafx.scene.Node... tools) {
+        tabGroups.put(tab, group(name, tools));
+    }
+
+    /** Un groupe placé à droite, avec ce qui sert partout. */
+    private void groupRight(String name, javafx.scene.Node... tools) {
+        Button toggle = group(name, tools);
+        header.getChildren().remove(toggle);
+        right.getChildren().add(toggle);
+    }
+
+    /**
+     * L'onglet affiché a changé (version 0.122) : la barre ouvre le groupe de cet onglet, sauf si l'on a ouvert à la main
+     * un groupe de droite (le temps, les bots, les paliers) ou celui des dimensions.
+     */
+    void followTab(String tab) {
+        Button group = tabGroups.get(tab);
+        if (group == null || group == open) return;
+        if (open == null || tabGroups.containsValue(open)) open(group);
+    }
+
+    /** Le groupe ouvert : pour les vérifications. */
+    String openGroup() {
+        return open == null ? "" : open.getText();
+    }
+
+    /** La graine passe au palier suivant : les seuils des dimensions qu'il faut, et les arrosages. */
+    private void nextSeedStage() {
+        int stage = game.seedStage();
+        if (stage >= Game.SEED_STAGES) return;
+        if (!game.isUniverseFormed()) game.testFormUniverse();
+        game.state().setSeedSprouted(true);
+        if (stage >= 1) game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD));
+        if (stage >= 2) game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD));
+        game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
+        if (game.seedStage() == stage) note("La graine attend le seuil de la dimension " + stage + ", qui n'existe pas encore.");
+    }
+
     /** Ajoute un groupe : son bouton sur la première ligne, et ses outils sur une ligne repliée. */
-    private void group(String name, javafx.scene.Node... tools) {
+    private Button group(String name, javafx.scene.Node... tools) {
         FlowPane line = new FlowPane(6, 6);    // les boutons passent à la ligne quand la fenêtre est étroite
         line.setAlignment(Pos.CENTER);
         line.getChildren().addAll(tools);
@@ -473,6 +584,7 @@ final class DebugBar extends VBox {
         groups.put(toggle, line);
         header.getChildren().add(toggle);
         getChildren().add(line);
+        return toggle;
     }
 
     /** Déplie un groupe et replie les autres ; {@code null} les replie tous. */
@@ -666,7 +778,7 @@ final class DebugBar extends VBox {
     /** Forme cet assemblage, en donnant au joueur ce qu'il demande. */
     private boolean form(Assembly assembly) {
         GameState state = game.state();
-        if (state.bigBangs() == 0) state.setBigBangs(1);
+        bangsAtLeast(1);
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
         for (java.util.Map.Entry<String, Integer> ingredient : assembly.ingredients().entrySet()) {
             state.addSubstance(ingredient.getKey());
@@ -689,9 +801,9 @@ final class DebugBar extends VBox {
         GameState state = game.state();
         for (Body body : game.bodies()) {
             if (game.hasBody(body.id())) continue;
-            if (state.bigBangs() == 0) state.setBigBangs(1);
+            bangsAtLeast(1);
             // Une matière exotique attend le huitième Big Bang : l'outil y va d'office.
-            if (body.tier() == Body.Tier.EXOTIC && !game.isExoticUnlocked()) state.setBigBangs(8);
+            if (body.tier() == Body.Tier.EXOTIC && !game.isExoticUnlocked()) bangsAtLeast(8);
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) state.addSpaceUpgrade(upgrade.id());
             for (String assembly : body.assemblies()) {
                 if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
@@ -722,9 +834,18 @@ final class DebugBar extends VBox {
         return false;
     }
 
+    /** Au moins ce nombre de Big Bangs, et tous les paliers ouverts payés d'office (version 0.124 : un palier ne compte qu'une fois payé). */
+    private void bangsAtLeast(int bigBangs) {
+        GameState state = game.state();
+        if (state.bigBangs() < bigBangs) state.setBigBangs(bigBangs);
+        for (idle.core.bigbang.BigBangMilestone milestone : game.bigBangMilestones()) {
+            if (game.isBigBangMilestoneOpen(milestone)) state.addBoughtMilestone(milestone.name());
+        }
+    }
+
     /** Range d'office les étoiles et les planètes libres en systèmes solaires, jusqu'à ce que la galaxie en ait assez. */
     private void threeSystems() {
-        if (game.state().bigBangs() < 6) game.state().setBigBangs(6);
+        bangsAtLeast(6);
         while (game.solarSystemsComplete() < Game.SYSTEMS_FOR_GALAXY) {
             java.util.List<String> stars = game.freeForSystems(Body.Tier.STAR);
             java.util.List<String> planets = game.freeForSystems(Body.Tier.PLANET);

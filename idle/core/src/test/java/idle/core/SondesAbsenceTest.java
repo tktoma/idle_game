@@ -29,7 +29,7 @@ class SondesAbsenceTest {
         Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         game.start();
-        game.state().setBigBangs(3);
+        GameTestSupport.bangs(game, 3);
         game.state().setSpace(BigNum.of(1, 12));
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
@@ -82,9 +82,9 @@ class SondesAbsenceTest {
     @Test
     void lOndeAttendLeTroisiemeBigBangEtSeRelit() {
         Game game = game();
-        game.state().setBigBangs(2);
+        GameTestSupport.bangs(game, 2);
         assertFalse(game.isUrgentWaveUnlocked());
-        game.state().setBigBangs(3);
+        GameTestSupport.bangs(game, 3);
         ShoppingList.Item first = game.shoppingList().items().get(0);
         for (int number : first.molecule().recipe().keySet()) game.state().setElementCount(number, 1);
         assertTrue(game.launchUrgentWave());

@@ -110,7 +110,7 @@ class PlansTest {
     private static Game systems() {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(6);
+        GameTestSupport.bangs(game, 6);
         for (String id : List.of("yellow_sun", "blue_giant", "rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet",
                 "icy_moon", "rocky_moon")) {
             game.state().addBody(id);

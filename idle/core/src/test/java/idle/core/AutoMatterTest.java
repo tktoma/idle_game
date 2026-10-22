@@ -19,7 +19,7 @@ class AutoMatterTest {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         g.start();
-        g.state().setBigBangs(8);
+        GameTestSupport.bangs(g, 8);
         g.state().setSpace(BigNum.of(1,14));
         for (SpaceUpgrade u : g.spaceUpgrades())
             if (!(u.effect() instanceof SpaceUpgrade.Boost)) g.state().addSpaceUpgrade(u.id());

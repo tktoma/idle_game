@@ -54,6 +54,7 @@ public final class GameState extends GameStateResets {
         data.put("totalAtoms", totalAtoms);
         data.put("timeSinceFusion", timeSinceFusion);
         data.put("upgradeCalm", upgradeCalm);
+        data.put("bangCalm", bangCalm);
         data.putDoubleList("formations", formations);
         data.put("timePlayed", timePlayed);
         data.putInts("upgradeLevels", new TreeMap<>(upgradeLevels));
@@ -120,6 +121,7 @@ public final class GameState extends GameStateResets {
         data.put("recipeReservation", recipeReservation);
         data.put("replaying", replaying);
         data.put("fusionsAtUniverse", fusionsAtUniverse);
+        data.put("explosionsAtUniverse", explosionsAtUniverse);
         data.put("skinsOpen", skinsOpen);
         data.putList("unlockedSkins", unlockedSkins);
         List<String> chosen = new ArrayList<>();
@@ -226,6 +228,7 @@ public final class GameState extends GameStateResets {
         data.putDoubles("records", new TreeMap<>(records));
         data.put("activeBangChallenge", activeBangChallenge == null ? null : SaveData.escape(activeBangChallenge));
         data.putList("completedBangChallenges", new java.util.TreeSet<>(completedBangChallenges));
+        data.putList("boughtMilestones", new java.util.TreeSet<>(boughtMilestones));
         data.putDoubles("bangChallengeTimes", new TreeMap<>(bangChallengeTimes));
         data.put("bangChallengeStarted", bangChallengeStarted);
         data.putList("atomUpgradeOrder", atomUpgradeOrder);
@@ -251,6 +254,7 @@ public final class GameState extends GameStateResets {
         setTotalAtoms(data.big("totalAtoms", BigNum.ZERO));
         setTimeSinceFusion(data.real("timeSinceFusion", 0));
         setUpgradeCalm(data.real("upgradeCalm", 0));
+        setBangCalm(data.real("bangCalm", 0));
         List<Double> made = data.doubleList("formations");
         for (int generator = 0; generator < made.size(); generator++) setFormation(generator, made.get(generator));
         timePlayed = Math.max(0, data.real("timePlayed", 0));
@@ -328,6 +332,7 @@ public final class GameState extends GameStateResets {
         recipeReservation = data.flag("recipeReservation", false);
         replaying = data.flag("replaying", false);
         fusionsAtUniverse = data.count("fusionsAtUniverse", 0);
+        explosionsAtUniverse = data.count("explosionsAtUniverse", 0);
         skinsOpen = data.flag("skinsOpen", false);
         unlockedSkins.clear();
         for (String id : data.list("unlockedSkins")) unlockSkin(id);
@@ -499,6 +504,13 @@ public final class GameState extends GameStateResets {
         String bangChallenge = data.text("activeBangChallenge", null);
         setActiveBangChallenge(bangChallenge == null ? null : SaveData.unescape(bangChallenge));
         data.list("completedBangChallenges").forEach(this::addCompletedBangChallenge);
+        data.list("boughtMilestones").forEach(this::addBoughtMilestone);
+        // Avant la version 0.124, les paliers étaient gratuits : ceux qu'une ancienne partie a atteints sont acquis.
+        if (!data.has("boughtMilestones")) {
+            for (idle.core.bigbang.BigBangMilestone milestone : idle.core.bigbang.BigBangMilestones.DEFAULT) {
+                if (data.whole("bigBangs", 0) >= milestone.bigBangs()) addBoughtMilestone(milestone.name());
+            }
+        }
         data.doubles("bangChallengeTimes").forEach(this::setBangChallengeTime);
         setBangChallengeStarted(data.real("bangChallengeStarted", 0));
         atomUpgradeOrder.addAll(data.list("atomUpgradeOrder"));

@@ -16,7 +16,7 @@ public class OfflineBenchmark {
     RobotCosmosPlanner bot=new RobotCosmosPlanner(g,dt);double online=0,credited=0;double rate=g.offlineRate();
     for(int i=0;i<(int)Math.ceil(hours*3600/dt);i++){
       double wall=(i*dt);boolean on=p.periodSeconds()==0 || wall%p.periodSeconds()<p.onlineSeconds();
-      if(on){bot.back();g.tick(dt);online+=dt; if(p.actions()){
+      if(on){bot.back();g.tick(dt);online+=dt; g.buyAllBigBangMilestones(); if(p.actions()){
         if(g.isCometVisible())g.catchComet();if(g.isPulseUnlocked())for(int k=0;k<g.pulseCharges();k++)g.pulse();
         bot.collider();bot.probes();bot.cosmos();bot.resourceLoop();
       }}else credited+=bot.away(dt);

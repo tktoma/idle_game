@@ -393,9 +393,9 @@ class JeuExplosionTest extends GameTestSupport {
         void laSuperpositionAttendLeCinquiemeBigBang() {
             Game game = gameWithDarkMatter(12);
             game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.FLAVOR_TOP, 1);
-            game.state().setBigBangs(Game.SUPERPOSITION_BIG_BANGS - 1);
+            GameTestSupport.bangs(game, Game.SUPERPOSITION_BIG_BANGS - 1);
             assertFalse(game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
-            game.state().setBigBangs(Game.SUPERPOSITION_BIG_BANGS);
+            GameTestSupport.bangs(game, Game.SUPERPOSITION_BIG_BANGS);
             assertEquals(game.isColliderUpgradesUnlocked(), game.isColliderUpgradeOpen(idle.core.collider.ColliderUpgrade.SUPERPOSITION));
         }
 

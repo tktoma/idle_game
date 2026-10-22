@@ -44,7 +44,7 @@ class ConfortTest {
     /** Après un premier Big Bang, sans aucune amélioration d'espace et sans espace. */
     private static Game afterBigBang() {
         Game game = newGame();
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         return game;
     }
 
@@ -299,7 +299,7 @@ class ConfortTest {
         void laCoupureArreteLaCreationAutomatique() {
             Game game = openGame();
             game.state().setAutoFollowList(false);
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             give(game, "H2O", 3);
             assertTrue(game.setMoleculeAutomated("H2O", true));

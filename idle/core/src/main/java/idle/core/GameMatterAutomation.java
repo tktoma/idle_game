@@ -55,7 +55,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
      */
     public boolean bigBangKeepsChallenges() {
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (milestone.bigBangs() > state.bigBangs() + 1) continue;
+            // Le Big Bang qui ouvre le palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
+            if (milestone.bigBangs() != state.bigBangs() + 1 && !isBigBangMilestoneReached(milestone)) continue;
             for (BigBangMilestone.Effect effect : milestone.effects()) {
                 if (effect instanceof BigBangMilestone.KeepChallenges) return true;
             }
@@ -70,7 +71,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
      */
     public boolean bigBangKeepsDarkTree() {
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (milestone.bigBangs() > state.bigBangs() + 1) continue;
+            // Le Big Bang qui ouvre le palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
+            if (milestone.bigBangs() != state.bigBangs() + 1 && !isBigBangMilestoneReached(milestone)) continue;
             for (BigBangMilestone.Effect effect : milestone.effects()) {
                 if (effect instanceof BigBangMilestone.KeepDarkTree) return true;
             }

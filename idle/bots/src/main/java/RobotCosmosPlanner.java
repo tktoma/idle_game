@@ -324,6 +324,7 @@ public class RobotCosmosPlanner {
     prioritizePersistence();
     if(bangChallenges())return;
     logBigBangDiagnostic();
+    g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
     boolean finalMode=FirstUniversePolicy.finalBangPreparation(g);

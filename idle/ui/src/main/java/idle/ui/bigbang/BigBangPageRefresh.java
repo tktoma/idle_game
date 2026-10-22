@@ -51,7 +51,11 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         long created = game.moleculesCreated();
         moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
         expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.of(game).comet()));
-        milestonesTab.setText("Paliers (" + game.bigBangMilestonesReached() + "/" + game.bigBangMilestones().size() + ")");
+        // Version 0.124 : le point dit qu'un palier ouvert peut se payer.
+        boolean canPay = false;
+        for (BigBangMilestone milestone : game.bigBangMilestones()) canPay |= game.canBuyBigBangMilestone(milestone);
+        milestonesTab.setText("Paliers (" + game.bigBangMilestonesReached() + "/" + game.bigBangMilestones().size() + ")"
+                + Readiness.dot(canPay));
         // Le rassemblement n'a son onglet qu'une fois ouvert ; si on le regardait et qu'il se referme (remise à zéro), retour au début.
         boolean states = game.isStatesUnlocked();
         statesTab.setVisible(states);
@@ -119,19 +123,20 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         int count = game.bigBangs();
         BigBangMilestone next = game.nextBigBangMilestone();
         milestonesIntro.setText(next == null
-                ? "Les " + game.bigBangMilestones().size() + " paliers sont atteints. Un Big Bang de plus ajoute encore "
+                ? "Les " + game.bigBangMilestones().size() + " paliers sont acquis. Un Big Bang de plus ajoute encore "
                         + ElementText.number(Game.SPACE_PER_SECOND) + " unité d'espace par seconde, rien d'autre."
-                : "Chaque Big Bang déclenché, jusqu'au huitième, donne un gros bonus pour de bon, parfois plusieurs (" + count
-                        + (count > 1 ? " Big Bangs déclenchés" : " Big Bang déclenché") + ")."
-                        + Detail.only(" Rien à acheter : un palier agit dès que son Big Bang a eu lieu, et ni l'explosion ni un "
-                                + "autre Big Bang ne le reprennent. C'est ce qui paie le détour : après un Big Bang tout repart "
-                                + "d'un seul générateur, et le tableau périodique reste vide quelques heures, donc sans nouvelle "
-                                + "molécule. Chaque Big Bang ajoute aussi, comme toujours, "
+                : "Chaque Big Bang déclenché, jusqu'au huitième, ouvre un gros bonus pour de bon, parfois plusieurs (" + count
+                        + (count > 1 ? " Big Bangs déclenchés" : " Big Bang déclenché") + "). Un palier ouvert se paie en particules "
+                        + "ou en atomes : quelques minutes de la partie suffisent."
+                        + Detail.only(" Un palier payé reste jusqu'à l'univers suivant : ni l'explosion ni un autre Big Bang ne le "
+                                + "reprennent. Le Big Bang qui ouvre un palier qui garde quelque chose (les défis, l'arbre) en profite "
+                                + "déjà. Chaque Big Bang ajoute aussi, comme toujours, "
                                 + ElementText.number(Game.SPACE_PER_SECOND) + " unité d'espace par seconde."));
         milestoneCards.forEach((milestone, card) -> {
             boolean reached = game.isBigBangMilestoneReached(milestone);
+            boolean open = game.isBigBangMilestoneOpen(milestone);
             // Un même Big Bang peut donner deux paliers : tous ceux du prochain Big Bang sont « à venir ».
-            boolean coming = next != null && milestone.bigBangs() == next.bigBangs();
+            boolean coming = next != null && !open && milestone.bigBangs() == count + 1;
             StringBuilder line = new StringBuilder();
             StringBuilder detail = new StringBuilder();
             for (BigBangMilestone.Effect effect : milestone.effects()) {
@@ -141,10 +146,15 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                 detail.append(milestoneDetail(effect));
             }
             int missing = milestone.bigBangs() - count;
-            card.show(reached ? Card.State.DONE : coming ? Card.State.WAITING : Card.State.LOCKED,
-                    rank(milestone.bigBangs()) + " Big Bang", reached ? "atteint" : "", milestone.name(), line.toString(),
+            String unit = milestone.resource() == idle.core.Resource.ATOMS ? " atomes" : " particules";
+            String price = idle.ui.common.Format.amount(milestone.price()) + unit;
+            String toPay = game.canBuyBigBangMilestone(milestone) ? "Payer : " + price
+                    : "À payer : " + price + " (" + idle.ui.common.Format.amount(game.milestoneBalance(milestone)) + unit + " en main)";
+            Card.State state = reached ? Card.State.DONE : open ? (game.canBuyBigBangMilestone(milestone) ? Card.State.READY : Card.State.WAITING)
+                    : coming ? Card.State.WAITING : Card.State.LOCKED;
+            card.show(state, rank(milestone.bigBangs()) + " Big Bang", reached ? "acquis" : "", milestone.name(), line.toString(),
                     Detail.shown() ? detail.toString() : "",
-                    reached ? "" : coming && missing == 1 ? "Au prochain Big Bang" : "Dans " + missing + " Big Bangs", "");
+                    reached ? "" : open ? toPay : coming && missing == 1 ? "Au prochain Big Bang, puis " + price : "Dans " + missing + " Big Bangs", "");
         });
         bangChallenges.refresh();
     }
