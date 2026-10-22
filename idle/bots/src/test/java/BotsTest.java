@@ -73,6 +73,66 @@ class BotsTest {
     }
 
     @Test
+    void laSyntheseCommenceDesLOuvertureDuTableauSansAttendrePersistance() {
+        Game g = new Game();
+        g.start();
+        g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        // Ouverture du §14.1 faite jusqu'aux automatismes ; Persistance (25) n'est pas encore achetée.
+        g.state().setLevel("atom_double", 2);
+        g.state().setLevel("atom_patience", 1);
+        g.state().setLevel("atom_mass", 1);
+        g.state().setLevel("atom_boost", 1);
+        g.state().setLevel("atom_discount", 1);
+        g.state().addAutomation("auto_generator");
+        g.state().addAutomation("auto_fusion");
+        g.state().setAutomationSpeedLevel("auto_generator", 2);
+        assertEquals("atom_keep", FirstUniversePolicy.nextStep(g).id());
+        g.state().setAtoms(idle.core.math.BigNum.of(31));
+        // 31 atomes : 25 gardés pour Persistance, la synthèse à 2 et à 4 passe avec le reste.
+        assertEquals(2, FirstUniversePolicy.synthesize(g, 20));
+        assertEquals(idle.core.math.BigNum.of(25), g.state().atoms());
+        assertEquals(1, FirstUniversePolicy.atoms(g, 5));
+        assertTrue(g.keepsUpgradesOnFusion());
+    }
+
+    @Test
+    void laSurchargeSePeseContreUneSynthese() {
+        Game g = new Game();
+        g.start();
+        g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        for (FirstUniversePolicy.Step step : FirstUniversePolicy.OPENING) {
+            switch (step.kind()) {
+                case UPGRADE -> g.state().setLevel(step.id(), Math.max(step.level(), g.levelOf(step.id())));
+                case AUTOMATION -> g.state().addAutomation(step.id());
+                case CADENCE -> g.state().setAutomationSpeedLevel(step.id(), step.level());
+            }
+        }
+        assertTrue(FirstUniversePolicy.openingDone(g));
+        g.state().setLevel("atom_overload", FirstUniversePolicy.OVERLOAD_UNDER_CAP);
+        assertFalse(FirstUniversePolicy.worthAgainstSynthesis(g, "atom_overload"),
+                "Sous le plafond de 118, 13 niveaux de Surcharge au plus");
+    }
+
+    @Test
+    void leTroisiemeActeNExplosePlusQuandLesMoleculesAttendentDesElements() throws Exception {
+        // Partie neuve du profil 1 (graine 201) au 5e Big Bang : le prochain astre attend le Bitume.
+        Game g = load(Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save"));
+        var list = g.shoppingList();
+        boolean needs = list.items().stream().anyMatch(i -> i.missing() > 0 || i.gather())
+                || list.matter().values().stream().anyMatch(v -> v > 0)
+                || list.sorts().values().stream().anyMatch(v -> v > 0);
+        assertTrue(needs, "La sauvegarde de référence vise un astre qui demande des molécules");
+        g.state().setDarkMatter(idle.core.math.BigNum.of(1000));
+        assertTrue(FirstUniversePolicy.holdExplosions(g));
+        g.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        assertFalse(FirstUniversePolicy.holdExplosions(g),
+                "Sans les 500 matières noires du Big Bang, les explosions restent nécessaires");
+        g.state().setDarkMatter(idle.core.math.BigNum.of(1000));
+        g.state().setBigBangs(0);
+        assertFalse(FirstUniversePolicy.holdExplosions(g), "Avant le premier Big Bang, on explose dès les 118 éléments");
+    }
+
+    @Test
     void conditionDesAstresBloqueLaPreparationDuBigBang() {
         Game g = new Game();
         g.start();
@@ -269,7 +329,7 @@ class BotsTest {
                 count++;
             }
         }
-        assertEquals(32, count, "6 de référence, 3 bloquées, 2 corrigées, 21 victoires historiques");
+        assertEquals(33, count, "7 de référence, 3 bloquées, 2 corrigées, 21 victoires historiques");
     }
 
     @Test
