@@ -35,6 +35,10 @@ Lancer localement depuis `idle/` (Java 21) :
 sh ./gradlew :bots:bot -Pclasse=FreshUniverseAudit --args="1 6 168 60 sorties/audit-depuis-zero"
 ```
 
-L'audit ne corrige pas automatiquement les stratégies. À ce stade, une partie
-neuve peut rester bloquée avant le premier Big Bang ; il faut lire les états
-`LIMIT` / `BLOCKED` pour identifier les stratégies à améliorer.
+L'audit ne corrige pas automatiquement les stratégies : il faut lire les états
+`LIMIT` / `BLOCKED` pour identifier celles à améliorer.
+
+Depuis le 22 octobre 2026 (ordre d'ouverture du modèle 0.123 et explosions
+suspendues pendant la construction du ciel, voir `README.md`), les profils 1 et 2
+forment l'univers en 16 h 26 et 17 h 37 de jeu depuis une partie neuve. Avant,
+le profil 1 restait au 5e Big Bang avec 3 astres mûrs après 21 h.
