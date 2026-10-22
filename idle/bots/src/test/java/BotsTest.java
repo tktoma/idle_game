@@ -36,13 +36,19 @@ class BotsTest {
     }
 
     @Test
-    void persistanceEstAcheteeAvantLesAutresDepenses() {
+    void persistanceAttendLesAutomatismesPrioritaires() {
         Game g = new Game();
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
         g.state().setAtoms(idle.core.math.BigNum.of(25));
         assertTrue(FirstUniversePolicy.needsPersistence(g));
-        assertEquals(1, FirstUniversePolicy.atoms(g, 100));
+        assertFalse(FirstUniversePolicy.readyForPersistence(g),
+                "Persistance ne doit pas retarder les automatismes de debut");
+        g.state().setAtoms(idle.core.math.BigNum.of(200));
+        assertEquals(4, FirstUniversePolicy.bootstrapAutomations(g));
+        assertTrue(FirstUniversePolicy.readyForPersistence(g));
+        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        assertEquals(1, FirstUniversePolicy.atoms(g, 1));
         assertTrue(g.keepsUpgradesOnFusion());
         assertEquals(1, g.levelOf("atom_keep"));
     }
@@ -52,6 +58,8 @@ class BotsTest {
         Game g = new Game();
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
+        g.state().setAtoms(idle.core.math.BigNum.of(200));
+        assertEquals(4, FirstUniversePolicy.bootstrapAutomations(g));
         g.state().setAtoms(idle.core.math.BigNum.of(20));
         RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
         bot.prioritizePersistence();
