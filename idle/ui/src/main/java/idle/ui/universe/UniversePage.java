@@ -75,6 +75,9 @@ public final class UniversePage extends VBox {
     private final Button next = new Button();
     private final Label nextLine = new Label();
     private Runnable onNextUniverse = () -> { };
+    /** Le lancement de l'univers suivant (version 0.111), joué par-dessus la page. */
+    private final LaunchView launch = new LaunchView();
+    private double pulse;
     private final VBox mainPane;
 
     // Sous-onglet « Dimensions »
@@ -169,17 +172,23 @@ public final class UniversePage extends VBox {
             refresh();
         });
         next.setFocusTraversable(false);
-        next.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 8;"
-                + " -fx-border-radius: 8; -fx-text-fill: #0b0e14; -fx-background-color: " + COLOR + "; -fx-border-color: #ffffff;");
+        // Version 0.111 : comme le bouton du tout début de la partie, il respire, et il faut cliquer pour lancer
+        // l'univers. Le clic joue le lancement ; à son éclat, l'univers part et l'onglet Particules revient.
+        next.setStyle("-fx-font-size: 16px; -fx-padding: 12 28; -fx-cursor: hand; -fx-text-fill: #e8f4ff;"
+                + " -fx-background-color: #16202e; -fx-background-radius: 8; -fx-border-color: " + COLOR + "; -fx-border-radius: 8;");
         next.setOnAction(event -> {
-            if (game.canOpenNextUniverse() && game.startNextUniverse()) onNextUniverse.run();
+            if (!game.canOpenNextUniverse() || launch.isPlaying()) return;
+            launch.play(() -> {
+                if (game.canOpenNextUniverse() && game.startNextUniverse()) onNextUniverse.run();
+                refresh();
+            });
             refresh();
         });
         nextLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
         nextLine.setWrapText(true);
         nextLine.setMaxWidth(640);
         nextLine.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-        VBox nextBox = new VBox(4, next, nextLine);
+        VBox nextBox = new VBox(4, nextLine);
         nextBox.setAlignment(Pos.CENTER);
         mainPane = new VBox(8, resources, nextBox, holder, upgrades, toolsBox);
         mainPane.setAlignment(Pos.TOP_CENTER);
@@ -219,17 +228,19 @@ public final class UniversePage extends VBox {
             boolean watering = game.state().seedSprouted(), wasTwig = game.isSeedTwig();
             if (!game.tendSeed()) return;
             if (watering) seedView.water();
-            // La brindille (version 0.106) ouvre le deuxième univers : le jeu recommence, l'onglet Univers reste.
-            if (!wasTwig && game.isSeedTwig() && game.canOpenNextUniverse() && game.startNextUniverse()) {
-                seedView.celebrate();
-                onNextUniverse.run();
-            }
+            // La brindille (version 0.106) ouvre le deuxième univers ; depuis la 0.111, il faut cliquer pour le lancer.
+            if (!wasTwig && game.isSeedTwig()) seedView.celebrate();
             refresh();
         });
         seedPane = new VBox(8, seedLine, seedHint, tendSeed, seedHolder);
         seedPane.setAlignment(Pos.TOP_CENTER);
 
-        pages = new StackPane(mainPane, dimensionsPane, voidPane, seedPane);
+        // Par-dessus les sous-pages : le lancement, et le bouton qui le déclenche, au centre comme celui du tout
+        // début, visible de chacune. La lumière du lancement naît là où il était.
+        CanvasPane launchHolder = CanvasPane.filling(launch);
+        launchHolder.setMouseTransparent(true);
+        pages = new StackPane(mainPane, dimensionsPane, voidPane, seedPane, launchHolder, next);
+        StackPane.setAlignment(next, Pos.CENTER);
         VBox.setVgrow(pages, Priority.ALWAYS);
         getChildren().addAll(subTabs, pages);
         select(MAIN);
@@ -328,7 +339,9 @@ public final class UniversePage extends VBox {
         voidTab.setManaged(voidOpen);
         if ((selected == DIMENSIONS && !dims) || (selected == VOID && !voidOpen)) select(MAIN);
         resources.setText(universes + " univers"
-                + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : ""));
+                + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
+                // Le bonus permanent des univers formés (version 0.112).
+                + (universes > 0 ? "   |   matière noire et sa croissance " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())) : ""));
         for (Map.Entry<UniverseUpgrade, Card> entry : upgradeCards.entrySet()) {
             UniverseUpgrade upgrade = entry.getKey();
             int level = game.universeUpgradeLevel(upgrade);
@@ -339,33 +352,39 @@ public final class UniversePage extends VBox {
         boolean replaying = game.isReplaying();
         // Le deuxième univers (version 0.106) attend la brindille de la graine ; il s'ouvre alors tout seul.
         boolean nextOpen = game.canOpenNextUniverse();
-        next.setVisible(nextOpen);
-        next.setManaged(nextOpen);
-        next.setText("Rouvrir les paliers : jouer l'univers " + (universes + 1));
+        next.setVisible(nextOpen && !launch.isPlaying());
+        next.setText("Lancer l'univers " + (universes + 1));
         nextLine.setText(replaying
                 ? "La partie de l'univers " + (universes + 1) + " est en cours, dans les anciens onglets : former l'univers, à la fin, le crée."
-                : !nextOpen ? "Le deuxième univers s'ouvre quand le germe de la graine devient une brindille : "
-                        + Math.min(game.state().seedWaterings(), Game.SEED_TWIG_WATERINGS) + " / " + Game.SEED_TWIG_WATERINGS
-                        + " arrosages" + (game.state().seedSprouted() ? "." : ", une fois la graine germée.")
-                : "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant, et remet tout à zéro."
+                : !nextOpen ? nextStageLine(game.nextUniverseStage())
+                : launch.isPlaying() ? "L'univers " + (universes + 1) + " se lance…"
+                : "La graine a atteint son palier " + game.nextUniverseStage() + ", " + Game.SEED_STAGE_NAMES.get(game.nextUniverseStage() - 1)
+                        + " : cliquez « Lancer l'univers " + (universes + 1) + " ». " + "Les anciens onglets reviennent pour une partie neuve. Former l'univers à la fin de cette partie crée le suivant, et remet tout à zéro."
                         + (game.isSkinsUnlocked() ? "" : " Dès la cinquième fusion de cette partie, l'onglet Skins s'ouvre."));
         oldTabs.setText(showOldTabs ? "Cacher les anciens onglets" : "Montrer les anciens onglets");
         int open = game.dimensionsUnlocked();
         dimensions.setUnlocked(open);
         dimensions.setMarked(1, game.isLineThresholdReached());
+        dimensions.setMarked(2, game.isPlaneThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
         // Il n'y a qu'une graine (version 0.105) : pas de compteur, la graine est là dès que l'univers est formé.
-        seedLine.setText("La graine d'univers");
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
         seedView.setSprout(game.state().seedSprouted(), game.state().seedWaterings());
         boolean seedOpen = game.canTendSeed();
         tendSeed.setDisable(!seedOpen);
         long waterings = game.state().seedWaterings();
-        seedView.setTwig(game.isSeedTwig());
-        tendSeed.setText(game.isSeedTwig()
-                ? "Arroser la brindille (" + waterings + " arrosages)"
+        int stage = game.seedStage();
+        seedView.setStage(stage);
+        long nextWaterings = Game.seedStageWaterings(Math.min(Game.SEED_STAGES, stage + 1));
+        seedLine.setText("La graine d'univers : palier " + stage + " sur " + Game.SEED_STAGES + ", " + Game.SEED_STAGE_NAMES.get(stage - 1));
+        tendSeed.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
+                : stage >= 2 && !game.isDimensionThresholdReached(stage)
+                ? "La graine attend le seuil de la dimension " + stage + " pour grandir encore"
+                : stage >= 2
+                ? "Arroser " + Game.SEED_STAGE_NAMES.get(stage - 1) + " (" + waterings + " sur " + nextWaterings + " arrosages, palier "
+                        + (stage + 1) + " : " + Game.SEED_STAGE_NAMES.get(stage) + ")"
                 : game.state().seedSprouted()
                 ? "Arroser le germe (" + waterings + (waterings > 1 ? " arrosages" : " arrosage") + " sur " + Game.SEED_TWIG_WATERINGS + ")"
                 : seedOpen ? "Faire germer la graine"
@@ -375,6 +394,21 @@ public final class UniversePage extends VBox {
         seedTab.setText("Graine d'univers");
         mainTab.setText("Univers (" + universes + ")");
         dimensionsTab.setText("Dimensions (" + open + "/" + Game.MAX_DIMENSIONS + ")");
+    }
+
+    /** Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120). */
+    private String nextStageLine(int number) {
+        int stage = Math.min(number, Game.SEED_STAGES);
+        String name = Game.SEED_STAGE_NAMES.get(stage - 1);
+        int dimension = stage - 1;
+        boolean threshold = game.isDimensionThresholdReached(dimension);
+        long need = Game.seedStageWaterings(stage);
+        return "L'univers " + number + " s'ouvre quand la graine atteint son palier " + stage + ", " + name + " : "
+                + (!threshold ? "il faut d'abord le seuil de la dimension " + dimension
+                        + (dimension <= 2 ? "" : ", qui n'existe pas encore") + ", puis "
+                        : "")
+                + Math.min(game.state().seedWaterings(), need) + " / " + need + " arrosages"
+                + (game.state().seedSprouted() ? "." : ", une fois la graine germée.");
     }
 
     /** Joue la naissance d'un univers : il vient de se former. */
@@ -390,6 +424,14 @@ public final class UniversePage extends VBox {
 
     /** Fait avancer l'animation du sous-onglet affiché ; {@code moving} faux (réglage coupé) la laisse immobile. */
     public void frame(double elapsed, boolean moving) {
+        // Le lancement avance même animations coupées : c'est lui qui lance l'univers.
+        boolean wasPlaying = launch.isPlaying();
+        launch.frame(elapsed);
+        if (wasPlaying && !launch.isPlaying()) refresh();
+        pulse += Math.min(elapsed, 0.1);
+        double scale = moving && next.isVisible() ? 1 + 0.03 * (1 + Math.sin(pulse * Math.PI / 1.1)) : 1;
+        next.setScaleX(scale);
+        next.setScaleY(scale);
         switch (selected) {
             case DIMENSIONS -> dimensions.frame(elapsed, moving);
             case VOID -> voidView.frame(elapsed, moving);
@@ -401,6 +443,11 @@ public final class UniversePage extends VBox {
     /** La vue des univers : pour les vérifications. */
     public UniverseView view() {
         return view;
+    }
+
+    /** Le lancement de l'univers suivant : pour les vérifications. */
+    public LaunchView launchView() {
+        return launch;
     }
 
     /** La graine d'univers : pour les vérifications. */

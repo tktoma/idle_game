@@ -350,6 +350,8 @@ public abstract class GameStateResets extends GameStateCollider {
         lineCountLevel = 0;
         dimensionShardsEarned = 0;
         seedSprouted = false;
+        twigOpened = false;
+        seedUniversesOpened = 0;
         seedWaterings = 0;
         planeShards = 0;
         planeShardsEarned = 0;
@@ -449,6 +451,7 @@ public abstract class GameStateResets extends GameStateCollider {
         atoms = BigNum.ZERO;
         totalAtoms = BigNum.ZERO;
         timeSinceFusion = 0;
+        upgradeCalm = 0;
         formations.clear();
         upgradeLevels.clear();
         ownedAutomations.clear();

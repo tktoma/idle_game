@@ -23,6 +23,88 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.121", "Une graine qui devient vraiment un arbre", List.of(
+                    "Les arbres de la graine, du bonsaï à l'arbre-monde, sont redessinés : bien plus grands à chaque palier, "
+                            + "avec un tronc qui s'effile, son écorce et ses nœuds, des rameaux de plus en plus fins, des feuilles "
+                            + "une à une, un sol avec ses herbes, sa mousse et ses pierres, puis des racines.",
+                    "Les effets montent avec l'avancement : halo et poussière plus denses, fleurs, fruits, lucioles, feuilles "
+                            + "qui tombent, sève qui monte dans le tronc, rayons de lumière ; l'arbre-monde a ses étoiles, ses "
+                            + "mondes en orbite et ses racines de lumière.",
+                    "Le passage d'un palier est de plus en plus marqué : plus d'ondes, plus d'étincelles, un éclair plus fort.")),
+            new Note("0.120", "Les onze paliers de la graine", List.of(
+                    "Le plan a son seuil, comme la ligne : 100 éclats du plan gagnés, et la dimension 2 porte son rond vert.",
+                    "La graine a onze paliers : graine, tige, graine craquelée, graine brisée, bonsaï, arbuste, jeune arbre, "
+                            + "arbre mûr, arbre ancien, arbre géant, arbre-monde. Le palier N ouvre l'univers N.",
+                    "Chaque palier demande trente arrosages de plus, une fois atteint le seuil de la dimension du palier d'avant : "
+                            + "la ligne pour la tige, le plan pour la graine craquelée. L'univers 3 attend donc le palier 3.",
+                    "Le passage d'un palier se joue en animation : la vue s'éloigne, la graine craque, la tige grossit.")),
+            new Note("0.119", "Les molécules plafonnées à ×8", List.of(
+                    "Le multiplicateur de molécules des défis de Big Bang du deuxième univers ne double plus à chaque défi : "
+                            + "×2 au premier, ×4 au troisième, ×8 au cinquième, et pas au-delà.")),
+            new Note("0.118", "Plus de molécules au lieu de plus d'espace", List.of(
+                    "Dans le deuxième univers, les défis de Big Bang ne multiplient plus l'espace : l'espace en plus faisait "
+                            + "créer trop de molécules, qui prenaient l'hydrogène dont l'amas de galaxies a besoin.",
+                    "À la place, chaque défi réussi double les molécules que donne une création, pour le même prix en "
+                            + "éléments. Chacune prend sa place : sans assez d'espace libre, il en vient moins.",
+                    "Les sondes passent à ×2 en vitesse et ×2 en récompenses par défi (×4 et ×10 avant).")),
+            new Note("0.117", "Deux défis de Big Bang plus courts", List.of(
+                    "« Barre haute » : rien n'est remis à zéro, la partie continue ; le Big Bang suivant demande une fois et "
+                            + "demie plus d'ordres de grandeur de particules, cent fois plus d'atomes et deux fois plus de matière "
+                            + "noire. Récompense : maturation des astres ×2.",
+                    "« Ciel figé » : rien n'est remis à zéro, mais plus aucune molécule ni aucun astre jusqu'au Big Bang ; il ne "
+                            + "se commence qu'une fois le ciel du Big Bang suivant réuni. Récompense : vitesse des sondes ×2.",
+                    "Ils comptent aussi pour les bonus du deuxième univers ; les planètes deux fois restent liées aux trois "
+                            + "défis d'origine.",
+                    "Correctif : les bonus des éléments sont bornés, pour ne plus dépasser ce qu'un nombre sait écrire quand "
+                            + "les sondes rapportent énormément.")),
+            new Note("0.116", "Des défis de Big Bang utiles, le vide au troisième univers", List.of(
+                    "Dans le deuxième univers, chaque défi de Big Bang réussi donne en plus : particules ×2, espace ×2, "
+                            + "maturation des astres ×4, vitesse des sondes ×4 et récompenses des sondes ×10, multipliés d'un "
+                            + "défi à l'autre. Les trois réussis, chaque planète peut entrer dans deux systèmes solaires.",
+                    "Le vide s'ouvre désormais au premier Big Bang du troisième univers, et non plus du deuxième.")),
+            new Note("0.115", "La fuite devient un défi", List.of(
+                    "La fuite n'est plus une épreuve de l'onglet Skins : c'est un onzième défi de l'acte 2, dans l'onglet "
+                            + "Matière noire. Il n'apparaît que dans le deuxième univers, une fois les dix autres réussis, et "
+                            + "se joue comme eux, de zéro. Le Big Bang ne le demande pas.",
+                    "Son arrivée s'anime : la vue passe aux défis et y reste le temps de l'animation ; les défis s'écartent, "
+                            + "puis la fuite apparaît au milieu de la grille, grandit et se pose.",
+                    "Le tableau ne peut pas exploser avant 2 minutes de défi. Une fuite réussie en 0.114 compte pour le défi.")),
+            new Note("0.114", "La fuite, et le calme du Big Bang", List.of(
+                    "Une épreuve du deuxième univers, dans l'onglet Skins : « Fuite ». Les particules fuient de plus en plus "
+                            + "vite tant que le joueur n'achète aucune amélioration ; chaque achat fait soi-même l'arrête et la fait "
+                            + "repartir de zéro, ceux des automatismes non. But : exploser, après au moins 2 minutes d'épreuve.",
+                    "Elle s'ouvre aux dix défis réussis, une demi-heure environ avant que la matière noire du Big Bang soit réunie.",
+                    "Réussie, elle donne le calme du Big Bang : tant que le joueur n'achète aucune amélioration, les particules "
+                            + "que demande le Big Bang baissent peu à peu, jusqu'à une seule au bout d'une heure. Les automatismes "
+                            + "peuvent continuer. L'avancée du calme se lit dans la condition des particules du Big Bang.")),
+            new Note("0.113", "Un univers de trop au chargement", List.of(
+                    "Une sauvegarde d'avant la 0.083 dont l'univers était formé comptait, au chargement, un univers de "
+                            + "plus : le bonus de matière noire de la 0.112 y valait ×4 au lieu de ×2. Elle n'en compte plus qu'un.")),
+            new Note("0.112", "Chaque univers double la matière noire", List.of(
+                    "Bonus permanent : chaque univers formé multiplie par 2 la matière noire des explosions (prime de "
+                            + "vitesse comprise) et la vitesse de sa croissance. Il se cumule : ×2 dans la partie de "
+                            + "l'univers 2, ×4 dans celle du troisième, et ainsi de suite.",
+                    "Il s'affiche dans l'onglet Univers, dans le détail de la matière noire et dans les statistiques.")),
+            new Note("0.111", "Lancer l'univers 2", List.of(
+                    "La brindille n'ouvre plus l'univers 2 d'elle-même : comme au tout début de la partie, un bouton qui "
+                            + "respire, « Lancer l'univers 2 », attend au centre de l'onglet Univers, sur chacune de ses sous-pages.",
+                    "Le clic joue un petit lancement : un point de lumière gonfle, éclate en anneaux, et une gerbe monte vers "
+                            + "les onglets. À l'éclat, les trois actes repartent de zéro et l'onglet Particules réapparaît en "
+                            + "grandissant ; une fois posé, le jeu y va.")),
+            new Note("0.110", "L'univers à moitié formé", List.of(
+                    "L'outil d'essai « Échelle suivante du cosmos » montait jusqu'à l'univers sans le former : pas de "
+                            + "remise à zéro, et la brindille ne pouvait pas ouvrir le deuxième univers. Il le forme maintenant "
+                            + "pour de vrai.",
+                    "Une partie déjà dans cet état est réparée : au chargement, l'univers se forme ; en cours de jeu, la "
+                            + "brindille ouvre quand même le deuxième univers.")),
+            new Note("0.109", "La brindille ouvre l'univers 2, les fenêtres attendent leur acte", List.of(
+                    "La brindille n'ouvrait pas le deuxième univers quand l'outil d'essai « +1 univers » (celui qui ouvre "
+                            + "le plan) avait servi : le jeu se croyait déjà au deuxième. Elle l'ouvre maintenant dans tous les "
+                            + "cas, une seule fois : l'onglet Particules revient, les trois actes à zéro, avec les nouveautés "
+                            + "du deuxième univers.",
+                    "Les fenêtres d'explication déjà vues dans le premier univers ne reviennent pas.",
+                    "Les nouveautés du deuxième univers ne s'annoncent que pendant sa partie, une fois leur acte ouvert : "
+                            + "l'acte 1 d'emblée, l'acte 2 à la première explosion, l'acte 3 au premier Big Bang.")),
             new Note("0.108", "La brindille rouvre vraiment l'univers", List.of(
                     "La brindille ouvrait le deuxième univers seulement au clic qui la faisait pousser : une brindille "
                             + "déjà là (arrosée avant la 0.106) n'ouvrait rien. Elle l'ouvre maintenant dès qu'elle est là.",

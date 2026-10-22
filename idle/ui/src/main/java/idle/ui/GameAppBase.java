@@ -158,7 +158,7 @@ public abstract class GameAppBase extends Application {
     final Button bigBangTab = new Button("Big Bang");
     /** L'onglet de l'univers (version 0.080), qui s'ouvre quand l'univers est formé : le quatrième acte. */
     final Button universeTab = new Button("Univers");
-    /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du deuxième univers. */
+    /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du troisième univers (version 0.116). */
     final Button voidTab = new Button("Le vide");
     final Button achievementsTab = new Button("Succès");
     final Button statsTab = new Button("Statistiques");
@@ -232,6 +232,10 @@ public abstract class GameAppBase extends Application {
     /** Le compteur et les améliorations, sous les générateurs. */
     final VBox controls = new VBox(12, particlesLabel, productionLabel);
     Button startButton;
+    /** Le retour de l'onglet Particules (version 0.111) : son âge en secondes, négatif hors animation. */
+    double particlesTabPop = -1;
+    /** Durée de ce retour. */
+    static final double PARTICLES_TAB_POP_SECONDS = 0.9;
     final BorderPane root = new BorderPane();
     /** La disposition à gauche (version 0.057) : les onglets en colonne, et en haut les sous-onglets de l'onglet affiché. */
     final VBox sideBar = new VBox(2);
@@ -492,8 +496,10 @@ public abstract class GameAppBase extends Application {
             // Les trois actes repartent de zéro (version 0.108) : les pages oublient ce qu'elles montraient.
             forgetOldPages();
             refresh();
-            selectTab(Tab.PARTICLES);
-            refresh();
+            // Version 0.111 : l'onglet Particules réapparaît en grandissant ; on y va une fois qu'il est là.
+            particlesTabPop = 0;
+            particlesTab.setScaleX(0.2);
+            particlesTab.setScaleY(0.2);
         });
         dock(Tab.STATS, statsPage, statsPage.subTabs());
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());

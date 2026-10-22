@@ -163,11 +163,11 @@ final class PopupPane extends StackPane {
                     + "l'énergie ; un clic au bon moment en donne bien plus, et certaines collisions libèrent des quarks.";
             case "BIG_BANG" -> "Le Big Bang fait repartir la partie du premier générateur. En échange, l'espace s'ouvre : il "
                     + "s'étend de lui-même, et s'y forment des molécules, puis des astres.";
-            case "VOID" -> "Le deuxième acte de la partie secondaire : le vide, et sa ressource, l'énergie du vide. Le vide "
+            case "VOID" -> "Le deuxième acte de la partie secondaire, au troisième univers : le vide, et sa ressource, l'énergie du vide. Le vide "
                     + "n'est jamais tout à fait vide : des paires de particules y naissent et s'annulent sans cesse. Pour "
                     + "l'instant, il se regarde seulement.";
             case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
-                    + "des améliorations qui restent, et « Rouvrir les paliers » relance une partie pour former l'univers suivant.";
+                    + "des améliorations qui restent, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
             case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute 2\u00a0% à toutes les "
                     + "ressources, et ces bonus s'additionnent, que le skin soit choisi ou non : le choisir ne change que l'apparence.";
             default -> null;
@@ -180,33 +180,48 @@ final class PopupPane extends StackPane {
         String blue = GameApp.PARTICLES_COLOR, gold = GameApp.ATOMS_COLOR, violet = GameApp.DARK_MATTER_COLOR, bang = GameApp.BIG_BANG_COLOR;
         String skins = idle.ui.pages.SkinsPage.COLOR;
         BooleanSupplier second = game::isSecondUniverse;
+        // Version 0.109 : une nouveauté ne s'annonce que pendant la partie du deuxième univers, et une fois son acte
+        // ouvert dans cette partie : l'acte 1 d'emblée, l'acte 2 à la première explosion, l'acte 3 au premier Big Bang.
+        // Avant, certaines s'affichaient dès la formation du premier univers, ou en avance sur leur acte.
+        BooleanSupplier act1 = game::isReplaying;
+        BooleanSupplier act2 = () -> game.isReplaying() && game.isDarkMatterUnlocked();
+        BooleanSupplier act3 = () -> game.isReplaying() && game.isBigBangUnlocked();
         return List.of(
-                new Entry("second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +15\u00a0% de cadence "
+                gated(act1, "second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +15\u00a0% de cadence "
                         + "pendant 20 s, puis 40 s de repos. Il se relance toujours à la main.", blue, game::isRegimeUnlocked),
-                new Entry("second:synergy", one, "Synergie des rangs", "Dès le dixième générateur, chacun produit un peu plus, "
+                gated(act1, "second:synergy", one, "Synergie des rangs", "Dès le dixième générateur, chacun produit un peu plus, "
                         + "jusqu'à +0,5\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
-                new Entry("second:perfect", one, "Prime de cycle parfait", "Trois fusions de suite sans buter sur le plafond "
+                gated(act1, "second:perfect", one, "Prime de cycle parfait", "Trois fusions de suite sans buter sur le plafond "
                         + "d'atomes : +10\u00a0% de particules pendant une minute.", gold, game::isPerfectCycleUnlocked),
-                new Entry("second:free", one, "Éléments gratuits", "Tous les dix éléments découverts, un élément gratuit : dans "
+                gated(act1, "second:free", one, "Éléments gratuits", "Tous les dix éléments découverts, un élément gratuit : dans "
                         + "le tableau périodique, un clic sur un élément pas encore découvert le prend.", gold,
                         () -> second.getAsBoolean() && game.freeElementsAvailable() > 0),
-                new Entry("second:dense", one, "Recherche sur le noyau dense", "Un million d'atomes créés : quatre paliers payés "
+                gated(act1, "second:dense", one, "Recherche sur le noyau dense", "Un million d'atomes créés : quatre paliers payés "
                         + "en atomes, dans l'onglet Skins. Chacun donne un skin d'atome ou de tableau.", skins, game::isDenseResearchUnlocked),
-                new Entry("second:preference", two, "Famille préférée", "Avec la synthèse ciblée, choisissez une famille dans le "
+                gated(act2, "second:preference", two, "Famille préférée", "Avec la synthèse ciblée, choisissez une famille dans le "
                         + "tableau : ses chances montent à chaque tirage au hasard, jusqu'à ×2.", violet, game::isFamilyPreferenceUnlocked),
-                new Entry("second:trials", two, "Les épreuves", "Dans l'onglet Skins, des épreuves volontaires : une à la fois, "
+                gated(act2, "second:trials", two, "Les épreuves", "Dans l'onglet Skins, des épreuves volontaires : une à la fois, "
                         + "abandonnables sans rien perdre. Chacune réussie donne un skin.", skins,
                         () -> game.isTrialUnlocked(Trial.LONE_GENERATOR) || game.isTrialUnlocked(Trial.SOFT_CONTRACTION)),
-                new Entry("second:colliderTrials", two, "Les épreuves du collisionneur", "Trois épreuves où il faut capter des "
+                gated(act2, "second:colliderTrials", two, "Les épreuves du collisionneur", "Trois épreuves où il faut capter des "
                         + "croisements sous la contrainte du temps. Le défi du détecteur suit, au Détecteur élargi niveau 3.", skins,
                         () -> game.isTrialUnlocked(Trial.NO_OVERHEAT)),
-                new Entry("second:darkTiers", two, "Paliers de matière noire", "La matière noire gagnée dans ce deuxième univers "
+                gated(act2, "second:leak", two, "La fuite", "Un onzième défi, au milieu des autres : les particules fuient de plus "
+                        + "en plus vite tant qu'aucune amélioration n'est achetée, et le tableau ne peut pas exploser avant 2 minutes. "
+                        + "Réussi, il donne le calme du Big Bang : sans amélioration achetée, les particules qu'il demande baissent, "
+                        + "jusqu'à une seule au bout d'une heure.", violet, game::isLeakChallengeShown),
+                gated(act2, "second:darkTiers", two, "Paliers de matière noire", "La matière noire gagnée dans ce deuxième univers "
                         + "débloque des skins : à 100, 1 000, 10 000 et 100 000.", violet, () -> game.darkSkinTiers() > 0),
-                new Entry("second:cycle", three, "Le petit arbre du cycle", "Dans l'onglet Big Bang, un choix par cycle : fusion, "
+                gated(act3, "second:cycle", three, "Le petit arbre du cycle", "Dans l'onglet Big Bang, un choix par cycle : fusion, "
                         + "synthèse ou réserve. Le Big Bang suivant le rend.", bang, game::isCycleChoiceUnlocked),
-                new Entry("second:coldBang", three, "Big Bang à froid", "Une épreuve : l'expansion va deux fois moins vite jusqu'au "
+                gated(act3, "second:coldBang", three, "Big Bang à froid", "Une épreuve : l'expansion va deux fois moins vite jusqu'au "
                         + "Big Bang suivant.", skins, () -> game.isTrialUnlocked(Trial.COLD_BANG)),
-                new Entry("second:bangTiers", three, "Paliers du Big Bang", "Le premier Big Bang de ce deuxième univers donne un "
+                gated(act3, "second:bangTiers", three, "Paliers du Big Bang", "Le premier Big Bang de ce deuxième univers donne un "
                         + "skin, le troisième un autre.", bang, () -> game.bangSkinTiers() > 0));
+    }
+
+    /** Une nouveauté du deuxième univers, qui attend que son acte soit ouvert (version 0.109). */
+    private static Entry gated(BooleanSupplier act, String id, String group, String heading, String text, String color, BooleanSupplier open) {
+        return new Entry(id, group, heading, text, color, () -> act.getAsBoolean() && open.getAsBoolean());
     }
 }

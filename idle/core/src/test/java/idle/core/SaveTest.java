@@ -203,6 +203,9 @@ class SaveTest {
         state.setDimensionShardsEarned(140.5);
         state.setSeedSprouted(true);
         state.setSeedWaterings(17);
+        state.setTwigOpened(true);
+        state.setSeedUniversesOpened(1);
+        state.setUpgradeCalm(123.5);
         state.setPlaneShards(9.5);
         state.setPlaneShardsEarned(31);
         for (int i = 0; i < 5; i++) state.setPlaneLevel(i, i + 1);

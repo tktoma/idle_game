@@ -94,11 +94,11 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Le vide (version 0.099), deuxième acte de la partie secondaire : un palier du collisionneur, avec sa
-     * ressource, l'énergie du vide. Il s'ouvre au premier Big Bang du deuxième univers. Pour l'instant
-     * sans logique : il ne fait que se montrer.
+     * ressource, l'énergie du vide. Il s'ouvre au premier Big Bang du troisième univers (version 0.116 ; avant,
+     * du deuxième). Pour l'instant sans logique : il ne fait que se montrer.
      */
     public boolean isVoidUnlocked() {
-        return isSecondUniverse() && state.bigBangs() > 0;
+        return universes() >= 2 && state.bigBangs() > 0;
     }
 
     // ------------------------------------------------------------------
@@ -196,6 +196,23 @@ public abstract class GameUniverse extends GameAtoms {
     /** Éclats par seconde : chaque aller d'une boule touche tous les traits sauf celui d'où elle part. */
     public double lineShardsPerSecond() {
         return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() * lineBalls() * lineCount() / lineHalfTrip() : 0;
+    }
+
+    /** Éclats du plan à gagner pour son seuil (version 0.120), comme les cent de la ligne. */
+    public static final double PLANE_THRESHOLD = 100;
+
+    /** Vrai une fois le seuil du plan atteint : {@link #PLANE_THRESHOLD} éclats du plan gagnés en tout. */
+    public boolean isPlaneThresholdReached() {
+        return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
+    }
+
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    public boolean isDimensionThresholdReached(int number) {
+        return switch (number) {
+            case 1 -> isLineThresholdReached();
+            case 2 -> isPlaneThresholdReached();
+            default -> false;
+        };
     }
 
     /** Vrai une fois le seuil de la ligne atteint : {@link #LINE_THRESHOLD} éclats gagnés en tout. */
@@ -482,23 +499,71 @@ public abstract class GameUniverse extends GameAtoms {
      * 0.105 : il ne demande plus de graine en réserve, ce qui le laissait grisé une fois l'objectif atteint.
      */
     public boolean canTendSeed() {
-        return isUniverseFormed() && isLineThresholdReached();
+        // Version 0.120 : la graine ne s'arrose qu'une fois le seuil de la dimension de son palier atteint (la ligne
+        // au premier, le plan au deuxième…), et plus au dernier.
+        int stage = seedStage();
+        return isUniverseFormed() && stage < SEED_STAGES && isDimensionThresholdReached(stage);
     }
 
     /** Arrosages qui font du germe une brindille (version 0.106) : c'est elle qui ouvre le deuxième univers. */
     public static final long SEED_TWIG_WATERINGS = 30;
 
-    /** Vrai une fois le germe devenu brindille. */
+    /**
+     * Les paliers de la graine (version 0.120), de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N. Chacun
+     * demande {@link #SEED_TWIG_WATERINGS} arrosages de plus que le précédent, une fois atteint le seuil de la
+     * dimension du palier d'avant : la ligne pour la tige (palier 2), le plan pour le palier 3, et ainsi de suite.
+     */
+    public static final int SEED_STAGES = 11;
+
+    /** Le nom de chaque palier, du premier au onzième. */
+    public static final java.util.List<String> SEED_STAGE_NAMES = java.util.List.of("la graine", "la tige", "la graine craquelée",
+            "la graine brisée", "le bonsaï", "l'arbuste", "le jeune arbre", "l'arbre mûr", "l'arbre ancien", "l'arbre géant",
+            "l'arbre-monde");
+
+    /** Arrosages qu'il faut en tout pour ce palier (2 à 11) : trente de plus à chaque palier. */
+    public static long seedStageWaterings(int stage) {
+        return SEED_TWIG_WATERINGS * Math.max(0, stage - 1);
+    }
+
+    /** Le palier atteint par la graine, de 1 (pas encore de tige) à {@link #SEED_STAGES}. */
+    public int seedStage() {
+        if (!state.seedSprouted()) return 1;
+        int stage = 1;
+        while (stage < SEED_STAGES && state.seedWaterings() >= seedStageWaterings(stage + 1) && isDimensionThresholdReached(stage)) stage++;
+        return stage;
+    }
+
+    /** Vrai une fois le germe devenu brindille : la graine a au moins son deuxième palier. */
     public boolean isSeedTwig() {
-        return state.seedSprouted() && state.seedWaterings() >= SEED_TWIG_WATERINGS;
+        return seedStage() >= 2;
     }
 
     /**
-     * Vrai si l'univers suivant peut s'ouvrir depuis la page Univers (version 0.106) : le deuxième attend que le
-     * germe de la graine soit devenu brindille ; les suivants s'ouvrent comme avant.
+     * Vrai si l'univers suivant peut s'ouvrir depuis la page Univers. Version 0.120 : l'univers N attend le palier N
+     * de la graine (la tige pour le deuxième, la graine craquelée pour le troisième…).
      */
     public boolean canOpenNextUniverse() {
-        return canStartNextUniverse() && (universes() >= 2 || isSeedTwig());
+        // Comptés par la graine elle-même : l'outil d'essai « +1 univers » ne change pas le palier demandé.
+        return canStartNextUniverse() && seedStage() >= state.seedUniversesOpened() + 2;
+    }
+
+    /** Le palier de la graine qu'attend l'univers suivant : 2 pour le deuxième, 3 pour le troisième… */
+    public int nextUniverseStage() {
+        return Math.min(SEED_STAGES, state.seedUniversesOpened() + 2);
+    }
+
+    /**
+     * Vrai si la brindille doit ouvrir le deuxième univers maintenant (version 0.109) : elle est là, l'univers
+     * est formé, aucune partie n'est en cours, et elle ne l'a pas déjà ouvert. Le nombre d'univers n'y entre
+     * pas : l'outil d'essai « +1 univers » (pour ouvrir le plan) ne l'empêche plus.
+     */
+    public boolean twigOpensUniverse() {
+        return canOpenNextUniverse() && !state.twigOpened();
+    }
+
+    /** Ouvre le deuxième univers si la brindille le demande ; vrai si c'est fait. */
+    public boolean openUniverseFromTwig() {
+        return twigOpensUniverse() && startNextUniverse();
     }
 
     /** Le premier clic fait germer la graine ; les suivants arrosent son germe, qui grandit. Faux si fermé. */
@@ -699,7 +764,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Vrai si l'on peut rouvrir les paliers pour jouer l'univers suivant. */
     public boolean canStartNextUniverse() {
-        return state.universeFormed() && !state.replaying();
+        // Version 0.110 : un univers atteint par l'échelle du cosmos seule (outil d'essai, ancienne partie) compte aussi.
+        return isUniverseFormed() && !state.replaying();
     }
 
     /**
@@ -712,9 +778,13 @@ public abstract class GameUniverse extends GameAtoms {
         // Version 0.108 : les trois actes repartent vraiment de zéro, même si quelque chose s'est joué depuis la
         // formation de l'univers (les anciens onglets montrés, une partie d'avant). La partie secondaire reste :
         // univers, graine, dimensions, skins, succès et temps de jeu.
+        boolean twig = isSeedTwig();
+        boolean bySeed = canOpenNextUniverse();
         state.startUniverse();
         forgetDerived();
         state.setReplaying(true);
+        if (twig) state.setTwigOpened(true);
+        if (bySeed) state.setSeedUniversesOpened(state.seedUniversesOpened() + 1);
         return true;
     }
 

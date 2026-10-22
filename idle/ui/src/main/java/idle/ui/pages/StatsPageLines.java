@@ -282,6 +282,7 @@ public abstract class StatsPageLines extends StatsPageBase {
 
         section("Ce que donnent les paliers");
         row("Matière noire des explosions", () -> multiplier(game.bigBangDarkMatterFactor()), () -> game.bigBangDarkMatterFactor() > 1);
+        row("Univers formés : matière noire et sa croissance", () -> multiplier(game.universeDarkMatterFactor()), () -> game.universeDarkMatterFactor() > 1);
         row("Espace par seconde", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)),
                 () -> game.bigBangMilestoneBoost(Molecule.Stat.SPACE) > 1);
         row("Ce que les amas attirent", () -> multiplier(game.accretionFactor()), () -> game.accretionFactor() > 1);

@@ -83,7 +83,8 @@ public abstract class GameSystems extends GameBase {
 
     /** Durée d'un voyage, moteurs compris. */
     public double probeDuration(ProbeTrip trip) {
-        return trip.seconds() * Math.pow(0.9, state.probeUpgradeLevel(ProbeUpgrade.ENGINE));
+        return trip.seconds() * Math.pow(0.9, state.probeUpgradeLevel(ProbeUpgrade.ENGINE)) / universeBangFactor(BANG_UNIVERSE_PROBE_SPEED)
+                / bangCompletedFactor(idle.core.bigbang.BangChallenge.FROZEN, 2);
     }
 
     /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
@@ -95,7 +96,7 @@ public abstract class GameSystems extends GameBase {
 
     /** Ce que valent les récompenses de ce voyage : sa valeur, instruments compris. */
     public double probeValue(ProbeTrip trip) {
-        return trip.value() * (1 + 0.25 * state.probeUpgradeLevel(ProbeUpgrade.LOOT));
+        return trip.value() * (1 + 0.25 * state.probeUpgradeLevel(ProbeUpgrade.LOOT)) * universeBangFactor(BANG_UNIVERSE_PROBE_REWARDS);
     }
 
     public boolean canLaunchProbe(ProbeDestination destination, ProbeTrip trip) {
@@ -411,7 +412,7 @@ public abstract class GameSystems extends GameBase {
             case EXOTIC -> 100;
             case CORE -> 120;
         };
-        return minutes * 60;
+        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangCompletedFactor(idle.core.bigbang.BangChallenge.RAISED, 2);
     }
 
     /** Vrai si cet astre est formé et a fini de mûrir : il compte pour les astres plus gros et pour la galaxie. */
@@ -541,11 +542,23 @@ public abstract class GameSystems extends GameBase {
         return false;
     }
 
+    /** Systèmes où se trouve cette planète. */
+    public int planetPlacements(String planetId) {
+        int count = 0;
+        for (SolarSystem system : state.solarSystems()) if (system.planets().contains(planetId)) count++;
+        return count;
+    }
+
+    /** Vrai si cette planète peut encore entrer dans un système : une fois, ou deux une fois les trois défis de Big Bang réussis (version 0.116). */
+    public boolean canPlaceAgain(String planetId) {
+        return planetPlacements(planetId) < (planetsTwice() ? 2 : 1);
+    }
+
     /** Les astres mûrs de cette échelle qui ne sont dans aucun système : ce qu'on peut encore y placer. */
     public List<String> freeForSystems(Body.Tier tier) {
         List<String> free = new ArrayList<>();
         for (Body body : bodies.values()) {
-            if (body.tier() == tier && isBodyMature(body.id()) && !isInSystem(body.id())) free.add(body.id());
+            if (body.tier() == tier && isBodyMature(body.id()) && (tier == Body.Tier.PLANET ? canPlaceAgain(body.id()) : !isInSystem(body.id()))) free.add(body.id());
         }
         return free;
     }
@@ -573,8 +586,10 @@ public abstract class GameSystems extends GameBase {
     public boolean addPlanet(int index, String planetId) {
         Body planet = body(planetId);
         if (index < 0 || index >= state.solarSystems().size() || planet.tier() != Body.Tier.PLANET
-                || !isBodyMature(planet.id()) || isInSystem(planet.id())) return false;
+                || !isBodyMature(planet.id()) || !canPlaceAgain(planet.id())) return false;
         SolarSystem system = state.solarSystems().get(index);
+        // Deux fois au plus (version 0.116), mais jamais deux fois dans le même système.
+        if (system.planets().contains(planet.id())) return false;
         List<String> planets = new ArrayList<>(system.planets());
         planets.add(planet.id());
         replaceSystem(index, system.withPlanets(planets));

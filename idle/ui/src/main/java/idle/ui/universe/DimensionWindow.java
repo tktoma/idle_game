@@ -35,6 +35,7 @@ public final class DimensionWindow extends BorderPane {
     private final VBox linePane;
     /** Le plan (version 0.104) : ses éclats, la manière de jouer, et ses cinq améliorations. */
     private final Label planeShards = new Label();
+    private final Label planeThreshold = new Label();
     private final java.util.Map<Game.PlaneUpgrade, Button> planeButtons = new java.util.EnumMap<>(Game.PlaneUpgrade.class);
     private final VBox planePane;
     /** Les touches de direction tenues : Z, Q, S, D et les flèches. */
@@ -114,7 +115,8 @@ public final class DimensionWindow extends BorderPane {
             planeButtons.put(upgrade, button);
             planeRow.getChildren().add(button);
         }
-        planePane = new VBox(10, planeShards, planeHint, planeRow);
+        planeThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        planePane = new VBox(10, planeShards, planeThreshold, planeHint, planeRow);
         planePane.setAlignment(Pos.CENTER);
         planePane.setPadding(new Insets(10, 0, 0, 0));
         setBottom(new VBox(linePane, planePane));
@@ -146,6 +148,10 @@ public final class DimensionWindow extends BorderPane {
 
     private void refreshPlane() {
         planeShards.setText("Éclats du plan : " + shardText(game.state().planeShards()));
+        // Le seuil du plan (version 0.120), comme celui de la ligne : il ouvre le palier 3 de la graine.
+        planeThreshold.setText(game.isPlaneThresholdReached()
+                ? "Seuil atteint : " + shardText(Game.PLANE_THRESHOLD) + " éclats du plan gagnés, la dimension 2 porte son rond vert"
+                : "Seuil : " + shardText(game.state().planeShardsEarned()) + " / " + shardText(Game.PLANE_THRESHOLD) + " éclats du plan gagnés");
         for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) {
             Button button = planeButtons.get(upgrade);
             boolean full = game.planeLevel(upgrade) >= upgrade.max();

@@ -211,7 +211,10 @@ final class DebugBar extends VBox {
                     while (formNextBody()) { }
                     threeSystems();
                     Cosmos next = game.nextCosmos();
-                    if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
+                    // L'univers (version 0.110) se forme pour de vrai, remise à zéro comprise : monter seulement
+                    // l'échelle laissait un univers à moitié formé, que la brindille ne pouvait pas faire suivre.
+                    if (next == Cosmos.UNIVERSE) game.testFormUniverse();
+                    else if (next != null) game.state().setCosmosLevel(next.ordinal() + 1);
                 }));
         group("Collisionneur",
                 tool("Énergie ×1 000", () -> {
@@ -742,9 +745,9 @@ final class DebugBar extends VBox {
         if (state.explosions() == 0) state.setExplosions(1);
         state.setActiveChallenge(null);
         state.setParticles(state.particles().max(game.bigBangParticles()));
-        state.setAtoms(state.atoms().max(Game.BIG_BANG_ATOMS));
+        state.setAtoms(state.atoms().max(game.bigBangAtoms()));
         state.setTotalAtoms(state.totalAtoms().max(state.atoms()));
-        state.setDarkMatter(state.darkMatter().max(Game.BIG_BANG_DARK_MATTER));
+        state.setDarkMatter(state.darkMatter().max(game.bigBangDarkMatter()));
         grantAchievements();
         for (Challenge challenge : game.challenges()) state.addCompletedChallenge(challenge.id());
     }

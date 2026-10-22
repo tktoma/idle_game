@@ -225,7 +225,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                     + "récompense se réclame d'un clic. Les échantillons paient les améliorations des sondes ; tout traverse le Big Bang.";
             case BigBangMilestone.KeepChallenges keep -> "Dès ce Big Bang-là, et à tous les suivants, les défis réussis "
                     + "traversent le Big Bang : ils restent réussis, avec leurs récompenses, et la condition « les "
-                    + game.challenges().size() + " défis réussis » du Big Bang suivant est déjà remplie. Rien n'empêche de les "
+                    + idle.core.darkmatter.Challenges.DEFAULT.size() + " défis réussis » du Big Bang suivant est déjà remplie. Rien n'empêche de les "
                     + "rejouer pour leur temps.";
             case BigBangMilestone.KeepDarkTree keep -> "Dès ce Big Bang-là, et à tous les suivants, l'arbre de matière noire "
                     + "reste en place : ses cases, ses automatismes et leurs réglages. Le Big Bang ne reprend plus que la "

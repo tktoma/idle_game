@@ -45,7 +45,44 @@ public abstract class GameDarkMatter extends GameParticles {
      * exemplaire de chacun suffit ; les suivants renforcent les éléments, ils ne conditionnent rien.
      */
     public boolean canExplode() {
-        return state.started() && state.elements().size() == PeriodicTable.ELEMENTS.size();
+        return state.started() && state.elements().size() == PeriodicTable.ELEMENTS.size()
+                // La fuite (version 0.115) dure au moins deux minutes.
+                && !(ruled(Challenge.Rule.LEAK) && state.stats().runTime() < LEAK_MIN_SECONDS);
+    }
+
+    /** La fuite : ce que gagne sa vitesse à chaque seconde sans amélioration (part perdue par seconde), et son plafond. */
+    public static final double LEAK_STEP = 0.0005;
+    public static final double LEAK_MAX = 0.5;
+    /** Durée minimale de la fuite, en secondes de jeu : avant, le tableau ne peut pas exploser. */
+    public static final double LEAK_MIN_SECONDS = 120;
+
+    /** Part des particules que la fuite emporte par seconde en ce moment ; 0 hors du défi. */
+    public double leakLossPerSecond() {
+        if (!ruled(Challenge.Rule.LEAK)) return 0;
+        return Math.min(LEAK_MAX, LEAK_STEP * state.upgradeCalm());
+    }
+
+    /**
+     * Vrai quand la fuite apparaît parmi les défis (version 0.115) : dans le deuxième univers, une fois les dix
+     * autres réussis. Une fois réussie, elle reste affichée tant que sa réussite compte.
+     */
+    public boolean isLeakChallengeShown() {
+        if (!state.universeFormed() || !isDarkMatterUnlocked()) return false;
+        return baseChallengesDone() || state.completedChallenges().contains(Challenges.LEAK.id())
+                || Challenges.LEAK.id().equals(state.activeChallenge());
+    }
+
+    /** Nombre des dix défis de toujours réussis, sans la fuite. */
+    public int baseChallengesCompleted() {
+        int done = 0;
+        for (Challenge challenge : Challenges.DEFAULT) if (state.completedChallenges().contains(challenge.id())) done++;
+        return done;
+    }
+
+    /** Vrai si les dix défis de toujours sont réussis : c'est eux, et non la fuite, que demande le Big Bang. */
+    public boolean baseChallengesDone() {
+        for (Challenge challenge : Challenges.DEFAULT) if (!state.completedChallenges().contains(challenge.id())) return false;
+        return true;
     }
 
     /**
@@ -148,11 +185,11 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Tous les défis, dans l'ordre du catalogue. */
     public List<Challenge> challenges() {
-        return Challenges.DEFAULT;
+        return isLeakChallengeShown() ? Challenges.ALL : Challenges.DEFAULT;
     }
 
     private Challenge challenge(String challengeId) {
-        for (Challenge challenge : Challenges.DEFAULT) {
+        for (Challenge challenge : Challenges.ALL) {
             if (challenge.id().equals(challengeId)) return challenge;
         }
         throw new IllegalArgumentException("Défi inconnu : " + challengeId);
@@ -166,6 +203,7 @@ public abstract class GameDarkMatter extends GameParticles {
     /** Vrai quand le joueur a gagné assez de matière noire pour tenter ce défi. Rien n'est dépensé. */
     public boolean isChallengeUnlocked(String challengeId) {
         Challenge challenge = challenge(challengeId);
+        if (challenge == Challenges.LEAK) return isLeakChallengeShown();
         return isDarkMatterUnlocked() && darkMatterEarned().gte(BigNum.of(challenge.darkMatter()));
     }
 
@@ -176,7 +214,10 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Nombre de défis réussis. */
     public int completedChallenges() {
-        return state.completedChallenges().size();
+        // Ceux de la liste affichée : la fuite ne compte que là où elle se montre.
+        int done = 0;
+        for (Challenge challenge : challenges()) if (state.completedChallenges().contains(challenge.id())) done++;
+        return done;
     }
 
     /** Meilleur temps de ce défi, en secondes de jeu, ou −1 s'il n'a jamais été réussi. */
@@ -236,7 +277,7 @@ public abstract class GameDarkMatter extends GameParticles {
     boolean rewarded(Challenge.Reward reward) {
         if (rewardsVersion != state.challengesVersion()) {
             rewards.clear();
-            for (Challenge challenge : Challenges.DEFAULT) {
+            for (Challenge challenge : Challenges.ALL) {
                 if (state.completedChallenges().contains(challenge.id())) rewards.add(challenge.reward());
             }
             rewardsVersion = state.challengesVersion();
@@ -423,7 +464,20 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Ce que vaut la prime de vitesse : {@link #SPEED_PRIME}, multipliée comme la matière noire d'une explosion. */
     public BigNum speedPrime() {
-        return SPEED_PRIME.multiply(bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER));
+        return SPEED_PRIME.multiply(bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER) * universeDarkMatterFactor());
+    }
+
+    /** Ce que double chaque univers formé (version 0.112) : la matière noire des explosions, et sa croissance. */
+    public static final double UNIVERSE_DARK_MATTER_FACTOR = 2;
+
+    /**
+     * Le bonus permanent des univers formés (version 0.112) : ×{@link #UNIVERSE_DARK_MATTER_FACTOR} par univers,
+     * multiplicatif (×2 dans la partie de l'univers 2, ×4 dans celle du troisième…). Il multiplie la matière
+     * noire que laisse une explosion, sa prime de vitesse, et l'élan de sa croissance. Rien ne l'efface.
+     */
+    public double universeDarkMatterFactor() {
+        int formed = Math.min(1000, universes());
+        return formed <= 0 ? 1 : Math.pow(UNIVERSE_DARK_MATTER_FACTOR, formed);
     }
 
     /** Vrai si la dernière explosion a touché la prime de vitesse : pour l'annoncer. Remis à faux à chaque lecture. */
@@ -446,7 +500,8 @@ public abstract class GameDarkMatter extends GameParticles {
         }
         if (rewarded(Challenge.Reward.EXTRA_DARK_MATTER)) amount = amount.add(BigNum.ONE);
         double factor = (state.bigBangs() == 0 && firstRunPace > 1 ? FIRST_CYCLE_DARK_MATTER : 1) * bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER)
-                * (cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1);
+                * (cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1)
+                * universeDarkMatterFactor();
         return factor == 1 ? amount : amount.multiply(factor);
     }
 
@@ -502,7 +557,8 @@ public abstract class GameDarkMatter extends GameParticles {
                 * (1 + achievementBonus(Achievement.Bonus.EXPANSION))
                 * moleculeBoost(Molecule.Stat.DARK_GROWTH)
                 * colliderDarkGrowthMultiplier()
-                * bangAchievementMultiplier(BangAchievement.Reward.DARK_GROWTH);
+                * bangAchievementMultiplier(BangAchievement.Reward.DARK_GROWTH)
+                * universeDarkMatterFactor();
     }
 
     /**
@@ -625,6 +681,16 @@ public abstract class GameDarkMatter extends GameParticles {
 
     /** Fait faire à l'automatisme de matière noire une action ; faux s'il ne peut rien faire pour l'instant. */
     private boolean act(DarkAutomation automation) {
+        boolean was = automating;
+        automating = true;
+        try {
+            return actNow(automation);
+        } finally {
+            automating = was;
+        }
+    }
+
+    private boolean actNow(DarkAutomation automation) {
         return switch (automation.kind()) {
             case GRANT_AUTOMATIONS -> grantAutomation();
             case ATOM_UPGRADES -> buyCheapestAtomUpgrade();

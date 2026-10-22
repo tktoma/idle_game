@@ -437,7 +437,8 @@ public abstract class GameParticles extends GameMatterAutomation {
                 .multiply(speedMilestoneMultiplier())
                 .multiply(colliderParticlesMultiplier())
                 .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES))
-                .multiply(perfectCycleMultiplier());
+                .multiply(perfectCycleMultiplier())
+                .multiply(universeBangFactor(BANG_UNIVERSE_PARTICLES));
         for (Upgrade upgrade : upgrades.values()) {
             result = result.multiply(particlesMultiplier(upgrade, state.levelOf(upgrade.id()), generators));
         }
@@ -511,7 +512,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         BigNum common = speed().multiply(particlesWith(generators));
         double individual = 0;
         for (int generator = 0; generator < generators; generator++) {
-            individual += generatorSpeedMultiplier(generator) * generatorParticlesMultiplier(generator);
+            individual = Math.min(1e300, individual + generatorSpeedMultiplier(generator) * generatorParticlesMultiplier(generator));
         }
         return common.multiply(individual);
     }
@@ -792,6 +793,9 @@ public abstract class GameParticles extends GameMatterAutomation {
             }
         }
         state.setLevel(upgradeId, state.levelOf(upgradeId) + 1);
+        // La fuite et le calme du Big Bang (version 0.114) repartent de zéro à chaque amélioration achetée par le
+        // joueur ; celles des automatismes ne comptent pas : on peut s'absenter sans couper l'automatisation.
+        if (!automating) state.setUpgradeCalm(0);
         return true;
     }
 

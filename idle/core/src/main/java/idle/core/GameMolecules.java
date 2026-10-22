@@ -200,7 +200,7 @@ public abstract class GameMolecules extends GameUniverse {
      * qui doit y rester), et l'expansion a créé assez d'espace libre pour la loger.
      */
     public boolean canCreateMolecule(String moleculeId) {
-        return state.started() && isMoleculeKindUnlocked(molecule(moleculeId).kind())
+        return state.started() && !bangRuled(BangChallenge.FROZEN) && isMoleculeKindUnlocked(molecule(moleculeId).kind())
                 && state.moleculeCount(molecule(moleculeId).id()) < MAX_MOLECULES
                 && hasElementsForMolecule(moleculeId) && hasSpaceForMolecule(moleculeId);
     }
@@ -306,6 +306,7 @@ public abstract class GameMolecules extends GameUniverse {
         Molecule molecule = molecule(moleculeId);
         int created = moleculesNextCreation(moleculeId);
         created += moleculeDoubling(moleculeId, created);
+        created += moleculeUniverseBonus(moleculeId, created);
         long elements = 0;
         for (Map.Entry<Integer, Integer> atom : nextMoleculeCost(moleculeId).entrySet()) {
             state.setElementCount(atom.getKey(), state.elementCount(atom.getKey()) - atom.getValue());
@@ -315,6 +316,27 @@ public abstract class GameMolecules extends GameUniverse {
         state.stats().noteMoleculeCreation(created, elements, automatic);
         noteStep(GameStats.Step.FIRST_MOLECULE);
         return true;
+    }
+
+    /**
+     * Les molécules de plus que donnent les défis de Big Bang du deuxième univers (version 0.118) : la création en donne
+     * ×2 au premier défi réussi, ×4 au troisième, ×8 au cinquième (version 0.119 : plafonné à ×8), pour le même prix
+     * en éléments. Chacune prend sa place : sans assez d'espace libre, ou au plafond de la sorte, il en vient moins.
+     */
+    private int moleculeUniverseBonus(String moleculeId, int created) {
+        double factor = universeMoleculeFactor();
+        if (factor <= 1) return 0;
+        Molecule molecule = molecule(moleculeId);
+        double wanted = created * (factor - 1);
+        double room = state.space().multiply(1 + 1e-9).subtract(usedSpace()).toDouble() / volumeOf(molecule) - created;
+        long caps = (long) MAX_MOLECULES - state.moleculeCount(molecule.id()) - created;
+        return (int) Math.max(0, Math.min(wanted, Math.min(Math.floor(room), caps)));
+    }
+
+    /** Ce que les défis de Big Bang du deuxième univers multiplient aux molécules d'une création : ×2, ×4, ×8 aux défis 1, 3 et 5. */
+    public double universeMoleculeFactor() {
+        int done = universeBangChallenges();
+        return done <= 0 ? 1 : Math.pow(BANG_UNIVERSE_MOLECULES, (done + 1) / 2);
     }
 
     /** Chance qu'une création de molécule en donne deux fois plus : le dédoublement du collisionneur (5 % par niveau). */
@@ -859,7 +881,7 @@ public abstract class GameMolecules extends GameUniverse {
      */
     public boolean canFormBody(String bodyId) {
         Body body = body(bodyId);
-        return state.started() && isBodiesUnlocked() && !state.hasBody(body.id())
+        return state.started() && !bangRuled(BangChallenge.FROZEN) && isBodiesUnlocked() && !state.hasBody(body.id())
                 && bodyConditionsMet(bodyId) == bodyConditions(bodyId) && hasMaturationPlace()
                 && (body.tier() != Body.Tier.EXOTIC || isExoticUnlocked());
     }

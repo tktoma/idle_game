@@ -37,6 +37,8 @@ public abstract class GameStateBase {
     BigNum atoms = BigNum.ZERO;
     BigNum totalAtoms = BigNum.ZERO;
     double timeSinceFusion = 0;
+    /** Secondes de jeu depuis la dernière amélioration achetée (version 0.114) : la fuite et le calme du Big Bang. */
+    double upgradeCalm = 0;
     final List<Double> formations = new ArrayList<>();
     double timePlayed = 0;
     final Map<String, Integer> upgradeLevels = new HashMap<>();
@@ -203,6 +205,10 @@ public abstract class GameStateBase {
     /** La graine d'univers (version 0.103) : germée ou non, et combien de fois son germe a été arrosé. */
     boolean seedSprouted = false;
     long seedWaterings = 0;
+    /** Vrai une fois que la brindille a ouvert la partie du deuxième univers (version 0.109) : elle ne l'ouvre qu'une fois. */
+    boolean twigOpened = false;
+    /** Univers que la graine a ouverts (version 0.120) : le palier N + 1 ouvre le suivant. */
+    int seedUniversesOpened = 0;
     /**
      * Le plan, deuxième dimension (version 0.104) : ses éclats, propres à lui, tous ceux gagnés, et le
      * niveau de ses cinq améliorations (valeur, réapparition, nombre, vitesse, taille), dans cet ordre.
@@ -311,6 +317,15 @@ public abstract class GameStateBase {
     /** Temps écoulé depuis la dernière fusion (ou depuis le démarrage), en secondes. */
     public double timeSinceFusion() {
         return timeSinceFusion;
+    }
+
+    /** Secondes de jeu depuis la dernière amélioration achetée, à la main ou par un automatisme (version 0.114). */
+    public double upgradeCalm() {
+        return upgradeCalm;
+    }
+
+    public void setUpgradeCalm(double seconds) {
+        upgradeCalm = seconds >= 0 ? seconds : 0;
     }
 
     public void setTimeSinceFusion(double timeSinceFusion) {

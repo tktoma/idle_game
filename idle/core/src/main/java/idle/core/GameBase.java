@@ -180,7 +180,70 @@ public abstract class GameBase {
 
     /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants. */
     public BigNum bigBangParticles() {
-        return state.bigBangs() == 0 ? BIG_BANG_PARTICLES : BIG_BANG_PARTICLES_LATER;
+        BigNum need = state.bigBangs() == 0 ? BIG_BANG_PARTICLES : BIG_BANG_PARTICLES_LATER;
+        // La barre haute (version 0.117) : une fois et demie plus d'ordres de grandeur.
+        if (raisedBar()) need = BigNum.pow10(need.log10() * idle.core.bigbang.BangChallenge.RAISED_PARTICLES);
+        double relief = bigBangCalmRelief();
+        return relief <= 0 ? need : relief >= 1 ? BigNum.ONE : BigNum.pow10(need.log10() * (1 - relief));
+    }
+
+    /**
+     * Le calme du Big Bang (version 0.114), récompense du défi « Fuite » (une épreuve en 0.114) : tant qu'aucune amélioration
+     * n'est achetée, les particules que demande le Big Bang baissent peu à peu, en ordres de grandeur,
+     * jusqu'à une seule au bout de {@link #BIG_BANG_CALM_SECONDS}. Une heure sans rien acheter suffit donc
+     * toujours pour la condition des particules. La moindre amélioration fait tout repartir.
+     */
+    public static final double BIG_BANG_CALM_SECONDS = 3600;
+
+    /**
+     * Les défis de Big Bang du deuxième univers (version 0.116) : chacun réussi multiplie, en plus de sa récompense,
+     * les particules par {@link #BANG_UNIVERSE_PARTICLES}, les molécules de chaque création par
+     * {@link #BANG_UNIVERSE_MOLECULES} (version 0.118, à la place de l'espace ×2, qui ralentissait l'amas), la vitesse de
+     * maturation des astres par {@link #BANG_UNIVERSE_MATURATION}, celle des sondes par {@link #BANG_UNIVERSE_PROBE_SPEED}
+     * et leurs récompenses par {@link #BANG_UNIVERSE_PROBE_REWARDS}. Les bonus se multiplient d'un défi à l'autre ;
+     * les trois réussis, chaque planète peut aussi entrer dans deux systèmes solaires.
+     */
+    public static final double BANG_UNIVERSE_PARTICLES = 2, BANG_UNIVERSE_MOLECULES = 2, BANG_UNIVERSE_MATURATION = 4,
+            // Les sondes, ramenées à ×2 en 0.118 (×4 et ×10 avant).
+            BANG_UNIVERSE_PROBE_SPEED = 2, BANG_UNIVERSE_PROBE_REWARDS = 2;
+
+    /** Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. */
+    public int universeBangChallenges() {
+        if (!state.universeFormed()) return 0;
+        int done = 0;
+        for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) {
+            if (state.completedBangChallenges().contains(challenge.name())) done++;
+        }
+        return done;
+    }
+
+    /** La récompense propre d'un défi de Big Bang de la 0.117, lisible des couches basses : {@code factor} s'il est réussi, 1 sinon. */
+    double bangCompletedFactor(idle.core.bigbang.BangChallenge challenge, double factor) {
+        return state.completedBangChallenges().contains(challenge.name()) ? factor : 1;
+    }
+
+    /** Un bonus des défis de Big Bang : {@code base} à la puissance du nombre de défis réussis. */
+    public double universeBangFactor(double base) {
+        return Math.pow(base, universeBangChallenges());
+    }
+
+    /** Vrai une fois les trois défis de Big Bang réussis dans le deuxième univers : une planète peut entrer dans deux systèmes. */
+    public boolean planetsTwice() {
+        // Les trois défis d'origine (version 0.116) ; ceux de la 0.117 n'y entrent pas.
+        if (!state.universeFormed()) return false;
+        for (idle.core.bigbang.BangChallenge c : new idle.core.bigbang.BangChallenge[] {idle.core.bigbang.BangChallenge.VOID,
+                idle.core.bigbang.BangChallenge.FORGOTTEN, idle.core.bigbang.BangChallenge.BY_HAND})
+            if (!state.completedBangChallenges().contains(c.name())) return false;
+        return true;
+    }
+
+    /** Vrai pendant l'action d'un automatisme (version 0.114) : ses achats ne sont pas ceux du joueur, ils ne rompent pas le calme. */
+    boolean automating = false;
+
+    /** La part du seuil de particules déjà effacée par le calme, de 0 à 1 ; 0 sans la récompense. */
+    public double bigBangCalmRelief() {
+        if (!state.completedChallenges().contains(idle.core.darkmatter.Challenges.LEAK.id())) return 0;
+        return Math.min(1, state.upgradeCalm() / BIG_BANG_CALM_SECONDS);
     }
 
     /**
@@ -195,6 +258,21 @@ public abstract class GameBase {
      * d'explosions à onze matières noires.
      */
     public static final BigNum BIG_BANG_DARK_MATTER = BigNum.of(500);
+
+    /** Vrai pendant le défi de Big Bang « Barre haute » (version 0.117). */
+    boolean raisedBar() {
+        return idle.core.bigbang.BangChallenge.RAISED.name().equals(state.activeBangChallenge());
+    }
+
+    /** Les atomes en main que demande le Big Bang : plus pendant la barre haute. */
+    public BigNum bigBangAtoms() {
+        return raisedBar() ? BIG_BANG_ATOMS.multiply(idle.core.bigbang.BangChallenge.RAISED_ATOMS) : BIG_BANG_ATOMS;
+    }
+
+    /** La matière noire en réserve que demande le Big Bang : plus pendant la barre haute. */
+    public BigNum bigBangDarkMatter() {
+        return raisedBar() ? BIG_BANG_DARK_MATTER.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : BIG_BANG_DARK_MATTER;
+    }
 
     /** Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les cinquante du jeu. */
     public static final int BIG_BANG_ACHIEVEMENTS = 40;

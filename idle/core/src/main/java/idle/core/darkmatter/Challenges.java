@@ -60,5 +60,16 @@ public final class Challenges {
             new Challenge("challenge_absence", "Absence", Challenge.Rule.ABSENCE_ONLY, 350,
                     Challenge.Reward.STRONGER_ABSENCE));
 
+    /**
+     * Version 0.115 : un onzième défi, du deuxième univers seulement, qui n'apparaît qu'une fois les dix autres
+     * réussis, une demi-heure environ avant que la matière noire du Big Bang soit réunie. Facultatif : le Big Bang
+     * ne le demande pas. Son seuil de matière noire ne compte pas : c'est l'apparition qui l'ouvre.
+     */
+    public static final Challenge LEAK = new Challenge("challenge_leak", "Fuite", Challenge.Rule.LEAK, 1,
+            Challenge.Reward.BIG_BANG_CALM);
+
+    /** Tous les défis que le jeu connaît : les dix, puis la fuite. */
+    public static final List<Challenge> ALL = java.util.stream.Stream.concat(DEFAULT.stream(), java.util.stream.Stream.of(LEAK)).toList();
+
     private Challenges() {}
 }

@@ -2,6 +2,7 @@ package idle.ui.darkmatter;
 
 import idle.core.Game;
 import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.Challenges;
 import idle.ui.Confirm;
 import idle.ui.GameApp;
 import idle.ui.common.Card;
@@ -51,13 +52,18 @@ public final class ChallengesPane extends VBox {
         intro.setMaxWidth(760);
         getChildren().add(intro);
 
-        for (Challenge challenge : game.challenges()) {
+        // La fuite (version 0.115) prend place au milieu de la grille, au centre de sa deuxième rangée : elle n'y
+        // apparaît qu'une fois les dix autres réussis, dans le deuxième univers.
+        java.util.List<Challenge> order = new java.util.ArrayList<>(Challenges.DEFAULT);
+        order.add(Math.min(LEAK_SLOT, order.size()), Challenges.LEAK);
+        for (Challenge challenge : order) {
             Card card = new Card(GameApp.DARK_MATTER_COLOR);
             card.setDoneClickable(true);     // un défi réussi se rejoue, pour le temps
             card.setOnAction(() -> click(challenge));
             cards.put(challenge, card);
             grid.add(card);
         }
+        grid.show(cards.get(Challenges.LEAK), false);
         grid.setMaxWidth(820);
         getChildren().add(grid);
     }
@@ -89,9 +95,73 @@ public final class ChallengesPane extends VBox {
      * @param elapsed secondes écoulées depuis l'image précédente
      */
     public void frame(double elapsed) {
+        if (reveal >= 0) animateReveal(Math.min(Math.max(0, elapsed), 0.1));
         if (armedFor <= 0) return;
         armedFor = Math.max(0, armedFor - elapsed);
         if (armedFor == 0) armed = null;
+    }
+
+    /** La place de la fuite dans la grille : la cinquième, au centre de la deuxième rangée de trois. */
+    static final int LEAK_SLOT = 4;
+    /** L'arrivée de la fuite (version 0.115) : les défis s'écartent, puis elle apparaît au milieu. */
+    public static final double MAKE_ROOM_SECONDS = 0.7, REVEAL_SECONDS = 2.4;
+    /** Âge de l'arrivée, en secondes ; négatif hors animation. */
+    private double reveal = -1;
+
+    /** Joue l'arrivée de la fuite parmi les défis. */
+    public void playReveal() {
+        reveal = 0;
+        grid.show(cards.get(Challenges.LEAK), false);
+        animateReveal(0);
+    }
+
+    /** Vrai tant que la fuite arrive : la vue reste sur les défis. */
+    public boolean isRevealing() {
+        return reveal >= 0;
+    }
+
+    private void animateReveal(double dt) {
+        reveal += dt;
+        Card leak = cards.get(Challenges.LEAK);
+        java.util.List<Card> after = new java.util.ArrayList<>(), before = new java.util.ArrayList<>();
+        int index = 0;
+        for (Map.Entry<Challenge, Card> entry : cards.entrySet()) {
+            if (entry.getKey() == Challenges.LEAK) continue;
+            (index++ < LEAK_SLOT ? before : after).add(entry.getValue());
+        }
+        if (reveal < MAKE_ROOM_SECONDS) {
+            // Les défis s'écartent : ceux d'avant reculent un peu, ceux d'après glissent vers la droite pour faire la place.
+            double t = ease(reveal / MAKE_ROOM_SECONDS);
+            for (Card card : before) { card.setTranslateX(-14 * t); card.setOpacity(1 - 0.35 * t); }
+            for (Card card : after) { card.setTranslateX(70 * t); card.setOpacity(1 - 0.35 * t); }
+            return;
+        }
+        grid.show(leak, true);
+        if (reveal < REVEAL_SECONDS) {
+            // Les autres reviennent à leur place, la fuite grandit au milieu, dépasse un peu, puis se pose.
+            double t = Math.min(1, (reveal - MAKE_ROOM_SECONDS) / 0.8);
+            double back = 1 - ease(t);
+            for (Card card : before) { card.setTranslateX(-14 * back); card.setOpacity(1 - 0.35 * back); }
+            for (Card card : after) { card.setTranslateX(-90 * back); card.setOpacity(1 - 0.35 * back); }
+            double grow = Math.min(1, (reveal - MAKE_ROOM_SECONDS) / 0.9);
+            double scale = grow < 0.7 ? 0.2 + 0.95 * grow / 0.7 : 1.15 - 0.15 * (grow - 0.7) / 0.3;
+            double glow = Math.max(0, 1 - (reveal - MAKE_ROOM_SECONDS) / (REVEAL_SECONDS - MAKE_ROOM_SECONDS));
+            leak.setScaleX(scale + 0.03 * glow * Math.sin(reveal * 9));
+            leak.setScaleY(scale + 0.03 * glow * Math.sin(reveal * 9));
+            leak.setOpacity(Math.min(1, grow * 1.5));
+            return;
+        }
+        for (Card card : before) { card.setTranslateX(0); card.setOpacity(1); }
+        for (Card card : after) { card.setTranslateX(0); card.setOpacity(1); }
+        leak.setScaleX(1);
+        leak.setScaleY(1);
+        leak.setOpacity(1);
+        reveal = -1;
+    }
+
+    private static double ease(double t) {
+        double x = Math.max(0, Math.min(1, t));
+        return x * x * (3 - 2 * x);
     }
 
     /** La sous-page n'est plus affichée : une confirmation en attente est oubliée. */
@@ -117,6 +187,8 @@ public final class ChallengesPane extends VBox {
                         + "Tenté dès son ouverture, un défi est souvent plus court qu'une partie ordinaire, dont le "
                         + "tableau s'alourdit à chaque explosion."));
 
+        // La fuite ne se montre que dans le deuxième univers, les dix autres réussis ; pendant son arrivée, c'est l'animation qui décide.
+        if (reveal < 0) grid.show(cards.get(Challenges.LEAK), game.isLeakChallengeShown());
         cards.forEach((challenge, card) -> {
             boolean unlocked = game.isChallengeUnlocked(challenge.id());
             boolean done = game.isChallengeCompleted(challenge.id());
@@ -132,8 +204,10 @@ public final class ChallengesPane extends VBox {
                 card.show(Card.State.ARMED, "", (int) Math.ceil(armedFor) + " s", challenge.name(), line, detail,
                         running ? "Cliquer encore : abandonner" : "Cliquer encore : la partie sera effacée", "");
             } else if (running) {
-                card.show(Card.State.ON, "", "en cours", challenge.name(), line, detail,
-                        "Depuis " + Format.duration(game.stats().runTime()), "abandonner");
+                card.show(Card.State.ON, "", challenge == Challenges.LEAK ? "fuite " + ElementText.percent(game.leakLossPerSecond()) + "/s" : "en cours",
+                        challenge.name(), line, detail,
+                        "Depuis " + Format.duration(game.stats().runTime()) + (challenge == Challenges.LEAK
+                                && game.stats().runTime() < Game.LEAK_MIN_SECONDS ? " (explosion possible à 2 min)" : ""), "abandonner");
             } else if (!unlocked) {
                 card.show(Card.State.LOCKED, "", "verrouillé", challenge.name(), line, detail,
                         "À " + challenge.darkMatter() + " matières noires gagnées", "");
@@ -170,6 +244,7 @@ public final class ChallengesPane extends VBox {
             case ABSENCE_ONLY -> "Seules les voies d'absence agissent, tableau lourd";
             case CUT_BRANCH -> "La branche des particules n'agit plus";
             case BARE_TREE -> "Ni voie ni liaison n'agit";
+            case LEAK -> "Les particules fuient de plus en plus vite sans achat";
         };
     }
 
@@ -186,6 +261,7 @@ public final class ChallengesPane extends VBox {
             case STRONGER_ABSENCE -> "voies d'absence ×2";
             case STRONGER_LINKS -> "liaisons ×2";
             case EXTRA_DARK_MATTER -> "+1 matière noire par explosion";
+            case BIG_BANG_CALM -> "le calme du Big Bang";
         };
     }
 
@@ -212,6 +288,10 @@ public final class ChallengesPane extends VBox {
                     + "il se finit en quelques minutes ; sans, il demande une demi-heure ou plus.";
             case CUT_BRANCH -> "les cases de la branche des particules n'agissent plus. Restent les atomes, la taille et les liaisons.";
             case BARE_TREE -> "aucune voie de bifurcation, aucune liaison ni aucun accord n'agit : il ne reste que le tronc de l'arbre.";
+            case LEAK -> "les particules fuient d'une part qui grandit de " + ElementText.percent(Game.LEAK_STEP)
+                    + " par seconde à chaque seconde sans amélioration achetée (jusqu'à " + ElementText.percent(Game.LEAK_MAX)
+                    + " par seconde). Chaque amélioration achetée soi-même l'arrête et la fait repartir de zéro ; celles des "
+                    + "automatismes, non. Le tableau ne peut pas exploser avant 2 minutes de défi.";
         };
     }
 
@@ -232,6 +312,8 @@ public final class ChallengesPane extends VBox {
             case STRONGER_ABSENCE -> "les voies d'absence comptent double, et ce qu'elles rendent du temps d'absence aussi";
             case STRONGER_LINKS -> "les liaisons et les accords comptent double";
             case EXTRA_DARK_MATTER -> "une matière noire de plus à chaque explosion";
+            case BIG_BANG_CALM -> "le calme du Big Bang : tant que vous n'achetez aucune amélioration vous-même, les particules "
+                    + "qu'il demande baissent peu à peu, jusqu'à une seule au bout d'une heure ; les automatismes peuvent continuer";
         };
     }
 }

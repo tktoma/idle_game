@@ -117,14 +117,14 @@ public final class NextReset {
     private static String missing(Game game, BigBangCondition condition) {
         return switch (condition) {
             case PARTICLES -> Format.count(lacking(game.bigBangParticles(), game.darkBalance(DarkUpgrade.Branch.PARTICLES))) + " particules";
-            case ATOMS -> Format.count(lacking(Game.BIG_BANG_ATOMS, game.state().atoms())) + " atomes";
+            case ATOMS -> Format.count(lacking(game.bigBangAtoms(), game.state().atoms())) + " atomes";
             case DARK_MATTER -> {
-                BigNum lacking = lacking(Game.BIG_BANG_DARK_MATTER, game.state().darkMatter());
+                BigNum lacking = lacking(game.bigBangDarkMatter(), game.state().darkMatter());
                 yield Format.darkMatter(lacking) + (lacking.gt(BigNum.ONE) ? " matières noires" : " matière noire");
             }
             case ACHIEVEMENTS -> Math.max(1, Game.BIG_BANG_ACHIEVEMENTS - game.achievementCount()) + " succès";
             case CHALLENGES -> {
-                int lacking = Math.max(1, game.challenges().size() - game.completedChallenges());
+                int lacking = Math.max(1, idle.core.darkmatter.Challenges.DEFAULT.size() - game.baseChallengesCompleted());
                 yield lacking + (lacking > 1 ? " défis" : " défi");
             }
             case SKY -> {

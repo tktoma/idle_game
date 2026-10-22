@@ -41,10 +41,11 @@ public abstract class GameBigBang extends GameDarkMatter {
     public boolean isBigBangConditionMet(BigBangCondition condition) {
         return switch (condition) {
             case PARTICLES -> darkBalance(DarkUpgrade.Branch.PARTICLES).gte(bigBangParticles());
-            case ATOMS -> state.atoms().gte(BIG_BANG_ATOMS);
-            case DARK_MATTER -> state.darkMatter().gte(BIG_BANG_DARK_MATTER);
+            case ATOMS -> state.atoms().gte(bigBangAtoms());
+            case DARK_MATTER -> state.darkMatter().gte(bigBangDarkMatter());
             case ACHIEVEMENTS -> achievementCount() >= BIG_BANG_ACHIEVEMENTS;
-            case CHALLENGES -> !challenges().isEmpty() && completedChallenges() >= challenges().size();
+            // Les dix de toujours (version 0.115) : la fuite, facultative, n'y entre pas.
+            case CHALLENGES -> !challenges().isEmpty() && baseChallengesDone();
             case SKY -> bodiesMature() >= bigBangSkyRequirement();
         };
     }
@@ -225,16 +226,28 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
+     * Vrai si ce défi-là peut commencer. Le ciel figé (version 0.117) attend que le ciel du Big Bang suivant soit déjà
+     * réuni : sans nouvel astre, il ne le serait jamais.
+     */
+    public boolean canStartBangChallenge(BangChallenge challenge) {
+        if (!canStartBangChallenge()) return false;
+        return challenge != BangChallenge.FROZEN || isBigBangConditionMet(BigBangCondition.SKY);
+    }
+
+    /**
      * Commence un défi de Big Bang : la partie repart comme après un Big Bang (mêmes choses
      * gardées), sans en compter un, et la contrainte tient jusqu'au Big Bang suivant.
      *
      * @return {@code true} si le défi a commencé
      */
     public boolean startBangChallenge(BangChallenge challenge) {
-        if (challenge == null || !canStartBangChallenge()) return false;
-        noteHeldPeaks();
-        clearForBigBang();
-        state.stats().restartRun();
+        if (challenge == null || !canStartBangChallenge() || !canStartBangChallenge(challenge)) return false;
+        // Les deux défis de la 0.117 ne remettent rien à zéro : la partie continue.
+        if (!challenge.keepsRun()) {
+            noteHeldPeaks();
+            clearForBigBang();
+            state.stats().restartRun();
+        }
         state.setActiveBangChallenge(challenge.name());
         state.setBangChallengeStarted(state.timePlayed());
         return true;
@@ -263,7 +276,8 @@ public abstract class GameBigBang extends GameDarkMatter {
 
     /** Ce que vaut chaque récompense de défi de Big Bang. */
     public static final Map<BangChallenge.Reward, Double> BANG_REWARDS = Map.of(
-            BangChallenge.Reward.SPACE, 2.0, BangChallenge.Reward.ACCRETION, 1.5, BangChallenge.Reward.DARK_MATTER, 2.0);
+            BangChallenge.Reward.SPACE, 2.0, BangChallenge.Reward.ACCRETION, 1.5, BangChallenge.Reward.DARK_MATTER, 2.0,
+            BangChallenge.Reward.MATURATION, 2.0, BangChallenge.Reward.PROBES, 2.0);
 
     // ------------------------------------------------------------------
     // Les paliers de Big Bang

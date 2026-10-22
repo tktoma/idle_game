@@ -12,7 +12,7 @@ import javafx.scene.text.TextAlignment;
 
 /**
  * L'onglet du vide (version 0.099) : le deuxième acte de la partie secondaire. Il s'ouvre au premier Big
- * Bang du deuxième univers, avec sa ressource, l'énergie du vide. Pour l'instant sans logique : l'écume
+ * Bang du troisième univers (deuxième avant la 0.116), avec sa ressource, l'énergie du vide. Pour l'instant sans logique : l'écume
  * quantique se regarde, et rien ne s'y gagne.
  */
 public final class VoidPage extends VBox {

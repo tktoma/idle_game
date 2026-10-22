@@ -334,6 +334,23 @@ public abstract class GameAppTabs extends GameAppWindow {
      * Vrai dans la partie secondaire (version 0.081) : l'univers est formé, et les anciens onglets sont
      * cachés (sauf si l'outil d'essai les a fait revenir).
      */
+    /** L'onglet Particules réapparaît (version 0.111) : il grandit, dépasse un peu, revient ; puis on y va. */
+    void popParticlesTab(double dt) {
+        particlesTabPop += Math.min(Math.max(0, dt), 0.1);
+        double t = Math.min(1, particlesTabPop / PARTICLES_TAB_POP_SECONDS);
+        // Une montée qui dépasse de 15 % avant de se poser.
+        double scale = t < 0.6 ? 0.2 + (1.15 - 0.2) * (t / 0.6) : 1.15 - 0.15 * ((t - 0.6) / 0.4);
+        particlesTab.setScaleX(scale);
+        particlesTab.setScaleY(scale);
+        if (t >= 1) {
+            particlesTabPop = -1;
+            particlesTab.setScaleX(1);
+            particlesTab.setScaleY(1);
+            selectTab(Tab.PARTICLES);
+            refresh();
+        }
+    }
+
     boolean universePhase() {
         return game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) && !universePage.showsOldTabs();
     }
@@ -356,7 +373,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             popupEntries = List.copyOf(entries);
         }
         boolean busy = absencePane.isVisible() || endPane.isOpen() || exploding
-                || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying());
+                || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying()) || darkMatterPage.isRevealing();
         popupPane.check(popupEntries, busy);
     }
 
@@ -609,9 +626,10 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (selectedTab == Tab.BIG_BANG) {
             bigBangPage.frame(dt);
         }
-        if (selectedTab == Tab.UNIVERSE) {
+        if (selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying()) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
+        if (particlesTabPop >= 0) popParticlesTab(dt);
         if (selectedTab == Tab.VOID) {
             voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }

@@ -188,13 +188,15 @@ public final class GameApp extends GameAppTabs {
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
 
-        // La brindille de la graine (version 0.108) ouvre le deuxième univers, même atteinte avant cette version,
-        // ou pendant que la page Univers n'était pas affichée : les trois actes repartent de zéro.
-        if (game.isSeedTwig() && game.universes() == 1 && game.canStartNextUniverse() && game.startNextUniverse()) {
-            forgetOldPages();
-            selectTab(Tab.PARTICLES);
-            refresh();
-            return;
+        // La fuite (version 0.115) : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
+        // le temps de son arrivée.
+        if (game.isLeakChallengeShown() && darkMatter && game.state().addSeenPopup("reveal:challenge_leak")) {
+            selectTab(Tab.DARK_MATTER);
+            darkMatterPage.playLeakReveal();
+        }
+        if (darkMatterPage.isRevealing() && (selectedTab != Tab.DARK_MATTER || darkMatterPage.selected() != 2)) {
+            selectTab(Tab.DARK_MATTER);
+            darkMatterPage.showChallenges();
         }
 
         // L'onglet « Univers » (version 0.080) s'ouvre quand l'univers est formé. S'il vient de se former,
@@ -211,7 +213,7 @@ public final class GameApp extends GameAppTabs {
         }
         hadUniverse = universe ? 1 : 0;
 
-        // Le vide (version 0.099) : au premier Big Bang du deuxième univers, le deuxième acte de la partie secondaire.
+        // Le vide (version 0.099) : au premier Big Bang du troisième univers (deuxième avant la 0.116), le deuxième acte de la partie secondaire.
         boolean vacuum = game.isVoidUnlocked() && !phase;
         voidTab.setVisible(vacuum);
         voidTab.setManaged(vacuum);

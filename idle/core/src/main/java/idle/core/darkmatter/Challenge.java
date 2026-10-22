@@ -38,7 +38,12 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         /** Version 0.070 : la branche des particules de l'arbre n'agit plus ; restent les atomes, la taille et les liaisons. */
         CUT_BRANCH,
         /** Version 0.070 : aucune voie, aucune liaison n'agit : il ne reste que le tronc de l'arbre. */
-        BARE_TREE
+        BARE_TREE,
+        /**
+         * Version 0.115 : la fuite, du deuxième univers. Les particules fuient de plus en plus vite tant que le
+         * joueur n'achète aucune amélioration ; il faut deux minutes au moins avant d'exploser.
+         */
+        LEAK
     }
 
     /** La récompense définitive d'un défi réussi. */
@@ -62,7 +67,9 @@ public record Challenge(String id, String name, Rule rule, int darkMatter, Rewar
         /** Les liaisons et les accords comptent double. */
         STRONGER_LINKS,
         /** Une matière noire de plus à chaque explosion. */
-        EXTRA_DARK_MATTER
+        EXTRA_DARK_MATTER,
+        /** Version 0.115 : le calme du Big Bang ({@link Game#bigBangCalmRelief()}). */
+        BIG_BANG_CALM
     }
 
     public Challenge {

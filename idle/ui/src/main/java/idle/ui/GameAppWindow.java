@@ -187,6 +187,9 @@ public abstract class GameAppWindow extends GameAppBase {
         lastTotalAtoms = -1;
         lastBigBangs = -1;
         hadUniverse = -1;
+        particlesTabPop = -1;
+        particlesTab.setScaleX(1);
+        particlesTab.setScaleY(1);
         universePage.forgetOldTabs();
         dimensionWindow.close();
         generators.setCount(0);

@@ -381,12 +381,203 @@ class DeuxiemeUniversTest {
     }
 
     @Test
+    void lesDefisDeBigBangDuDeuxiemeUniversAccelerentLeTroisiemeActe() {
+        // Version 0.116 : ×2 particules, ×4 maturation, par défi ; 0.118 : sondes ×2 et ×2, plus d'espace.
+        Game first = new Game();
+        first.start();
+        first.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
+        assertEquals(1, first.universeBangFactor(2), 0, "rien dans le premier univers");
+        Game game = second();
+        game.state().setBigBangs(5);
+        var rubble = idle.core.sky.Bodies.DEFAULT.get(0);
+        double slow = game.maturationSeconds(rubble);
+        var trip = idle.core.probes.ProbeTrip.values()[0];
+        double trip0 = game.probeDuration(trip), value0 = game.probeValue(trip);
+        BigNum particles0 = game.particlesPerCreation();
+        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
+        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FORGOTTEN.name());
+        assertEquals(4, game.universeBangFactor(Game.BANG_UNIVERSE_PARTICLES), 0, "deux défis : ×2 ×2");
+        assertEquals(slow / 16, game.maturationSeconds(rubble), 1e-9);
+        assertEquals(trip0 / 4, game.probeDuration(trip), 1e-9);
+        assertEquals(value0 * 4, game.probeValue(trip), 1e-9);
+        assertEquals(particles0.toDouble() * 4, game.particlesPerCreation().toDouble(), particles0.toDouble() * 1e-9);
+        assertFalse(game.planetsTwice());
+        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.BY_HAND.name());
+        assertTrue(game.planetsTwice(), "les trois : planètes deux fois");
+    }
+
+    @Test
+    void lesDeuxDefisDeBigBangSansRemiseAZero() {
+        // Version 0.117 : « Barre haute » et « Ciel figé » ne remettent rien à zéro au départ.
+        Game game = second();
+        game.start();
+        game.state().setBigBangs(Game.BANG_CHALLENGES_BIG_BANGS);
+        game.state().setParticles(BigNum.of(1, 50));
+        game.state().setAtoms(BigNum.of(1, 6));
+        BigNum particlesNeed = game.bigBangParticles();
+        assertTrue(game.startBangChallenge(idle.core.bigbang.BangChallenge.RAISED));
+        assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro");
+        assertEquals(1e6, game.state().atoms().toDouble(), 1e-6);
+        assertEquals(particlesNeed.log10() * 1.5, game.bigBangParticles().log10(), 1e-6, "une fois et demie plus d'ordres de grandeur");
+        assertEquals(Game.BIG_BANG_ATOMS.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
+        assertEquals(Game.BIG_BANG_DARK_MATTER.toDouble() * 2, game.bigBangDarkMatter().toDouble(), 1e-9);
+        assertTrue(game.abandonBangChallenge());
+        game.state().setBigBangs(6);
+        assertFalse(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "le Big Bang 7 demande un ciel qui n'est pas là");
+        game.state().setBigBangs(9);
+        assertTrue(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "au-delà du huitième, pas de ciel demandé");
+        assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro non plus");
+        for (var molecule : game.molecules()) assertFalse(game.canCreateMolecule(molecule.id()), "le troisième acte s'arrête");
+        game.abandonBangChallenge();
+        var rubble = idle.core.sky.Bodies.DEFAULT.get(0);
+        double slow = game.maturationSeconds(rubble);
+        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+        assertEquals(slow / 8, game.maturationSeconds(rubble), 1e-9, "sa récompense ×2, et le bonus du deuxième univers ×4");
+    }
+
+    @Test
+    void laFuiteSOuvreAuxDixDefisEtDonneLeCalmeDuBigBang() {
+        // Version 0.115 : un onzième défi, du deuxième univers, qui apparaît une fois les dix autres réussis.
+        Game game = firstUniverse();
+        assertTrue(game.startNextUniverse());
+        game.state().setExplosions(1);
+        game.state().setDarkMatter(BigNum.of(1000));
+        String leak = idle.core.darkmatter.Challenges.LEAK.id();
+        assertFalse(game.isLeakChallengeShown(), "pas avant les dix défis");
+        assertEquals(10, game.challenges().size());
+        for (var challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
+        assertTrue(game.isLeakChallengeShown(), "elle apparaît aux dix défis");
+        assertEquals(11, game.challenges().size());
+        assertTrue(game.isBigBangConditionMet(idle.core.bigbang.BigBangCondition.CHALLENGES), "le Big Bang ne la demande pas");
+        assertTrue(game.isChallengeUnlocked(leak));
+        assertTrue(game.startChallenge(leak));
+        // La fuite accélère tant qu'on n'achète rien ; une amélioration du joueur l'arrête, celle d'un automatisme non.
+        game.state().setUpgradeCalm(100);
+        double fast = game.leakLossPerSecond();
+        assertEquals(Game.LEAK_STEP * 100, fast, 1e-12);
+        game.state().setUpgradeCalm(200);
+        assertTrue(game.leakLossPerSecond() > fast, "de plus en plus vite");
+        game.state().setUpgradeCalm(1e6);
+        assertEquals(Game.LEAK_MAX, game.leakLossPerSecond(), 1e-12, "plafonnée");
+        game.state().setUpgradeCalm(100);
+        game.state().setParticles(BigNum.of(1, 6));
+        double before = game.state().particles().toDouble();
+        game.tick(1);
+        assertTrue(game.state().particles().toDouble() < before, "les particules fuient");
+        game.state().setParticles(BigNum.of(1, 9));
+        assertTrue(game.buy("generator") || game.buy("speed"));
+        assertEquals(0, game.state().upgradeCalm(), 0, "une amélioration du joueur remet la fuite à zéro");
+        game.state().setUpgradeCalm(50);
+        game.state().setParticles(BigNum.of(1, 12));
+        game.automating = true;
+        assertTrue(game.buy("generator") || game.buy("speed"));
+        game.automating = false;
+        assertEquals(50, game.state().upgradeCalm(), 0, "l'achat d'un automatisme ne compte pas");
+        // Pas d'explosion avant deux minutes de défi.
+        for (var element : idle.core.elements.PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+        assertFalse(game.canExplode(), "moins de deux minutes : pas d'explosion");
+        game.stats().addTime(Game.LEAK_MIN_SECONDS);
+        assertTrue(game.canExplode());
+        assertEquals(0, game.bigBangCalmRelief(), 0, "pas de calme avant de l'avoir réussie");
+        assertTrue(game.explode());
+        assertTrue(game.isChallengeCompleted(leak));
+        assertEquals(11, game.completedChallenges());
+        game.state().setUpgradeCalm(1800);
+        assertEquals(0.5, game.bigBangCalmRelief(), 1e-12, "une demi-heure : la moitié des ordres de grandeur");
+        assertEquals(game.bigBangs() == 0 ? Game.BIG_BANG_PARTICLES.log10() / 2 : Game.BIG_BANG_PARTICLES_LATER.log10() / 2,
+                game.bigBangParticles().log10(), 1e-6);
+        game.state().setUpgradeCalm(Game.BIG_BANG_CALM_SECONDS);
+        assertEquals(1, game.bigBangParticles().toDouble(), 0, "une heure : une seule particule");
+    }
+
+    @Test
+    void uneVieilleSauvegardeDontLUniversEstFormeNeCompteQuUnUnivers() {
+        // Version 0.113 : avant la 0.083, l'univers formé gardait son échelle du cosmos ; le chargement en comptait deux.
+        Game game = new Game();
+        game.start();
+        game.state().setUniverseFormed(true);
+        game.state().setCosmosLevel(idle.core.sky.Cosmos.values().length);
+        game.restored();
+        assertEquals(1, game.universes());
+        assertEquals(2, game.universeDarkMatterFactor(), 0);
+    }
+
+    @Test
+    void chaqueUniversFormeDoubleLaMatiereNoireEtSaCroissance() {
+        // Version 0.112 : ×2 par univers formé, multiplicatif, sur la matière noire des explosions et sa croissance.
+        Game before = new Game();
+        before.start();
+        assertEquals(1, before.universeDarkMatterFactor(), 0);
+        BigNum base = before.darkMatterPerExplosion();
+        Game game = firstUniverse();
+        assertEquals(2, game.universeDarkMatterFactor(), 0, "un univers formé : ×2");
+        assertEquals(base.toDouble() * 2, game.darkMatterPerExplosion().toDouble(), 1e-9);
+        game.state().setDarkMatter(BigNum.of(10));
+        game.state().setExplosions(1);
+        double momentum = game.darkMatterMomentum();
+        game.testAddUniverse();
+        assertEquals(4, game.universeDarkMatterFactor(), 0, "deux univers : ×4");
+        assertEquals(momentum * 2, game.darkMatterMomentum(), momentum * 1e-9, "la croissance double aussi");
+        assertTrue(game.startNextUniverse());
+        assertEquals(4, game.universeDarkMatterFactor(), 0, "le bonus reste pendant la partie suivante");
+    }
+
+    @Test
+    void laBrindilleOuvreUnUniversAtteintParLEchelleSeule() {
+        // Version 0.110 : l'échelle du cosmos montée sans former l'univers bloquait la brindille.
+        Game game = new Game();
+        game.start();
+        game.state().setCosmosLevel(idle.core.sky.Cosmos.values().length);
+        game.state().setParticles(idle.core.math.BigNum.of(1, 20));
+        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
+        game.state().setSeedSprouted(true);
+        game.state().setSeedWaterings(44);
+        assertFalse(game.state().universeFormed());
+        assertTrue(game.openUniverseFromTwig(), "la brindille ouvre l'univers 2");
+        assertTrue(game.isReplaying());
+        assertTrue(game.isSecondUniverse());
+        assertEquals(0, game.state().particles().sign(), "les actes repartent de zéro");
+    }
+
+    @Test
+    void lesPaliersDeLaGraineOuvrentLesUnivers() {
+        // Version 0.120 : le palier N de la graine ouvre l'univers N ; le palier 3 attend le seuil du plan, puis 30 arrosages.
+        Game game = firstUniverse();
+        assertEquals(1, game.seedStage());
+        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
+        assertTrue(game.tendSeed(), "elle germe");
+        for (long k = 0; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
+        assertEquals(2, game.seedStage(), "la tige");
+        assertFalse(game.tendSeed(), "le plan n'a pas son seuil : la graine attend");
+        assertTrue(game.canOpenNextUniverse(), "la tige ouvre l'univers 2");
+        assertTrue(game.startNextUniverse());
+        game.testFormUniverse();
+        assertEquals(2, game.universes());
+        assertFalse(game.canOpenNextUniverse(), "l'univers 3 attend le palier 3");
+        game.state().setPlaneShardsEarned(Game.PLANE_THRESHOLD);
+        assertTrue(game.isPlaneThresholdReached());
+        for (long k = 1; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
+        assertEquals(2, game.seedStage(), "29 arrosages de plus : pas encore");
+        assertTrue(game.tendSeed());
+        assertEquals(3, game.seedStage(), "trente de plus : la graine craquelée");
+        assertEquals("la graine craquelée", Game.SEED_STAGE_NAMES.get(2));
+        assertTrue(game.canOpenNextUniverse(), "le palier 3 ouvre l'univers 3");
+        assertFalse(game.tendSeed(), "la dimension 3 n'existe pas encore : la graine attend");
+        assertEquals(11, Game.SEED_STAGE_NAMES.size());
+        assertEquals(300, Game.seedStageWaterings(11));
+    }
+
+    @Test
     void leVideSOuvreAuPremierBigBangDuDeuxiemeUnivers() {
         Game first = new Game();
         first.state().setBigBangs(3);
         assertFalse(first.isVoidUnlocked(), "pas dans le premier univers, même après des Big Bangs");
         Game game = second();
-        assertFalse(game.isVoidUnlocked(), "avant le premier Big Bang du deuxième univers");
+        game.state().setBigBangs(1);
+        assertFalse(game.isVoidUnlocked(), "version 0.116 : plus dans le deuxième univers");
+        game.state().setBigBangs(0);
+        assertTrue(game.testAddUniverse());
+        assertFalse(game.isVoidUnlocked(), "avant le premier Big Bang du troisième univers");
         game.state().setBigBangs(1);
         assertTrue(game.isVoidUnlocked());
         assertEquals(0, game.state().voidEnergy().sign(), "pour l'instant sans logique : rien ne s'y gagne");

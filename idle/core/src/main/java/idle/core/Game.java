@@ -154,7 +154,13 @@ public final class Game extends GameBigBang {
         newAchievements.clear();
         newRecords.clear();
         // Une sauvegarde d'avant la 0.083 dont l'univers est formé : la remise à zéro de l'univers ne s'était pas faite.
-        if (state.universeFormed() && state.cosmosLevel() >= Cosmos.values().length) resetForUniverse();
+        // Version 0.110 : de même pour un univers atteint par l'échelle du cosmos seule, sans avoir été formé.
+        // Version 0.113 : cette remise à zéro rattrape la formation de l'univers d'avant ; elle ne compte pas un
+        // univers de plus (une sauvegarde d'avant la 0.083 en gagnait un, et son bonus de matière noire doublait).
+        if (state.cosmosLevel() >= Cosmos.values().length) {
+            state.setUniverseFormed(false);
+            resetForUniverse();
+        }
         forgetDerived();
         return dropped;
     }
@@ -187,7 +193,7 @@ public final class Game extends GameBigBang {
 
     private static java.util.Set<String> challengeIds() {
         java.util.Set<String> ids = new java.util.HashSet<>();
-        for (Challenge challenge : Challenges.DEFAULT) ids.add(challenge.id());
+        for (Challenge challenge : Challenges.ALL) ids.add(challenge.id());
         return ids;
     }
 
@@ -411,10 +417,14 @@ public final class Game extends GameBigBang {
             state.setParticles(state.particles().add(gain));
             state.stats().addParticles(gain);
         }
+        // La fuite (version 0.115) : sa vitesse grandit avec le temps passé sans amélioration achetée par le joueur.
+        double leak = leakLossPerSecond();
+        if (leak > 0 && dt > 0) state.setParticles(state.particles().multiply(Math.exp(Math.log(1 - leak) * dt)));
         state.setTimePlayed(state.timePlayed() + dt);
         state.stats().addTime(dt);
         if (state.started()) {
             state.setTimeSinceFusion(state.timeSinceFusion() + dt);
+            state.setUpgradeCalm(state.upgradeCalm() + dt);
         }
     }
 

@@ -591,12 +591,16 @@ public final class DarkMatterTreePane extends Pane {
     private String condition(BigBangCondition condition) {
         return switch (condition) {
             case PARTICLES -> Format.count(game.bigBangParticles()) + " particules ("
-                    + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")";
-            case ATOMS -> Format.count(Game.BIG_BANG_ATOMS) + " atomes (" + Format.count(game.state().atoms()) + ")";
-            case DARK_MATTER -> Format.count(Game.BIG_BANG_DARK_MATTER) + " matières noires en réserve ("
+                    + Format.count(game.darkBalance(DarkUpgrade.Branch.PARTICLES)) + ")"
+                    // Le calme du Big Bang (version 0.114) : ce qu'il a déjà effacé du seuil, et ce qu'il reste à attendre.
+                    + (game.bigBangCalmRelief() > 0 ? ", calme " + Math.round(100 * game.bigBangCalmRelief()) + " % : "
+                            + (game.bigBangCalmRelief() >= 1 ? "plus rien à attendre"
+                            : "encore " + Format.wait(Game.BIG_BANG_CALM_SECONDS - game.state().upgradeCalm()) + " sans amélioration") : "");
+            case ATOMS -> Format.count(game.bigBangAtoms()) + " atomes (" + Format.count(game.state().atoms()) + ")";
+            case DARK_MATTER -> Format.count(game.bigBangDarkMatter()) + " matières noires en réserve ("
                     + Format.darkMatter(game.state().darkMatter()) + ")";
             case ACHIEVEMENTS -> Game.BIG_BANG_ACHIEVEMENTS + " succès (" + game.achievementCount() + ")";
-            case CHALLENGES -> "Les " + game.challenges().size() + " défis réussis (" + game.completedChallenges() + ")";
+            case CHALLENGES -> "Les " + idle.core.darkmatter.Challenges.DEFAULT.size() + " défis réussis (" + game.baseChallengesCompleted() + ")";
             case SKY -> game.bigBangSkyRequirement() + " astres mûrs (" + game.bodiesMature() + ")";
         };
     }

@@ -280,6 +280,16 @@ public abstract class GameAtoms extends GamePlans {
 
     /** Fait faire à l'automatisme une action ; faux s'il ne peut rien faire pour l'instant. */
     private boolean act(Automation automation) {
+        boolean was = automating;
+        automating = true;
+        try {
+            return actNow(automation);
+        } finally {
+            automating = was;
+        }
+    }
+
+    private boolean actNow(Automation automation) {
         return switch (automation.kind()) {
             case UPGRADE -> bulkBuy(automation);
             case FUSION -> generatorCount() >= fusionThreshold() && fuse();
@@ -754,8 +764,14 @@ public abstract class GameAtoms extends GamePlans {
         for (ElementBonuses.SynergyTerm term : bonuses().synergies()) {
             if (term.stat() == stat) synergy += term.perUnit() * synergyUnits(term.source());
         }
-        return bonuses().stat(stat) * (1 + synergy);
+        // Borné (version 0.117) : avec les récompenses des sondes ×1 000 et plus, les exemplaires d'éléments peuvent pousser
+        // ce produit au-delà de ce qu'un double sait écrire.
+        double value = bonuses().stat(stat) * (1 + synergy);
+        return Double.isNaN(value) ? 1 : Math.min(value, ELEMENT_MULTIPLIER_CAP);
     }
+
+    /** Le plus grand multiplicateur que les éléments peuvent donner : de quoi rester calculable. */
+    public static final double ELEMENT_MULTIPLIER_CAP = 1e300;
 
     /** Ce qu'une synergie compte en ce moment. */
     private double synergyUnits(ElementEffect.SynergySource source) {
@@ -776,12 +792,17 @@ public abstract class GameAtoms extends GamePlans {
 
     /** Ce que les éléments ajoutent à la vitesse d'un générateur précis (numéroté à partir de 0). */
     public double generatorSpeedMultiplier(int generator) {
-        return bonuses().generatorSpeed(generator + 1);
+        return capped(bonuses().generatorSpeed(generator + 1));
     }
 
     /** Ce que les éléments ajoutent aux particules d'un générateur précis (numéroté à partir de 0). */
     public double generatorParticlesMultiplier(int generator) {
-        return bonuses().generatorParticles(generator + 1);
+        return capped(bonuses().generatorParticles(generator + 1));
+    }
+
+    /** Un bonus propre à un générateur, borné (version 0.117) : le produit de deux reste un double. */
+    private static double capped(double value) {
+        return Double.isNaN(value) ? 1 : Math.min(value, 1e150);
     }
 
     /** Diviseur qu'appliquent les éléments à un prix (1 sans élément). */

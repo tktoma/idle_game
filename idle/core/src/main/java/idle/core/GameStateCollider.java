@@ -364,6 +364,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double earned = dimensionShardsEarned;
         boolean sprouted = seedSprouted;
         long waterings = seedWaterings;
+        boolean twig = twigOpened;
+        int seedOpened = seedUniversesOpened;
         double planeKept = planeShards, planeEarned = planeShardsEarned;
         int[] planeKeptLevels = {planeValueLevel, planeSpawnLevel, planeCountLevel, planeSpeedLevel, planeSizeLevel};
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
@@ -416,6 +418,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         dimensionShardsEarned = earned;
         seedSprouted = sprouted;
         seedWaterings = waterings;
+        twigOpened = twig;
+        seedUniversesOpened = seedOpened;
         planeShards = planeKept;
         planeShardsEarned = planeEarned;
         for (int i = 0; i < planeKeptLevels.length; i++) setPlaneLevel(i, planeKeptLevels[i]);
@@ -510,6 +514,24 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setSeedWaterings(long waterings) {
         seedWaterings = Math.max(0, waterings);
+    }
+
+    /** Univers que la graine a ouverts (version 0.120). */
+    public int seedUniversesOpened() {
+        return seedUniversesOpened;
+    }
+
+    public void setSeedUniversesOpened(int opened) {
+        seedUniversesOpened = Math.max(0, opened);
+    }
+
+    /** Vrai une fois que la brindille a ouvert la partie du deuxième univers (version 0.109). */
+    public boolean twigOpened() {
+        return twigOpened;
+    }
+
+    public void setTwigOpened(boolean opened) {
+        twigOpened = opened;
     }
 
     /** Éclats du plan (version 0.104) : propres à la deuxième dimension. */

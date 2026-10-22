@@ -53,6 +53,7 @@ public final class GameState extends GameStateResets {
         data.put("atoms", atoms);
         data.put("totalAtoms", totalAtoms);
         data.put("timeSinceFusion", timeSinceFusion);
+        data.put("upgradeCalm", upgradeCalm);
         data.putDoubleList("formations", formations);
         data.put("timePlayed", timePlayed);
         data.putInts("upgradeLevels", new TreeMap<>(upgradeLevels));
@@ -168,6 +169,8 @@ public final class GameState extends GameStateResets {
         data.put("lineCountLevel", lineCountLevel);
         data.put("dimensionShardsEarned", dimensionShardsEarned);
         data.put("seedSprouted", seedSprouted);
+        data.put("twigOpened", twigOpened);
+        data.put("seedUniversesOpened", seedUniversesOpened);
         data.put("seedWaterings", seedWaterings);
         data.put("planeShards", planeShards);
         data.put("planeShardsEarned", planeShardsEarned);
@@ -247,6 +250,7 @@ public final class GameState extends GameStateResets {
         setAtoms(data.big("atoms", BigNum.ZERO));
         setTotalAtoms(data.big("totalAtoms", BigNum.ZERO));
         setTimeSinceFusion(data.real("timeSinceFusion", 0));
+        setUpgradeCalm(data.real("upgradeCalm", 0));
         List<Double> made = data.doubleList("formations");
         for (int generator = 0; generator < made.size(); generator++) setFormation(generator, made.get(generator));
         timePlayed = Math.max(0, data.real("timePlayed", 0));
@@ -347,7 +351,12 @@ public final class GameState extends GameStateResets {
         trialBase = data.real("trialBase", 0);
         setTrialCount(data.whole("trialCount", 0));
         completedTrials.clear();
-        for (String id : data.list("completedTrials")) addCompletedTrial(id);
+        for (String id : data.list("completedTrials")) {
+            // La fuite était une épreuve en 0.114 : elle est devenue un défi (version 0.115).
+            if (id.equals("LEAK")) { completedChallenges.add("challenge_leak"); challengesVersion++; continue; }
+            addCompletedTrial(id);
+        }
+        if ("LEAK".equals(activeTrial)) setActiveTrial("");
         seenPopups.clear();
         for (String id : data.list("seenPopups")) addSeenPopup(id);
         popupsPrimed = data.flag("popupsPrimed", false);
@@ -383,6 +392,9 @@ public final class GameState extends GameStateResets {
         setDimensionShardsEarned(data.real("dimensionShardsEarned", dimensionShards));
         setSeedSprouted(data.flag("seedSprouted", false));
         setSeedWaterings(data.count("seedWaterings", 0));
+        // Une partie d'avant la 0.109 déjà dans l'univers 2 ouvert par la brindille : elle ne le rouvrira pas.
+        setTwigOpened(data.flag("twigOpened", data.flag("replaying", false) && seedSprouted && seedWaterings >= GameUniverse.SEED_TWIG_WATERINGS));
+        setSeedUniversesOpened(data.whole("seedUniversesOpened", twigOpened ? 1 : 0));
         setPlaneShards(data.real("planeShards", 0));
         setPlaneShardsEarned(data.real("planeShardsEarned", 0));
         for (int i = 0; i < 5; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));

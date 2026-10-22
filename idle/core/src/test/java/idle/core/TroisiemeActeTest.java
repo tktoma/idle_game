@@ -447,6 +447,39 @@ class TroisiemeActeTest {
     class Records {
 
         @Test
+        void lesDefisDeBigBangDuDeuxiemeUniversMultiplientLesMolecules() {
+            // Version 0.118 : ×2 molécules par création et par défi réussi, même prix en éléments ; chacune prend sa place.
+            Game game = afterBigBangs(1, 1e9);
+            game.state().setUniverseFormed(true);
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FROZEN.name());
+            int hydrogen = game.elementCount(1), oxygen = game.elementCount(8);
+            assertTrue(game.createMolecule("H2O"));
+            assertEquals(2, game.moleculeCount("H2O"), "deux défis : ×2 (version 0.119)");
+            assertEquals(hydrogen - 2, game.elementCount(1), "le prix d'une seule");
+            int[] expected = {1, 2, 2, 4, 4, 8};
+            Game counted = afterBigBangs(1, 1e9);
+            counted.state().setUniverseFormed(true);
+            for (int done = 0; done <= 5; done++) {
+                if (done > 0) counted.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.values()[done - 1].name());
+                assertEquals(expected[done], counted.universeMoleculeFactor(), 0, done + " défis");
+            }
+            assertEquals(oxygen - 1, game.elementCount(8));
+            game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
+            assertTrue(game.createMolecule("H2O"));
+            assertEquals(2 + 4, game.moleculeCount("H2O"), "trois défis : ×4");
+            // Sans place, il en vient moins.
+            Game tight = afterBigBangs(1, 0);
+            tight.state().setUniverseFormed(true);
+            for (Element element : PeriodicTable.ELEMENTS) tight.state().setElementCount(element.number(), 9);
+            tight.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+            tight.state().setSpace(BigNum.of(tight.volumeOf(tight.molecule("H2O")) * 1.5));
+            assertTrue(tight.createMolecule("H2O"));
+            assertEquals(1, tight.moleculeCount("H2O"), "la place d'une seule");
+        }
+
+        @Test
         void laPremiereFoisPoseLeRecordSansLAnnoncer() {
             Game game = afterBigBangs(1, 1e9);
             fillTable(game);
@@ -602,7 +635,7 @@ class TroisiemeActeTest {
         @Test
         void ilsSOuvrentUneFoisTousLesPaliersAtteints() {
             Game game = ready(4);
-            assertEquals(3, game.bangChallenges().size());
+            assertEquals(5, game.bangChallenges().size());
             assertFalse(game.isBangChallengesUnlocked());
             assertFalse(game.canStartBangChallenge());
             assertFalse(game.startBangChallenge(BangChallenge.VOID));

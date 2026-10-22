@@ -317,6 +317,28 @@ public final class DarkMatterPage extends VBox {
         challenges.release();
     }
 
+    /** L'arrivée de la fuite parmi les défis (version 0.115) : la page montre les défis et la joue. */
+    public void playLeakReveal() {
+        select(2);
+        challenges.playReveal();
+        refresh();
+    }
+
+    /** Vrai tant que la fuite arrive parmi les défis. */
+    public boolean isRevealing() {
+        return challenges.isRevealing();
+    }
+
+    /** Montre la sous-page des défis. */
+    public void showChallenges() {
+        if (selected != 2) select(2);
+    }
+
+    /** La sous-page des défis : pour les vérifications. */
+    public ChallengesPane challengesPane() {
+        return challenges;
+    }
+
     /** La partie recommence de zéro : plus d'appui, et retour à la première sous-page. */
     public void reset() {
         select(0);

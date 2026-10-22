@@ -114,11 +114,15 @@ public final class Breakdown {
                 double factor = game.bigBangDarkMatterFactor();
                 double challenges = game.bangReward(BangChallenge.Reward.DARK_MATTER);
                 double base = Game.DARK_MATTER_PER_EXPLOSION.toDouble();
-                double added = perExplosion.toDouble() / (factor * challenges) - base;
+                double universes = game.universeDarkMatterFactor();
+                double reserve = game.cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1;
+                double added = perExplosion.toDouble() / (factor * challenges * universes * reserve) - base;
                 lines.add("Base : " + ElementText.number(base));
                 if (added > 1e-9) lines.add("+" + ElementText.number(added) + "  arbre de matière noire");
                 times(lines, "paliers de Big Bang", factor);
                 times(lines, "défis de Big Bang", challenges);
+                times(lines, "petit arbre du cycle (réserve)", reserve);
+                times(lines, "univers formés (×2 par univers)", universes);
                 if (game.earnsSpeedPrime()) lines.add("+" + Format.count(game.speedPrime()) + "  prime de vitesse, si l'explosion a lieu dans "
                         + Format.wait(Math.max(1, game.speedPrimeLeft())));
                 if (game.isChallengeReplay()) lines.add("Défi déjà réussi : cette explosion-ci ne rapporte rien.");
