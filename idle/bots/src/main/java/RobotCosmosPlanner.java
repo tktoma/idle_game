@@ -380,7 +380,7 @@ public class RobotCosmosPlanner {
     // pendant les dizaines d'heures où manque le même élément (modèle §8.3 et §15).
     if(g.isTargetedSynthesisUnlocked()
         && g.hasAchievement(Achievements.TARGETED_ACTINIDE)){
-      ElementCategory need=FirstUniversePolicy.chemistryTarget(g);
+      var need=FirstUniversePolicy.chemistryTarget(g);
       if(need!=g.synthesisTarget())g.setSynthesisTarget(need);
     }
     challenges();
