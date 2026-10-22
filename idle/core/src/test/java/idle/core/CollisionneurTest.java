@@ -176,6 +176,7 @@ class CollisionneurTest {
             readyForBigBang(game);
             double energy = game.colliderEnergy();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.isColliderUnlocked(), "le collisionneur reste ouvert après le Big Bang");
             assertEquals(energy, game.colliderEnergy(), 1e-6);
             assertEquals(5, game.quarks(Quark.UP));
@@ -517,7 +518,7 @@ class CollisionneurTest {
             assertEquals(atoms.toDouble() * 1.3, game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-6);
             assertEquals(dark * 2, game.darkMatterMomentum(), dark * 1e-9);
             Game space = bare(0);
-            space.state().setBigBangs(1);
+            GameTestSupport.bangs(space, 1);
             BigNum before = space.steadySpacePerSecond();
             space.state().setColliderUpgradeLevel(ColliderUpgrade.SPACE, 2);
             assertEquals(before.toDouble() * 1.5, space.steadySpacePerSecond().toDouble(), 1e-9);
@@ -547,7 +548,7 @@ class CollisionneurTest {
             assertFalse(game.isBangAchievementsUnlocked());
             assertEquals(1, game.bangAchievementMultiplier(idle.core.bigbang.BangAchievement.Reward.SPACE), 0);
             BigNum particles = game.particlesPerCreation();
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             assertTrue(game.isBangAchievementsUnlocked());
             assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_1));
             assertTrue(game.hasBangAchievement(idle.core.bigbang.BangAchievement.BANGS_3));
@@ -603,7 +604,7 @@ class CollisionneurTest {
         @Test
         void refaireLActeDuBigBangGardeLaMatiereNoireEtLeCollisionneur() {
             Game game = opened(5e6);
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             game.state().setMoleculeCount("H2O", 4);
             game.state().addBody("rocky_planet");
             game.state().setSpace(BigNum.of(5000));

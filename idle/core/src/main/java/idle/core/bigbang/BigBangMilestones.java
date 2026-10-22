@@ -1,5 +1,6 @@
 package idle.core.bigbang;
 
+import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import java.util.List;
 
@@ -26,19 +27,22 @@ import java.util.List;
  */
 public final class BigBangMilestones {
 
+    /** Les ressources des prix (version 0.124). */
+    private static final idle.core.Resource P = idle.core.Resource.PARTICLES, A = idle.core.Resource.ATOMS;
+
     public static final List<BigBangMilestone> DEFAULT = List.of(
-            new BigBangMilestone(1, "Matière noire primordiale", List.of(new BigBangMilestone.DarkMatter(2))),
-            new BigBangMilestone(2, "Expansion accélérée", List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 2))),
-            new BigBangMilestone(2, "Création automatique", List.of(new BigBangMilestone.AutoMolecules())),
-            new BigBangMilestone(3, "Gravité", List.of(new BigBangMilestone.Accretion(2))),
-            new BigBangMilestone(3, "Mémoire des défis", List.of(new BigBangMilestone.KeepChallenges())),
-            new BigBangMilestone(3, "Sondes spatiales", List.of(new BigBangMilestone.Probes())),
-            new BigBangMilestone(4, "Énergie sombre", List.of(new BigBangMilestone.DarkMatterSpace(0.1))),
+            new BigBangMilestone(1, "Matière noire primordiale", List.of(new BigBangMilestone.DarkMatter(2)), P, BigNum.of(1, 90)),
+            new BigBangMilestone(2, "Expansion accélérée", List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 2)), P, BigNum.of(1, 220)),
+            new BigBangMilestone(2, "Création automatique", List.of(new BigBangMilestone.AutoMolecules()), P, BigNum.of(1, 160)),
+            new BigBangMilestone(3, "Gravité", List.of(new BigBangMilestone.Accretion(2)), P, BigNum.of(1, 400)),
+            new BigBangMilestone(3, "Mémoire des défis", List.of(new BigBangMilestone.KeepChallenges()), P, BigNum.of(1, 700)),
+            new BigBangMilestone(3, "Sondes spatiales", List.of(new BigBangMilestone.Probes()), A, BigNum.of(1, 10)),
+            new BigBangMilestone(4, "Énergie sombre", List.of(new BigBangMilestone.DarkMatterSpace(0.1)), P, BigNum.of(1, 1300)),
             new BigBangMilestone(5, "Univers mûr", List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3),
-                    new BigBangMilestone.KeepDarkTree())),
-            new BigBangMilestone(6, "Systèmes solaires", List.of(new BigBangMilestone.SolarSystems())),
-            new BigBangMilestone(7, "Ateliers du ciel", List.of(new BigBangMilestone.MorePlaces(2, 1))),
-            new BigBangMilestone(8, "Matières exotiques", List.of(new BigBangMilestone.ExoticMatter())));
+                    new BigBangMilestone.KeepDarkTree()), P, BigNum.of(1, 17500)),
+            new BigBangMilestone(6, "Systèmes solaires", List.of(new BigBangMilestone.SolarSystems()), P, BigNum.of(1, 43000)),
+            new BigBangMilestone(7, "Ateliers du ciel", List.of(new BigBangMilestone.MorePlaces(2, 1)), A, BigNum.of(3, 21)),
+            new BigBangMilestone(8, "Matières exotiques", List.of(new BigBangMilestone.ExoticMatter()), P, BigNum.of(1, 47000)));
 
     private BigBangMilestones() {}
 }

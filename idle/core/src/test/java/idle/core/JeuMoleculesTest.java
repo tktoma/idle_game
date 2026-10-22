@@ -60,7 +60,7 @@ class JeuMoleculesTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             refill(game);
             return game;
@@ -156,7 +156,7 @@ class JeuMoleculesTest extends GameTestSupport {
         @Test
         void aucunRayonAvantLePremierBigBang() {
             Game game = gameAfterBigBang();
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             assertEquals(0, game.moleculeKindsUnlocked());
             assertFalse(game.isMoleculeKindUnlocked(Molecule.Kind.SIMPLE));
             assertEquals(Molecule.Kind.SIMPLE, game.nextMoleculeKind());
@@ -180,7 +180,7 @@ class JeuMoleculesTest extends GameTestSupport {
         @Test
         void pasDeMoleculeAvantLePremierBigBang() {
             Game game = gameAfterBigBang();
-            game.state().setBigBangs(0);
+            GameTestSupport.bangs(game, 0);
             assertFalse(game.canCreateMolecule(WATER));
             assertFalse(game.createMolecule(WATER));
             assertEquals(0, game.moleculeCount(WATER));
@@ -631,6 +631,7 @@ class JeuMoleculesTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(2, game.bigBangs());
             assertEquals(1, game.moleculeCount(WATER));
             assertEquals(List.of(WATER), game.state().moleculeLog());

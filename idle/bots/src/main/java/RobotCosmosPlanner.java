@@ -269,6 +269,7 @@ public class RobotCosmosPlanner {
   }
   void resourceLoop(){
     logBigBangDiagnostic();
+    g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
     boolean finalMode=g.completedChallenges()==g.challenges().size() && g.state().darkMatter().gte(BigNum.of(500)) && g.achievementCount()>=40 && g.isBigBangConditionMet(BigBangCondition.PARTICLES);

@@ -25,7 +25,7 @@ class SondesTest {
     private static Game third() {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(3);
+        GameTestSupport.bangs(game, 3);
         game.state().setElementCount(1, 5);
         game.state().setElementCount(26, 2);
         return game;
@@ -35,10 +35,10 @@ class SondesTest {
     void lesSondesSOuvrentAuTroisiemeBigBang() {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(2);
+        GameTestSupport.bangs(game, 2);
         assertFalse(game.isProbesUnlocked());
         assertFalse(game.launchProbe(ProbeDestination.VOID, ProbeTrip.SHORT));
-        game.state().setBigBangs(3);
+        GameTestSupport.bangs(game, 3);
         assertTrue(game.isProbesUnlocked());
         assertTrue(game.launchProbe(ProbeDestination.VOID, ProbeTrip.SHORT));
         assertFalse(game.launchProbe(ProbeDestination.VOID, ProbeTrip.SHORT), "une seule sonde en vol au début");

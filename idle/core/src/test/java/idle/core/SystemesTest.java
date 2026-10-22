@@ -19,7 +19,7 @@ class SystemesTest {
     private static Game game(int bigBangs) {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(bigBangs);
+        GameTestSupport.bangs(game, bigBangs);
         for (String id : List.of("yellow_sun", "blue_giant", "rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet",
                 "icy_moon", "rocky_moon")) {
             game.state().addBody(id);
@@ -132,10 +132,10 @@ class SystemesTest {
     void lesBigBangsSixAHuitDemandentDesAstresMurs() {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(4);
+        GameTestSupport.bangs(game, 4);
         assertEquals(0, game.bigBangSkyRequirement());
         assertFalse(game.bigBangConditions().contains(BigBangCondition.SKY));
-        game.state().setBigBangs(5);
+        GameTestSupport.bangs(game, 5);
         assertEquals(18, game.bigBangSkyRequirement());
         assertTrue(game.bigBangConditions().contains(BigBangCondition.SKY));
         assertFalse(game.isBigBangConditionMet(BigBangCondition.SKY));
@@ -143,9 +143,9 @@ class SystemesTest {
         assertTrue(game.isBigBangConditionMet(BigBangCondition.SKY));
         game.state().setMaturing(game.bodies().get(0).id(), 60);
         assertFalse(game.isBigBangConditionMet(BigBangCondition.SKY), "un astre qui mûrit ne compte pas");
-        game.state().setBigBangs(7);
+        GameTestSupport.bangs(game, 7);
         assertEquals(28, game.bigBangSkyRequirement());
-        game.state().setBigBangs(8);
+        GameTestSupport.bangs(game, 8);
         assertEquals(0, game.bigBangSkyRequirement());
         // Jamais plus que les astres hors matières exotiques, qui attendent justement le huitième Big Bang.
         long ladder = game.bodies().stream().filter(b -> b.tier() != Body.Tier.EXOTIC).count();

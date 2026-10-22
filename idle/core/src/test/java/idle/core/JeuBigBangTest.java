@@ -164,6 +164,7 @@ class JeuBigBangTest extends GameTestSupport {
 
             assertFalse(game.isBigBangUnlocked());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
 
             assertEquals(1, game.bigBangs());
             assertTrue(game.isBigBangUnlocked());
@@ -202,6 +203,8 @@ class JeuBigBangTest extends GameTestSupport {
 
             assertTrue(game.bigBang());
 
+            GameTestSupport.payMilestones(game);
+
             assertEquals(Game.BIG_BANG_ACHIEVEMENTS, game.achievementCount());
             assertTrue(game.isBigBangConditionMet(BigBangCondition.ACHIEVEMENTS));
             assertEquals(321.0, game.challengeBestTime(challenge), 1e-9);
@@ -214,6 +217,7 @@ class JeuBigBangTest extends GameTestSupport {
         void apresLeBigBangLaPartieSeRejoue() {
             Game game = readyGame();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             // Le jeu tourne de nouveau depuis un seul générateur, et un deuxième Big Bang se mérite.
             game.tick(60);
             assertTrue(game.state().particles().gt(BigNum.ZERO));
@@ -225,12 +229,14 @@ class JeuBigBangTest extends GameTestSupport {
         void lesBigBangsSeComptent() {
             Game game = readyGame();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             game.state().setExplosions(1);
             game.state().setParticles(Game.BIG_BANG_PARTICLES);
             game.state().setAtoms(Game.BIG_BANG_ATOMS);
             game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(2, game.bigBangs());
         }
 
@@ -240,6 +246,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.state().setElementCount(1, 3);
             int copies = game.ownedCopies();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.state().darkMatter().isZero());
             game.tick(StatsHistory.FIRST_INTERVAL * 2);
             List<StatsHistory.Sample> samples = game.stats().history().samples();
@@ -267,6 +274,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.state().setTimePlayed(5000);
             double first = stats.bigBangTime();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(stats == game.stats());                // les statistiques traversent le Big Bang
             assertEquals(1, stats.timedBigBangs());
             assertEquals(first, stats.lastBigBangTime(), 1e-9);
@@ -284,6 +292,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(2, stats.timedBigBangs());
             assertEquals(40, stats.lastBigBangTime(), 1e-6);
             assertEquals(first > 0 ? Math.min(first, 40) : 40, stats.fastestBigBangTime(), 1e-6);   // une durée nulle ne compte pas (0.65)
@@ -302,7 +311,7 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void avecLaSuperpositionLesVoiesEtLesLiaisonsRestentAuBigBang() {
             Game game = readyGame();
-            game.state().setBigBangs(4);
+            GameTestSupport.bangs(game, 4);
             game.state().setDarkMatterSpent(BigNum.of(102));
             game.state().setDarkLevel("dark_overflow", 1);
             game.state().setDarkLevel("dark_gravity", 1);
@@ -310,6 +319,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.state().setDarkLevel("link_elements", 1);
             game.state().setColliderUpgradeLevel(idle.core.collider.ColliderUpgrade.SUPERPOSITION, 1);
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(1, game.darkLevelOf("dark_gravity"));
             assertEquals(1, game.darkLevelOf("dark_harvest"));
             assertEquals(1, game.darkLevelOf("link_elements"));
@@ -319,7 +329,7 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void leCinquiemeBigBangGardeLArbreDeMatiereNoire() {
             Game game = readyGame();
-            game.state().setBigBangs(4);
+            GameTestSupport.bangs(game, 4);
             game.state().setLevel("speed", 12);
             game.state().setElementCount(1, 3);
             game.state().setDarkMatterSpent(BigNum.of(102));   // dont 25 pour la liaison, rendus au Big Bang
@@ -337,6 +347,7 @@ class JeuBigBangTest extends GameTestSupport {
             // Le palier se gagne au cinquième Big Bang, et ce Big Bang-là en profite déjà.
             assertTrue(game.bigBangKeepsDarkTree());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(5, game.bigBangs());
 
             // L'arbre est resté : ses cases, ce qu'elles ont coûté, ses automatismes, ses réglages.
@@ -372,11 +383,12 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void avantLeCinquiemeLeBigBangReprendLArbre() {
             Game game = readyGame();
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             game.state().setDarkMatterSpent(BigNum.of(77));
             game.state().setDarkLevel("dark_density", 4);
             assertFalse(game.bigBangKeepsDarkTree());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(4, game.bigBangs());
             assertEquals(0, game.darkLevelOf("dark_density"));
             assertTrue(game.darkMatterEarned().isZero());
@@ -388,11 +400,12 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void leTroisiemeBigBangGardeLesDefisReussis() {
             Game game = readyGame();
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             // Le palier se gagne au troisième Big Bang, et ce Big Bang-là en profite déjà.
             assertTrue(game.bigBangKeepsChallenges());
             assertFalse(game.bigBangKeepsDarkTree());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(3, game.bigBangs());
             assertEquals(game.challenges().size(), game.completedChallenges());
             for (Challenge challenge : game.challenges()) assertTrue(game.isChallengeCompleted(challenge.id()), challenge.id());
@@ -406,9 +419,10 @@ class JeuBigBangTest extends GameTestSupport {
             Game game = readyGame();
             assertFalse(game.bigBangKeepsChallenges());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(0, game.completedChallenges());
             assertFalse(game.bigBangKeepsChallenges());             // le deuxième non plus
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             assertTrue(game.bigBangKeepsChallenges());
             // Recommencer de zéro oublie les défis, palier ou non.
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
@@ -420,6 +434,7 @@ class JeuBigBangTest extends GameTestSupport {
         void laRemiseAZeroEffaceAussiLesBigBangs() {
             Game game = readyGame();
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             game.reset();
             assertEquals(0, game.bigBangs());
             assertFalse(game.isBigBangUnlocked());
@@ -440,7 +455,7 @@ class JeuBigBangTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(bigBangs);
+            GameTestSupport.bangs(game, bigBangs);
             return game;
         }
 
@@ -465,13 +480,13 @@ class JeuBigBangTest extends GameTestSupport {
             Game game = game(1);
             assertValue(1, game.spacePerSecond());
             // Une unité par Big Bang, multipliée par les paliers : le deuxième double, le cinquième triple.
-            game.state().setBigBangs(3);
+            GameTestSupport.bangs(game, 3);
             assertValue(3 * 2, game.spacePerSecond());
             game.tick(100);
             assertValue(600, game.state().space());
-            game.state().setBigBangs(5);
+            GameTestSupport.bangs(game, 5);
             assertValue(5 * 2 * 3, game.spacePerSecond());
-            game.state().setBigBangs(6);
+            GameTestSupport.bangs(game, 6);
             assertValue(6 * 2 * 3, game.spacePerSecond());
         }
 
@@ -497,7 +512,7 @@ class JeuBigBangTest extends GameTestSupport {
         void lesMoleculesOccupentLEspaceSansRalentirLExpansion() {
             Game game = game(1);
             game.tick(200);
-            game.state().setBigBangs(2);
+            GameTestSupport.bangs(game, 2);
             game.state().setMoleculeCount("NaCl", 1);
             assertValue(4, game.spacePerSecond());
             assertValue(200, game.state().space());
@@ -521,6 +536,7 @@ class JeuBigBangTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertValue(50, game.state().space());
             game.tick(10);
             assertValue(90, game.state().space());     // deux Big Bangs : deux unités par seconde, doublées par le palier

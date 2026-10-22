@@ -94,7 +94,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
     Files.createDirectories(out);
     long ticks=(long)Math.ceil(horizon*3600/step);int endBB=0,endMature=0;
     for(long i=1;i<=ticks;i++){
-      wall+=step;g.tick(step);
+      wall+=step;g.tick(step);g.buyAllBigBangMilestones();
       if(i%Math.max(1,(long)Math.round(20/step))==0){
         int stage=RobotCosmosPlanner.cosmosStage(g);int bb=g.bigBangs();int mature=g.bodiesMature();int kind=g.moleculeKindsCreated();long mol=g.moleculesCreated();
         endBB=bb;endMature=mature;

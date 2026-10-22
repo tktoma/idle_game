@@ -17,7 +17,17 @@ import java.util.List;
  * @param name     nom affiché
  * @param effects  ce qu'il donne : un effet, parfois deux
  */
-public record BigBangMilestone(int bigBangs, String name, List<Effect> effects) {
+public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, idle.core.Resource resource, idle.core.math.BigNum price) {
+
+    /** Un palier gratuit, atteint dès son nombre de Big Bangs (avant la version 0.124, tous l'étaient). */
+    public BigBangMilestone(int bigBangs, String name, List<Effect> effects) {
+        this(bigBangs, name, effects, idle.core.Resource.PARTICLES, idle.core.math.BigNum.ZERO);
+    }
+
+    /** Vrai si le palier se paie, une fois son nombre de Big Bangs atteint (version 0.124). */
+    public boolean hasPrice() {
+        return price.sign() > 0;
+    }
 
     /**
      * Ce que donne un palier.
@@ -94,6 +104,7 @@ public record BigBangMilestone(int bigBangs, String name, List<Effect> effects) 
         if (name == null || name.isBlank()) throw new IllegalArgumentException("Palier sans nom");
         if (effects == null || effects.isEmpty()) throw new IllegalArgumentException("Palier sans effet : " + name);
         effects = List.copyOf(effects);
+        if (resource == null || price == null || price.sign() < 0) throw new IllegalArgumentException("Prix invalide : " + name);
     }
 
     /** Ouvre les sondes : des voyages de 15 minutes à 8 heures, dont le butin se réclame d'un clic ({@link Game#isProbesUnlocked()}). */

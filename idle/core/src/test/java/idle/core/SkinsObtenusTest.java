@@ -28,7 +28,7 @@ class SkinsObtenusTest {
         game.tick(0.1);
         assertFalse(game.hasSkin(Skin.DARK_OBSIDIAN));
         game.state().setDarkMatter(BigNum.of(1, 3));
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         game.tick(0.1);
         assertEquals(2, game.darkSkinTiers());
         assertTrue(game.hasSkin(Skin.DARK_OBSIDIAN) && game.hasSkin(Skin.DARK_VORTEX));
@@ -102,7 +102,7 @@ class SkinsObtenusTest {
         assertTrue(game.abandonTrial());
         assertFalse(game.isTrialCompleted(Trial.SOFT_CONTRACTION));
         // Le Big Bang à froid : l'expansion divisée par deux.
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         double space = game.steadySpacePerSecond().toDouble();
         assertTrue(game.startTrial(Trial.COLD_BANG));
         assertEquals(space * Trial.COLD_EXPANSION, game.steadySpacePerSecond().toDouble(), space * 1e-9);

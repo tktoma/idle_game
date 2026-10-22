@@ -43,7 +43,7 @@ class JeuAstresTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
             game.state().addSpaceUpgrade("space_states");
             game.state().addSpaceUpgrade("space_assemblies");
@@ -109,7 +109,7 @@ class JeuAstresTest extends GameTestSupport {
             Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             closed.start();
-            closed.state().setBigBangs(1);
+            GameTestSupport.bangs(closed, 1);
             closed.state().addSpaceUpgrade("space_states");
             give(closed, "N2", 312);
             give(closed, "O2", 84);
@@ -121,7 +121,7 @@ class JeuAstresTest extends GameTestSupport {
             // L'amélioration vient après celle des états de la matière, à 40 000 d'espace créé.
             closed.reset();
             closed.start();
-            closed.state().setBigBangs(1);
+            GameTestSupport.bangs(closed, 1);
             closed.state().setSpace(BigNum.of(40_000));
             assertFalse(closed.isSpaceUpgradeAvailable("space_assemblies"));
             assertTrue(closed.buySpaceUpgrade("space_states"));
@@ -247,6 +247,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.hasAssembly("air"));
             assertTrue(game.isAssembliesUnlocked());
             game.reset();
@@ -275,7 +276,7 @@ class JeuAstresTest extends GameTestSupport {
             Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
                 if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
@@ -298,7 +299,7 @@ class JeuAstresTest extends GameTestSupport {
                 if (missing > 0) game.state().setMoleculeCount(molecule.id(), game.moleculeCount(molecule.id()) + missing);
             }
             // Une matière exotique attend le huitième Big Bang.
-            if (game.body(bodyId).tier() == Body.Tier.EXOTIC && game.state().bigBangs() < 8) game.state().setBigBangs(8);
+            if (game.body(bodyId).tier() == Body.Tier.EXOTIC && game.state().bigBangs() < 8) GameTestSupport.bangs(game, 8);
             // Le trou noir supermassif demande aussi le cœur de galaxie, un upsilon du collisionneur.
             if (game.needsColliderEnergy(game.body(bodyId))) game.state().setColliderEnergyProduced(Math.max(game.colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
         }
@@ -478,7 +479,7 @@ class JeuAstresTest extends GameTestSupport {
             // Une partie d'avant la 0.083 : l'univers formé, sans la clé universeFormed, et tout ce qui y a mené.
             Game game = game();
             game.state().setCosmosLevel(3);
-            game.state().setBigBangs(8);
+            GameTestSupport.bangs(game, 8);
             game.state().setTimePlayed(40_000);
             String text = idle.core.save.SaveCodec.write(game.state(), 0).replace("universeFormed", "ancienneCle");
             Game loaded = game();
@@ -618,7 +619,7 @@ class JeuAstresTest extends GameTestSupport {
             Game bare = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             bare.start();
-            bare.state().setBigBangs(1);
+            GameTestSupport.bangs(bare, 1);
             bare.state().setExplosions(1);
             bare.state().setDarkMatter(BigNum.of(5));
             assertFalse(bare.isAutoHoldUnlocked() || bare.isAutoHolding());
@@ -731,6 +732,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.hasGalaxy() && game.isGalaxyUnlocked());
             assertEquals(35, game.bodiesFormed());
             game.reset();
@@ -842,7 +844,7 @@ class JeuAstresTest extends GameTestSupport {
             Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                     Achievements.DEFAULT, new Random(42));
             closed.start();
-            closed.state().setBigBangs(1);
+            GameTestSupport.bangs(closed, 1);
             closed.state().setSpace(BigNum.of(100_000));
             closed.state().addSpaceUpgrade("space_states");
             supply(closed, "rocky_rubble");
@@ -953,6 +955,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
             for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertTrue(game.hasBody("icy_comet"));
             assertTrue(game.isBodiesUnlocked());
             game.reset();

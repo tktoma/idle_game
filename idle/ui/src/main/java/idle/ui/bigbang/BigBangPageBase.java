@@ -270,12 +270,16 @@ public abstract class BigBangPageBase extends VBox {
         upgradesPane.getChildren().add(upgradesGrid);
         BigBangPage.transparent(upgradesScroll);
 
-        // Les paliers de Big Bang : cinq cartes, toujours montrées, qui ne se cliquent pas.
+        // Les paliers de Big Bang : une carte chacun, toujours montrée ; depuis la version 0.124, un clic paie le palier ouvert.
         milestonesPane.setAlignment(Pos.TOP_CENTER);
         milestonesPane.setPadding(new Insets(10, 0, 10, 0));
         BigBangPage.note(milestonesIntro);
         for (BigBangMilestone milestone : game.bigBangMilestones()) {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
+            card.setOnAction(() -> {
+                game.buyBigBangMilestone(milestone);
+                refresh();
+            });
             milestoneCards.put(milestone, card);
             milestonesGrid.add(card);
         }

@@ -129,7 +129,7 @@ public class IdleProfiles24 extends RobotCosmosPlanner {
     StringBuilder logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
     for(int i=0;i<count;i++){
       boolean isOnline=online();
-      if(isOnline){back();g.tick(dt);onlineSeconds+=dt;}
+      if(isOnline){back();g.tick(dt);onlineSeconds+=dt;g.buyAllBigBangMilestones();}
       else creditedOfflineSeconds+=away(dt);
       wallSeconds+=dt;
       if(isOnline && wallSeconds>=nextActionAt && rng.nextDouble()<p.attention()){

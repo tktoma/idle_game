@@ -24,4 +24,7 @@ tasks.test {
     // Version 0.95 : les tests de règles coupent le premier élan (création ÷13 avant le premier atome) ;
     // les tests de rythme le remettent eux-mêmes.
     systemProperty("idle.sansPremierElan", "true")
+    // Version 0.124 : ils coupent aussi les puissances (tableau, ciel, collisionneur, succès) ;
+    // les tests des puissances et du détail des multiplicateurs les remettent eux-mêmes.
+    systemProperty("idle.sansPuissances", "true")
 }

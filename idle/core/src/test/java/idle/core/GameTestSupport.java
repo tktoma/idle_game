@@ -16,6 +16,22 @@ import java.util.Random;
  */
 abstract class GameTestSupport {
 
+    /**
+     * Met la partie à ce nombre de Big Bangs, paliers payés (version 0.124 : un palier ouvert ne
+     * compte qu'une fois payé). Les tests des prix des paliers posent le compte eux-mêmes.
+     */
+    static void bangs(Game game, int bigBangs) {
+        game.state().setBigBangs(bigBangs);
+        payMilestones(game);
+    }
+
+    /** Paie tous les paliers déjà ouverts, sans rien dépenser : la plupart des tests parlent de leurs effets, pas de leur prix. */
+    static void payMilestones(Game game) {
+        for (idle.core.bigbang.BigBangMilestone milestone : idle.core.bigbang.BigBangMilestones.DEFAULT) {
+            if (game.state().bigBangs() >= milestone.bigBangs()) game.state().addBoughtMilestone(milestone.name());
+        }
+    }
+
 
     /** Vitesse de départ d'un point de création, en particules par seconde. */
     static final double BASE = Game.BASE_SPEED.toDouble();

@@ -244,9 +244,17 @@ public abstract class GameParticles extends GameMatterAutomation {
 
     /** Vitesse d'un générateur (numéroté à partir de 0), en créations par seconde. */
     public BigNum speed(int generator) {
+        return runningSpeed().multiply(generatorSpeedMultiplier(generator));
+    }
+
+    /**
+     * La vitesse commune qui fait vraiment tourner les générateurs : {@link #speed()}, avec le régime rapide et
+     * la synergie des rangs du deuxième univers. Avant la version 0.123, ces deux-là ne pressaient que
+     * l'animation : la production ne les voyait pas.
+     */
+    public BigNum runningSpeed() {
         double second = regimeMultiplier() * synergyMultiplier();
-        BigNum speed = speed().multiply(generatorSpeedMultiplier(generator));
-        return second == 1 ? speed : speed.multiply(second);
+        return second == 1 ? speed() : speed().multiply(second);
     }
 
     /**
@@ -429,6 +437,116 @@ public abstract class GameParticles extends GameMatterAutomation {
 
     /** Particules par création s'il y avait {@code generators} générateurs : seul le couplage en dépend. */
     private BigNum particlesWith(int generators) {
+        BigNum raw = rawParticlesWith(generators);
+        double power = systemsPower();
+        if (power <= 0) return raw;
+        double base = speed().log10() + raw.log10();
+        return base > 0 ? raw.multiply(BigNum.pow10(power * base)) : raw;
+    }
+
+    // ------------------------------------------------------------------
+    // La puissance des grands systèmes (version 0.124)
+    // ------------------------------------------------------------------
+
+
+    /**
+     * Ce que chaque grand système ajoute, au plus, à l'exposant de la production (version 0.124) : la production
+     * devient {@code (vitesse × particules par création)^(1 + puissances)}. C'est ce qui donne au tableau
+     * périodique, au ciel, au collisionneur et aux succès une part réelle de la production, et qui la garde quand
+     * la partie grandit : une puissance pèse toujours la même part des ordres de grandeur.
+     */
+    public static final double POWER_TABLE = 1.5, POWER_SKY = 3.8,
+            POWER_COLLIDER = 0.25, POWER_ACHIEVEMENTS = 0.1;
+    /** Ce qui reste de la puissance du ciel dans l'univers vide (version 0.124). */
+    public static final double VOID_SKY_POWER = 0.5;
+
+    /** Les repères de la puissance du ciel et du collisionneur. */
+    public static final double SKY_POWER_FULL = 12, COLLIDER_POWER_DECADES = 20;
+
+    private int copiesCacheVersion = -1;
+    private double copiesShare = 0;
+
+    /** La puissance du tableau périodique : au prorata des exemplaires possédés, nulle sous « Éléments inertes ». */
+    public double tablePower() {
+        if (powersOff) return 0;
+        if (ruled(Challenge.Rule.INERT_ELEMENTS)) return 0;
+        if (copiesCacheVersion != state.elementsVersion()) {
+            int max = maxTotalCopies();
+            copiesShare = max <= 0 ? 0 : Math.min(1, ownedCopies() / (double) max);
+            copiesCacheVersion = state.elementsVersion();
+        }
+        return POWER_TABLE * copiesShare * tableMaturity();
+    }
+
+    /** Explosions (dans l'univers en cours) qu'il faut pour que la puissance du tableau soit entière ; 0 : tout de suite. */
+    public static final double TABLE_POWER_EXPLOSIONS = 300;
+    /**
+     * Les mêmes, dans les univers suivants : le tableau y mûrit plus vite. À 300, le deuxième acte du deuxième univers
+     * durait deux heures de plus que dans la version 0.123 ; mûr d'emblée, il ne durait plus que dix minutes.
+     */
+    public static final double TABLE_POWER_EXPLOSIONS_LATER = 200;
+
+    /** La maturité du tableau : sa puissance grandit avec les explosions faites dans cet univers, de 0 à 1. */
+    public double tableMaturity() {
+        if (TABLE_POWER_EXPLOSIONS <= 0) return 1;
+        double done = Math.max(0, state.stats().timedExplosions() - state.explosionsAtUniverse());
+        double needed = state.universeFormed() ? TABLE_POWER_EXPLOSIONS_LATER : TABLE_POWER_EXPLOSIONS;
+        return Math.min(1, done / needed);
+    }
+
+    /**
+     * La puissance du ciel : les astres mûrs, les assemblages (un quart d'astre chacun) et les sortes de molécules
+     * (un quarantième), rapportés à {@link #SKY_POWER_FULL}. Moitié moindre dans l'univers vide.
+     */
+    public double skyPower() {
+        if (powersOff) return 0;
+        if (!isBigBangUnlocked()) return 0;
+        double progress = bodiesMature() + assembliesFormed() / 4.0 + moleculeKindsCreated() / 40.0;
+        // L'univers vide la réduit de moitié : nulle, elle faisait durer ce défi plus de huit heures.
+        double voidFactor = bangRuled(idle.core.bigbang.BangChallenge.VOID) ? VOID_SKY_POWER : 1;
+        return POWER_SKY * voidFactor * Math.min(1, progress / SKY_POWER_FULL);
+    }
+
+    /** La puissance du collisionneur : selon les ordres de grandeur de l'énergie produite, pleine à {@link #COLLIDER_POWER_DECADES}. */
+    public double colliderPower() {
+        if (powersOff) return 0;
+        if (!isColliderUnlocked()) return 0;
+        return POWER_COLLIDER * Math.min(1, Math.log10(1 + colliderEnergyProduced()) / COLLIDER_POWER_DECADES);
+    }
+
+    /** La puissance des succès : au prorata des succès obtenus. */
+    public double achievementPower() {
+        if (powersOff) return 0;
+        int all = achievements().size();
+        return all == 0 ? 0 : POWER_ACHIEVEMENTS * achievementCount() / all;
+    }
+
+    /**
+     * L'essoufflement de la vitesse (version 0.124) : le prix d'un niveau au-delà de {@link #SPEED_SCALING_FROM} est
+     * multiplié par {@code 10^(SPEED_SCALING × (niveau − SPEED_SCALING_FROM)²)}. Sans lui, chaque niveau rapportait presque
+     * ce qu'il coûtait : l'automatisme en rachetait sans fin, et tout autre multiplicateur était amplifié douze fois au profit
+     * de la vitesse.
+     */
+    public static final int SPEED_SCALING_FROM = 100;
+    public static final double SPEED_SCALING = 1e-5;
+
+    /**
+     * Les tests qui vérifient une règle sans les puissances les coupent avec la propriété système
+     * {@code idle.sansPuissances} ; le jeu, les robots et les tests des puissances les gardent.
+     */
+    static boolean powersOff = Boolean.getBoolean("idle.sansPuissances");
+
+    /** Toutes les puissances ensemble. */
+    public double systemsPower() {
+        return tablePower() + skyPower() + colliderPower() + achievementPower();
+    }
+
+    /** Les ordres de grandeur sur lesquels les puissances agissent en ce moment : vitesse × particules par création, sans elles. */
+    public double powerBase() {
+        return Math.max(0, speed().log10() + rawParticlesWith(generatorCount()).log10());
+    }
+
+    private BigNum rawParticlesWith(int generators) {
         BigNum result = BigNum.of(elementMultiplier(ElementEffect.Stat.PARTICLES))
                 .multiply(darkParticlesMultiplier())
                 .multiply(landmarkParticlesMultiplier())
@@ -509,7 +627,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     private BigNum production(int generators) {
         if (generators <= 0) return BigNum.ZERO;
         // Calculés une fois : seuls les bonus propres à chaque générateur diffèrent.
-        BigNum common = speed().multiply(particlesWith(generators));
+        BigNum common = runningSpeed().multiply(particlesWith(generators));
         double individual = 0;
         for (int generator = 0; generator < generators; generator++) {
             individual = Math.min(1e300, individual + generatorSpeedMultiplier(generator) * generatorParticlesMultiplier(generator));
@@ -702,6 +820,11 @@ public abstract class GameParticles extends GameMatterAutomation {
     /** Coût du niveau acheté quand on en possède {@code level}, toutes réductions comprises. */
     private BigNum costAt(Upgrade upgrade, int level) {
         BigNum cost = upgrade.costAt(level);
+        // La vitesse s'essouffle (version 0.124) : au-delà de SPEED_SCALING_FROM niveaux, chaque niveau coûte de plus en plus.
+        if (upgrade.effect() instanceof Effect.MultiplySpeed && level > SPEED_SCALING_FROM) {
+            double over = level - SPEED_SCALING_FROM;
+            cost = cost.multiply(BigNum.pow10(SPEED_SCALING * over * over));
+        }
         ElementBonuses bonuses = bonuses();
         double factor = 1;
         if (upgrade.effect() instanceof Effect.AddGenerator) {
@@ -796,6 +919,8 @@ public abstract class GameParticles extends GameMatterAutomation {
         // La fuite et le calme du Big Bang (version 0.114) repartent de zéro à chaque amélioration achetée par le
         // joueur ; celles des automatismes ne comptent pas : on peut s'absenter sans couper l'automatisation.
         if (!automating) state.setUpgradeCalm(0);
+        // Le calme du Big Bang (version 0.124) : tout achat le rompt, celui des automatismes aussi.
+        state.setBangCalm(0);
         return true;
     }
 
@@ -855,7 +980,7 @@ public abstract class GameParticles extends GameMatterAutomation {
         // Les particules se comptent en « créations de base » : seuls les bonus propres à chaque
         // générateur les distinguent. Au-delà d'un grand nombre de créations, ou à très grande
         // vitesse, une création de plus ou de moins ne se voit plus : la moyenne suffit.
-        BigNum commonSpeed = speed();
+        BigNum commonSpeed = runningSpeed();
         BigNum needed = missing.divide(particlesPerCreation());
         if (commonSpeed.exponent() >= 6 || needed.exponent() >= 9) return average;
         double need = needed.toDouble();

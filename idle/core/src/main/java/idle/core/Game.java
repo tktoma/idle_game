@@ -388,7 +388,7 @@ public final class Game extends GameBigBang {
     private void step(double dt) {
         int generators = generatorCount();
         // Calculés une fois pour tous les générateurs : seuls leurs bonus individuels diffèrent.
-        BigNum commonSpeed = generators > 0 ? speed() : BigNum.ZERO;
+        BigNum commonSpeed = generators > 0 ? runningSpeed() : BigNum.ZERO;
         BigNum commonParticles = null;
         BigNum gain = BigNum.ZERO;
         for (int generator = 0; generator < generators; generator++) {
@@ -425,6 +425,7 @@ public final class Game extends GameBigBang {
         if (state.started()) {
             state.setTimeSinceFusion(state.timeSinceFusion() + dt);
             state.setUpgradeCalm(state.upgradeCalm() + dt);
+            state.setBangCalm(state.bangCalm() + dt);
         }
     }
 

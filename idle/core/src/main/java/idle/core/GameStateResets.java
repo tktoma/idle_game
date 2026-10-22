@@ -316,6 +316,7 @@ public abstract class GameStateResets extends GameStateCollider {
         recipeReservation = false;
         replaying = false;
         fusionsAtUniverse = 0;
+        explosionsAtUniverse = 0;
         skinsOpen = false;
         unlockedSkins.clear();
         chosenSkins.clear();
@@ -383,6 +384,7 @@ public abstract class GameStateResets extends GameStateCollider {
         // Les records restent : ils sont ce que le joueur cherche à battre à la partie suivante.
         activeBangChallenge = null;
         completedBangChallenges.clear();
+        boughtMilestones.clear();
         bangChallengeTimes.clear();
         bangChallengeStarted = 0;
         atomUpgradeOrder.clear();
@@ -452,6 +454,7 @@ public abstract class GameStateResets extends GameStateCollider {
         totalAtoms = BigNum.ZERO;
         timeSinceFusion = 0;
         upgradeCalm = 0;
+        bangCalm = 0;
         formations.clear();
         upgradeLevels.clear();
         ownedAutomations.clear();
@@ -523,6 +526,7 @@ public abstract class GameStateResets extends GameStateCollider {
         probeBoostLeft = 0;
         activeBangChallenge = null;
         completedBangChallenges.clear();
+        boughtMilestones.clear();
         bangChallengeStarted = 0;
         moleculesVersion++;
         space = BigNum.ZERO;

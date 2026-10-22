@@ -70,6 +70,7 @@ public abstract class StatsPageBase extends VBox {
         });
 
         general();
+        multipliers();
         particles();
         atoms();
         automation();
@@ -108,6 +109,7 @@ public abstract class StatsPageBase extends VBox {
     abstract void bigBang();
     abstract List<ChartPane.Series> explosionSeries();
     abstract void collider();
+    abstract void multipliers();
     abstract void records();
     abstract void journal();
     abstract void page(String name, String color, BooleanSupplier unlocked, String howToUnlock);

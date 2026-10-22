@@ -380,6 +380,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         Set<String> researchesDone = new java.util.TreeSet<>(researches);
         double rebuild = rebuildRecord;
         long fusions = stats.fusions();
+        long explosionsDone = stats.timedExplosions();
         reset();
         // Les plans gardés par « Sauvegarder » (version 0.084) servent d'une partie à l'autre.
         for (int i = 0; i < PLAN_SLOTS; i++) {
@@ -390,6 +391,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         unlockedSkins.addAll(skinsUnlocked);
         chosenSkins.putAll(skinsChosen);
         fusionsAtUniverse = fusions;
+        explosionsAtUniverse = explosionsDone;
         // Les épreuves réussies, les recherches et le record de reconstruction (version 0.088) restent aussi.
         completedTrials.addAll(trialsDone);
         researches.addAll(researchesDone);
@@ -643,6 +645,14 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Les défis de Big Bang réussis. */
+    public Set<String> boughtMilestones() {
+        return Collections.unmodifiableSet(boughtMilestones);
+    }
+
+    public void addBoughtMilestone(String name) {
+        if (name != null && !name.isBlank()) boughtMilestones.add(name);
+    }
+
     public Set<String> completedBangChallenges() {
         return Collections.unmodifiableSet(completedBangChallenges);
     }

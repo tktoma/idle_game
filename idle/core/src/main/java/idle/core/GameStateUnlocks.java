@@ -53,6 +53,14 @@ public abstract class GameStateUnlocks extends GameStateBase {
         return fusionsAtUniverse;
     }
 
+    public long explosionsAtUniverse() {
+        return explosionsAtUniverse;
+    }
+
+    public void setExplosionsAtUniverse(long explosions) {
+        explosionsAtUniverse = Math.max(0, explosions);
+    }
+
     public void setFusionsAtUniverse(long fusions) {
         fusionsAtUniverse = Math.max(0, fusions);
     }

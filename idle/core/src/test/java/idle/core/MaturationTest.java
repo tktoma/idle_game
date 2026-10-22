@@ -15,7 +15,7 @@ class MaturationTest {
     private static Game game() {
         Game game = new Game();
         game.start();
-        game.state().setBigBangs(5);
+        GameTestSupport.bangs(game, 5);
         return game;
     }
 

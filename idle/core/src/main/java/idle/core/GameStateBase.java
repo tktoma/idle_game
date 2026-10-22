@@ -39,6 +39,8 @@ public abstract class GameStateBase {
     double timeSinceFusion = 0;
     /** Secondes de jeu depuis la dernière amélioration achetée (version 0.114) : la fuite et le calme du Big Bang. */
     double upgradeCalm = 0;
+    /** Secondes de jeu depuis le dernier achat d'amélioration, joueur ou automatisme (version 0.124) : le calme du Big Bang. */
+    double bangCalm = 0;
     final List<Double> formations = new ArrayList<>();
     double timePlayed = 0;
     final Map<String, Integer> upgradeLevels = new HashMap<>();
@@ -161,6 +163,8 @@ public abstract class GameStateBase {
     // Le deuxième univers (version 0.087).
     boolean replaying = false;
     long fusionsAtUniverse = 0;
+    /** Explosions déjà faites quand l'univers en cours a commencé (version 0.124) : la maturité du tableau se refait à chaque univers. */
+    long explosionsAtUniverse = 0;
     boolean skinsOpen = false;
     final Set<String> unlockedSkins = new java.util.TreeSet<>();
     final Map<String, String> chosenSkins = new TreeMap<>();
@@ -256,6 +260,8 @@ public abstract class GameStateBase {
     // Les défis de Big Bang : celui en cours, ceux qui sont réussis, et leur meilleur temps.
     String activeBangChallenge = null;
     final Set<String> completedBangChallenges = new HashSet<>();
+    /** Les paliers de Big Bang payés (version 0.124), par leur nom. */
+    final Set<String> boughtMilestones = new HashSet<>();
     final Map<String, Double> bangChallengeTimes = new HashMap<>();
     /** Le temps de jeu auquel le défi de Big Bang en cours a commencé. */
     double bangChallengeStarted = 0;
@@ -319,13 +325,22 @@ public abstract class GameStateBase {
         return timeSinceFusion;
     }
 
-    /** Secondes de jeu depuis la dernière amélioration achetée, à la main ou par un automatisme (version 0.114). */
+    /** Secondes de jeu depuis la dernière amélioration achetée par le joueur (version 0.114) : la fuite. */
     public double upgradeCalm() {
         return upgradeCalm;
     }
 
     public void setUpgradeCalm(double seconds) {
         upgradeCalm = seconds >= 0 ? seconds : 0;
+    }
+
+    /** Secondes depuis le dernier achat d'amélioration, automatismes compris (version 0.124) : le calme du Big Bang. */
+    public double bangCalm() {
+        return bangCalm;
+    }
+
+    public void setBangCalm(double seconds) {
+        bangCalm = seconds >= 0 ? seconds : 0;
     }
 
     public void setTimeSinceFusion(double timeSinceFusion) {

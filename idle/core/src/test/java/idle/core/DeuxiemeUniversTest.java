@@ -75,7 +75,7 @@ class DeuxiemeUniversTest {
         assertEquals(Cosmos.GALAXY, game.nextCosmos() == null ? Cosmos.GALAXY : game.nextCosmos());
         assertTrue(reread(game.state()).replaying());
         // L'univers formé de nouveau : le deuxième, une graine de plus, tout remis à zéro.
-        game.state().setBigBangs(4);
+        GameTestSupport.bangs(game, 4);
         formUniverse(game);
         assertEquals(2, game.universes());
         assertEquals(BigNum.of(2), game.state().universeSeeds());
@@ -365,7 +365,7 @@ class DeuxiemeUniversTest {
         // Ce qui aurait été joué entre-temps (anciens onglets montrés, partie d'avant) ne passe pas dans l'univers 2.
         game.state().setParticles(idle.core.math.BigNum.of(1, 50));
         game.state().setAtoms(idle.core.math.BigNum.of(1, 9));
-        game.state().setBigBangs(3);
+        GameTestSupport.bangs(game, 3);
         game.state().setDarkMatter(idle.core.math.BigNum.of(500));
         double shards = game.state().dimensionShards();
         assertTrue(game.startNextUniverse());
@@ -388,7 +388,7 @@ class DeuxiemeUniversTest {
         first.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
         assertEquals(1, first.universeBangFactor(2), 0, "rien dans le premier univers");
         Game game = second();
-        game.state().setBigBangs(5);
+        GameTestSupport.bangs(game, 5);
         var rubble = idle.core.sky.Bodies.DEFAULT.get(0);
         double slow = game.maturationSeconds(rubble);
         var trip = idle.core.probes.ProbeTrip.values()[0];
@@ -411,7 +411,7 @@ class DeuxiemeUniversTest {
         // Version 0.117 : « Barre haute » et « Ciel figé » ne remettent rien à zéro au départ.
         Game game = second();
         game.start();
-        game.state().setBigBangs(Game.BANG_CHALLENGES_BIG_BANGS);
+        GameTestSupport.bangs(game, Game.BANG_CHALLENGES_BIG_BANGS);
         game.state().setParticles(BigNum.of(1, 50));
         game.state().setAtoms(BigNum.of(1, 6));
         BigNum particlesNeed = game.bigBangParticles();
@@ -422,9 +422,9 @@ class DeuxiemeUniversTest {
         assertEquals(Game.BIG_BANG_ATOMS.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
         assertEquals(Game.BIG_BANG_DARK_MATTER.toDouble() * 2, game.bigBangDarkMatter().toDouble(), 1e-9);
         assertTrue(game.abandonBangChallenge());
-        game.state().setBigBangs(6);
+        GameTestSupport.bangs(game, 6);
         assertFalse(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "le Big Bang 7 demande un ciel qui n'est pas là");
-        game.state().setBigBangs(9);
+        GameTestSupport.bangs(game, 9);
         assertTrue(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "au-delà du huitième, pas de ciel demandé");
         assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro non plus");
         for (var molecule : game.molecules()) assertFalse(game.canCreateMolecule(molecule.id()), "le troisième acte s'arrête");
@@ -482,12 +482,21 @@ class DeuxiemeUniversTest {
         assertTrue(game.explode());
         assertTrue(game.isChallengeCompleted(leak));
         assertEquals(11, game.completedChallenges());
-        game.state().setUpgradeCalm(1800);
+        game.state().setBangCalm(1800);
         assertEquals(0.5, game.bigBangCalmRelief(), 1e-12, "une demi-heure : la moitié des ordres de grandeur");
         assertEquals(game.bigBangs() == 0 ? Game.BIG_BANG_PARTICLES.log10() / 2 : Game.BIG_BANG_PARTICLES_LATER.log10() / 2,
                 game.bigBangParticles().log10(), 1e-6);
-        game.state().setUpgradeCalm(Game.BIG_BANG_CALM_SECONDS);
+        game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS);
         assertEquals(1, game.bigBangParticles().toDouble(), 0, "une heure : une seule particule");
+        // Version 0.124 : les achats des automatismes rompent aussi le calme, et la barre haute l'ignore.
+        game.state().setParticles(idle.core.math.BigNum.of(1, 100));
+        game.state().setAutomationEnabled("auto_speed", true);
+        game.state().addAutomation("auto_speed");
+        game.tick(20);
+        assertTrue(game.state().bangCalm() < 20, "un achat d'automatisme rompt le calme (" + game.state().bangCalm() + ")");
+        game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS);
+        game.state().setActiveBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
+        assertEquals(0, game.bigBangCalmRelief(), 0, "pas de calme pendant la barre haute");
     }
 
     @Test
@@ -570,15 +579,15 @@ class DeuxiemeUniversTest {
     @Test
     void leVideSOuvreAuPremierBigBangDuDeuxiemeUnivers() {
         Game first = new Game();
-        first.state().setBigBangs(3);
+        GameTestSupport.bangs(first, 3);
         assertFalse(first.isVoidUnlocked(), "pas dans le premier univers, même après des Big Bangs");
         Game game = second();
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         assertFalse(game.isVoidUnlocked(), "version 0.116 : plus dans le deuxième univers");
-        game.state().setBigBangs(0);
+        GameTestSupport.bangs(game, 0);
         assertTrue(game.testAddUniverse());
         assertFalse(game.isVoidUnlocked(), "avant le premier Big Bang du troisième univers");
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         assertTrue(game.isVoidUnlocked());
         assertEquals(0, game.state().voidEnergy().sign(), "pour l'instant sans logique : rien ne s'y gagne");
         game.tick(60);
@@ -589,7 +598,7 @@ class DeuxiemeUniversTest {
     void lePetitArbreDuCycleSeChoisitUneFoisEtSeRendAuBigBang() {
         Game game = second();
         assertFalse(game.isCycleChoiceUnlocked(), "avant le premier Big Bang");
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         assertTrue(game.isCycleChoiceUnlocked());
         BigNum atoms = game.atomsPerFusion();
         assertTrue(game.chooseCycle(CycleChoice.FUSION));

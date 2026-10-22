@@ -288,9 +288,49 @@ public abstract class GameBigBang extends GameDarkMatter {
         return BigBangMilestones.DEFAULT;
     }
 
-    /** Vrai si ce palier est atteint : assez de Big Bangs ont été déclenchés. Il agit dès cet instant, sans rien acheter. */
+    /** Vrai si ce palier agit : assez de Big Bangs ont été déclenchés, et il est payé s'il a un prix (version 0.124). */
     public boolean isBigBangMilestoneReached(BigBangMilestone milestone) {
+        return isBigBangMilestoneOpen(milestone) && (!milestone.hasPrice() || state.boughtMilestones().contains(milestone.name()));
+    }
+
+    /** Vrai une fois le nombre de Big Bangs du palier atteint : il s'achète alors, s'il a un prix (version 0.124). */
+    public boolean isBigBangMilestoneOpen(BigBangMilestone milestone) {
         return state.bigBangs() >= milestone.bigBangs();
+    }
+
+    /** Ce que le joueur a pour payer un palier : les particules comme l'arbre les compte (en main ou une seconde de production), ou les atomes en main. */
+    public BigNum milestoneBalance(BigBangMilestone milestone) {
+        return milestone.resource() == Resource.ATOMS ? state.atoms() : darkBalance(DarkUpgrade.Branch.PARTICLES);
+    }
+
+    /** Vrai si ce palier est ouvert, pas encore payé, et que le joueur a de quoi le payer. */
+    public boolean canBuyBigBangMilestone(BigBangMilestone milestone) {
+        return milestone != null && state.started() && isBigBangMilestoneOpen(milestone) && !isBigBangMilestoneReached(milestone)
+                && milestoneBalance(milestone).gte(milestone.price());
+    }
+
+    /** Paie un palier de Big Bang (version 0.124) : ses effets agissent dès maintenant et jusqu'à l'univers suivant. */
+    public boolean buyBigBangMilestone(BigBangMilestone milestone) {
+        if (!canBuyBigBangMilestone(milestone)) return false;
+        if (milestone.resource() == Resource.ATOMS) state.setAtoms(state.atoms().subtract(milestone.price()).max(BigNum.ZERO));
+        else state.setParticles(state.particles().subtract(milestone.price()).max(BigNum.ZERO));
+        state.addBoughtMilestone(milestone.name());
+        return true;
+    }
+
+    /** Paie tous les paliers payables, du moins cher au plus cher dans l'ordre du catalogue ; le nombre payé. */
+    public int buyAllBigBangMilestones() {
+        int bought = 0;
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) if (buyBigBangMilestone(milestone)) bought++;
+        return bought;
+    }
+
+    /** Le premier palier ouvert qui reste à payer, ou {@code null}. */
+    public BigBangMilestone nextMilestoneToBuy() {
+        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
+            if (isBigBangMilestoneOpen(milestone) && !isBigBangMilestoneReached(milestone)) return milestone;
+        }
+        return null;
     }
 
     /** Nombre de paliers de Big Bang atteints. */

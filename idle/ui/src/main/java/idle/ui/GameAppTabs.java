@@ -486,6 +486,8 @@ public abstract class GameAppTabs extends GameAppWindow {
     /** Affiche un onglet et masque les autres. */
     void selectTab(Tab tab) {
         selectedTab = tab;
+        // Le profil de test (version 0.122) : la barre d'outils ouvre le groupe de l'onglet affiché.
+        if (debugBar != null) debugBar.followTab(tab.name());
         if (tab != Tab.DARK_MATTER) darkMatterPage.release();
         if (tab != Tab.SETTINGS) settingsPage.release();
         particlesPage.setVisible(tab == Tab.PARTICLES);

@@ -23,6 +23,43 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.124", "Des paliers à payer, et chaque système qui pèse", List.of(
+                    "Le calme du Big Bang (la récompense de la fuite) a son propre compteur : tout achat le rompt, y compris "
+                            + "ceux des automatismes. Pour en profiter, il faut couper les automatismes et attendre.",
+                    "Pendant le défi « Barre haute », le calme ne réduit plus le seuil de particules du Big Bang.",
+                    "Les paliers de Big Bang se paient : une fois ouvert, un palier coûte des particules ou des atomes, de quoi "
+                            + "attendre deux à quinze minutes dans la partie. Un clic sur sa carte le paie ; il agit dès lors, "
+                            + "et jusqu'à l'univers suivant. Les sauvegardes existantes gardent les paliers déjà atteints, payés.",
+                    "Nouvelles puissances : la production (vitesse × particules par création) est élevée à une puissance que "
+                            + "nourrissent le tableau périodique (jusqu'à +1,5, avec les exemplaires et les explosions), le ciel "
+                            + "(jusqu'à +3,8, avec les astres, assemblages et sortes de molécules), le collisionneur (+0,25) et les "
+                            + "succès (+0,1). La sous-page Multiplicateurs les montre.",
+                    "La vitesse de création s'essouffle au-delà de cent niveaux : chaque niveau coûte de plus en plus. "
+                            + "Elle faisait à elle seule près des quatre cinquièmes de la production.",
+                    "Les prix en particules du deuxième acte et du Big Bang sont ramenés à proportion : le premier Big Bang "
+                            + "demande 10¹⁶⁵³⁰ particules, les suivants 10¹³⁰⁵.",
+                    "La puissance du tableau mûrit avec les explosions de l'univers en cours : 300 dans le premier, 200 dans "
+                            + "les suivants.",
+                    "Dans l'univers vide, la puissance du ciel tombe de moitié.",
+                    "Le cinquième palier, « Univers mûr », se paie en particules : en atomes, il bloquait l'univers vide.",
+                    "Les trois actes du premier univers gardent leur durée : environ 5 h, 6 h et 16 h.")),
+            new Note("0.123", "D'où vient chaque grandeur : la sous-page Multiplicateurs", List.of(
+                    "Nouvelle sous-page « Multiplicateurs » dans les statistiques, comme le détail d'Antimatter Dimensions : "
+                            + "particules par seconde, atomes par fusion, matière noire par explosion, élan de la matière noire "
+                            + "et espace par seconde, partagés entre les aspects du jeu selon les ordres de grandeur que chacun apporte.",
+                    "Une barre montre les parts d'un coup d'œil ; un clic sur un aspect déplie ses facteurs, un par ligne. "
+                            + "Ce qui divise (le premier élan, le premier cycle) est listé à part, en rouge.",
+                    "Correction : le régime rapide (+15 %) et la synergie des rangs du deuxième univers ne pressaient que "
+                            + "l'animation des générateurs. Ils comptent maintenant dans la production.")),
+            new Note("0.122", "La barre du profil de test, onglet par onglet", List.of(
+                    "La barre du profil de test a un groupe d'outils par onglet du jeu : particules, atomes, automatisation, "
+                            + "matière noire, collisionneur, Big Bang, univers, dimensions, le vide, succès et skins. Le groupe de "
+                            + "l'onglet affiché s'ouvre tout seul.",
+                    "À droite : la vitesse, le temps (+10 min, +1 h, +6 h), les bots avec leurs durées, la remise à zéro des "
+                            + "paliers, et le résumé de la partie.",
+                    "Les thèmes et notations sont passés dans le groupe des skins. Nouveaux outils : les dix défis, la fuite, le "
+                            + "calme du Big Bang, les défis de Big Bang, le palier suivant de la graine, les éclats et seuils de la "
+                            + "ligne et du plan, l'énergie du vide, le régime prêt, un élément gratuit.")),
             new Note("0.121", "Une graine qui devient vraiment un arbre", List.of(
                     "Les arbres de la graine, du bonsaï à l'arbre-monde, sont redessinés : bien plus grands à chaque palier, "
                             + "avec un tronc qui s'effile, son écorce et ses nœuds, des rameaux de plus en plus fins, des feuilles "

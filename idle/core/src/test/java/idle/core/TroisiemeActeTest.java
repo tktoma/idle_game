@@ -46,7 +46,7 @@ class TroisiemeActeTest {
 
     private static Game afterBigBangs(int bigBangs, double space) {
         Game game = newGame();
-        game.state().setBigBangs(bigBangs);
+        GameTestSupport.bangs(game, bigBangs);
         game.state().setSpace(BigNum.of(space));
         return game;
     }
@@ -167,6 +167,7 @@ class TroisiemeActeTest {
             assertTrue(game.explode());
             readyForBigBang(game);
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(0, game.explosionRecord(), 0);
         }
 
@@ -174,7 +175,7 @@ class TroisiemeActeTest {
         void laPrimeSuitLesPaliersDeBigBang() {
             Game game = newGame();
             assertEquals(Game.SPEED_PRIME, game.speedPrime());
-            game.state().setBigBangs(1);                               // matière noire des explosions ×2
+            GameTestSupport.bangs(game, 1);                               // matière noire des explosions ×2
             assertEquals(Game.SPEED_PRIME.multiply(2), game.speedPrime());
         }
     }
@@ -507,7 +508,7 @@ class TroisiemeActeTest {
 
             // Plus lente : le record tient.
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setTimePlayed(7000);
@@ -518,7 +519,7 @@ class TroisiemeActeTest {
             // Plus rapide : il tombe, et c'est annoncé une fois.
             game.reset();
             game.start();
-            game.state().setBigBangs(1);
+            GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setTimePlayed(4000);
@@ -605,7 +606,7 @@ class TroisiemeActeTest {
             assertTrue(game.createMolecule("H2O"));
             game.state().setMoleculeCount("H2O", 3);
             assertTrue(game.formSubstance("H2O"));
-            game.state().setBigBangs(5);
+            GameTestSupport.bangs(game, 5);
             for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);
             game.state().setCosmosLevel(3);
             game.state().setCometVisible(10);
@@ -639,7 +640,7 @@ class TroisiemeActeTest {
             assertFalse(game.isBangChallengesUnlocked());
             assertFalse(game.canStartBangChallenge());
             assertFalse(game.startBangChallenge(BangChallenge.VOID));
-            game.state().setBigBangs(5);
+            GameTestSupport.bangs(game, 5);
             assertTrue(game.isBangChallengesUnlocked());
             assertTrue(game.canStartBangChallenge());
         }
@@ -678,6 +679,7 @@ class TroisiemeActeTest {
             readyForBigBang(game);
             game.state().setTimePlayed(13_000);
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(6, game.bigBangs());
             assertNull(game.activeBangChallenge());
             assertTrue(game.isBangChallengeCompleted(BangChallenge.VOID));
@@ -690,6 +692,7 @@ class TroisiemeActeTest {
             readyForBigBang(game);
             game.state().setTimePlayed(20_000);
             assertTrue(game.bigBang());
+            GameTestSupport.payMilestones(game);
             assertEquals(3000, game.bangChallengeBest(BangChallenge.VOID), 1e-9);
             assertEquals(2, game.bangReward(BangChallenge.Reward.SPACE), 0);
         }

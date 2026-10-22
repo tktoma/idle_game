@@ -26,7 +26,7 @@ class PlanifierTest {
         Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         game.start();
-        game.state().setBigBangs(1);
+        GameTestSupport.bangs(game, 1);
         game.state().setSpace(BigNum.of(1, 12));
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
@@ -132,7 +132,7 @@ class PlanifierTest {
     @Test
     void lePlafondDUnEtatRetientLaCreationAutomatique() {
         Game game = game();
-        game.state().setBigBangs(8);     // la création automatique vient d'un palier de Big Bang
+        GameTestSupport.bangs(game, 8);     // la création automatique vient d'un palier de Big Bang
         Molecule gas = game.molecules().stream().filter(m -> m.state() == Molecule.State.GAS && game.isMoleculeKindUnlocked(m.kind()))
                 .findFirst().orElseThrow();
         assertTrue(game.isStateCapUnlocked(), "les plafonds s'ouvrent avec la création automatique et les états");
