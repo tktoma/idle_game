@@ -455,8 +455,8 @@ public abstract class GameParticles extends GameMatterAutomation {
      * périodique, au ciel, au collisionneur et aux succès une part réelle de la production, et qui la garde quand
      * la partie grandit : une puissance pèse toujours la même part des ordres de grandeur.
      */
-    public static final double POWER_TABLE = 1.5, POWER_SKY = 3.8,
-            POWER_COLLIDER = 0.25, POWER_ACHIEVEMENTS = 0.1;
+    public static final double POWER_TABLE = 2.0, POWER_SKY = 4.5,
+            POWER_COLLIDER = 0.35, POWER_ACHIEVEMENTS = 0.1;
     /** Ce qui reste de la puissance du ciel dans l'univers vide (version 0.124). */
     public static final double VOID_SKY_POWER = 0.5;
 
@@ -466,18 +466,28 @@ public abstract class GameParticles extends GameMatterAutomation {
     private int copiesCacheVersion = -1;
     private double copiesShare = 0;
 
-    /** La puissance du tableau périodique : au prorata des exemplaires possédés, nulle sous « Éléments inertes ». */
+    /** La puissance du tableau périodique : au prorata de son remplissage (éléments différents et exemplaires), nulle sous « Éléments inertes ». */
     public double tablePower() {
         if (powersOff) return 0;
         if (ruled(Challenge.Rule.INERT_ELEMENTS)) return 0;
         if (copiesCacheVersion != state.elementsVersion()) {
             int max = maxTotalCopies();
-            copiesShare = max <= 0 ? 0 : Math.min(1, ownedCopies() / (double) max);
+            double copies = max <= 0 ? 0 : Math.min(1, ownedCopies() / (double) max);
+            int distinct = 0;
+            for (int count : state.elements().values()) if (count > 0) distinct++;
+            double mix = TABLE_DISTINCT_WEIGHT;
+            copiesShare = mix * Math.min(1, distinct / (double) idle.core.elements.PeriodicTable.ELEMENTS.size()) + (1 - mix) * copies;
             copiesCacheVersion = state.elementsVersion();
         }
         return POWER_TABLE * copiesShare * tableMaturity();
     }
 
+    /**
+     * La part des éléments différents possédés dans le remplissage du tableau (version 0.125), le reste venant des
+     * exemplaires : un joueur qui explose dès que les 118 sont là, ou dont les molécules consomment les exemplaires,
+     * garde ainsi l'essentiel de la puissance du tableau.
+     */
+    public static final double TABLE_DISTINCT_WEIGHT = 0.8;
     /** Explosions (dans l'univers en cours) qu'il faut pour que la puissance du tableau soit entière ; 0 : tout de suite. */
     public static final double TABLE_POWER_EXPLOSIONS = 300;
     /**
@@ -525,10 +535,11 @@ public abstract class GameParticles extends GameMatterAutomation {
      * L'essoufflement de la vitesse (version 0.124) : le prix d'un niveau au-delà de {@link #SPEED_SCALING_FROM} est
      * multiplié par {@code 10^(SPEED_SCALING × (niveau − SPEED_SCALING_FROM)²)}. Sans lui, chaque niveau rapportait presque
      * ce qu'il coûtait : l'automatisme en rachetait sans fin, et tout autre multiplicateur était amplifié douze fois au profit
-     * de la vitesse.
+     * de la vitesse. Version 0.125 : à partir de 300 niveaux (jamais atteints au premier acte), 10⁻³ au lieu de 10⁻⁵ ; à
+     * 10⁻⁵, le Speedrunner montait la vitesse à 150 000 niveaux.
      */
-    public static final int SPEED_SCALING_FROM = 100;
-    public static final double SPEED_SCALING = 1e-5;
+    public static final int SPEED_SCALING_FROM = 300;
+    public static final double SPEED_SCALING = 1e-3;
 
     /**
      * Les tests qui vérifient une règle sans les puissances les coupent avec la propriété système

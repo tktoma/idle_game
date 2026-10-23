@@ -382,7 +382,7 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(5, game.cosmosMilestones());
             assertEquals(withFour * 1.1, game.matterBoost(Molecule.Stat.ATOMS), withFour * 0.02);   // le gaz ajoute aussi un peu de matière lui-même
             assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withFour * 1.1 - 1e-9);
-            // Le délai de rassemblement (0.073) : 45 minutes après la galaxie.
+            // Le délai de rassemblement (0.073) : deux heures après la galaxie depuis la 0.125.
             double galaxyAt = game.stats().reachedAt(GameStats.Step.GALAXY);
             assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
@@ -393,7 +393,8 @@ class JeuAstresTest extends GameTestSupport {
             double[] before = new double[Molecule.Stat.values().length];
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
             long molecules = game.moleculesCreated();
-            game.state().setTimePlayed(7000);
+            double clusterAt = galaxyAt + Game.COSMOS_SETTLE_SECONDS + 100, universeAt = clusterAt + Game.COSMOS_SETTLE_SECONDS;
+            game.state().setTimePlayed(clusterAt);
             assertTrue(game.formCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
             // Rien n'est consommé, et toutes les grandeurs doublent (0.068 : avant, l'amas ajoutait 2 048).
@@ -401,7 +402,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Molecule.Stat stat : Molecule.Stat.values()) {
                 assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
             }
-            assertEquals(7000, game.stats().reachedAt(GameStats.Step.CLUSTER), 1e-9);
+            assertEquals(clusterAt, game.stats().reachedAt(GameStats.Step.CLUSTER), 1e-9);
             assertFalse(game.stats().reached(GameStats.Step.UNIVERSE));
 
             // L'univers : quatre fois plus, et c'est la fin.
@@ -409,9 +410,9 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));    // l'amas et les sortes, réunies plus haut
             gather(game, Cosmos.UNIVERSE, 1);
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
-            game.state().setTimePlayed(9000);
-            assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé à 7 000 s, se rassemble encore
-            game.state().setTimePlayed(9800);
+            game.state().setTimePlayed(universeAt - 800);
+            assertFalse(game.formCosmos(Cosmos.UNIVERSE));                 // l'amas, formé il y a moins de deux heures, se rassemble encore
+            game.state().setTimePlayed(universeAt);
             // L'univers à la main, sans sa remise à zéro (version 0.083) : il double toutes les grandeurs.
             String atCluster = idle.core.save.SaveCodec.write(game.state(), 0);
             game.state().setCosmosLevel(3);
@@ -440,7 +441,7 @@ class JeuAstresTest extends GameTestSupport {
             game.restored();
             int bangs = game.bigBangs();
             long createdBefore = game.moleculesCreated();
-            game.state().setTimePlayed(9800);
+            game.state().setTimePlayed(universeAt);
             game.testAddVoidEnergy(BigNum.of(5));
             assertTrue(bangs > 0 && createdBefore > 0);
             int achievementsBefore = game.achievementCount();
@@ -454,8 +455,8 @@ class JeuAstresTest extends GameTestSupport {
             assertTrue(game.state().darkMatter().sign() == 0 && game.state().particles().sign() == 0);
             assertEquals(0, game.state().explosions());
             assertTrue(game.isStarted());                                  // pas d'écran de démarrage
-            assertEquals(9800, game.state().timePlayed(), 1e-9);           // le temps de jeu reste
-            assertEquals(9800, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
+            assertEquals(universeAt, game.state().timePlayed(), 1e-9);           // le temps de jeu reste
+            assertEquals(universeAt, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
             assertTrue(game.achievementCount() >= achievementsBefore);     // les succès restent
             assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), game.state().universeSeeds());
             assertEquals(BigNum.of(5), game.state().voidEnergy());          // ce qui est à l'univers reste

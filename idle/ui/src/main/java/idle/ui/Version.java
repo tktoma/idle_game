@@ -23,6 +23,20 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.125", "Le premier univers réglé sur le meilleur joueur", List.of(
+                    "L'équilibrage suit maintenant le bot « Speedrunner » du dépôt, parti d'une partie neuve : environ "
+                            + "5 h pour le premier acte, 6 h pour le deuxième et 16 h pour le troisième, 27 h en tout. Un joueur "
+                            + "moins appliqué mettra davantage (35 h environ pour le profil « Régulier »).",
+                    "Le jeu va 1,5 fois plus vite au départ : 3 créations par seconde au lieu de 2.",
+                    "Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules, les suivants 10⁵⁰⁰⁰⁰.",
+                    "La vitesse de création s'essouffle à partir de 300 niveaux, mais bien plus fort.",
+                    "Les puissances montent : tableau périodique +2, ciel +4,5, collisionneur +0,35. Le tableau compte "
+                            + "surtout ses éléments différents, plus seulement ses exemplaires.",
+                    "Les astres mûrissent trois fois plus lentement (12 minutes pour un amas de roches, 6 heures pour le "
+                            + "trou noir supermassif) ; une impulsion n'en retire plus que 18 secondes.",
+                    "L'amas de galaxies et l'univers demandent deux heures de rassemblement chacun.",
+                    "Les derniers paliers coûtent 10⁵⁵⁰⁰⁰ (Univers mûr), 10¹⁶⁰⁰⁰⁰ (Systèmes solaires), 10²⁰⁰⁰⁰⁰ "
+                            + "(Ateliers du ciel, en particules désormais) et 10²³⁰⁰⁰⁰ particules (Matières exotiques).")),
             new Note("0.124", "Des paliers à payer, et chaque système qui pèse", List.of(
                     "Le calme du Big Bang (la récompense de la fuite) a son propre compteur : tout achat le rompt, y compris "
                             + "ceux des automatismes. Pour en profiter, il faut couper les automatismes et attendre.",

@@ -391,26 +391,27 @@ public abstract class GameSystems extends GameBase {
     /** Places de maturation : autant d'astres qui mûrissent à la fois. */
     public static final int MATURATION_PLACES = 3;
     /** Ce qu'une charge d'impulsion fait gagner à une maturation. */
-    public static final double MATURATION_HASTE_SECONDS = 60;
+    public static final double MATURATION_HASTE_SECONDS = 18;
 
     private final List<String> maturedBodies = new ArrayList<>();
 
     /**
-     * Durée de maturation d'un astre, selon son échelle : 4 minutes pour un amas de roches, 25
-     * pour une planète, 50 pour une étoile, 2 heures pour le trou noir supermassif.
+     * Durée de maturation d'un astre, selon son échelle : 12 minutes pour un amas de roches, 75
+     * pour une planète, 150 pour une étoile, 6 heures pour le trou noir supermassif (version 0.125 : trois fois
+     * celles d'avant ; une impulsion n'en retire plus que 18 secondes, au lieu de 60).
      */
     public double maturationSeconds(Body body) {
         double minutes = switch (body.tier()) {
-            case RUBBLE -> 4;
-            case COMET -> 6;
-            case ASTEROID -> 10;
-            case MOON -> 15;
-            case PLANET -> 25;
-            case STAR -> 50;
-            case REMNANT -> 70;
-            case BLACK_HOLE -> 90;
-            case EXOTIC -> 100;
-            case CORE -> 120;
+            case RUBBLE -> 12;
+            case COMET -> 18;
+            case ASTEROID -> 30;
+            case MOON -> 45;
+            case PLANET -> 75;
+            case STAR -> 150;
+            case REMNANT -> 210;
+            case BLACK_HOLE -> 270;
+            case EXOTIC -> 300;
+            case CORE -> 360;
         };
         return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangCompletedFactor(idle.core.bigbang.BangChallenge.RAISED, 2);
     }

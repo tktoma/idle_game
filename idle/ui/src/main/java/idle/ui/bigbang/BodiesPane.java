@@ -407,7 +407,7 @@ public final class BodiesPane extends VBox {
             maturingLabels.get(i).setText(body.name() + " : encore " + ProbesPane.minutes(left) + "  " + ProbesPane.bar(1 - left / total));
             javafx.scene.control.Button hasten = hastenButtons.get(i);
             hasten.setVisible(game.isPulseUnlocked());
-            hasten.setText("Accélérer : 1 impulsion = 1 min (" + charges + ")");
+            hasten.setText("Accélérer : 1 impulsion = " + idle.ui.common.ElementText.number(Game.MATURATION_HASTE_SECONDS) + " s (" + charges + ")");
             hasten.setDisable(charges < 1);
         }
     }

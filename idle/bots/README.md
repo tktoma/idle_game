@@ -138,6 +138,25 @@ Partie neuve, graine 200 + id, une décision toutes les 20 s, moteur de `master`
 | 21 Joueur du soir | LIMIT | galaxie formée, 8 Big Bangs, 35 astres à 168 h (14 h en ligne) |
 | 17 AFK jeu ouvert | LIMIT | aucun Big Bang : une visite par heure ne permet qu'une fusion par visite |
 
+## Le jeu réglé sur le Speedrunner (version 0.125)
+
+Depuis la version 0.125, l'équilibrage du premier univers suit le profil 1 (Speedrunner) de `FreshUniverseAudit`,
+partie neuve, graine 201, une décision toutes les 20 s. En 0.124, il formait l'univers en 14 h 28
+(6 h 03 + 1 h 37 + 6 h 48) : le deuxième acte ne durait plus qu'une heure et demie. Les réglages de la 0.125
+(tempo 12, Big Bangs à 10¹⁹⁰⁰⁰⁰ puis 10⁵⁰⁰⁰⁰ particules, vitesse essoufflée dès 300 niveaux, puissances plus fortes,
+maturation ×3 et impulsions à 18 s, rassemblements de 2 h) donnent :
+
+| Profil | Premier acte | Deuxième acte | Troisième acte | Univers formé |
+|---|---|---|---|---|
+| 1 Speedrunner | 5 h 08 | 6 h 14 | 16 h 01 | 27 h 23 |
+| 2 Vétéran | 5 h 19 | 6 h 15 | 16 h 55 | 28 h 28 |
+| 3 Régulier | | | | 34 h 50 |
+| 11 Fan de prestige | | | | 33 h 42 |
+
+Parts moyennes de la production du Speedrunner sur tout le premier univers : ciel 31 %, tableau périodique 23 %,
+améliorations 15 %, matière noire 15 %, collisionneur 5 %, succès 2 %. Chaque palier de Big Bang ouvert est payé
+après 4 à 10 minutes.
+
 Le profil 17 bute sur la règle du jeu plus que sur sa politique : sans automatisme avant 30 atomes créés, une
 fusion par visite horaire demande environ 88 h pour ouvrir le tableau ; l'explosion efface ensuite les
 automatismes, et 0,8 matière noire ne paie ni « Départ lancé » (2) ni les automatismes offerts (3).

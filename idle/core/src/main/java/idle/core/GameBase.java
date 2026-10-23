@@ -129,7 +129,7 @@ public abstract class GameBase {
      * l'aune de la production (la croissance de la matière noire, le seuil du rendement de fusion)
      * se compte en production de départ : ces règles gardent ainsi l'allure qu'elles avaient.
      */
-    public static final double TEMPO = 8;
+    public static final double TEMPO = 12;
 
     /** Vitesse de départ d'un générateur : deux particules par seconde. */
     public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
@@ -165,18 +165,20 @@ public abstract class GameBase {
     public static final BigNum MAX_ATOMS = BigNum.of(118);
 
     /**
-     * Particules à avoir en main pour le premier Big Bang : 10¹⁶⁵³⁰ depuis la version 0.124 (10³⁸⁰⁰⁰ de la 0.097
-     * à la 0.123 ; tous les prix en particules du deuxième acte ont été ramenés à 0,435 fois leurs ordres de grandeur
-     * quand la vitesse s'est mise à s'essouffler). C'est ce qui fait durer le deuxième acte six heures en jeu parfait,
-     * et les six cases du seuil du Big Bang (de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰) jalonnent la montée.
+     * Particules à avoir en main pour le premier Big Bang : 10¹⁹⁰⁰⁰⁰ depuis la version 0.125 (10¹⁶⁵³⁰ en 0.124,
+     * 10³⁸⁰⁰⁰ de la 0.097 à la 0.123). Réglé sur le bot « Speedrunner » parti de zéro (idle/bots,
+     * FreshUniverseAudit, profil 1) : une fois les dix défis faits, ses explosions s'enchaînent, la matière noire
+     * gagnée monte d'environ 40 000 par heure et la production de quelque 20 000 ordres de grandeur par heure ;
+     * ce seuil fait durer le deuxième acte six heures.
      */
-    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 16530);
+    public static final BigNum BIG_BANG_PARTICLES = BigNum.of(1, 190000);
 
     /**
-     * Particules des Big Bangs suivants, au troisième acte : 10¹³⁰⁵ depuis la version 0.124 (10³⁰⁰⁰ avant). Chaque cycle
-     * du troisième acte refait un deuxième acte en raccourci ; il n'a pas à redurer cinq heures.
+     * Particules des Big Bangs suivants, au troisième acte : 10⁵⁰⁰⁰⁰ depuis la version 0.125 (10¹³⁰⁵ en 0.124,
+     * 10³⁰⁰⁰ avant). Chaque cycle du troisième acte refait un deuxième acte en raccourci : 40 à 90 minutes pour le
+     * Speedrunner jusqu'au cinquième Big Bang.
      */
-    public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 1305);
+    public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 50000);
 
     /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants. */
     public BigNum bigBangParticles() {

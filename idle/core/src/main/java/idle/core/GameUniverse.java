@@ -654,10 +654,10 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Temps de jeu qu'il faut laisser à l'échelle d'avant pour se rassembler avant de former l'amas,
-     * puis l'univers (version 0.073) : 45 minutes chacun. Un joueur qui réunit la matière plus vite
+     * puis l'univers (version 0.073) : deux heures chacun depuis la version 0.125 (45 minutes avant). Un joueur qui réunit la matière plus vite
      * attend ; l'infatigable, qui met déjà près d'une heure à chaque échelle, ne le voit pas.
      */
-    public static final double COSMOS_SETTLE_SECONDS = 45 * 60;
+    public static final double COSMOS_SETTLE_SECONDS = 120 * 60;
 
     /** Secondes de jeu qu'il reste avant que cette échelle puisse se former, 0 si le délai est passé. */
     public double cosmosSettleRemaining(Cosmos scale) {

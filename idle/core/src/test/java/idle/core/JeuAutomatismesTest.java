@@ -131,7 +131,7 @@ class JeuAutomatismesTest extends GameTestSupport {
             game.buyAutomation("autoSpeed");
             game.tick(ONE_PARTICLE * 9);    // 9 particules : pas assez pour le premier niveau à 10
             assertEquals(0, game.levelOf("speed"));
-            game.tick(ONE_PARTICLE + 0.3);  // la dixième arrive : achat dans les dixièmes de seconde suivants
+            game.tick(ONE_PARTICLE + Math.min(0.3, ONE_PARTICLE / 2));  // la dixième arrive : achat dans les dixièmes de seconde suivants
             assertEquals(1, game.levelOf("speed"));
             assertEquals(BigNum.ZERO, game.state().particles());
         }
@@ -288,7 +288,10 @@ class JeuAutomatismesTest extends GameTestSupport {
         void unAutomatismePretAttendDePouvoirPayer() {
             Game game = gameWithSlowAutomation(0);
             game.state().setParticles(BigNum.ZERO);
-            game.tick(9 * ONE_PARTICLE);              // prêt (délai de 4 s passé), mais 9 particules pour un prix de 10
+            for (int step = 0; step < 41; step++) {   // prêt (délai de 4 s passé), mais jamais 10 particules en main
+                game.state().setParticles(BigNum.ZERO);
+                game.tick(0.1);
+            }
             assertEquals(0, game.levelOf("speed"));
             game.state().setParticles(BigNum.of(1e9));
             game.tick(0.1);                           // achète tout de suite…

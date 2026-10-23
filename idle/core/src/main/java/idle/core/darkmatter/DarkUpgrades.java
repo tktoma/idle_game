@@ -42,7 +42,7 @@ import java.util.List;
  * <p>Réglage vérifié par simulation (version 0.073, robot qui choisit bien) : deuxième acte de 5 h
  * avec toutes les voies de présence, 5 h 30 avec toutes celles d'absence. Les cases du bas de
  * chaque branche s'étalent jusqu'à la fin de l'acte : Singularité en trente niveaux, Réacteur en
- * huit, Horizon en dix. Le premier Big Bang demande 10¹⁶⁵³⁰ particules depuis la version 0.124 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en ordres de grandeur).
+ * huit, Horizon en dix. Le premier Big Bang demande 10¹⁹⁰⁰⁰⁰ particules depuis la version 0.125 ({@link Game#BIG_BANG_PARTICLES}) ; les prix en particules de l'arbre ont suivi (×0,435 en ordres de grandeur).
  */
 public final class DarkUpgrades {
 
@@ -99,7 +99,7 @@ public final class DarkUpgrades {
                     BigNum.of(1, 3480), 3.16e130, 30, DarkUpgrade.FORK_PREFIX + "elan",
                     new DarkEffect.MultiplyBaseParticles(100)),
             // Le seuil du Big Bang (version 0.097) : six cases au-delà de la Singularité, de 10⁶⁰⁹⁰ à 10¹⁴⁷⁹⁰
-            // particules (0.124), pendant la montée vers les 10¹⁶⁵³⁰ du premier Big Bang : la fin du deuxième acte a encore
+            // particules (0.124), pendant la montée vers le premier Big Bang : la fin du deuxième acte a encore
             // des étapes, une toutes les vingt à trente minutes. Chacune demande la précédente ; elles donnent
             // particules ×10³⁰⁰ ou +1 matière noire par explosion.
             new DarkUpgrade("dark_protostars", "Proto-étoiles", DarkUpgrade.Branch.PARTICLES,

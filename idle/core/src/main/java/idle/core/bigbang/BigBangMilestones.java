@@ -39,10 +39,10 @@ public final class BigBangMilestones {
             new BigBangMilestone(3, "Sondes spatiales", List.of(new BigBangMilestone.Probes()), A, BigNum.of(1, 10)),
             new BigBangMilestone(4, "Énergie sombre", List.of(new BigBangMilestone.DarkMatterSpace(0.1)), P, BigNum.of(1, 1300)),
             new BigBangMilestone(5, "Univers mûr", List.of(new BigBangMilestone.Boost(Molecule.Stat.SPACE, 3),
-                    new BigBangMilestone.KeepDarkTree()), P, BigNum.of(1, 17500)),
-            new BigBangMilestone(6, "Systèmes solaires", List.of(new BigBangMilestone.SolarSystems()), P, BigNum.of(1, 43000)),
-            new BigBangMilestone(7, "Ateliers du ciel", List.of(new BigBangMilestone.MorePlaces(2, 1)), A, BigNum.of(3, 21)),
-            new BigBangMilestone(8, "Matières exotiques", List.of(new BigBangMilestone.ExoticMatter()), P, BigNum.of(1, 47000)));
+                    new BigBangMilestone.KeepDarkTree()), P, BigNum.of(1, 55000)),
+            new BigBangMilestone(6, "Systèmes solaires", List.of(new BigBangMilestone.SolarSystems()), P, BigNum.of(1, 160000)),
+            new BigBangMilestone(7, "Ateliers du ciel", List.of(new BigBangMilestone.MorePlaces(2, 1)), P, BigNum.of(1, 200000)),
+            new BigBangMilestone(8, "Matières exotiques", List.of(new BigBangMilestone.ExoticMatter()), P, BigNum.of(1, 230000)));
 
     private BigBangMilestones() {}
 }

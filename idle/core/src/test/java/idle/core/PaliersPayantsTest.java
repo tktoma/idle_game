@@ -87,18 +87,19 @@ class PaliersPayantsTest {
     }
 
     @Test
-    void laVitesseSEssouffleAuDelaDeCentNiveaux() {
+    void laVitesseSEssouffleAuDelaDuSeuil() {
         Game game = new Game();
         game.start();
         game.state().setLevel("speed", 50);
         double early = game.costOf("speed").log10();
         game.state().setLevel("speed", 51);
         double earlyStep = game.costOf("speed").log10() - early;
-        game.state().setLevel("speed", 300);
-        double late = game.costOf("speed").log10();
-        game.state().setLevel("speed", 301);
-        double lateStep = game.costOf("speed").log10() - late;
-        // Au niveau 300, un niveau de plus coûte en plus 10^(1e-5 × (201² − 200²)) = 10^0,00401.
+        int late = Game.SPEED_SCALING_FROM + 200;
+        game.state().setLevel("speed", late);
+        double lateCost = game.costOf("speed").log10();
+        game.state().setLevel("speed", late + 1);
+        double lateStep = game.costOf("speed").log10() - lateCost;
+        // Au-delà du seuil, un niveau de plus coûte en plus 10^(SPEED_SCALING × (201² − 200²)).
         double extra = Game.SPEED_SCALING * (201 * 201 - 200 * 200);
         assertEquals(earlyStep + extra, lateStep, 1e-6);
     }

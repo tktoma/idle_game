@@ -45,7 +45,7 @@ class MaturationTest {
             assertTrue(game.maturationSeconds(body) > previous, tier.name());
             previous = game.maturationSeconds(body);
         }
-        assertEquals(2 * 3600, previous, 1e-9, "le trou noir supermassif : deux heures");
+        assertEquals(6 * 3600, previous, 1e-9, "le trou noir supermassif : six heures (version 0.125)");
     }
 
     @Test
@@ -61,14 +61,14 @@ class MaturationTest {
     }
 
     @Test
-    void uneImpulsionAvanceDUneMinute() {
+    void uneImpulsionAvanceLaMaturation() {
         Game game = game();
         game.state().addBody("rocky_rubble");
-        game.state().setMaturing("rocky_rubble", 90);
+        game.state().setMaturing("rocky_rubble", 1.5 * Game.MATURATION_HASTE_SECONDS);
         assertFalse(game.hastenMaturation("rocky_rubble"), "sans charge, rien");
         game.state().setPulseCharges(2);
         assertTrue(game.hastenMaturation("rocky_rubble"));
-        assertEquals(30, game.maturationLeft("rocky_rubble"), 1e-9);
+        assertEquals(0.5 * Game.MATURATION_HASTE_SECONDS, game.maturationLeft("rocky_rubble"), 1e-9);
         assertEquals(1, game.state().pulseCharges(), 1e-9);
         assertTrue(game.hastenMaturation("rocky_rubble"));
         assertTrue(game.isBodyMature("rocky_rubble"));

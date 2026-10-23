@@ -200,9 +200,9 @@ final class HelpPane extends StackPane {
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
-                + "en entier : de 4 minutes pour un amas de roches à 2 heures pour le trou noir supermassif. En attendant, il donne "
+                + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif. En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. Trois astres "
-                + "mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner une minute."));
+                + "mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "
                 + "Autour d'une étoile mûre, on range des planètes, de la plus proche à la plus lointaine, et des lunes, une par "
                 + "planète au plus. Un système est complet à " + Game.SYSTEM_MIN_PLANETS + " planètes ; la galaxie en demande "

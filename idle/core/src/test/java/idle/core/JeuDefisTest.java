@@ -759,13 +759,13 @@ class JeuDefisTest extends GameTestSupport {
 
         /**
          * Garde-fou d'équilibrage : un joueur qui achète tout dès que possible doit
-         * débloquer le dixième générateur en 50 à 70 minutes avec le catalogue du jeu, premier
-         * élan compris ({@link Game#FIRST_RUN_PACE}, version 0.095 ; 3 min 30 à 6 minutes avant).
+         * débloquer le dixième générateur en 33 à 47 minutes avec le catalogue du jeu, premier
+         * élan compris (version 0.125, tempo 12 ; 50 à 70 minutes de la 0.095 à la 0.124, 3 min 30 à 6 minutes avant).
          * Si ce test échoue après un changement dans {@link Upgrades}, c'est que la durée
          * de la phase 1 a bougé : ajuster les coûts, ou la fourchette si c'est voulu.
          */
         @Test
-        void laPremierePartieDureEnvironUneHeure() {
+        void laPremierePartieDureEnvironQuaranteMinutes() {
             Game game = new Game();
             game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
@@ -773,7 +773,7 @@ class JeuDefisTest extends GameTestSupport {
 
             assertEquals(Upgrades.MAX_GENERATORS, game.maxGeneratorCount());
             assertTrue(game.canFuse());
-            assertTrue(minutes >= 50 && minutes <= 70, "durée de la première partie : " + minutes + " min");
+            assertTrue(minutes >= 33 && minutes <= 47, "durée de la première partie : " + minutes + " min");
             assertTrue(game.firstRunSlowdown() == Game.FIRST_RUN_PACE, "le premier élan dure jusqu'à la première fusion");
             assertTrue(game.fuse());
             assertEquals(Game.FIRST_ATOMS_PACE, game.firstRunSlowdown(), 0, "dès le premier atome, la création prend de l'élan");
@@ -786,13 +786,13 @@ class JeuDefisTest extends GameTestSupport {
         /**
          * Garde-fou sur l'arrivée de l'automatisation et du tableau périodique : un joueur qui
          * dépense ses atomes au fur et à mesure dans les améliorations les moins chères (sans
-         * économiser pour Persistance) doit créer son trentième atome entre 2 h 20 et 2 h 50, premier
-         * élan compris (version 0.096 ; 22 à 34 minutes avant la 0.095, 2 h 45 à 3 h 45 avant le réglage du rythme).
+         * économiser pour Persistance) doit créer son trentième atome entre 1 h 35 et 2 h, premier
+         * élan compris (version 0.125, tempo 12 ; 2 h 20 à 2 h 50 de la 0.096 à la 0.124, 22 à 34 minutes avant la 0.095).
          * Là, la création a pris tout son élan. Plus tôt, le début perd son intérêt ;
          * plus tard, il faut tout racheter à la main des dizaines de fois.
          */
         @Test
-        void automatisationEtTableauArriventVers2h35() {
+        void automatisationEtTableauArriventVers1h45() {
             Game game = new Game();
             game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
@@ -814,7 +814,7 @@ class JeuDefisTest extends GameTestSupport {
             assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
             assertEquals(0, game.levelOf("atom_keep"));
             assertValue(25, game.costOf("atom_keep"));
-            assertTrue(minutes >= 140 && minutes <= 170, "trentième atome créé après " + minutes + " min");
+            assertTrue(minutes >= 95 && minutes <= 120, "trentième atome créé après " + minutes + " min");
             assertEquals(1, game.firstRunSlowdown(), 0, "trente atomes : la création a tout son élan");
         }
 
