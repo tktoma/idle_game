@@ -56,6 +56,10 @@ avec la console JUnit 5, JavaFX 11 pour l'interface, sous Xvfb.
   paiement des paliers dans son test, et il échouait sur `master`).
 - Bots : 34 tests, tous réussis (33 avant la 0.126, plus la victoire écrite par le moteur actuel), hors campagnes des
   24 profils (comme le job CI général).
+- Campagne longue (`Profiles24LongCampaignTest`, profils 1, 11, 12 et 17 depuis la partie à 7 Big Bangs) : elle échouait
+  déjà sur `master` en 0.125, et donne les mêmes chiffres, au bit près, avec ou sans les correctifs. Le profil 17 (AFKOpen,
+  une décision par heure) n'avait que 34 astres mûrs sur 35 après 24 h : depuis le rééquilibrage de la 0.125, il forme la
+  galaxie vers 26 h (l'amas vers 36 h, l'univers vers 42 h). Il a maintenant 30 h, avec le même jalon ; le test passe.
 - Les 24 sauvegardes de victoire passent `VerifyVictory`. Une victoire écrite par le moteur actuel aussi : l'ancienne
   `VerifyVictory` la refusait (« Galaxie absente »), puisque former l'univers remet tout à zéro.
 - Référence de l'équilibrage, `FreshUniverseAudit` profil 1 (Speedrunner), graine 201, une décision toutes les 20 s :

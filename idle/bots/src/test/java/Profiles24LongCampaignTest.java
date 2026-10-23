@@ -16,11 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Contrôle comparatif de 24 heures SIMULÉES (premier univers seulement).
+ * Contrôle comparatif de 24 heures SIMULÉES (30 pour le profil 17 depuis la 0.126 ; premier univers seulement).
  *
  * Le profil 1 sert de témoin rapide ; 11, 12 et 17 sont les trois profils
  * historiquement bloqués. Chaque essai reprend exactement la graine utilisée
- * lors de la campagne des 24 profils de huit heures. Un profil lent ne doit
+ * lors de la campagne des 24 profils de seize heures ({@code Profiles24CampaignTest}). Un profil lent ne doit
  * pas être déclaré gagnant simplement parce que le programme n'a pas planté.
  */
 class Profiles24LongCampaignTest {
@@ -51,7 +51,11 @@ class Profiles24LongCampaignTest {
             int startBangs = game.bigBangs();
             IdleProfiles24 bot = new IdleProfiles24(game, p, seed, 60);
             Path dir = out.resolve(String.format("%02d_%s", id, p.name()));
-            bot.execute(24, dir);
+            // Version 0.126 : depuis le rééquilibrage de la 0.125 (maturation ×3, rassemblements de 2 h), l'AFK (une
+            // décision par heure) forme la galaxie vers 26 h depuis ce point de départ (amas 36 h, univers 42 h) : il a
+            // 30 h. Les trois autres gardent 24 h. Le jalon, lui, ne baisse pas.
+            double hours = id == 17 ? 30 : 24;
+            bot.execute(hours, dir);
             boolean win = game.hasCosmos(Cosmos.UNIVERSE);
             // Le test long doit mesurer un vrai jalon, et pas seulement
             // l'absence de crash (comme les tests courts).
@@ -100,7 +104,7 @@ class Profiles24LongCampaignTest {
             // meme si l'objectif minimal est manque : pas de faux succes.
             assertTrue(win || game.hasCosmos(minimum),
                     p.name() + " doit atteindre au moins " + minimum
-                    + " apres 24 h ; objectif=" + game.shoppingList().target());
+                    + " apres " + (int) hours + " h ; objectif=" + game.shoppingList().target());
         }
         long expected = java.util.Arrays.stream(ids).filter(id -> id >= FIRST && id <= LAST).count();
         assertTrue(checked == expected, "Profils longs manquants du segment");
