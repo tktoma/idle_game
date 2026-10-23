@@ -138,6 +138,8 @@ public final class Game extends GameBigBang {
      */
     public void reset() {
         state.reset();
+        // Un remboursement pas encore annoncé parlait de la partie effacée (version 0.126).
+        forkRefund = BigNum.ZERO;
     }
 
     /**
@@ -177,6 +179,7 @@ public final class Game extends GameBigBang {
         newSpaceUpgrades.clear();
         cometAppeared = false;
         speedPrimePaid = false;
+        forkRefund = BigNum.ZERO;
         kindCountsVersion = -1;
         sortsByStateVersion = -1;
         autoFormed.clear();
@@ -230,13 +233,13 @@ public final class Game extends GameBigBang {
      * En absence (version 0.073) : une bifurcation ouverte où le joueur n'a pas choisi prend sa voie
      * d'absence, si elle est payable. Qui ne choisit pas joue le style de l'absence.
      */
-    private void takeAbsenceVoies() {
+    private void takeAbsencePaths() {
         if (inChallenge() || !isDarkMatterUnlocked()) return;
         for (DarkUpgrade dark : darkUpgrades.values()) {
             if (!dark.isFork() || darkStyle(dark) != Style.ABSENCE || state.darkLevelOf(dark.id()) > 0) continue;
             if (darkForkRival(dark.id()) == null && canBuyDark(dark.id())) {
                 buyDark(dark.id());
-                awayVoies.add(dark.name());
+                awayPaths.add(dark.name());
             }
         }
     }
@@ -265,13 +268,13 @@ public final class Game extends GameBigBang {
     }
 
     /** Les voies prises seules pendant l'absence en cours de rejeu, et les défis qu'elle a tentés et réussis. */
-    private final List<String> awayVoies = new ArrayList<>();
+    private final List<String> awayPaths = new ArrayList<>();
     private final List<String> awayChallengesStarted = new ArrayList<>();
 
     /** Ce que l'absence rejouée a fait à la place du joueur (version 0.073), puis l'oublie. */
-    public List<String> takeAwayVoies() {
-        List<String> taken = new ArrayList<>(awayVoies);
-        awayVoies.clear();
+    public List<String> takeAwayPaths() {
+        List<String> taken = new ArrayList<>(awayPaths);
+        awayPaths.clear();
         return taken;
     }
 
@@ -297,9 +300,10 @@ public final class Game extends GameBigBang {
      * Part du temps passé jeu fermé qui est rejouée au retour ({@link Absence}) : un dixième au
      * début, et de plus en plus à mesure que les actes passent, jusqu'à tout le temps une fois
      * l'univers formé. Le jeu fermé avance donc toujours moins vite que le jeu ouvert, sauf à la fin.
+     * Version 0.126 : une fois le premier univers formé, tout le temps est rejoué, aussi dans les parties suivantes.
      */
     public double offlineRate() {
-        if (hasCosmos(Cosmos.UNIVERSE)) return OFFLINE_RATE_UNIVERSE;
+        if (isUniverseFormed()) return OFFLINE_RATE_UNIVERSE;
         // Les voies d'absence de l'arbre (version 0.070) en rendent une part de plus, jusqu'à tout le temps.
         if (state.bigBangs() > 0) return Math.min(1, OFFLINE_RATE_BIG_BANG + darkOfflineBonus());
         if (isDarkMatterUnlocked()) return Math.min(1, OFFLINE_RATE_DARK_MATTER + darkOfflineBonus());
@@ -326,7 +330,7 @@ public final class Game extends GameBigBang {
             throw new IllegalArgumentException("Durée invalide : " + dt);
         }
         if (away) {
-            takeAbsenceVoies();
+            takeAbsencePaths();
             startChallengeWhileAway();
             runProbesWhileAway();
         }
@@ -365,8 +369,9 @@ public final class Game extends GameBigBang {
     /** Fait passer le temps : la production, puis les automatismes à leur rythme. */
     private void advance(double dt) {
         boolean automation = hasActiveAutomation();
-        if (!automation && !hasTimeDependentBonus()) {
+        if (!automation && !hasTimeDependentBonus() && timedBonusLeft() <= 0) {
             step(dt);
+            runTimedBonuses(dt);
             return;
         }
         // Avec un automatisme en marche, on avance au rythme de son délai minimal : il agit ainsi
@@ -375,13 +380,46 @@ public final class Game extends GameBigBang {
         double remaining = dt;
         do {
             double part = Math.min(remaining, maxStep);
+            // Version 0.126 : un pas s'arrête là où finit un bonus minuté, pour qu'il compte exactement le temps qui lui reste.
+            double bonusLeft = timedBonusLeft();
+            if (bonusLeft > 0 && bonusLeft < part) part = Math.min(remaining, Math.max(bonusLeft, 1e-9));
             step(part);
+            runTimedBonuses(part);
             if (automation) {
                 runAutomation(part);
                 runDarkAutomation(part);
             }
             remaining -= part;
         } while (remaining > 0);
+    }
+
+    /**
+     * Le temps qu'il reste au plus court des bonus de production minutés en cours (surchauffe du collisionneur,
+     * régime rapide, prime de cycle parfait), en secondes ; 0 s'il n'y en a aucun.
+     */
+    private double timedBonusLeft() {
+        double left = Double.POSITIVE_INFINITY;
+        for (double timer : new double[] {state.overheatLeft(), state.regimeLeft(), state.perfectLeft()}) {
+            if (timer > 0) left = Math.min(left, timer);
+        }
+        return Double.isInfinite(left) ? 0 : left;
+    }
+
+    /**
+     * Fait s'écouler les bonus de production minutés (version 0.126) : juste après la production du même pas, et
+     * non plus avant elle. Un gros pas, celui d'une absence, leur donne ainsi exactement le temps qui leur reste.
+     */
+    private void runTimedBonuses(double dt) {
+        if (dt <= 0) return;
+        if (state.overheatLeft() > 0) state.setOverheatLeft(state.overheatLeft() - dt);
+        if (state.regimeLeft() > 0) {
+            double left = state.regimeLeft() - dt;
+            state.setRegimeLeft(left);
+            if (left <= 0) state.setRegimeRest(REGIME_REST_SECONDS + Math.min(0, left));
+        } else if (state.regimeRest() > 0) {
+            state.setRegimeRest(state.regimeRest() - dt);
+        }
+        if (state.perfectLeft() > 0) state.setPerfectLeft(state.perfectLeft() - dt);
     }
 
     /** Avance de {@code dt} secondes en considérant tous les bonus comme constants. */

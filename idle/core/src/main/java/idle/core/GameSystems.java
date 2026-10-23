@@ -36,6 +36,7 @@ public abstract class GameSystems extends GameBase {
     // Ce que fournissent les parties suivantes.
     public abstract boolean isBigBangMilestoneReached(BigBangMilestone milestone);
     public abstract boolean isBigBangUnlocked();
+    public abstract double bangReward(idle.core.bigbang.BangChallenge.Reward reward);
     public abstract List<Molecule> molecules();
     public abstract boolean isMoleculeKindUnlocked(Molecule.Kind kind);
     public abstract ShoppingList shoppingList();
@@ -84,7 +85,8 @@ public abstract class GameSystems extends GameBase {
     /** Durée d'un voyage, moteurs compris. */
     public double probeDuration(ProbeTrip trip) {
         return trip.seconds() * Math.pow(0.9, state.probeUpgradeLevel(ProbeUpgrade.ENGINE)) / universeBangFactor(BANG_UNIVERSE_PROBE_SPEED)
-                / bangCompletedFactor(idle.core.bigbang.BangChallenge.FROZEN, 2);
+                // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
+                / bangReward(idle.core.bigbang.BangChallenge.Reward.PROBES);
     }
 
     /** Nombre de récompenses que rapporte ce voyage, soute comprise ; une de plus avec le charme, à partir d'une heure. */
@@ -413,7 +415,8 @@ public abstract class GameSystems extends GameBase {
             case EXOTIC -> 300;
             case CORE -> 360;
         };
-        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangCompletedFactor(idle.core.bigbang.BangChallenge.RAISED, 2);
+        // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
+        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION);
     }
 
     /** Vrai si cet astre est formé et a fini de mûrir : il compte pour les astres plus gros et pour la galaxie. */
@@ -482,7 +485,7 @@ public abstract class GameSystems extends GameBase {
         return List.copyOf(state.maturing().keySet());
     }
 
-    /** Dépense une charge d'impulsion pour avancer d'une minute la maturation de cet astre. */
+    /** Dépense une charge d'impulsion pour avancer la maturation de cet astre de {@link #MATURATION_HASTE_SECONDS} secondes. */
     public boolean hastenMaturation(String bodyId) {
         String id = body(bodyId).id();
         if (state.maturingLeft(id) <= 0 || state.pulseCharges() < 1 - 1e-9) return false;

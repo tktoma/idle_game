@@ -599,7 +599,9 @@ public final class SettingsPage extends VBox {
         use(Section.SAVE);
         block("Recommencer de zéro",
                 "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
-                        + "sauvegarde comprise. Les réglages et les records sont gardés. C'est définitif : exportez d'abord "
+                        + "sauvegarde comprise, et les réglages de jeu (coupure des automatismes, ordres d'achat, seuil de "
+                        + "fusion, verrou de l'appui, favoris). Les réglages de cette page et les records "
+                        + "sont gardés. C'est définitif : exportez d'abord "
                         + "la partie si vous voulez pouvoir y revenir.");
         resetButton.setOnAction(event -> {
             if (resetArmed > 0) {

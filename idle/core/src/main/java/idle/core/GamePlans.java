@@ -72,8 +72,9 @@ public abstract class GamePlans extends GameCollider {
 
     /**
      * Fait d'un code de l'arbre le plan suivi : ses voies et ses liaisons se prennent dès qu'elles
-     * sont payables, maintenant et après chaque Big Bang, jusqu'à ce que le joueur l'oublie. Un code
-     * vide ou illisible ne change rien.
+     * sont payables, maintenant et après chaque Big Bang, jusqu'à ce que le joueur l'oublie ou que la partie
+     * s'achève avec l'univers : le plan suivi repart alors de zéro, mais les codes gardés dans les emplacements
+     * restent ({@link #saveDarkPlan()}). Un code vide ou illisible ne change rien.
      */
     public PlanLoad loadDarkPlan(String code) {
         if (code == null) return new PlanLoad(0, 0);
@@ -429,13 +430,13 @@ public abstract class GamePlans extends GameCollider {
     /**
      * Les deux styles de l'arbre (version 0.070). Dans chaque bifurcation, la voie de gauche est celle
      * de la présence : la plus forte tant que le joueur est là. Celle de droite est celle de l'absence :
-     * un peu moins forte, mais chacune rend {@link #ABSENCE_VOIE_BONUS} de plus du temps passé jeu
+     * un peu moins forte, mais chacune rend {@link #ABSENCE_PATH_BONUS} de plus du temps passé jeu
      * fermé ({@link #offlineRate()}). Un accord a le style de ses voies.
      */
     public enum Style { PRESENCE, ABSENCE, NONE }
 
     /** Points de temps d'absence rejoué en plus que rend chaque voie d'absence prise : cinq. */
-    public static final double ABSENCE_VOIE_BONUS = 0.05;
+    public static final double ABSENCE_PATH_BONUS = 0.05;
 
     /** Le style d'une case : celui de sa place dans sa bifurcation, ou de toutes les voies d'un accord. */
     public Style darkStyle(DarkUpgrade dark) {
@@ -453,7 +454,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Nombre de voies de ce style que possède le joueur. */
-    public int darkVoiesOwned(Style style) {
+    public int darkPathsOwned(Style style) {
         int count = 0;
         for (DarkUpgrade dark : darkUpgrades.values()) {
             if (dark.isFork() && darkStyle(dark) == style && state.darkLevelOf(dark.id()) > 0) count++;
@@ -468,7 +469,7 @@ public abstract class GamePlans extends GameCollider {
             for (DarkUpgrade dark : darkUpgrades.values()) {
                 int level = effectLevel(dark);
                 if (level == 0) continue;
-                if (dark.isFork() && darkStyle(dark) == Style.ABSENCE) bonus += ABSENCE_VOIE_BONUS * level;
+                if (dark.isFork() && darkStyle(dark) == Style.ABSENCE) bonus += ABSENCE_PATH_BONUS * level;
                 if (dark.effect() instanceof DarkEffect.OfflineBonus more) bonus += more.points() * level;
             }
             return bonus;

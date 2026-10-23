@@ -2,8 +2,8 @@ package idle.core.bigbang;
 
 /**
  * Un défi de Big Bang : refaire tout le chemin jusqu'au Big Bang suivant sous une contrainte. Ils
- * s'ouvrent une fois tous les paliers atteints ({@link Game#isBangChallengesUnlocked()}), quand
- * un Big Bang de plus ne rapporte presque plus rien : chacun laisse une récompense qui reste.
+ * s'ouvrent au cinquième Big Bang ({@link Game#isBangChallengesUnlocked()}, {@link Game#BANG_CHALLENGES_BIG_BANGS}) :
+ * chacun laisse une récompense qui reste.
  *
  * <p>Commencer un défi remet la partie à zéro comme le ferait un Big Bang, sans en compter un
  * ({@link Game#startBangChallenge}). La contrainte tient jusqu'au Big Bang suivant, qui réussit le

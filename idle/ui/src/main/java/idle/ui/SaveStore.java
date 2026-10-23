@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Le fichier de sauvegarde : où il est, quand il s'écrit, et comment il se relit.
  *
- * <p>La partie est écrite toutes les {@link #EVERY_SECONDS} secondes et à la fermeture du jeu,
+ * <p>La partie est écrite au rythme choisi dans les réglages ({@link Settings#saveDelay()}) et à la fermeture du jeu,
  * dans le dossier des données de l'utilisateur (sous Windows, {@code %APPDATA%\Idle}). Le texte
  * est celui de {@link SaveCodec} : lisible, une ligne par champ.
  *
@@ -33,9 +33,6 @@ import java.util.List;
  * dans un fichier à part, pour que les ressources gratuites n'abîment jamais la vraie partie.
  */
 public final class SaveStore {
-
-    /** Délai entre deux sauvegardes automatiques, en secondes de temps réel. */
-    public static final double EVERY_SECONDS = 30;
 
     /**
      * Ce qu'a donné la lecture au lancement.

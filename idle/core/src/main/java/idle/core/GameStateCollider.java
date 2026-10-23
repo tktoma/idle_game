@@ -45,7 +45,10 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         return spaceUpgrades.size();
     }
 
-    /** Vrai tant que tous les automatismes sont coupés d'un geste ({@link Game#setAutomationPaused(boolean)}). Aucune remise à zéro ne change ce réglage. */
+    /**
+     * Vrai tant que tous les automatismes sont coupés d'un geste ({@link Game#setAutomationPaused(boolean)}). C'est un
+     * réglage : aucune remise à zéro de la partie ne le change, seule une nouvelle partie ({@link PlayerSettings}).
+     */
     public boolean automationPaused() {
         return automationPaused;
     }
@@ -54,7 +57,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         automationPaused = paused;
     }
 
-    /** Vrai si le rassemblement automatique est en marche (il ne sert qu'une fois acquis). Aucune remise à zéro ne le coupe. */
+    /** Vrai si le rassemblement automatique est en marche (il ne sert qu'une fois acquis). Un réglage : aucune remise à zéro ne le coupe ({@link PlayerSettings}). */
     public boolean autoGather() {
         return autoGather;
     }
@@ -63,7 +66,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         autoGather = enabled;
     }
 
-    /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). Aucune remise à zéro ne la coupe. */
+    /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). Un réglage : aucune remise à zéro ne la coupe ({@link PlayerSettings}). */
     public boolean autoForm() {
         return autoForm;
     }
@@ -113,7 +116,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         cometBoost = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
     }
 
-    /** Nombre de comètes saisies depuis le début du jeu. */
+    /** Énergie du collisionneur disponible, à dépenser en générateurs et en améliorations. */
     public double colliderEnergy() {
         return colliderEnergy;
     }
@@ -318,6 +321,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         pulses = Math.max(0, count);
     }
 
+    /** Nombre de comètes saisies depuis le début du jeu. */
     public int cometsCaught() {
         return cometsCaught;
     }
@@ -348,9 +352,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
      * nouvelle partie ({@link #reset()}). Restent les succès, le temps de jeu, les statistiques,
      * l'écran de fin déjà vu, et tout ce qui appartient à l'onglet Univers : les univers, leurs
      * graines, l'énergie du vide et les quatre améliorations. La partie reste commencée, pour que
-     * l'écran de démarrage ne revienne pas.
+     * l'écran de démarrage ne revienne pas. Depuis la version 0.126, les réglages du joueur restent
+     * aussi ({@link PlayerSettings}) : seule une nouvelle partie lancée par le joueur les efface.
      */
     public void startUniverse() {
+        PlayerSettings settings = new PlayerSettings(this);
         java.util.Set<String> keptAchievements = new java.util.LinkedHashSet<>(achievements);
         double played = timePlayed;
         GameStats keptStats = stats;
@@ -402,6 +408,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         started = true;
         timePlayed = played;
         stats = keptStats;
+        // Une nouvelle partie commence (version 0.126) : ses étapes, ses délais et ses records se comptent d'ici.
+        stats.startUniverseSteps(played);
         endSeen = seen;
         achievements.addAll(keptAchievements);
         achievementsVersion++;
@@ -426,6 +434,66 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         planeShardsEarned = planeEarned;
         for (int i = 0; i < planeKeptLevels.length; i++) setPlaneLevel(i, planeKeptLevels[i]);
         universeUpgrades.putAll(upgrades);
+        settings.restore(this);
+    }
+
+    /**
+     * Les réglages du joueur (version 0.126) : des choix sur la façon de jouer, pas de l'avancée. Ni la fusion, ni
+     * l'explosion, ni le Big Bang, ni aucune remise à zéro de la partie ne les changent ; seule une nouvelle partie
+     * lancée par le joueur ({@link #reset()}) les remet comme au premier lancement.
+     */
+    private record PlayerSettings(boolean automationPaused, boolean autoGather, boolean autoForm, boolean autoHold,
+                                  boolean autoMolecules, boolean autoFollowList, boolean autoFollowMatter,
+                                  double autoMoleculeReserve, int fusionThreshold, boolean holdLocked,
+                                  List<String> automatedMolecules, List<String> favoriteMolecules,
+                                  Map<String, Double> stateCaps, boolean recipeReservation,
+                                  List<String> atomUpgradeOrder, boolean atomUpgradeOrdered,
+                                  List<String> automationOrder, boolean automationOrdered,
+                                  List<String> enabledDarkAutomations, java.util.EnumSet<ColliderUpgrade> colliderPaused) {
+
+        PlayerSettings(GameStateCollider state) {
+            this(state.automationPaused, state.autoGather, state.autoForm, state.autoHold,
+                    state.autoMolecules, state.autoFollowList, state.autoFollowMatter,
+                    state.autoMoleculeReserve, state.fusionThreshold, state.holdLocked,
+                    new ArrayList<>(state.automatedMolecules), new ArrayList<>(state.favoriteMolecules),
+                    new TreeMap<>(state.stateCaps), state.recipeReservation,
+                    new ArrayList<>(state.atomUpgradeOrder), state.atomUpgradeOrdered,
+                    new ArrayList<>(state.automationOrder), state.automationOrdered,
+                    new ArrayList<>(state.enabledDarkAutomations), state.colliderPaused.clone());
+        }
+
+        void restore(GameStateCollider state) {
+            state.automationPaused = automationPaused;
+            state.autoGather = autoGather;
+            state.autoForm = autoForm;
+            state.autoHold = autoHold;
+            state.autoMolecules = autoMolecules;
+            state.autoFollowList = autoFollowList;
+            state.autoFollowMatter = autoFollowMatter;
+            state.autoMoleculeReserve = autoMoleculeReserve;
+            state.fusionThreshold = fusionThreshold;
+            state.holdLocked = holdLocked;
+            state.automatedMolecules.clear();
+            state.automatedMolecules.addAll(automatedMolecules);
+            state.favoriteMolecules.clear();
+            state.favoriteMolecules.addAll(favoriteMolecules);
+            state.stateCaps.clear();
+            state.stateCaps.putAll(stateCaps);
+            state.recipeReservation = recipeReservation;
+            state.atomUpgradeOrder.clear();
+            state.atomUpgradeOrder.addAll(atomUpgradeOrder);
+            state.atomUpgradeOrdered = atomUpgradeOrdered;
+            state.automationOrder.clear();
+            state.automationOrder.addAll(automationOrder);
+            state.automationOrdered = automationOrdered;
+            // Les automatismes de matière noire mis en marche : un réglage que le Big Bang garde déjà (clearDarkMatter).
+            state.enabledDarkAutomations.clear();
+            state.enabledDarkAutomations.addAll(enabledDarkAutomations);
+            // Les pauses du collisionneur sont un choix du joueur. Les plans suivis, eux, repartent de zéro avec la
+            // nouvelle partie ; leurs codes sauvegardés restent (voir startUniverse).
+            state.colliderPaused.clear();
+            state.colliderPaused.addAll(colliderPaused);
+        }
     }
 
     /** Éclats de dimension, gagnés sur la ligne (version 0.101). */
@@ -644,7 +712,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         activeBangChallenge = challenge == null || challenge.isBlank() ? null : challenge;
     }
 
-    /** Les défis de Big Bang réussis. */
+    /** Les paliers de Big Bang payés (version 0.124) : un palier atteint n'agit qu'une fois payé. */
     public Set<String> boughtMilestones() {
         return Collections.unmodifiableSet(boughtMilestones);
     }
@@ -653,6 +721,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         if (name != null && !name.isBlank()) boughtMilestones.add(name);
     }
 
+    /** Les défis de Big Bang réussis. */
     public Set<String> completedBangChallenges() {
         return Collections.unmodifiableSet(completedBangChallenges);
     }

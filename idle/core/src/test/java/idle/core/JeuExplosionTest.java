@@ -308,7 +308,7 @@ class JeuExplosionTest extends GameTestSupport {
             game.state().setDarkLevel("dark_steady", 1);
             assertTrue(game.canBuyDark("accord_presence"));
             assertFalse(game.isDarkAvailable("accord_absence"));
-            assertEquals(3, game.darkVoiesOwned(Game.Style.PRESENCE));
+            assertEquals(3, game.darkPathsOwned(Game.Style.PRESENCE));
         }
 
         @Test
@@ -318,13 +318,13 @@ class JeuExplosionTest extends GameTestSupport {
             game.state().setDarkLevel("dark_burst", 1);
             game.state().setDarkLevel("dark_fine_synthesis", 1);
             game.state().setDarkLevel("dark_echo", 1);
-            assertEquals(before + 3 * Game.ABSENCE_VOIE_BONUS, game.offlineRate(), 1e-9);
+            assertEquals(before + 3 * Game.ABSENCE_PATH_BONUS, game.offlineRate(), 1e-9);
             game.state().setDarkLevel("dark_flow", 1);                      // une voie de présence n'y change rien
-            assertEquals(before + 3 * Game.ABSENCE_VOIE_BONUS, game.offlineRate(), 1e-9);
+            assertEquals(before + 3 * Game.ABSENCE_PATH_BONUS, game.offlineRate(), 1e-9);
             for (String id : List.of("dark_shadow_echo", "dark_double_synthesis", "dark_harvest")) game.state().setDarkLevel(id, 1);
             game.state().setDarkMatter(BigNum.of(60));
             assertTrue(game.buyDark("accord_absence_2"));
-            assertEquals(before + 6 * Game.ABSENCE_VOIE_BONUS + 0.10, game.offlineRate(), 1e-9);
+            assertEquals(before + 6 * Game.ABSENCE_PATH_BONUS + 0.10, game.offlineRate(), 1e-9);
         }
 
         @Test
@@ -373,8 +373,8 @@ class JeuExplosionTest extends GameTestSupport {
             game.tickAway(0.1);
             assertEquals(1, game.darkLevelOf("dark_fine_synthesis"));          // la voie d'absence
             assertEquals(0, game.darkLevelOf("dark_rich_fusion"));
-            assertEquals(List.of("Synthèse fine"), game.takeAwayVoies());
-            assertTrue(game.takeAwayVoies().isEmpty());                          // dit une seule fois
+            assertEquals(List.of("Synthèse fine"), game.takeAwayPaths());
+            assertTrue(game.takeAwayPaths().isEmpty());                          // dit une seule fois
         }
 
         @Test

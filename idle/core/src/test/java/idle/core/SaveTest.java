@@ -2,6 +2,8 @@ package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -260,6 +262,9 @@ class SaveTest {
         stats.noteMoleculeCreation(1, 3, false);
         stats.noteStep(GameStats.Step.FIRST_MOLECULE, 5100.5);
         stats.noteStep(GameStats.Step.UNIVERSE, 245040);
+        // Une nouvelle partie (version 0.126) : ses étapes à elle se datent à part.
+        stats.startUniverseSteps(250_000.5);
+        stats.noteStep(GameStats.Step.FIRST_FUSION, 250_300.25);
         // Après les remises à zéro : ce qui court « depuis la dernière explosion » doit avoir une valeur aussi.
         stats.addTime(333.25);
         stats.addParticles(BigNum.of(7, 20));
@@ -587,7 +592,17 @@ class SaveTest {
             String text = SaveCodec.write(richState(), 0);
             assertThrows(SaveCodec.Unreadable.class, () -> SaveCodec.read(text.replaceFirst("\nexplosions=64\n", "\nexplosions=-3\n")));
             assertThrows(SaveCodec.Unreadable.class, () -> SaveCodec.read(text.replaceFirst("\nexplosions=64\n", "\nexplosions=beaucoup\n")));
-            assertThrows(SaveCodec.Unreadable.class, () -> SaveCodec.read(text.replaceFirst("\nsynthesisTarget=[A-Z_]+\n", "\nsynthesisTarget=INCONNUE\n")));
+        }
+
+        @Test
+        void uneFamilleDeSyntheseInconnueNeRendPasLaSauvegardeIllisible() throws Exception {
+            // Version 0.126 : comme les autres noms d'une autre version, elle est écartée ; la synthèse repart sans cible.
+            String text = SaveCodec.write(richState(), 0);
+            String changed = text.replaceFirst("\nsynthesisTarget=[A-Z_]+\n", "\nsynthesisTarget=INCONNUE\n");
+            assertNotEquals(text, changed, "la partie d'essai doit avoir une cible");
+            GameState read = SaveCodec.read(changed).state();
+            assertNull(read.synthesisTarget());
+            assertEquals(64, read.explosions());           // le reste est bien là
         }
 
         @Test

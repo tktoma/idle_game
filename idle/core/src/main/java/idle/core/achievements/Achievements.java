@@ -83,7 +83,7 @@ public final class Achievements {
             Achievement.feat(BARE_FUSION, "Mains nues", "Fusionner sans vitesse",
                     "Fusionner sans un seul niveau de vitesse ni de couplage.", Achievement.Bonus.PARTICLES, 0.02),
 
-            // ----- Jusqu'aux automatismes (1 h à 5 h) -----
+            // ----- Jusqu'aux automatismes (1 h à 5 h, heures d'avant le tempo) -----
             Achievement.feat(BULK_PURCHASE, "Achat en gros", "25 niveaux d'un clic",
                     "Acheter 25 niveaux d'une amélioration d'un seul clic.", Achievement.Bonus.GENERATOR_COST, 0.02),
             Achievement.feat(BUY_EVERYTHING, "Razzia", "« Tout acheter » : 20 niveaux",
@@ -104,7 +104,7 @@ public final class Achievements {
                     "Fusionner cent fois.",
                     game -> game.state().stats().fusions() >= 100),
 
-            // ----- La mise en place des automatismes (5 h à 10 h) -----
+            // ----- La mise en place des automatismes (5 h à 10 h, heures d'avant le tempo) -----
             Achievement.step("step_production_6", "Un million par seconde", "1e6 particules / s",
                     "Produire un million de particules par seconde.",
                     game -> game.productionPerSecond().gte(BigNum.of(1, 6))),
@@ -127,7 +127,7 @@ public final class Achievements {
                     "Posséder le maximum d'atomes.", Achievement.Bonus.ATOMS, 0.005,
                     game -> game.state().atoms().gte(Game.MAX_ATOMS)),
 
-            // ----- Le tableau périodique (10 h à 24 h) -----
+            // ----- Le tableau périodique (10 h à 24 h, heures d'avant le tempo) -----
             Achievement.feat("feat_reserve", "Bas de laine", "Réserve de 50 atomes tenue",
                     "Avoir de côté une réserve d'au moins 50 atomes pendant que la synthèse automatique tourne.",
                     Achievement.Bonus.ATOMS, 0.005,
@@ -244,7 +244,7 @@ public final class Achievements {
                     "Former dix astres.",
                     game -> game.bodiesFormed() >= 10),
             Achievement.step("step_five_bangs", "Univers mûr", "5 Big Bangs",
-                    "Déclencher un cinquième Big Bang : tous les paliers sont atteints.",
+                    "Déclencher un cinquième Big Bang : le palier « Univers mûr » s'ouvre.",
                     game -> game.bigBangs() >= 5),
             Achievement.step("step_first_star", "Que la lumière soit", "1 étoile",
                     "Former une première étoile.",

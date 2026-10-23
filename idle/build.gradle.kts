@@ -5,6 +5,10 @@
 // Gradle trouve lui-même chaque classe de test dans le dossier src/test/java de chaque module :
 // un test ajouté demain, ou un module ajouté à settings.gradle.kts, est lancé sans rien déclarer ici.
 
+// Le numéro de version du jeu, le même que Version.CURRENT dans l'interface (version 0.126 : avant, chaque module
+// déclarait « 1.0-SNAPSHOT »). Le test VersionTest de l'interface vérifie que les deux disent la même chose.
+version = "0.126"
+
 val toutTester = tasks.register("toutTester") {
     group = "verification"
     description = "Lance tous les tests de tous les modules, ceux d'aujourd'hui et ceux à venir."

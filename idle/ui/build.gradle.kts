@@ -8,7 +8,8 @@ java {
 }
 
 group = "org.example"
-version = "1.0-SNAPSHOT"
+// La version du jeu (version 0.126) : la même partout, posée une fois dans le projet racine.
+version = rootProject.version
 
 repositories {
     mavenCentral()
@@ -28,4 +29,6 @@ javafx {
 
 tasks.test {
     useJUnitPlatform()
+    // Pour VersionTest (version 0.126) : la version déclarée à Gradle, à comparer avec Version.CURRENT.
+    systemProperty("idle.version", project.version.toString())
 }

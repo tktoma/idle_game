@@ -266,7 +266,14 @@ public final class GameState extends GameStateResets {
         data.ints("elements").forEach((number, count) -> setElementCount(Integer.parseInt(number), count));
         setSynthesisCount(data.whole("synthesisCount", 0));
         String target = data.text("synthesisTarget", null);
-        synthesisTarget = target == null ? null : ElementCategory.valueOf(target);
+        synthesisTarget = null;
+        if (target != null) {
+            try {
+                synthesisTarget = ElementCategory.valueOf(target);
+            } catch (IllegalArgumentException unknown) {
+                // une famille d'une autre version (version 0.126) : la synthèse repart sans cible, la partie se relit
+            }
+        }
         setSynthesisTries(data.whole("synthesisTries", 0));
         setDrySyntheses(data.whole("drySyntheses", 0));
         setDarkMatter(data.big("darkMatter", BigNum.ZERO));
@@ -519,6 +526,8 @@ public final class GameState extends GameStateResets {
         automationOrdered = data.flag("automationOrdered", false);
         setSpace(data.big("space", BigNum.ZERO));
         stats.load(data, "stats.");
+        // Avant la version 0.126, seules les premières du jeu entier étaient datées.
+        if (!data.has("stats.universeStart")) stats.adoptLegacySteps(!universeFormed);
         substancesSeen = null;
         assembliesSeen = null;
         bodiesSeen = null;

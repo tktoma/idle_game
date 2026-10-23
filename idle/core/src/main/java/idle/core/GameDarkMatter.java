@@ -33,7 +33,7 @@ public abstract class GameDarkMatter extends GameParticles {
     }
 
     // Ce que fournissent les parties suivantes.
-    abstract void reopenForks();
+    abstract BigNum reopenForks();
 
 
     // ------------------------------------------------------------------
@@ -108,7 +108,8 @@ public abstract class GameDarkMatter extends GameParticles {
             speedPrimePaid = true;
             state.stats().noteSpeedPrime();
         }
-        boolean firstExplosion = state.stats().timedExplosions() == 0;
+        // La première explosion de la partie (version 0.126 : de chaque partie, plus seulement du jeu entier).
+        boolean firstExplosion = state.stats().timedExplosions() == state.explosionsAtUniverse();
         // Un défi en cours est réussi : il laisse sa récompense, et son meilleur temps est noté.
         Challenge challenge = activeChallenge();
         if (challenge != null) {
@@ -134,9 +135,16 @@ public abstract class GameDarkMatter extends GameParticles {
         if (firstExplosion) noteStep(GameStats.Step.FIRST_EXPLOSION);
         // La contraction douce (version 0.088) : l'explosion la réussit.
         if (inTrial(idle.core.universe.Trial.SOFT_CONTRACTION)) completeTrial();
-        // Demandé par le joueur (version 0.084) : les bifurcations se rouvrent avec cette explosion.
+        // Demandé par le joueur (version 0.084) : les bifurcations se rouvrent avec cette explosion. Depuis la
+        // version 0.126, la matière noire payée pour les liaisons revient en réserve : dépenser ne fait rien perdre.
         if (state.forkResetArmed()) {
-            if (!hasSuperposition()) reopenForks();
+            if (!hasSuperposition()) {
+                BigNum refund = reopenForks();
+                if (refund.sign() > 0) {
+                    state.setDarkMatter(state.darkMatter().add(refund));
+                    forkRefund = forkRefund.add(refund);
+                }
+            }
             state.setForkResetArmed(false);
         }
         return true;
@@ -480,6 +488,19 @@ public abstract class GameDarkMatter extends GameParticles {
         return formed <= 0 ? 1 : Math.pow(UNIVERSE_DARK_MATTER_FACTOR, formed);
     }
 
+    /** La matière noire rendue par les bifurcations rouvertes, pas encore annoncée (version 0.126). Non sauvegardée. */
+    BigNum forkRefund = BigNum.ZERO;
+
+    /**
+     * La matière noire que les bifurcations rouvertes par une explosion ont rendue depuis la dernière lecture : celle
+     * des liaisons qu'elles ont défaites. Zéro la plupart du temps ; remise à zéro à chaque lecture, pour l'annoncer une fois.
+     */
+    public BigNum takeForkRefund() {
+        BigNum refund = forkRefund;
+        forkRefund = BigNum.ZERO;
+        return refund;
+    }
+
     /** Vrai si la dernière explosion a touché la prime de vitesse : pour l'annoncer. Remis à faux à chaque lecture. */
     public boolean takeSpeedPrime() {
         boolean paid = speedPrimePaid;
@@ -532,8 +553,8 @@ public abstract class GameDarkMatter extends GameParticles {
      * Ce que l'avancement de la partie en cours apporte à la croissance de la matière noire :
      * {@code 1 + ordres de grandeur de la production + ordres de grandeur des atomes créés}. La
      * production se compte à partir de {@link #TEMPO} particules par seconde, celle d'une partie
-     * qui commence. Avec 8 × 10¹² particules par seconde et 1 000 atomes créés depuis la dernière
-     * explosion, le facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
+     * qui commence. Avec 12 × 10¹² particules par seconde ({@link #TEMPO} = 12) et 1 000 atomes créés depuis
+     * la dernière explosion, le facteur vaut 1 + 12 + 3 = 16. L'élan de la matière noire suit ainsi le rythme des particules
      * et des atomes : faible au début d'une partie, de plus en plus fort ensuite.
      *
      * <p>La production comptée est celle de tous les générateurs réunis

@@ -1,20 +1,25 @@
 name: Audit 24 bots depuis zero
 
 on:
-  # Ne pas alourdir les tests ordinaires. Demarre sur l'ajout/modification
-  # de cette campagne, puis reste relancable manuellement.
+  # Ne pas alourdir les tests ordinaires. Demarre sur master quand cette campagne
+  # change, puis reste relancable manuellement (version 0.126 : avant, la branche
+  # visee, ...-20261021, n'etait pas celle qui a ete fusionnee).
   push:
     branches:
-      - refactor/first-universe-bots-20261021
+      - master
     paths:
       - .github/workflows/fresh-universe-audit.yml
       - idle/bots/src/main/java/FreshUniverseAudit.java
   workflow_dispatch:
     inputs:
       horizon_hours:
-        description: "Plafond de securite en heures simulees par bot (absence de victoire = echec)"
+        description: "Plafond de securite en heures simulees par bot (absence de victoire = LIMIT ; echec seulement en mode strict)"
         required: true
         default: "168"
+      strict:
+        description: "true : chaque profil doit former son univers ; false : seuls les blocages et erreurs font echouer"
+        required: true
+        default: "false"
 
 concurrency:
   group: fresh-universe-audit-${{ github.ref }}
@@ -61,7 +66,7 @@ jobs:
         run: >-
           sh ./gradlew :bots:bot --no-daemon
           -Pclasse=FreshUniverseAudit
-          --args="${{ matrix.first }} ${{ matrix.last }} ${{ inputs.horizon_hours || '168' }} 60 sorties/audit-depuis-zero"
+          --args="${{ matrix.first }} ${{ matrix.last }} ${{ inputs.horizon_hours || '168' }} 60 sorties/audit-depuis-zero ${{ inputs.strict || 'false' }}"
       - name: Conserver le bilan, les sauvegardes et les diagnostics meme si des bots echouent
         if: always()
         uses: actions/upload-artifact@v4

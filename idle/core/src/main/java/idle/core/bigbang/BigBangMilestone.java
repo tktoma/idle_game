@@ -5,10 +5,11 @@ import idle.core.upgrades.Effect;
 import java.util.List;
 
 /**
- * Un palier de Big Bang : un gros bonus acquis d'office au premier, au deuxième, puis à chaque Big
- * Bang jusqu'au cinquième ({@link BigBangMilestones}) ; un même Big Bang peut en donner deux. Rien à acheter : il suffit d'avoir déclenché
- * assez de Big Bangs ({@link Game#isBigBangMilestoneReached(BigBangMilestone)}), et seule la remise
- * à zéro du jeu le reprend.
+ * Un palier de Big Bang : un gros bonus qui s'ouvre au premier Big Bang, au deuxième, puis à chacun jusqu'au
+ * huitième ({@link BigBangMilestones}) ; un même Big Bang peut en ouvrir plusieurs. Depuis la version 0.124, un
+ * palier ouvert se paie une fois, en particules ou en atomes ({@link #resource()}, {@link #price()}), et n'agit
+ * qu'ensuite ({@link Game#isBigBangMilestoneReached(BigBangMilestone)}) ; seule la remise à zéro du jeu, ou
+ * celle de l'univers, le reprend.
  *
  * <p>Recommencer coûte cher : tout repart d'un seul générateur, et le tableau périodique reste
  * vide plusieurs heures. Les paliers sont ce qui paie ce détour.
@@ -88,7 +89,8 @@ public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, 
      * cases, ses automatismes et leurs réglages restent, avec la matière noire déjà dépensée, celle
      * qui ouvre les cases et les défis. Le Big Bang ne reprend plus que la réserve, la taille et la
      * masse du tableau (les défis réussis, eux, sont gardés depuis {@link KeepChallenges}). Cela vaut
-     * dès le Big Bang qui atteint le palier : c'est lui qui s'en trouve raccourci, et tous les suivants.
+     * dès le Big Bang qui atteint le palier : c'est lui qui s'en trouve raccourci. Pour les suivants, depuis la
+     * version 0.124, il faut que le palier soit payé : sinon le Big Bang reprend l'arbre.
      */
     public record KeepDarkTree() implements Effect {}
 

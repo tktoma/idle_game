@@ -61,7 +61,7 @@ def main():
     z=sub.add_parser('verify');z.add_argument('--save',required=True)
     for name in ['v2','profils','fresh','coach']:
         z=sub.add_parser(name)
-        z.add_argument('--bot',default='DEPENDANCES',choices=MODES) if name=='v2' else z.add_argument('--id',type=int,choices=range(1,25)) if name in ('profils','fresh') else z.add_argument('--checkpoint',required=True)
+        z.add_argument('--bot',default='DEPENDANCES',choices=MODES) if name=='v2' else z.add_argument('--id',type=int,choices=range(1,25),required=True) if name in ('profils','fresh') else z.add_argument('--checkpoint',required=True)
         z.add_argument('--hours',type=float,default=12 if name!='fresh' else 4)
         z.add_argument('--step',type=float,default=20)
         z.add_argument('--seed',type=int,default=42)

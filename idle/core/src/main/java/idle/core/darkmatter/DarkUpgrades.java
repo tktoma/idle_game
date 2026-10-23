@@ -72,7 +72,6 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_mass", "Masse sombre", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 38), 1, 1, "dark_priming",
                     new DarkEffect.ParticlesByDarkMatter(2)),
-            // Délai minimal des automatismes : 0,05 s au lieu de 0,1 s.
             // Bifurcation « tempo » (0.69, refaite en 0.073) : paliers de vitesse +0,5, ou automatismes +50 % de cadence par matière noire gagnée.
             new DarkUpgrade("dark_flow", "Croissance continue", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 40), 1, 1, "dark_mass",
@@ -80,6 +79,7 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_burst", "Cadence sombre", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 40), 1, 1, "dark_mass",
                     new DarkEffect.AutomationsByDarkMatter(0.5), "tempo"),
+            // Délai minimal des automatismes : 0,05 s au lieu de 0,1 s.
             new DarkUpgrade("dark_reflexes", "Automatismes vifs", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 130), 1, 1, DarkUpgrade.FORK_PREFIX + "tempo",
                     new DarkEffect.FasterAutomations(0.05)),
@@ -94,7 +94,8 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_shadow_echo", "Écho sombre", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 1740), 1, 1, "dark_resonance",
                     new DarkEffect.StrongerMilestones(0.3), "elan"),
-            // Le bout de la branche (0.069) : particules ×100 par niveau, trente niveaux (0.073), à 10⁸⁰⁰⁰ particules puis ×10³⁰⁰.
+            // Le bout de la branche (0.069) : particules ×100 par niveau, trente niveaux (0.073), à 10³⁴⁸⁰ particules
+            // puis ×3,16 × 10¹³⁰ par niveau.
             new DarkUpgrade("dark_singularity", "Singularité", DarkUpgrade.Branch.PARTICLES,
                     BigNum.of(1, 3480), 3.16e130, 30, DarkUpgrade.FORK_PREFIX + "elan",
                     new DarkEffect.MultiplyBaseParticles(100)),
@@ -162,7 +163,7 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_isotopes", "Isotopes", DarkUpgrade.Branch.ATOMS,
                     BigNum.of(1, 10), 5, 2, DarkUpgrade.FORK_PREFIX + "noyau",
                     new DarkEffect.IncreaseMaxCopies(1)),
-            // Le bout de la branche (0.069) : +5 atomes par fusion et par niveau, cinq niveaux.
+            // Le bout de la branche (0.069) : +5 atomes par fusion et par niveau, huit niveaux.
             new DarkUpgrade("dark_reactor", "Réacteur", DarkUpgrade.Branch.ATOMS,
                     BigNum.of(1, 11), 10, 8, "dark_isotopes",
                     new DarkEffect.AddAtomsPerFusion(5)),
@@ -208,12 +209,12 @@ public final class DarkUpgrades {
             new DarkUpgrade("dark_harvest", "Moisson", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e25), 1, 1, "dark_overflow",
                     new DarkEffect.AtomsByDarkMatter(0.5), "horizon"),
-            // Le bout de la branche (0.069) : croissance ×2 par niveau, trois niveaux. À atteindre : 10⁴⁰ années-lumière, puis ×100 000.
+            // Le bout de la branche (0.069) : croissance ×2 par niveau, dix niveaux. À atteindre : 10¹⁰⁰ années-lumière, puis ×100 000.
             new DarkUpgrade("dark_horizon", "Horizon", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e100), 1e5, 10, DarkUpgrade.FORK_PREFIX + "horizon",
                     new DarkEffect.MultiplyExpansion(2)),
             // Bifurcation « abîme » (0.070), tout au bout : particules × la taille en années-lumière, ou atomes +100 % par
-            // matière noire gagnée. À atteindre : 10⁵⁵ années-lumière.
+            // matière noire gagnée. À atteindre : 10¹²⁵ années-lumière.
             new DarkUpgrade("dark_abyss", "Abîme", DarkUpgrade.Branch.SIZE,
                     SizeScale.LIGHT_YEAR.multiply(1e125), 1, 1, "dark_horizon",
                     new DarkEffect.ParticlesByLightYears(1), "abime"),

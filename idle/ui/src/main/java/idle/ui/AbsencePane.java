@@ -169,8 +169,8 @@ final class AbsencePane extends StackPane {
             lines.add(report.probeTrips() + (report.probeTrips() > 1 ? " voyages de sonde vidés et relancés" : " voyage de sonde vidé et relancé"));
         }
         // Ce que l'arbre a fait à votre place (version 0.073) : il faut le dire, sinon on revient en plein défi sans savoir pourquoi.
-        if (!report.voies().isEmpty()) {
-            lines.add("Voies d'absence prises à votre place : " + String.join(", ", report.voies()));
+        if (!report.paths().isEmpty()) {
+            lines.add("Voies d'absence prises à votre place : " + String.join(", ", report.paths()));
         }
         if (!report.challengesStarted().isEmpty()) {
             lines.add("L'accord d'absence a lancé " + (report.challengesStarted().size() > 1 ? "les défis " : "le défi ")

@@ -181,7 +181,7 @@ final class DebugBar extends VBox {
                     for (idle.core.darkmatter.Challenge challenge : idle.core.darkmatter.Challenges.DEFAULT) game.state().addCompletedChallenge(challenge.id());
                 }),
                 tool("Fuite réussie", () -> game.state().addCompletedChallenge(idle.core.darkmatter.Challenges.LEAK.id())),
-                tool("Calme du Big Bang complet", () -> game.state().setUpgradeCalm(Game.BIG_BANG_CALM_SECONDS)),
+                tool("Calme du Big Bang complet", () -> game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS)),
                 tool("Tableau plus lourd", () -> game.state().setTableWeightLevel(game.state().tableWeightLevel() + 1)),
                 tool("Tableau à sa masse du début", () -> game.state().setTableWeightLevel(0)));
         tabGroup("COLLIDER", "Collisionneur",
@@ -757,11 +757,6 @@ final class DebugBar extends VBox {
     // ------------------------------------------------------------------
 
     /**
-     * Réunit les cinq conditions du Big Bang, sans rien retirer : ce qu'il manque de particules,
-     * d'atomes et de matière noire, les succès et les défis. Un défi en cours est arrêté, sans
-     * être compté comme réussi.
-     */
-    /**
      * Forme le premier assemblage du catalogue qui ne l'est pas encore, en donnant au joueur ce
      * qu'il demande : les améliorations d'espace, les molécules qui manquent, rassemblées, et la
      * place de les loger.
@@ -861,6 +856,11 @@ final class DebugBar extends VBox {
         if (game.state().explosions() == 0 && game.bigBangs() == 0) game.state().setExplosions(1);
     }
 
+    /**
+     * Réunit les conditions du Big Bang (cinq, six avec le ciel), sans rien retirer : ce qu'il manque de particules,
+     * d'atomes et de matière noire, les succès et les défis. Un défi en cours est arrêté, sans
+     * être compté comme réussi.
+     */
     private void readyForBigBang() {
         GameState state = game.state();
         if (state.explosions() == 0) state.setExplosions(1);

@@ -96,10 +96,6 @@ public abstract class GameStateBase {
     final List<SolarSystem> solarSystems = new ArrayList<>();
     /** Les astres formés qui mûrissent encore (version 0.053), avec les secondes qu'il leur reste. */
     final Map<String, Double> maturing = new java.util.LinkedHashMap<>();
-    /**
-     * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
-     * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
-     */
     /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link Cosmos} : 0 = aucune, 1 = la galaxie, 2 = l'amas de galaxies, 3 = l'univers. */
     int cosmos;
     /** Vrai tant que l'appui automatique sur la matière noire est en marche, une fois acquis ({@link Game#isAutoHolding()}). */
@@ -112,6 +108,10 @@ public abstract class GameStateBase {
     boolean autoFollowMatter = false;
     /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
     final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
+    /**
+     * Les dernières listes rendues par {@link #substances()}, {@link #assemblies()} et {@link #bodies()} :
+     * elles sont demandées bien plus souvent qu'elles ne changent, et ne sont recopiées qu'après un changement.
+     */
     List<String> substancesSeen;
     List<String> assembliesSeen;
     List<String> bodiesSeen;
@@ -310,7 +310,10 @@ public abstract class GameStateBase {
         this.atoms = atoms;
     }
 
-    /** Atomes créés depuis le début du jeu, dépensés ou non. Ne diminue jamais. */
+    /**
+     * Atomes créés dans la partie en cours, dépensés ou non : depuis la dernière explosion, ou depuis le départ lancé
+     * qu'elle accorde. Seules les remises à zéro le font redescendre ({@link GameState#clearMatter()}).
+     */
     public BigNum totalAtoms() {
         return totalAtoms;
     }
@@ -512,7 +515,6 @@ public abstract class GameStateBase {
         this.darkMatter = darkMatter;
     }
 
-    /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
     /**
      * Matière noire dépensée en améliorations depuis le début du jeu. Ajoutée à celle qui reste
      * ({@link #darkMatter()}), elle donne la matière noire gagnée en tout.
@@ -526,6 +528,7 @@ public abstract class GameStateBase {
         this.darkMatterSpent = darkMatterSpent;
     }
 
+    /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
     public BigNum darkMatterSize() {
         return darkMatterSize;
     }

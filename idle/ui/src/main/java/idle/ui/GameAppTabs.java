@@ -374,6 +374,15 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
         boolean busy = absencePane.isVisible() || endPane.isOpen() || exploding
                 || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying()) || darkMatterPage.isRevealing();
+        // La matière noire rendue par les bifurcations rouvertes (version 0.126) : annoncée avec son montant.
+        idle.core.math.BigNum refund = game.takeForkRefund();
+        if (refund.sign() > 0) {
+            popupPane.announce("Bifurcations rouvertes", "Matière noire remboursée",
+                    "Les bifurcations se sont rouvertes avec cette explosion. La matière noire payée pour les liaisons vous "
+                            + "est rendue : +" + idle.ui.common.Format.darkMatter(refund) + " matière"
+                            + (refund.compareTo(idle.core.math.BigNum.of(2)) >= 0 ? "s noires" : " noire")
+                            + ", en réserve, à replacer où vous voulez.", GameApp.DARK_MATTER_COLOR);
+        }
         popupPane.check(popupEntries, busy);
     }
 

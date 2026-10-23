@@ -8,7 +8,7 @@ import java.util.List;
  * Catalogue des améliorations liées à l'espace : chacune est acquise d'elle-même quand l'expansion a créé assez
  * d'espace en tout, sans rien dépenser.
  *
- * <p>Quatre d'entre elles multiplient une grandeur pour de bon ({@link SpaceUpgrade.Boost}). Les
+ * <p>Six d'entre elles multiplient une grandeur pour de bon ({@link SpaceUpgrade.Boost}). Les
  * deux premières viennent dans les vingt minutes qui suivent un Big Bang : dix fois plus d'atomes,
  * dix fois plus de particules. Après un Big Bang tout repart d'un seul générateur, et sans elles
  * le joueur passerait une vingtaine d'heures à refaire le chemin avant de revoir un tableau

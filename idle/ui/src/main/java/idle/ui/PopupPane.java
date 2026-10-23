@@ -113,6 +113,15 @@ final class PopupPane extends StackPane {
         if (!isVisible() && !quiet && !waiting.isEmpty()) show(waiting.remove(0));
     }
 
+    /**
+     * Annonce un événement de la partie dans une fenêtre (version 0.126) : elle prend son tour comme une explication,
+     * mais n'est pas gardée dans la sauvegarde, puisqu'elle ne parle que de ce moment-là.
+     */
+    void announce(String groupText, String heading, String text, String color) {
+        if (!enabled()) return;
+        waiting.add(List.of(new Entry("event", groupText, heading, text, color, () -> true)));
+    }
+
     private void show(List<Entry> batch) {
         shown = List.copyOf(batch);
         String color = batch.get(0).color();
@@ -208,8 +217,9 @@ final class PopupPane extends StackPane {
                         () -> game.isTrialUnlocked(Trial.NO_OVERHEAT)),
                 gated(act2, "second:leak", two, "La fuite", "Un onzième défi, au milieu des autres : les particules fuient de plus "
                         + "en plus vite tant qu'aucune amélioration n'est achetée, et le tableau ne peut pas exploser avant 2 minutes. "
-                        + "Réussi, il donne le calme du Big Bang : sans amélioration achetée, les particules qu'il demande baissent, "
-                        + "jusqu'à une seule au bout d'une heure.", violet, game::isLeakChallengeShown),
+                        + "Réussi, il donne le calme du Big Bang : tant qu'aucune amélioration n'est achetée, même par les "
+                        + "automatismes, les particules qu'il demande baissent, jusqu'à une seule au bout d'une heure.", violet,
+                        game::isLeakChallengeShown),
                 gated(act2, "second:darkTiers", two, "Paliers de matière noire", "La matière noire gagnée dans ce deuxième univers "
                         + "débloque des skins : à 100, 1 000, 10 000 et 100 000.", violet, () -> game.darkSkinTiers() > 0),
                 gated(act3, "second:cycle", three, "Le petit arbre du cycle", "Dans l'onglet Big Bang, un choix par cycle : fusion, "

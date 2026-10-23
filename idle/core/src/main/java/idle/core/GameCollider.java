@@ -650,7 +650,7 @@ public abstract class GameCollider extends GameDarkTree {
         long crossings = (long) (Math.floor(after - 0.5) - Math.floor(before - 0.5));
         state.setColliderPhase(after);
         runCrossings(crossings);
-        if (state.overheatLeft() > 0) state.setOverheatLeft(state.overheatLeft() - dt);
+        // La surchauffe s'écoule avec la production qu'elle multiplie : voir Game#runTimedBonuses (version 0.126).
         if (state.topLeft() > 0) {
             state.setTopLeft(state.topLeft() - dt);
             if (state.topLeft() <= 0) state.setQuarks(Quark.BOTTOM, state.quarks(Quark.BOTTOM) + TOP_CONSOLATION_BOTTOM);

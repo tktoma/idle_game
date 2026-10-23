@@ -662,7 +662,8 @@ public abstract class GameUniverse extends GameAtoms {
     /** Secondes de jeu qu'il reste avant que cette échelle puisse se former, 0 si le délai est passé. */
     public double cosmosSettleRemaining(Cosmos scale) {
         if (scale == Cosmos.GALAXY || !hasCosmos(scale.previous())) return 0;
-        double since = state.stats().reachedAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
+        // Version 0.126 : la date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
+        double since = state.stats().reachedThisUniverseAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
         if (Double.isNaN(since)) return 0;
         return Math.max(0, since + COSMOS_SETTLE_SECONDS - state.timePlayed());
     }
@@ -983,14 +984,8 @@ public abstract class GameUniverse extends GameAtoms {
         if (!state.regimeOpen() && generatorCount() >= REGIME_GENERATORS) state.setRegimeOpen(true);
         if (!state.synergyOpen() && generatorCount() >= SYNERGY_GENERATORS) state.setSynergyOpen(true);
         if (dt <= 0) return;
-        if (state.regimeLeft() > 0) {
-            double left = state.regimeLeft() - dt;
-            state.setRegimeLeft(left);
-            if (left <= 0) state.setRegimeRest(REGIME_REST_SECONDS + Math.min(0, left));
-        } else if (state.regimeRest() > 0) {
-            state.setRegimeRest(state.regimeRest() - dt);
-        }
-        if (state.perfectLeft() > 0) state.setPerfectLeft(state.perfectLeft() - dt);
+        // Le régime rapide et la prime de cycle parfait s'écoulent avec la production qu'ils multiplient :
+        // voir Game#runTimedBonuses (version 0.126).
         noteSkinUnlocks();
         runTrial(dt);
     }

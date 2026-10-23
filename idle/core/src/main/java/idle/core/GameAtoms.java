@@ -47,6 +47,7 @@ public abstract class GameAtoms extends GamePlans {
     public abstract int fusionGroups();
     public abstract boolean fuse();
     public abstract boolean buy(String upgradeId);
+    public abstract boolean canBuy(String upgradeId);
     abstract Automation automation(String automationId);
 
 
@@ -312,6 +313,9 @@ public abstract class GameAtoms extends GamePlans {
             for (int bought = 0; bought < MAX_GENERATORS_PER_ACTION && buy(upgrade.id()); bought++) any = true;
             return any;
         }
+        // Version 0.126 : les mêmes règles qu'un achat un à un (l'épreuve du premier générateur seul, entre autres),
+        // vérifiées une fois avant de calculer le lot.
+        if (!canBuy(upgrade.id())) return false;
         // Le même résultat qu'autant d'achats un à un, sans refaire chaque fois tous les calculs :
         // la réduction des générateurs ne dépend pas de leur nombre, elle se calcule une fois. En fin de
         // partie, une action achète des dizaines de générateurs, vingt fois par seconde de jeu.
@@ -916,16 +920,25 @@ public abstract class GameAtoms extends GamePlans {
 
     final List<GameStats.Step> newRecords = new ArrayList<>();
 
-    /** Note qu'une étape vient d'être atteinte ; la première fois, son temps est comparé au record. */
+    /** Note qu'une étape vient d'être atteinte ; la première fois de la partie, son temps est comparé au record. */
     void noteStep(GameStats.Step step) {
-        boolean first = !state.stats().reached(step);
+        boolean first = !state.stats().reachedThisUniverse(step);
         state.stats().noteStep(step, state.timePlayed());
         if (first) noteRecord(step);
     }
 
-    /** Retient le temps de jeu comme record de cette étape s'il bat le précédent, ou s'il n'y en avait pas. */
+    /**
+     * Temps de jeu de la partie en cours, en secondes : depuis le début du jeu pour la première, depuis le début
+     * de la nouvelle partie ensuite (version 0.126). {@code NaN} si ce début n'est pas connu (sauvegarde ancienne).
+     */
+    public double runTimePlayed() {
+        return state.timePlayed() - state.stats().universeStart();
+    }
+
+    /** Retient le temps de la partie comme record de cette étape s'il bat le précédent, ou s'il n'y en avait pas. */
     void noteRecord(GameStats.Step step) {
-        double time = state.timePlayed();
+        double time = runTimePlayed();
+        if (Double.isNaN(time)) return;
         Double best = state.records().get(step.name());
         if (best == null || time < best) {
             // Un premier record n'est pas une nouvelle : il n'y avait rien à battre.
@@ -935,7 +948,7 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * Le record d'une étape : le temps de jeu le plus court auquel elle a été atteinte, toutes
+     * Le record d'une étape : le temps de partie le plus court auquel elle a été atteinte, toutes
      * parties confondues, en secondes. {@code NaN} si elle ne l'a jamais été. La remise à zéro du
      * jeu garde les records : ce sont eux qu'on cherche à battre à la partie suivante.
      */
@@ -945,11 +958,14 @@ public abstract class GameAtoms extends GamePlans {
 
     /** La prochaine étape datée que cette partie n'a pas encore atteinte, ou {@code null} quand elles le sont toutes. */
     public GameStats.Step nextStep() {
+        // Une sauvegarde d'avant la 0.126, au-delà de la première partie, n'a pas daté le début de celle-ci : on ne sait
+        // pas ce qu'elle a déjà atteint. Rien n'est annoncé jusqu'à la partie suivante.
+        if (Double.isNaN(state.stats().universeStart())) return null;
         for (GameStats.Step step : GameStats.Step.values()) {
-            if (state.stats().reached(step)) continue;
+            if (state.stats().reachedThisUniverse(step)) continue;
             // Une sauvegarde d'avant ces deux étapes les a passées sans les dater : elles ne sont plus « à venir ».
-            if (step == GameStats.Step.FIRST_FUSION && state.stats().fusions() > 0) continue;
-            if (step == GameStats.Step.FIRST_EXPLOSION && state.stats().timedExplosions() > 0) continue;
+            if (step == GameStats.Step.FIRST_FUSION && state.stats().fusions() > state.fusionsAtUniverse()) continue;
+            if (step == GameStats.Step.FIRST_EXPLOSION && state.stats().timedExplosions() > state.explosionsAtUniverse()) continue;
             return step;
         }
         return null;
@@ -964,7 +980,7 @@ public abstract class GameAtoms extends GamePlans {
         GameStats.Step next = nextStep();
         if (next == null) return Double.NaN;
         double record = recordOf(next);
-        return Double.isNaN(record) ? Double.NaN : state.timePlayed() - record;
+        return Double.isNaN(record) ? Double.NaN : runTimePlayed() - record;
     }
 
     /** Oublie tous les records. */

@@ -66,7 +66,7 @@ public abstract class GameBigBang extends GameDarkMatter {
         return all;
     }
 
-    /** Nombre de conditions du Big Bang remplies en ce moment, sur les cinq. */
+    /** Nombre de conditions du Big Bang remplies en ce moment, sur {@link #bigBangConditions()} (cinq, six avec le ciel). */
     public int bigBangConditionsMet() {
         int met = 0;
         for (BigBangCondition condition : bigBangConditions()) {
@@ -76,7 +76,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     /**
-     * Vrai si le Big Bang peut être déclenché : les cinq conditions ({@link BigBangCondition}) sont
+     * Vrai si le Big Bang peut être déclenché : ses conditions ({@link #bigBangConditions()}, cinq ou six) sont
      * remplies au même moment, hors de tout défi. Les particules et les atomes se comptent dans la
      * partie en cours : une explosion les reprend, et il faut les réunir de nouveau.
      */
@@ -121,7 +121,8 @@ public abstract class GameBigBang extends GameDarkMatter {
             state.addCompletedBangChallenge(challenge.name());
             state.setActiveBangChallenge(null);
         }
-        boolean first = !state.stats().reached(GameStats.Step.FIRST_BIG_BANG);
+        // Le premier Big Bang de la partie (version 0.126 : de chaque partie, plus seulement du jeu entier).
+        boolean first = !state.stats().reachedThisUniverse(GameStats.Step.FIRST_BIG_BANG);
         state.stats().noteBigBang(state.explosions(), state.timePlayed());
         if (first) noteRecord(GameStats.Step.FIRST_BIG_BANG);
         clearForBigBang();
@@ -133,17 +134,23 @@ public abstract class GameBigBang extends GameDarkMatter {
     /**
      * Rouvre les bifurcations : leurs voies et les liaisons qui en dépendent repartent de zéro, et la
      * matière noire des liaisons cesse d'être comptée comme dépensée. Ce que fait chaque Big Bang ; et
-     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.084).
+     * l'explosion qui suit « Rouvrir les bifurcations » (version 0.084), qui rend cette matière noire en
+     * réserve (version 0.126). Le Big Bang, lui, vide la réserve : il ne la rend pas.
+     *
+     * @return la matière noire que les liaisons défaites avaient coûté
      */
-    void reopenForks() {
+    BigNum reopenForks() {
+        BigNum refund = BigNum.ZERO;
         for (DarkUpgrade dark : darkUpgrades.values()) {
             if (dark.isLink()) {
                 BigNum paid = BigNum.ZERO;
                 for (int level = 0; level < state.darkLevelOf(dark.id()); level++) paid = paid.add(dark.costAt(level));
                 state.setDarkMatterSpent(state.darkMatterSpent().subtract(paid).max(BigNum.ZERO));
+                refund = refund.add(paid);
             }
             if (dark.isFork() || dark.isLink()) state.setDarkLevel(dark.id(), 0);
         }
+        return refund;
     }
 
     /** Efface ce qu'un Big Bang efface, en gardant ce que les paliers atteints (ou celui qu'il atteint) font garder. */
@@ -283,7 +290,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     // Les paliers de Big Bang
     // ------------------------------------------------------------------
 
-    /** Les paliers de Big Bang, du premier au cinquième ({@link BigBangMilestones}). */
+    /** Les paliers de Big Bang, onze du premier au huitième Big Bang ({@link BigBangMilestones}). */
     public List<BigBangMilestone> bigBangMilestones() {
         return BigBangMilestones.DEFAULT;
     }
@@ -723,8 +730,13 @@ public abstract class GameBigBang extends GameDarkMatter {
      */
     void expandSpace(double dt) {
         if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;
-        // Le sillage d'une comète ne compte que pour le temps qu'il lui reste, même si le pas de temps est plus long.
-        double boosted = Math.min(dt, state.cometBoost());
-        state.setSpace(state.space().add(steadySpacePerSecond().multiply(dt + boosted * (COMET_BOOST - 1))));
+        // Le sillage d'une comète et le sursaut des sondes ne comptent que pour le temps qu'il leur reste, même si le
+        // pas de temps est plus long (le sursaut depuis la version 0.126) ; quand ils se recouvrent, leurs effets se multiplient.
+        double comet = Math.max(0, Math.min(dt, state.cometBoost()));
+        double probe = Math.max(0, Math.min(dt, state.probeBoostLeft()));
+        double probeExtra = probeBoostMultiplier() - 1;
+        double seconds = dt + comet * (COMET_BOOST - 1) + probe * probeExtra + Math.min(comet, probe) * (COMET_BOOST - 1) * probeExtra;
+        // steadySpacePerSecond compte déjà le sursaut en entier : il est retiré, puis rendu au prorata ci-dessus.
+        state.setSpace(state.space().add(steadySpacePerSecond().multiply(seconds / probeBoostMultiplier())));
     }
 }

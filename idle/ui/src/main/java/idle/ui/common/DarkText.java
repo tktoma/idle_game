@@ -13,6 +13,38 @@ import idle.core.math.BigNum;
  */
 public final class DarkText {
 
+    /**
+     * Les crans du maximum d'exemplaires, famille par famille (version 0.126) : « 9 → 16 → 25 (4 → 9 → 16 pour les
+     * lanthanides) », lus dans le catalogue au lieu d'être écrits à la main. Les familles uniques n'en ont pas.
+     */
+    static String copiesLadder(DarkEffect.IncreaseMaxCopies more) {
+        int levels = idle.core.darkmatter.DarkUpgrades.DEFAULT.stream()
+                .filter(dark -> dark.effect() instanceof DarkEffect.IncreaseMaxCopies)
+                .mapToInt(idle.core.darkmatter.DarkUpgrade::maxLevel).max().orElse(1);
+        java.util.Map<Integer, java.util.List<String>> byBase = new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
+        for (idle.core.elements.ElementCategory category : idle.core.elements.ElementCategory.values()) {
+            if (!category.unique()) byBase.computeIfAbsent(category.maxCopies(), base -> new java.util.ArrayList<>())
+                    .add(category.label().toLowerCase(java.util.Locale.ROOT));
+        }
+        StringBuilder text = new StringBuilder();
+        boolean first = true;
+        for (java.util.Map.Entry<Integer, java.util.List<String>> entry : byBase.entrySet()) {
+            int root = (int) Math.round(Math.sqrt(entry.getKey()));
+            StringBuilder ladder = new StringBuilder(String.valueOf(root * root));
+            for (int level = 1; level <= levels; level++) {
+                int strength = root + level * more.perLevel();
+                ladder.append(" → ").append(strength * strength);
+            }
+            if (first) {
+                text.append(ladder);
+            } else {
+                text.append(" (").append(ladder).append(" pour les ").append(String.join(", ", entry.getValue())).append(")");
+            }
+            first = false;
+        }
+        return text.toString();
+    }
+
     public static String describe(DarkEffect effect, Game game) {
         return switch (effect) {
             case DarkEffect.AddAtomsPerFusion add ->
@@ -27,8 +59,8 @@ public final class DarkText {
             case DarkEffect.KeepUniqueElementsOnExplosion keep ->
                     "L'explosion ne détruit plus les éléments uniques ★ : la synthèse automatique reste débloquée";
             case DarkEffect.IncreaseMaxCopies more ->
-                    "Maximum d'exemplaires par élément repoussé d'un cran à chaque niveau : 9 → 16 → 25. Actuellement "
-                            + game.maxTotalCopies() + " exemplaires pour un tableau complet";
+                    "Maximum d'exemplaires par élément repoussé d'un cran à chaque niveau : " + copiesLadder(more)
+                            + ". Actuellement " + game.maxTotalCopies() + " exemplaires pour un tableau complet";
             case DarkEffect.KeepAutomationsOnExplosion keep ->
                     "L'explosion ne détruit plus les automatismes ni leur cadence";
             case DarkEffect.KeepUpgradesOnExplosion keep ->
@@ -100,9 +132,9 @@ public final class DarkText {
                             + "à chaque niveau. Actuellement ÷" + ElementText.number(game.darkSynthesisDivisor());
             case DarkEffect.HeadStartByDarkMatter by ->
                     "Chaque partie démarre avec " + ElementText.number(by.perUnit()) + " atomes déjà comptés comme créés par "
-                            + "matière noire gagnée (" + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " au plus). Actuellement "
-                            + Format.count(BigNum.of(by.perUnit()).multiply(game.darkMatterEarned())
-                                    .min(Game.UNLOCK_TOTAL_ATOMS));
+                            + "matière noire gagnée (" + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " au plus), sauf pendant "
+                            + "un défi. Actuellement " + Format.count(game.darkHeadStartAtoms())
+                            + (game.inChallenge() ? " (défi en cours)" : "");
             case DarkEffect.TargetedSynthesis targeted ->
                     "Ouvre la synthèse ciblée dans le tableau périodique : choisir la famille de l'élément à venir. "
                             + "Viser coûte plusieurs synthèses, de 3 pour les familles courantes à 10 pour les actinides";

@@ -766,8 +766,9 @@ public abstract class GameParticles extends GameMatterAutomation {
         BigNum gained = atomsPerFusion();
         noteFusionFeats();
         state.stats().noteFusion(gained, state.timeSinceFusion());
-        // La toute première fusion du jeu : une partie reprise d'une ancienne sauvegarde ne la date pas après coup.
-        if (state.stats().fusions() == 1) noteStep(GameStats.Step.FIRST_FUSION);
+        // La première fusion de la partie (version 0.126 : de chaque partie, plus seulement du jeu entier) ; une partie
+        // reprise d'une ancienne sauvegarde ne la date pas après coup.
+        if (state.stats().fusions() - state.fusionsAtUniverse() == 1) noteStep(GameStats.Step.FIRST_FUSION);
         BigNum atoms = state.atoms().add(gained);
         state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
         notePerfectCycle(!isAtomCapLifted() && atoms.gte(atomCap()));

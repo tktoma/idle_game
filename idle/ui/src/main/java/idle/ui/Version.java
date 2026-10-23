@@ -23,6 +23,30 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.126", "Ce que le jeu dit, il le fait", List.of(
+                    "Dans les univers suivants, l'amas de galaxies et l'univers attendent de nouveau deux heures de "
+                            + "rassemblement chacun : le délai se compte depuis la galaxie de la partie en cours, plus depuis "
+                            + "la toute première.",
+                    "Les records et la « prochaine étape » valent pour chaque nouvelle partie : leur temps se compte "
+                            + "depuis le début de la partie en cours. Le chrono revient donc dans les univers suivants.",
+                    "Pendant l'épreuve « Premier générateur seulement », l'automatisme des générateurs n'en achète plus.",
+                    "Une fois le premier univers formé, tout le temps d'absence est rejoué, aussi dans les parties suivantes.",
+                    "Vos réglages (coupure générale des automatismes, rassemblement et formation automatiques, ordres "
+                            + "d'achat, seuil de fusion, verrou de l'appui, part d'espace laissée libre, molécules favorites, "
+                            + "automatismes de matière noire allumés, pauses du collisionneur) "
+                            + "tiennent d'une remise à zéro à l'autre, quelle qu'elle soit. Seul « Recommencer de zéro » les efface.",
+                    "« Rouvrir les bifurcations » rend la matière noire payée pour les liaisons, en réserve, et une fenêtre "
+                            + "dit combien.",
+                    "Sur une longue absence, la surchauffe, le régime rapide, la prime de cycle parfait et le sursaut des "
+                            + "sondes comptent exactement le temps qu'il leur reste.",
+                    "Une sauvegarde qui nomme une famille d'éléments inconnue se relit quand même : la synthèse repart sans cible.",
+                    "Textes : le décompte du calme du Big Bang suit le bon compteur, et sa récompense dit que les achats des "
+                            + "automatismes le rompent ; l'aide décrit les paliers payants, les conditions du Big Bang (six "
+                            + "pour les derniers), ce qu'il garde, les places de maturation et la touche réglée pour les "
+                            + "sondes ; « une nébuleuse » ; les crans des isotopes et le départ lancé suivent le moteur.",
+                    "Profil de test et bots : les bots ne partent plus avec le jeu livré, seulement avec « runTest ». La "
+                            + "victoire d'un bot est celle du jeu, l'univers formé. L'outil de comparaison des sauvegardes ne "
+                            + "confond plus 1.5e10 et 1.5e100.")),
             new Note("0.125", "Le premier univers réglé sur le meilleur joueur", List.of(
                     "L'équilibrage suit maintenant le bot « Speedrunner » du dépôt, parti d'une partie neuve : environ "
                             + "5 h pour le premier acte, 6 h pour le deuxième et 16 h pour le troisième, 27 h en tout. Un joueur "

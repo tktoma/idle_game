@@ -23,7 +23,8 @@ import java.util.zip.GZIPOutputStream;
  * {@link #read} relit les deux.
  *
  * <p>La sauvegarde ne contient que la partie ({@link GameState}, statistiques et historiques
- * compris). Les réglages du joueur n'en font pas partie : ils restent sur sa machine.
+ * compris). Les réglages de la fenêtre (affichage, sons, touches) n'en font pas partie : ils restent sur sa machine.
+ * Ceux qui règlent le jeu lui-même (coupure des automatismes, ordres d'achat, plans…) sont dans la partie.
  */
 public final class SaveCodec {
 

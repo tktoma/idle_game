@@ -337,7 +337,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
         autoHold = enabled;
     }
 
-    /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
+    /** Vrai si la création automatique suit aussi la liste de courses : elle crée ce que le prochain pas demande. */
     public boolean autoFollowList() {
         return autoFollowList;
     }
@@ -349,6 +349,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
     public boolean autoFollowMatter() { return autoFollowMatter; }
     public void setAutoFollowMatter(boolean enabled) { autoFollowMatter = enabled; }
 
+    /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
     public boolean autoMolecules() {
         return autoMolecules;
     }

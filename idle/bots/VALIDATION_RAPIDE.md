@@ -41,3 +41,22 @@ Le kit est devenu le module `idle/bots`. Il est compilé contre le cœur du jeu 
 
   `python run.py empreinte` donne des sauvegardes identiques avant et après pour les 4 parties.
 - `BotsTest` : 4/4. Les 869 tests du jeu passent.
+
+# Contrôles de la version 0.126 (23 octobre 2026)
+
+Ce fichier est un journal daté : les chiffres des sections précédentes sont ceux de leur jour (13 bots, 75 sources du
+moteur, 869 tests…). Les dossiers `donnees/` et `docs/` qu'elles citent ont été retirés du dépôt le 20 octobre 2026 ;
+les 21 victoires historiques se revérifient avec `BotsTest` (ou `python run.py verify`).
+
+Gradle ne pouvait pas tourner (pas d'accès à services.gradle.org) : tout a été compilé avec `javac` (JDK 21) et lancé
+avec la console JUnit 5, JavaFX 11 pour l'interface, sous Xvfb.
+
+- Moteur : 946 tests, tous réussis (932 avant la 0.126, plus ceux de `CoherenceTest`).
+- Interface : 9 tests, tous réussis (dont `GuiInteractionsTest`, de nouveau vert : la copie de la 0.125 avait effacé le
+  paiement des paliers dans son test, et il échouait sur `master`).
+- Bots : 34 tests, tous réussis (33 avant la 0.126, plus la victoire écrite par le moteur actuel), hors campagnes des
+  24 profils (comme le job CI général).
+- Les 24 sauvegardes de victoire passent `VerifyVictory`. Une victoire écrite par le moteur actuel aussi : l'ancienne
+  `VerifyVictory` la refusait (« Galaxie absente »), puisque former l'univers remet tout à zéro.
+- Référence de l'équilibrage, `FreshUniverseAudit` profil 1 (Speedrunner), graine 201, une décision toutes les 20 s :
+  univers formé en **27 h 23**, comme en 0.125. Les correctifs ne changent pas le premier univers.

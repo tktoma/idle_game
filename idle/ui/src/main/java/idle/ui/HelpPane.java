@@ -130,7 +130,12 @@ final class HelpPane extends StackPane {
                                     + "d'abord, ou l'ordre que vous leur donnez sous leurs cartes." : "")
                     + (game.isBigBangUnlocked()
                             ? " L'espace et les Big Bangs en apportent d'autres : l'appui, la création, le rassemblement "
-                                    + "et la formation automatiques." : "")));
+                                    + "et la formation automatiques." : "")
+                    // Version 0.126 : où les réglages tiennent, sans rien dire de ce qui vient après le Big Bang.
+                    + " Vos réglages (la coupure générale, les ordres d'achat, le seuil de fusion, le verrou de l'appui, la "
+                    + "part d'espace laissée libre, les molécules favorites, les automatismes de matière noire allumés, les "
+                    + "pauses du collisionneur) tiennent d'une remise à zéro à l'autre (explosion, "
+                    + "Big Bang et au-delà) : seul « Recommencer de zéro », dans les réglages, les remet comme au début."));
             sections.add(new Section("Tableau périodique", "Une synthèse coûte des atomes et donne un élément. Chaque "
                     + "élément apporte un bonus, ses exemplaires le renforcent, et une famille réunie forme un ensemble. "
                     + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."));
@@ -147,16 +152,22 @@ final class HelpPane extends StackPane {
                     + "les branches, six liaisons, payées en matière noire, s'ouvrent par l'une ou l'autre des voies voisines ; "
                     + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
                     + "matières noires : seuls les prix rythment l'arbre. Les défis sont des "
-                    + "parties sous contrainte, avec une récompense qui reste. Au bout de l'arbre, cinq conditions "
-                    + "réunies déclenchent le Big Bang. Exploser nettement plus vite que la fois d'avant (en moins de "
+                    + "parties sous contrainte, avec une récompense qui reste. Au bout de l'arbre, les "
+                    + game.bigBangConditions().size() + " conditions du prochain Big Bang, une fois réunies, le "
+                    + "déclenchent. Exploser nettement plus vite que la fois d'avant (en moins de "
                     + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."));
         }
         if (game.isBigBangUnlocked()) {
-            sections.add(new Section("Big Bang", "Le Big Bang efface tout sauf les succès, et ouvre l'expansion : l'espace "
-                    + "grandit seul. Une molécule se crée avec des exemplaires du tableau périodique et de l'espace libre, "
-                    + "et reste pour toujours. À partir de " + Game.SUBSTANCE_MOLECULES + " molécules, une sorte se "
-                    + "rassemble ; les sortes rassemblées forment des assemblages, puis des astres, jusqu'à la galaxie, "
-                    + "l'amas de galaxies et l'univers. Chaque Big Bang refait donne un palier, jusqu'au cinquième."));
+            // Version 0.126 : ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
+            sections.add(new Section("Big Bang", "Le Big Bang remet la partie à zéro comme une explosion, et efface en plus "
+                    + "la matière noire en réserve et sa taille ; l'arbre de matière noire et les défis réussis ne restent "
+                    + "qu'avec les paliers qui les gardent (les bifurcations se rouvrent quand même). Restent les succès, les "
+                    + "records, le collisionneur et ce que l'onglet Big Bang a construit : molécules, astres, espace. Il ouvre l'expansion : l'espace grandit seul. Une molécule se crée avec des "
+                    + "exemplaires du tableau périodique et de l'espace libre, et reste d'un Big Bang à l'autre. À partir de "
+                    + Game.SUBSTANCE_MOLECULES + " molécules, une sorte se rassemble ; les sortes rassemblées forment des "
+                    + "assemblages, puis des astres, jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
+                    + "paliers, " + game.bigBangMilestones().size() + " en tout : une fois ouvert, un palier se paie en "
+                    + "particules ou en atomes, d'un clic sur sa carte, et agit dès lors."));
         } else {
             sections.add(new Section("La suite", "Elle se découvre en jouant : cette aide grandit avec la partie."));
         }
@@ -201,8 +212,8 @@ final class HelpPane extends StackPane {
                 + "production ou divise des prix par deux."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif. En attendant, il donne "
-                + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. Trois astres "
-                + "mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
+                + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "
+                + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "
                 + "Autour d'une étoile mûre, on range des planètes, de la plus proche à la plus lointaine, et des lunes, une par "
                 + "planète au plus. Un système est complet à " + Game.SYSTEM_MIN_PLANETS + " planètes ; la galaxie en demande "
@@ -213,7 +224,7 @@ final class HelpPane extends StackPane {
                 + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."));
         if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
                 + "destination, puis un voyage de 15 minutes à 8 heures ; plus il est long, plus le butin est riche par heure. À l'"
-                + "arrivée, la sonde attend à destination : un clic sur elle (ou la touche R) ouvre son butin, une carte par clic, ou tout d'un coup : des éléments "
+                + "arrivée, la sonde attend à destination : un clic sur elle" + claimKey(settings) + " ouvre son butin, une carte par clic, ou tout d'un coup : des éléments "
                 + "du rayon visé, de l'espace d'un coup, un sursaut qui double l'espace par seconde un moment, des échantillons. "
                 + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "
                 + "Rien ne se perd si l'on revient tard, ni au Big Bang."));
@@ -227,6 +238,12 @@ final class HelpPane extends StackPane {
                 + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
         return sections;
+    }
+
+    /** « (ou la touche R) » : la touche réglée pour réclamer un butin de sonde, rien si elle n'en a pas (version 0.126). */
+    private static String claimKey(Settings settings) {
+        KeyCode key = settings.shortcuts() ? settings.key(Shortcuts.Action.CLAIM) : null;
+        return key == null ? "" : " (ou la touche " + Shortcuts.name(key) + ")";
     }
 
     /** La liste des raccourcis avec leurs touches du moment, un par ligne. */

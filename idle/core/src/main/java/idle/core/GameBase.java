@@ -131,7 +131,7 @@ public abstract class GameBase {
      */
     public static final double TEMPO = 12;
 
-    /** Vitesse de départ d'un générateur : deux particules par seconde. */
+    /** Vitesse de départ d'un générateur : 0,25 × {@link #TEMPO}, soit trois particules par seconde. */
     public static final BigNum BASE_SPEED = BigNum.of(0.25 * TEMPO);
     /**
      * Le premier élan (version 0.095, par paliers depuis la 0.096) : dans la toute première partie,
@@ -219,11 +219,6 @@ public abstract class GameBase {
         return done;
     }
 
-    /** La récompense propre d'un défi de Big Bang de la 0.117, lisible des couches basses : {@code factor} s'il est réussi, 1 sinon. */
-    double bangCompletedFactor(idle.core.bigbang.BangChallenge challenge, double factor) {
-        return state.completedBangChallenges().contains(challenge.name()) ? factor : 1;
-    }
-
     /** Un bonus des défis de Big Bang : {@code base} à la puissance du nombre de défis réussis. */
     public double universeBangFactor(double base) {
         return Math.pow(base, universeBangChallenges());
@@ -278,7 +273,7 @@ public abstract class GameBase {
         return raisedBar() ? BIG_BANG_DARK_MATTER.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : BIG_BANG_DARK_MATTER;
     }
 
-    /** Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les cinquante du jeu. */
+    /** Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les soixante-sept du jeu. */
     public static final int BIG_BANG_ACHIEVEMENTS = 40;
 
     /** Espace que l'expansion de la matière ajoute chaque seconde, pour chaque Big Bang déclenché. */
@@ -425,7 +420,7 @@ public abstract class GameBase {
     /**
      * Élan que chaque unité de matière noire donne à la croissance de sa taille, par seconde
      * d'appui, avant le facteur d'avancement (0.003 = +0,3 % par seconde tant qu'elle a la taille
-     * d'un proton). Voir {@link #darkMatterGrowthPerSecond()}. Réglé pour des parties d'un jour :
+     * d'un proton). Voir {@link #darkMatterGrowthPerSecond()}. Réglé pour des parties d'un jour (avant le tempo ; quelques heures depuis) :
      * l'année-lumière est atteinte vers la cinquième explosion.
      */
     public static final double DARK_MATTER_GROWTH_PER_UNIT = 0.003;

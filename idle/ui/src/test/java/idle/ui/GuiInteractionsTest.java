@@ -25,6 +25,10 @@ class GuiInteractionsTest {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         g.start();g.state().setBigBangs(8);
+        // Version 0.124 : un palier de Big Bang ne compte qu'une fois payé (création automatique des molécules au 2e).
+        // Remis en 0.126 : la copie de la 0.125 avait effacé ce correctif du 22 octobre (2b1a1f7).
+        for(idle.core.bigbang.BigBangMilestone milestone:idle.core.bigbang.BigBangMilestones.DEFAULT)
+            g.state().addBoughtMilestone(milestone.name());
         for(SpaceUpgrade upgrade:g.spaceUpgrades())
             if(!(upgrade.effect() instanceof SpaceUpgrade.Boost))g.state().addSpaceUpgrade(upgrade.id());
         assertTrue(g.isStateCapUnlocked());

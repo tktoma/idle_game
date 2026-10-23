@@ -281,7 +281,7 @@ public final class GameApp extends GameAppTabs {
         boolean goal = settings.showGoal() && game.isStarted();
         // Après un premier Big Bang, deux objectifs se suivent de front : celui de la partie, et celui du troisième acte.
         String act = goal ? Goals.act(game) : "";
-        // Entre les deux, l'avancée du prochain Big Bang : ses cinq conditions, sans ouvrir l'arbre.
+        // Entre les deux, l'avancée du prochain Big Bang : ses conditions, sans ouvrir l'arbre.
         String bang = goal ? NextReset.bigBangProgress(game) : "";
         // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
         String chrono = goal && settings.chrono() ? Goals.chrono(game) : "";

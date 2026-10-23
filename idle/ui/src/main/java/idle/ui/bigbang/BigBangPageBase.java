@@ -508,7 +508,7 @@ public abstract class BigBangPageBase extends VBox {
     final TileGrid upgradesGrid = new TileGrid(230, 3, 8);
     final Map<SpaceUpgrade, Card> upgradeCards = new LinkedHashMap<>();
 
-    // Sous-page « Paliers » : les cinq paliers de Big Bang
+    // Sous-page « Paliers » : les paliers de Big Bang
     private final VBox milestonesPane = new VBox(10);
     final ScrollPane milestonesScroll = new ScrollPane(milestonesPane);
     final Label milestonesIntro = new Label();

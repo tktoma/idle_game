@@ -340,6 +340,23 @@ class BotsTest {
     }
 
     @Test
+    void uneVictoireEcriteParLeMoteurActuelEstUneVictoire(@TempDir Path out) throws Exception {
+        // Version 0.126 : l'univers formé remet tout à zéro ; la victoire reste celle du jeu, l'univers formé.
+        Game won = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
+        won.start();
+        won.testFormUniverse();
+        assertEquals(0, won.bigBangs(), "la remise à zéro de l'univers a eu lieu");
+        Path winner = out.resolve("winner.save");
+        Files.writeString(winner, SaveCodec.write(won.state(), 0));
+        VerifyVictory.main(new String[] {winner.toString()});
+        Game lost = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
+        lost.start();
+        Path loser = out.resolve("loser.save");
+        Files.writeString(loser, SaveCodec.write(lost.state(), 0));
+        org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class, () -> VerifyVictory.main(new String[] {loser.toString()}));
+    }
+
+    @Test
     void leBotV2TourneSurLeMoteurActuel(@TempDir Path out) throws Exception {
         AdvancedLab.main(new String[] {"DEPENDANCES", "sauvegardes/reference/checkpoint_before_eighth.save", "0.05", "20", "42", out.toString()});
         assertTrue(Files.exists(out.resolve("result.csv")));

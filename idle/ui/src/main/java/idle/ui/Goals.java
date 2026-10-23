@@ -174,8 +174,10 @@ public final class Goals {
     public static String article(String name) {
         if (name.equals("Soleil")) return "le Soleil";
         String lower = name.toLowerCase(java.util.Locale.ROOT);
+        // Version 0.126 : les nébuleuses aussi (« une nébuleuse planétaire », pas « un »).
         boolean feminine = lower.startsWith("comète") || lower.startsWith("lune") || lower.startsWith("planète")
-                || lower.startsWith("géante") || lower.startsWith("naine") || lower.startsWith("étoile");
+                || lower.startsWith("géante") || lower.startsWith("naine") || lower.startsWith("étoile")
+                || lower.startsWith("nébuleuse");
         return (feminine ? "une " : "un ") + lower;
     }
 

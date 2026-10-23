@@ -21,6 +21,9 @@ import java.util.Set;
  *       l'explosion, ni le Big Bang ne les remettent à zéro ;</li>
  *   <li>ceux dont le nom commence par {@code run} courent <b>depuis la dernière explosion</b>
  *       (depuis le début tant qu'il n'y en a pas eu) : {@link #endRun()} les remet à zéro.</li>
+ *   <li>les dates d'étapes existent en deux exemplaires : la première fois depuis le début du jeu
+ *       ({@link #reachedAt(Step)}) et la première fois dans la partie en cours
+ *       ({@link #reachedThisUniverseAt(Step)}), qui repart à chaque nouvelle partie des trois actes.</li>
  * </ul>
  *
  * <p>Seul {@link Game} modifie ces compteurs : les méthodes qui écrivent ne sont pas publiques.
@@ -84,6 +87,10 @@ public final class GameStats {
     private int biggestCreation = 0;
     private long moleculeElementsSpent = 0;
     private final Map<Step, Double> steps = new EnumMap<>(Step.class);
+    // Les étapes de la partie en cours (version 0.126) : la date des grandes premières recommence à chaque nouvelle
+    // partie qui traverse les trois actes, pour que les délais, les records et la prochaine étape s'y rapportent.
+    private final Map<Step, Double> universeSteps = new EnumMap<>(Step.class);
+    private double universeStart = 0;
 
     // ----- Historique et mémoire des déblocages -----
     private final StatsHistory history = new StatsHistory();
@@ -353,6 +360,27 @@ public final class GameStats {
         return steps.getOrDefault(step, Double.NaN);
     }
 
+    /**
+     * Vrai une fois cette étape atteinte dans la partie en cours (version 0.126). {@link #reached(Step)} dit, lui,
+     * si elle l'a été une fois depuis le début du jeu.
+     */
+    public boolean reachedThisUniverse(Step step) {
+        return universeSteps.containsKey(step);
+    }
+
+    /** Temps de jeu auquel cette étape a été atteinte dans la partie en cours ({@code NaN} tant qu'elle ne l'est pas). */
+    public double reachedThisUniverseAt(Step step) {
+        return universeSteps.getOrDefault(step, Double.NaN);
+    }
+
+    /**
+     * Temps de jeu auquel la partie en cours a commencé : 0 pour la première. {@code NaN} pour une sauvegarde
+     * d'avant la version 0.126 déjà au-delà de la première partie : son début n'a pas été noté.
+     */
+    public double universeStart() {
+        return universeStart;
+    }
+
     /** L'historique du jeu entier : ses instants sont comptés en temps de jeu depuis le début. */
     public StatsHistory history() {
         return history;
@@ -422,6 +450,10 @@ public final class GameStats {
         Map<String, Double> reached = new java.util.LinkedHashMap<>();
         steps.forEach((step, time) -> reached.put(step.name(), time));
         data.putDoubles(prefix + "steps", reached);
+        Map<String, Double> reachedThisUniverseMap = new java.util.LinkedHashMap<>();
+        universeSteps.forEach((step, time) -> reachedThisUniverseMap.put(step.name(), time));
+        data.putDoubles(prefix + "universeSteps", reachedThisUniverseMap);
+        data.put(prefix + "universeStart", universeStart);
         data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
         data.put(prefix + "universeBigBangs", universeBigBangs);
         data.put(prefix + "universeMolecules", universeMolecules);
@@ -480,6 +512,13 @@ public final class GameStats {
                 if (step.name().equals(name)) steps.put(step, time);
             }
         });
+        universeSteps.clear();
+        data.doubles(prefix + "universeSteps").forEach((name, time) -> {
+            for (Step step : Step.values()) {
+                if (step.name().equals(name)) universeSteps.put(step, time);
+            }
+        });
+        universeStart = data.real(prefix + "universeStart", 0);
         unlockedOnce.clear();
         unlockedOnce.addAll(data.list(prefix + "unlockedOnce"));
         universeBigBangs = data.count(prefix + "universeBigBangs", 0);
@@ -503,9 +542,33 @@ public final class GameStats {
         bigBangTime += seconds;
     }
 
-    /** Une première du troisième acte vient d'être atteinte, à ce temps de jeu : seule la première fois compte. */
+    /**
+     * Une étape vient d'être atteinte, à ce temps de jeu : seule la première fois compte, une fois pour le jeu
+     * entier ({@link #reachedAt(Step)}) et une fois pour la partie en cours ({@link #reachedThisUniverseAt(Step)}).
+     */
     void noteStep(Step step, double timePlayed) {
         steps.putIfAbsent(step, timePlayed);
+        universeSteps.putIfAbsent(step, timePlayed);
+    }
+
+    /** Une nouvelle partie commence à ce temps de jeu (version 0.126) : ses étapes repartent de zéro. */
+    void startUniverseSteps(double timePlayed) {
+        universeSteps.clear();
+        universeStart = timePlayed;
+    }
+
+    /**
+     * Une sauvegarde d'avant la version 0.126 n'a que les premières du jeu entier. Tant que la première partie
+     * n'est pas finie, ce sont aussi celles de la partie en cours ; au-delà, on ne sait plus quand elle a commencé.
+     */
+    void adoptLegacySteps(boolean firstRun) {
+        universeSteps.clear();
+        if (firstRun) {
+            universeSteps.putAll(steps);
+            universeStart = 0;
+        } else {
+            universeStart = Double.NaN;
+        }
     }
 
     /** Un Big Bang vient d'avoir lieu : note sa durée et le nombre d'explosions qu'il a demandé. */

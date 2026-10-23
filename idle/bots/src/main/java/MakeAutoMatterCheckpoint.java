@@ -17,6 +17,8 @@ public final class MakeAutoMatterCheckpoint {
                 Achievements.DEFAULT,new Random(42));
         g.start();
         g.state().setBigBangs(8);
+        // Depuis la version 0.124, un palier atteint ne sert qu'une fois payé : celui de la création automatique compris.
+        for(BigBangMilestone milestone:g.bigBangMilestones())g.state().addBoughtMilestone(milestone.name());
         g.state().setSpace(BigNum.of(1,14));
         for(SpaceUpgrade u:g.spaceUpgrades())
             if(!(u.effect() instanceof SpaceUpgrade.Boost))g.state().addSpaceUpgrade(u.id());

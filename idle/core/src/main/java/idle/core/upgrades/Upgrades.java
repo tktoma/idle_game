@@ -25,7 +25,9 @@ import java.util.List;
  *
  * <p>La suite (atomes, automatismes, tableau périodique) a été réglée de la même façon, en
  * simulant plusieurs ordres d'achat sur toute la progression, avec huit tirages de hasard chacun.
- * La première explosion, celle qui donne la première matière noire, demande <b>environ un jour
+ * Mesures d'avant le tempo ({@link Game#TEMPO}) : depuis, la première explosion vient en environ 5 h pour le
+ * bot de référence (version 0.125) ; les repères ci-dessous gardent leurs proportions, pas leurs heures.
+ * À l'époque, la première explosion, celle qui donne la première matière noire, demandait <b>environ un jour
  * de jeu</b> à un joueur qui optimise : 24 h en moyenne, de 21 h 30 à 27 h 20 selon la chance. Un
  * joueur qui achète sans réfléchir met plutôt 27 h 30 à 30 h. Ces durées comptent les succès
  * qui tombent en chemin (une trentaine) et leurs bonus. Repères du meilleur ordre d'achat trouvé :
@@ -133,7 +135,8 @@ public final class Upgrades {
             // ----- Le lien entre les particules et les atomes. -----
 
             // +9 % d'atomes par fusion chaque fois que la production est multipliée par dix, à partir
-            // de quatre cents millions de particules par seconde (cinquante millions avant le tempo ×8). Sans lui, les particules ne serviraient
+            // de 50 millions × TEMPO particules par seconde, soit six cents millions (cinquante millions avant le
+            // tempo). Sans lui, les particules ne serviraient
             // plus à rien une fois les parties automatisées ; avec lui, tout ce qui augmente la
             // production (vitesse et ses paliers, couplage, surcharge, éléments, ensembles, succès)
             // finit par rapporter des atomes.

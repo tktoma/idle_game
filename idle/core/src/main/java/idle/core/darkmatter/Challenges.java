@@ -11,7 +11,7 @@ import java.util.List;
  *
  * <p>Les seuils de matière noire sont des seuils d'accès, pas des conseils. Un défi se rejoue
  * depuis le premier générateur, sans les mémoires de la matière noire, mais avec un tableau de
- * masse 1 ({@link Game#tableWeight()}) : tenté dès son ouverture, il est souvent plus court
+ * masse {@link Game#CHALLENGE_WEIGHT} (1 avant la version 0.097, {@link Game#tableWeight()}) : tenté dès son ouverture, il est souvent plus court
  * qu'une partie ordinaire du même moment, et sa première réussite rapporte la matière noire de
  * l'explosion. C'est un raccourci autant qu'une épreuve : les tenter tous dès leur ouverture
  * retire une dizaine d'heures au deuxième acte. Rejoué, il ne compte plus que pour son temps.

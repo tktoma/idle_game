@@ -227,8 +227,8 @@ public final class ChallengesPane extends VBox {
     /** Pour les défis qui jouent sur l'arbre (version 0.070) : les voies prises en ce moment. */
     private String paths(Challenge challenge) {
         if (challenge.rule() != Challenge.Rule.PRESENCE_ONLY && challenge.rule() != Challenge.Rule.ABSENCE_ONLY) return "";
-        return "\nVoies prises : " + game.darkVoiesOwned(Game.Style.PRESENCE) + " de présence, "
-                + game.darkVoiesOwned(Game.Style.ABSENCE) + " d'absence.";
+        return "\nVoies prises : " + game.darkPathsOwned(Game.Style.PRESENCE) + " de présence, "
+                + game.darkPathsOwned(Game.Style.ABSENCE) + " d'absence.";
     }
 
     /** La contrainte d'un défi, en quelques mots : la ligne de sa carte. */
@@ -312,8 +312,9 @@ public final class ChallengesPane extends VBox {
             case STRONGER_ABSENCE -> "les voies d'absence comptent double, et ce qu'elles rendent du temps d'absence aussi";
             case STRONGER_LINKS -> "les liaisons et les accords comptent double";
             case EXTRA_DARK_MATTER -> "une matière noire de plus à chaque explosion";
-            case BIG_BANG_CALM -> "le calme du Big Bang : tant que vous n'achetez aucune amélioration vous-même, les particules "
-                    + "qu'il demande baissent peu à peu, jusqu'à une seule au bout d'une heure ; les automatismes peuvent continuer";
+            case BIG_BANG_CALM -> "le calme du Big Bang : tant qu'aucune amélioration n'est achetée, ni par vous ni par les "
+                    + "automatismes, les particules qu'il demande baissent peu à peu, jusqu'à une seule au bout d'une heure ; "
+                    + "pour en profiter, coupez les automatismes";
         };
     }
 }

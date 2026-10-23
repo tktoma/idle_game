@@ -44,7 +44,7 @@ public final class Absence {
      * @param space             espace gagné
      * @param moleculeCreations créations de molécules
      * @param achievements      succès obtenus
-     * @param voies             voies d'absence que l'arbre a prises seul (version 0.073)
+     * @param paths             voies d'absence que l'arbre a prises seul (version 0.073)
      * @param challengesStarted défis que l'accord d'absence a lancés, dans l'ordre (version 0.073)
      * @param challengesDone    défis réussis pendant l'absence
      * @param challengeRunning  le défi en cours au retour, ou {@code null}
@@ -52,22 +52,22 @@ public final class Absence {
      */
     public record Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                          BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
-                         long moleculeCreations, int achievements, java.util.List<String> voies,
+                         long moleculeCreations, int achievements, java.util.List<String> paths,
                          java.util.List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
 
         /** Un bilan sans sondes : celui d'avant la 0.086. */
         public Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
                       BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
-                      long moleculeCreations, int achievements, java.util.List<String> voies,
+                      long moleculeCreations, int achievements, java.util.List<String> paths,
                       java.util.List<String> challengesStarted, int challengesDone, String challengeRunning) {
             this(away, counted, rate, played, skipped, particles, atoms, fusions, syntheses, elements, explosions, space,
-                    moleculeCreations, achievements, voies, challengesStarted, challengesDone, challengeRunning, 0);
+                    moleculeCreations, achievements, paths, challengesStarted, challengesDone, challengeRunning, 0);
         }
 
         /** Vrai si l'absence n'a rien rapporté du tout : il n'y a alors rien à annoncer. */
         public boolean isEmpty() {
             return particles.isZero() && atoms.isZero() && fusions == 0 && syntheses == 0 && explosions == 0
-                    && space.isZero() && moleculeCreations == 0 && achievements == 0 && voies.isEmpty()
+                    && space.isZero() && moleculeCreations == 0 && achievements == 0 && paths.isEmpty()
                     && challengesStarted.isEmpty() && challengesDone == 0 && probeTrips == 0;
         }
     }
@@ -91,7 +91,7 @@ public final class Absence {
     private final long creationsBefore;
     private final int achievementsBefore;
     private final int challengesBefore;
-    private final java.util.List<String> voies = new java.util.ArrayList<>();
+    private final java.util.List<String> paths = new java.util.ArrayList<>();
     private final java.util.List<String> challengesStarted = new java.util.ArrayList<>();
 
     /**
@@ -114,7 +114,7 @@ public final class Absence {
         creationsBefore = stats.moleculeCreations();
         achievementsBefore = game.state().achievements().size();
         challengesBefore = game.completedChallenges();
-        game.takeAwayVoies();
+        game.takeAwayPaths();
         game.takeAwayChallenges();
         game.takeAwayProbeTrips();
     }
@@ -162,7 +162,7 @@ public final class Absence {
             game.tickAway(part);
             done += part;
         }
-        voies.addAll(game.takeAwayVoies());
+        paths.addAll(game.takeAwayPaths());
         challengesStarted.addAll(game.takeAwayChallenges());
         probeTrips += game.takeAwayProbeTrips();
     }
@@ -191,7 +191,7 @@ public final class Absence {
                 stats.fusions() - fusionsBefore, stats.syntheses() - synthesesBefore,
                 stats.elementsObtained() - elementsBefore, stats.timedExplosions() - explosionsBefore,
                 gain(game.state().space(), spaceBefore), stats.moleculeCreations() - creationsBefore,
-                Math.max(0, game.state().achievements().size() - achievementsBefore), java.util.List.copyOf(voies),
+                Math.max(0, game.state().achievements().size() - achievementsBefore), java.util.List.copyOf(paths),
                 java.util.List.copyOf(challengesStarted), Math.max(0, game.completedChallenges() - challengesBefore),
                 game.activeChallenge() == null ? null : game.activeChallenge().name(), probeTrips);
     }

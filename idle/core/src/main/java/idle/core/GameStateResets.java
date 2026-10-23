@@ -250,12 +250,12 @@ public abstract class GameStateResets extends GameStateCollider {
         darkVersion++;
     }
 
-    /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
     /** Version des niveaux de l'arbre : change dès qu'un niveau change. */
     public int darkVersion() {
         return darkVersion;
     }
 
+    /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
     public Map<String, Integer> darkUpgradeLevels() {
         return Map.copyOf(darkUpgradeLevels);
     }

@@ -2,7 +2,9 @@
 """Compare ON/OFF de l'automatisation des besoins de matière sans changer les autres règles."""
 import pathlib,subprocess,sys,csv,argparse,os
 R=pathlib.Path(__file__).resolve().parent.parent
-p=argparse.ArgumentParser();p.add_argument('save',nargs='?',default=str(R/'sauvegardes/reference/checkpoint_auto_matiere_ab.save'));p.add_argument('--hours',type=float,default=12);p.add_argument('--step',type=float,default=20);p.add_argument('--seed',type=int,default=42);p.add_argument('--out',default=str(R/'sorties/ab_matiere'));p.add_argument('--full',action='store_true',help='Comparer deux parties complets avec le bot DEPENDANCES')
+# La sauvegarde synthétique se fabrique à la demande dans sorties/ (ignoré par git) : dans sauvegardes/reference, elle
+# ferait une 34e sauvegarde que BotsTest ne compte pas (version 0.126).
+p=argparse.ArgumentParser();p.add_argument('save',nargs='?',default=str(R/'sorties/ab_matiere/checkpoint_auto_matiere_ab.save'));p.add_argument('--hours',type=float,default=12);p.add_argument('--step',type=float,default=20);p.add_argument('--seed',type=int,default=42);p.add_argument('--out',default=str(R/'sorties/ab_matiere'));p.add_argument('--full',action='store_true',help='Comparer deux parties complets avec le bot DEPENDANCES')
 a=p.parse_args()
 out=pathlib.Path(a.out).resolve();out.mkdir(parents=True,exist_ok=True)
 subprocess.run([sys.executable,str(R/'run.py'),'build'],cwd=R,check=True)

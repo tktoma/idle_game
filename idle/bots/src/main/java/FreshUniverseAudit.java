@@ -17,6 +17,10 @@ import java.util.Random;
  *
  * Fin d'un essai : univers forme, garde-fou BLOCKED/INVALID, erreur, ou limite
  * de securite en heures simulees. Cette derniere n'est PAS une victoire.
+ *
+ * <p>Version 0.126 : par defaut, la campagne n'echoue que sur un vrai probleme (BLOCKED ou ERROR) ; un
+ * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
+ * argument {@code strict} exige au contraire que chaque profil forme son univers.
  */
 public final class FreshUniverseAudit {
     private FreshUniverseAudit() {}
@@ -71,10 +75,11 @@ public final class FreshUniverseAudit {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 5) {
+        if (args.length != 5 && args.length != 6) {
             throw new IllegalArgumentException(
-                    "Usage: firstId lastId maxWallHours stepSeconds outputDirectory");
+                    "Usage: firstId lastId maxWallHours stepSeconds outputDirectory [strict]");
         }
+        boolean strict = args.length == 6 && Boolean.parseBoolean(args[5]);
         int first = Integer.parseInt(args[0]);
         int last = Integer.parseInt(args[1]);
         double maxHours = Double.parseDouble(args[2]);
@@ -159,10 +164,16 @@ public final class FreshUniverseAudit {
                 "FRESH_AUDIT_BILAN,segment=%d-%d,victoires=%d,bloques=%d,"
                 + "limites=%d,erreurs=%d%n",
                 first, last, wins, blocked, limits, errors);
-        if (wins != last - first + 1) {
+        // L'avertissement d'abord : il reste dans le journal meme quand un blocage fait echouer le segment.
+        if (limits > 0) {
+            System.out.printf(Locale.ROOT, "FRESH_AUDIT_AVERTISSEMENT,%d profil(s) au plafond de %.0f h sans univers :"
+                    + " trop lents, pas bloques. Relancer avec strict=true pour en faire un echec.%n", limits, maxHours);
+        }
+        if (blocked + errors > 0 || (strict && wins != last - first + 1)) {
             throw new IllegalStateException(
                     "Campagne non validee : " + wins + "/" + (last - first + 1)
-                    + " univers termines. Lire les diagnostics et les CSV sauvegardes.");
+                    + " univers termines, " + blocked + " bloques, " + errors + " erreurs"
+                    + (strict ? " (mode strict)" : "") + ". Lire les diagnostics et les CSV sauvegardes.");
         }
     }
 }

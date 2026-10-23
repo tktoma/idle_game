@@ -62,8 +62,11 @@ public final class AutomationPage extends VBox {
     private final Label balanceLabel = new Label();
     /** Coupe ou relance tous les automatismes d'un geste, et le dit tant qu'ils sont coupés. */
     private final Button pauseButton = new Button();
-    private final Label pauseNote = new Label("Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand "
-            + "vous les relancez. Le verrou de l'appui, lui, continue : ce n'est pas un automatisme.");
+    private final Label pauseNote = new Label(PAUSE_NOTE);
+    /** Version 0.126 : la coupure générale tient d'une remise à zéro à l'autre, comme les autres réglages. */
+    private static final String PAUSE_NOTE = "Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand "
+            + "vous les relancez. Cette coupure tient d'une remise à zéro à l'autre ; seul « Recommencer de zéro » la lève. Le verrou de "
+            + "l'appui, lui, continue : ce n'est pas un automatisme.";
 
     // Les automatismes ordinaires.
     private final Label ordinaryHint = new Label();
@@ -515,8 +518,7 @@ public final class AutomationPage extends VBox {
         pauseNote.setText(handOnly
                 ? "Défi de Big Bang « À la main » : les automatismes de matière noire et ceux du Big Bang ne font rien jusqu'au "
                         + "prochain Big Bang. Leurs réglages restent."
-                : "Tous les automatismes sont coupés. Chacun garde son réglage, et repart quand vous les relancez. Le verrou "
-                        + "de l'appui, lui, continue : ce n'est pas un automatisme.");
+                : PAUSE_NOTE);
         // Coupés, les automatismes s'estompent : leurs cartes disent toujours leur réglage, pas ce qu'ils font.
         double shade = paused ? 0.45 : 1;
         rows.values().forEach(row -> row.setOpacity(shade));

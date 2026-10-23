@@ -907,7 +907,7 @@ public abstract class GameMolecules extends GameUniverse {
     // La galaxie : tous les astres, rassemblés autour du trou noir supermassif
     // ------------------------------------------------------------------
 
-    /** Ce que la galaxie ajoute à chacune des grandeurs une fois formée (1 024 = +102 400 %) : le double du trou noir supermassif. */
+    /** Ce par quoi la galaxie multiplie chacune des grandeurs une fois formée ({@link Cosmos#factor()}, ×4 depuis la 0.068). */
     public static final double GALAXY_FACTOR = Cosmos.GALAXY.factor();
 
     /** Nombre d'astres de cette échelle dans le catalogue. */

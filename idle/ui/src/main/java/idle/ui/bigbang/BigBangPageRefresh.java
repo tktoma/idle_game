@@ -118,7 +118,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         }
     }
 
-    /** Les cinq paliers de Big Bang : ceux qui sont atteints, le prochain, et ceux qui attendent. */
+    /** Les paliers de Big Bang (onze depuis la 0.054, payants depuis la 0.124) : atteints, le prochain, et ceux qui attendent. */
     private void refreshMilestones() {
         int count = game.bigBangs();
         BigBangMilestone next = game.nextBigBangMilestone();

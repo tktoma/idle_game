@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Ce que rapportera la prochaine remise à zéro, pour qu'elle se lise comme une accélération et
  * non comme une perte : ce que la matière noire de la prochaine explosion ouvrira, le palier que
- * donnera le prochain Big Bang, et ce qu'il manque encore à ses cinq conditions.
+ * donnera le prochain Big Bang, et ce qu'il manque encore à ses conditions (cinq, six avec le ciel).
  *
  * <p>Rien n'est calculé ici que les règles ne sachent déjà : ce sont des phrases, faites avec ce
  * que {@link Game} expose.

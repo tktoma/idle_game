@@ -52,7 +52,7 @@ import javafx.scene.text.TextAlignment;
  *
  * <p>Tout en bas, là où les branches se rejoignent, la case du Big Bang ({@link Game#bigBang()}).
  * Elle se paie avec les trois ressources à la fois et demande des succès et tous les défis : elle
- * liste ses cinq conditions, avec ce que le joueur en a. Comme elle efface tout, elle demande un
+ * liste ses conditions (cinq, six avec le ciel), avec ce que le joueur en a. Comme elle efface tout, elle demande un
  * second clic dans les cinq secondes.
  */
 public final class DarkMatterTreePane extends Pane {
@@ -429,7 +429,7 @@ public final class DarkMatterTreePane extends Pane {
                 boolean absence = game.darkStyle(upgrade) == Game.Style.ABSENCE;
                 cell.card.show(rival != null ? Card.State.LOCKED : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
                         "", rival != null ? "fermée" : planned(upgrade) ? "prévue" : both ? "les 2 voies" : absence ? "absence" : "présence",
-                        upgrade.name(), DarkText.brief(upgrade.effect(), game) + (absence ? "\nAbsence +" + ElementText.number(Game.ABSENCE_VOIE_BONUS * 100) + " points" : ""),
+                        upgrade.name(), DarkText.brief(upgrade.effect(), game) + (absence ? absenceBrief() : ""),
                         Detail.shown() ? DarkText.describe(upgrade.effect(), game) + style(upgrade) + opensText(upgrade) + (both
                                 ? ". Une bifurcation, ouverte des deux côtés par la Superposition du collisionneur : les deux voies se prennent et restent au Big Bang."
                                 : ". Une bifurcation : prendre cette voie ferme l'autre jusqu'au prochain Big Bang, où le choix se refait. "
@@ -489,11 +489,21 @@ public final class DarkMatterTreePane extends Pane {
         return names == null ? "" : ". Ouvre, sous l'arbre : " + String.join(", ", names);
     }
 
+    /**
+     * Ce qu'une voie d'absence ajoute au temps rejoué, en une ligne. Version 0.126 : une fois tout le temps d'absence
+     * rejoué (l'univers formé), elle n'ajoute plus rien, et la carte le dit.
+     */
+    private String absenceBrief() {
+        return game.offlineRate() >= 1 ? "\nAbsence : déjà 100 % rejoué"
+                : "\nAbsence +" + ElementText.number(Game.ABSENCE_PATH_BONUS * 100) + " points";
+    }
+
     /** Ce que dit le style d'une voie (version 0.070), en mode détails. */
     private String style(DarkUpgrade upgrade) {
         return game.darkStyle(upgrade) == Game.Style.ABSENCE
                 ? ". Voie d'absence : un peu moins forte tant que vous êtes là, mais elle rend "
-                        + ElementText.number(Game.ABSENCE_VOIE_BONUS * 100) + " points de plus du temps passé jeu fermé"
+                        + ElementText.number(Game.ABSENCE_PATH_BONUS * 100) + " points de plus du temps passé jeu fermé"
+                        + (game.offlineRate() >= 1 ? " (sans effet en ce moment : tout le temps d'absence est déjà rejoué)" : "")
                 : ". Voie de présence : la plus forte tant que vous êtes là, sans rien de plus en votre absence";
     }
 
@@ -540,7 +550,7 @@ public final class DarkMatterTreePane extends Pane {
         };
     }
 
-    /** La case du Big Bang : ses cinq conditions, et ce qu'un clic fera. */
+    /** La case du Big Bang : ses conditions (cinq, six avec le ciel), et ce qu'un clic fera. */
     private void refreshBang() {
         boolean ready = game.canBigBang();
         if (!ready) armedFor = 0;     // une condition vient de tomber : une explosion a repris les atomes, par exemple
@@ -565,7 +575,7 @@ public final class DarkMatterTreePane extends Pane {
                                 + "défis réussis restent : c'est le palier du troisième Big Bang. "
                         : "Le Big Bang efface tout, jusqu'à la matière noire, son arbre, ses automatismes et les "
                                 + "défis réussis. ")
-                + "Restent les succès, les records des défis, le temps de jeu et les statistiques"
+                + "Restent les succès, les records des défis, le temps de jeu, les statistiques, le collisionneur"
                 + (game.bigBangs() == 0 ? ". Il ouvre l'onglet Big Bang." : ", et tout ce que contient l'onglet Big Bang.");
         // Ce qu'il rapportera, juste sous ses conditions : une remise à zéro se lit d'abord par ce qu'elle donne.
         lines.append('\n').append(NextReset.bigBangGives(game));
@@ -595,7 +605,8 @@ public final class DarkMatterTreePane extends Pane {
                     // Le calme du Big Bang (version 0.114) : ce qu'il a déjà effacé du seuil, et ce qu'il reste à attendre.
                     + (game.bigBangCalmRelief() > 0 ? ", calme " + Math.round(100 * game.bigBangCalmRelief()) + " % : "
                             + (game.bigBangCalmRelief() >= 1 ? "plus rien à attendre"
-                            : "encore " + Format.wait(Game.BIG_BANG_CALM_SECONDS - game.state().upgradeCalm()) + " sans amélioration") : "");
+                            // Version 0.126 : le compteur du calme lui-même, que les achats des automatismes rompent aussi.
+                            : "encore " + Format.wait(Game.BIG_BANG_CALM_SECONDS - game.state().bangCalm()) + " sans aucun achat d'amélioration") : "");
             case ATOMS -> Format.count(game.bigBangAtoms()) + " atomes (" + Format.count(game.state().atoms()) + ")";
             case DARK_MATTER -> Format.count(game.bigBangDarkMatter()) + " matières noires en réserve ("
                     + Format.darkMatter(game.state().darkMatter()) + ")";

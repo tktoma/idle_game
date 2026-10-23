@@ -8,16 +8,25 @@ java {
 }
 
 group = "org.example"
-version = "1.0-SNAPSHOT"
+// La version du jeu (version 0.126) : la même partout, posée une fois dans le projet racine.
+version = rootProject.version
 
 repositories {
     mavenCentral()
 }
 
+// Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (groupe « Bots »). Depuis la
+// version 0.126, ils ne sont ajoutés qu'au lancement de « runTest » : ni « run » ni la distribution (installDist,
+// distZip) ne les emportent, comme le promet bots/README.md. Sans eux, le groupe « Bots » le dit et ne fait rien.
+val testProfileBots: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes { attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME)) }
+}
+
 dependencies {
     implementation(project(":ui"))
-    // Les bots (version 0.84) : le profil de test les fait jouer la partie en cours (groupe « Bots »).
-    runtimeOnly(project(":bots"))
+    testProfileBots(project(":bots"))
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -47,5 +56,6 @@ tasks.register("runTest") {
 tasks.named<JavaExec>("run") {
     if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "runTest" }) {
         args("--test")
+        classpath(testProfileBots)
     }
 }
