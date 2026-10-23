@@ -157,6 +157,11 @@ public final class GameState extends GameStateResets {
         data.put("cometVisible", cometVisible);
         data.put("cometBoost", cometBoost);
         data.put("cometsCaught", cometsCaught);
+        if (skyEvent != null) data.put("skyEvent", skyEvent);
+        data.put("skyEventVisible", skyEventVisible);
+        data.put("skyEventWait", skyEventWait);
+        data.put("windLeft", windLeft);
+        data.put("skyEventsCaught", skyEventsCaught);
         data.put("endSeen", endSeen);
         data.put("universeFormed", universeFormed);
         data.put("extraUniverses", extraUniverses);
@@ -386,6 +391,13 @@ public final class GameState extends GameStateResets {
         setCometVisible(data.real("cometVisible", 0));
         setCometBoost(data.real("cometBoost", 0));
         setCometsCaught(data.whole("cometsCaught", 0));
+        // Une anomalie d'une autre version est oubliée : elle repassera.
+        String event = data.text("skyEvent", null);
+        setSkyEvent(event != null && java.util.Arrays.stream(idle.core.sky.SkyEvent.values()).anyMatch(e -> e.name().equals(event)) ? event : null);
+        setSkyEventVisible(skyEvent == null ? 0 : data.real("skyEventVisible", 0));
+        setSkyEventWait(data.real("skyEventWait", 0));
+        setWindLeft(data.real("windLeft", 0));
+        setSkyEventsCaught(data.whole("skyEventsCaught", 0));
         // Une sauvegarde d'avant la 0.068 dont l'univers est déjà formé ne rouvre pas l'écran de fin.
         endSeen = data.flag("endSeen", data.whole("cosmos", 0) >= 3);
         // Une sauvegarde d'avant la 0.083 dont l'univers est formé : la remise à zéro se fera au chargement (Game.restored).

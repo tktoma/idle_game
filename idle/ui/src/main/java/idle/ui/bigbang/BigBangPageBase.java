@@ -251,6 +251,14 @@ public abstract class BigBangPageBase extends VBox {
         });
         expansionPane.getChildren().add(expansionNote);
         expansionPane.getChildren().add(cometButton);
+        skyEventButton.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6;"
+                + " -fx-border-radius: 6; -fx-text-fill: #10151f; -fx-background-color: #d9c8ff; -fx-border-color: #ffffff;");
+        skyEventButton.setFocusTraversable(false);
+        skyEventButton.setOnAction(event -> {
+            game.catchSkyEvent();
+            refresh();
+        });
+        expansionPane.getChildren().add(skyEventButton);
         expansionPane.getChildren().add(pulseButton);
         expansionPane.getChildren().add(viewPane);
         expansionPane.getChildren().add(zoomRow);
@@ -455,6 +463,10 @@ public abstract class BigBangPageBase extends VBox {
     final BangChallengesPane bangChallenges;
     /** La comète : le bouton qui la saisit, montré le temps qu'elle traverse l'expansion. */
     final Button cometButton = new Button();
+    /** L'anomalie du ciel à saisir (version 0.127), sous la comète. */
+    final Button skyEventButton = new Button();
+    /** Vrai si le joueur veut voir les anomalies du ciel (un réglage). */
+    java.util.function.BooleanSupplier skyEventsShown = () -> true;
     /** L'impulsion, sur la page Expansion et au-dessus des molécules : deux boutons, la même action. */
     final Button pulseButton = pulseButton();
     final Button moleculesPulseButton = pulseButton();

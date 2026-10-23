@@ -372,7 +372,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             entries.addAll(PopupPane.secondUniverse(game));
             popupEntries = List.copyOf(entries);
         }
-        boolean busy = absencePane.isVisible() || endPane.isOpen() || exploding
+        boolean busy = absencePane.isVisible() || endPane.isOpen() || transitionPane.isOpen() || exploding
                 || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying()) || darkMatterPage.isRevealing();
         // La matière noire rendue par les bifurcations rouvertes (version 0.126) : annoncée avec son montant.
         idle.core.math.BigNum refund = game.takeForkRefund();
@@ -389,24 +389,6 @@ public abstract class GameAppTabs extends GameAppWindow {
     /** Les fenêtres d'explication : pour les vérifications. */
     PopupPane popupPane() {
         return popupPane;
-    }
-
-    /** Le nom d'un onglet, sans compteur. */
-    private static String tabName(Tab tab) {
-        return switch (tab) {
-            case PARTICLES -> "Particules";
-            case ATOMS -> "Atomes";
-            case AUTOMATION -> "Automatisation";
-            case DARK_MATTER -> "Matière noire";
-            case COLLIDER -> "Collisionneur";
-            case BIG_BANG -> "Big Bang";
-            case UNIVERSE -> "Univers";
-            case VOID -> "Le vide";
-            case ACHIEVEMENTS -> "Succès";
-            case STATS -> "Statistiques";
-            case SETTINGS -> "Réglages";
-            case SKINS -> "Skins";
-        };
     }
 
     private static String tabColor(Tab tab) {
@@ -494,6 +476,7 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     /** Affiche un onglet et masque les autres. */
     void selectTab(Tab tab) {
+        if (tab != selectedTab && selectedTab != Tab.SETTINGS) gameTab = selectedTab;
         selectedTab = tab;
         // Le profil de test (version 0.122) : la barre d'outils ouvre le groupe de l'onglet affiché.
         if (debugBar != null) debugBar.followTab(tab.name());

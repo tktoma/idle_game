@@ -214,6 +214,7 @@ public final class Multipliers {
         add(factors, Aspect.COLLIDER, "Collisionneur", log(game.colliderParticlesMultiplier()));
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.PARTICLES)));
         add(factors, Aspect.UNIVERSE, "Cycle parfait", log(game.perfectCycleMultiplier()));
+        add(factors, Aspect.BIG_BANG, "Vent de particules", log(game.windMultiplier()));
         add(factors, Aspect.UNIVERSE, "Défis de Big Bang", log(game.universeBangFactor(Game.BANG_UNIVERSE_PARTICLES)));
         for (Upgrade upgrade : game.upgrades()) {
             int level = game.levelOf(upgrade.id());

@@ -82,8 +82,16 @@ final class Notifier {
     private double slowSeen = 1;
     private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
 
+    /** Vrai si le joueur veut voir les anomalies du ciel (version 0.127, un réglage). */
+    private java.util.function.BooleanSupplier skyEventsShown = () -> true;
+
     Notifier(Game game) {
         this.game = game;
+    }
+
+    /** Annonce ou tait les anomalies du ciel selon ce réglage. */
+    void showSkyEvents(java.util.function.BooleanSupplier shown) {
+        skyEventsShown = shown;
     }
 
     /** La partie vient d'être remplacée par une autre : le prochain relevé reprend ses repères sans rien annoncer. */
@@ -99,6 +107,7 @@ final class Notifier {
         int gathered = game.takeAutoGathered();
         List<String> formed = game.takeAutoFormed();
         boolean comet = game.takeCometAppeared();
+        boolean sky = game.takeSkyEventAppeared();
         boolean prime = game.takeSpeedPrime();
         List<GameStats.Step> records = game.takeNewRecords();
         List<Game.CollisionResult> collisions = game.takeFinishedCollisions();
@@ -216,6 +225,10 @@ final class Notifier {
         bangChallenge = game.activeBangChallenge();
         if (comet) {
             news.add("Une comète traverse l'expansion : " + (int) Game.COMET_VISIBLE_SECONDS + " secondes pour la saisir (Big Bang, Expansion de la matière)");
+        }
+        if (sky && skyEventsShown.getAsBoolean() && game.skyEvent() != null) {
+            news.add(game.skyEvent().label() + " dans l'expansion : " + Format.wait(Game.SKY_EVENT_VISIBLE_SECONDS)
+                    + " pour en profiter, si vous voulez (Big Bang, Expansion de la matière)");
         }
         for (GameStats.Step step : records) news.add("Record battu : " + step.label());
         // Une collection vient de passer la moitié de son rayon, ou d'être complétée.

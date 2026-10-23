@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.127", "Anomalies du ciel, guide d'univers, points de reprise", List.of(
+                    "Anomalies du ciel, facultatives : de temps en temps, un bouton apparaît trois minutes dans l'onglet "
+                            + "Big Bang. Le vent de particules double la création de particules pendant deux minutes ; la "
+                            + "fenêtre d'exploration avance de dix minutes les sondes en vol. Rien ne se perd à les ignorer, "
+                            + "et un réglage les masque tout à fait.",
+                    "Avant de former l'univers, et avant de lancer l'univers suivant, un guide dit exactement ce qui repart "
+                            + "de zéro, ce qui reste (succès, records, réglages, graines, dimensions, skins…) et ce que vous "
+                            + "gagnez. « Plus tard » ne change rien.",
+                    "Points de reprise : cinq emplacements nommés dans les réglages, en plus de la sauvegarde automatique. "
+                            + "Reprendre un point met d'abord la partie en cours de côté, pour revenir en arrière en cas d'erreur.",
+                    "L'export dit la version du jeu qui l'a écrit ; à l'import, un premier clic montre ce que contient la "
+                            + "partie collée (temps de jeu, Big Bangs, succès, univers), le second l'importe.",
+                    "Le rapport de bug dit aussi la graine du hasard de la session, l'onglet ouvert, l'étape atteinte, les "
+                            + "paliers payés ou en attente et le défi en cours, avec le début de la première erreur. Il ne "
+                            + "contient plus le chemin du fichier de sauvegarde ni le nom du compte.")),
             new Note("0.126", "Ce que le jeu dit, il le fait", List.of(
                     "Dans les univers suivants, l'amas de galaxies et l'univers attendent de nouveau deux heures de "
                             + "rassemblement chacun : le délai se compte depuis la galaxie de la partie en cours, plus depuis "

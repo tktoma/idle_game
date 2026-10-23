@@ -337,6 +337,7 @@ public final class Settings {
     private static final String SHOW_GOAL = "showGoal";
     private static final String STATE_SIGNS = "stateSigns";
     private static final String CHRONO = "chrono";
+    private static final String SKY_EVENTS = "skyEvents";
     private static final String SOUND = "sound";
     private static final String TABS_LEFT = "tabsLeft";
     private static final String TAB_ORDER = "tabOrder";
@@ -381,6 +382,7 @@ public final class Settings {
     private boolean showGoal = true;
     private boolean stateSigns = true;
     private boolean chrono = true;
+    private boolean skyEvents = true;
     private boolean sound = true;
     /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.057) ; sinon, la disposition d'avant. */
     private boolean tabsLeft = false;
@@ -472,6 +474,7 @@ public final class Settings {
                 settings.showGoal = store.getBoolean(SHOW_GOAL, true);
                 settings.stateSigns = store.getBoolean(STATE_SIGNS, true);
                 settings.chrono = store.getBoolean(CHRONO, true);
+                settings.skyEvents = store.getBoolean(SKY_EVENTS, true);
                 settings.shortcuts = store.getBoolean(SHORTCUTS, true);
                 settings.effects = store.getBoolean(EFFECTS, true);
                 settings.confirmExplosion = store.getBoolean(CONFIRM_EXPLOSION, true);
@@ -839,6 +842,19 @@ public final class Settings {
     public void setChrono(boolean chrono) {
         this.chrono = chrono;
         save(CHRONO, String.valueOf(chrono));
+    }
+
+    /**
+     * Vrai si les anomalies du ciel (version 0.127 : vent de particules, fenêtre d'exploration) sont montrées et
+     * annoncées. Coupées, elles passent sans se montrer : elles sont facultatives, rien n'en dépend.
+     */
+    public boolean skyEvents() {
+        return skyEvents;
+    }
+
+    public void setSkyEvents(boolean shown) {
+        this.skyEvents = shown;
+        save(SKY_EVENTS, String.valueOf(shown));
     }
 
     /** Vrai si les cartes écrivent le signe de leur état devant leur nom, pour le reconnaître sans la couleur. */

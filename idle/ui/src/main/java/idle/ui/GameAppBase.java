@@ -134,7 +134,29 @@ public abstract class GameAppBase extends Application {
     /** Les onglets du jeu. */
     enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
-    final Game game = new Game();
+    /** Le nom d'un onglet, sans compteur : sur les fenêtres d'explication, et dans le rapport de bug (version 0.127). */
+    static String tabName(Tab tab) {
+        return switch (tab) {
+            case PARTICLES -> "Particules";
+            case ATOMS -> "Atomes";
+            case AUTOMATION -> "Automatisation";
+            case DARK_MATTER -> "Matière noire";
+            case COLLIDER -> "Collisionneur";
+            case BIG_BANG -> "Big Bang";
+            case UNIVERSE -> "Univers";
+            case VOID -> "Le vide";
+            case ACHIEVEMENTS -> "Succès";
+            case STATS -> "Statistiques";
+            case SETTINGS -> "Réglages";
+            case SKINS -> "Skins";
+        };
+    }
+
+    /** La graine du hasard de cette session (version 0.127) : tirée au lancement, notée dans le rapport de bug. */
+    final long randomSeed = new java.security.SecureRandom().nextLong();
+    final Game game = new Game(randomSeed);
+    /** Vrai dans le profil de test ({@code --test}) : connu au lancement. */
+    boolean testProfile;
     final Settings settings = Settings.load();
     /**
      * Le fichier de sauvegarde. Celui que désignent les arguments du jeu n'est connu qu'au
@@ -246,6 +268,11 @@ public abstract class GameAppBase extends Application {
     VBox topBox;
     boolean tabsLeftApplied = false;
     Tab selectedTab = Tab.PARTICLES;
+    /**
+     * Le dernier onglet de jeu affiché avant les réglages (version 0.127) : le rapport de bug se copie depuis les
+     * réglages, c'est donc celui-là qu'il nomme, là où le joueur jouait.
+     */
+    Tab gameTab = Tab.PARTICLES;
     boolean narrow = false;
 
     // L'explosion : le bouton au-dessus des onglets, et ce qui recouvre la fenêtre pendant qu'elle a lieu.
@@ -261,6 +288,15 @@ public abstract class GameAppBase extends Application {
     // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
     final ToastPane toasts = new ToastPane();
     final Notifier notifier = new Notifier(game);
+    /** Le guide de transition entre univers (version 0.127). */
+    final TransitionPane transitionPane = new TransitionPane(game);
+    {
+        bigBangPage.galaxyPane().setUniverseConfirm(go -> transitionPane.open(false, go));
+        universePage.setLaunchConfirm(go -> transitionPane.open(true, go));
+        // Les anomalies du ciel (version 0.127) : montrées et annoncées seulement si le joueur le veut.
+        bigBangPage.showSkyEvents(settings::skyEvents);
+        notifier.showSkyEvents(settings::skyEvents);
+    }
     final Sound sound = new Sound();
     // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
     ScaledPane scaled;
@@ -503,7 +539,7 @@ public abstract class GameAppBase extends Application {
         });
         dock(Tab.STATS, statsPage, statsPage.subTabs());
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());
-        boolean testProfile = arguments.contains("--test");
+        testProfile = arguments.contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
             debugBar.setCosmetics(new DebugBar.CosmeticTools() {
@@ -539,7 +575,8 @@ public abstract class GameAppBase extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, popupPane, absencePane);
+        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, popupPane,
+                transitionPane, absencePane);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         scaled = new ScaledPane(window);
@@ -685,6 +722,67 @@ public abstract class GameAppBase extends Application {
         }
 
         @Override
+        public String previewImport() {
+            String text;
+            try {
+                text = Clipboard.getSystemClipboard().getString();
+            } catch (RuntimeException unavailable) {
+                return "Rien à importer : le presse-papiers n'est pas accessible.";
+            }
+            try {
+                SaveCodec.Preview preview = SaveCodec.preview(text);
+                String newer = !preview.meta().gameVersion().isEmpty() && SaveStore.compareVersions(preview.meta().gameVersion(), Version.CURRENT) > 0
+                        ? " Elle vient d'une version plus récente du jeu : ce qu'il ne connaît pas sera écarté." : "";
+                return "Dans le presse-papiers : " + SaveStore.describe(preview) + "." + newer
+                        + " Cliquer encore pour remplacer la partie en cours.";
+            } catch (SaveCodec.Unreadable unreadable) {
+                return "Rien à importer. " + unreadable.getMessage();
+            }
+        }
+
+        @Override
+        public int checkpointSlots() {
+            return SaveStore.MAX_CHECKPOINTS;
+        }
+
+        @Override
+        public String checkpointLine(int slot) {
+            SaveStore.Checkpoint point = store.checkpoint(slot);
+            if (point.used()) return SaveStore.describe(point.preview());
+            return point.problem().isEmpty() ? "vide" : "illisible : " + point.problem();
+        }
+
+        @Override
+        public boolean checkpointUsed(int slot) {
+            return store.checkpoint(slot).used();
+        }
+
+        @Override
+        public String saveCheckpoint(int slot, String name) {
+            if (!store.enabled()) return "Jeu lancé sans sauvegarde : aucun point ne s'écrit.";
+            return store.saveCheckpoint(game, slot, name) ? "Point " + slot + " enregistré." : "Le point n'a pas pu s'écrire : " + store.checkpointProblem();
+        }
+
+        @Override
+        public String loadCheckpoint(int slot) {
+            try {
+                int dropped = store.loadCheckpoint(game, slot);
+                afterLoad();
+                return "Partie reprise : " + Format.duration(game.state().timePlayed()) + " de jeu."
+                        + " La partie d'avant est mise de côté (« Avant la dernière reprise ») : la reprendre les échange de nouveau."
+                        + (dropped > 0 ? " " + dropped + " chose(s) que ce jeu ne connaît pas ont été écartées." : "");
+            } catch (SaveCodec.Unreadable unreadable) {
+                return "Rien n'a changé. " + unreadable.getMessage();
+            }
+        }
+
+        @Override
+        public String deleteCheckpoint(int slot) {
+            if (store.deleteCheckpoint(slot)) return "Point effacé.";
+            return store.checkpointProblem().isEmpty() ? "Rien à effacer." : "Le point n'a pas pu s'effacer : " + store.checkpointProblem();
+        }
+
+        @Override
         public String records() {
             int known = 0;
             for (GameStats.Step step : GameStats.Step.values()) {
@@ -705,7 +803,8 @@ public abstract class GameAppBase extends Application {
 
         @Override
         public String copyBugReport() {
-            return copy(BugReport.of(game, store)) ? "Rapport de bug copié dans le presse-papiers : il n'y a plus qu'à le coller."
+            return copy(BugReport.of(game, store, new BugReport.Session(randomSeed,
+                    tabName(selectedTab == Tab.SETTINGS ? gameTab : selectedTab), testProfile))) ? "Rapport de bug copié dans le presse-papiers : il n'y a plus qu'à le coller."
                     : "Le presse-papiers n'est pas accessible.";
         }
 

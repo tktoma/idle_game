@@ -131,6 +131,13 @@ public abstract class GameStateBase {
     double cometVisible = 0;
     double cometBoost = 0;
     int cometsCaught = 0;
+    // Les anomalies du ciel (version 0.127) : celle qui est à saisir, combien de temps encore, l'attente avant la
+    // suivante, le vent de particules en cours, et combien en ont été saisies.
+    String skyEvent = null;
+    double skyEventVisible = 0;
+    double skyEventWait = 0;
+    double windLeft = 0;
+    int skyEventsCaught = 0;
     /** Vrai une fois l'écran de fin vu (version 0.068) : il ne s'ouvre qu'une fois par partie. */
     boolean endSeen = false;
     // La partie secondaire (version 0.081), sans logique pour l'instant : les univers créés après le

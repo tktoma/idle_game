@@ -181,6 +181,7 @@ public abstract class GameAppWindow extends GameAppBase {
         popupPane.forget();
         absencePane.close();
         endPane.close();
+        transitionPane.close();
         exploding = false;
         explosionArmed = 0;
         blast.setVisible(false);
@@ -266,6 +267,7 @@ public abstract class GameAppWindow extends GameAppBase {
         save();
         absencePane.close();
         endPane.close();
+        transitionPane.close();
         helpPane.close();
         popupPane.forget();
         toasts.clear();
@@ -405,6 +407,13 @@ public abstract class GameAppWindow extends GameAppBase {
                 helpPane.close();
                 refresh();
             }
+            return true;
+        }
+        // Le guide de transition (version 0.127) prend le clavier : Échap le ferme sans rien changer, le reste attend.
+        if (transitionPane.isOpen()) {
+            if (code == KeyCode.ESCAPE) transitionPane.close();
+            // Entrée confirme, comme le bouton mis en avant : le guide se lit et se valide au clavier.
+            else if (code == KeyCode.ENTER) transitionPane.confirm();
             return true;
         }
         if (code == settings.detailKey()) {

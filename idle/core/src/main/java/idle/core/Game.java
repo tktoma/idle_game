@@ -83,6 +83,14 @@ public final class Game extends GameBigBang {
         this(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random());
     }
 
+    /**
+     * Nouvelle partie avec les catalogues par défaut, et un hasard de synthèse tiré de cette graine (version 0.127) :
+     * la fenêtre la note dans le rapport de bug, pour rejouer les mêmes tirages.
+     */
+    public Game(long seed) {
+        this(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
+    }
+
     /** Partie sans aucun automatisme au catalogue. */
     public Game(GameState state, List<Upgrade> catalog) {
         this(state, catalog, List.of());
@@ -178,6 +186,7 @@ public final class Game extends GameBigBang {
         elementBonusesVersion = -1;
         newSpaceUpgrades.clear();
         cometAppeared = false;
+        skyEventAppeared = false;
         speedPrimePaid = false;
         forkRefund = BigNum.ZERO;
         kindCountsVersion = -1;
@@ -345,6 +354,7 @@ public final class Game extends GameBigBang {
         expandSpace(dt);
         takeSpaceUpgrades();
         runComet(dt);
+        runSkyEvents(dt);
         refillPulses(dt);
         runCollider(dt);
         runProbes(dt);
@@ -395,11 +405,11 @@ public final class Game extends GameBigBang {
 
     /**
      * Le temps qu'il reste au plus court des bonus de production minutés en cours (surchauffe du collisionneur,
-     * régime rapide, prime de cycle parfait), en secondes ; 0 s'il n'y en a aucun.
+     * régime rapide, prime de cycle parfait, vent de particules), en secondes ; 0 s'il n'y en a aucun.
      */
     private double timedBonusLeft() {
         double left = Double.POSITIVE_INFINITY;
-        for (double timer : new double[] {state.overheatLeft(), state.regimeLeft(), state.perfectLeft()}) {
+        for (double timer : new double[] {state.overheatLeft(), state.regimeLeft(), state.perfectLeft(), state.windLeft()}) {
             if (timer > 0) left = Math.min(left, timer);
         }
         return Double.isInfinite(left) ? 0 : left;
@@ -420,6 +430,7 @@ public final class Game extends GameBigBang {
             state.setRegimeRest(state.regimeRest() - dt);
         }
         if (state.perfectLeft() > 0) state.setPerfectLeft(state.perfectLeft() - dt);
+        if (state.windLeft() > 0) state.setWindLeft(Math.max(0, state.windLeft() - dt));
     }
 
     /** Avance de {@code dt} secondes en considérant tous les bonus comme constants. */

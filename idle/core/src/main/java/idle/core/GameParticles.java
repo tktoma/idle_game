@@ -178,6 +178,132 @@ public abstract class GameParticles extends GameMatterAutomation {
         return true;
     }
 
+    // ------------------------------------------------------------------
+    // Les anomalies du ciel (version 0.127)
+    // ------------------------------------------------------------------
+
+    /** Attente entre deux anomalies du ciel, en secondes de jeu : de dix à vingt-cinq minutes. */
+    public static final double SKY_EVENT_MIN_WAIT = 10 * 60;
+    public static final double SKY_EVENT_MAX_WAIT = 25 * 60;
+    /** Temps pendant lequel une anomalie reste à saisir : trois minutes, de quoi la voir sans la guetter. */
+    public static final double SKY_EVENT_VISIBLE_SECONDS = 3 * 60;
+    /** Le vent de particules : ce par quoi il multiplie les particules, et combien de temps. */
+    public static final double WIND_FACTOR = 2;
+    public static final double WIND_SECONDS = 120;
+    /** La fenêtre d'exploration : ce qu'elle fait gagner aux sondes en vol, en secondes de voyage. */
+    public static final double EXPLORATION_SECONDS = 10 * 60;
+    boolean skyEventAppeared = false;
+
+    /**
+     * Fait passer le temps des anomalies du ciel. Après le premier Big Bang, une anomalie apparaît de temps en temps
+     * ({@link #SKY_EVENT_MIN_WAIT} à {@link #SKY_EVENT_MAX_WAIT}), reste {@link #SKY_EVENT_VISIBLE_SECONDS} secondes,
+     * puis s'en va. La fenêtre d'exploration ne vient que quand une sonde est en vol ; sinon, c'est un vent de
+     * particules. Rien ne se perd à la manquer. Le vent en cours s'écoule avec la production ({@code Game#runTimedBonuses}).
+     */
+    void runSkyEvents(double dt) {
+        if (dt <= 0 || !state.started() || !isBigBangUnlocked()) return;
+        double left = dt;
+        while (left > 1e-12) {
+            if (state.skyEvent() != null) {
+                double used = Math.min(left, state.skyEventVisible());
+                state.setSkyEventVisible(state.skyEventVisible() - used);
+                left -= used;
+                if (state.skyEventVisible() <= 1e-9) {
+                    state.setSkyEvent(null);
+                    state.setSkyEventVisible(0);
+                    state.setSkyEventWait(nextSkyEventWait());
+                }
+            } else {
+                if (state.skyEventWait() <= 0) state.setSkyEventWait(nextSkyEventWait());
+                double used = Math.min(left, state.skyEventWait());
+                state.setSkyEventWait(state.skyEventWait() - used);
+                left -= used;
+                if (state.skyEventWait() <= 1e-9) {
+                    state.setSkyEventWait(0);
+                    state.setSkyEvent(nextSkyEvent().name());
+                    state.setSkyEventVisible(SKY_EVENT_VISIBLE_SECONDS);
+                    skyEventAppeared = true;
+                }
+            }
+        }
+    }
+
+    /** Un nombre entre 0 et 1 qui se déduit du temps de jeu et des anomalies saisies, comme l'attente de la comète. */
+    private double skyMix(double salt) {
+        double mix = Math.sin(state.timePlayed() * 7.137 + state.skyEventsCaught() * 51.77 + salt) * 24634.6345;
+        return mix - Math.floor(mix);
+    }
+
+    private double nextSkyEventWait() {
+        return SKY_EVENT_MIN_WAIT + (SKY_EVENT_MAX_WAIT - SKY_EVENT_MIN_WAIT) * skyMix(0);
+    }
+
+    /** La prochaine anomalie : une chance sur deux d'une fenêtre d'exploration quand une sonde est en vol. */
+    private idle.core.sky.SkyEvent nextSkyEvent() {
+        boolean flying = state.probes().stream().anyMatch(probe -> !probe.landed());
+        return flying && skyMix(3.3) < 0.5 ? idle.core.sky.SkyEvent.EXPLORATION_WINDOW : idle.core.sky.SkyEvent.PARTICLE_WIND;
+    }
+
+    /** L'anomalie du ciel à saisir en ce moment, ou {@code null}. */
+    public idle.core.sky.SkyEvent skyEvent() {
+        if (!isBigBangUnlocked() || state.skyEvent() == null) return null;
+        for (idle.core.sky.SkyEvent event : idle.core.sky.SkyEvent.values()) {
+            if (event.name().equals(state.skyEvent())) return event;
+        }
+        return null;
+    }
+
+    /** Secondes pendant lesquelles l'anomalie reste à saisir ; 0 s'il n'y en a pas. */
+    public double skyEventVisibleFor() {
+        return skyEvent() == null ? 0 : state.skyEventVisible();
+    }
+
+    /**
+     * Saisit l'anomalie du ciel. Le vent de particules multiplie les particules par {@link #WIND_FACTOR} pendant
+     * {@link #WIND_SECONDS} secondes (relancé pour sa durée entière s'il soufflait déjà). La fenêtre d'exploration
+     * fait avancer chaque sonde en vol de {@link #EXPLORATION_SECONDS} secondes ; si plus aucune n'est en vol, elle
+     * laisse passer un vent de particules à la place.
+     *
+     * @return l'anomalie saisie, ou {@code null} s'il n'y en avait pas
+     */
+    public idle.core.sky.SkyEvent catchSkyEvent() {
+        idle.core.sky.SkyEvent event = skyEvent();
+        if (event == null) return null;
+        boolean explored = false;
+        if (event == idle.core.sky.SkyEvent.EXPLORATION_WINDOW) {
+            List<idle.core.probes.Probe> moved = new java.util.ArrayList<>();
+            for (idle.core.probes.Probe probe : state.probes()) {
+                if (probe.landed()) {
+                    moved.add(probe);
+                } else {
+                    explored = true;
+                    // Jamais tout à fait zéro : l'arrivée et son butin passent par le cours normal du voyage.
+                    moved.add(new idle.core.probes.Probe(probe.destination(), probe.trip(),
+                            Math.max(1e-6, probe.left() - EXPLORATION_SECONDS), probe.total(), probe.id()));
+                }
+            }
+            state.setProbes(moved);
+        }
+        if (!explored) state.setWindLeft(WIND_SECONDS);
+        state.setSkyEvent(null);
+        state.setSkyEventVisible(0);
+        state.setSkyEventsCaught(state.skyEventsCaught() + 1);
+        state.setSkyEventWait(nextSkyEventWait());
+        return explored ? event : idle.core.sky.SkyEvent.PARTICLE_WIND;
+    }
+
+    /** Ce par quoi le vent de particules multiplie les particules en ce moment : {@link #WIND_FACTOR}, ou 1. */
+    public double windMultiplier() {
+        return state.windLeft() > 0 ? WIND_FACTOR : 1;
+    }
+
+    /** Vrai si une anomalie du ciel vient d'apparaître depuis la dernière lecture : pour l'annoncer. */
+    public boolean takeSkyEventAppeared() {
+        boolean appeared = skyEventAppeared;
+        skyEventAppeared = false;
+        return appeared;
+    }
+
     /** Ce par quoi le sillage d'une comète multiplie l'expansion en ce moment : {@link #COMET_BOOST}, ou 1. */
     public double cometBoost() {
         return state.cometBoost() > 0 ? COMET_BOOST : 1;
@@ -439,9 +565,11 @@ public abstract class GameParticles extends GameMatterAutomation {
     private BigNum particlesWith(int generators) {
         BigNum raw = rawParticlesWith(generators);
         double power = systemsPower();
-        if (power <= 0) return raw;
+        // Le vent de particules (version 0.127) agit après les puissances : il double vraiment la création, sans
+        // s'élever avec elles.
+        if (power <= 0) return raw.multiply(windMultiplier());
         double base = speed().log10() + raw.log10();
-        return base > 0 ? raw.multiply(BigNum.pow10(power * base)) : raw;
+        return (base > 0 ? raw.multiply(BigNum.pow10(power * base)) : raw).multiply(windMultiplier());
     }
 
     // ------------------------------------------------------------------

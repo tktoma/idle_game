@@ -102,6 +102,27 @@ public final class SettingsPage extends VBox {
         /** Remplace la partie en cours par celle du presse-papiers. */
         String pasteImport();
 
+        /** Ce que contient la partie du presse-papiers, sans rien changer (version 0.127) ; ou pourquoi elle ne se lit pas. */
+        String previewImport();
+
+        /** Le nombre de points de reprise nommés (version 0.127). */
+        int checkpointSlots();
+
+        /** Ce que contient ce point de reprise, en une ligne ; « vide » s'il n'y a rien. Le numéro 0 est la mise de côté. */
+        String checkpointLine(int slot);
+
+        /** Vrai si ce point de reprise contient une partie. */
+        boolean checkpointUsed(int slot);
+
+        /** Écrit la partie en cours dans ce point, sous ce nom. */
+        String saveCheckpoint(int slot, String name);
+
+        /** Reprend la partie de ce point, après avoir mis la partie en cours de côté. */
+        String loadCheckpoint(int slot);
+
+        /** Efface ce point. */
+        String deleteCheckpoint(int slot);
+
         /** Copie le rapport de bug dans le presse-papiers. */
         String copyBugReport();
 
@@ -143,6 +164,19 @@ public final class SettingsPage extends VBox {
     private final Label saveNote = new Label();
     /** Secondes restantes pour confirmer l'import ; 0 quand il n'est pas demandé. */
     private double importArmed = 0;
+    /** Les points de reprise (version 0.127) : un nom à donner, et une ligne par emplacement. */
+    private final javafx.scene.control.TextField checkpointName = new javafx.scene.control.TextField();
+    private final List<Label> checkpointLabels = new ArrayList<>();
+    private final List<Button> checkpointSave = new ArrayList<>();
+    private final List<Button> checkpointLoad = new ArrayList<>();
+    private final List<Button> checkpointDelete = new ArrayList<>();
+    /** Le geste armé sur un point, attendant son second clic : « save:2 », « load:0 »… et le temps qu'il lui reste. */
+    private String checkpointArmed = "";
+    private double checkpointArmedFor = 0;
+    private String checkpointMessage = "";
+    private final Label checkpointNote = new Label();
+    /** Ce que contient la partie du presse-papiers, montré au premier clic sur « Importer ». */
+    private String importPreview = "";
     private final Button bugButton = new Button("Copier le rapport de bug");
     private String bugMessage = "";
     private final Label bugNote = new Label();
@@ -159,6 +193,7 @@ public final class SettingsPage extends VBox {
     private final Button goalButton = new Button();
     private final Button signsButton = new Button();
     private final Button chronoButton = new Button();
+    private final Button skyEventsButton = new Button();
     private final Button clearRecordsButton = new Button("Effacer les records");
     private final Label recordsLabel = new Label();
     private final Map<Settings.Notation, Button> notationButtons = new EnumMap<>(Settings.Notation.class);
@@ -563,11 +598,17 @@ public final class SettingsPage extends VBox {
             refresh();
         });
         importButton.setOnAction(event -> {
-            if (importArmed > 0) {
+            String seen = importPreview;
+            if (importArmed > 0 && saves.previewImport().equals(seen)) {
                 importArmed = 0;
+                importPreview = "";
                 saveMessage = saves.pasteImport();
             } else {
-                importArmed = RESET_CONFIRM_SECONDS;
+                // Le presse-papiers a changé depuis l'aperçu : on montre le nouveau, et c'est lui que le clic suivant importe.
+                // Version 0.127 : le premier clic montre ce que contient le presse-papiers, le second l'importe.
+                importPreview = saves.previewImport();
+                saveMessage = importPreview;
+                importArmed = importPreview.startsWith("Rien") ? 0 : RESET_CONFIRM_SECONDS;
             }
             refresh();
         });
@@ -575,6 +616,42 @@ public final class SettingsPage extends VBox {
         saveRow.setAlignment(Pos.CENTER);
         target.getChildren().add(saveRow);
         note(saveNote);
+
+        block("Points de reprise", "Jusqu'à " + saves.checkpointSlots() + " parties gardées à part, chacune sous un nom : "
+                + "avant un Big Bang risqué, avant de former l'univers… Reprendre un point remplace la partie en cours, mais "
+                + "celle-ci est d'abord mise de côté, dans « Avant la dernière reprise » : une reprise par erreur se défait "
+                + "(seule la dernière partie quittée y reste). "
+                + "Chaque geste demande un second clic.");
+        checkpointName.setPromptText("Nom du point (facultatif)");
+        checkpointName.setPrefWidth(320);
+        checkpointName.setMaxWidth(320);
+        checkpointName.setFocusTraversable(false);
+        HBox nameRow = new HBox(8, checkpointName);
+        nameRow.setAlignment(Pos.CENTER);
+        target.getChildren().add(nameRow);
+        for (int slot = 0; slot <= saves.checkpointSlots(); slot++) {
+            final int index = slot;
+            Label line = new Label();
+            line.setStyle("-fx-font-size: 12px; -fx-text-fill: #c9d1d9;");
+            line.setWrapText(true);
+            line.setMaxWidth(460);
+            Button store = new Button("Enregistrer ici");
+            Button load = new Button("Reprendre");
+            Button erase = new Button("Effacer");
+            for (Button button : List.of(store, load, erase)) button.setFocusTraversable(false);
+            store.setOnAction(event -> checkpointGesture("save", index));
+            load.setOnAction(event -> checkpointGesture("load", index));
+            erase.setOnAction(event -> checkpointGesture("delete", index));
+            checkpointLabels.add(line);
+            checkpointSave.add(store);
+            checkpointLoad.add(load);
+            checkpointDelete.add(erase);
+            // La mise de côté ne s'écrit pas à la main : elle se reprend ou s'efface seulement.
+            HBox row = slot == 0 ? new HBox(8, line, load, erase) : new HBox(8, line, store, load, erase);
+            row.setAlignment(Pos.CENTER);
+            target.getChildren().add(row);
+        }
+        note(checkpointNote);
 
         use(Section.GAME);
         block("Chrono et records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
@@ -596,6 +673,16 @@ public final class SettingsPage extends VBox {
         target.getChildren().add(recordsRow);
         note(recordsLabel);
 
+        block("Événements du ciel", "Après le premier Big Bang, de petites anomalies traversent parfois l'expansion, "
+                + "en plus des comètes : un vent de particules, une fenêtre d'exploration pour les sondes en vol. Elles "
+                + "restent quelques minutes ; les saisir donne un petit coup de pouce passager, les manquer ne coûte rien, "
+                + "et rien ne s'achète ni ne se débloque avec elles. Masquées, elles passent sans se montrer.");
+        skyEventsButton.setOnAction(event -> {
+            settings.setSkyEvents(!settings.skyEvents());
+            refresh();
+        });
+        target.getChildren().add(skyEventsButton);
+
         use(Section.SAVE);
         block("Recommencer de zéro",
                 "Efface toute la partie : particules, atomes, tableau périodique, matière noire, arbre et statistiques, "
@@ -615,8 +702,9 @@ public final class SettingsPage extends VBox {
         target.getChildren().add(resetButton);
 
         block("Rapport de bug", "Copie dans le presse-papiers de quoi reproduire un problème : la version du jeu, "
-                + "celle de Java et du système, la première erreur survenue s'il y en a eu une, et la partie elle-même. "
-                + "Rien n'est envoyé : c'est vous qui le collez où vous voulez.");
+                + "celle de Java et du système, la graine du hasard de la session, l'onglet ouvert, où en est la partie "
+                + "(étape, paliers payés, défi en cours), le début de la première erreur s'il y en a eu une, et la partie "
+                + "elle-même. Ni chemin de fichier ni nom de compte. Rien n'est envoyé : c'est vous qui le collez où vous voulez.");
         bugButton.setStyle(OFF_STYLE);
         bugButton.setOnAction(event -> {
             bugMessage = saves.copyBugReport();
@@ -640,6 +728,27 @@ public final class SettingsPage extends VBox {
         note(footer);
         footer.setStyle("-fx-font-size: 12px; -fx-padding: 18 0 0 0; -fx-text-fill: #8fa3b8;");
         select(Section.DISPLAY);
+    }
+
+    /** Un geste sur un point de reprise : le premier clic l'arme, le second le fait. */
+    private void checkpointGesture(String gesture, int slot) {
+        String key = gesture + ":" + slot;
+        if (!key.equals(checkpointArmed) || checkpointArmedFor <= 0) {
+            checkpointArmed = key;
+            checkpointArmedFor = RESET_CONFIRM_SECONDS;
+            checkpointMessage = "";
+            refresh();
+            return;
+        }
+        checkpointArmed = "";
+        checkpointArmedFor = 0;
+        checkpointMessage = switch (gesture) {
+            case "save" -> saves.saveCheckpoint(slot, checkpointName.getText());
+            case "load" -> saves.loadCheckpoint(slot);
+            default -> saves.deleteCheckpoint(slot);
+        };
+        if (gesture.equals("save")) checkpointName.clear();
+        refresh();
     }
 
     /** Les blocs qui suivent vont dans ce sous-onglet. */
@@ -745,9 +854,11 @@ public final class SettingsPage extends VBox {
      * @param elapsed secondes écoulées depuis l'image précédente
      */
     public void frame(double elapsed) {
-        if (resetArmed <= 0 && importArmed <= 0) return;
+        if (resetArmed <= 0 && importArmed <= 0 && checkpointArmedFor <= 0) return;
         resetArmed = Math.max(0, resetArmed - elapsed);
         importArmed = Math.max(0, importArmed - elapsed);
+        checkpointArmedFor = Math.max(0, checkpointArmedFor - elapsed);
+        if (checkpointArmedFor <= 0) checkpointArmed = "";
         refresh();
     }
 
@@ -755,6 +866,10 @@ public final class SettingsPage extends VBox {
     public void release() {
         resetArmed = 0;
         importArmed = 0;
+        importPreview = "";
+        checkpointArmed = "";
+        checkpointArmedFor = 0;
+        checkpointMessage = "";
         saveMessage = "";
         bugMessage = "";
         capturing = false;
@@ -817,6 +932,8 @@ public final class SettingsPage extends VBox {
         signsButton.setStyle(settings.stateSigns() ? ON_STYLE : OFF_STYLE);
         chronoButton.setText(settings.chrono() ? "Chrono : affiché" : "Chrono : caché");
         chronoButton.setStyle(settings.chrono() ? ON_STYLE : OFF_STYLE);
+        skyEventsButton.setText(settings.skyEvents() ? "Événements du ciel : montrés" : "Événements du ciel : masqués");
+        skyEventsButton.setStyle(settings.skyEvents() ? ON_STYLE : OFF_STYLE);
         recordsLabel.setText(saves.records());
         effectsButton.setText(settings.effects() ? "Effets visuels : affichés" : "Effets visuels : coupés");
         tabsTopButton.setStyle(settings.tabsLeft() ? OFF_STYLE : ON_STYLE);
@@ -881,10 +998,26 @@ public final class SettingsPage extends VBox {
         importButton.setStyle(importArmed > 0 ? DANGER_ARMED_STYLE : DANGER_STYLE);
         show(saveNote, saveMessage);
         show(bugNote, bugMessage);
+        for (int slot = 0; slot < checkpointLabels.size(); slot++) {
+            boolean used = saves.checkpointUsed(slot);
+            checkpointLabels.get(slot).setText((slot == 0 ? "Mise de côté · " : slot + ". ") + saves.checkpointLine(slot));
+            armedLook(checkpointSave.get(slot), "save:" + slot, "Enregistrer ici", used ? "Remplacer ce point ?" : "Enregistrer ?", true);
+            armedLook(checkpointLoad.get(slot), "load:" + slot, "Reprendre", "Remplacer la partie en cours ?", used);
+            armedLook(checkpointDelete.get(slot), "delete:" + slot, "Effacer", "Effacer ce point ?", used);
+        }
+        show(checkpointNote, checkpointMessage);
         notesButton.setText(notesShown ? "Cacher les notes de version" : "Notes de version");
         notesButton.setStyle(notesShown ? ON_STYLE : OFF_STYLE);
         notesLabel.setVisible(notesShown);
         notesLabel.setManaged(notesShown);
+    }
+
+    /** Un bouton de point de reprise : son texte, armé ou non, et s'il sert à quelque chose. */
+    private void armedLook(Button button, String key, String idle, String armed, boolean usable) {
+        boolean on = key.equals(checkpointArmed) && checkpointArmedFor > 0;
+        button.setText(on ? armed + " (" + (int) Math.ceil(checkpointArmedFor) + " s)" : idle);
+        button.setStyle(on ? DANGER_ARMED_STYLE : OFF_STYLE);
+        button.setDisable(!usable);
     }
 
     /** L'info-bulle d'un bouton, ou aucune. */

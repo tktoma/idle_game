@@ -687,6 +687,51 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         cometsCaught = Math.max(0, count);
     }
 
+    /** L'anomalie du ciel à saisir en ce moment (version 0.127), par son nom ; {@code null} s'il n'y en a pas. */
+    public String skyEvent() {
+        return skyEvent;
+    }
+
+    public void setSkyEvent(String event) {
+        skyEvent = event == null || event.isBlank() ? null : event;
+    }
+
+    /** Secondes pendant lesquelles l'anomalie reste à saisir ; 0 quand il n'y en a pas. */
+    public double skyEventVisible() {
+        return skyEventVisible;
+    }
+
+    public void setSkyEventVisible(double seconds) {
+        skyEventVisible = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes avant la prochaine anomalie ; 0 tant qu'elle n'est pas tirée. */
+    public double skyEventWait() {
+        return skyEventWait;
+    }
+
+    public void setSkyEventWait(double seconds) {
+        skyEventWait = Double.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    }
+
+    /** Secondes pendant lesquelles le vent de particules souffle encore (il peut être négatif juste après sa fin). */
+    public double windLeft() {
+        return windLeft;
+    }
+
+    public void setWindLeft(double seconds) {
+        windLeft = Double.isNaN(seconds) ? 0 : seconds;
+    }
+
+    /** Nombre d'anomalies du ciel saisies depuis le début du jeu. */
+    public int skyEventsCaught() {
+        return skyEventsCaught;
+    }
+
+    public void setSkyEventsCaught(int count) {
+        skyEventsCaught = Math.max(0, count);
+    }
+
     /** Les records du joueur : nom d'une étape → temps de jeu le plus court auquel elle a été atteinte. */
     public Map<String, Double> records() {
         return Collections.unmodifiableMap(records);

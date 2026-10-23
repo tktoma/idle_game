@@ -44,8 +44,56 @@ public final class SaveCodec {
      * @param state   la partie
      * @param savedAt l'instant où elle a été écrite, en millisecondes depuis 1970 ; sert à compter l'absence du joueur
      * @param version le numéro de format de la sauvegarde relue
+     * @param meta    son nom et la version du jeu qui l'a écrite (version 0.127), vides pour une sauvegarde plus ancienne
      */
-    public record Save(GameState state, long savedAt, int version) {
+    public record Save(GameState state, long savedAt, int version, Meta meta) {
+
+        public Save(GameState state, long savedAt, int version) {
+            this(state, savedAt, version, Meta.NONE);
+        }
+    }
+
+    /**
+     * Ce qu'une sauvegarde dit d'elle-même, en plus de la partie (version 0.127) : le nom que le joueur lui a donné
+     * (un point de reprise), et la version du jeu qui l'a écrite. Une version plus ancienne du jeu les ignore : le
+     * format ne change pas.
+     *
+     * @param label       son nom, vide pour la sauvegarde ordinaire ; {@link #MAX_LABEL} caractères au plus
+     * @param gameVersion la version du jeu, « 0.127 » par exemple ; vide si elle n'est pas connue
+     */
+    public record Meta(String label, String gameVersion) {
+        /** Rien de dit : la sauvegarde ordinaire d'une version qui n'écrivait pas ces renseignements. */
+        public static final Meta NONE = new Meta("", "");
+        /** La longueur la plus grande d'un nom. */
+        public static final int MAX_LABEL = 40;
+
+        public Meta {
+            label = clean(label, MAX_LABEL);
+            gameVersion = clean(gameVersion, 16);
+        }
+
+        private static String clean(String text, int max) {
+            if (text == null) return "";
+            String flat = text.replaceAll("\\p{Cntrl}", " ").strip();
+            return flat.length() > max ? flat.substring(0, max).strip() : flat;
+        }
+    }
+
+    /**
+     * Ce qu'une sauvegarde contient, en quelques chiffres, sans la charger (version 0.127) : pour la montrer avant de
+     * l'importer ou de la reprendre.
+     *
+     * @param format         le numéro de format
+     * @param meta           son nom et la version du jeu qui l'a écrite
+     * @param savedAt        l'instant de son écriture, en millisecondes depuis 1970
+     * @param timePlayed     le temps de jeu, en secondes
+     * @param bigBangs       les Big Bangs de la partie en cours
+     * @param explosions     les explosions depuis le dernier Big Bang
+     * @param achievements   les succès obtenus
+     * @param universes      les univers formés
+     */
+    public record Preview(int format, Meta meta, long savedAt, double timePlayed, int bigBangs, int explosions,
+                          int achievements, int universes) {
     }
 
     /** La sauvegarde n'a pas pu être relue : son message dit pourquoi, en une phrase pour le joueur. */
@@ -63,8 +111,20 @@ public final class SaveCodec {
      * @param savedAt l'instant de la sauvegarde, en millisecondes depuis 1970
      */
     public static String write(GameState state, long savedAt) {
+        return write(state, savedAt, Meta.NONE);
+    }
+
+    /**
+     * La partie en texte lisible, avec ce que la sauvegarde dit d'elle-même (version 0.127).
+     *
+     * @param savedAt l'instant de la sauvegarde, en millisecondes depuis 1970
+     * @param meta    son nom et la version du jeu
+     */
+    public static String write(GameState state, long savedAt, Meta meta) {
         SaveData data = new SaveData();
         data.put("savedAt", savedAt);
+        if (meta != null && !meta.label().isEmpty()) data.put("label", SaveData.escape(meta.label()));
+        if (meta != null && !meta.gameVersion().isEmpty()) data.put("gameVersion", SaveData.escape(meta.gameVersion()));
         state.save(data);
         StringBuilder text = new StringBuilder(1 << 16);
         text.append(HEADER).append(' ').append(VERSION).append('\n');
@@ -74,10 +134,15 @@ public final class SaveCodec {
 
     /** La partie compressée, sur une seule ligne de lettres et de chiffres : pour le presse-papiers. */
     public static String export(GameState state, long savedAt) {
+        return export(state, savedAt, Meta.NONE);
+    }
+
+    /** La partie compressée, sur une seule ligne, avec ce qu'elle dit d'elle-même (version 0.127). */
+    public static String export(GameState state, long savedAt, Meta meta) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             try (GZIPOutputStream zip = new GZIPOutputStream(bytes)) {
-                zip.write(write(state, savedAt).getBytes(StandardCharsets.UTF_8));
+                zip.write(write(state, savedAt, meta).getBytes(StandardCharsets.UTF_8));
             }
             return EXPORT_PREFIX + Base64.getEncoder().encodeToString(bytes.toByteArray());
         } catch (IOException impossible) {
@@ -113,10 +178,24 @@ public final class SaveCodec {
         GameState state = new GameState();
         try {
             state.load(data);
-            return new Save(state, data.count("savedAt", 0), version);
+            Meta meta = new Meta(SaveData.unescape(data.text("label", "")), SaveData.unescape(data.text("gameVersion", "")));
+            return new Save(state, data.count("savedAt", 0), version, meta);
         } catch (RuntimeException broken) {
             throw new Unreadable("La sauvegarde est abîmée : " + broken.getMessage(), broken);
         }
+    }
+
+    /**
+     * Ce qu'une sauvegarde contient, sans rien charger dans la partie en cours (version 0.127).
+     *
+     * @throws Unreadable si le texte ne se relit pas
+     */
+    public static Preview preview(String text) throws Unreadable {
+        Save save = read(text);
+        GameState state = save.state();
+        int universes = state.universeFormed() || state.cosmosLevel() >= 3 ? 1 + state.extraUniverses() : 0;
+        return new Preview(save.version(), save.meta(), save.savedAt(), state.timePlayed(), state.bigBangs(),
+                state.explosions(), state.achievements().size(), universes);
     }
 
     /**

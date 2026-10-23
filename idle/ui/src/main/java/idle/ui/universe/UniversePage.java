@@ -75,6 +75,13 @@ public final class UniversePage extends VBox {
     private final Button next = new Button();
     private final Label nextLine = new Label();
     private Runnable onNextUniverse = () -> { };
+    /** Ce qui précède le lancement de l'univers suivant : le guide de transition (version 0.127). */
+    private java.util.function.Consumer<Runnable> confirmLaunch = Runnable::run;
+
+    /** Le guide à montrer avant de lancer l'univers suivant. */
+    public void setLaunchConfirm(java.util.function.Consumer<Runnable> confirm) {
+        confirmLaunch = confirm == null ? Runnable::run : confirm;
+    }
     /** Le lancement de l'univers suivant (version 0.111), joué par-dessus la page. */
     private final LaunchView launch = new LaunchView();
     private double pulse;
@@ -178,11 +185,15 @@ public final class UniversePage extends VBox {
                 + " -fx-background-color: #16202e; -fx-background-radius: 8; -fx-border-color: " + COLOR + "; -fx-border-radius: 8;");
         next.setOnAction(event -> {
             if (!game.canOpenNextUniverse() || launch.isPlaying()) return;
-            launch.play(() -> {
-                if (game.canOpenNextUniverse() && game.startNextUniverse()) onNextUniverse.run();
+            // Version 0.127 : le guide de transition d'abord ; le lancement ne part que si le joueur confirme.
+            confirmLaunch.accept(() -> {
+                if (!game.canOpenNextUniverse() || launch.isPlaying()) return;
+                launch.play(() -> {
+                    if (game.canOpenNextUniverse() && game.startNextUniverse()) onNextUniverse.run();
+                    refresh();
+                });
                 refresh();
             });
-            refresh();
         });
         nextLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
         nextLine.setWrapText(true);

@@ -179,7 +179,10 @@ final class HelpPane extends StackPane {
             sections.add(new Section("Collections, comètes et défis", "Créer au moins une molécule de la moitié des sortes "
                     + "d'un rayon, puis de toutes, multiplie une grandeur pour de bon. De temps en temps une comète traverse "
                     + "l'expansion de la matière : la saisir double l'espace créé pendant "
-                    + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. L'amas de galaxies et "
+                    + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. D'autres petites "
+                    + "anomalies passent aussi, facultatives : un vent de particules (particules ×" + (int) Game.WIND_FACTOR
+                    + " pendant " + (int) (Game.WIND_SECONDS / 60) + " minutes) ou une fenêtre d'exploration (les sondes en vol "
+                    + "avancent de " + (int) (Game.EXPLORATION_SECONDS / 60) + " minutes) ; elles se masquent dans les réglages. L'amas de galaxies et "
                     + "l'univers demandent de la quantité et de la variété : un nombre de sortes rassemblées dans chaque état. "
                     + "La galaxie multiplie tout par " + (int) Game.GALAXY_FACTOR + ", l'amas puis l'univers par 2 chacun ; chaque état "
                     + "réuni pour l'amas ou l'univers est un jalon, +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " % à tout. "

@@ -69,8 +69,13 @@ public final class GalaxyPane extends VBox {
         for (Cosmos scale : Cosmos.values()) {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
             card.setOnAction(() -> {
-                game.formCosmos(scale);
-                changed.run();
+                Runnable form = () -> {
+                    game.formCosmos(scale);
+                    changed.run();
+                };
+                // Version 0.127 : former l'univers remet tout à zéro ; le guide le dit d'abord, et attend la réponse.
+                if (scale == Cosmos.UNIVERSE && game.canFormCosmos(scale)) confirmUniverse.accept(form);
+                else form.run();
             });
             cards.put(scale, card);
             grid.add(card);
@@ -86,6 +91,14 @@ public final class GalaxyPane extends VBox {
         getChildren().add(viewPane);
         getChildren().add(grid);
         getChildren().add(look);
+    }
+
+    /** Ce qui précède la formation de l'univers : le guide de transition, qui lance l'action si le joueur confirme. */
+    private java.util.function.Consumer<Runnable> confirmUniverse = Runnable::run;
+
+    /** Le guide à montrer avant de former l'univers (version 0.127). */
+    public void setUniverseConfirm(java.util.function.Consumer<Runnable> confirm) {
+        confirmUniverse = confirm == null ? Runnable::run : confirm;
     }
 
     /** L'image de la galaxie : pour les vérifications. */

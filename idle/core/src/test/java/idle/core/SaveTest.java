@@ -156,6 +156,12 @@ class SaveTest {
         state.setCometVisible(12.5);
         state.setCometBoost(88.75);
         state.setCometsCaught(7);
+        // Les anomalies du ciel (version 0.127).
+        state.setSkyEvent("PARTICLE_WIND");
+        state.setSkyEventVisible(42.5);
+        state.setSkyEventWait(300.25);
+        state.setWindLeft(17.5);
+        state.setSkyEventsCaught(4);
         state.setEndSeen(true);
         state.setExtraUniverses(3);
         state.setUniverseFormed(true);

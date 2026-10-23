@@ -13,7 +13,7 @@ import java.io.StringWriter;
 final class Crash {
 
     /** Nombre de lignes de la trace gardées : le haut de la pile, là où l'erreur est née. */
-    private static final int MAX_LINES = 25;
+    private static final int MAX_LINES = 40;
 
     private static String first = "";
     private static long count = 0;

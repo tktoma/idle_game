@@ -303,6 +303,11 @@ public abstract class GameStateResets extends GameStateCollider {
         cometVisible = 0;
         cometBoost = 0;
         cometsCaught = 0;
+        skyEvent = null;
+        skyEventVisible = 0;
+        skyEventWait = 0;
+        windLeft = 0;
+        skyEventsCaught = 0;
         endSeen = false;
         extraUniverses = 0;
         universeFormed = false;
@@ -519,6 +524,10 @@ public abstract class GameStateResets extends GameStateCollider {
         cometWait = 0;
         cometVisible = 0;
         cometBoost = 0;
+        skyEvent = null;
+        skyEventVisible = 0;
+        skyEventWait = 0;
+        windLeft = 0;
         probes.clear();
         probeRewards.clear();
         probeUpgrades.clear();

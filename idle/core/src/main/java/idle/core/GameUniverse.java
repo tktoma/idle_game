@@ -1208,6 +1208,73 @@ public abstract class GameUniverse extends GameAtoms {
         if (trial.seconds() > 0 && state.timePlayed() - state.trialStart() >= trial.seconds()) failTrial();
     }
 
+    /**
+     * Le guide de transition (version 0.127) : ce que fera la prochaine remise à zéro de l'univers, avec les chiffres
+     * de la partie en cours. Il suit {@link GameState#startUniverse()} : ce qu'elle garde, il le dit gardé, et
+     * {@code TransitionTest} le vérifie.
+     *
+     * @param launching vrai pour « Lancer l'univers » ({@link #startNextUniverse()}), faux pour la formation de l'univers
+     */
+    public idle.core.universe.UniverseTransition universeTransition(boolean launching) {
+        java.util.List<String> lost = new java.util.ArrayList<>();
+        if (launching) {
+            lost.add("Ce qui s'est joué dans les trois actes depuis la formation de l'univers : tout repart du premier générateur.");
+        } else {
+            lost.add("Particules, atomes, éléments, améliorations et automatismes.");
+            lost.add("Matière noire, son arbre et ses défis (" + state.completedChallenges().size() + " réussis).");
+            lost.add(state.bigBangs() + " Big Bang" + (state.bigBangs() > 1 ? "s" : "") + ", leurs paliers et leurs défis.");
+            lost.add("Molécules, assemblages, astres (" + bodiesFormed() + " formés), systèmes solaires, galaxie et amas.");
+            lost.add("L'espace et ses améliorations, les comètes et les anomalies du ciel.");
+            lost.add("Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
+            lost.add("Les plans suivis de l'arbre et des systèmes (leurs codes sauvegardés, eux, restent).");
+        }
+        // Remis à zéro par les deux transitions, et pas rendus ensuite (GameState#startUniverse).
+        lost.add("Les records des défis et des explosions (ceux des étapes restent).");
+        if (state.universeFormed()) {
+            lost.add("Ce qui s'ouvre en cours de partie : régime rapide, synergie, choix de cycle, famille préférée, "
+                    + "éléments offerts.");
+        }
+        idle.core.universe.Trial trial = activeTrial();
+        if (trial != null) lost.add("L'épreuve en cours, « " + trial.label() + " » : elle s'arrête sans être réussie.");
+        java.util.List<String> kept = new java.util.ArrayList<>();
+        kept.add("Les succès (" + achievementCount() + "), les records des étapes, le temps de jeu et les statistiques.");
+        // La partie secondaire n'existe qu'une fois un univers formé : à la toute première formation, elle est à venir.
+        boolean secondary = state.universeFormed();
+        if (secondary) {
+            kept.add("Les graines d'univers (" + wholeText(state.universeSeeds()) + ") et l'énergie du vide ("
+                    + wholeText(state.voidEnergy()) + ").");
+            kept.add("Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
+            kept.add("La graine : palier " + seedStage() + ", et ses arrosages."
+                    + (launching && canOpenNextUniverse()
+                    ? " L'univers d'après demandera le palier " + Math.min(SEED_STAGES, nextUniverseStage() + 1) + "."
+                    : ""));
+            kept.add("Les skins (" + state.unlockedSkins().size() + " débloqués) et ceux que vous avez choisis.");
+            kept.add("Les améliorations d'univers, les épreuves réussies (" + state.completedTrials().size()
+                    + ") et les recherches (" + state.researches().size() + ").");
+        }
+        kept.add("Vos réglages de jeu, les codes de plan sauvegardés et les fenêtres d'explication déjà vues.");
+        java.util.List<String> gained = new java.util.ArrayList<>();
+        if (launching) {
+            gained.add("Une partie neuve, celle de l'univers suivant : les trois actes reviennent.");
+        } else {
+            gained.add("+" + SEEDS_PER_UNIVERSE + " graine d'univers.");
+            if (!secondary) gained.add("L'onglet Univers s'ouvre : ce qui s'y gagne (graines, dimensions, skins) traverse "
+                    + "ensuite chaque univers.");
+            gained.add("Un univers de plus : la matière noire des explosions et sa croissance ×"
+                    + (int) idle.core.GameDarkMatter.UNIVERSE_DARK_MATTER_FACTOR + " pour la suite.");
+        }
+        return new idle.core.universe.UniverseTransition(launching, lost, kept, gained);
+    }
+
+    /** Un nombre entier lisible pour le guide : « 3 », « 1 250 », puis en notation scientifique. */
+    private static String wholeText(BigNum value) {
+        if (value.lt(BigNum.of(1, 6))) {
+            String digits = String.valueOf((long) Math.floor(value.toDouble() + 1e-9));
+            return digits.replaceAll("(\\d)(?=(\\d{3})+$)", "$1\u00a0");
+        }
+        return value.toString();
+    }
+
     /** Graines d'univers que donne la formation de l'univers (version 0.083). */
     public static final int SEEDS_PER_UNIVERSE = 1;
 

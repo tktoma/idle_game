@@ -358,6 +358,21 @@ public final class BigBangPage extends BigBangPageRefresh {
         }
     }
 
+    /** Montre ou masque les anomalies du ciel selon ce réglage (version 0.127). */
+    public void showSkyEvents(java.util.function.BooleanSupplier shown) {
+        skyEventsShown = shown;
+    }
+
+    /** Ce que dit le bouton d'une anomalie du ciel : ce qu'elle est, et ce qu'elle donne. */
+    static String skyEventText(idle.core.sky.SkyEvent event) {
+        return switch (event) {
+            case PARTICLE_WIND -> "Un vent de particules souffle : le capter (particules ×" + ElementText.number(Game.WIND_FACTOR)
+                    + " pendant " + Format.wait(Game.WIND_SECONDS) + ")";
+            case EXPLORATION_WINDOW -> "Une fenêtre d'exploration s'ouvre : en profiter (sondes en vol +"
+                    + Format.wait(Game.EXPLORATION_SECONDS) + " de voyage)";
+        };
+    }
+
     void refreshExpansion() {
         refreshPulse();
         BigNum space = game.state().space();
@@ -369,10 +384,17 @@ public final class BigBangPage extends BigBangPageRefresh {
         if (comet) {
             cometButton.setText("Une comète traverse l'expansion : la saisir (" + (int) Math.ceil(game.cometVisibleFor()) + " s)");
         }
+        // Les anomalies du ciel (version 0.127) : facultatives, et masquées si le joueur l'a choisi.
+        idle.core.sky.SkyEvent sky = skyEventsShown.getAsBoolean() ? game.skyEvent() : null;
+        skyEventButton.setVisible(sky != null);
+        skyEventButton.setManaged(sky != null);
+        if (sky != null) skyEventButton.setText(skyEventText(sky) + " (" + Format.wait(game.skyEventVisibleFor()) + ")");
         rateLabel.setText("+" + Format.amount(game.spacePerSecond()) + " par seconde"
                 + (game.darkMatterSpaceBoost() > 1 ? " (matière noire ×" + ElementText.number(game.darkMatterSpaceBoost()) + ")" : "")
                 + (game.cometBoost() > 1 ? " (sillage de comète ×" + ElementText.number(game.cometBoost()) + ", encore "
-                        + Format.wait(game.cometBoostLeft()) + ")" : "") + "  ·  "
+                        + Format.wait(game.cometBoostLeft()) + ")" : "")
+                + (game.windMultiplier() > 1 ? " (vent de particules : particules ×" + ElementText.number(game.windMultiplier())
+                        + ", encore " + Format.wait(game.state().windLeft()) + ")" : "") + "  ·  "
                 + Format.count(game.occupiedSpace()) + " occupées par " + Format.count(BigNum.of(game.moleculesCreated()))
                 + (game.moleculesCreated() > 1 ? " molécules" : " molécule")
                 + (reserved.isZero() ? "" : "  ·  " + Format.count(reserved) + " réservées aux rassemblements")
