@@ -276,4 +276,39 @@ class VolumeWindowTest {
             return null;
         });
     }
+
+    @Test
+    void echapRendLaSourisEtUnClicLaReprendSansCueillir() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            boolean[] saved = {true};
+            DimensionWindow window = new DimensionWindow(game, () -> saved[0], value -> saved[0] = value);
+            window.open(Dimension.VOLUME);
+            window.frame(0.05, true);
+            DimensionView view = window.view();
+            assertFalse(window.key(javafx.scene.input.KeyCode.ESCAPE, true), "dehors, Échap n'est pas pris");
+            enter(window);
+            assertTrue(view.mouseHeld(), "dans le cube, la caméra libre retient la souris");
+            assertTrue(window.key(javafx.scene.input.KeyCode.ESCAPE, true));
+            assertFalse(view.mouseHeld(), "Échap rend la souris");
+            assertTrue(game.isInVolume(), "la plongée continue");
+            window.frame(0.05, true);
+            assertTrue(window.volumeHintText().contains("Souris rendue"), window.volumeHintText());
+            double yaw = view.lookYaw();
+            assertFalse(view.freeLook(100, 100));
+            assertFalse(view.freeLook(300, 120));
+            assertEquals(yaw, view.lookYaw(), 1e-12, "souris rendue : le regard ne la suit plus");
+            // Une boule droit devant : le clic qui reprend la souris ne la cueille pas.
+            game.testClearVolume();
+            double[] dir = ahead(view);
+            double length = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+            game.addVolumeBall(0.6 * dir[0] / length, 0.6 * dir[1] / length, 0.6 * dir[2] / length);
+            assertTrue(view.press(50, 50, true));
+            assertTrue(view.mouseHeld(), "un clic dans la vue reprend la souris");
+            assertEquals(0, game.state().volumeShards(), 1e-12, "ce clic-là ne cueille rien");
+            assertTrue(view.press(50, 50, true));
+            assertEquals(1, game.state().volumeShards(), 1e-12, "le suivant cueille sous la croix");
+            return null;
+        });
+    }
 }

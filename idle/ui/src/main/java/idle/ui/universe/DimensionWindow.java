@@ -239,9 +239,12 @@ public final class DimensionWindow extends BorderPane {
             case OUTSIDE -> "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
                     + "Les améliorations s'achètent ici, hors du cube.";
             case ENTERING -> "Vous plongez dans le cube…";
-            case INSIDE -> (view.freeCamera()
+            case INSIDE -> (!view.freeCamera()
+                    ? "Clic gauche tenu : regarder autour de soi. Clic droit : cueillir la boule visée. "
+                    : view.mouseHeld()
                     ? "Caméra libre : bougez la souris pour regarder autour de vous. Un clic cueille la boule sous la croix. "
-                    : "Clic gauche tenu : regarder autour de soi. Clic droit : cueillir la boule visée. ")
+                            + "Échap rend la souris. "
+                    : "Souris rendue : cliquez dans la vue pour reprendre la caméra libre. ")
                     + "Le cube vous rejette dans " + seconds(game.volumeTimeLeft()) + " s.";
             case LEAVING -> "Le cube vous rejette : les améliorations reviennent.";
         });
@@ -252,8 +255,10 @@ public final class DimensionWindow extends BorderPane {
                 + "regard ; une boule plus grosse se vise mieux. À la fin du minuteur, ou si le jeu passe en absence, la "
                 + "plongée s'arrête et les boules restantes s'en vont. Les éclats du volume, son seuil et ses améliorations "
                 + "traversent les univers ; le seuil ouvre le palier 4 de la graine. En caméra libre, la souris disparaît "
-                + "dans le cube : chaque mouvement tourne le regard, la souris revient seule au centre, et pousser un bord "
-                + "fait tourner sans fin."));
+                + "dans le cube et y reste retenue : chaque mouvement tourne le regard et elle revient seule au centre. "
+                + "Échap la rend sans finir la plongée, un clic dans la vue la reprend ; quand le jeu n'a pas la main "
+                + "(Alt+Tab), elle n'est jamais retenue. Si le système refuse de la déplacer, pousser un bord fait tourner "
+                + "le regard sans fin."));
         freeCameraButton.setText(view.freeCamera() ? "Caméra libre : activée (le regard suit la souris)"
                 : "Caméra libre : coupée (clic gauche tenu pour regarder)");
         volumeDetail.setVisible(!volumeDetail.getText().isEmpty());
@@ -302,6 +307,11 @@ public final class DimensionWindow extends BorderPane {
      * Vrai si la touche a servi (le reste du jeu ne la voit pas).
      */
     public boolean key(javafx.scene.input.KeyCode code, boolean down) {
+        // Le volume (version 0.128) : en caméra libre, Échap rend la souris retenue ; la plongée continue.
+        if (isVisible() && code == javafx.scene.input.KeyCode.ESCAPE && view.mouseHeld()) {
+            if (down) view.releaseMouse();
+            return true;
+        }
         if (!isVisible() || view.dimension() != Dimension.PLANE || !game.isPlaneOpen()) return false;
         switch (code) {
             case Z, Q, S, D, UP, DOWN, LEFT, RIGHT -> { }

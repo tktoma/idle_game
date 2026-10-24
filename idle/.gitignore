@@ -43,3 +43,6 @@ bin/
 .DS_Store
 ### Bots ###
 bots/sorties/
+
+### Plantages de la JVM ###
+hs_err_pid*.log
