@@ -420,10 +420,10 @@ public abstract class GameSystems extends GameBase {
                 * maturationShare();
     }
 
-    /** Ce que chaque niveau de l'amélioration de maturation du vide (version 0.129) retire à la durée : 3 %, dix niveaux. */
-    public static final double VOID_MATURE_STEP = 0.03;
+    /** Ce que chaque niveau de l'amélioration de maturation du vide retire à la durée : 7 % depuis la version 0.132 (3 % en 0.129), dix niveaux. */
+    public static final double VOID_MATURE_STEP = 0.07;
 
-    /** La part de la durée de maturation qui reste avec le vide : 1 sans l'amélioration, 0,7 au plus fort. */
+    /** La part de la durée de maturation qui reste avec le vide : 1 sans l'amélioration, 0,3 au plus fort. */
     public double maturationShare() {
         GameUniverse.VoidUpgrade mature = GameUniverse.VoidUpgrade.MATURE;
         return 1 - VOID_MATURE_STEP * Math.min(mature.max(), state.voidLevel(mature.ordinal()));

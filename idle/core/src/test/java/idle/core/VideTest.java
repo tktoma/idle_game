@@ -275,7 +275,8 @@ class VideTest {
         assertEquals(10, game.voidCost(VoidUpgrade.GAIN), 1e-12);
         assertTrue(game.buyVoid(VoidUpgrade.GAIN));
         assertEquals(90, game.voidEnergy().toDouble(), 1e-9);
-        assertEquals(22, game.voidCost(VoidUpgrade.GAIN), 1e-9, "×2,2 par niveau");
+        assertEquals(10 * VoidUpgrade.GAIN.growth(), game.voidCost(VoidUpgrade.GAIN), 1e-9, "×3,7 par niveau (version 0.132)");
+        assertEquals(3.7, VoidUpgrade.GAIN.growth(), 1e-12);
         assertEquals(2, game.voidPairGain(), 1e-12);
         // Le rythme, le coût en énergie, l'espace, la fonte.
         game.state().setVoidLevel(VoidUpgrade.RATE.ordinal(), 2);
@@ -307,7 +308,7 @@ class VideTest {
     }
 
     @Test
-    void laMaturationPlusCourteRetireTroisPourCentParNiveau() {
+    void laMaturationPlusCourteRetireSeptPourCentParNiveau() {
         Game game = open();
         Body star = null;
         for (Body each : game.bodies()) if (each.tier() == Body.Tier.STAR) { star = each; break; }
@@ -315,10 +316,10 @@ class VideTest {
         double base = game.maturationSeconds(star);
         assertEquals(1, game.maturationShare(), 1e-12);
         game.state().setVoidLevel(VoidUpgrade.MATURE.ordinal(), 10);
-        assertEquals(0.7, game.maturationShare(), 1e-12, "dix niveaux : −30 %");
-        assertEquals(base * 0.7, game.maturationSeconds(star), 1e-6);
+        assertEquals(0.3, game.maturationShare(), 1e-12, "dix niveaux : −70 % (version 0.132)");
+        assertEquals(base * 0.3, game.maturationSeconds(star), 1e-6);
         game.state().setVoidLevel(VoidUpgrade.MATURE.ordinal(), 99);
-        assertEquals(0.7, game.maturationShare(), 1e-12, "jamais plus de dix niveaux comptés");
+        assertEquals(0.3, game.maturationShare(), 1e-12, "jamais plus de dix niveaux comptés");
         assertEquals(10, VoidUpgrade.MATURE.max());
     }
 
@@ -328,16 +329,16 @@ class VideTest {
         game.state().addBody("black_hole");
         game.state().setMaturing("black_hole", 1000);
         game.state().setVoidEnergy(BigNum.of(1e6));
-        assertEquals(60, game.voidCost(VoidUpgrade.MATURE), 1e-9);
+        assertEquals(200, game.voidCost(VoidUpgrade.MATURE), 1e-9);
         assertTrue(game.buyVoid(VoidUpgrade.MATURE));
         assertEquals(1, game.voidLevel(VoidUpgrade.MATURE));
-        assertEquals(970, game.maturationLeft("black_hole"), 1e-6, "le reste raccourcit de 3 %");
+        assertEquals(930, game.maturationLeft("black_hole"), 1e-6, "le reste raccourcit de 7 %");
         assertTrue(game.buyVoid(VoidUpgrade.MATURE));
-        assertEquals(1000 * 0.94, game.maturationLeft("black_hole"), 1e-6, "deux niveaux : 94 % du reste de départ");
-        assertEquals(375, game.voidCost(VoidUpgrade.MATURE), 1e-9, "60 × 2,5², au troisième niveau");
+        assertEquals(1000 * 0.86, game.maturationLeft("black_hole"), 1e-6, "deux niveaux : 86 % du reste de départ");
+        assertEquals(800, game.voidCost(VoidUpgrade.MATURE), 1e-9, "200 × 2², au troisième niveau");
         // Les autres améliorations ne touchent pas à la maturation.
         assertTrue(game.buyVoid(VoidUpgrade.GAIN));
-        assertEquals(940, game.maturationLeft("black_hole"), 1e-6);
+        assertEquals(860, game.maturationLeft("black_hole"), 1e-6);
         // Relue, la partie garde le niveau ; à la formation de l'univers, il repart de zéro.
         assertEquals(2, reread(game.state()).voidLevel(VoidUpgrade.MATURE.ordinal()));
         DeuxiemeUniversTest.formUniverse(game);
@@ -426,5 +427,48 @@ class VideTest {
         assertFalse(game.isVoidUnlocked());
         assertEquals(0, game.voidAccumulated());
         assertEquals(0, game.voidLevel(VoidUpgrade.RATE));
+    }
+
+    // ------------------------------------------------------------------
+    // Le rassemblement plus court (version 0.132)
+    // ------------------------------------------------------------------
+
+    @Test
+    void leRassemblementPlusCourtRetireSeizePourCentParNiveau() {
+        Game game = open();
+        assertEquals(1, game.settleShare(), 1e-12);
+        assertEquals(5, VoidUpgrade.SETTLE.max());
+        assertEquals(800, game.voidCost(VoidUpgrade.SETTLE), 1e-9);
+        game.state().setVoidEnergy(BigNum.of(800));
+        assertTrue(game.buyVoid(VoidUpgrade.SETTLE));
+        assertEquals(0.84, game.settleShare(), 1e-12);
+        assertEquals(1600, game.voidCost(VoidUpgrade.SETTLE), 1e-9, "×2 par niveau");
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 5);
+        assertEquals(0.2, game.settleShare(), 1e-12, "cinq niveaux : −80 %");
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 99);
+        assertEquals(0.2, game.settleShare(), 1e-12, "jamais plus de cinq niveaux comptés");
+    }
+
+    @Test
+    void leRassemblementPlusCourtAvanceLAmasEtLUnivers() {
+        Game game = open();
+        game.state().setTimePlayed(10_000);
+        game.state().stats().noteStep(GameStats.Step.GALAXY, 10_000);
+        game.state().setCosmosLevel(1);
+        assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6);
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 3);
+        assertEquals(Game.COSMOS_SETTLE_SECONDS * (1 - 3 * Game.VOID_SETTLE_STEP), game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6);
+        game.state().setTimePlayed(10_000 + Game.COSMOS_SETTLE_SECONDS * 0.52);
+        assertEquals(0, game.cosmosSettleRemaining(idle.core.sky.Cosmos.CLUSTER), 1e-6, "−48 % : prêt à 52 % du délai");
+    }
+
+    @Test
+    void leRassemblementSeSauveEtRepartAZeroAvecLUnivers() {
+        Game game = open();
+        game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 2);
+        assertEquals(2, reread(game.state()).voidLevel(VoidUpgrade.SETTLE.ordinal()));
+        DeuxiemeUniversTest.formUniverse(game);
+        assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE));
+        assertEquals(1, game.settleShare(), 1e-12);
     }
 }

@@ -152,8 +152,8 @@ class JeuEspaceTest extends GameTestSupport {
             GameTestSupport.bangs(game, 9);
             assertEquals(11, game.bigBangMilestonesReached());
             assertEquals(space, game.bigBangMilestoneBoost(Molecule.Stat.SPACE), 0);
-            assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(0, "Rien", List.of(new BigBangMilestone.DarkMatter(2))));
-            assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(1, "Rien", List.of()));
+            assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(0, "Rien", List.of(new BigBangMilestone.DarkMatter(2)), Resource.PARTICLES, BigNum.ONE));
+            assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone(1, "Rien", List.of(), Resource.PARTICLES, BigNum.ONE));
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone.Accretion(1));
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone.Boost(null, 2));
             assertThrows(IllegalArgumentException.class, () -> new BigBangMilestone.DarkMatterSpace(0));

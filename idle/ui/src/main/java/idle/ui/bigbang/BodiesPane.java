@@ -383,7 +383,7 @@ public final class BodiesPane extends VBox {
         return text.toString();
     }
 
-    /** Les astres qui mûrissent : une ligne chacun, avec ce qu'il reste et le bouton qui avance d'une minute. */
+    /** Les astres qui mûrissent : une ligne chacun, avec ce qu'il reste et le bouton qui avance la maturation d'une charge d'impulsion. */
     private void refreshMaturation() {
         List<String> maturing = game.maturingBodies();
         maturingShown.clear();

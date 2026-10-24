@@ -6,6 +6,7 @@ import idle.core.math.BigNum;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
@@ -278,6 +279,7 @@ public final class VoidPage extends VBox {
             case DECAY -> "Fonte plus lente";
             case LIGHTEN -> "Allègement du ciel";
             case MATURE -> "Maturation plus courte";
+            case SETTLE -> "Rassemblement plus court";
         };
     }
 
@@ -288,28 +290,66 @@ public final class VoidPage extends VBox {
             case ENERGY -> "−15 % d'énergie du collisionneur par paire";
             case SPACE -> "−15 % d'espace par paire";
             case DECAY -> "−10 % de fonte";
-            case LIGHTEN -> "−3 % des besoins du ciel (−" + Math.round((1 - game.needShare()) * 100) + " %)";
-            case MATURE -> "−3 % du temps de maturation des astres (−" + Math.round((1 - game.maturationShare()) * 100) + " %)";
+            case LIGHTEN -> "−" + percent(Game.VOID_LIGHTEN_STEP) + " des besoins du ciel (−" + Math.round((1 - game.needShare()) * 100) + " %)";
+            case MATURE -> "−" + percent(Game.VOID_MATURE_STEP) + " du temps de maturation des astres (−" + Math.round((1 - game.maturationShare()) * 100) + " %)";
+            case SETTLE -> "−" + percent(Game.VOID_SETTLE_STEP) + " du rassemblement de l'amas et de l'univers (−" + Math.round((1 - game.settleShare()) * 100) + " %)";
         };
     }
 
     private static String detail(VoidUpgrade upgrade) {
+        String price = " Prix ×" + ElementText.number(upgrade.growth()) + " par niveau.";
         return switch (upgrade) {
-            case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond ; prix ×2,2 par niveau.";
-            case RATE -> "Le rythme le plus haut des paires : 1 par seconde, ×1,25 par niveau, vingt niveaux. La part du "
-                    + "collisionneur et celle de l'espace libre le bornent aussi. Prix ×2,4 par niveau.";
-            case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0,85 par niveau, quinze niveaux : "
-                    + "la même part de collisionneur paie plus de paires. Prix ×2,5 par niveau.";
-            case SPACE -> "Une paire tient un cinquième de seconde d'expansion tant qu'elle vit, ×0,85 par niveau, quinze niveaux : "
-                    + "la même part d'espace libre tient plus de paires. Prix ×2,5 par niveau.";
-            case DECAY -> "La fonte, 0,2 % par seconde, ×0,9 par niveau, quinze niveaux : l'équilibre monte d'autant. Prix ×2,6 par niveau.";
-            case LIGHTEN -> "Les molécules et la matière que demandent les astres, l'amas et l'univers baissent de 3 % par niveau, "
-                    + "arrondies au-dessus, jamais sous 1 ; dix niveaux, −30 % au plus. La galaxie demande les astres : elle "
-                    + "s'allège avec eux. Seulement dans cet univers. Prix ×2,5 par niveau.";
-            case MATURE -> "Les astres mûrissent 3 % plus vite par niveau, dix niveaux, −30 % du temps au plus : le trou noir "
-                    + "supermassif passe de 6 h à 4 h 12. Les astres qui mûrissent déjà voient leur reste raccourcir d'autant. "
-                    + "Seulement dans cet univers. Prix ×2,5 par niveau.";
+            case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond." + price;
+            case RATE -> "Le rythme le plus haut des paires : 1 par seconde, ×1,25 par niveau, " + upgrade.max() + " niveaux. La part "
+                    + "du collisionneur et celle de l'espace libre le bornent aussi." + price;
+            case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0,85 par niveau, " + upgrade.max()
+                    + " niveaux : la même part de collisionneur paie plus de paires." + price;
+            case SPACE -> "Une paire tient un cinquième de seconde d'expansion tant qu'elle vit, ×0,85 par niveau, " + upgrade.max()
+                    + " niveaux : la même part d'espace libre tient plus de paires." + price;
+            case DECAY -> "La fonte, 0,2 % par seconde, ×0,9 par niveau, " + upgrade.max() + " niveaux : l'équilibre monte d'autant." + price;
+            case LIGHTEN -> "Les molécules et la matière que demandent les astres, l'amas et l'univers baissent de "
+                    + percent(Game.VOID_LIGHTEN_STEP) + " par niveau, arrondies au-dessus, jamais sous 1 ; " + upgrade.max()
+                    + " niveaux, −" + percent(Game.VOID_LIGHTEN_STEP * upgrade.max()) + " au plus. La galaxie demande les astres : "
+                    + "elle s'allège avec eux. Seulement dans cet univers." + price;
+            case MATURE -> "Les astres mûrissent " + percent(Game.VOID_MATURE_STEP) + " plus vite par niveau, " + upgrade.max()
+                    + " niveaux, −" + percent(Game.VOID_MATURE_STEP * upgrade.max()) + " du temps au plus : le trou noir supermassif "
+                    + "passe de 6 h à " + hours(6 * (1 - Game.VOID_MATURE_STEP * upgrade.max())) + ". Les astres qui mûrissent déjà "
+                    + "voient leur reste raccourcir d'autant. Seulement dans cet univers." + price;
+            case SETTLE -> "Le rassemblement qu'attendent l'amas de galaxies et l'univers, deux heures chacun, raccourcit de "
+                    + percent(Game.VOID_SETTLE_STEP) + " par niveau, " + upgrade.max() + " niveaux, −"
+                    + percent(Game.VOID_SETTLE_STEP * upgrade.max()) + " au plus : " + minutesOf(Game.COSMOS_SETTLE_SECONDS
+                    * (1 - Game.VOID_SETTLE_STEP * upgrade.max())) + " au lieu de deux heures. Seulement dans cet univers." + price;
         };
+    }
+
+    /**
+     * Ce que le vide retire au troisième acte de cet univers (version 0.132), pour les statistiques : « besoins du ciel −9 %,
+     * maturation −49 %, rassemblement −48 % » ; « rien encore » sans amélioration de ces trois-là.
+     */
+    public static String actThreeCuts(Game game) {
+        java.util.List<String> cuts = new java.util.ArrayList<>();
+        if (game.needShare() < 1) cuts.add("besoins du ciel −" + Math.round((1 - game.needShare()) * 100) + " %");
+        if (game.maturationShare() < 1) cuts.add("maturation −" + Math.round((1 - game.maturationShare()) * 100) + " %");
+        if (game.settleShare() < 1) cuts.add("rassemblement −" + Math.round((1 - game.settleShare()) * 100) + " %");
+        return cuts.isEmpty() ? "rien encore" : String.join(", ", cuts);
+    }
+
+    /** Les niveaux d'amélioration du vide pris dans cet univers, toutes améliorations comprises. */
+    public static int levelsOwned(Game game) {
+        int levels = 0;
+        for (VoidUpgrade upgrade : VoidUpgrade.values()) levels += game.voidLevel(upgrade);
+        return levels;
+    }
+
+    /** « 1 h 48 » : des heures, en heures et minutes. */
+    private static String hours(double hours) {
+        long minutes = Math.round(hours * 60);
+        return minutes / 60 + " h " + String.format(java.util.Locale.ROOT, "%02d", minutes % 60);
+    }
+
+    /** « 24 min » : des secondes, en minutes entières. */
+    private static String minutesOf(double seconds) {
+        return Math.round(seconds / 60) + " min";
     }
 
     /** Une quantité qui peut être petite (une fraction d'énergie ou d'espace) : avec ses décimales sous mille. */
@@ -323,6 +363,7 @@ public final class VoidPage extends VBox {
                 : String.format(Locale.FRANCE, value >= 10 ? "%.1f" : "%.2f", value);
     }
 
+    /** « 7 % », « 0,2 % » : une part, en pour cent, sans zéros inutiles. */
     private static String percent(double rate) {
         return String.format(Locale.FRANCE, "%.3f", rate * 100).replaceAll("0+$", "").replaceAll(",$", "") + " %";
     }

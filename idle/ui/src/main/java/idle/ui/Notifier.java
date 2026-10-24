@@ -51,6 +51,9 @@ final class Notifier {
     private boolean primed = false;
     /** Vrai si les améliorations du collisionneur étaient déjà ouvertes au dernier relevé. */
     private boolean colliderUpgradesSeen = false;
+    /** Version 0.132 : le vide qui se propose, son trou noir, et les améliorations du troisième acte au plus haut, annoncés une fois. */
+    private boolean voidOfferedSeen = false, voidHoleSeen = false;
+    private final java.util.EnumSet<Game.VoidUpgrade> voidMaxedSeen = java.util.EnumSet.noneOf(Game.VoidUpgrade.class);
     /** Les succès du collisionneur déjà gagnés au dernier relevé. */
     private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
     private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
@@ -124,6 +127,17 @@ final class Notifier {
         boolean upgradesOpen = game.isColliderUpgradesUnlocked();
         if (upgradesOpen && !colliderUpgradesSeen) news.add("Collisionneur : les huit générateurs sont là, les améliorations s'ouvrent.");
         colliderUpgradesSeen = upgradesOpen;
+        boolean voidOffered = game.isVoidOffered();
+        if (voidOffered && !voidOfferedSeen) news.add("Le vide se propose dans l'onglet du collisionneur : il s'ouvre contre de l'énergie du collisionneur.");
+        voidOfferedSeen = voidOffered;
+        boolean voidHole = game.isVoidHoleOpen();
+        if (voidHole && !voidHoleSeen) news.add("Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
+        voidHoleSeen = voidHole;
+        for (Game.VoidUpgrade upgrade : new Game.VoidUpgrade[] {Game.VoidUpgrade.MATURE, Game.VoidUpgrade.SETTLE, Game.VoidUpgrade.LIGHTEN}) {
+            boolean maxed = game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max();
+            if (maxed && voidMaxedSeen.add(upgrade)) news.add("Vide : « " + voidTitle(upgrade) + " » est au plus haut.");
+            if (!maxed) voidMaxedSeen.remove(upgrade);
+        }
         for (ColliderAchievement achievement : ColliderAchievement.values()) {
             if (colliderAchievementsSeen.contains(achievement) || !game.hasColliderAchievement(achievement)) continue;
             colliderAchievementsSeen.add(achievement);
@@ -354,6 +368,10 @@ final class Notifier {
         skinsSeen.clear();
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
+        voidOfferedSeen = game.isVoidOffered();
+        voidHoleSeen = game.isVoidHoleOpen();
+        voidMaxedSeen.clear();
+        for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) if (game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max()) voidMaxedSeen.add(upgrade);
         colliderAchievementsSeen.clear();
         for (ColliderAchievement achievement : ColliderAchievement.values()) {
             if (game.hasColliderAchievement(achievement)) colliderAchievementsSeen.add(achievement);
@@ -404,5 +422,15 @@ final class Notifier {
 
     private static String lower(String text) {
         return text.isEmpty() ? text : Character.toLowerCase(text.charAt(0)) + text.substring(1);
+    }
+
+    /** Le nom d'une amélioration du vide qui raccourcit le troisième acte, comme dans son onglet. */
+    private static String voidTitle(Game.VoidUpgrade upgrade) {
+        return switch (upgrade) {
+            case MATURE -> "Maturation plus courte";
+            case SETTLE -> "Rassemblement plus court";
+            case LIGHTEN -> "Allègement du ciel";
+            default -> upgrade.name();
+        };
     }
 }

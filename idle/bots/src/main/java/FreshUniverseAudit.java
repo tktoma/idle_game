@@ -65,9 +65,10 @@ public final class FreshUniverseAudit {
                 .append('\n');
         report.append("univers_h=").append(bot.universeHours()).append('\n');
         report.append("deuxieme_univers=regimes ").append(bot.nextUniverse.regimes).append(", cycles ")
-                .append(bot.nextUniverse.cycles).append(" (").append(bot.nextUniverse.cycle()).append("), familles ")
+                .append(bot.nextUniverse.cycles).append(" (").append(bot.nextUniverse.cycle() == null ? "au hasard" : bot.nextUniverse.cycle()).append("), familles ")
                 .append(bot.nextUniverse.families).append(", elements offerts ").append(bot.nextUniverse.freeElements)
-                .append('\n');
+                .append(" ; facon de jouer ").append(bot.nextUniverse.style()).append('\n');
+        report.append("anomalies_du_ciel_saisies=").append(bot.skyEventsCaught).append('\n');
         report.append("production_particules_par_s=").append(game.productionPerSecond()).append('\n');
         report.append("particules=").append(game.state().particles()).append('\n');
         report.append("atomes=").append(game.state().atoms()).append('\n');
@@ -106,7 +107,7 @@ public final class FreshUniverseAudit {
         Files.createDirectories(root);
         StringBuilder csv = new StringBuilder(
                 "id,profil,verdict,raison,heures,heures_jeu,heures_en_ligne,big_bangs,"
-                + "explosions,succes,defis,astres_murs,cosmos,decisions,univers,univers_vises,univers_formes,univers_h\n");
+                + "explosions,succes,defis,astres_murs,cosmos,decisions,univers,univers_vises,univers_formes,univers_h,anomalies\n");
         int wins = 0, blocked = 0, limits = 0, errors = 0;
         for (int id = first; id <= last; id++) {
             IdleProfiles24.Profile profile = IdleProfiles24.PROFILES[id - 1];
@@ -160,14 +161,14 @@ public final class FreshUniverseAudit {
                 default -> errors++;
             }
             csv.append(String.format(Locale.ROOT,
-                    "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%s%n",
+                    "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%s,%d%n",
                     id, csv(profile.name()), csv(verdict), csv(reason),
                     bot.wallSeconds / 3600, game.state().timePlayed() / 3600,
                     bot.onlineSeconds / 3600, game.bigBangs(), game.state().explosions(),
                     game.achievementCount(), game.completedChallenges(),
                     game.bodiesMature(), RobotCosmosPlanner.cosmosStage(game),
                     bot.actions, game.hasCosmos(Cosmos.UNIVERSE), universes, game.universes(),
-                    csv(bot.universeHours())));
+                    csv(bot.universeHours()), bot.skyEventsCaught));
             Files.writeString(root.resolve(String.format(Locale.ROOT,
                     "resume_%02d-%02d.csv", first, last)), csv.toString());
             System.out.printf(Locale.ROOT,

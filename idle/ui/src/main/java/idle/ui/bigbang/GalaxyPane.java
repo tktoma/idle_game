@@ -231,7 +231,7 @@ public final class GalaxyPane extends VBox {
                         + "tout par " + ElementText.number(scale.factor()) + ". Il demande de la quantité, état par état, et de la variété : un nombre de "
                         + "sortes rassemblées dans chaque état, chacune comptant dès qu'elle est rassemblée. Chaque état réuni est un jalon : "
                         + "toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " %, dix jalons en tout pour l'amas et l'univers. "
-                        + "Il faut aussi laisser à " + scale.previous().phrase() + " " + minutes(Game.COSMOS_SETTLE_SECONDS)
+                        + "Il faut aussi laisser à " + scale.previous().phrase() + " " + minutes(Game.COSMOS_SETTLE_SECONDS * game.settleShare())
                         + " pour se rassembler, à compter de sa formation.",
                 formed ? "" : ready ? "Former " + scale.phrase() : !open ? "Après " + scale.previous().phrase()
                         : met == all && settle > 0 ? "Encore " + minutes(settle) + " de rassemblement"

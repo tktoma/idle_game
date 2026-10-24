@@ -202,7 +202,7 @@ public abstract class GameStateBase {
     BigNum voidEnergy = BigNum.ZERO;
     /**
      * Le vide (version 0.129) : ouvert (payé en énergie du collisionneur), son trou noir ouvert, la part de l'expansion
-     * qu'on lui donne, les particules sacrifiées au trou noir, et le niveau de ses sept améliorations. Tout repart de
+     * qu'on lui donne, les particules sacrifiées au trou noir, et le niveau de ses huit améliorations. Tout repart de
      * zéro à chaque univers, sauf ce qu'il reste à la formation de chacun ({@link #voidHistory}).
      */
     boolean voidOpen = false, voidHoleOpen = false;
@@ -210,9 +210,9 @@ public abstract class GameStateBase {
     /** Le prix d'ouverture du vide, fixé quand il se propose (0 tant qu'il ne s'est pas proposé dans cet univers). */
     double voidPrice = 0;
     BigNum voidSacrificed = BigNum.ZERO;
-    int voidGainLevel = 0, voidRateLevel = 0, voidEnergyLevel = 0, voidSpaceLevel = 0, voidDecayLevel = 0, voidLightenLevel = 0, voidMatureLevel = 0;
+    int voidGainLevel = 0, voidRateLevel = 0, voidEnergyLevel = 0, voidSpaceLevel = 0, voidDecayLevel = 0, voidLightenLevel = 0, voidMatureLevel = 0, voidSettleLevel = 0;
     /** Le nombre d'améliorations du vide, celles de la sauvegarde. */
-    static final int VOID_UPGRADES = 7;
+    static final int VOID_UPGRADES = 8;
     /** L'énergie du vide qu'il restait à la formation de chaque univers où le vide était ouvert : numéro de l'univers → stock. */
     final Map<String, Double> voidHistory = new java.util.LinkedHashMap<>();
     /**

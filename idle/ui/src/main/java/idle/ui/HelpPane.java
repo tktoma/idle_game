@@ -234,10 +234,12 @@ final class HelpPane extends StackPane {
                 + "cinquième de seconde d'expansion d'espace libre pendant ses 6 secondes de vie, et donne 1 énergie du vide à sa "
                 + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
                 + "départ). L'énergie du vide fond de 0,2 % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
-                + "divisé par la fonte. Elle paie sept améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
-                + "coût en énergie, espace par paire, fonte plus lente, allègement du ciel (−3 % par niveau des molécules et de la "
-                + "matière que demandent les astres, l'amas et l'univers) et maturation plus courte (−3 % par niveau du temps de "
-                + "maturation des astres, aussi pour ceux qui mûrissent déjà). Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
+                + "divisé par la fonte. Elle paie huit améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
+                + "coût en énergie, espace par paire, fonte plus lente, et trois qui raccourcissent le troisième acte : allègement "
+                + "du ciel (−" + Math.round(Game.VOID_LIGHTEN_STEP * 100) + " % par niveau des molécules et de la matière que "
+                + "demandent les astres, l'amas et l'univers), maturation plus courte (−" + Math.round(Game.VOID_MATURE_STEP * 100)
+                + " % par niveau du temps de maturation des astres, aussi pour ceux qui mûrissent déjà) et rassemblement plus court "
+                + "(−" + Math.round(Game.VOID_SETTLE_STEP * 100) + " % par niveau du délai de l'amas et de l'univers). Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
                 + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
                 + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers ; le vide, son trou noir et ses "
                 + "améliorations repartent de zéro dans l'univers suivant."));

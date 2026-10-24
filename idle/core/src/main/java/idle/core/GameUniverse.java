@@ -112,12 +112,16 @@ public abstract class GameUniverse extends GameAtoms {
     // ------------------------------------------------------------------
 
     /**
-     * Les sept améliorations du vide, payées en énergie du vide : leur prix de départ, la croissance, le plafond. Dans
-     * l'ordre de la sauvegarde : gain par paire, rythme, coût en énergie, espace par paire, fonte, allègement, maturation.
+     * Les huit améliorations du vide, payées en énergie du vide : leur prix de départ, la croissance, le plafond. Dans
+     * l'ordre de la sauvegarde : gain par paire, rythme, coût en énergie, espace par paire, fonte, allègement, maturation,
+     * et depuis la version 0.132 le rassemblement. Version 0.132 : les cinq qui font grandir le vide montent bien plus vite
+     * de prix (×3,7 à ×4,1 par niveau, au lieu de ×2,2 à ×2,6), pour que le vide ne se remplisse pas en une heure ; les
+     * trois qui raccourcissent le troisième acte vont plus loin (maturation −70 %, rassemblement −80 %) et montent de
+     * prix moins vite (×2) : elles se gagnent au fil de l'acte, mesurées sur le Speedrunner du troisième univers.
      */
     public enum VoidUpgrade {
-        GAIN(10, 2.2, Integer.MAX_VALUE), RATE(20, 2.4, 20), ENERGY(15, 2.5, 15), SPACE(15, 2.5, 15), DECAY(25, 2.6, 15),
-        LIGHTEN(100, 2.5, 10), MATURE(60, 2.5, 10);
+        GAIN(10, 3.7, Integer.MAX_VALUE), RATE(20, 3.9, 20), ENERGY(15, 4.0, 15), SPACE(15, 4.0, 15), DECAY(25, 4.1, 15),
+        LIGHTEN(300, 2.0, 10), MATURE(200, 2.0, 10), SETTLE(800, 2.0, 5);
 
         private final double cost, growth;
         private final int max;
@@ -156,6 +160,14 @@ public abstract class GameUniverse extends GameAtoms {
     /** La part des besoins du ciel qui reste avec l'allègement du vide : 1 sans lui, 0,7 au plus fort. */
     public double needShare() {
         return 1 - VOID_LIGHTEN_STEP * Math.min(VoidUpgrade.LIGHTEN.max(), voidLevel(VoidUpgrade.LIGHTEN));
+    }
+
+    /** Ce que chaque niveau de rassemblement du vide retire au délai de l'amas et de l'univers (version 0.132) : 16 %, cinq niveaux, −80 % au plus. */
+    public static final double VOID_SETTLE_STEP = 0.16;
+
+    /** La part du délai de rassemblement qui reste avec le vide : 1 sans l'amélioration. */
+    public double settleShare() {
+        return 1 - VOID_SETTLE_STEP * Math.min(VoidUpgrade.SETTLE.max(), voidLevel(VoidUpgrade.SETTLE));
     }
 
     /** Un besoin après l'allègement : arrondi au-dessus, jamais sous 1. */
@@ -1004,7 +1016,7 @@ public abstract class GameUniverse extends GameAtoms {
         // Version 0.126 : la date de l'échelle d'avant dans cette partie, pas la toute première fois qu'elle s'est formée.
         double since = state.stats().reachedThisUniverseAt(scale.previous() == Cosmos.GALAXY ? GameStats.Step.GALAXY : GameStats.Step.CLUSTER);
         if (Double.isNaN(since)) return 0;
-        return Math.max(0, since + COSMOS_SETTLE_SECONDS - state.timePlayed());
+        return Math.max(0, since + COSMOS_SETTLE_SECONDS * settleShare() - state.timePlayed());
     }
 
     private final Map<Molecule.State, Integer> sortsByState = new java.util.EnumMap<>(Molecule.State.class);

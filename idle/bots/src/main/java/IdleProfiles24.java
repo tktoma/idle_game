@@ -7,6 +7,7 @@ import idle.core.sky.*;
 import idle.core.collider.*;
 import idle.core.probes.*;
 import idle.core.save.*;
+import idle.core.universe.CycleChoice;
 import java.util.*;
 import java.nio.file.*;
 public class IdleProfiles24 extends RobotCosmosPlanner {
@@ -40,8 +41,44 @@ new Profile(22,"WeekendPlayer","4 heures toutes les 48 heures",40,172800,14400,.
 new Profile(23,"Forgetful","Des pauses et oublis fréquents",180,3600,1200,.55,.6,.7,.45,.55,1,"forgetful"),
 new Profile(24,"ReturningVeteran","Expert mais seulement 15 min / 3 h",60,10800,900,1,1,1,1,1,0,"returning")
 };
+/**
+ * La façon de jouer le deuxième univers de chaque profil, dans l'ordre de {@link #PROFILES} (version 0.131) : choix de
+ * cycle (null : au hasard), chance de relancer le régime rapide, de faire le choix de cycle, ce qu'il fait de la famille
+ * préférée, chance de prendre les éléments offerts, et lequel.
+ */
+static final NextUniversePolicy.Style[] STYLES = {
+style(CycleChoice.FUSION,   1.00,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  1 Speedrunner : l'expert
+style(CycleChoice.FUSION,    .95,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  2 Veteran : presque l'expert
+style(CycleChoice.FUSION,    .70, .90,NextUniversePolicy.Family.FOLLOW, .90,NextUniversePolicy.Pick.NEEDED), //  3 Regular : le bon choix, pas toujours le geste
+style(CycleChoice.RESERVE,   .90,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  4 Methodical : l'économe planifie et met en réserve
+style(CycleChoice.FUSION,    .80, .90,NextUniversePolicy.Family.FOLLOW, .90,NextUniversePolicy.Pick.NEEDED), //  5 AchievementHunter : attentif, sans tout optimiser
+style(CycleChoice.SYNTHESIS, .60, .90,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  6 Collector : des éléments pour ses molécules
+style(CycleChoice.SYNTHESIS, .80,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  7 Chemist : la synthèse
+style(CycleChoice.SYNTHESIS, .60, .90,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), //  8 Astronomer : les molécules du ciel
+style(CycleChoice.FUSION,    .60, .90,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), //  9 Explorer : ses gestes vont aux sondes
+style(CycleChoice.RESERVE,   .00, .90,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), // 10 PassiveOptimist : compte sur les automatismes, jamais de régime (geste répété à la main)
+style(CycleChoice.RESERVE,   .80,1.00,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), // 11 PrestigeAddict : plus de matière noire par explosion
+style(CycleChoice.RESERVE,   .40, .80,NextUniversePolicy.Family.ONCE,  1.00,NextUniversePolicy.Pick.NEEDED), // 12 Hoarder : la réserve ; ce qui est gratuit, il le prend
+style(CycleChoice.FUSION,    .50, .80,NextUniversePolicy.Family.ONCE,  1.00,NextUniversePolicy.Pick.NEEDED), // 13 BulkBuyer : passe rarement : le régime une fois sur deux
+style(CycleChoice.FUSION,    .50, .80,NextUniversePolicy.Family.ONCE,   .80,NextUniversePolicy.Pick.FIRST),  // 14 OneClick : prend le premier élément de la liste
+style(null,                  .45, .70,NextUniversePolicy.Family.NONE,   .70,NextUniversePolicy.Pick.RANDOM), // 15 RandomClicker : au hasard
+style(CycleChoice.FUSION,    .00, .60,NextUniversePolicy.Family.NONE,   .60,NextUniversePolicy.Pick.FIRST),  // 16 Beginner : le premier choix, oublie le régime
+style(CycleChoice.RESERVE,   .00,1.00,NextUniversePolicy.Family.ONCE,  1.00,NextUniversePolicy.Pick.NEEDED), // 17 AFKOpen : une visite par heure, le régime ne sert à rien
+style(CycleChoice.RESERVE,   .10, .90,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), // 18 BackgroundWorker : une décision toutes les dix minutes : le régime, rarement
+style(CycleChoice.FUSION,    .50, .90,NextUniversePolicy.Family.ONCE,   .90,NextUniversePolicy.Pick.NEEDED), // 19 MobileSnacker : cinq minutes par heure
+style(CycleChoice.FUSION,    .60, .90,NextUniversePolicy.Family.FOLLOW, .90,NextUniversePolicy.Pick.NEEDED), // 20 LunchBreak : des sessions de trente minutes bien remplies
+style(CycleChoice.FUSION,    .90,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), // 21 EveningPlayer : deux heures d'expert par jour
+style(CycleChoice.FUSION,    .70, .90,NextUniversePolicy.Family.FOLLOW, .90,NextUniversePolicy.Pick.NEEDED), // 22 WeekendPlayer : longues sessions, un peu moins appliqué
+style(CycleChoice.SYNTHESIS, .20, .50,NextUniversePolicy.Family.NONE,   .50,NextUniversePolicy.Pick.FIRST),  // 23 Forgetful : oublie souvent
+style(CycleChoice.FUSION,   1.00,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), // 24 ReturningVeteran : l'expert, peu présent
+};
+private static NextUniversePolicy.Style style(CycleChoice cycle,double regime,double cycleCare,NextUniversePolicy.Family family,double freeCare,NextUniversePolicy.Pick pick){
+return new NextUniversePolicy.Style(cycle,regime,cycleCare,family,freeCare,pick);
+}
 final Profile p;
 final Random rng;
+/** Le hasard des anomalies du ciel, à part : il ne déplace pas les autres tirages du profil. */
+final Random skyRng;
 double wallSeconds=0, onlineSeconds=0, creditedOfflineSeconds=0;
 int actions=0, planningActions=0, techActions=0, otherActions=0;
 int first8=-1, galaxy=-1, cluster=-1, universe=-1;
@@ -51,6 +88,9 @@ final ProfileProgressGuard progressGuard;
 double nextGuardSampleAt=ProfileProgressGuard.SAMPLE_SECONDS;
 IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
 super(game,decisionStep);this.p=profile;this.rng=new Random(seed ^ (profile.id*11939L));
+this.skyRng=new Random(seed ^ (profile.id*7907L) ^ 0x5c1L);
+// Version 0.131 : chaque profil joue le deuxième univers à sa façon, avec son propre hasard.
+this.nextUniverse=new NextUniversePolicy(STYLES[profile.id-1],new Random(seed ^ (profile.id*3571L) ^ 0x2b2L));
 lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
 }
@@ -135,6 +175,8 @@ nextActionAt+=actionInterval;
 if(rng.nextDouble()>=p.attention())continue;
 actions++;
 if(g.isCometVisible() && rng.nextDouble()<p.skyAttention())g.catchComet();
+// Version 0.131 : l'anomalie du ciel, selon l'attention au ciel du profil.
+if(g.skyEvent()!=null && !skyEventsOff() && skyRng.nextDouble()<p.skyAttention())catchSkyEvent();
 if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
       int charges=g.pulseCharges();
       for(int k=0;k<charges;k++){
@@ -180,7 +222,7 @@ progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,c
 Files.createDirectories(output);
 Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_%s.csv",p.id(),p.name(),System.getProperty("idle.stage","late"))),logs.toString());
 if(NextUniversePolicy.reached(g,targetUniverses))Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_winner.save",p.id(),p.name())),SaveCodec.write(g.state(),0));
-System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s,universes=%d,target=%d,won=%b,universeTimes=%s,regimes=%d,cycles=%d,families=%d,freeElements=%d%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600),g.universes(),targetUniverses,NextUniversePolicy.reached(g,targetUniverses),universeHours(),nextUniverse.regimes,nextUniverse.cycles,nextUniverse.families,nextUniverse.freeElements);
+System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s,universes=%d,target=%d,won=%b,universeTimes=%s,regimes=%d,cycles=%d,families=%d,freeElements=%d,skyEvents=%d%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600),g.universes(),targetUniverses,NextUniversePolicy.reached(g,targetUniverses),universeHours(),nextUniverse.regimes,nextUniverse.cycles,nextUniverse.families,nextUniverse.freeElements,skyEventsCaught);
 }
 public static void main(String[]args)throws Exception{
 if(args.length<5){System.err.println("Usage: id  checkpoint  wallHours  stepSeconds outputDir [seed] [stage] [univers]");System.exit(2);}

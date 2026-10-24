@@ -767,7 +767,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         voidSacrificed = sacrificed == null || sacrificed.sign() < 0 ? BigNum.ZERO : sacrificed;
     }
 
-    /** Niveau d'une amélioration du vide, dans l'ordre de {@code Game.VoidUpgrade} ; 0 hors des sept. */
+    /** Niveau d'une amélioration du vide, dans l'ordre de {@code Game.VoidUpgrade} ; 0 hors des huit. */
     public int voidLevel(int index) {
         return switch (index) {
             case 0 -> voidGainLevel;
@@ -777,6 +777,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             case 4 -> voidDecayLevel;
             case 5 -> voidLightenLevel;
             case 6 -> voidMatureLevel;
+            case 7 -> voidSettleLevel;
             default -> 0;
         };
     }
@@ -791,6 +792,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             case 4 -> voidDecayLevel = value;
             case 5 -> voidLightenLevel = value;
             case 6 -> voidMatureLevel = value;
+            case 7 -> voidSettleLevel = value;
             default -> { }
         }
     }

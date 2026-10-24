@@ -17,13 +17,10 @@ import java.util.List;
  * @param bigBangs nombre de Big Bangs qu'il faut avoir déclenchés
  * @param name     nom affiché
  * @param effects  ce qu'il donne : un effet, parfois deux
+ * @param resource ce qui le paie : particules ou atomes
+ * @param price    son prix, une fois ouvert
  */
 public record BigBangMilestone(int bigBangs, String name, List<Effect> effects, idle.core.Resource resource, idle.core.math.BigNum price) {
-
-    /** Un palier gratuit, atteint dès son nombre de Big Bangs (avant la version 0.124, tous l'étaient). */
-    public BigBangMilestone(int bigBangs, String name, List<Effect> effects) {
-        this(bigBangs, name, effects, idle.core.Resource.PARTICLES, idle.core.math.BigNum.ZERO);
-    }
 
     /** Vrai si le palier se paie, une fois son nombre de Big Bangs atteint (version 0.124). */
     public boolean hasPrice() {

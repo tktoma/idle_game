@@ -230,6 +230,40 @@ Ce que montrent ces mesures :
   la fusion est la plus régulière (23 h 26 à 23 h 51 sur trois graines, contre 23 h 34 à 25 h 12 avec la synthèse) :
   c'est le défaut.
 
+## Chaque profil à sa façon, et les anomalies du ciel (version 0.131)
+
+Dans le deuxième univers, chaque profil fait maintenant ses propres choix au lieu de jouer en expert : choix de
+cycle, régime rapide, famille préférée, éléments offerts (`IdleProfiles24.STYLES`, détaillé profil par profil dans
+`PROFILS_24.md`). Le thésauriseur, le méthodique et l'accro au prestige mettent en réserve ; le chimiste, le
+collectionneur et l'astronome prennent la synthèse ; le débutant, l'optimiste passif et l'AFK n'utilisent jamais le
+régime rapide ; le cliqueur désordonné tire son cycle au hasard ; le débutant, le cliqueur occasionnel et le distrait
+prennent le premier élément offert. Un oubli de choix de cycle vaut pour tout le cycle, et un oubli d'éléments
+offerts pour toute la fournée, pas seulement pour une décision. Chaque profil a son propre hasard pour ces gestes :
+ils ne déplacent pas ses autres tirages. Le Speedrunner (et le vétéran revenant) jouent en experts et ne tirent
+aucun hasard pour cela : leurs parties de l'univers 2 sont celles de la 0.130.
+
+Les **anomalies du ciel** (version 0.127) sont saisies, dans les deux univers : par chaque profil, à une décision où
+une anomalie est visible, avec la chance de son attention au ciel (un hasard à part) ; par le bot V2 à chaque
+décision, sauf en mode `SANS_COMETES`. `-Didle.sansAnomalies=true` les fait ignorer, comme avant.
+
+Effet sur le premier univers (Speedrunner, partie neuve, graine 201) : **27 h 01** avec les anomalies (53 saisies),
+27 h 23 sans, exactement comme avant. Deuxième univers, depuis `checkpoint_universe1_speedrunner.save`, graine
+200 + id :
+
+| Profil | Façon de jouer | Univers 2 formé | Anomalies |
+|---|---|---|---|
+| 1 Speedrunner | expert, fusion | 21 h 16 | 55 |
+| 7 Chemist | synthèse, régime 80 % | 22 h 27 | 54 |
+| 3 Regular | fusion, régime 70 %, oublie un cycle sur dix | 24 h 20 | 55 |
+| 10 PassiveOptimist | réserve, jamais de régime | 36 h 22 | 61 |
+| 12 Hoarder | réserve, régime 40 % | 63 h 50 | 79 |
+| 16 Beginner | fusion, jamais de régime, premier élément | 73 h 42 | 62 |
+| 23 Forgetful | synthèse, oublie la moitié des cycles | pas en 150 h (premier Big Bang à 71 h) | 25 |
+
+Le distrait reste lent pour lui-même, pas à cause de ses choix : sans les nouveautés du deuxième univers ni les
+anomalies, il en est au même point (premier Big Bang à 71 h, 7 Big Bangs à 150 h). Il n'est en ligne qu'un tiers du
+temps, décide toutes les trois minutes et laisse passer près d'une occasion sur deux.
+
 ## Les bots partis de zéro : succès et défis (0.86)
 
 Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :

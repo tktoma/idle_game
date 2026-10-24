@@ -17,6 +17,7 @@ import idle.ui.automation.AutomationPage;
 import idle.ui.bigbang.BigBangPage;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.vacuum.VoidPage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -255,6 +256,12 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Formation automatique", () -> game.isAutoFormEnabled() ? "en marche" : "coupée", game::isAutoFormUnlocked);
         charted("Expansion multipliée par la matière noire", row("Expansion multipliée par la matière noire",
                 () -> multiplier(game.darkMatterSpaceBoost()), () -> game.darkMatterSpaceBoost() > 1));
+        // Le vide (version 0.132), une fois ouvert : sa réserve, ses améliorations et ce qu'il retire au troisième acte.
+        row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "
+                + Format.count(BigNum.of(game.voidEquilibrium())) + ")", game::isVoidUnlocked);
+        row("Niveaux d'amélioration du vide", () -> Format.whole(VoidPage.levelsOwned(game)), game::isVoidUnlocked);
+        row("Ce que le vide raccourcit", () -> VoidPage.actThreeCuts(game), game::isVoidUnlocked);
+        row("Masse du trou noir", () -> ElementText.number(game.voidMass()), () -> game.isVoidUnlocked() && game.isVoidHoleOpen());
 
         section("Big Bangs");
         charted("Durée de chaque Big Bang", row("Durée du dernier", () -> Format.duration(stats().lastBigBangTime())));

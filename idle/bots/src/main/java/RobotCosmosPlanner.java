@@ -36,8 +36,22 @@ public class RobotCosmosPlanner {
    * actes avec ce que le deuxième univers ajoute. Une partie en train de rejouer finit au moins l'univers en cours.
    */
   int targetUniverses=1;
-  /** Les gestes du deuxième univers ; aucun dans le premier. */
-  final NextUniversePolicy nextUniverse=new NextUniversePolicy();
+  /** Les gestes du deuxième univers ; aucun dans le premier. Les profils y mettent leur façon de jouer (0.131). */
+  NextUniversePolicy nextUniverse=new NextUniversePolicy();
+  /** Anomalies du ciel saisies (version 0.131). */
+  int skyEventsCaught=0;
+  /** Vrai pour jouer sans saisir les anomalies du ciel (propriété {@code idle.sansAnomalies}), comme avant la 0.131. */
+  static boolean skyEventsOff(){return Boolean.getBoolean("idle.sansAnomalies");}
+  /**
+   * Saisit l'anomalie du ciel visible, si elle existe (version 0.131) : un vent de particules ou une fenêtre
+   * d'exploration, facultatifs et gratuits. Vrai si une anomalie a été saisie.
+   */
+  boolean catchSkyEvent(){
+    if(skyEventsOff() || g.skyEvent()==null)return false;
+    if(g.catchSkyEvent()==null)return false;
+    skyEventsCaught++;
+    return true;
+  }
   /** L'instant de la formation de chaque univers, en secondes de {@link #clockSeconds()}, dans l'ordre. */
   final List<Double> universeTimes=new ArrayList<>();
   /** Univers déjà formés au dernier relevé. */
@@ -554,6 +568,7 @@ public class RobotCosmosPlanner {
       elapsed+=step;tickCount++;
       g.tick(step);
       if(g.isCometVisible())g.catchComet();
+      catchSkyEvent();
       if(g.isPulseUnlocked())for(int c=0;c<g.pulseCharges();c++)g.pulse();
       if(g.state().explosions()>0 || g.isBigBangUnlocked()){
         collider();

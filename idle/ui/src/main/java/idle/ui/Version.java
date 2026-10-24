@@ -23,6 +23,15 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.131", "Les bots ont chacun leur façon de jouer", List.of(
+                    "Profil de test : dans le deuxième univers, chaque profil de bot fait ses propres choix. Le "
+                            + "thésauriseur met en réserve, le chimiste prend la synthèse, le débutant oublie le régime rapide "
+                            + "et prend le premier élément offert, le distrait oublie souvent.",
+                    "Les bots saisissent les anomalies du ciel, chacun selon son attention au ciel.")),
+            new Note("0.130", "Les bots jouent l'univers 2", List.of(
+                    "Profil de test : les bots savent rejouer les trois actes du deuxième univers, avec le régime rapide, "
+                            + "le choix de cycle, la famille préférée et les éléments offerts. Les dimensions, la graine, "
+                            + "l'onglet Univers et le vide restent hors de leur portée pour l'instant.")),
             new Note("0.129", "Le vide se joue", List.of(
                     "Au premier Big Bang du troisième univers, le vide se propose dans l'onglet Collisionneur : il s'ouvre contre "
                             + "dix minutes de production du collisionneur, comptées à son arrivée, une fois par univers.",

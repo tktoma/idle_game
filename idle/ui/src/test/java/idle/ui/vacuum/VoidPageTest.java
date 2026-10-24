@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.129 : le vide dans l'interface, sous Xvfb. L'offre dans le collisionneur, la page du vide (réserve et
- * équilibre, réglage, améliorations, trou noir), l'écume qui suit les paires de la partie, le cumul dans la graine.
+ * équilibre, réglage, améliorations — huit depuis 0.132 —, trou noir), l'écume qui suit les paires de la partie, le cumul dans la graine.
  */
 class VoidPageTest {
 
@@ -138,15 +138,27 @@ class VoidPageTest {
             assertEquals(VoidPage.UPGRADES, page.selected());
             // Le point du sous-onglet dit qu'une amélioration est payable.
             assertEquals("Améliorations", page.upgradesTab().getText(), "rien à payer, pas de point");
-            game.state().setVoidEnergy(BigNum.of(60));
+            game.state().setVoidEnergy(BigNum.of(VoidUpgrade.MATURE.baseCost()));
             page.refresh();
             assertTrue(page.upgradesTab().getText().length() > "Améliorations".length(), page.upgradesTab().getText());
-            // La septième carte : la maturation plus courte.
+            // La septième carte : la maturation plus courte (0.132 : 200 d'énergie du vide).
             Card mature = page.card(VoidUpgrade.MATURE);
             mature.click();
             assertEquals(1, game.voidLevel(VoidUpgrade.MATURE));
+            assertEquals(0, game.voidEnergy().toDouble(), 1e-9);
+            // La huitième (0.132) : le rassemblement plus court, 800 d'énergie du vide.
+            Card settle = page.card(VoidUpgrade.SETTLE);
+            assertTrue(settle != null);
+            game.state().setVoidEnergy(BigNum.of(VoidUpgrade.SETTLE.baseCost() - 1));
             page.refresh();
-            assertEquals(7, VoidUpgrade.values().length);
+            settle.click();
+            assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE), "799 ne suffisent pas");
+            game.state().setVoidEnergy(BigNum.of(VoidUpgrade.SETTLE.baseCost()));
+            page.refresh();
+            settle.click();
+            assertEquals(1, game.voidLevel(VoidUpgrade.SETTLE));
+            page.refresh();
+            assertEquals(8, VoidUpgrade.values().length);
             return null;
         });
     }
@@ -209,6 +221,23 @@ class VoidPageTest {
             UniversePage none = new UniversePage(fresh);
             none.refresh();
             assertFalse(none.voidCumulLabel().isVisible(), "pas de cumul, pas de ligne");
+            return null;
+        });
+    }
+
+    @Test
+    void lesStatistiquesDisentCeQueLeVideRaccourcit() {
+        FxTestSupport.fx(() -> {
+            Game game = open();
+            assertEquals("rien encore", VoidPage.actThreeCuts(game));
+            assertEquals(0, VoidPage.levelsOwned(game));
+            game.state().setVoidLevel(VoidUpgrade.MATURE.ordinal(), 7);
+            game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 5);
+            game.state().setVoidLevel(VoidUpgrade.GAIN.ordinal(), 3);
+            assertEquals("maturation −49 %, rassemblement −80 %", VoidPage.actThreeCuts(game));
+            assertEquals(15, VoidPage.levelsOwned(game));
+            game.state().setVoidLevel(VoidUpgrade.LIGHTEN.ordinal(), 10);
+            assertTrue(VoidPage.actThreeCuts(game).startsWith("besoins du ciel −30 %"), VoidPage.actThreeCuts(game));
             return null;
         });
     }

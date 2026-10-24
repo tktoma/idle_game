@@ -23,8 +23,8 @@ import java.util.random.RandomGenerator;
  *
  * <p>Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent une masse
  * ({@link #voidMass()}) qui raccourcit la vie des paires (elles rendent leur espace plus vite) et ralentit la fonte.
- * L'énergie du vide paie sept améliorations ({@link VoidUpgrade}), dont l'allègement des besoins du ciel et la
- * maturation plus courte des astres. À la
+ * L'énergie du vide paie huit améliorations ({@link VoidUpgrade}), dont trois raccourcissent le troisième acte :
+ * l'allègement des besoins du ciel, la maturation plus courte des astres et le rassemblement plus court (version 0.132). À la
  * formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé ; le vide, lui, repart de zéro.
  */
 public abstract class GameVoid extends GameBigBang {

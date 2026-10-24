@@ -27,6 +27,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
   double reachedGalaxy=Double.NaN,reachedCluster=Double.NaN,reachedUniverse=Double.NaN,reachedB8=Double.NaN;
   AdvancedLab(Game g,double dt,String mode,long seed){
     super(g,dt);this.mode=mode;policyRandom=new Random(seed ^ 0x71abcL);
+    // Version 0.131 : le débutant joue le deuxième univers en débutant ; les autres modes, en experts.
+    if(mode.equals("DEBUTANT_APPRENANT"))nextUniverse=new NextUniversePolicy(IdleProfiles24.STYLES[15],new Random(seed ^ 0x2b2L));
     prevB=g.bodiesMature();prevA=g.assembliesFormed();prevM=g.moleculeKindsCreated();prevT=g.substancesFormed();
     prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevBl=g.bigBangs();prevExpl=g.state().explosions();prevMol=g.moleculesCreated();
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
@@ -60,6 +62,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
   void act(){
     acts++;
     if(!mode.equals("SANS_COMETES") && g.isCometVisible() && g.catchComet())caught++;
+    // Version 0.131 : les anomalies du ciel, comme les comètes (sauf dans le mode qui les ignore).
+    if(!mode.equals("SANS_COMETES"))catchSkyEvent();
     if(!mode.equals("SANS_IMPULSIONS") && g.isPulseUnlocked()){
       int toUse=mode.equals("DEBUTANT_APPRENANT")?Math.min(2,g.pulseCharges()):g.pulseCharges();
       for(int i=0;i<toUse;i++)if(g.pulse())pulses++;
@@ -133,8 +137,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
     Files.write(out.resolve("events.csv"),events);
     boolean won=NextUniversePolicy.reached(g,targetUniverses);
     if(won)Files.writeString(out.resolve("winner.save"),SaveCodec.write(g.state(),0));
-    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d,%d,%s",mode,won?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras,g.universes(),universeHours());
-    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats,univers_formes,univers_h\n"+res+"\n");
+    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d,%d,%s,%d",mode,won?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras,g.universes(),universeHours(),skyEventsCaught);
+    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats,univers_formes,univers_h,anomalies\n"+res+"\n");
     System.out.println("RESULT,"+res);
   }
   public static void main(String[]args)throws Exception{
