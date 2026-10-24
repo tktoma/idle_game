@@ -101,8 +101,8 @@ public final class FreshUniverseAudit {
         Path root = Path.of(args[4]);
         if (first < 1 || last > 24 || first > last
                 || !Double.isFinite(maxHours) || maxHours <= 0
-                || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > 2) {
-            throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 ou 2) invalides");
+                || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > 3) {
+            throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 à 3) invalides");
         }
         Files.createDirectories(root);
         StringBuilder csv = new StringBuilder(

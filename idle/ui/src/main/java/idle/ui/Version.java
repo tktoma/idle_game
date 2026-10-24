@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.132", "Le vide raccourcit le troisième acte", List.of(
+                    "Nouvelle amélioration du vide, « Rassemblement plus court » : −16 % par niveau du délai de deux heures de "
+                            + "l'amas de galaxies et de l'univers, cinq niveaux, jusqu'à −80 %.",
+                    "« Maturation plus courte » va bien plus loin : −7 % par niveau au lieu de −3 %, jusqu'à −70 % du temps de "
+                            + "maturation des astres (le trou noir supermassif mûrit en 1 h 48 au lieu de 6 h).",
+                    "Les trois améliorations qui raccourcissent le troisième acte (maturation, rassemblement, allègement du ciel) "
+                            + "coûtent davantage au départ mais montent moins vite : elles se gagnent au fil de l'acte.",
+                    "Les cinq améliorations qui font grandir le vide (gain, rythme, coût en énergie, espace, fonte) montent bien plus "
+                            + "vite de prix (×3,7 à ×4,1 par niveau) : le vide ne se remplit plus en une heure.",
+                    "Le journal annonce quand le vide se propose, quand son trou noir s'ouvre et quand une amélioration du "
+                            + "troisième acte est au plus haut.",
+                    "Les statistiques du Big Bang (Avancée) montrent l'énergie du vide et son équilibre, ses niveaux "
+                            + "d'amélioration, ce qu'il raccourcit et la masse de son trou noir.",
+                    "Les bots jouent le vide : ils l'ouvrent, lui laissent la moitié du collisionneur et de l'espace libre, "
+                            + "achètent d'abord ce qui raccourcit le troisième acte et nourrissent le trou noir.")),
             new Note("0.131", "Les bots ont chacun leur façon de jouer", List.of(
                     "Profil de test : dans le deuxième univers, chaque profil de bot fait ses propres choix. Le "
                             + "thésauriseur met en réserve, le chimiste prend la synthèse, le débutant oublie le régime rapide "

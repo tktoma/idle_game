@@ -76,7 +76,7 @@ final class NextUniversePolicy {
     private int familyDisagreements = 0;
     /** L'occasion de choix de cycle et la fournée d'éléments offerts déjà tranchées (on n'y revient pas). */
     private long cycleOccasion = -1, freeOccasion = -1;
-    int regimes = 0, cycles = 0, families = 0, freeElements = 0;
+    int regimes = 0, cycles = 0, families = 0, freeElements = 0, voidOpened = 0, voidUpgrades = 0, voidSacrifices = 0;
 
     NextUniversePolicy() {
         this(Style.EXPERT, new java.util.Random(0));
@@ -175,8 +175,65 @@ final class NextUniversePolicy {
             freeOccasion = freeNow;
             if (chance(style.freeCare())) done += claimFreeElements(game);
         }
+        done += playVoid(game);
         return done;
     }
+
+    /** La part du collisionneur et de l'espace libre que le bot laisse au vide (version 0.132). */
+    static final double VOID_SHARE = 0.5;
+    /** Le trou noir du vide ne reçoit les particules que si sa masse y gagne au moins autant. */
+    static final double VOID_MASS_STEP = 0.25;
+
+    /**
+     * Le vide (troisième univers, version 0.132) : l'ouvrir dès que l'énergie du collisionneur le paie, lui laisser la
+     * moitié du collisionneur et de l'espace libre, acheter d'abord ce qui raccourcit le troisième acte (maturation,
+     * rassemblement, allègement du ciel), puis l'amélioration la moins chère ; sacrifier les particules en main au
+     * trou noir quand sa masse y gagne vraiment. La propriété {@code idle.sansVide} le coupe, pour mesurer sans lui.
+     */
+    int playVoid(Game game) {
+        if (Boolean.getBoolean("idle.sansVide")) return 0;
+        int done = 0;
+        if (game.isVoidOffered() && game.canOpenVoid() && game.openVoid()) {
+            game.setVoidShare(VOID_SHARE);
+            voidOpened++;
+            trace(game, "ouvert");
+            done++;
+        }
+        if (!game.isVoidUnlocked()) return done;
+        boolean bought = true;
+        while (bought) {
+            bought = false;
+            Game.VoidUpgrade pick = null;
+            for (Game.VoidUpgrade first : VOID_FIRST) {
+                if (game.canBuyVoid(first)) { pick = first; break; }
+            }
+            if (pick == null) {
+                for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) {
+                    if (game.canBuyVoid(upgrade) && (pick == null || game.voidCost(upgrade) < game.voidCost(pick))) pick = upgrade;
+                }
+            }
+            if (pick != null && game.buyVoid(pick)) {
+                voidUpgrades++;
+                done++;
+                bought = true;
+                trace(game, pick.name() + " " + game.voidLevel(pick));
+            }
+        }
+        if (game.canSacrificeParticles() && game.voidMassAfterSacrifice() >= game.voidMass() + VOID_MASS_STEP && game.sacrificeParticles()) {
+            voidSacrifices++;
+            done++;
+        }
+        return done;
+    }
+
+    /** Avec la propriété {@code idle.traceVide}, chaque geste du vide s'écrit : temps de jeu, geste, énergie du vide. */
+    private static void trace(Game game, String what) {
+        if (!Boolean.getBoolean("idle.traceVide")) return;
+        System.out.printf(Locale.ROOT, "VIDE,%.3f,%s,%.0f%n", game.state().timePlayed() / 3600, what, game.voidEnergy().toDouble());
+    }
+
+    /** Ce que le bot achète d'abord dans le vide : ce qui raccourcit les attentes du troisième acte. */
+    static final Game.VoidUpgrade[] VOID_FIRST = {Game.VoidUpgrade.MATURE, Game.VoidUpgrade.SETTLE, Game.VoidUpgrade.LIGHTEN};
 
     /**
      * La famille préférée suit la famille qui rationne les recettes (la même que vise la synthèse ciblée). Changer

@@ -155,6 +155,18 @@ class NextUniverseTest {
         return game;
     }
 
+    /** Le troisième univers, au premier Big Bang : le vide se propose. */
+    private static Game thirdUniverse() {
+        Game game = fresh();
+        game.testFormUniverse();
+        assertTrue(game.startNextUniverse());
+        game.testFormUniverse();
+        assertTrue(game.startNextUniverse());
+        game.start();
+        game.state().setBigBangs(1);
+        return game;
+    }
+
     @Test
     void chaqueProfilASaFaconDeJouerLUniversDeux() {
         assertEquals(IdleProfiles24.PROFILES.length, IdleProfiles24.STYLES.length, "une façon de jouer par profil");
@@ -266,5 +278,40 @@ class NextUniverseTest {
         NextUniversePolicy once = new NextUniversePolicy(IdleProfiles24.STYLES[16], new Random(1));
         for (int i = 0; i < 30; i++) once.play(game);
         assertEquals(0, once.families, "AFKOpen n'y revient pas");
+    }
+
+    @Test
+    void leBotOuvreLeVideEtAcheteDAbordCeQuiRaccourcitLeTroisiemeActe() {
+        Game game = thirdUniverse();
+        assertTrue(game.isVoidOffered(), "premier Big Bang du troisième univers : le vide se propose");
+        NextUniversePolicy policy = new NextUniversePolicy(CycleChoice.FUSION);
+        game.state().setColliderEnergy(0);
+        policy.playVoid(game);
+        assertFalse(game.isVoidUnlocked(), "sans de quoi payer, le vide reste fermé");
+        game.state().setColliderEnergy(game.voidPrice() * 2);
+        assertTrue(policy.playVoid(game) >= 1);
+        assertTrue(game.isVoidUnlocked());
+        assertEquals(NextUniversePolicy.VOID_SHARE, game.state().voidShare(), 1e-12);
+        assertEquals(1, policy.voidOpened);
+        // De quoi tout payer des trois améliorations du troisième acte, et un peu plus.
+        game.state().setVoidEnergy(idle.core.math.BigNum.of(1e6));
+        policy.playVoid(game);
+        for (Game.VoidUpgrade first : NextUniversePolicy.VOID_FIRST) {
+            assertEquals(first.max(), game.voidLevel(first), first.name() + " : au plus haut d'abord");
+        }
+        assertTrue(policy.voidUpgrades > 25);
+    }
+
+    @Test
+    void sansVideLeBotNeTouchePasAuVide() {
+        Game game = thirdUniverse();
+        game.state().setColliderEnergy(game.voidPrice() * 2);
+        System.setProperty("idle.sansVide", "true");
+        try {
+            assertEquals(0, new NextUniversePolicy(CycleChoice.FUSION).playVoid(game));
+            assertFalse(game.isVoidUnlocked());
+        } finally {
+            System.clearProperty("idle.sansVide");
+        }
     }
 }
