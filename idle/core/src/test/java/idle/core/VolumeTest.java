@@ -145,8 +145,9 @@ class VolumeTest {
         assertTrue(game.enterVolume());
         game.testClearVolume();
         game.addVolumeBall(0, 0, 1);
-        // À la distance 1, une boule de rayon 0,06 : un regard décalé de 0,1 la manque.
-        assertNull(game.shootVolume(0.1, 0, 1));
+        // À la distance 1, une boule de rayon 0,025 : un regard décalé de 0,04 la manque.
+        assertEquals(0.025, Game.VOLUME_BALL_RADIUS, 1e-12, "petite au départ");
+        assertNull(game.shootVolume(0.04, 0, 1));
         game.leaveVolume();
         game.state().setVolumeShards(1e6);
         for (int k = 0; k < 4; k++) assertTrue(game.buyVolume(Game.VolumeUpgrade.SIZE));
@@ -154,7 +155,7 @@ class VolumeTest {
         assertTrue(game.enterVolume());
         game.testClearVolume();
         game.addVolumeBall(0, 0, 1);
-        assertNotNull(game.shootVolume(0.1, 0, 1), "plus grosse, elle se touche de plus loin");
+        assertNotNull(game.shootVolume(0.04, 0, 1), "plus grosse, elle se touche de plus loin");
     }
 
     @Test

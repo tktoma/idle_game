@@ -338,6 +338,7 @@ public final class Settings {
     private static final String STATE_SIGNS = "stateSigns";
     private static final String CHRONO = "chrono";
     private static final String SKY_EVENTS = "skyEvents";
+    private static final String FREE_CAMERA = "freeCamera";
     private static final String SOUND = "sound";
     private static final String TABS_LEFT = "tabsLeft";
     private static final String TAB_ORDER = "tabOrder";
@@ -383,6 +384,8 @@ public final class Settings {
     private boolean stateSigns = true;
     private boolean chrono = true;
     private boolean skyEvents = true;
+    /** La caméra libre du volume (version 0.128) : le regard suit la souris sans clic. Coupée au départ. */
+    private boolean freeCamera = false;
     private boolean sound = true;
     /** Les onglets à gauche, et les sous-onglets en haut à leur place (version 0.057) ; sinon, la disposition d'avant. */
     private boolean tabsLeft = false;
@@ -475,6 +478,7 @@ public final class Settings {
                 settings.stateSigns = store.getBoolean(STATE_SIGNS, true);
                 settings.chrono = store.getBoolean(CHRONO, true);
                 settings.skyEvents = store.getBoolean(SKY_EVENTS, true);
+                settings.freeCamera = store.getBoolean(FREE_CAMERA, false);
                 settings.shortcuts = store.getBoolean(SHORTCUTS, true);
                 settings.effects = store.getBoolean(EFFECTS, true);
                 settings.confirmExplosion = store.getBoolean(CONFIRM_EXPLOSION, true);
@@ -855,6 +859,19 @@ public final class Settings {
     public void setSkyEvents(boolean shown) {
         this.skyEvents = shown;
         save(SKY_EVENTS, String.valueOf(shown));
+    }
+
+    /**
+     * Vrai si la caméra du volume est libre (version 0.128) : dans le cube, le regard suit la souris sans qu'on tienne
+     * le clic gauche, et une croix au centre vise. Faux : on regarde autour de soi clic gauche tenu.
+     */
+    public boolean freeCamera() {
+        return freeCamera;
+    }
+
+    public void setFreeCamera(boolean free) {
+        this.freeCamera = free;
+        save(FREE_CAMERA, String.valueOf(free));
     }
 
     /** Vrai si les cartes écrivent le signe de leur état devant leur nom, pour le reconnaître sans la couleur. */

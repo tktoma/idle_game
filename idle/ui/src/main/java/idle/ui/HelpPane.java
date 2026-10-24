@@ -220,7 +220,8 @@ final class HelpPane extends StackPane {
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
                 + (game.isVolumeOpen() ? " Dans le volume, on clique le cube pour y plonger, puis on regarde autour de soi, "
-                        + "clic gauche tenu, et l'on cueille les boules au clic droit. Une plongée dure "
+                        + "clic gauche tenu, et l'on cueille les boules au clic droit ; avec la caméra libre, le regard suit la "
+                        + "souris sans clic et un clic cueille la boule sous la croix. Une plongée dure "
                         + idle.ui.common.ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
                         + "le joueur, et ses améliorations s'achètent dehors." : "")));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "

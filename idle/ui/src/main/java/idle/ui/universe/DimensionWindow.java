@@ -48,14 +48,30 @@ public final class DimensionWindow extends BorderPane {
     private final java.util.Map<Game.VolumeUpgrade, Button> volumeButtons = new java.util.EnumMap<>(Game.VolumeUpgrade.class);
     private final javafx.scene.layout.FlowPane volumeRow = new javafx.scene.layout.FlowPane(12, 10);
     private final VBox volumePane;
+    /** La caméra libre (version 0.128) : le bouton, et où se range le choix (les réglages du jeu, ou la fenêtre seule). */
+    private final Button freeCameraButton = new Button();
+    private final java.util.function.BooleanSupplier freeCamera;
+    private final java.util.function.Consumer<Boolean> setFreeCamera;
     /** Les touches de direction tenues : Z, Q, S, D et les flèches. */
     private final java.util.Set<javafx.scene.input.KeyCode> held = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     private final Label title = new Label();
     private final Label line = new Label();
     private final Button back = new Button("← Retour");
 
+    /** Une fenêtre qui garde seule le choix de la caméra libre : pour les vérifications. */
     public DimensionWindow(Game game) {
+        this(game, new boolean[1]);
+    }
+
+    private DimensionWindow(Game game, boolean[] free) {
+        this(game, () -> free[0], value -> free[0] = value);
+    }
+
+    /** La fenêtre des dimensions ; le choix de la caméra libre du volume se lit et s'écrit par ces deux fonctions. */
+    public DimensionWindow(Game game, java.util.function.BooleanSupplier freeCamera, java.util.function.Consumer<Boolean> setFreeCamera) {
         this.game = game;
+        this.freeCamera = freeCamera;
+        this.setFreeCamera = setFreeCamera;
         this.view = new DimensionView(game);
         setStyle("-fx-background-color: #05060e;");
         setPadding(new Insets(12, 16, 16, 16));
@@ -153,7 +169,14 @@ public final class DimensionWindow extends BorderPane {
             volumeButtons.put(upgrade, button);
             volumeRow.getChildren().add(button);
         }
-        volumePane = new VBox(10, volumeShards, volumeThreshold, volumeHint, volumeDetail, volumeRow);
+        freeCameraButton.setStyle(BUTTON_STYLE);
+        freeCameraButton.setFocusTraversable(false);
+        freeCameraButton.setOnAction(event -> {
+            this.setFreeCamera.accept(!this.freeCamera.getAsBoolean());
+            view.setFreeCamera(this.freeCamera.getAsBoolean());
+            refresh();
+        });
+        volumePane = new VBox(10, volumeShards, volumeThreshold, volumeHint, freeCameraButton, volumeDetail, volumeRow);
         volumePane.setAlignment(Pos.CENTER);
         volumePane.setPadding(new Insets(10, 0, 0, 0));
         setBottom(new VBox(linePane, planePane, volumePane));
@@ -216,7 +239,9 @@ public final class DimensionWindow extends BorderPane {
             case OUTSIDE -> "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
                     + "Les améliorations s'achètent ici, hors du cube.";
             case ENTERING -> "Vous plongez dans le cube…";
-            case INSIDE -> "Clic gauche tenu : regarder autour de soi. Clic droit : cueillir la boule visée. "
+            case INSIDE -> (view.freeCamera()
+                    ? "Caméra libre : bougez la souris pour regarder autour de vous. Un clic cueille la boule sous la croix. "
+                    : "Clic gauche tenu : regarder autour de soi. Clic droit : cueillir la boule visée. ")
                     + "Le cube vous rejette dans " + seconds(game.volumeTimeLeft()) + " s.";
             case LEAVING -> "Le cube vous rejette : les améliorations reviennent.";
         });
@@ -226,7 +251,11 @@ public final class DimensionWindow extends BorderPane {
                 + shardText(Game.VOLUME_SPAWN_FAR) + " du centre. Le clic droit cueille la plus proche que traverse le "
                 + "regard ; une boule plus grosse se vise mieux. À la fin du minuteur, ou si le jeu passe en absence, la "
                 + "plongée s'arrête et les boules restantes s'en vont. Les éclats du volume, son seuil et ses améliorations "
-                + "traversent les univers ; le seuil ouvre le palier 4 de la graine."));
+                + "traversent les univers ; le seuil ouvre le palier 4 de la graine. En caméra libre, la souris disparaît "
+                + "dans le cube : chaque mouvement tourne le regard, la souris revient seule au centre, et pousser un bord "
+                + "fait tourner sans fin."));
+        freeCameraButton.setText(view.freeCamera() ? "Caméra libre : activée (le regard suit la souris)"
+                : "Caméra libre : coupée (clic gauche tenu pour regarder)");
         volumeDetail.setVisible(!volumeDetail.getText().isEmpty());
         volumeDetail.setManaged(volumeDetail.isVisible());
         // Dedans, la rangée se cache mais garde sa place : le cube ne se déplace pas pendant la plongée.
@@ -320,6 +349,7 @@ public final class DimensionWindow extends BorderPane {
     /** Ouvre la fenêtre de cette dimension. */
     public void open(Dimension dimension) {
         view.show(dimension);
+        view.setFreeCamera(freeCamera.getAsBoolean());
         title.setText("Dimension " + dimension.number() + " : " + dimension.label());
         held.clear();
         game.setPlaneInput(0, 0);
@@ -391,6 +421,11 @@ public final class DimensionWindow extends BorderPane {
 
     public String volumeShardsText() {
         return volumeShards.getText();
+    }
+
+    /** Le bouton de la caméra libre : pour les vérifications. */
+    public Button freeCameraButton() {
+        return freeCameraButton;
     }
 
     public String volumeHintText() {

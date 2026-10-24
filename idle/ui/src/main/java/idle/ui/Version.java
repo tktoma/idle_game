@@ -28,6 +28,9 @@ public final class Version {
                     "Dedans, le clic gauche tenu fait regarder autour de soi, et le clic droit cueille la boule visée : chaque "
                             + "boule donne des éclats du volume, propres à cette dimension.",
                     "Une plongée dure 12 secondes au départ, puis le cube rejette le joueur ; les boules qui restaient s'en vont.",
+                    "Les boules sont petites au départ : il faut viser, et l'amélioration de taille les grossit jusqu'à quatre fois.",
+                    "Caméra libre, au choix dans la fenêtre du volume : le regard suit la souris sans clic, une croix vise au "
+                            + "centre et un clic cueille ; le choix est gardé dans les réglages.",
                     "Cinq améliorations s'achètent hors du cube : durée (+3 s), valeur, réapparition, nombre et taille des boules.",
                     "Le seuil du volume, cent éclats gagnés, ouvre le palier 4 de la graine, donc l'univers 4, qui restait fermé.",
                     "L'aide (H) a une page « Dimensions ».")),

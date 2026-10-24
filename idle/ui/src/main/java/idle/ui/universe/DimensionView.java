@@ -84,6 +84,19 @@ public final class DimensionView extends Canvas {
     private final List<Pickup> volumePickups = new ArrayList<>();
     private boolean motion = true;
 
+    // La caméra libre (version 0.128) : dedans, le regard suit la souris sans clic, comme dans un jeu à la première personne.
+    /** Vrai quand le joueur a choisi la caméra libre (un pixel de souris tourne le regard d'un pixel d'écran au centre). */
+    private boolean freeCamera;
+    /** Où était la souris à son dernier mouvement sur le volume ; NaN quand elle n'y est pas. */
+    private double mouseX = Double.NaN, mouseY = Double.NaN;
+    /** De quoi ramener la souris au centre ; {@code null} tant qu'il n'a pas servi, ou si le système le refuse. */
+    private javafx.scene.robot.Robot robot;
+    private boolean robotRefused;
+    /** Contre un bord, en caméra libre, le regard tourne seul à cette vitesse (radians par seconde). */
+    public static final double EDGE_TURN = 1.8;
+    /** La part de l'écran, de chaque côté, où la souris fait tourner le regard en continu. */
+    public static final double EDGE_BAND = 0.04;
+
     public DimensionView(Game game) {
         super(800, 480);
         this.game = game;
@@ -93,13 +106,99 @@ public final class DimensionView extends Canvas {
             setCursor(cursorAt(event.getX(), event.getY()));
         });
         setOnMouseDragged(event -> {
-            if (event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
+            if (freeLook(event.getX(), event.getY()) || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
         });
         setOnMouseReleased(event -> {
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
-        setOnMouseMoved(event -> setCursor(cursorAt(event.getX(), event.getY())));
+        setOnMouseMoved(event -> {
+            freeLook(event.getX(), event.getY());
+            setCursor(cursorAt(event.getX(), event.getY()));
+        });
+        setOnMouseExited(event -> {
+            mouseX = Double.NaN;
+            mouseY = Double.NaN;
+        });
+    }
+
+    /** La caméra libre : dedans, le regard suit la souris sans clic ; dehors et sans elle, rien ne change. */
+    public void setFreeCamera(boolean free) {
+        if (freeCamera == free) return;
+        freeCamera = free;
+        dragging = false;
+        mouseX = Double.NaN;
+        mouseY = Double.NaN;
+        if (free && dive == Dive.INSIDE) recenter();
+        setCursor(cursorAt(getWidth() / 2, getHeight() / 2));
+    }
+
+    public boolean freeCamera() {
+        return freeCamera;
+    }
+
+    private boolean freeInside() {
+        return freeCamera && dive == Dive.INSIDE && dimension == Dimension.VOLUME;
+    }
+
+    /**
+     * Un mouvement de souris en caméra libre : le regard tourne d'autant, dans le sens de la souris (à droite, on
+     * regarde à droite). Quand la souris s'éloigne du centre, elle y est ramenée, pour pouvoir tourner sans fin ;
+     * sa dernière position devient alors le centre, et le mouvement que cela provoque, s'il arrive, ne tourne rien.
+     * Vrai si le geste a servi.
+     */
+    public boolean freeLook(double x, double y) {
+        if (!freeInside()) return false;
+        double cx = getWidth() / 2, cy = getHeight() / 2;
+        if (!Double.isNaN(mouseX)) turn(-(x - mouseX), -(y - mouseY));
+        mouseX = x;
+        mouseY = y;
+        if (Math.abs(x - cx) > getWidth() * 0.2 || Math.abs(y - cy) > getHeight() * 0.2) recenter();
+        return true;
+    }
+
+    /** Tourne le regard comme si la souris tenue avait glissé de ({@code dx}, {@code dy}). */
+    private void turn(double dx, double dy) {
+        camera.focal = insideFocal();
+        camera.yaw = lookYaw;
+        camera.pitch = lookPitch;
+        camera.drag(dx, dy);
+        lookYaw = camera.yaw;
+        lookPitch = camera.pitch;
+    }
+
+    /**
+     * Ramène la souris au centre du volume, et en fait sa dernière position : le mouvement de retour, qu'il arrive ou
+     * non, ne fait pas tourner le regard. Si le système refuse de la déplacer (une erreur, ou la souris restée où elle
+     * était), on n'essaie plus : la caméra libre tourne alors en poussant les bords.
+     */
+    private void recenter() {
+        if (robotRefused || getScene() == null) return;
+        javafx.geometry.Point2D center = localToScreen(getWidth() / 2, getHeight() / 2);
+        if (center == null) return;
+        try {
+            if (robot == null) robot = new javafx.scene.robot.Robot();
+            robot.mouseMove(center.getX(), center.getY());
+            if (Math.abs(robot.getMouseX() - center.getX()) > 3 || Math.abs(robot.getMouseY() - center.getY()) > 3) {
+                robotRefused = true;
+                return;
+            }
+            mouseX = getWidth() / 2;
+            mouseY = getHeight() / 2;
+        } catch (RuntimeException | Error refused) {
+            robotRefused = true;
+        }
+    }
+
+    /** En caméra libre, la souris contre un bord fait tourner le regard en continu : sans fin, même sans recentrage. */
+    private void edgeTurn(double elapsed) {
+        if (!freeInside() || Double.isNaN(mouseX) || elapsed <= 0) return;
+        double w = getWidth(), h = getHeight(), band = EDGE_BAND;
+        double sx = mouseX < w * band ? -1 : mouseX > w * (1 - band) ? 1 : 0;
+        double sy = mouseY < h * band ? -1 : mouseY > h * (1 - band) ? 1 : 0;
+        if (sx == 0 && sy == 0) return;
+        double step = EDGE_TURN * elapsed * insideFocal();
+        turn(-sx * step, -sy * step);
     }
 
     /** La dimension à montrer ; son animation repart du début. */
@@ -128,7 +227,10 @@ public final class DimensionView extends Canvas {
         motion = moving;
         if (dimension == Dimension.LINE) noteTouches(Math.min(elapsed, 0.1), moving);
         if (dimension == Dimension.PLANE) notePickups(Math.min(elapsed, 0.1));
-        if (dimension == Dimension.VOLUME) runDive(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.VOLUME) {
+            runDive(Math.min(elapsed, 0.1));
+            edgeTurn(Math.min(elapsed, 0.1));
+        }
         draw();
     }
 
@@ -191,13 +293,16 @@ public final class DimensionView extends Canvas {
 
     private javafx.scene.Cursor cursorAt(double x, double y) {
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
+        // La caméra libre cache la souris : la croix au centre de la vue la remplace.
+        if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
         if (dive == Dive.INSIDE) return dragging ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.CROSSHAIR;
         return dive == Dive.OUTSIDE && overCube(x, y) ? javafx.scene.Cursor.HAND : javafx.scene.Cursor.DEFAULT;
     }
 
     /**
      * Un bouton de la souris enfoncé sur le volume : dehors, un clic gauche sur le cube y fait plonger ; dedans, le
-     * gauche commence à faire tourner le regard et le droit cueille la boule visée. Vrai si le geste a servi.
+     * gauche commence à faire tourner le regard et le droit cueille la boule visée. En caméra libre, le regard suit
+     * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
@@ -211,7 +316,10 @@ public final class DimensionView extends Canvas {
             return true;
         }
         if (dive != Dive.INSIDE) return false;
-        if (!secondary) {
+        if (freeCamera) {
+            x = getWidth() / 2;
+            y = getHeight() / 2;
+        } else if (!secondary) {
             dragging = true;
             dragX = x;
             dragY = y;
@@ -277,6 +385,10 @@ public final class DimensionView extends Canvas {
                         lookYaw = fromYaw;
                         lookPitch = 0;
                         born.clear();
+                        mouseX = Double.NaN;
+                        mouseY = Double.NaN;
+                        if (freeCamera) recenter();
+                        setCursor(cursorAt(getWidth() / 2, getHeight() / 2));
                     } else {
                         dive = Dive.OUTSIDE;
                     }
@@ -289,6 +401,7 @@ public final class DimensionView extends Canvas {
                     fromPitch = lookPitch;
                     dragging = false;
                     dive = Dive.LEAVING;
+                    setCursor(javafx.scene.Cursor.DEFAULT);
                     diveProgress = 0;
                     if (!motion) runDive(0);
                 }
@@ -437,7 +550,20 @@ public final class DimensionView extends Canvas {
             g.setGlobalAlpha(0.6 * (1 - t));
             g.strokeOval(miss.x - r, miss.y - r, 2 * r, 2 * r);
         }
+        if (dive == Dive.INSIDE && freeCamera) crosshair(g, w / 2, h / 2);
         if (dive == Dive.INSIDE) timer(g, w, c);
+    }
+
+    /** La croix de la caméra libre, au centre : c'est elle qui vise. */
+    private static void crosshair(GraphicsContext g, double x, double y) {
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.85);
+        g.strokeLine(x - 10, y, x - 4, y);
+        g.strokeLine(x + 4, y, x + 10, y);
+        g.strokeLine(x, y - 10, x, y - 4);
+        g.strokeLine(x, y + 4, x, y + 10);
+        g.setGlobalAlpha(1);
     }
 
     /** Le minuteur de la plongée, en haut : une barre qui se vide, rouge dans les trois dernières secondes. */

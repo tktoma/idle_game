@@ -239,7 +239,7 @@ public abstract class GameAppBase extends Application {
     final UniversePage universePage = new UniversePage(game);
     final idle.ui.vacuum.VoidPage voidPage = new idle.ui.vacuum.VoidPage(game);
     /** La fenêtre d'une dimension (version 0.081), par-dessus tout le jeu, avec son bouton de retour. */
-    final DimensionWindow dimensionWindow = new DimensionWindow(game);
+    final DimensionWindow dimensionWindow = new DimensionWindow(game, settings::freeCamera, settings::setFreeCamera);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
     final StatsPage statsPage = new StatsPage(game);
     final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());

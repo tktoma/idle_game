@@ -178,4 +178,102 @@ class VolumeWindowTest {
             return null;
         });
     }
+
+    /** La direction du centre de la vue, dedans : celle que vise la croix de la caméra libre. */
+    private static double[] ahead(DimensionView view) {
+        VolumeCamera camera = new VolumeCamera();
+        camera.yaw = view.lookYaw();
+        camera.pitch = view.lookPitch();
+        camera.focal = 300;
+        return camera.ray(0, 0);
+    }
+
+    @Test
+    void laCameraLibreSeChoisitDansLaFenetreEtResteGardee() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            boolean[] saved = {false};
+            DimensionWindow window = new DimensionWindow(game, () -> saved[0], value -> saved[0] = value);
+            window.open(Dimension.VOLUME);
+            window.frame(0.05, true);
+            assertFalse(window.view().freeCamera(), "coupée au départ");
+            assertTrue(window.freeCameraButton().getText().contains("coupée"));
+            window.freeCameraButton().fire();
+            assertTrue(saved[0], "le choix est rangé dans les réglages");
+            assertTrue(window.view().freeCamera());
+            assertTrue(window.freeCameraButton().getText().contains("activée"));
+            window.close();
+            window.open(Dimension.VOLUME);
+            assertTrue(window.view().freeCamera(), "la fenêtre rouverte reprend le choix gardé");
+            enter(window);
+            window.frame(0.05, true);
+            assertTrue(window.volumeHintText().contains("bougez la souris"), window.volumeHintText());
+            return null;
+        });
+    }
+
+    @Test
+    void enCameraLibreLeRegardSuitLaSourisSansClic() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            boolean[] saved = {true};
+            DimensionWindow window = new DimensionWindow(game, () -> saved[0], value -> saved[0] = value);
+            window.open(Dimension.VOLUME);
+            window.frame(0.05, true);
+            DimensionView view = window.view();
+            enter(window);
+            double cx = view.getWidth() / 2, cy = view.getHeight() / 2;
+            double yaw = view.lookYaw(), pitch = view.lookPitch();
+            assertTrue(view.freeLook(cx, cy));
+            assertTrue(view.freeLook(cx + 40, cy - 20), "un mouvement, sans bouton tenu");
+            assertTrue(view.lookYaw() > yaw, "la souris à droite : on regarde à droite");
+            assertTrue(view.lookPitch() < pitch, "la souris en haut : on regarde en haut");
+            // Ce qui était droit devant glisse vers la gauche de l'écran, comme dans un jeu à la première personne.
+            double[] before = {Math.sin(yaw), 0, Math.cos(yaw)};
+            double[] at = view.screenOf(before[0], before[1], before[2]);
+            assertNotNull(at);
+            assertTrue(at[0] < cx, "le point d'avant est passé à gauche");
+            return null;
+        });
+    }
+
+    @Test
+    void enCameraLibreUnClicCueilleSousLaCroix() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            boolean[] saved = {true};
+            DimensionWindow window = new DimensionWindow(game, () -> saved[0], value -> saved[0] = value);
+            window.open(Dimension.VOLUME);
+            window.frame(0.05, true);
+            DimensionView view = window.view();
+            enter(window);
+            game.testClearVolume();
+            double[] dir = ahead(view);
+            double length = Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+            game.addVolumeBall(0.6 * dir[0] / length, 0.6 * dir[1] / length, 0.6 * dir[2] / length);
+            assertTrue(view.press(5, 5, false), "un clic gauche, même loin du centre : il vise la croix");
+            assertEquals(1, game.state().volumeShards(), 1e-12);
+            return null;
+        });
+    }
+
+    @Test
+    void enCameraLibrePousserUnBordFaitTournerSansFin() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            boolean[] saved = {true};
+            DimensionWindow window = new DimensionWindow(game, () -> saved[0], value -> saved[0] = value);
+            window.open(Dimension.VOLUME);
+            window.frame(0.05, true);
+            DimensionView view = window.view();
+            enter(window);
+            view.freeLook(view.getWidth() - 2, view.getHeight() / 2);
+            double yaw = view.lookYaw();
+            window.frame(0.1, true);
+            assertEquals(yaw + DimensionView.EDGE_TURN * 0.1, view.lookYaw(), 1e-9, "contre le bord droit, on tourne à droite");
+            window.frame(0.1, true);
+            assertEquals(yaw + DimensionView.EDGE_TURN * 0.2, view.lookYaw(), 1e-9);
+            return null;
+        });
+    }
 }

@@ -496,8 +496,11 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Le volume est le cube de −1 à 1 sur les trois axes ; le joueur y plonge et regarde depuis son centre. */
     public static final double VOLUME_EDGE = 1;
-    /** Rayon d'une boule au départ, et ce que chaque niveau de taille lui ajoute (+20 %). */
-    public static final double VOLUME_BALL_RADIUS = 0.06, VOLUME_SIZE_STEP = 0.2;
+    /**
+     * Rayon d'une boule au départ, et ce que chaque niveau de taille lui ajoute (+20 %). Petite au départ (le cube va
+     * de −1 à 1) : il faut viser, et l'amélioration de taille compte.
+     */
+    public static final double VOLUME_BALL_RADIUS = 0.025, VOLUME_SIZE_STEP = 0.2;
     /** Les boules naissent entre ces deux distances du centre : jamais sur le joueur, jamais dans un coin hors de vue. */
     public static final double VOLUME_SPAWN_NEAR = 0.35, VOLUME_SPAWN_FAR = 0.9;
     /** Au départ : une boule toutes les 1,5 s, quatre au plus à la fois. */
@@ -569,7 +572,7 @@ public abstract class GameUniverse extends GameAtoms {
         return VOLUME_MAX_BALLS + volumeLevel(VolumeUpgrade.COUNT);
     }
 
-    /** Rayon d'une boule : 0,06, +20 % par niveau (quinze niveaux : ×4). Plus grosse, elle se vise mieux. */
+    /** Rayon d'une boule : 0,025, +20 % par niveau (quinze niveaux : ×4, 0,1). Plus grosse, elle se vise mieux. */
     public double volumeBallRadius() {
         return VOLUME_BALL_RADIUS * (1 + VOLUME_SIZE_STEP * volumeLevel(VolumeUpgrade.SIZE));
     }
