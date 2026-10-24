@@ -45,15 +45,17 @@ final Random rng;
 double wallSeconds=0, onlineSeconds=0, creditedOfflineSeconds=0;
 int actions=0, planningActions=0, techActions=0, otherActions=0;
 int first8=-1, galaxy=-1, cluster=-1, universe=-1;
-int lastBang, lastBody, lastCosmos;
+int lastBang, lastBody, lastCosmos, lastExplosions;
 boolean originalMoleculeAutomation;
 final ProfileProgressGuard progressGuard;
 double nextGuardSampleAt=ProfileProgressGuard.SAMPLE_SECONDS;
 IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
 super(game,decisionStep);this.p=profile;this.rng=new Random(seed ^ (profile.id*11939L));
-lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(game);
+lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
 }
+/** Les relevés des univers se comptent en temps réel, comme le reste du bilan des profils. */
+@Override double clockSeconds(){return wallSeconds;}
 @Override void probes(){ if(rng.nextDouble()<p.techAttention()) { super.probes(); techActions++; } }
 @Override void collider(){ if(rng.nextDouble()<p.techAttention()) super.collider(); }
 static boolean allowExtraPrestige(Game game){
@@ -152,36 +154,44 @@ probes();cosmos();resourceLoop();
 }else{
 nextActionAt=Math.max(nextActionAt,wallSeconds+Math.min(actionInterval,dt));
 }
-if(lastBang<8 && g.bigBangs()>=8){first8=i;event("BB8");}
-if(!g.hasCosmos(Cosmos.GALAXY) && lastCosmos>=1){} // événements captés via les transitions ci-dessous
-if(lastCosmos<1 && RobotCosmosPlanner.cosmosStage(g)>=1){galaxy=i;event("GALAXY");}
-if(lastCosmos<2 && RobotCosmosPlanner.cosmosStage(g)>=2){cluster=i;event("CLUSTER");}
-if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){universe=i;event("UNIVERSE");}
-lastBang=g.bigBangs();lastBody=g.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(g);
-if(wallSeconds+0.000001>=nextGuardSampleAt || universe>=0){
+// Les jalons de chaque univers sont annoncés ; BB8at, galaxyAt, clusterAt et universeAt gardent ceux du premier.
+// Version 0.130 : la fin des deux premiers actes de chaque univers (première explosion, premier Big Bang).
+if(lastExplosions==0 && g.state().explosions()>0 && g.bigBangs()==0)event("EXPLOSION1");
+if(lastBang==0 && g.bigBangs()>0)event("BB1");
+if(lastBang<8 && g.bigBangs()>=8){if(first8<0)first8=i;event("BB8");}
+if(lastCosmos<1 && RobotCosmosPlanner.cosmosStage(g)>=1){if(galaxy<0)galaxy=i;event("GALAXY");}
+if(lastCosmos<2 && RobotCosmosPlanner.cosmosStage(g)>=2){if(cluster<0)cluster=i;event("CLUSTER");}
+if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){if(universe<0)universe=i;event("UNIVERSE");}
+// Version 0.130 : l'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
+boolean done=universeProgress();
+if(launchedNextUniverse)event("NEXT_UNIVERSE");
+lastBang=g.bigBangs();lastBody=g.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(g);lastExplosions=g.state().explosions();
+if(wallSeconds+0.000001>=nextGuardSampleAt || done){
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,isOnline));
 while(nextGuardSampleAt<=wallSeconds+0.000001)nextGuardSampleAt+=ProfileProgressGuard.SAMPLE_SECONDS;
 }
-if((i+1)%(int)Math.ceil(3600/dt)==0 || universe>=0){
+if((i+1)%(int)Math.ceil(3600/dt)==0 || done){
 logs.append(String.format(Locale.ROOT,"%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%.3f,%.3f,%s,%s%n",wallSeconds/3600,g.state().timePlayed()/3600,onlineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.shoppingList().target().replace(',',';')));
 }
-if(universe>=0)break;
+if(done)break;
 }
 if(wallSeconds>progressGuard.lastWall()+0.000001)
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));
 Files.createDirectories(output);
 Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_%s.csv",p.id(),p.name(),System.getProperty("idle.stage","late"))),logs.toString());
-if(universe>=0)Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_winner.save",p.id(),p.name())),SaveCodec.write(g.state(),0));
-System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600));
+if(NextUniversePolicy.reached(g,targetUniverses))Files.writeString(output.resolve(String.format(Locale.ROOT,"%02d_%s_winner.save",p.id(),p.name())),SaveCodec.write(g.state(),0));
+System.out.printf(Locale.ROOT,"RESULT,%d,%s,%s,wall=%.4f,game=%.4f,startgame=%.4f,online=%.4f,offlineCredited=%.4f,bb=%d,bodies=%d,mature=%d,systems=%d,cosmos=%d,actions=%d,plans=%d,tech=%d,ordinary=%d,BB8at=%s,galaxyAt=%s,clusterAt=%s,universeAt=%s,universes=%d,target=%d,won=%b,universeTimes=%s,regimes=%d,cycles=%d,families=%d,freeElements=%d%n",p.id(),p.name(),p.bias(),wallSeconds/3600,g.state().timePlayed()/3600,startGameTime/3600,onlineSeconds/3600,creditedOfflineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),actions,planningActions,techActions,otherActions,first8<0?"-":fmt((first8+1)*dt/3600),galaxy<0?"-":fmt((galaxy+1)*dt/3600),cluster<0?"-":fmt((cluster+1)*dt/3600),universe<0?"-":fmt((universe+1)*dt/3600),g.universes(),targetUniverses,NextUniversePolicy.reached(g,targetUniverses),universeHours(),nextUniverse.regimes,nextUniverse.cycles,nextUniverse.families,nextUniverse.freeElements);
 }
 public static void main(String[]args)throws Exception{
-if(args.length<5){System.err.println("Usage: id  checkpoint  wallHours  stepSeconds outputDir [seed] [stage]");System.exit(2);}
+if(args.length<5){System.err.println("Usage: id  checkpoint  wallHours  stepSeconds outputDir [seed] [stage] [univers]");System.exit(2);}
 int id=Integer.parseInt(args[0]);Profile p=PROFILES[id-1];
 Path file=Path.of(args[1]);double hours=Double.parseDouble(args[2]),step=Double.parseDouble(args[3]);
 Path out=Path.of(args[4]);long seed=args.length>5?Long.parseLong(args[5]):42;
 if(args.length>6)System.setProperty("idle.stage",args[6]);
 GameState state=SaveCodec.read(Files.readString(file)).state();
 Game game=new Game(state,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(seed));
-new IdleProfiles24(game,p,seed,step).execute(hours,out);
+IdleProfiles24 bot=new IdleProfiles24(game,p,seed,step);
+if(args.length>7)bot.targetUniverses=Integer.parseInt(args[7]);
+bot.execute(hours,out);
 }
 }

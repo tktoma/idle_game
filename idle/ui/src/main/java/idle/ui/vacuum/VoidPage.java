@@ -1,61 +1,351 @@
 package idle.ui.vacuum;
 
 import idle.core.Game;
+import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.math.BigNum;
 import idle.ui.common.CanvasPane;
+import idle.ui.common.Card;
+import idle.ui.common.Detail;
 import idle.ui.common.Format;
+import idle.ui.common.TileGrid;
+import java.util.EnumMap;
+import java.util.Locale;
+import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * L'onglet du vide (version 0.099) : le deuxième acte de la partie secondaire. Il s'ouvre au premier Big
- * Bang du troisième univers (deuxième avant la 0.116), avec sa ressource, l'énergie du vide. Pour l'instant sans logique : l'écume
- * quantique se regarde, et rien ne s'y gagne.
+ * L'onglet du vide (version 0.099, jouable depuis la 0.129) : le deuxième acte de la partie secondaire, ouvert dans le
+ * collisionneur au premier Big Bang du troisième univers. Le collisionneur y fait naître des paires de particules
+ * virtuelles, qui coûtent de son énergie et de l'espace libre et donnent de l'énergie du vide ; celle-ci fond vers un
+ * équilibre, affiché. Le réglage dit la part du collisionneur et de l'espace libre que le vide peut prendre. Le trou
+ * noir, au premier trou noir formé, prend les particules qu'on lui sacrifie. Deux sous-onglets : « Paires » (tout ce
+ * qui précède) et « Améliorations » (les sept, en énergie du vide) ; la réserve et son équilibre restent en haut des deux.
  */
 public final class VoidPage extends VBox {
 
     /** La couleur du vide : celle de son sous-onglet dans la partie secondaire. */
     public static final String COLOR = idle.ui.universe.UniversePage.VOID_COLOR;
+    private static final String HOLE_COLOR = "#ff9a3a";
 
     private final Game game;
     private final Label energy = new Label();
+    private final Label pairsLine = new Label();
+    private final Label costLine = new Label();
+    private final Label shareLabel = new Label();
+    private final Slider share = new Slider(0, 100, 25);
+    private final Label holeLine = new Label();
+    private final Button sacrifice = new Button();
+    private final VBox holeBox;
+    private final Label note = new Label();
+    private final Map<VoidUpgrade, Card> cards = new EnumMap<>(VoidUpgrade.class);
     private final VoidView view = new VoidView();
+    /** Les sous-onglets : les paires, et les améliorations. */
+    public static final int PAIRS = 0, UPGRADES = 1;
+    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
+            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
+    private final Button pairsTab = new Button("Paires");
+    private final Button upgradesTab = new Button("Améliorations");
+    private final HBox subTabs = new HBox(pairsTab, upgradesTab);
+    private final Label upgradesNote = new Label();
+    private VBox pairsPane, upgradesPane;
+    private int selected = PAIRS;
+    /** Vrai pendant que la page recopie la partie dans le curseur : ce n'est pas le joueur qui le bouge. */
+    private boolean copying = false;
 
     public VoidPage(Game game) {
-        super(12);
+        super(10);
         this.game = game;
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(14, 16, 14, 16));
         energy.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        Label note = new Label("Le vide n'est jamais tout à fait vide : des paires de particules y naissent sans cesse et "
-                + "s'annulent aussitôt. Son énergie est la ressource du deuxième acte de la partie secondaire. Pour l'instant, "
-                + "elle se regarde seulement : rien ne s'y gagne encore.");
-        note.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        note.setWrapText(true);
-        note.setMaxWidth(760);
-        note.setTextAlignment(TextAlignment.CENTER);
+        for (Label label : new Label[] {pairsLine, costLine, shareLabel}) {
+            label.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
+            label.setWrapText(true);
+            label.setTextAlignment(TextAlignment.CENTER);
+            label.setMaxWidth(860);
+            // Le dessin prend la hauteur qui reste : les lignes gardent la leur, entières, sans « … ».
+            label.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        }
+        share.setMajorTickUnit(25);
+        share.setMinorTickCount(4);
+        share.setSnapToTicks(true);
+        share.setBlockIncrement(5);
+        share.setPrefWidth(260);
+        share.setFocusTraversable(false);
+        share.valueProperty().addListener((seen, before, now) -> {
+            if (copying) return;
+            game.setVoidShare(Math.round(now.doubleValue() / 5) * 5 / 100.0);
+            refresh();
+        });
+        HBox shareRow = new HBox(12, shareLabel, share);
+        shareRow.setAlignment(Pos.CENTER);
+
         CanvasPane pane = CanvasPane.filling(view);
-        pane.setMinHeight(220);
+        pane.setMinHeight(200);
+        pane.setPrefHeight(260);
         pane.setMaxWidth(900);
         VBox.setVgrow(pane, Priority.ALWAYS);
-        getChildren().addAll(energy, pane, note);
+
+        holeLine.setStyle("-fx-font-size: 13px; -fx-text-fill: " + HOLE_COLOR + ";");
+        holeLine.setWrapText(true);
+        holeLine.setMaxWidth(860);
+        holeLine.setTextAlignment(TextAlignment.CENTER);
+        sacrifice.setFocusTraversable(false);
+        sacrifice.setStyle("-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6;"
+                + " -fx-background-color: #2a1a0c; -fx-text-fill: " + HOLE_COLOR + "; -fx-border-color: " + HOLE_COLOR + "; -fx-border-radius: 6;");
+        sacrifice.setOnAction(event -> {
+            game.sacrificeParticles();
+            refresh();
+        });
+        holeBox = new VBox(6, holeLine, sacrifice);
+        holeBox.setAlignment(Pos.CENTER);
+
+        TileGrid upgrades = new TileGrid(220, 3, 10);
+        for (VoidUpgrade upgrade : VoidUpgrade.values()) {
+            Card card = new Card(COLOR);
+            card.setOnAction(() -> {
+                game.buyVoid(upgrade);
+                refresh();
+            });
+            cards.put(upgrade, card);
+            upgrades.add(card);
+        }
+        note.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        note.setWrapText(true);
+        note.setMaxWidth(860);
+        note.setTextAlignment(TextAlignment.CENTER);
+
+        upgradesNote.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        upgradesNote.setWrapText(true);
+        upgradesNote.setMaxWidth(860);
+        upgradesNote.setTextAlignment(TextAlignment.CENTER);
+        upgradesNote.setText("Payées en énergie du vide, elles ne valent que pour cet univers : à sa formation, elles repartent "
+                + "de zéro avec le vide. L'allègement du ciel et la maturation plus courte servent le reste de la partie.");
+
+        // « Paires » : le rythme, les coûts, le réglage, l'écume, le trou noir.
+        holeBox.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        note.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        pairsPane = new VBox(10, pairsLine, costLine, shareRow, pane, holeBox, note);
+        pairsPane.setAlignment(Pos.TOP_CENTER);
+        // « Améliorations » : les sept cartes.
+        VBox upgradesBox = new VBox(10, upgrades, upgradesNote);
+        upgradesBox.setAlignment(Pos.TOP_CENTER);
+        ScrollPane scroll = new ScrollPane(upgradesBox);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        upgradesPane = new VBox(scroll);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+        javafx.scene.layout.StackPane pages = new javafx.scene.layout.StackPane(pairsPane, upgradesPane);
+        pages.setAlignment(Pos.TOP_CENTER);
+        VBox.setVgrow(pages, Priority.ALWAYS);
+
+        Button[] tabs = {pairsTab, upgradesTab};
+        for (int i = 0; i < tabs.length; i++) {
+            int index = i;
+            tabs[i].setFocusTraversable(false);
+            tabs[i].setOnAction(event -> {
+                select(index);
+                refresh();
+            });
+        }
+        subTabs.setAlignment(Pos.CENTER);
+        getChildren().addAll(subTabs, energy, pages);
+        select(PAIRS);
         refresh();
     }
 
-    /** Recopie l'énergie du vide. */
-    public void refresh() {
-        energy.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
+    /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
+    public HBox subTabs() {
+        return subTabs;
     }
 
-    /** Une image de l'écume, figée si les animations de l'univers sont coupées. */
+    public void select(int index) {
+        selected = index == UPGRADES ? UPGRADES : PAIRS;
+        pairsPane.setVisible(selected == PAIRS);
+        upgradesPane.setVisible(selected == UPGRADES);
+        pairsTab.setStyle(style(selected == PAIRS));
+        upgradesTab.setStyle(style(selected == UPGRADES));
+    }
+
+    public int selected() {
+        return selected;
+    }
+
+    /** Passe au sous-onglet suivant ou précédent, en boucle. */
+    public void step(int direction) {
+        select(Math.floorMod(selected + direction, 2));
+        refresh();
+    }
+
+    private static String style(boolean on) {
+        return SUB_TAB_STYLE + (on
+                ? " -fx-text-fill: " + COLOR + "; -fx-border-color: transparent transparent " + COLOR + " transparent;"
+                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
+    }
+
+    public Button upgradesTab() {
+        return upgradesTab;
+    }
+
+    /** La réserve et son équilibre, en haut des deux sous-onglets : pour les vérifications. */
+    public Label energyLabel() {
+        return energy;
+    }
+
+    /** Vrai s'il y a quelque chose à faire dans le vide : une amélioration à prendre, des particules à sacrifier. */
+    public static boolean ready(Game game) {
+        if (!game.isVoidUnlocked()) return false;
+        for (VoidUpgrade upgrade : VoidUpgrade.values()) if (game.canBuyVoid(upgrade)) return true;
+        return false;
+    }
+
+    /** Recopie la partie : la réserve et son équilibre, les paires, le réglage, le trou noir, les améliorations. */
+    public void refresh() {
+        energy.setText("Énergie du vide : " + Format.count(game.voidEnergy()) + "   |   équilibre : "
+                + Format.count(BigNum.of(game.voidEquilibrium())));
+        upgradesTab.setText("Améliorations" + idle.ui.Readiness.dot(ready(game)));
+        double rate = game.voidRate();
+        pairsLine.setText(decimal(rate) + " paire" + (rate >= 2 ? "s" : "") + " par seconde (" + limitText(game.voidLimit()) + "), "
+                + Format.count(BigNum.of(game.voidPairs())) + " vivantes, " + decimal(game.voidPairLife()) + " s chacune. "
+                + "Gain : " + decimal(game.voidGainPerSecond()) + " par seconde ; fonte : " + percent(game.voidDecay()) + " par seconde.");
+        costLine.setText("Une paire coûte " + amount(BigNum.of(game.voidPairEnergy())) + " énergie du collisionneur et tient "
+                + amount(game.voidPairSpace()) + " d'espace tant qu'elle vit ; elle donne " + decimal(game.voidPairGain())
+                + " énergie du vide à sa naissance.");
+        copying = true;
+        share.setValue(game.state().voidShare() * 100);
+        copying = false;
+        shareLabel.setText("Part du collisionneur et de l'espace libre : " + Math.round(game.state().voidShare() * 100) + " %");
+
+        boolean hole = game.isVoidHoleOpen();
+        holeBox.setVisible(hole);
+        holeBox.setManaged(hole);
+        if (hole) {
+            double mass = game.voidMass();
+            holeLine.setText("Trou noir : masse " + decimal(mass) + " (" + Format.count(game.state().voidSacrificed())
+                    + " particules sacrifiées). Les paires vivent " + decimal(game.voidPairLife()) + " s au lieu de "
+                    + decimal(Game.VOID_PAIR_LIFE) + " et rendent leur espace plus vite ; la fonte est divisée par "
+                    + decimal(1 + mass / 5) + "."
+                    + Detail.only(" Masse : 2 × log₁₀(1 + log₁₀(1 + particules sacrifiées)), au plus "
+                    + (int) Game.VOID_MAX_MASS + ". Vie des paires : 6 ÷ (1 + masse/10) ; fonte ÷ (1 + masse/5)."));
+            sacrifice.setDisable(!game.canSacrificeParticles());
+            sacrifice.setText(mass >= Game.VOID_MAX_MASS ? "Le trou noir a sa masse la plus grande"
+                    : "Sacrifier toutes les particules (" + Format.count(game.state().particles()) + ") : masse "
+                    + decimal(game.voidMassAfterSacrifice()));
+        }
+
+        for (Map.Entry<VoidUpgrade, Card> entry : cards.entrySet()) {
+            VoidUpgrade upgrade = entry.getKey();
+            int level = game.voidLevel(upgrade);
+            boolean max = level >= upgrade.max();
+            Card.State state = max ? Card.State.DONE : game.canBuyVoid(upgrade) ? Card.State.READY
+                    : level > 0 ? Card.State.STARTED : Card.State.WAITING;
+            entry.getValue().show(state, level > 0 ? String.valueOf(level) : "",
+                    upgrade.max() == Integer.MAX_VALUE ? "" : level + " / " + upgrade.max(), title(upgrade), line(upgrade),
+                    detail(upgrade), max ? "max" : Format.count(BigNum.of(game.voidCost(upgrade))) + " énergie du vide", "");
+        }
+        note.setText("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
+                + "l'espace libre, celui que les molécules n'ont pas pris. Le réglage borne ce que le vide en prend. L'énergie du vide "
+                + "fond de " + percent(Game.VOID_DECAY) + " par seconde : elle monte vers l'équilibre, le gain par seconde divisé par la fonte. "
+                + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers) ; "
+                + "le vide, ses améliorations et son trou noir repartent de zéro dans l'univers suivant."
+                + (hole ? "" : " Le premier trou noir formé dans le ciel ouvre le trou noir du vide."));
+    }
+
+    private static String limitText(String limit) {
+        return switch (limit) {
+            case "énergie" -> "bornées par la part du collisionneur";
+            case "espace" -> "bornées par la part de l'espace libre";
+            default -> "au rythme le plus haut";
+        };
+    }
+
+    private static String title(VoidUpgrade upgrade) {
+        return switch (upgrade) {
+            case GAIN -> "Gain par paire";
+            case RATE -> "Rythme";
+            case ENERGY -> "Coût en énergie";
+            case SPACE -> "Espace par paire";
+            case DECAY -> "Fonte plus lente";
+            case LIGHTEN -> "Allègement du ciel";
+            case MATURE -> "Maturation plus courte";
+        };
+    }
+
+    private String line(VoidUpgrade upgrade) {
+        return switch (upgrade) {
+            case GAIN -> "+1 énergie du vide par paire (" + decimal(game.voidPairGain()) + ")";
+            case RATE -> "+25 % de paires par seconde (" + decimal(game.voidBaseRate()) + " au plus)";
+            case ENERGY -> "−15 % d'énergie du collisionneur par paire";
+            case SPACE -> "−15 % d'espace par paire";
+            case DECAY -> "−10 % de fonte";
+            case LIGHTEN -> "−3 % des besoins du ciel (−" + Math.round((1 - game.needShare()) * 100) + " %)";
+            case MATURE -> "−3 % du temps de maturation des astres (−" + Math.round((1 - game.maturationShare()) * 100) + " %)";
+        };
+    }
+
+    private static String detail(VoidUpgrade upgrade) {
+        return switch (upgrade) {
+            case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond ; prix ×2,2 par niveau.";
+            case RATE -> "Le rythme le plus haut des paires : 1 par seconde, ×1,25 par niveau, vingt niveaux. La part du "
+                    + "collisionneur et celle de l'espace libre le bornent aussi. Prix ×2,4 par niveau.";
+            case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0,85 par niveau, quinze niveaux : "
+                    + "la même part de collisionneur paie plus de paires. Prix ×2,5 par niveau.";
+            case SPACE -> "Une paire tient un cinquième de seconde d'expansion tant qu'elle vit, ×0,85 par niveau, quinze niveaux : "
+                    + "la même part d'espace libre tient plus de paires. Prix ×2,5 par niveau.";
+            case DECAY -> "La fonte, 0,2 % par seconde, ×0,9 par niveau, quinze niveaux : l'équilibre monte d'autant. Prix ×2,6 par niveau.";
+            case LIGHTEN -> "Les molécules et la matière que demandent les astres, l'amas et l'univers baissent de 3 % par niveau, "
+                    + "arrondies au-dessus, jamais sous 1 ; dix niveaux, −30 % au plus. La galaxie demande les astres : elle "
+                    + "s'allège avec eux. Seulement dans cet univers. Prix ×2,5 par niveau.";
+            case MATURE -> "Les astres mûrissent 3 % plus vite par niveau, dix niveaux, −30 % du temps au plus : le trou noir "
+                    + "supermassif passe de 6 h à 4 h 12. Les astres qui mûrissent déjà voient leur reste raccourcir d'autant. "
+                    + "Seulement dans cet univers. Prix ×2,5 par niveau.";
+        };
+    }
+
+    /** Une quantité qui peut être petite (une fraction d'énergie ou d'espace) : avec ses décimales sous mille. */
+    private static String amount(BigNum value) {
+        return value.lt(BigNum.of(1000)) ? decimal(value.toDouble()) : Format.count(value);
+    }
+
+    private static String decimal(double value) {
+        if (value >= 1000) return Format.count(BigNum.of(value));
+        return value >= 100 ? String.valueOf(Math.round(value))
+                : String.format(Locale.FRANCE, value >= 10 ? "%.1f" : "%.2f", value);
+    }
+
+    private static String percent(double rate) {
+        return String.format(Locale.FRANCE, "%.3f", rate * 100).replaceAll("0+$", "").replaceAll(",$", "") + " %";
+    }
+
+    /** Une image de l'écume : les paires de la partie, figées si les animations de l'univers sont coupées. */
     public void frame(double elapsed, boolean motion) {
+        view.follow(game.voidPairsBorn(), game.voidPairs(), game.voidPairLife(), game.isVoidHoleOpen() ? game.voidMass() : -1);
         view.frame(elapsed, motion);
     }
 
     public VoidView view() {
         return view;
+    }
+
+    public Slider share() {
+        return share;
+    }
+
+    public Button sacrificeButton() {
+        return sacrifice;
+    }
+
+    public Card card(VoidUpgrade upgrade) {
+        return cards.get(upgrade);
     }
 }

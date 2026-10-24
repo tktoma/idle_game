@@ -78,14 +78,14 @@ class TransitionTest {
         DeuxiemeUniversTest.formUniverse(game);
         // La partie secondaire : graines, énergie du vide, ligne, graine, skins, épreuves.
         game.state().setUniverseSeeds(BigNum.of(3));
-        game.state().setVoidEnergy(BigNum.of(1250));
+        game.state().noteVoidHistory("1", 1250);
         game.state().setDimensionShards(42);
         game.state().setLineSpeedLevel(2);
         game.state().unlockSkin(idle.core.universe.Skin.values()[0].id());
         UniverseTransition guide = game.universeTransition(true);
         assertTrue(guide.launching());
         assertTrue(mentions(guide.kept(), "graines d'univers (3)"));
-        assertTrue(mentions(guide.kept(), "énergie du vide (1 250)"));
+        assertTrue(mentions(guide.kept(), "cumul du vide (1 250)"));
         assertTrue(mentions(guide.kept(), "Les skins (1 débloqués)"));
         assertTrue(mentions(guide.kept(), "dimensions"));
         assertTrue(mentions(guide.kept(), "La graine : palier"));
@@ -93,7 +93,7 @@ class TransitionTest {
         assertTrue(game.startNextUniverse());
 
         assertEquals(BigNum.of(3), game.state().universeSeeds());
-        assertEquals(BigNum.of(1250), game.state().voidEnergy());
+        assertEquals(1250, game.state().voidAccumulated(), 1e-9);
         assertEquals(42, game.state().dimensionShards(), 1e-9);
         assertEquals(2, game.state().lineSpeedLevel());
         assertTrue(game.state().unlockedSkins().contains(idle.core.universe.Skin.values()[0].id()));

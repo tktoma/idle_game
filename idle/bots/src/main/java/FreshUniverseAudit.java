@@ -21,6 +21,10 @@ import java.util.Random;
  * <p>Version 0.126 : par defaut, la campagne n'echoue que sur un vrai probleme (BLOCKED ou ERROR) ; un
  * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
  * argument {@code strict} exige au contraire que chaque profil forme son univers.
+ *
+ * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut) dit combien d'univers former. Au-dela du
+ * premier, le bot lance l'univers suivant des que l'univers se forme, et rejoue les trois actes avec ce que le deuxieme
+ * univers ajoute ({@link NextUniversePolicy}), sans dimensions ni graine. La victoire est alors le dernier univers vise.
  */
 public final class FreshUniverseAudit {
     private FreshUniverseAudit() {}
@@ -56,6 +60,14 @@ public final class FreshUniverseAudit {
         report.append("astres_murs=").append(game.bodiesMature()).append('\n');
         report.append("etape_cosmos=").append(RobotCosmosPlanner.cosmosStage(game)).append('\n');
         report.append("univers_forme=").append(game.hasCosmos(Cosmos.UNIVERSE)).append('\n');
+        report.append("univers_vises=").append(bot.targetUniverses).append('\n');
+        report.append("univers_formes=").append(game.universes()).append(game.isReplaying() ? " (le suivant en cours)" : "")
+                .append('\n');
+        report.append("univers_h=").append(bot.universeHours()).append('\n');
+        report.append("deuxieme_univers=regimes ").append(bot.nextUniverse.regimes).append(", cycles ")
+                .append(bot.nextUniverse.cycles).append(" (").append(bot.nextUniverse.cycle()).append("), familles ")
+                .append(bot.nextUniverse.families).append(", elements offerts ").append(bot.nextUniverse.freeElements)
+                .append('\n');
         report.append("production_particules_par_s=").append(game.productionPerSecond()).append('\n');
         report.append("particules=").append(game.state().particles()).append('\n');
         report.append("atomes=").append(game.state().atoms()).append('\n');
@@ -68,18 +80,19 @@ public final class FreshUniverseAudit {
             report.append("garde_raison=").append(bot.progressGuard.latest().reason()).append('\n');
         }
         if (game.bigBangs() == 0 && !game.hasCosmos(Cosmos.UNIVERSE)) {
-            report.append("diagnostic_premier_big_bang=non atteint; comparer succes, defis, ")
+            report.append("diagnostic_premier_big_bang=non atteint dans l'univers en cours; comparer succes, defis, ")
                     .append("production, explosions et prerequis avant de conclure a un blocage\n");
         }
         return report.toString();
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 5 && args.length != 6) {
+        if (args.length < 5 || args.length > 7) {
             throw new IllegalArgumentException(
-                    "Usage: firstId lastId maxWallHours stepSeconds outputDirectory [strict]");
+                    "Usage: firstId lastId maxWallHours stepSeconds outputDirectory [strict] [univers]");
         }
-        boolean strict = args.length == 6 && Boolean.parseBoolean(args[5]);
+        boolean strict = args.length >= 6 && Boolean.parseBoolean(args[5]);
+        int universes = args.length == 7 ? Integer.parseInt(args[6]) : 1;
         int first = Integer.parseInt(args[0]);
         int last = Integer.parseInt(args[1]);
         double maxHours = Double.parseDouble(args[2]);
@@ -87,13 +100,13 @@ public final class FreshUniverseAudit {
         Path root = Path.of(args[4]);
         if (first < 1 || last > 24 || first > last
                 || !Double.isFinite(maxHours) || maxHours <= 0
-                || !Double.isFinite(dt) || dt <= 0 || dt > 60) {
-            throw new IllegalArgumentException("Bornes, horizon ou pas de simulation invalides");
+                || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > 2) {
+            throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 ou 2) invalides");
         }
         Files.createDirectories(root);
         StringBuilder csv = new StringBuilder(
                 "id,profil,verdict,raison,heures,heures_jeu,heures_en_ligne,big_bangs,"
-                + "explosions,succes,defis,astres_murs,cosmos,decisions,univers\n");
+                + "explosions,succes,defis,astres_murs,cosmos,decisions,univers,univers_vises,univers_formes,univers_h\n");
         int wins = 0, blocked = 0, limits = 0, errors = 0;
         for (int id = first; id <= last; id++) {
             IdleProfiles24.Profile profile = IdleProfiles24.PROFILES[id - 1];
@@ -102,6 +115,7 @@ public final class FreshUniverseAudit {
                     DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
             game.start();
             IdleProfiles24 bot = new IdleProfiles24(game, profile, seed, dt);
+            bot.targetUniverses = universes;
             Path dir = root.resolve(String.format(Locale.ROOT, "%02d_%s", id, profile.name()));
             Files.createDirectories(dir);
             String verdict = "LIMIT";
@@ -111,9 +125,12 @@ public final class FreshUniverseAudit {
                 // execute s'arrete immediatement a la formation de l'univers.
                 // Son garde-fou detecte les blocages reels et les etats invalides.
                 bot.execute(maxHours, dir);
-                if (game.hasCosmos(Cosmos.UNIVERSE)) {
+                if (NextUniversePolicy.reached(game, universes)) {
                     verdict = "WIN";
-                    reason = "Premier univers termine";
+                    reason = universes == 1 ? "Premier univers termine" : "Univers " + universes + " termine";
+                } else if (universes > 1) {
+                    reason = "Plafond de securite de " + maxHours + " heures simulees, "
+                            + game.universes() + " univers forme(s) sur " + universes;
                 }
             } catch (Exception failure) {
                 ProfileProgressGuard.Assessment assessment = bot.progressGuard.latest();
@@ -143,22 +160,23 @@ public final class FreshUniverseAudit {
                 default -> errors++;
             }
             csv.append(String.format(Locale.ROOT,
-                    "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s%n",
+                    "%d,%s,%s,%s,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%d,%d,%s,%d,%d,%s%n",
                     id, csv(profile.name()), csv(verdict), csv(reason),
                     bot.wallSeconds / 3600, game.state().timePlayed() / 3600,
                     bot.onlineSeconds / 3600, game.bigBangs(), game.state().explosions(),
                     game.achievementCount(), game.completedChallenges(),
                     game.bodiesMature(), RobotCosmosPlanner.cosmosStage(game),
-                    bot.actions, game.hasCosmos(Cosmos.UNIVERSE)));
+                    bot.actions, game.hasCosmos(Cosmos.UNIVERSE), universes, game.universes(),
+                    csv(bot.universeHours())));
             Files.writeString(root.resolve(String.format(Locale.ROOT,
                     "resume_%02d-%02d.csv", first, last)), csv.toString());
             System.out.printf(Locale.ROOT,
                     "FRESH_AUDIT,%02d_%s,verdict=%s,wall_h=%.3f,bb=%d,"
-                    + "succes=%d,defis=%d/%d,astres=%d,cosmos=%d,raison=%s%n",
+                    + "succes=%d,defis=%d/%d,astres=%d,cosmos=%d,univers=%d/%d,univers_h=%s,raison=%s%n",
                     id, profile.name(), verdict, bot.wallSeconds / 3600,
                     game.bigBangs(), game.achievementCount(), game.completedChallenges(),
                     game.challenges().size(), game.bodiesMature(),
-                    RobotCosmosPlanner.cosmosStage(game), clean(reason));
+                    RobotCosmosPlanner.cosmosStage(game), game.universes(), universes, bot.universeHours(), clean(reason));
         }
         System.out.printf(Locale.ROOT,
                 "FRESH_AUDIT_BILAN,segment=%d-%d,victoires=%d,bloques=%d,"

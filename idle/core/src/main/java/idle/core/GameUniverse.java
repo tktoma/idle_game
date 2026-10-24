@@ -7,6 +7,7 @@ import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
+import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
 import idle.core.upgrades.Automation;
 import idle.core.upgrades.Upgrade;
@@ -93,12 +94,104 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Le vide (version 0.099), deuxième acte de la partie secondaire : un palier du collisionneur, avec sa
-     * ressource, l'énergie du vide. Il s'ouvre au premier Big Bang du troisième univers (version 0.116 ; avant,
-     * du deuxième). Pour l'instant sans logique : il ne fait que se montrer.
+     * Le vide (version 0.099), deuxième acte de la partie secondaire. Depuis la version 0.129, il se propose au
+     * premier Big Bang du troisième univers ({@link #isVoidOffered()}) et ne s'ouvre qu'une fois payé en énergie du
+     * collisionneur ; vrai une fois ouvert dans cet univers.
      */
     public boolean isVoidUnlocked() {
-        return universes() >= 2 && state.bigBangs() > 0;
+        return state.voidOpen();
+    }
+
+    /** Vrai quand le vide se propose dans le collisionneur : premier Big Bang du troisième univers passé, pas encore ouvert. */
+    public boolean isVoidOffered() {
+        return universes() >= 2 && state.bigBangs() > 0 && !state.voidOpen();
+    }
+
+    // ------------------------------------------------------------------
+    // Les améliorations du vide (version 0.129), et l'allègement des besoins du ciel
+    // ------------------------------------------------------------------
+
+    /**
+     * Les sept améliorations du vide, payées en énergie du vide : leur prix de départ, la croissance, le plafond. Dans
+     * l'ordre de la sauvegarde : gain par paire, rythme, coût en énergie, espace par paire, fonte, allègement, maturation.
+     */
+    public enum VoidUpgrade {
+        GAIN(10, 2.2, Integer.MAX_VALUE), RATE(20, 2.4, 20), ENERGY(15, 2.5, 15), SPACE(15, 2.5, 15), DECAY(25, 2.6, 15),
+        LIGHTEN(100, 2.5, 10), MATURE(60, 2.5, 10);
+
+        private final double cost, growth;
+        private final int max;
+
+        VoidUpgrade(double cost, double growth, int max) {
+            this.cost = cost;
+            this.growth = growth;
+            this.max = max;
+        }
+
+        public int max() {
+            return max;
+        }
+
+        public double baseCost() {
+            return cost;
+        }
+
+        public double growth() {
+            return growth;
+        }
+    }
+
+    /** L'espace que tiennent les paires du vide encore vivantes ({@link GameVoid}) : il compte dans l'espace utilisé. */
+    public BigNum voidHeldSpace() {
+        return BigNum.ZERO;
+    }
+
+    /** Ce que chaque niveau d'allègement retire aux besoins des astres, de l'amas et de l'univers : 3 %, dix niveaux au plus. */
+    public static final double VOID_LIGHTEN_STEP = 0.03;
+
+    public int voidLevel(VoidUpgrade upgrade) {
+        return state.voidLevel(upgrade.ordinal());
+    }
+
+    /** La part des besoins du ciel qui reste avec l'allègement du vide : 1 sans lui, 0,7 au plus fort. */
+    public double needShare() {
+        return 1 - VOID_LIGHTEN_STEP * Math.min(VoidUpgrade.LIGHTEN.max(), voidLevel(VoidUpgrade.LIGHTEN));
+    }
+
+    /** Un besoin après l'allègement : arrondi au-dessus, jamais sous 1. */
+    public int lightened(int need) {
+        double share = needShare();
+        if (share >= 1 || need <= 0) return need;
+        return Math.max(1, (int) Math.ceil(need * share - 1e-9));
+    }
+
+    private Map<String, Integer> lightenedMolecules(Map<String, Integer> raw) {
+        if (needShare() >= 1) return raw;
+        Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        raw.forEach((id, need) -> out.put(id, lightened(need)));
+        return out;
+    }
+
+    private Map<Molecule.State, Integer> lightenedMatter(Map<Molecule.State, Integer> raw) {
+        if (needShare() >= 1) return raw;
+        Map<Molecule.State, Integer> out = new java.util.EnumMap<>(Molecule.State.class);
+        raw.forEach((matter, need) -> out.put(matter, lightened(need)));
+        return out;
+    }
+
+    /** Les molécules que demande cet astre, allégées par le vide (version 0.129). */
+    public Map<String, Integer> bodyMolecules(Body body) {
+        return lightenedMolecules(body.molecules());
+    }
+
+    /** La matière que demande cet astre, par état, allégée par le vide. */
+    public Map<Molecule.State, Integer> bodyMatter(Body body) {
+        return lightenedMatter(body.matter());
+    }
+
+    /** La matière que demande cette échelle du cosmos (l'amas, l'univers), par état, allégée par le vide. */
+    public Map<Molecule.State, Integer> cosmosMatter(Cosmos scale) {
+        return lightenedMatter(scale.matter());
     }
 
     // ------------------------------------------------------------------
@@ -826,6 +919,11 @@ public abstract class GameUniverse extends GameAtoms {
         state.setExtraUniverses(0);
         state.setUniverseSeeds(BigNum.ZERO);
         state.setVoidEnergy(BigNum.ZERO);
+        state.setVoidOpen(false);
+        state.setVoidHoleOpen(false);
+        state.setVoidSacrificed(BigNum.ZERO);
+        for (int i = 0; i < VoidUpgrade.values().length; i++) state.setVoidLevel(i, 0);
+        state.clearVoidHistory();
         state.setDimensionShards(0);
         state.setLinePhase(0);
         state.setLineYieldLevel(0);
@@ -884,7 +982,7 @@ public abstract class GameUniverse extends GameAtoms {
         if (scale == Cosmos.GALAXY) return canFormGalaxy();
         if (!state.started() || hasCosmos(scale) || !hasCosmos(scale.previous())) return false;
         if (cosmosSettleRemaining(scale) > 0) return false;
-        for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(scale).entrySet()) {
             if (gatheredInState(need.getKey()) < need.getValue()) return false;
         }
         for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
@@ -931,7 +1029,7 @@ public abstract class GameUniverse extends GameAtoms {
             return hasGalaxy() ? bodies.size() + 1 : bodiesMature() + (solarSystemsComplete() >= SYSTEMS_FOR_GALAXY ? 1 : 0);
         }
         int met = hasCosmos(scale.previous()) ? 1 : 0;
-        for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(scale).entrySet()) {
             if (gatheredInState(need.getKey()) >= need.getValue()) met++;
         }
         for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
@@ -1468,6 +1566,11 @@ public abstract class GameUniverse extends GameAtoms {
             lost.add("L'espace et ses améliorations, les comètes et les anomalies du ciel.");
             lost.add("Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
             lost.add("Les plans suivis de l'arbre et des systèmes (leurs codes sauvegardés, eux, restent).");
+            // Le vide (version 0.129) : sa réserve repart de zéro, ce qu'il en reste rejoint le cumul.
+            if (state.voidOpen()) {
+                lost.add("Le vide, son trou noir et ses améliorations : les " + wholeText(state.voidEnergy())
+                        + " d'énergie du vide qui restent s'ajoutent au cumul.");
+            }
         }
         // Remis à zéro par les deux transitions, et pas rendus ensuite (GameState#startUniverse).
         lost.add("Les records des défis et des explosions (ceux des étapes restent).");
@@ -1482,8 +1585,9 @@ public abstract class GameUniverse extends GameAtoms {
         // La partie secondaire n'existe qu'une fois un univers formé : à la toute première formation, elle est à venir.
         boolean secondary = state.universeFormed();
         if (secondary) {
-            kept.add("Les graines d'univers (" + wholeText(state.universeSeeds()) + ") et l'énergie du vide ("
-                    + wholeText(state.voidEnergy()) + ").");
+            kept.add("Les graines d'univers (" + wholeText(state.universeSeeds()) + ") et le cumul du vide ("
+                    + wholeText(BigNum.of(state.voidAccumulated() + (!launching && state.voidOpen() ? state.voidEnergy().toDouble() : 0)))
+                    + ").");
             // Version 0.128 : le volume traverse les univers lui aussi.
             kept.add(isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
                     : "Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
@@ -1537,6 +1641,10 @@ public abstract class GameUniverse extends GameAtoms {
         // Un univers de plus (version 0.087) : celui-ci était déjà formé, la partie rejouée en forme un autre.
         boolean another = state.universeFormed();
         state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
+        // Le vide (version 0.129) : ce qu'il en reste à la formation s'ajoute au cumul, gardé d'un univers à l'autre.
+        if (state.voidOpen()) {
+            state.noteVoidHistory(String.valueOf(another ? 2 + state.extraUniverses() : 1), state.voidEnergy().toDouble());
+        }
         state.startUniverse();
         if (another) state.setExtraUniverses(state.extraUniverses() + 1);
         state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));

@@ -206,7 +206,7 @@ public final class GalaxyPane extends VBox {
             lines.append('\n').append(settle > 0 ? "○ " : "● ").append("Rassemblement : ")
                     .append(settle > 0 ? "encore " + minutes(settle) : "fait");
         }
-        for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> need : game.cosmosMatter(scale).entrySet()) {
             int have = (int) Math.min(game.gatheredInState(need.getKey()), need.getValue());
             boolean milestone = game.isCosmosMilestoneMet(scale, need.getKey());
             lines.append('\n').append(formed || have >= need.getValue() ? "● " : "○ ").append(MatterText.signed(need.getKey())).append(' ')

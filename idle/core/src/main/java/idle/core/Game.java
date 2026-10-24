@@ -72,11 +72,11 @@ import java.util.random.RandomGenerator;
  * celle-ci est le bout ; le reste du programme ne voit que {@code Game}. De la base au bout :
  * {@link GameBase}, {@link GameSystems}, {@link GameDarkTree}, {@link GameCollider}, {@link GamePlans},
  * {@link GameAtoms}, {@link GameUniverse}, {@link GameMolecules}, {@link GameMatterAutomation},
- * {@link GameParticles}, {@link GameDarkMatter}, {@link GameBigBang}. Quand une partie a besoin d'une
+ * {@link GameParticles}, {@link GameDarkMatter}, {@link GameBigBang}, {@link GameVoid}. Quand une partie a besoin d'une
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameBigBang {
+public final class Game extends GameVoid {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -359,6 +359,8 @@ public final class Game extends GameBigBang {
         runSkyEvents(dt);
         refillPulses(dt);
         runCollider(dt);
+        // Le vide (version 0.129) : ses paires prennent leur part du collisionneur qui vient de produire.
+        runVoid(dt);
         runProbes(dt);
         runMaturation(dt);
         runMoleculeAutomation(dt);

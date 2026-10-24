@@ -341,11 +341,11 @@ public final class BodiesPane extends VBox {
         for (String assembly : body.assemblies()) {
             if (!game.hasAssembly(assembly)) return "Il faut assembler : " + game.assembly(assembly).name().toLowerCase();
         }
-        for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> matter : game.bodyMatter(body).entrySet()) {
             int lacking = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
             if (lacking > 0) return "Il manque " + lacking + " " + matterName(matter.getKey());
         }
-        for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
+        for (Map.Entry<String, Integer> molecule : game.bodyMolecules(body).entrySet()) {
             int lacking = molecule.getValue() - game.moleculeCount(molecule.getKey());
             if (lacking > 0) return "Il manque " + lacking + " " + game.molecule(molecule.getKey()).formula();
         }
@@ -365,12 +365,12 @@ public final class BodiesPane extends VBox {
         for (String assembly : body.assemblies()) {
             line(text, formed || game.hasAssembly(assembly), game.assembly(assembly).name());
         }
-        for (Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> matter : game.bodyMatter(body).entrySet()) {
             long have = game.gatheredInState(matter.getKey());
             line(text, formed || have >= matter.getValue(), Format.count(BigNum.of(matter.getValue())) + " " + matterName(matter.getKey())
                     + (formed || have >= matter.getValue() ? "" : " (" + Format.count(BigNum.of(have)) + ")"));
         }
-        for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
+        for (Map.Entry<String, Integer> molecule : game.bodyMolecules(body).entrySet()) {
             int have = game.moleculeCount(molecule.getKey());
             line(text, formed || have >= molecule.getValue(), Format.count(BigNum.of(molecule.getValue())) + " " + game.molecule(molecule.getKey()).formula()
                     + (formed || have >= molecule.getValue() ? "" : " (" + Format.count(BigNum.of(have)) + ")"));

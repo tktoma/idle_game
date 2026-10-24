@@ -171,6 +171,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case COLLIDER -> colliderPage.step(direction);
             case BIG_BANG -> bigBangPage.step(direction);
             case UNIVERSE -> universePage.step(direction);
+            case VOID -> voidPage.step(direction);
             case STATS -> statsPage.step(direction);
             default -> { }
         }
@@ -370,6 +371,7 @@ public abstract class GameAppTabs extends GameAppWindow {
                         () -> game.isStarted() && button.isVisible()));
             }
             entries.addAll(PopupPane.secondUniverse(game));
+            entries.addAll(PopupPane.voidEntries(game));
             popupEntries = List.copyOf(entries);
         }
         boolean busy = absencePane.isVisible() || endPane.isOpen() || transitionPane.isOpen() || exploding

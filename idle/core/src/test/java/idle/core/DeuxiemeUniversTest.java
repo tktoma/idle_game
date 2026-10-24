@@ -577,19 +577,20 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void leVideSOuvreAuPremierBigBangDuDeuxiemeUnivers() {
+    void leVideSeProposeAuPremierBigBangDuTroisiemeUnivers() {
         Game first = new Game();
         GameTestSupport.bangs(first, 3);
-        assertFalse(first.isVoidUnlocked(), "pas dans le premier univers, même après des Big Bangs");
+        assertFalse(first.isVoidOffered(), "pas dans le premier univers, même après des Big Bangs");
         Game game = second();
         GameTestSupport.bangs(game, 1);
-        assertFalse(game.isVoidUnlocked(), "version 0.116 : plus dans le deuxième univers");
+        assertFalse(game.isVoidOffered(), "version 0.116 : plus dans le deuxième univers");
         GameTestSupport.bangs(game, 0);
         assertTrue(game.testAddUniverse());
-        assertFalse(game.isVoidUnlocked(), "avant le premier Big Bang du troisième univers");
+        assertFalse(game.isVoidOffered(), "avant le premier Big Bang du troisième univers");
         GameTestSupport.bangs(game, 1);
-        assertTrue(game.isVoidUnlocked());
-        assertEquals(0, game.state().voidEnergy().sign(), "pour l'instant sans logique : rien ne s'y gagne");
+        assertTrue(game.isVoidOffered());
+        // Version 0.129 : il se propose, et ne s'ouvre qu'une fois payé (VideTest).
+        assertFalse(game.isVoidUnlocked());
         game.tick(60);
         assertEquals(0, game.state().voidEnergy().sign());
     }

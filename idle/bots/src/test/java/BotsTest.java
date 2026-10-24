@@ -329,7 +329,7 @@ class BotsTest {
                 count++;
             }
         }
-        assertEquals(33, count, "7 de référence, 3 bloquées, 2 corrigées, 21 victoires historiques");
+        assertEquals(34, count, "8 de référence (dont le premier univers formé, version 0.130), 3 bloquées, 2 corrigées, 21 victoires historiques");
     }
 
     @Test

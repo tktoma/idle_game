@@ -32,6 +32,8 @@ public class AdvancedLab extends RobotCosmosPlanner {
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
     events.add("wall_h,event,detail");
   }
+  /** Les relevés des univers se comptent en temps réel, comme le reste du bilan. */
+  @Override double clockSeconds(){return wall;}
   @Override
   boolean waitForPatientFusion(){
     return mode.equals("EXPERT_COMPLET")
@@ -95,6 +97,10 @@ public class AdvancedLab extends RobotCosmosPlanner {
     if(g.substancesFormed()!=prevT)event("SUBSTANCES",String.valueOf(g.substancesFormed()));
     if(g.solarSystemsComplete()!=prevS)event("SYSTEMES",String.valueOf(g.solarSystemsComplete()));
     if(RobotCosmosPlanner.cosmosStage(g)!=prevC){event("COSMOS",String.valueOf(RobotCosmosPlanner.cosmosStage(g)));if(RobotCosmosPlanner.cosmosStage(g)>=1&&Double.isNaN(reachedGalaxy))reachedGalaxy=wall/3600;if(RobotCosmosPlanner.cosmosStage(g)>=2&&Double.isNaN(reachedCluster))reachedCluster=wall/3600;if(RobotCosmosPlanner.cosmosStage(g)>=3&&Double.isNaN(reachedUniverse))reachedUniverse=wall/3600;}
+    rememberState();
+  }
+  /** L'état relevé, auquel le pas suivant se compare. */
+  void rememberState(){
     prevBl=g.bigBangs();prevExpl=g.state().explosions();prevB=g.bodiesMature();prevA=g.assembliesFormed();prevT=g.substancesFormed();prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevM=g.moleculeKindsCreated();prevMol=g.moleculesCreated();
   }
   void snapshot(){
@@ -116,22 +122,29 @@ public class AdvancedLab extends RobotCosmosPlanner {
       maxStall=Math.max(maxStall,wall-lastMilestone);
       if(wall-lastMilestone>=1800)idleMinutes+=step/60;
       if(i%Math.max(1,(long)Math.round(600/step))==0)snapshot();
-      if(g.hasCosmos(Cosmos.UNIVERSE))break;
+      // Version 0.130 : l'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
+      boolean done=universeProgress();
+      // La remise à zéro de l'univers suivant n'est pas un recul : le pas suivant se compare à l'état neuf.
+      if(launchedNextUniverse){event("UNIVERS_SUIVANT",String.valueOf(g.universes()+1));rememberState();}
+      if(done)break;
     }
     snapshot();
     Files.write(out.resolve("timeline.csv"),rows);
     Files.write(out.resolve("events.csv"),events);
-    if(g.hasCosmos(Cosmos.UNIVERSE))Files.writeString(out.resolve("winner.save"),SaveCodec.write(g.state(),0));
-    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d",mode,g.hasCosmos(Cosmos.UNIVERSE)?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras);
-    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats\n"+res+"\n");
+    boolean won=NextUniversePolicy.reached(g,targetUniverses);
+    if(won)Files.writeString(out.resolve("winner.save"),SaveCodec.write(g.state(),0));
+    String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d,%d,%s",mode,won?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras,g.universes(),universeHours());
+    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats,univers_formes,univers_h\n"+res+"\n");
     System.out.println("RESULT,"+res);
   }
   public static void main(String[]args)throws Exception{
-    if(args.length<6){System.err.println("Usage: mode checkpoint hours step seed output");System.exit(2);}
+    if(args.length<6){System.err.println("Usage: mode checkpoint hours step seed output [univers]");System.exit(2);}
     String mode=args[0];Path cp=Path.of(args[1]);double hours=Double.parseDouble(args[2]),dt=Double.parseDouble(args[3]);long seed=Long.parseLong(args[4]);
     GameState st=SaveCodec.read(Files.readString(cp)).state();
     Game g=new Game(st,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(seed));
     System.out.printf(Locale.ROOT,"START,%s,%.3f,%d%n",mode,st.timePlayed()/3600,g.bigBangs());
-    new AdvancedLab(g,dt,mode,seed).runLab(hours,Path.of(args[5]));
+    AdvancedLab lab=new AdvancedLab(g,dt,mode,seed);
+    if(args.length>6)lab.targetUniverses=Integer.parseInt(args[6]);
+    lab.runLab(hours,Path.of(args[5]));
   }
 }

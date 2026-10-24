@@ -349,13 +349,13 @@ public abstract class GameMatterAutomation extends GameMolecules {
                     if (!who.contains(body.id())) who.add(body.id());
                 }
             }
-            for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+            for (Map.Entry<String, Integer> needed : bodyMolecules(body).entrySet()) {
                 long[] want = wanted.computeIfAbsent(needed.getKey(), key -> new long[3]);
                 want[1] = Math.max(want[1], needed.getValue());
                 List<String> who = askers.computeIfAbsent("M" + needed.getKey(), key -> new ArrayList<>());
                 if (!who.contains(body.id())) who.add(body.id());
             }
-            for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+            for (Map.Entry<Molecule.State, Integer> needed : bodyMatter(body).entrySet()) {
                 matter.merge(needed.getKey(), (long) needed.getValue(), Math::max);
                 askers.computeIfAbsent("S" + needed.getKey().name(), key -> new ArrayList<>()).add(body.id());
             }
@@ -803,7 +803,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
         Cosmos next = nextCosmos();
         if (next == null || !isCosmosUnlocked(next)) return ShoppingList.NONE;
         Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
-        for (Map.Entry<Molecule.State, Integer> need : next.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(next).entrySet()) {
             int missing = (int) Math.max(0, need.getValue() - gatheredInState(need.getKey()));
             if (missing > 0) matter.put(need.getKey(), missing);
         }

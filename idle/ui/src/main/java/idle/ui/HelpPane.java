@@ -225,8 +225,26 @@ final class HelpPane extends StackPane {
                         + "cueille la boule sous la croix. Une plongée dure "
                         + idle.ui.common.ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
                         + "le joueur, et ses améliorations s'achètent dehors." : "")));
+        // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
+        if (game.isVoidOffered() || game.isVoidUnlocked() || !game.state().voidHistory().isEmpty()) sections.add(new Section("Le vide",
+                "Au premier Big Bang du troisième univers, puis de chaque univers suivant, le vide se propose dans l'onglet "
+                + "Collisionneur : il s'ouvre contre dix minutes de production du collisionneur, comptées à son arrivée, et au moins "
+                + Format.count(BigNum.of(Game.VOID_UNLOCK_COST)) + " énergie. Ouvert, le collisionneur y fait naître des paires de "
+                + "particules, une par seconde au départ. Chacune coûte une demi-seconde de production du collisionneur, tient un "
+                + "cinquième de seconde d'expansion d'espace libre pendant ses 6 secondes de vie, et donne 1 énergie du vide à sa "
+                + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
+                + "départ). L'énergie du vide fond de 0,2 % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
+                + "divisé par la fonte. Elle paie sept améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
+                + "coût en énergie, espace par paire, fonte plus lente, allègement du ciel (−3 % par niveau des molécules et de la "
+                + "matière que demandent les astres, l'amas et l'univers) et maturation plus courte (−3 % par niveau du temps de "
+                + "maturation des astres, aussi pour ceux qui mûrissent déjà). Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
+                + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
+                + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers ; le vide, son trou noir et ses "
+                + "améliorations repartent de zéro dans l'univers suivant."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
-                + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif. En attendant, il donne "
+                + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
+                + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")
+                + ". En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "
                 + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "

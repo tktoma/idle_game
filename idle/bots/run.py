@@ -66,7 +66,14 @@ def main():
         z.add_argument('--step',type=float,default=20)
         z.add_argument('--seed',type=int,default=42)
         z.add_argument('--checkpoint',default=str(CP)) if name in ('v2','profils') else None
+        # Version 0.130 : combien d'univers former ; au-delà du premier, l'univers suivant se lance dès l'univers formé.
+        z.add_argument('--univers',type=int,choices=[1,2],default=1) if name!='coach' else None
         z.add_argument('--out',default=None)
+    z=sub.add_parser('audit',help="parties neuves des profils jusqu'à l'univers visé (FreshUniverseAudit)")
+    z.add_argument('--de',type=int,choices=range(1,25),default=1);z.add_argument('--a',type=int,choices=range(1,25),default=1)
+    z.add_argument('--hours',type=float,default=168);z.add_argument('--step',type=float,default=20)
+    z.add_argument('--univers',type=int,choices=[1,2],default=1);z.add_argument('--strict',action='store_true')
+    z.add_argument('--out',default=None)
     z=sub.add_parser('empreinte',help="joue les 4 parties de l'empreinte du moteur");z.add_argument('--out',required=True);z.add_argument('parties',nargs='*')
     z=sub.add_parser('comparer',help="compare deux dossiers d'empreintes (ou deux sauvegardes)");z.add_argument('a');z.add_argument('b')
     z=sub.add_parser('phase3');z.add_argument('--explosions',type=int,default=1);z.add_argument('--hours',type=int,default=8);z.add_argument('--seed',type=int,default=42)
@@ -78,6 +85,9 @@ def main():
         out=pathlib.Path(a.out).resolve();os.chdir(R);sys.exit(execute(['Empreinte',out,*a.parties]))
     if a.command=='comparer':
         sys.exit(subprocess.run([sys.executable,str(R/'outils'/'comparer_sauvegardes.py'),a.a,a.b]).returncode)
+    if a.command=='audit':
+        folder=(pathlib.Path(a.out) if a.out else R/'sorties'/f'audit_{a.de:02d}-{a.a:02d}_univers{a.univers}').resolve()
+        os.chdir(R);sys.exit(execute(['FreshUniverseAudit',a.de,a.a,a.hours,a.step,folder,str(a.strict).lower(),a.univers]))
     if a.command=='phase3':sys.exit(execute(['RobotPhase3',a.explosions,a.hours,a.seed]))
     if a.command=='batch':
         if not (1<=a.workers<=8):sys.exit('--workers must be 1..8')
@@ -104,9 +114,9 @@ def main():
     if a.out:folder=pathlib.Path(a.out)
     else:folder=R/'sorties'/f'{a.command}_{getattr(a,"id",getattr(a,"bot","coach"))}_seed{a.seed}_{a.hours}h'
     folder.mkdir(parents=True,exist_ok=True)
-    if a.command=='v2':cmd=['AdvancedLab',a.bot,a.checkpoint,a.hours,a.step,a.seed,folder]
-    elif a.command=='profils':cmd=['IdleProfiles24',a.id,a.checkpoint,a.hours,a.step,folder,a.seed,'late']
-    elif a.command=='fresh':cmd=['FreshPhaseProfiles',a.id,a.hours,a.step,folder,a.seed]
+    if a.command=='v2':cmd=['AdvancedLab',a.bot,a.checkpoint,a.hours,a.step,a.seed,folder,a.univers]
+    elif a.command=='profils':cmd=['IdleProfiles24',a.id,a.checkpoint,a.hours,a.step,folder,a.seed,'late',a.univers]
+    elif a.command=='fresh':cmd=['FreshPhaseProfiles',a.id,a.hours,a.step,folder,a.seed,a.univers]
     elif a.command=='coach':cmd=['CorrectedCoach',a.checkpoint,a.hours,a.step,a.seed,folder]
     code=execute(cmd,folder);print('Résultats:',folder);sys.exit(code)
 if __name__=='__main__':main()

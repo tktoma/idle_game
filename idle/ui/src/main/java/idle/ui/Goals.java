@@ -89,7 +89,7 @@ public final class Goals {
             // L'état le plus en retard (version 0.068) : c'est lui qu'il faut pousser.
             Molecule.State behind = null;
             double worst = 1;
-            for (java.util.Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+            for (java.util.Map.Entry<Molecule.State, Integer> need : game.cosmosMatter(scale).entrySet()) {
                 double share = (double) game.gatheredInState(need.getKey()) / need.getValue();
                 if (share < worst) { worst = share; behind = need.getKey(); }
             }

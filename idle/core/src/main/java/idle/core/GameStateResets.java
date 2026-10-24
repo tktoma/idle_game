@@ -347,6 +347,13 @@ public abstract class GameStateResets extends GameStateCollider {
         researches.clear();
         universeSeeds = BigNum.ZERO;
         voidEnergy = BigNum.ZERO;
+        voidOpen = false;
+        voidHoleOpen = false;
+        voidShare = 0.25;
+        voidPrice = 0;
+        voidSacrificed = BigNum.ZERO;
+        for (int i = 0; i < VOID_UPGRADES; i++) setVoidLevel(i, 0);
+        voidHistory.clear();
         dimensionShards = 0;
         linePhase = 0;
         lineYieldLevel = 0;

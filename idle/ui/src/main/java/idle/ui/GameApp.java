@@ -213,10 +213,12 @@ public final class GameApp extends GameAppTabs {
         }
         hadUniverse = universe ? 1 : 0;
 
-        // Le vide (version 0.099) : au premier Big Bang du troisième univers (deuxième avant la 0.116), le deuxième acte de la partie secondaire.
+        // Le vide (version 0.099) : le deuxième acte de la partie secondaire. Depuis la 0.129, il se propose dans le
+        // collisionneur au premier Big Bang du troisième univers, et son onglet s'ouvre une fois qu'il est acheté.
         boolean vacuum = game.isVoidUnlocked() && !phase;
         voidTab.setVisible(vacuum);
         voidTab.setManaged(vacuum);
+        voidTab.setText("Le vide" + Readiness.dot(idle.ui.vacuum.VoidPage.ready(game)));
         if (selectedTab == Tab.VOID) voidPage.refresh();
 
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès

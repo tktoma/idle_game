@@ -220,6 +220,11 @@ final class DebugBar extends VBox {
                 tool("Énergie des trous noirs", () -> {
                     unlockCollider();
                     game.state().setColliderEnergyProduced(Math.max(game.state().colliderEnergyProduced(), Game.SUPERMASSIVE_ENERGY));
+                }),
+                // Le vide (version 0.129) : l'ouvrir sans attendre le premier Big Bang du troisième univers ni payer.
+                tool("Ouvrir le vide", () -> {
+                    unlockCollider();
+                    game.testOpenVoid();
                 }));
         tabGroup("BIG_BANG", "Big Bang",
                 tool("Conditions réunies", this::readyForBigBang),
@@ -328,7 +333,21 @@ final class DebugBar extends VBox {
                 }));
         tabGroup("VOID", "Le vide",
                 tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
-                tool("+1 000 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1000))));
+                tool("+1 000 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1000))),
+                tool("+1 million d'énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1e6))),
+                tool("Ouvrir le trou noir", game::testOpenVoidHole),
+                tool("Masse au maximum", () -> {
+                    game.testOpenVoidHole();
+                    game.state().setVoidSacrificed(BigNum.of(1, 40_000_000));
+                }),
+                tool("Améliorations au maximum", () -> {
+                    // Le gain n'a pas de plafond : dix niveaux suffisent à l'essai.
+                    for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values())
+                        game.state().setVoidLevel(upgrade.ordinal(), upgrade == Game.VoidUpgrade.GAIN ? 10 : upgrade.max());
+                }),
+                tool("Améliorations à zéro", () -> {
+                    for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) game.state().setVoidLevel(upgrade.ordinal(), 0);
+                }));
         tabGroup("ACHIEVEMENTS", "Succès",
                 tool("Tous les succès", this::grantAchievements));
         // Les skins, et avec eux les thèmes et les notations à débloquer (version 0.122 : plus de groupe à part).
@@ -814,12 +833,13 @@ final class DebugBar extends VBox {
             for (String assembly : body.assemblies()) {
                 if (!game.hasAssembly(assembly)) form(game.assembly(assembly));
             }
-            for (java.util.Map.Entry<String, Integer> molecule : body.molecules().entrySet()) {
+            // Les besoins allégés par le vide (version 0.129) : ce que l'astre demande vraiment.
+            for (java.util.Map.Entry<String, Integer> molecule : game.bodyMolecules(body).entrySet()) {
                 int missing = molecule.getValue() - game.moleculeCount(molecule.getKey());
                 if (missing > 0) state.setMoleculeCount(molecule.getKey(), game.moleculeCount(molecule.getKey()) + missing);
                 state.addSubstance(molecule.getKey());
             }
-            for (java.util.Map.Entry<Molecule.State, Integer> matter : body.matter().entrySet()) {
+            for (java.util.Map.Entry<Molecule.State, Integer> matter : game.bodyMatter(body).entrySet()) {
                 int missing = (int) Math.max(0, matter.getValue() - game.gatheredInState(matter.getKey()));
                 if (missing <= 0) continue;
                 // De la matière dans un état : des molécules de plus de la première sorte du catalogue qui a cet état.

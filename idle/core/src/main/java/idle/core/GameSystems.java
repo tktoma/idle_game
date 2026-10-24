@@ -416,7 +416,17 @@ public abstract class GameSystems extends GameBase {
             case CORE -> 360;
         };
         // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
-        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION);
+        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION)
+                * maturationShare();
+    }
+
+    /** Ce que chaque niveau de l'amélioration de maturation du vide (version 0.129) retire à la durée : 3 %, dix niveaux. */
+    public static final double VOID_MATURE_STEP = 0.03;
+
+    /** La part de la durée de maturation qui reste avec le vide : 1 sans l'amélioration, 0,7 au plus fort. */
+    public double maturationShare() {
+        GameUniverse.VoidUpgrade mature = GameUniverse.VoidUpgrade.MATURE;
+        return 1 - VOID_MATURE_STEP * Math.min(mature.max(), state.voidLevel(mature.ordinal()));
     }
 
     /** Vrai si cet astre est formé et a fini de mûrir : il compte pour les astres plus gros et pour la galaxie. */

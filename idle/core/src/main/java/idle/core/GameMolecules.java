@@ -132,7 +132,8 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Espace utilisé : celui que les molécules occupent, et celui que réservent les lieux de rassemblement. */
     public BigNum usedSpace() {
-        return occupiedSpace().add(reservedSpace());
+        // Version 0.129 : les paires du vide tiennent leur espace tant qu'elles vivent.
+        return occupiedSpace().add(reservedSpace()).add(voidHeldSpace());
     }
 
     /** Espace encore libre : celui que l'expansion a créé, moins celui qui est utilisé ({@link #usedSpace()}). Jamais négatif. */
@@ -443,7 +444,7 @@ public abstract class GameMolecules extends GameUniverse {
                 continue;
             }
             if (!isCosmosUnlocked(scale)) continue;
-            for (Map.Entry<Molecule.State, Integer> need : scale.matter().entrySet()) {
+            for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(scale).entrySet()) {
                 if (gatheredInState(need.getKey()) >= need.getValue()) count++;
             }
         }
@@ -452,7 +453,7 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Vrai si cet état de la matière est réuni pour cette échelle du cosmos : un jalon (version 0.068). */
     public boolean isCosmosMilestoneMet(Cosmos scale, Molecule.State matter) {
-        Integer need = scale.matter().get(matter);
+        Integer need = cosmosMatter(scale).get(matter);
         return need != null && (hasCosmos(scale) || isCosmosUnlocked(scale) && gatheredInState(matter) >= need);
     }
 
@@ -538,13 +539,13 @@ public abstract class GameMolecules extends GameUniverse {
             if (canFormAssembly(id)) ready.add(assembly);
             else wantAssembly(assembly, wanted, purposes);
         }
-        for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+        for (Map.Entry<String, Integer> needed : bodyMolecules(body).entrySet()) {
             int[] want = wanted.computeIfAbsent(needed.getKey(), each -> new int[2]);
             want[0] = Math.max(want[0], needed.getValue());
             purposes.putIfAbsent(needed.getKey(), "");
         }
         Map<Molecule.State, Integer> matter = new java.util.EnumMap<>(Molecule.State.class);
-        for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> needed : bodyMatter(body).entrySet()) {
             int missing = (int) Math.max(0, needed.getValue() - gatheredInState(needed.getKey()));
             if (missing > 0) matter.put(needed.getKey(), missing);
         }
@@ -863,10 +864,10 @@ public abstract class GameMolecules extends GameUniverse {
         for (String needed : body.assemblies()) {
             if (state.hasAssembly(needed)) met++;
         }
-        for (Map.Entry<Molecule.State, Integer> needed : body.matter().entrySet()) {
+        for (Map.Entry<Molecule.State, Integer> needed : bodyMatter(body).entrySet()) {
             if (gatheredInState(needed.getKey()) >= needed.getValue()) met++;
         }
-        for (Map.Entry<String, Integer> needed : body.molecules().entrySet()) {
+        for (Map.Entry<String, Integer> needed : bodyMolecules(body).entrySet()) {
             if (state.moleculeCount(needed.getKey()) >= needed.getValue()) met++;
         }
         if (needsColliderEnergy(body) && hasColliderEnergyFor(body)) met++;

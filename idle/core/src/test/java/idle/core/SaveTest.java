@@ -224,6 +224,13 @@ class SaveTest {
         state.setVolumeShardsEarned(23);
         for (int i = 0; i < 5; i++) state.setVolumeLevel(i, i + 2);
         state.setVoidEnergy(BigNum.of(42));
+        state.setVoidOpen(true);
+        state.setVoidHoleOpen(true);
+        state.setVoidShare(0.4);
+        state.setVoidPrice(3.5e12);
+        state.setVoidSacrificed(BigNum.of(1, 50));
+        for (int i = 0; i < GameState.VOID_UPGRADES; i++) state.setVoidLevel(i, i + 1);
+        state.noteVoidHistory("3", 1234.5);
         state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);

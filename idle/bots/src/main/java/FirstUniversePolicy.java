@@ -10,11 +10,12 @@ import idle.core.molecules.Molecule;
 import idle.core.upgrades.Upgrade;
 
 /**
- * Décisions économiques communes aux robots du PREMIER univers.
+ * Décisions économiques communes aux robots, les trois actes de chaque univers.
  *
  * Cette politique ne touche pas à l'état directement : chaque achat passe par
- * les préconditions et les méthodes publiques du vrai moteur. Elle n'utilise
- * aucune amélioration, épreuve ou cycle du second univers.
+ * les préconditions et les méthodes publiques du vrai moteur. Ce que le deuxième
+ * univers ajoute (régime, cycle, famille, éléments gratuits) est dans
+ * {@link NextUniversePolicy} (version 0.130).
  */
 final class FirstUniversePolicy {
     private FirstUniversePolicy() {}
@@ -31,8 +32,9 @@ final class FirstUniversePolicy {
 
     /** Une partie encore en train de construire son ciel doit continuer à synthétiser. */
     static boolean finalBangPreparation(Game game) {
+        // Les dix défis que demande le Big Bang : la fuite, onzième défi du deuxième univers, n'y entre pas (0.130).
         return game.bigBangs() < 8
-                && game.completedChallenges() == game.challenges().size()
+                && game.baseChallengesDone()
                 && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS
                 && game.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER)
                 && game.isBigBangConditionMet(BigBangCondition.PARTICLES)
@@ -246,7 +248,7 @@ final class FirstUniversePolicy {
         // Réserver les 500 matières noires dès que les autres prérequis
         // sont assurés, et non seulement après avoir déjà atteint 500.
         boolean bank = game.bigBangs() < 8
-                && game.completedChallenges() == game.challenges().size()
+                && game.baseChallengesDone()
                 && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
         int count = 0;
         for (int n = 0; n < limit; n++) {

@@ -167,6 +167,13 @@ public final class GameState extends GameStateResets {
         data.put("extraUniverses", extraUniverses);
         data.put("universeSeeds", universeSeeds);
         data.put("voidEnergy", voidEnergy);
+        data.put("voidOpen", voidOpen);
+        data.put("voidHoleOpen", voidHoleOpen);
+        data.put("voidShare", voidShare);
+        data.put("voidPrice", voidPrice);
+        data.put("voidSacrificed", voidSacrificed);
+        for (int i = 0; i < VOID_UPGRADES; i++) data.put("voidLevel" + i, voidLevel(i));
+        data.putDoubles("voidHistory", voidHistory);
         data.put("dimensionShards", dimensionShards);
         data.put("linePhase", linePhase);
         data.put("lineYieldLevel", lineYieldLevel);
@@ -408,6 +415,15 @@ public final class GameState extends GameStateResets {
         setExtraUniverses(data.whole("extraUniverses", 0));
         setUniverseSeeds(data.big("universeSeeds", BigNum.ZERO));
         setVoidEnergy(data.big("voidEnergy", BigNum.ZERO));
+        // Le vide (version 0.129) : absent des sauvegardes d'avant, il part fermé, à zéro.
+        setVoidOpen(data.flag("voidOpen", false));
+        setVoidHoleOpen(data.flag("voidHoleOpen", false));
+        setVoidShare(data.real("voidShare", 0.25));
+        setVoidPrice(data.real("voidPrice", 0));
+        setVoidSacrificed(data.big("voidSacrificed", BigNum.ZERO));
+        for (int i = 0; i < VOID_UPGRADES; i++) setVoidLevel(i, data.whole("voidLevel" + i, 0));
+        voidHistory.clear();
+        data.doubles("voidHistory").forEach(this::noteVoidHistory);
         setDimensionShards(data.real("dimensionShards", 0));
         setLinePhase(data.real("linePhase", 0));
         setLineYieldLevel(data.whole("lineYieldLevel", 0));

@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.129", "Le vide se joue", List.of(
+                    "Au premier Big Bang du troisième univers, le vide se propose dans l'onglet Collisionneur : il s'ouvre contre "
+                            + "dix minutes de production du collisionneur, comptées à son arrivée, une fois par univers.",
+                    "Ouvert, le collisionneur y fait naître des paires de particules : chacune coûte de son énergie, tient de "
+                            + "l'espace libre pendant ses 6 secondes de vie, et donne de l'énergie du vide à sa naissance.",
+                    "Un réglage, dans l'onglet du vide, dit quelle part du collisionneur et de l'espace libre il peut prendre.",
+                    "L'énergie du vide fond de 0,2 % par seconde : elle monte vers un équilibre, affiché à côté de la réserve.",
+                    "Sept améliorations, en énergie du vide, dans leur sous-onglet : gain par paire, rythme, coût en énergie, "
+                            + "espace par paire, fonte plus lente, allègement du ciel (jusqu'à −30 % des besoins des astres, de l'amas "
+                            + "et de l'univers) et maturation plus courte (jusqu'à −30 % du temps de maturation des astres).",
+                    "Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie raccourcissent la "
+                            + "vie des paires et ralentissent la fonte.",
+                    "À la formation de l'univers, l'énergie du vide qui reste rejoint un cumul, gardé et affiché dans le "
+                            + "sous-onglet Graine ; le vide repart de zéro dans l'univers suivant.",
+                    "L'aide (H) a une page « Le vide ».")),
             new Note("0.128", "Le volume : on plonge dans le cube", List.of(
                     "La troisième dimension se joue : un clic sur le cube qui tourne fait plonger la vue jusqu'en son centre.",
                     "Dedans, le clic gauche tenu fait regarder autour de soi, et le clic droit cueille la boule visée : chaque "

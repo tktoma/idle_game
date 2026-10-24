@@ -20,6 +20,10 @@ on:
         description: "true : chaque profil doit former son univers ; false : seuls les blocages et erreurs font echouer"
         required: true
         default: "false"
+      univers:
+        description: "Univers a former : 1 (le premier, comme avant) ou 2 (le suivant se lance des l'univers forme ; sans dimensions ni graine ; parties deux fois plus longues, prevoir un horizon de 336 h)"
+        required: true
+        default: "1"
 
 concurrency:
   group: fresh-universe-audit-${{ github.ref }}
@@ -29,7 +33,8 @@ jobs:
   audit:
     name: Bots depuis zero ${{ matrix.first }}-${{ matrix.last }}
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    # L'univers 2 double à peu près la partie : 6 h, le plus long qu'accepte un runner GitHub.
+    timeout-minutes: ${{ inputs.univers == '2' && 360 || 300 }}
     strategy:
       fail-fast: false
       # Trois profils par runner : les segments de six depassaient 5 h en CI.
@@ -66,7 +71,7 @@ jobs:
         run: >-
           sh ./gradlew :bots:bot --no-daemon
           -Pclasse=FreshUniverseAudit
-          --args="${{ matrix.first }} ${{ matrix.last }} ${{ inputs.horizon_hours || '168' }} 60 sorties/audit-depuis-zero ${{ inputs.strict || 'false' }}"
+          --args="${{ matrix.first }} ${{ matrix.last }} ${{ inputs.horizon_hours || '168' }} 60 sorties/audit-depuis-zero ${{ inputs.strict || 'false' }} ${{ inputs.univers || '1' }}"
       - name: Conserver le bilan, les sauvegardes et les diagnostics meme si des bots echouent
         if: always()
         uses: actions/upload-artifact@v4

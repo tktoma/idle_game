@@ -14,7 +14,7 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 |---|---|
 | `moteur/` : une copie du moteur, à recopier à chaque version du jeu | supprimé : les bots se compilent contre `idle/core`, le moteur du jeu lui-même |
 | `bin/` : des fichiers `.class` déjà compilés | supprimé : `run.py` ou Gradle recompilent |
-| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 20 aujourd'hui) |
+| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 21 aujourd'hui) |
 | `bots/historique/` | gardé à la fusion, puis retiré du dépôt le 20 octobre 2026 |
 | `docs/DOCUMENTATION_JEU_107_PAGES.pdf` | supprimé (le PDF qui était à la racine du dépôt a été retiré le 21 octobre 2026) |
 | `INVENTAIRE_SHA256.csv` | supprimé : les chemins ont changé, et git garde déjà l'empreinte de chaque fichier |
@@ -27,7 +27,7 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 - **Les bots suivent le jeu.** `run.py` recompile le moteur depuis `idle/core/src/main/java` dès qu'une source a changé. Une modification du jeu est donc prise en compte au lancement suivant.
 - **Des tests à chaque envoi.** Les tests de `src/test/java` tournent avec ceux du projet (`./gradlew toutTester`, et l'action GitHub). `BotsTest` vérifie notamment que :
   - les bots compilent contre le moteur actuel ;
-  - les 33 sauvegardes se relisent ;
+  - les 34 sauvegardes se relisent ;
   - les 24 sauvegardes de victoire sont toujours des victoires, et qu'une victoire écrite par le moteur actuel (univers formé, partie remise à zéro) en est une aussi ;
   - le bot V2, un des 24 profils (le 19) et le profil 1 parti de zéro tournent quelques minutes sans planter.
 
@@ -63,9 +63,9 @@ Avec Gradle, depuis `idle/` :
 
 | Dossier | Contenu |
 |---|---|
-| `src/main/java/` | Les 20 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve), `FirstUniversePolicy` (l'ordre d'ouverture du premier univers), `DarkMatterReservePolicy`, `ProfileProgressGuard` (le garde-fou des blocages), `CorrectedCoach` et `RobotPhase3`. Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory`, `Empreinte`, `OfflineBenchmark`, `AutoMatterBench` et `MakeAutoMatterCheckpoint` (pour `outils/ab_matiere.py`). Les audits ponctuels, lancés à la main avec `./gradlew :bots:bot -Pclasse=…` : `DependencyAudit`, `EconomyAudit`, `DiagnoseState`, `RescueBench` et `RecreateLosers`. |
-| `src/test/java/` | Les 7 classes de test : `BotsTest` (cohérence avec le jeu), `BotsExtendedValidationTest`, `DarkMatterReservePolicyTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
-| `sauvegardes/` | `reference/` : 7 points de départ, dont la partie à 7 Big Bangs et une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201). `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
+| `src/main/java/` | Les 21 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `DarkMatterReservePolicy`, `ProfileProgressGuard` (le garde-fou des blocages), `CorrectedCoach` et `RobotPhase3`. Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory`, `Empreinte`, `OfflineBenchmark`, `AutoMatterBench` et `MakeAutoMatterCheckpoint` (pour `outils/ab_matiere.py`). Les audits ponctuels, lancés à la main avec `./gradlew :bots:bot -Pclasse=…` : `DependencyAudit`, `EconomyAudit`, `DiagnoseState`, `RescueBench` et `RecreateLosers`. |
+| `src/test/java/` | Les 8 classes de test : `BotsTest` (cohérence avec le jeu), `NextUniverseTest` (l'univers 2, version 0.130), `BotsExtendedValidationTest`, `DarkMatterReservePolicyTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
+| `sauvegardes/` | `reference/` : 8 points de départ, dont la partie à 7 Big Bangs, une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201) et le premier univers formé par le même Speedrunner (`checkpoint_universe1_speedrunner.save`, version 0.130), départ de l'univers 2. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
 | `outils/` | `comparer_sauvegardes.py` (utilisé par `run.py comparer`), `ab_matiere.py` (création automatique de la matière, avec et sans) et `benchmark_actualise.py`. |
 
 ## Les correctifs des bots (19 octobre 2026)
@@ -164,6 +164,71 @@ après 4 à 10 minutes.
 Le profil 17 bute sur la règle du jeu plus que sur sa politique : sans automatisme avant 30 atomes créés, une
 fusion par visite horaire demande environ 88 h pour ouvrir le tableau ; l'explosion efface ensuite les
 automatismes, et 0,8 matière noire ne paie ni « Départ lancé » (2) ni les automatismes offerts (3).
+
+## L'univers 2 (version 0.130)
+
+Les mêmes bots jouent maintenant l'univers suivant, sans code en double : un **nombre d'univers visé**
+(`targetUniverses` dans `RobotCosmosPlanner`) décide quand la partie s'arrête. Il vaut **1 par défaut** : le premier
+univers se joue et se mesure exactement comme avant (Speedrunner, graine 201 : toujours 27 h 23, 4 928 décisions).
+
+- **À 2**, dès que l'univers se forme, le bot lance le suivant (`NextUniversePolicy.launchNext`) et rejoue les trois
+  actes. La victoire est alors l'univers 2 formé.
+- **Ce que le deuxième univers ajoute** est dans `NextUniversePolicy`, que tous les bots appellent à chaque décision
+  (rien ne s'y passe dans le premier univers) : le régime rapide relancé dès qu'il est prêt, un choix de cycle par
+  Big Bang (fusion par défaut, `-Didle.cycle=FUSION|SYNTHESIS|RESERVE` pour essayer les autres), la famille préférée
+  qui suit la famille qui manque aux recettes, et les éléments offerts (d'abord ceux qui manquent à la liste, sinon le
+  plus lourd). La Fuite, onzième défi, se tente avec les autres, mais jamais quand elle retarderait un Big Bang
+  prêt ou en préparation : le Big Bang ne demande que les dix de toujours (les bots comptent donc
+  `baseChallengesDone()`). Au lancement de l'univers suivant, les défis abandonnés se retentent normalement (le
+  compteur d'explosions repart de zéro).
+- **Ce que les bots ne jouent pas, pour l'instant** : les dimensions, la graine et l'onglet Univers (améliorations,
+  recherches, épreuves, skins). Comme la graine n'est pas jouée, l'univers suivant se lance comme l'outil d'essai
+  « Rouvrir les paliers », **sans attendre le palier 2 de la graine** qu'un joueur doit atteindre (30 arrosages et le
+  seuil de la ligne) : le temps de la graine n'est pas compté.
+
+Pour lancer :
+
+```bash
+python run.py audit --de 1 --a 1 --univers 2            # partie neuve, univers 1 puis univers 2
+python run.py profils --id 3 --univers 2 --checkpoint sauvegardes/reference/checkpoint_universe1_speedrunner.save --hours 80
+python run.py v2 --bot DEPENDANCES --univers 2 --checkpoint sauvegardes/reference/checkpoint_universe1_speedrunner.save --hours 60
+./gradlew :bots:bot -Pclasse=FreshUniverseAudit --args="1 3 168 20 sorties/audit 2"     # 7e argument : univers
+```
+
+L'audit des 24 profils de l'action GitHub a la même option (`univers`, 1 par défaut). Les sorties gagnent les colonnes
+`univers_vises`, `univers_formes` et `univers_h` (instant de formation de chaque univers, en heures réelles) ; la ligne
+`RESULT` des profils gagne `universes`, `target`, `won` (la cible atteinte), `universeTimes` et ce que la politique a
+fait (`regimes`, `cycles`, `families`, `freeElements`). Les jalons `BB8at`, `galaxyAt`, `clusterAt` et `universeAt`
+restent ceux du premier univers formé pendant la partie : avec `--univers 2`, c'est `won` qui dit la victoire.
+`univers_h` et `universeTimes` ne listent que les univers formés pendant la partie (depuis la sauvegarde de
+l'univers 1, seul l'univers 2), `univers_formes` compte tous ceux de la partie.
+
+Mesures (version 0.130, une décision toutes les 20 s, univers 2 compté depuis son lancement ; sauf mention, départ
+de `checkpoint_universe1_speedrunner.save`) :
+
+| Bot | Choix de cycle | Premier Big Bang | 8e Big Bang | Galaxie | Univers 2 formé |
+|---|---|---|---|---|---|
+| 1 Speedrunner | synthèse | 6 h 02 | 13 h 22 | 17 h 08 | 21 h 08 |
+| 1 Speedrunner | fusion (défaut) | | 13 h 26 | 17 h 19 | **21 h 20** |
+| 1 Speedrunner | réserve | | 13 h 39 | 17 h 25 | 21 h 26 |
+| 1 Speedrunner | sans les nouveautés | 6 h 03 | 13 h 20 | 17 h 06 | 21 h 07 |
+| 1 Speedrunner, partie neuve d'une traite | synthèse | 5 h 45 | 13 h 10 | 17 h 04 | 21 h 04 (48 h 27 en tout) |
+| 3 Regular, graines 203, 204, 205 | fusion (défaut) | 7 h 51 (203) | 15 h 30 (203) | 19 h 22 (203) | **23 h 26, 23 h 51, 23 h 40** |
+| 3 Regular, graines 203, 204, 205 | synthèse | | | | 25 h 12, 24 h 43, 23 h 34 |
+| 3 Regular, graine 203 | réserve | | 18 h 19 | 22 h 16 | 26 h 19 |
+| Bot V2 `DEPENDANCES` | synthèse | 5 h 48 | 21 h 37 | 32 h 37 | 36 h 38 |
+
+Ce que montrent ces mesures :
+
+- L'univers 2 prend environ **21 h** au Speedrunner (23 h 30 au Régulier), contre 27 h 23 (34 h 50) pour le
+  premier : le premier Big Bang vient en 6 h au lieu de 11 h 22, mais le troisième acte dure encore 15 h (16 h dans
+  le premier).
+- **Les nouveautés du deuxième univers ne changent presque rien** au Speedrunner : 21 h 08 avec, 21 h 07 sans. Son
+  troisième acte est réglé par des délais (maturation des astres, deux rassemblements de 2 h), pas par la production
+  que le régime, le cycle ou les éléments offerts accélèrent.
+- Pour le Speedrunner, les trois choix de cycle se tiennent en 20 minutes, dans le bruit du hasard. Pour le Régulier,
+  la fusion est la plus régulière (23 h 26 à 23 h 51 sur trois graines, contre 23 h 34 à 25 h 12 avec la synthèse) :
+  c'est le défaut.
 
 ## Les bots partis de zéro : succès et défis (0.86)
 

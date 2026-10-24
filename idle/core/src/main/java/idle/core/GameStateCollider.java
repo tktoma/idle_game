@@ -363,7 +363,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         boolean seen = endSeen;
         int extra = extraUniverses;
         BigNum seeds = universeSeeds;
-        BigNum energy = voidEnergy;
+        // Le vide (version 0.129) repart de zéro à chaque univers : seul son historique reste.
+        Map<String, Double> voidKept = new java.util.LinkedHashMap<>(voidHistory);
         double shards = dimensionShards, phase = linePhase;
         int yieldLevel = lineYieldLevel, ticksLevel = lineTicksLevel;
         int speedLevel = lineSpeedLevel, ballsLevel = lineBallsLevel, countLevel = lineCountLevel;
@@ -419,7 +420,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         universeFormed = true;
         extraUniverses = extra;
         universeSeeds = seeds;
-        voidEnergy = energy;
+        voidHistory.putAll(voidKept);
         // La ligne (version 0.101) appartient à la partie secondaire : elle traverse les univers.
         dimensionShards = shards;
         linePhase = phase;
@@ -720,6 +721,100 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setVoidEnergy(BigNum energy) {
         voidEnergy = energy == null || energy.sign() < 0 ? BigNum.ZERO : energy;
+    }
+
+    /** Vrai une fois le vide ouvert dans cet univers (version 0.129) : payé en énergie du collisionneur. */
+    public boolean voidOpen() {
+        return voidOpen;
+    }
+
+    public void setVoidOpen(boolean open) {
+        voidOpen = open;
+    }
+
+    /** Vrai une fois le trou noir du vide ouvert dans cet univers : au premier trou noir formé. */
+    public boolean voidHoleOpen() {
+        return voidHoleOpen;
+    }
+
+    public void setVoidHoleOpen(boolean open) {
+        voidHoleOpen = open;
+    }
+
+    /** La part de l'expansion donnée au vide, de 0 à 1. */
+    public double voidShare() {
+        return voidShare;
+    }
+
+    public void setVoidShare(double share) {
+        voidShare = Double.isFinite(share) ? Math.max(0, Math.min(1, share)) : 0.25;
+    }
+
+    /** Toutes les particules sacrifiées au trou noir du vide dans cet univers. */
+    public double voidPrice() {
+        return voidPrice;
+    }
+
+    public void setVoidPrice(double price) {
+        voidPrice = Double.isFinite(price) && price > 0 ? price : 0;
+    }
+
+    public BigNum voidSacrificed() {
+        return voidSacrificed;
+    }
+
+    public void setVoidSacrificed(BigNum sacrificed) {
+        voidSacrificed = sacrificed == null || sacrificed.sign() < 0 ? BigNum.ZERO : sacrificed;
+    }
+
+    /** Niveau d'une amélioration du vide, dans l'ordre de {@code Game.VoidUpgrade} ; 0 hors des sept. */
+    public int voidLevel(int index) {
+        return switch (index) {
+            case 0 -> voidGainLevel;
+            case 1 -> voidRateLevel;
+            case 2 -> voidEnergyLevel;
+            case 3 -> voidSpaceLevel;
+            case 4 -> voidDecayLevel;
+            case 5 -> voidLightenLevel;
+            case 6 -> voidMatureLevel;
+            default -> 0;
+        };
+    }
+
+    public void setVoidLevel(int index, int level) {
+        int value = Math.max(0, level);
+        switch (index) {
+            case 0 -> voidGainLevel = value;
+            case 1 -> voidRateLevel = value;
+            case 2 -> voidEnergyLevel = value;
+            case 3 -> voidSpaceLevel = value;
+            case 4 -> voidDecayLevel = value;
+            case 5 -> voidLightenLevel = value;
+            case 6 -> voidMatureLevel = value;
+            default -> { }
+        }
+    }
+
+    /** Le vide de chaque univers formé : son numéro → l'énergie du vide qu'il restait à sa formation. */
+    public Map<String, Double> voidHistory() {
+        return java.util.Collections.unmodifiableMap(voidHistory);
+    }
+
+    /** Note l'énergie du vide qu'il restait à la formation de cet univers. */
+    public void noteVoidHistory(String universe, double stock) {
+        if (universe == null || !Double.isFinite(stock) || stock < 0) return;
+        voidHistory.put(universe, stock);
+    }
+
+    /** Le cumul : l'énergie du vide qu'il restait à la formation de chaque univers, additionnée. */
+    public void clearVoidHistory() {
+        voidHistory.clear();
+    }
+
+    public double voidAccumulated() {
+        double total = 0;
+        for (double stock : voidHistory.values()) total += stock;
+        return total;
     }
 
     /** Niveau d'une amélioration de l'univers. */

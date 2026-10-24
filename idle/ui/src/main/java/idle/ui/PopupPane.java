@@ -172,9 +172,10 @@ final class PopupPane extends StackPane {
                     + "l'énergie ; un clic au bon moment en donne bien plus, et certaines collisions libèrent des quarks.";
             case "BIG_BANG" -> "Le Big Bang fait repartir la partie du premier générateur. En échange, l'espace s'ouvre : il "
                     + "s'étend de lui-même, et s'y forment des molécules, puis des astres.";
-            case "VOID" -> "Le deuxième acte de la partie secondaire, au troisième univers : le vide, et sa ressource, l'énergie du vide. Le vide "
-                    + "n'est jamais tout à fait vide : des paires de particules y naissent et s'annulent sans cesse. Pour "
-                    + "l'instant, il se regarde seulement.";
+            case "VOID" -> "Le vide n'est jamais tout à fait vide : le collisionneur y fait naître des paires de particules, qui "
+                    + "s'annulent au bout de quelques secondes. Chacune coûte de son énergie et tient de l'espace libre, et donne de "
+                    + "l'énergie du vide à sa naissance. Celle-ci fond doucement : elle monte vers un équilibre, affiché. Elle paie "
+                    + "les améliorations du vide ; ce qu'il en reste à la formation de l'univers rejoint le cumul.";
             case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
                     + "des améliorations qui restent, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
             case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute 2\u00a0% à toutes les "
@@ -228,6 +229,22 @@ final class PopupPane extends StackPane {
                         + "Big Bang suivant.", skins, () -> game.isTrialUnlocked(Trial.COLD_BANG)),
                 gated(act3, "second:bangTiers", three, "Paliers du Big Bang", "Le premier Big Bang de ce deuxième univers donne un "
                         + "skin, le troisième un autre.", bang, () -> game.bangSkinTiers() > 0));
+    }
+
+    /**
+     * Le vide (version 0.129) : son offre dans le collisionneur, au premier Big Bang du troisième univers, puis son
+     * trou noir, au premier trou noir formé. Une fois chacune, comme les autres explications.
+     */
+    static List<Entry> voidEntries(Game game) {
+        String color = idle.ui.vacuum.VoidPage.COLOR;
+        return List.of(
+                new Entry("void:offer", "Troisième univers — le vide", "Le vide se propose", "Dans l'onglet Collisionneur, le vide "
+                        + "s'ouvre contre dix minutes de production du collisionneur, comptées maintenant. Il y fera naître des paires "
+                        + "de particules : elles coûtent de son énergie et de l'espace libre, et donnent l'énergie du vide.", color,
+                        game::isVoidOffered),
+                new Entry("void:hole", "Troisième univers — le vide", "Le trou noir du vide", "Un trou noir est formé : dans l'onglet "
+                        + "du vide, sacrifiez-lui des particules. Sa masse raccourcit la vie des paires, qui rendent leur espace plus "
+                        + "vite, et ralentit la fonte de l'énergie du vide.", "#ff9a3a", game::isVoidHoleOpen));
     }
 
     /** Une nouveauté du deuxième univers, qui attend que son acte soit ouvert (version 0.109). */

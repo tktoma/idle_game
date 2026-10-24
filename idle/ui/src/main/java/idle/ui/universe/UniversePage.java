@@ -100,6 +100,7 @@ public final class UniversePage extends VBox {
     // Sous-onglet « Graine d'univers »
     private final SeedView seedView = new SeedView();
     private final Label seedLine = new Label();
+    private final Label voidCumul = new Label();
     /** Le bouton de la graine (version 0.103) : il la fait germer, puis arrose son germe. */
     private final Button tendSeed = new Button();
     private final VBox seedPane;
@@ -214,7 +215,11 @@ public final class UniversePage extends VBox {
 
         // « Vide » : l'énergie du vide, et son visuel.
         voidLine.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + VOID_COLOR + ";");
-        Label voidHint = new Label("Le deuxième acte de la partie secondaire. Il n'y a rien à y faire pour l'instant.");
+        Label voidHint = new Label("Le deuxième acte de la partie secondaire. Il se joue dans les anciens onglets : au premier Big Bang"
+                + " du troisième univers, il se propose dans le collisionneur, puis a son onglet, « Le vide ». Son cumul est dans le"
+                + " sous-onglet Graine.");
+        voidHint.setWrapText(true);
+        voidHint.setMaxWidth(620);
         voidHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
         CanvasPane voidHolder = CanvasPane.filling(voidView);
         VBox.setVgrow(voidHolder, Priority.ALWAYS);
@@ -243,7 +248,11 @@ public final class UniversePage extends VBox {
             if (!wasTwig && game.isSeedTwig()) seedView.celebrate();
             refresh();
         });
-        seedPane = new VBox(8, seedLine, seedHint, tendSeed, seedHolder);
+        // Le cumul du vide (version 0.129) : ce qu'il restait d'énergie du vide à la formation de chaque univers.
+        voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
+        voidCumul.setWrapText(true);
+        voidCumul.setMaxWidth(620);
+        seedPane = new VBox(8, seedLine, seedHint, voidCumul, tendSeed, seedHolder);
         seedPane.setAlignment(Pos.TOP_CENTER);
 
         // Par-dessus les sous-pages : le lancement, et le bouton qui le déclenche, au centre comme celui du tout
@@ -294,6 +303,11 @@ public final class UniversePage extends VBox {
         return showOldTabs;
     }
 
+    /** La ligne du cumul du vide, dans le sous-onglet Graine : pour les vérifications. */
+    public Label voidCumulLabel() {
+        return voidCumul;
+    }
+
     /** L'outil d'essai repasse à « cacher » : une nouvelle partie, un chargement. */
     public void forgetOldTabs() {
         showOldTabs = false;
@@ -327,9 +341,9 @@ public final class UniversePage extends VBox {
         refresh();
     }
 
-    /** Le Vide s'ouvre dès qu'il y a de l'énergie du vide (pour l'instant, par l'outil d'essai). */
+    /** Le sous-onglet du vide : une fois le vide ouvert, ou un cumul gardé (et avec l'outil d'essai, dès qu'il y a de l'énergie). */
     private boolean isVoidOpen() {
-        return game.state().voidEnergy().sign() > 0;
+        return game.isVoidUnlocked() || !game.state().voidHistory().isEmpty() || game.state().voidEnergy().sign() > 0;
     }
 
     private static String style(boolean selected, String color) {
@@ -380,7 +394,18 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(3, game.isVolumeThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
-        voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
+        voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()) + "   |   cumul : "
+                + Format.count(BigNum.of(game.voidAccumulated())));
+        java.util.Map<String, Double> history = game.state().voidHistory();
+        voidCumul.setVisible(!history.isEmpty());
+        voidCumul.setManaged(!history.isEmpty());
+        if (!history.isEmpty()) {
+            StringBuilder each = new StringBuilder();
+            history.forEach((universe, stock) -> each.append(each.length() == 0 ? "" : ", ").append("univers ").append(universe)
+                    .append(" : ").append(Format.count(BigNum.of(stock))));
+            voidCumul.setText("Énergie du vide accumulée : " + Format.count(BigNum.of(game.voidAccumulated())) + " (" + each
+                    + "). Ce qu'il restait à la formation de chaque univers ; elle servira à l'arbre de la graine, plus tard.");
+        }
         // Il n'y a qu'une graine (version 0.105) : pas de compteur, la graine est là dès que l'univers est formé.
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
         seedView.setSprout(game.state().seedSprouted(), game.state().seedWaterings());

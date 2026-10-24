@@ -525,6 +525,8 @@ public abstract class GameAppBase extends Application {
         dock(Tab.COLLIDER, colliderPage, colliderPage.subTabs());
         dock(Tab.BIG_BANG, bigBangPage, bigBangPage.subTabs());
         dock(Tab.UNIVERSE, universePage, universePage.subTabs());
+        // Le vide (version 0.129) : ses paires, et ses améliorations à part.
+        dock(Tab.VOID, voidPage, voidPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());
         // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.

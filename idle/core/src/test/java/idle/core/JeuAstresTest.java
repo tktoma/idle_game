@@ -459,7 +459,8 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(universeAt, game.stats().reachedAt(GameStats.Step.UNIVERSE), 1e-9);
             assertTrue(game.achievementCount() >= achievementsBefore);     // les succès restent
             assertEquals(BigNum.of(Game.SEEDS_PER_UNIVERSE), game.state().universeSeeds());
-            assertEquals(BigNum.of(5), game.state().voidEnergy());          // ce qui est à l'univers reste
+            // Version 0.129 : le vide repart de zéro à chaque univers ; fermé, il n'ajoute rien au cumul.
+            assertTrue(game.state().voidEnergy().isZero() && game.state().voidHistory().isEmpty());
             long[] tally = game.stats().universeTally();
             assertEquals(bangs, tally[0]);
             assertEquals(createdBefore, tally[1]);
