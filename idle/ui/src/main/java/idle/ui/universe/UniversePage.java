@@ -377,6 +377,7 @@ public final class UniversePage extends VBox {
         dimensions.setUnlocked(open);
         dimensions.setMarked(1, game.isLineThresholdReached());
         dimensions.setMarked(2, game.isPlaneThresholdReached());
+        dimensions.setMarked(3, game.isVolumeThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()));
@@ -416,7 +417,7 @@ public final class UniversePage extends VBox {
         long need = Game.seedStageWaterings(stage);
         return "L'univers " + number + " s'ouvre quand la graine atteint son palier " + stage + ", " + name + " : "
                 + (!threshold ? "il faut d'abord le seuil de la dimension " + dimension
-                        + (dimension <= 2 ? "" : ", qui n'existe pas encore") + ", puis "
+                        + (dimension <= 3 ? "" : ", qui n'existe pas encore") + ", puis "
                         : "")
                 + Math.min(game.state().seedWaterings(), need) + " / " + need + " arrosages"
                 + (game.state().seedSprouted() ? "." : ", une fois la graine germée.");

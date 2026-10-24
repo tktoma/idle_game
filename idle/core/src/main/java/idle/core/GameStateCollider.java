@@ -374,6 +374,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         int seedOpened = seedUniversesOpened;
         double planeKept = planeShards, planeEarned = planeShardsEarned;
         int[] planeKeptLevels = {planeValueLevel, planeSpawnLevel, planeCountLevel, planeSpeedLevel, planeSizeLevel};
+        double volumeKept = volumeShards, volumeEarned = volumeShardsEarned;
+        int[] volumeKeptLevels = new int[VOLUME_UPGRADES];
+        for (int i = 0; i < VOLUME_UPGRADES; i++) volumeKeptLevels[i] = volumeLevel(i);
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -433,6 +436,10 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         planeShards = planeKept;
         planeShardsEarned = planeEarned;
         for (int i = 0; i < planeKeptLevels.length; i++) setPlaneLevel(i, planeKeptLevels[i]);
+        // Le volume (version 0.128) traverse les univers, comme la ligne et le plan.
+        volumeShards = volumeKept;
+        volumeShardsEarned = volumeEarned;
+        for (int i = 0; i < volumeKeptLevels.length; i++) setVolumeLevel(i, volumeKeptLevels[i]);
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
     }
@@ -642,6 +649,48 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             case 2 -> planeCountLevel = value;
             case 3 -> planeSpeedLevel = value;
             case 4 -> planeSizeLevel = value;
+            default -> { }
+        }
+    }
+
+    /** Éclats du volume (version 0.128) : propres à la troisième dimension. */
+    public double volumeShards() {
+        return volumeShards;
+    }
+
+    public void setVolumeShards(double shards) {
+        volumeShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Tous les éclats du volume gagnés, dépensés ou non. */
+    public double volumeShardsEarned() {
+        return volumeShardsEarned;
+    }
+
+    public void setVolumeShardsEarned(double earned) {
+        volumeShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration du volume, dans l'ordre de {@code Game.VolumeUpgrade} ; 0 hors des cinq. */
+    public int volumeLevel(int index) {
+        return switch (index) {
+            case 0 -> volumeTimeLevel;
+            case 1 -> volumeValueLevel;
+            case 2 -> volumeSpawnLevel;
+            case 3 -> volumeCountLevel;
+            case 4 -> volumeSizeLevel;
+            default -> 0;
+        };
+    }
+
+    public void setVolumeLevel(int index, int level) {
+        int value = Math.max(0, level);
+        switch (index) {
+            case 0 -> volumeTimeLevel = value;
+            case 1 -> volumeValueLevel = value;
+            case 2 -> volumeSpawnLevel = value;
+            case 3 -> volumeCountLevel = value;
+            case 4 -> volumeSizeLevel = value;
             default -> { }
         }
     }

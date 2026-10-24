@@ -23,6 +23,14 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.128", "Le volume : on plonge dans le cube", List.of(
+                    "La troisième dimension se joue : un clic sur le cube qui tourne fait plonger la vue jusqu'en son centre.",
+                    "Dedans, le clic gauche tenu fait regarder autour de soi, et le clic droit cueille la boule visée : chaque "
+                            + "boule donne des éclats du volume, propres à cette dimension.",
+                    "Une plongée dure 12 secondes au départ, puis le cube rejette le joueur ; les boules qui restaient s'en vont.",
+                    "Cinq améliorations s'achètent hors du cube : durée (+3 s), valeur, réapparition, nombre et taille des boules.",
+                    "Le seuil du volume, cent éclats gagnés, ouvre le palier 4 de la graine, donc l'univers 4, qui restait fermé.",
+                    "L'aide (H) a une page « Dimensions ».")),
             new Note("0.127", "Anomalies du ciel, guide d'univers, points de reprise", List.of(
                     "Anomalies du ciel, facultatives : de temps en temps, un bouton apparaît trois minutes dans l'onglet "
                             + "Big Bang. Le vent de particules double la création de particules pendant deux minutes ; la "

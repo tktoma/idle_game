@@ -1,0 +1,181 @@
+package idle.ui.universe;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import idle.core.Game;
+import idle.ui.FxTestSupport;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Version 0.128 : la fenêtre du volume, sous Xvfb. Un clic sur le cube fait plonger la vue, la plongée commence au
+ * centre, le clic droit cueille, le clic gauche tenu fait tourner le regard, et le cube rejette le joueur à la fin.
+ */
+class VolumeWindowTest {
+
+    @BeforeAll
+    static void setup() {
+        FxTestSupport.start();
+    }
+
+    /** Une partie au troisième univers. */
+    private static Game third() {
+        Game game = new Game();
+        game.start();
+        game.testFormUniverse();
+        assertTrue(game.testAddUniverse());
+        assertTrue(game.testAddUniverse());
+        assertTrue(game.isVolumeOpen());
+        return game;
+    }
+
+    /** Une fenêtre du volume ouverte, à sa taille de départ. */
+    private static DimensionWindow window(Game game) {
+        DimensionWindow window = new DimensionWindow(game);
+        window.open(Dimension.VOLUME);
+        window.frame(0.05, true);
+        return window;
+    }
+
+    /** Assez d'images pour finir une animation. */
+    private static void frames(DimensionWindow window, int count) {
+        for (int k = 0; k < count; k++) window.frame(0.1, true);
+    }
+
+    private static void enter(DimensionWindow window) {
+        DimensionView view = window.view();
+        assertTrue(view.press(view.getWidth() / 2, view.getHeight() / 2, false), "un clic gauche sur le cube");
+        frames(window, 12);
+    }
+
+    @Test
+    void cliquerLeCubeFaitPlongerEtLaPlongeeCommenceAuCentre() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            assertEquals("Dimension 3 : Le volume", window.titleText());
+            assertEquals(DimensionView.Dive.OUTSIDE, view.dive());
+            assertTrue(window.volumeUpgradesShown(), "dehors, les améliorations se montrent");
+            assertTrue(window.volumeHintText().contains("Cliquez le cube"));
+            assertFalse(view.press(5, 5, false), "un clic loin du cube ne fait rien");
+            assertFalse(view.press(view.getWidth() / 2, view.getHeight() / 2, true), "ni un clic droit dehors");
+            assertTrue(view.press(view.getWidth() / 2, view.getHeight() / 2, false));
+            assertEquals(DimensionView.Dive.ENTERING, view.dive());
+            window.frame(0.1, true);
+            assertFalse(game.isInVolume(), "l'animation ne mange pas le minuteur");
+            frames(window, 12);
+            assertEquals(DimensionView.Dive.INSIDE, view.dive());
+            assertTrue(game.isInVolume());
+            assertEquals(Game.VOLUME_DIVE_SECONDS, game.volumeTimeLeft(), 1e-9);
+            assertFalse(window.volumeUpgradesShown(), "dedans, pas d'améliorations");
+            assertTrue(window.volumeHintText().contains("Clic droit"));
+            return null;
+        });
+    }
+
+    @Test
+    void leClicDroitCueilleLaBouleVisee() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            enter(window);
+            game.testClearVolume();
+            game.addVolumeBall(0.1, -0.1, 0.0);
+            Game.VolumeBall ball = game.volumeBalls().get(0);
+            double[] at = view.screenOf(ball.x(), ball.y(), ball.z());
+            // La boule peut être derrière : on se retourne jusqu'à la voir.
+            for (int k = 0; at == null && k < 40; k++) {
+                view.press(view.getWidth() / 2, view.getHeight() / 2, false);
+                view.dragTo(view.getWidth() / 2 + 60, view.getHeight() / 2);
+                at = view.screenOf(ball.x(), ball.y(), ball.z());
+            }
+            assertNotNull(at, "la boule finit par être en vue");
+            assertTrue(view.press(at[0], at[1], true));
+            assertEquals(1, game.state().volumeShards(), 1e-12, "une boule cueillie : un éclat du volume");
+            assertEquals(1, view.volumePickupsShown(), "son gain monte");
+            window.frame(0.05, true);
+            assertEquals("Éclats du volume : 1", window.volumeShardsText());
+            assertTrue(view.press(5, 5, true), "un clic droit dans le vide sert aussi : il ne cueille rien");
+            assertEquals(1, game.state().volumeShards(), 1e-12);
+            return null;
+        });
+    }
+
+    @Test
+    void leClicGaucheTenuFaitTournerLeRegard() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            enter(window);
+            double yaw = view.lookYaw(), pitch = view.lookPitch();
+            assertTrue(view.press(200, 200, false));
+            assertTrue(view.dragTo(260, 170));
+            assertNotEquals(yaw, view.lookYaw(), 1e-9);
+            assertNotEquals(pitch, view.lookPitch(), 1e-9);
+            return null;
+        });
+    }
+
+    @Test
+    void leCubeRejetteLeJoueurEtLesAmeliorationsReviennent() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            game.state().setVolumeShards(100);
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            enter(window);
+            assertTrue(window.volumeButton(Game.VolumeUpgrade.TIME).isDisabled(), "pas d'achat pendant la plongée");
+            game.tick(Game.VOLUME_DIVE_SECONDS + 0.5);
+            assertFalse(game.isInVolume());
+            window.frame(0.05, true);
+            assertEquals(DimensionView.Dive.LEAVING, view.dive());
+            frames(window, 10);
+            assertEquals(DimensionView.Dive.OUTSIDE, view.dive());
+            assertTrue(window.volumeUpgradesShown());
+            assertFalse(window.volumeButton(Game.VolumeUpgrade.TIME).isDisabled());
+            window.volumeButton(Game.VolumeUpgrade.TIME).fire();
+            assertEquals(1, game.volumeLevel(Game.VolumeUpgrade.TIME));
+            assertTrue(window.volumeButton(Game.VolumeUpgrade.TIME).getText().contains("15.0 s"), window.volumeButton(Game.VolumeUpgrade.TIME).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void fermerLaFenetrePendantLaPlongeeSortDuCube() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            DimensionWindow window = window(game);
+            enter(window);
+            assertTrue(game.isInVolume());
+            window.close();
+            assertFalse(game.isInVolume());
+            window.open(Dimension.VOLUME);
+            assertEquals(DimensionView.Dive.OUTSIDE, window.view().dive(), "la fenêtre rouverte montre le cube du dehors");
+            return null;
+        });
+    }
+
+    @Test
+    void sansAnimationLaPlongeeEstImmediate() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            window.frame(0.05, false);
+            assertTrue(view.press(view.getWidth() / 2, view.getHeight() / 2, false));
+            window.frame(0.05, false);
+            assertEquals(DimensionView.Dive.INSIDE, view.dive());
+            game.tick(Game.VOLUME_DIVE_SECONDS + 1);
+            window.frame(0.05, false);
+            assertEquals(DimensionView.Dive.OUTSIDE, view.dive());
+            return null;
+        });
+    }
+}

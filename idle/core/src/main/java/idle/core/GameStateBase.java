@@ -227,6 +227,15 @@ public abstract class GameStateBase {
     double planeShards = 0;
     double planeShardsEarned = 0;
     int planeValueLevel = 0, planeSpawnLevel = 0, planeCountLevel = 0, planeSpeedLevel = 0, planeSizeLevel = 0;
+    /**
+     * Le volume, troisième dimension (version 0.128) : ses éclats, tous ceux gagnés, et le niveau de ses cinq
+     * améliorations (durée, valeur, réapparition, nombre, taille), dans cet ordre.
+     */
+    double volumeShards = 0;
+    double volumeShardsEarned = 0;
+    int volumeTimeLevel = 0, volumeValueLevel = 0, volumeSpawnLevel = 0, volumeCountLevel = 0, volumeSizeLevel = 0;
+    /** Le nombre d'améliorations du volume, celles de la sauvegarde. */
+    static final int VOLUME_UPGRADES = 5;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

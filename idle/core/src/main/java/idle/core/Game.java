@@ -201,6 +201,8 @@ public final class Game extends GameBigBang {
         achievementTimer = 0;
         moleculeAutomationTimer = 0;
         moleculeAutomationTurn = 0;
+        // Une partie relue ou remise à zéro ne reprend pas au milieu d'une plongée dans le volume (version 0.128).
+        leaveVolume();
     }
 
     private static java.util.Set<String> challengeIds() {
@@ -365,6 +367,9 @@ public final class Game extends GameBigBang {
         runSecondUniverse(dt);
         runLine(dt);
         runPlane(dt);
+        // Le volume (version 0.128) ne se joue qu'au premier plan : une absence met fin à la plongée.
+        if (away && isInVolume()) leaveVolume();
+        runVolume(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;

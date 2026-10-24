@@ -362,6 +362,9 @@ public abstract class GameStateResets extends GameStateCollider {
         planeShards = 0;
         planeShardsEarned = 0;
         for (int i = 0; i < 5; i++) setPlaneLevel(i, 0);
+        volumeShards = 0;
+        volumeShardsEarned = 0;
+        for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, 0);
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;

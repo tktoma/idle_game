@@ -220,6 +220,9 @@ class SaveTest {
         state.setPlaneShards(9.5);
         state.setPlaneShardsEarned(31);
         for (int i = 0; i < 5; i++) state.setPlaneLevel(i, i + 1);
+        state.setVolumeShards(4.5);
+        state.setVolumeShardsEarned(23);
+        for (int i = 0; i < 5; i++) state.setVolumeLevel(i, i + 2);
         state.setVoidEnergy(BigNum.of(42));
         state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);

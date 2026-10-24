@@ -315,6 +315,16 @@ final class DebugBar extends VBox {
                 tool("Seuil du plan", () -> game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD))),
                 tool("Plan au maximum", () -> {
                     for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) game.state().setPlaneLevel(upgrade.ordinal(), upgrade.max());
+                }),
+                tool("+100 éclats du volume", () -> {
+                    game.state().setVolumeShards(game.state().volumeShards() + 100);
+                    game.state().setVolumeShardsEarned(game.state().volumeShardsEarned() + 100);
+                }),
+                tool("Seuil du volume", () -> game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD))),
+                tool("Volume au maximum", () -> {
+                    // La valeur n'a pas de plafond : dix niveaux suffisent à l'essai.
+                    for (Game.VolumeUpgrade upgrade : Game.VolumeUpgrade.values())
+                        game.state().setVolumeLevel(upgrade.ordinal(), upgrade == Game.VolumeUpgrade.VALUE ? 10 : upgrade.max());
                 }));
         tabGroup("VOID", "Le vide",
                 tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
@@ -566,6 +576,7 @@ final class DebugBar extends VBox {
         game.state().setSeedSprouted(true);
         if (stage >= 1) game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD));
         if (stage >= 2) game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD));
+        if (stage >= 3) game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD));
         game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
         if (game.seedStage() == stage) note("La graine attend le seuil de la dimension " + stage + ", qui n'existe pas encore.");
     }

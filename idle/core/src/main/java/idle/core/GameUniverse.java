@@ -206,11 +206,12 @@ public abstract class GameUniverse extends GameAtoms {
         return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
     }
 
-    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
             case 2 -> isPlaneThresholdReached();
+            case 3 -> isVolumeThresholdReached();
             default -> false;
         };
     }
@@ -490,6 +491,239 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
+    // Le volume, troisième dimension (version 0.128)
+    // ------------------------------------------------------------------
+
+    /** Le volume est le cube de −1 à 1 sur les trois axes ; le joueur y plonge et regarde depuis son centre. */
+    public static final double VOLUME_EDGE = 1;
+    /** Rayon d'une boule au départ, et ce que chaque niveau de taille lui ajoute (+20 %). */
+    public static final double VOLUME_BALL_RADIUS = 0.06, VOLUME_SIZE_STEP = 0.2;
+    /** Les boules naissent entre ces deux distances du centre : jamais sur le joueur, jamais dans un coin hors de vue. */
+    public static final double VOLUME_SPAWN_NEAR = 0.35, VOLUME_SPAWN_FAR = 0.9;
+    /** Au départ : une boule toutes les 1,5 s, quatre au plus à la fois. */
+    public static final double VOLUME_SPAWN_SECONDS = 1.5;
+    public static final int VOLUME_MAX_BALLS = 4;
+    /** Une plongée dure 12 s au départ, et chaque niveau de durée ajoute 3 s : le cube rejette le joueur à la fin. */
+    public static final double VOLUME_DIVE_SECONDS = 12, VOLUME_DIVE_STEP = 3;
+    /** Éclats du volume à gagner pour son seuil, comme les cent de la ligne et du plan : il ouvre le palier 4 de la graine. */
+    public static final double VOLUME_THRESHOLD = 100;
+
+    /**
+     * Les améliorations du volume, qui s'achètent hors du cube : leur prix de départ en éclats du volume, la
+     * croissance, le plafond. Dans l'ordre de la sauvegarde : durée, valeur, réapparition, nombre, taille.
+     */
+    public enum VolumeUpgrade {
+        TIME(3, 2.2, 20), VALUE(5, 3, Integer.MAX_VALUE), SPAWN(3, 2.5, 15), COUNT(4, 3, 16), SIZE(4, 2.5, 15);
+
+        private final double cost, growth;
+        private final int max;
+
+        VolumeUpgrade(double cost, double growth, int max) {
+            this.cost = cost;
+            this.growth = growth;
+            this.max = max;
+        }
+
+        public int max() {
+            return max;
+        }
+    }
+
+    /** Une boule qui flotte dans le volume, en attendant qu'on la cueille. */
+    public record VolumeBall(double x, double y, double z) {
+    }
+
+    // Ce qui ne se sauvegarde pas : la plongée en cours, son minuteur, les boules du cube.
+    private boolean inVolume;
+    private double volumeTimeLeft, volumeSpawnTimer;
+    private final java.util.List<VolumeBall> volumeBalls = new java.util.ArrayList<>();
+    private final java.util.Random volumeRandom = new java.util.Random(3);
+    private long volumeCollected, volumeDives;
+
+    /** Vrai dès que la troisième dimension est ouverte : au troisième univers. */
+    public boolean isVolumeOpen() {
+        return dimensionsUnlocked() >= 3;
+    }
+
+    public int volumeLevel(VolumeUpgrade upgrade) {
+        return state.volumeLevel(upgrade.ordinal());
+    }
+
+    /** Durée d'une plongée : 12 s, et 3 s de plus par niveau. */
+    public double volumeDiveSeconds() {
+        return VOLUME_DIVE_SECONDS + VOLUME_DIVE_STEP * volumeLevel(VolumeUpgrade.TIME);
+    }
+
+    /** Éclats du volume que donne chaque boule cueillie : 1, et 1 de plus par niveau. */
+    public double volumeValue() {
+        return 1 + volumeLevel(VolumeUpgrade.VALUE);
+    }
+
+    /** Secondes entre deux boules : 1,5, ×0,85 par niveau. */
+    public double volumeSpawnSeconds() {
+        return VOLUME_SPAWN_SECONDS * Math.pow(0.85, volumeLevel(VolumeUpgrade.SPAWN));
+    }
+
+    /** Boules présentes à la fois, au plus : 4, et 1 de plus par niveau (vingt au plus). */
+    public int volumeMaxBalls() {
+        return VOLUME_MAX_BALLS + volumeLevel(VolumeUpgrade.COUNT);
+    }
+
+    /** Rayon d'une boule : 0,06, +20 % par niveau (quinze niveaux : ×4). Plus grosse, elle se vise mieux. */
+    public double volumeBallRadius() {
+        return VOLUME_BALL_RADIUS * (1 + VOLUME_SIZE_STEP * volumeLevel(VolumeUpgrade.SIZE));
+    }
+
+    /** Vrai pendant une plongée : le joueur est au centre du cube. */
+    public boolean isInVolume() {
+        return inVolume;
+    }
+
+    /** Secondes qu'il reste avant que le cube rejette le joueur ; 0 hors du cube. */
+    public double volumeTimeLeft() {
+        return inVolume ? volumeTimeLeft : 0;
+    }
+
+    /** Les boules du cube, dans l'ordre où elles sont apparues. */
+    public java.util.List<VolumeBall> volumeBalls() {
+        return java.util.Collections.unmodifiableList(volumeBalls);
+    }
+
+    /** Boules cueillies depuis le lancement : l'interface y voit celles de la dernière image. */
+    public long volumeCollected() {
+        return volumeCollected;
+    }
+
+    /** Plongées commencées depuis le lancement. */
+    public long volumeDives() {
+        return volumeDives;
+    }
+
+    /**
+     * Plonge dans le cube : le minuteur part de la durée d'une plongée, et le cube vide reçoit aussitôt sa
+     * première boule. Impossible si la dimension est fermée ou si le joueur y est déjà.
+     */
+    public boolean enterVolume() {
+        if (!isVolumeOpen() || inVolume) return false;
+        inVolume = true;
+        volumeTimeLeft = volumeDiveSeconds();
+        volumeBalls.clear();
+        volumeBalls.add(spawnVolumeBall());
+        volumeSpawnTimer = 0;
+        volumeDives++;
+        return true;
+    }
+
+    /** Sort du cube : les boules qui restaient s'en vont avec la plongée. */
+    public void leaveVolume() {
+        inVolume = false;
+        volumeTimeLeft = 0;
+        volumeBalls.clear();
+        volumeSpawnTimer = 0;
+    }
+
+    /**
+     * Le volume avance de {@code dt} secondes pendant une plongée : les boules apparaissent à leur rythme tant
+     * qu'il en manque, et le minuteur descend ; à zéro, le cube rejette le joueur.
+     */
+    void runVolume(double dt) {
+        if (!inVolume || dt <= 0) return;
+        if (!isVolumeOpen()) {
+            leaveVolume();
+            return;
+        }
+        // Les boules n'apparaissent que dans le temps qui reste : une longue image ne remplit pas un cube déjà fini.
+        double lived = Math.min(dt, volumeTimeLeft);
+        volumeSpawnTimer += lived;
+        double every = volumeSpawnSeconds();
+        while (volumeSpawnTimer >= every && volumeBalls.size() < volumeMaxBalls()) {
+            volumeSpawnTimer -= every;
+            volumeBalls.add(spawnVolumeBall());
+        }
+        // Plein : le minuteur attend, il ne s'accumule pas.
+        if (volumeBalls.size() >= volumeMaxBalls()) volumeSpawnTimer = Math.min(volumeSpawnTimer, every);
+        volumeTimeLeft -= dt;
+        if (volumeTimeLeft <= 1e-9) leaveVolume();
+    }
+
+    /** Une boule à un endroit tiré au hasard dans le cube, entre {@link #VOLUME_SPAWN_NEAR} et {@link #VOLUME_SPAWN_FAR} du centre. */
+    private VolumeBall spawnVolumeBall() {
+        double limit = VOLUME_EDGE - volumeBallRadius();
+        for (int tries = 0; tries < 64; tries++) {
+            double x = (volumeRandom.nextDouble() * 2 - 1) * limit;
+            double y = (volumeRandom.nextDouble() * 2 - 1) * limit;
+            double z = (volumeRandom.nextDouble() * 2 - 1) * limit;
+            double d = Math.sqrt(x * x + y * y + z * z);
+            if (d >= VOLUME_SPAWN_NEAR && d <= VOLUME_SPAWN_FAR) return new VolumeBall(x, y, z);
+        }
+        return new VolumeBall(0, 0, (VOLUME_SPAWN_NEAR + VOLUME_SPAWN_FAR) / 2);
+    }
+
+    /**
+     * Cueille la boule que touche le regard lancé du centre du cube dans la direction ({@code dx}, {@code dy},
+     * {@code dz}) : la plus proche que le rayon traverse. Rend la boule cueillie, ou {@code null} s'il n'y en a pas
+     * (hors du cube, direction nulle, rayon qui passe à côté).
+     */
+    public VolumeBall shootVolume(double dx, double dy, double dz) {
+        if (!inVolume) return null;
+        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (!(length > 1e-12) || !Double.isFinite(length)) return null;
+        double ux = dx / length, uy = dy / length, uz = dz / length, radius = volumeBallRadius();
+        VolumeBall hit = null;
+        double nearest = Double.POSITIVE_INFINITY;
+        for (VolumeBall ball : volumeBalls) {
+            double along = ball.x() * ux + ball.y() * uy + ball.z() * uz;
+            if (along <= 0) continue;
+            double aside = ball.x() * ball.x() + ball.y() * ball.y() + ball.z() * ball.z() - along * along;
+            if (aside <= radius * radius + 1e-12 && along < nearest) {
+                nearest = along;
+                hit = ball;
+            }
+        }
+        if (hit == null) return null;
+        volumeBalls.remove(hit);
+        volumeCollected++;
+        state.setVolumeShards(state.volumeShards() + volumeValue());
+        state.setVolumeShardsEarned(state.volumeShardsEarned() + volumeValue());
+        return hit;
+    }
+
+    /** Pose une boule dans le cube : pour les essais. */
+    public void addVolumeBall(double x, double y, double z) {
+        if (volumeBalls.size() < volumeMaxBalls()) volumeBalls.add(new VolumeBall(x, y, z));
+    }
+
+    /** Outil d'essai : retire toutes les boules du cube. */
+    public void testClearVolume() {
+        volumeBalls.clear();
+        volumeSpawnTimer = 0;
+    }
+
+    /** Vrai une fois le seuil du volume atteint : {@link #VOLUME_THRESHOLD} éclats du volume gagnés en tout. */
+    public boolean isVolumeThresholdReached() {
+        return state.volumeShardsEarned() >= VOLUME_THRESHOLD - 1e-9;
+    }
+
+    /** Prix du prochain niveau, en éclats du volume ; infini une fois au plus haut. */
+    public double volumeCost(VolumeUpgrade upgrade) {
+        int level = volumeLevel(upgrade);
+        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+    }
+
+    /** Les améliorations du volume s'achètent hors du cube, jamais pendant une plongée. */
+    public boolean canBuyVolume(VolumeUpgrade upgrade) {
+        return isVolumeOpen() && !inVolume && volumeLevel(upgrade) < upgrade.max
+                && state.volumeShards() >= volumeCost(upgrade) - 1e-9;
+    }
+
+    public boolean buyVolume(VolumeUpgrade upgrade) {
+        if (!canBuyVolume(upgrade)) return false;
+        state.setVolumeShards(Math.max(0, state.volumeShards() - volumeCost(upgrade)));
+        state.setVolumeLevel(upgrade.ordinal(), volumeLevel(upgrade) + 1);
+        return true;
+    }
+
+    // ------------------------------------------------------------------
     // La graine qui germe (version 0.103)
     // ------------------------------------------------------------------
 
@@ -602,6 +836,10 @@ public abstract class GameUniverse extends GameAtoms {
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
+        state.setVolumeShards(0);
+        state.setVolumeShardsEarned(0);
+        for (int i = 0; i < VolumeUpgrade.values().length; i++) state.setVolumeLevel(i, 0);
+        leaveVolume();
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
             state.setUniverseUpgradeLevel(upgrade.id(), 0);
         }
@@ -1243,7 +1481,9 @@ public abstract class GameUniverse extends GameAtoms {
         if (secondary) {
             kept.add("Les graines d'univers (" + wholeText(state.universeSeeds()) + ") et l'énergie du vide ("
                     + wholeText(state.voidEnergy()) + ").");
-            kept.add("Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
+            // Version 0.128 : le volume traverse les univers lui aussi.
+            kept.add(isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
+                    : "Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
             kept.add("La graine : palier " + seedStage() + ", et ses arrosages."
                     + (launching && canOpenNextUniverse()
                     ? " L'univers d'après demandera le palier " + Math.min(SEED_STAGES, nextUniverseStage() + 1) + "."

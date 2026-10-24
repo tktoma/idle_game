@@ -182,6 +182,9 @@ public final class GameState extends GameStateResets {
         data.put("planeShards", planeShards);
         data.put("planeShardsEarned", planeShardsEarned);
         for (int i = 0; i < 5; i++) data.put("planeLevel" + i, planeLevel(i));
+        data.put("volumeShards", volumeShards);
+        data.put("volumeShardsEarned", volumeShardsEarned);
+        for (int i = 0; i < VOLUME_UPGRADES; i++) data.put("volumeLevel" + i, volumeLevel(i));
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -422,6 +425,10 @@ public final class GameState extends GameStateResets {
         setPlaneShards(data.real("planeShards", 0));
         setPlaneShardsEarned(data.real("planeShardsEarned", 0));
         for (int i = 0; i < 5; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));
+        // Le volume (version 0.128) : absent des sauvegardes d'avant, il part de zéro.
+        setVolumeShards(data.real("volumeShards", 0));
+        setVolumeShardsEarned(data.real("volumeShardsEarned", 0));
+        for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, data.whole("volumeLevel" + i, 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

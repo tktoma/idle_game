@@ -213,6 +213,16 @@ final class HelpPane extends StackPane {
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
+        // Les dimensions (version 0.128) : une par univers, et ce que font les trois qui se jouent.
+        if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
+                + "s'ouvre à chaque univers. Chacune a ses éclats, propres à elle, et un seuil de cent éclats gagnés qui marque "
+                + "la dimension d'un rond vert et laisse la graine passer au palier suivant. La ligne avance seule : chaque trait "
+                + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
+                + "éclats en passant dessus."
+                + (game.isVolumeOpen() ? " Dans le volume, on clique le cube pour y plonger, puis on regarde autour de soi, "
+                        + "clic gauche tenu, et l'on cueille les boules au clic droit. Une plongée dure "
+                        + idle.ui.common.ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
+                        + "le joueur, et ses améliorations s'achètent dehors." : "")));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif. En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "

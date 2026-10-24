@@ -18,6 +18,10 @@ import javafx.scene.text.TextAlignment;
  * <p>La ligne a sa logique depuis la version 0.101 : la boule est celle du jeu ({@link Game#linePosition()}),
  * un trait à chaque bout et, avec l'amélioration, d'autres à égale distance entre les deux. Chaque trait
  * touché s'allume et laisse monter les éclats qu'il donne.
+ *
+ * <p>Le volume a la sienne depuis la version 0.128 : on clique le cube qui tourne, la vue plonge jusqu'en son
+ * centre, et l'on regarde autour de soi (clic gauche tenu) pour cueillir les boules qui y apparaissent (clic
+ * droit). À la fin du minuteur, le cube rejette le joueur : la vue ressort, et le cube tourne de nouveau.
  */
 public final class DimensionView extends Canvas {
 
@@ -53,15 +57,56 @@ public final class DimensionView extends Canvas {
     private Dimension dimension = Dimension.LINE;
     private double time;
 
+    // Le volume (version 0.128).
+    /** Où en est la vue : dehors (le cube tourne), en train de plonger, dedans, en train de ressortir. */
+    public enum Dive { OUTSIDE, ENTERING, INSIDE, LEAVING }
+
+    /** Durées de la plongée et de la sortie, en secondes. */
+    public static final double DIVE_IN_SECONDS = 0.9, DIVE_OUT_SECONDS = 0.7;
+    /** Le cube du dehors : sa taille relative à l'écran, et la distance d'où on le regarde. */
+    private static final double OUTSIDE_SIZE = 0.22, OUTSIDE_DISTANCE = 5;
+    /** La focale du dedans, relative à l'écran : un regard large, comme dans une pièce. */
+    private static final double INSIDE_FOCAL = 0.6;
+    private final VolumeCamera camera = new VolumeCamera();
+    private Dive dive = Dive.OUTSIDE;
+    /** Avancement de la plongée ou de la sortie, de 0 à 1. */
+    private double diveProgress;
+    /** L'orientation au début de la plongée ou de la sortie, d'où la vue part. */
+    private double fromYaw, fromPitch;
+    /** Le regard dedans : la caméra y revient après chaque image d'animation. */
+    private double lookYaw, lookPitch;
+    private double dragX, dragY;
+    private boolean dragging;
+    /** Quand chaque boule est apparue, pour la faire grossir en naissant. */
+    private final java.util.Map<Game.VolumeBall, Double> born = new java.util.IdentityHashMap<>();
+    /** Les clics droits qui n'ont rien touché : un petit cercle qui s'efface. */
+    private final List<Pickup> misses = new ArrayList<>();
+    private final List<Pickup> volumePickups = new ArrayList<>();
+    private boolean motion = true;
+
     public DimensionView(Game game) {
         super(800, 480);
         this.game = game;
+        // Le volume se joue à la souris (version 0.128) : ces gestes ne servent à rien dans les autres dimensions.
+        setOnMousePressed(event -> {
+            if (press(event.getX(), event.getY(), event.getButton() == javafx.scene.input.MouseButton.SECONDARY)) event.consume();
+            setCursor(cursorAt(event.getX(), event.getY()));
+        });
+        setOnMouseDragged(event -> {
+            if (event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
+        });
+        setOnMouseReleased(event -> {
+            dragging = false;
+            setCursor(cursorAt(event.getX(), event.getY()));
+        });
+        setOnMouseMoved(event -> setCursor(cursorAt(event.getX(), event.getY())));
     }
 
     /** La dimension à montrer ; son animation repart du début. */
     public void show(Dimension dimension) {
         this.dimension = dimension;
         time = 0;
+        resetDive();
         touches.clear();
         pickups.clear();
         trailCount = 0;
@@ -80,9 +125,390 @@ public final class DimensionView extends Canvas {
 
     public void frame(double elapsed, boolean moving) {
         if (moving) time += Math.min(elapsed, 0.1);
+        motion = moving;
         if (dimension == Dimension.LINE) noteTouches(Math.min(elapsed, 0.1), moving);
         if (dimension == Dimension.PLANE) notePickups(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.VOLUME) runDive(Math.min(elapsed, 0.1));
         draw();
+    }
+
+    // ------------------------------------------------------------------
+    // Le volume (version 0.128) : la plongée, le regard, la cueillette
+    // ------------------------------------------------------------------
+
+    /** Où en est la vue du volume : pour les vérifications et la fenêtre. */
+    public Dive dive() {
+        return dive;
+    }
+
+    /** Le regard dedans : pour les vérifications. */
+    public double lookYaw() {
+        return lookYaw;
+    }
+
+    public double lookPitch() {
+        return lookPitch;
+    }
+
+    /** Les gains de boules cueillies qui montent encore : pour les vérifications. */
+    public int volumePickupsShown() {
+        return volumePickups.size();
+    }
+
+    /** Où se dessine ce point du cube à l'image en cours, ou {@code null} s'il est derrière l'œil : pour les vérifications. */
+    public double[] screenOf(double x, double y, double z) {
+        aimCamera();
+        return camera.project(x, y, z);
+    }
+
+    /** La vue revient dehors, sans animation : à l'ouverture de la fenêtre, et quand elle se ferme. */
+    public void resetDive() {
+        dive = Dive.OUTSIDE;
+        diveProgress = 0;
+        dragging = false;
+        born.clear();
+        misses.clear();
+        volumePickups.clear();
+    }
+
+    /** L'orientation du cube qui tourne, dehors, à cet instant : la même que depuis la version 0.081. */
+    private double outsideYaw() {
+        return time * 0.6;
+    }
+
+    private double outsidePitch() {
+        return time * 0.6 * 0.7;
+    }
+
+    /** Le rayon, à l'écran, de la zone où un clic sur le cube du dehors y fait plonger. */
+    private double cubeReach() {
+        return Math.min(getWidth(), getHeight()) * OUTSIDE_SIZE * 1.8;
+    }
+
+    private boolean overCube(double x, double y) {
+        return Math.hypot(x - getWidth() / 2, y - getHeight() / 2) <= cubeReach();
+    }
+
+    private javafx.scene.Cursor cursorAt(double x, double y) {
+        if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
+        if (dive == Dive.INSIDE) return dragging ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.CROSSHAIR;
+        return dive == Dive.OUTSIDE && overCube(x, y) ? javafx.scene.Cursor.HAND : javafx.scene.Cursor.DEFAULT;
+    }
+
+    /**
+     * Un bouton de la souris enfoncé sur le volume : dehors, un clic gauche sur le cube y fait plonger ; dedans, le
+     * gauche commence à faire tourner le regard et le droit cueille la boule visée. Vrai si le geste a servi.
+     */
+    public boolean press(double x, double y, boolean secondary) {
+        if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
+        if (dive == Dive.OUTSIDE) {
+            if (secondary || !overCube(x, y)) return false;
+            fromYaw = wrap(outsideYaw());
+            fromPitch = wrap(outsidePitch());
+            dive = Dive.ENTERING;
+            diveProgress = 0;
+            if (!motion) runDive(0);
+            return true;
+        }
+        if (dive != Dive.INSIDE) return false;
+        if (!secondary) {
+            dragging = true;
+            dragX = x;
+            dragY = y;
+            return true;
+        }
+        aimCamera();
+        double[] ray = camera.ray(x, y);
+        Game.VolumeBall hit = game.shootVolume(ray[0], ray[1], ray[2]);
+        Pickup mark = new Pickup();
+        if (hit != null) {
+            double[] at = camera.project(hit.x(), hit.y(), hit.z());
+            mark.x = at == null ? x : at[0];
+            mark.y = at == null ? y : at[1];
+            mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.volumeValue()));
+            if (volumePickups.size() < 30) volumePickups.add(mark);
+        } else {
+            mark.x = x;
+            mark.y = y;
+            if (misses.size() < 10) misses.add(mark);
+        }
+        return true;
+    }
+
+    /** La souris tenue se déplace : le regard suit. Vrai si elle tournait le regard. */
+    public boolean dragTo(double x, double y) {
+        if (!dragging || dive != Dive.INSIDE) return false;
+        camera.focal = insideFocal();
+        camera.yaw = lookYaw;
+        camera.pitch = lookPitch;
+        camera.drag(x - dragX, y - dragY);
+        lookYaw = camera.yaw;
+        lookPitch = camera.pitch;
+        dragX = x;
+        dragY = y;
+        return true;
+    }
+
+    private double insideFocal() {
+        return Math.min(getWidth(), getHeight()) * INSIDE_FOCAL;
+    }
+
+    private static double wrap(double angle) {
+        return VolumeCamera.closest(angle, 0);
+    }
+
+    /** Fait avancer la plongée ou la sortie, et suit le jeu : le cube qui rejette le joueur fait ressortir la vue. */
+    private void runDive(double elapsed) {
+        for (Pickup pickup : volumePickups) pickup.age += elapsed;
+        volumePickups.removeIf(pickup -> pickup.age > 0.9);
+        for (Pickup miss : misses) miss.age += elapsed;
+        misses.removeIf(miss -> miss.age > 0.4);
+        if (!game.isVolumeOpen() && dive != Dive.OUTSIDE) {
+            resetDive();
+            return;
+        }
+        switch (dive) {
+            case ENTERING -> {
+                diveProgress = motion ? Math.min(1, diveProgress + elapsed / DIVE_IN_SECONDS) : 1;
+                if (diveProgress >= 1) {
+                    // La plongée du jeu ne commence qu'une fois la vue arrivée au centre : l'animation ne mange pas le minuteur.
+                    if (game.enterVolume() || game.isInVolume()) {
+                        dive = Dive.INSIDE;
+                        lookYaw = fromYaw;
+                        lookPitch = 0;
+                        born.clear();
+                    } else {
+                        dive = Dive.OUTSIDE;
+                    }
+                    diveProgress = 0;
+                }
+            }
+            case INSIDE -> {
+                if (!game.isInVolume()) {
+                    fromYaw = lookYaw;
+                    fromPitch = lookPitch;
+                    dragging = false;
+                    dive = Dive.LEAVING;
+                    diveProgress = 0;
+                    if (!motion) runDive(0);
+                }
+            }
+            case LEAVING -> {
+                diveProgress = motion ? Math.min(1, diveProgress + elapsed / DIVE_OUT_SECONDS) : 1;
+                if (diveProgress >= 1) {
+                    dive = Dive.OUTSIDE;
+                    diveProgress = 0;
+                    born.clear();
+                }
+            }
+            case OUTSIDE -> { }
+        }
+        // Les boules nées depuis l'image d'avant : on note l'instant pour les faire grossir.
+        java.util.Set<Game.VolumeBall> present = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        present.addAll(game.volumeBalls());
+        born.keySet().retainAll(present);
+        for (Game.VolumeBall ball : game.volumeBalls()) born.putIfAbsent(ball, time);
+    }
+
+    /** Pose la caméra pour l'image : dehors, en train de plonger, dedans ou en train de ressortir. */
+    private void aimCamera() {
+        double w = getWidth(), h = getHeight(), u = Math.min(w, h);
+        double outsideFocal = OUTSIDE_DISTANCE * u * OUTSIDE_SIZE;
+        camera.centerX = w / 2;
+        camera.centerY = h / 2;
+        switch (dive) {
+            case OUTSIDE -> {
+                camera.yaw = outsideYaw();
+                camera.pitch = outsidePitch();
+                camera.distance = OUTSIDE_DISTANCE;
+                camera.focal = outsideFocal;
+            }
+            case INSIDE -> {
+                camera.yaw = lookYaw;
+                camera.pitch = lookPitch;
+                camera.distance = 0;
+                camera.focal = insideFocal();
+            }
+            case ENTERING -> {
+                double e = ease(diveProgress);
+                camera.yaw = fromYaw;
+                camera.pitch = fromPitch * (1 - e);
+                camera.distance = OUTSIDE_DISTANCE * (1 - e);
+                camera.focal = outsideFocal + (insideFocal() - outsideFocal) * e;
+            }
+            case LEAVING -> {
+                double e = ease(diveProgress);
+                // La vue ressort vers le cube qui tourne de nouveau : elle finit là où il en est.
+                double toYaw = VolumeCamera.closest(outsideYaw(), fromYaw), toPitch = VolumeCamera.closest(outsidePitch(), fromPitch);
+                camera.yaw = fromYaw + (toYaw - fromYaw) * e;
+                camera.pitch = fromPitch + (toPitch - fromPitch) * e;
+                camera.distance = OUTSIDE_DISTANCE * e;
+                camera.focal = insideFocal() + (outsideFocal - insideFocal()) * e;
+            }
+        }
+    }
+
+    private static double ease(double t) {
+        return t * t * (3 - 2 * t);
+    }
+
+    /** Ce que la plongée a d'avancé, de 0 (dehors) à 1 (au centre) : pour estomper le petit cube du dedans. */
+    private double depthIn() {
+        return switch (dive) {
+            case OUTSIDE -> 0;
+            case INSIDE -> 1;
+            case ENTERING -> ease(diveProgress);
+            case LEAVING -> 1 - ease(diveProgress);
+        };
+    }
+
+    // 3. Le volume : dehors, le cube qui tourne et un plus petit dedans, dans l'autre sens (version 0.081) ;
+    // depuis la version 0.128, on y plonge, et l'on cueille de son centre les boules qui y apparaissent.
+    private void volumeScene(GraphicsContext g, double w, double h, double cx, double cy, double u) {
+        if (dive == Dive.OUTSIDE) {
+            volume(g, cx, cy, u * OUTSIDE_SIZE, time * 0.6, 1);
+            if (game.isVolumeOpen()) {
+                g.setGlobalAlpha(0.55 + 0.25 * Math.sin(time * 2.5));
+                g.setFill(Color.WHITE);
+                g.setFont(Font.font(14));
+                g.setTextAlign(TextAlignment.CENTER);
+                g.fillText("Cliquez le cube pour y plonger", cx, cy + cubeReach() + 18);
+            }
+            return;
+        }
+        aimCamera();
+        Color c = color();
+        double inside = depthIn();
+        // Les faces vues du dedans : une grille légère, pour sentir où l'on regarde.
+        g.setLineWidth(1);
+        g.setStroke(c);
+        g.setGlobalAlpha(0.12 * inside);
+        for (int axis = 0; axis < 3; axis++) {
+            for (int side = -1; side <= 1; side += 2) {
+                for (double t = -0.5; t <= 0.51; t += 0.5) {
+                    segment(g, face(axis, side, t, -1), face(axis, side, t, 1));
+                    segment(g, face(axis, side, -1, t), face(axis, side, 1, t));
+                }
+            }
+        }
+        // Les douze arêtes du cube.
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.8);
+        for (int k = 0; k < 8; k++) {
+            for (int bit : new int[] {1, 2, 4}) {
+                int j = k ^ bit;
+                if (j > k) segment(g, corner(k), corner(j));
+            }
+        }
+        // Le petit cube blanc du dehors s'estompe à mesure qu'on entre.
+        if (inside < 1) innerCube(g, (1 - inside) * (1 - inside));
+        // Les boules, de la plus lointaine à la plus proche.
+        List<double[]> shown = new ArrayList<>();
+        for (Game.VolumeBall ball : game.volumeBalls()) {
+            double[] at = camera.project(ball.x(), ball.y(), ball.z());
+            if (at == null) continue;
+            double grow = Math.min(1, (time - born.getOrDefault(ball, time)) / 0.35);
+            if (!motion) grow = 1;
+            shown.add(new double[] {at[0], at[1], at[2], camera.focal * game.volumeBallRadius() / at[2] * (0.2 + 0.8 * grow)});
+        }
+        shown.sort((a, b) -> Double.compare(b[2], a[2]));
+        for (double[] ball : shown) {
+            double r = Math.max(2, ball[3]);
+            UniverseView.glow(g, ball[0], ball[1], r * 2.4, c, 0.55);
+            g.setGlobalAlpha(1);
+            g.setFill(new javafx.scene.paint.RadialGradient(0, 0, ball[0] - r * 0.35, ball[1] - r * 0.35, r * 1.3, false,
+                    javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.WHITE), new javafx.scene.paint.Stop(1, c)));
+            g.fillOval(ball[0] - r, ball[1] - r, 2 * r, 2 * r);
+        }
+        // Ce qui vient d'être cueilli : un éclat et le gain qui monte ; un clic dans le vide, un petit cercle.
+        g.setFont(Font.font(15));
+        g.setTextAlign(TextAlignment.CENTER);
+        for (Pickup pickup : volumePickups) {
+            double t = pickup.age / 0.9;
+            UniverseView.glow(g, pickup.x, pickup.y, 12 + 34 * t, c, 0.8 * (1 - t));
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.fillText(pickup.text, pickup.x, pickup.y - 18 - 30 * t);
+        }
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(1.2);
+        for (Pickup miss : misses) {
+            double t = miss.age / 0.4, r = 6 + 10 * t;
+            g.setGlobalAlpha(0.6 * (1 - t));
+            g.strokeOval(miss.x - r, miss.y - r, 2 * r, 2 * r);
+        }
+        if (dive == Dive.INSIDE) timer(g, w, c);
+    }
+
+    /** Le minuteur de la plongée, en haut : une barre qui se vide, rouge dans les trois dernières secondes. */
+    private void timer(GraphicsContext g, double w, Color c) {
+        double left = game.volumeTimeLeft(), share = Math.max(0, Math.min(1, left / game.volumeDiveSeconds()));
+        double width = w * 0.4, x = (w - width) / 2, y = 14;
+        Color fill = left <= 3 ? Color.web("#ff7a7a") : c;
+        // Un fond sombre derrière la barre et le temps : lisibles même devant une boule.
+        g.setGlobalAlpha(0.65);
+        g.setFill(BACK);
+        g.fillRoundRect(x - 12, y - 8, width + 24, 42, 12, 12);
+        g.setGlobalAlpha(0.35);
+        g.setFill(Color.web("#1a1f33"));
+        g.fillRoundRect(x, y, width, 8, 8, 8);
+        g.setGlobalAlpha(left <= 3 ? 0.7 + 0.3 * Math.sin(time * 12) : 0.9);
+        g.setFill(fill);
+        g.fillRoundRect(x, y, width * share, 8, 8, 8);
+        g.setGlobalAlpha(1);
+        g.setFill(Color.WHITE);
+        g.setFont(Font.font(13));
+        g.setTextAlign(TextAlignment.CENTER);
+        g.fillText(String.format(java.util.Locale.ROOT, "%.1f s", Math.max(0, left)), w / 2, y + 26);
+    }
+
+    /** Un coin du cube, de 0 à 7 : un bit par axe. */
+    private static double[] corner(int k) {
+        return new double[] {(k & 1) == 0 ? -1 : 1, (k & 2) == 0 ? -1 : 1, (k & 4) == 0 ? -1 : 1};
+    }
+
+    /** Un point d'une face du cube : la face {@code side} de l'axe {@code axis}, aux coordonnées (p, q) des deux autres. */
+    private static double[] face(int axis, int side, double p, double q) {
+        return switch (axis) {
+            case 0 -> new double[] {side, p, q};
+            case 1 -> new double[] {p, side, q};
+            default -> new double[] {p, q, side};
+        };
+    }
+
+    /** Un trait entre deux points du cube, coupé là où il passe derrière l'œil. */
+    private void segment(GraphicsContext g, double[] a, double[] b) {
+        double[][] cut = camera.clip(camera.toView(a[0], a[1], a[2]), camera.toView(b[0], b[1], b[2]));
+        if (cut == null) return;
+        double[] p = camera.screen(cut[0]), q = camera.screen(cut[1]);
+        if (p != null && q != null) g.strokeLine(p[0], p[1], q[0], q[1]);
+    }
+
+    /** Le petit cube blanc qui tourne dans l'autre sens, posé devant l'œil comme dehors, de plus en plus effacé. */
+    private void innerCube(GraphicsContext g, double alpha) {
+        double a = -time * 0.6 * 1.3, b = time * 0.6 * 0.5, scale = 0.45;
+        double ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+        double[][] view = new double[8][];
+        for (int k = 0; k < 8; k++) {
+            double[] p = corner(k);
+            double x = p[0] * scale, y = p[1] * scale, z = p[2] * scale;
+            double x1 = x * ca - z * sa, z1 = x * sa + z * ca;
+            double y1 = y * cb - z1 * sb, z2 = y * sb + z1 * cb;
+            view[k] = new double[] {x1, y1, z2 + camera.distance};
+        }
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.8 * 0.8 * alpha);
+        for (int k = 0; k < 8; k++) {
+            for (int bit : new int[] {1, 2, 4}) {
+                int j = k ^ bit;
+                if (j <= k) continue;
+                double[][] cut = camera.clip(view[k], view[j]);
+                if (cut == null) continue;
+                double[] p = camera.screen(cut[0]), q = camera.screen(cut[1]);
+                if (p != null && q != null) g.strokeLine(p[0], p[1], q[0], q[1]);
+            }
+        }
     }
 
     /** Les éclats ramassés depuis l'image d'avant : un éclat là où est le point. */
@@ -155,7 +581,7 @@ public final class DimensionView extends Canvas {
         switch (dimension) {
             case LINE -> line(g, w, cx, cy, u);
             case PLANE -> plane(g, w, h, cx, cy, u);
-            case VOLUME -> volume(g, cx, cy, u * 0.22, time * 0.6, 1);
+            case VOLUME -> volumeScene(g, w, h, cx, cy, u);
             case DURATION -> duration(g, w, cx, cy, u);
             case BRANCHES -> branches(g, w * 0.1, cy, w * 0.8, u * 0.32, 6, 1);
             case POSSIBLES -> possibles(g, w, cx, cy, u);
