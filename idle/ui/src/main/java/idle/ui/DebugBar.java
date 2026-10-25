@@ -330,6 +330,17 @@ final class DebugBar extends VBox {
                     // La valeur n'a pas de plafond : dix niveaux suffisent à l'essai.
                     for (Game.VolumeUpgrade upgrade : Game.VolumeUpgrade.values())
                         game.state().setVolumeLevel(upgrade.ordinal(), upgrade == Game.VolumeUpgrade.VALUE ? 10 : upgrade.max());
+                }),
+                // La durée (version 0.134), quatrième dimension.
+                tool("+100 éclats de la durée", () -> {
+                    game.state().setDurationShards(game.state().durationShards() + 100);
+                    game.state().setDurationShardsEarned(game.state().durationShardsEarned() + 100);
+                }),
+                tool("Seuil de la durée", () -> game.state().setDurationShardsEarned(Math.max(game.state().durationShardsEarned(), Game.DURATION_THRESHOLD))),
+                tool("Durée au maximum", () -> {
+                    // La valeur n'a pas de plafond : dix niveaux suffisent à l'essai.
+                    for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values())
+                        game.state().setDurationLevel(upgrade.ordinal(), upgrade == Game.DurationUpgrade.VALUE ? 10 : upgrade.max());
                 }));
         tabGroup("VOID", "Le vide",
                 tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
@@ -596,6 +607,7 @@ final class DebugBar extends VBox {
         if (stage >= 1) game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD));
         if (stage >= 2) game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD));
         if (stage >= 3) game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD));
+        if (stage >= 4) game.state().setDurationShardsEarned(Math.max(game.state().durationShardsEarned(), Game.DURATION_THRESHOLD));
         game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
         if (game.seedStage() == stage) note("La graine attend le seuil de la dimension " + stage + ", qui n'existe pas encore.");
     }

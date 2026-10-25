@@ -234,7 +234,7 @@ class VolumeTest {
         assertTrue(game.isVolumeThresholdReached());
         assertTrue(game.isDimensionThresholdReached(3));
         assertEquals(4, game.seedStage(), "le seuil atteint, la graine passe au palier 4");
-        assertFalse(game.isDimensionThresholdReached(4), "la dimension 4 n'existe pas encore");
+        assertFalse(game.isDimensionThresholdReached(4), "la durée n'a pas son seuil");
     }
 
     @Test

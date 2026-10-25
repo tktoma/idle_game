@@ -14,7 +14,7 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 |---|---|
 | `moteur/` : une copie du moteur, à recopier à chaque version du jeu | supprimé : les bots se compilent contre `idle/core`, le moteur du jeu lui-même |
 | `bin/` : des fichiers `.class` déjà compilés | supprimé : `run.py` ou Gradle recompilent |
-| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 21 aujourd'hui) |
+| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 22 aujourd'hui) |
 | `bots/historique/` | gardé à la fusion, puis retiré du dépôt le 20 octobre 2026 |
 | `docs/DOCUMENTATION_JEU_107_PAGES.pdf` | supprimé (le PDF qui était à la racine du dépôt a été retiré le 21 octobre 2026) |
 | `INVENTAIRE_SHA256.csv` | supprimé : les chemins ont changé, et git garde déjà l'empreinte de chaque fichier |
@@ -27,7 +27,7 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 - **Les bots suivent le jeu.** `run.py` recompile le moteur depuis `idle/core/src/main/java` dès qu'une source a changé. Une modification du jeu est donc prise en compte au lancement suivant.
 - **Des tests à chaque envoi.** Les tests de `src/test/java` tournent avec ceux du projet (`./gradlew toutTester`, et l'action GitHub). `BotsTest` vérifie notamment que :
   - les bots compilent contre le moteur actuel ;
-  - les 34 sauvegardes se relisent ;
+  - les 35 sauvegardes se relisent ;
   - les 24 sauvegardes de victoire sont toujours des victoires, et qu'une victoire écrite par le moteur actuel (univers formé, partie remise à zéro) en est une aussi ;
   - le bot V2, un des 24 profils (le 19) et le profil 1 parti de zéro tournent quelques minutes sans planter.
 
@@ -63,9 +63,9 @@ Avec Gradle, depuis `idle/` :
 
 | Dossier | Contenu |
 |---|---|
-| `src/main/java/` | Les 21 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `DarkMatterReservePolicy`, `ProfileProgressGuard` (le garde-fou des blocages), `CorrectedCoach` et `RobotPhase3`. Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory`, `Empreinte`, `OfflineBenchmark`, `AutoMatterBench` et `MakeAutoMatterCheckpoint` (pour `outils/ab_matiere.py`). Les audits ponctuels, lancés à la main avec `./gradlew :bots:bot -Pclasse=…` : `DependencyAudit`, `EconomyAudit`, `DiagnoseState`, `RescueBench` et `RecreateLosers`. |
-| `src/test/java/` | Les 8 classes de test : `BotsTest` (cohérence avec le jeu), `NextUniverseTest` (l'univers 2, version 0.130), `BotsExtendedValidationTest`, `DarkMatterReservePolicyTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
-| `sauvegardes/` | `reference/` : 8 points de départ, dont la partie à 7 Big Bangs, une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201) et le premier univers formé par le même Speedrunner (`checkpoint_universe1_speedrunner.save`, version 0.130), départ de l'univers 2. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
+| `src/main/java/` | Les 22 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `VoidPolicy` (le vide du troisième univers, version 0.133), `DarkMatterReservePolicy`, `ProfileProgressGuard` (le garde-fou des blocages), `CorrectedCoach` et `RobotPhase3`. Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory`, `Empreinte`, `OfflineBenchmark`, `AutoMatterBench` et `MakeAutoMatterCheckpoint` (pour `outils/ab_matiere.py`). Les audits ponctuels, lancés à la main avec `./gradlew :bots:bot -Pclasse=…` : `DependencyAudit`, `EconomyAudit`, `DiagnoseState`, `RescueBench` et `RecreateLosers`. |
+| `src/test/java/` | Les 9 classes de test : `BotsTest` (cohérence avec le jeu), `NextUniverseTest` (l'univers 2, version 0.130), `VoidPolicyTest` (le vide, version 0.133), `BotsExtendedValidationTest`, `DarkMatterReservePolicyTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
+| `sauvegardes/` | `reference/` : 9 points de départ, dont la partie à 7 Big Bangs, une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201), le premier univers formé par le même Speedrunner (`checkpoint_universe1_speedrunner.save`, version 0.130), départ de l'univers 2, et le deuxième (`checkpoint_universe2_speedrunner.save`, version 0.133), départ de l'univers 3. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
 | `outils/` | `comparer_sauvegardes.py` (utilisé par `run.py comparer`), `ab_matiere.py` (création automatique de la matière, avec et sans) et `benchmark_actualise.py`. |
 
 ## Les correctifs des bots (19 octobre 2026)
@@ -263,6 +263,141 @@ Effet sur le premier univers (Speedrunner, partie neuve, graine 201) : **27 h 01
 Le distrait reste lent pour lui-même, pas à cause de ses choix : sans les nouveautés du deuxième univers ni les
 anomalies, il en est au même point (premier Big Bang à 71 h, 7 Big Bangs à 150 h). Il n'est en ligne qu'un tiers du
 temps, décide toutes les trois minutes et laisse passer près d'une occasion sur deux.
+
+## L'univers 3 et le vide (version 0.133)
+
+Les bots jouent aussi l'univers 3, de la même manière : `--univers 3` (ou le 7e argument de `FreshUniverseAudit`,
+ou l'entrée « univers » de l'action GitHub) enchaîne les trois univers, et `checkpoint_universe2_speedrunner.save`
+(le deuxième univers formé par le Speedrunner, graine 201) part directement de l'univers 3. Ce que le troisième univers
+ajoute, le vide, est dans `VoidPolicy`, que tous les bots appellent à chaque décision ; rien ne s'y passe tant que le
+vide ne se propose pas, et les univers 1 et 2 restent exactement ceux d'avant (Speedrunner : 27 h 01 puis 48 h 13 en
+tout, mêmes 8 679 décisions).
+
+- **Ouvrir le vide** dès qu'il est payable (selon le profil) ; tant qu'il se propose, le collisionneur garde son
+  énergie pour lui : ses achats et ses automates attendent, deux heures de jeu au plus.
+- **La part** laissée au vide : 50 % pour les joueurs qui le règlent, 25 % (le réglage du jeu) pour les autres,
+  75 % pour l'Explorateur. Mesuré sur le Speedrunner : 50 % est le meilleur (14 h 22, contre 14 h 55 à 25 % et
+  14 h 41 à 75 %).
+- **Les achats** : au mieux (d'abord maturation, rassemblement et allègement, le moins cher des trois ; une croissance
+  quand elle est bon marché à côté ou que le prochain raccourci est hors de portée de l'équilibre), le moins cher, ou
+  au hasard.
+- **Le trou noir** : une fois les huit Big Bangs faits, le joueur qui le nourrit lui donne ses particules ; comme la
+  fusion les vide sans cesse, il coupe la fusion automatique jusqu'à la décision suivante, puis la relance.
+- La façon de jouer de chaque profil est dans `PROFILS_24.md` ; `-Didle.traceVide=true` écrit chaque geste du vide ; `-Didle.sansVide=true` laisse le vide fermé,
+  `-Didle.partVide=0.25` impose une part à tous.
+
+Ce que les bots ne jouent toujours pas : dimensions (dont le volume), graine et onglet Univers. L'univers suivant se
+lance donc sans les paliers 2 et 3 de la graine qu'un joueur doit atteindre.
+
+Mesures, départ `checkpoint_universe2_speedrunner.save`, une décision toutes les 20 s, univers 3 compté depuis son
+lancement :
+
+| Bot | Premier Big Bang | 8e Big Bang | Galaxie | Univers 3 formé | Vide |
+|---|---|---|---|---|---|
+| 1 Speedrunner (part 50 %) | 4 h 01 | 10 h 47 | 12 h 37 | **14 h 22** | 48 achats, 2 sacrifices |
+| 1 Speedrunner, sans le vide | 4 h 01 | 10 h 53 | 14 h 38 | 18 h 39 | — |
+| 3 Regular (part 25 %) | 5 h 07 | 14 h 49 | 17 h 08 | **20 h 49** | 38 achats, 1 sacrifice |
+| Bot V2 `DEPENDANCES` | | 15 h 46 | 20 h 40 | 22 h 21 | |
+| 12 Hoarder (jamais de sacrifice) | 16 h 46 | | | 66 h 16 | |
+| 16 Beginner | 16 h 15 | 59 h 21 | 64 h 24 | 69 h 36 | 47 achats, 1 sacrifice |
+
+Le vide fait gagner 4 h 17 au Speedrunner sur son troisième univers (14 h 22 au lieu de 18 h 39) : la galaxie vient 2 h
+plus tôt (maturation plus courte), l'amas et l'univers 1 h chacun plus tôt (rassemblements plus courts). Pour le
+Speedrunner, les trois univers prennent 27 h 01, 21 h 12 et 14 h 22.
+
+## Chaque profil à sa façon dès le premier univers, et l'audit des trois univers (version 0.135)
+
+**Les choix des trois actes.** Dès le premier univers, chaque profil fait ses propres choix
+(`IdleProfiles24.EARLY_STYLES`, table dans `PROFILS_24.md`) : l'ordre d'achat des atomes (celui du modèle, ou le
+moins cher), l'arbre de matière noire (au mieux, ou la case la moins chère), les défis de Big Bang (tentés ou non)
+et la durée des voyages des sondes (jusqu'à son retour, ou les sauts courts). Le Speedrunner joue en expert, comme
+avant : son premier univers reste **27 h 01**. Le joueur « le moins cher » achète d'abord les automatismes, et garde
+ses atomes pour eux tant qu'il ne peut pas les payer. Sans cela, le distrait n'avait aucun Big Bang en 168 h. Il garde
+aussi la matière noire du Big Bang, sans dépasser 5 % de sa matière noire par niveau répétable.
+
+**Les défis de Big Bang à partir du deuxième univers.** Avant, un bot ne commençait pas de défi de Big Bang sur une
+partie prête à Big Bang. Or dans les univers suivants, le ciel se réunit en même temps que le reste : le Speedrunner
+n'en faisait aucun, ou un seul. Pourtant, chaque défi réussi y rend la maturation quatre fois plus rapide et double
+les particules et les molécules. Les bots les jouent maintenant aussi quand le Big Bang est prêt, en commençant par
+les deux qui ne remettent rien à zéro : le ciel figé, gratuit à ce moment-là, puis la barre haute (maturation ×2).
+`-Didle.defisBB=avant` remet la règle d'avant, `gele` met seulement le ciel figé en tête.
+
+Mesuré sur cinq parties (Speedrunner et Régulier), l'univers 2 passe de 20 h 33–21 h 15 à 14 h 57–19 h 23. L'univers
+3 passe de 12 h 08–20 h 18 à 10 h 40–12 h 31. Après le huitième Big Bang, les sept derniers astres mûrissaient en
+quatre heures ; ils mûrissent maintenant en dix minutes.
+
+**Hors défaut, à décider.** La même règle dans le premier univers (`-Didle.defisBBPremier=true`) fait passer le
+Speedrunner de 27 h 01 à 24 h 44, et le Régulier de 34 h 26 à 31 h 59. Ce n'est pas le défaut, parce que le premier
+univers du Speedrunner sert de référence à l'équilibrage.
+
+**Réglages mesurés** (plusieurs graines, `reglages` dans l'historique de la 0.135) :
+
+- **Cycle de l'expert : la réserve**, au lieu de la fusion. Elle gagne les quatre paires de parties, avant comme après
+  les défis de Big Bang. Le Vétéran, le Régulier et les joueurs à sessions appliqués la prennent aussi.
+- **Croissance du vide** (`VoidPolicy.GROWTH_SHARE`) : 0,5 au lieu de 0,25. Sur quatre parties de l'univers 3 :
+  49,9 h en tout avec 0,25, 47,2 h avec 0,5, 47,4 h avec 1.
+- **Trou noir** : un sacrifice fait gagner 8 à 20 minutes. Avec une borne à 15 ou sans borne, les parties sont les
+  mêmes qu'à 10.
+
+**Corrections trouvées par l'audit et par une relecture indépendante :**
+
+- Le collectionneur et le cliqueur au hasard remplissaient l'espace de molécules hors liste, et bloquaient au premier
+  astre.
+- Avant le huitième Big Bang, le bot visait la naine blanche même quand sa géante rouge manquait. La liste restait
+  alors sur une nébuleuse verrouillée : le débutant et le vétéran revenant restaient bloqués à 25 astres. Le bot vise
+  maintenant d'abord les astres plus petits qui manquent.
+- Le garde-fou ne compte plus la matière rassemblée seule comme un progrès.
+- Le choix du voyage des sondes prend la durée réelle du voyage, moteurs compris.
+- Le joueur sans ordre d'ouverture n'achète plus Persistance à part. Le succès « compte juste » se prend dans les
+  deux styles.
+
+**L'audit des 24 profils sur les trois univers** : parties neuves, graine 200 + id, une décision toutes les 20 s, au
+plus 168 h réelles par univers. Chaque univers part de la fin du précédent quand le profil l'a gagné ; sinon, il part
+de la sauvegarde de référence (¹). La colonne de gauche de chaque univers est la 0.133.
+
+| Profil | Univers 1 (0.133 → 0.135) | Univers 2 (0.133 → 0.135) | Univers 3 (0.133 → 0.135) |
+|---|---|---|---|
+| 1 Speedrunner | 27 h 01 | 21 h 05 → **15 h 29** | 11 h 17 → **10 h 37** |
+| 2 Veteran | 31 h 02 | 21 h 11 → **15 h 44** | 11 h 55 → **11 h 01** |
+| 3 Regular | 34 h 26 | 25 h 10 → **17 h 56** | 13 h 51 → **12 h 34** |
+| 4 Methodical | 39 h 46 | 32 h 46 → **25 h 06** | 24 h 56 → **17 h 58** |
+| 5 AchievementHunter | 34 h 02 | 23 h 26 → **18 h 48** | 19 h 42 → **12 h 28** |
+| 6 Collector | pas en 168 h (168 h en ligne) → **81 h 22** | pas en 168 h (168 h en ligne) → **20 h 38** | pas en 168 h (168 h en ligne) → **16 h 36** |
+| 7 Chemist | 33 h 02 | 22 h 59 → **17 h 34** | 15 h 49 → **11 h 03** |
+| 8 Astronomer | 34 h 29 | 23 h 15 → **18 h 18** | 16 h 10 → **12 h 38** |
+| 9 Explorer | 33 h 34 | 22 h 44 → **17 h 14** | 16 h 07 → **10 h 58** |
+| 10 PassiveOptimist | 51 h 24 → **53 h 22** | 32 h 08 → **39 h 16** | 27 h 16 → **36 h 02** |
+| 11 PrestigeAddict | 33 h 52 | 22 h 46 → **17 h 12** | 15 h 24 → **10 h 36** |
+| 12 Hoarder | 79 h 26 | 59 h 56 → **62 h 08** | 56 h 16 → **50 h 28** |
+| 13 BulkBuyer | 66 h 35 → **75 h 25** | 53 h 10 → **49 h 35** | 41 h 25 → **37 h 10** |
+| 14 OneClick | 45 h 32 → **48 h 15** | 29 h 01 → **45 h 46** | 26 h 00 → **29 h 12** |
+| 15 RandomClicker | pas en 168 h (168 h en ligne) → **97 h 12** | pas en 168 h (168 h en ligne) → **112 h 00** | pas en 168 h (168 h en ligne) → **98 h 38** |
+| 16 Beginner | 101 h 57 → **121 h 06** | 87 h 03 → **89 h 48** | 68 h 36 → **82 h 21** |
+| 17 AFKOpen | pas en 168 h (168 h en ligne) | pas en 168 h (168 h en ligne) | pas en 168 h (168 h en ligne) |
+| 18 BackgroundWorker | 122 h 10 | 74 h 00 → **73 h 50** | 68 h 20 → **64 h 30** |
+| 19 MobileSnacker | pas en 168 h (14 h en ligne) | 112 h 01 (9.4 h en ligne) ¹ → **91 h 01 (7.6 h en ligne) ¹** | 91 h 00 (7.6 h en ligne) → **73 h 00 (6.1 h en ligne)** |
+| 20 LunchBreak | 148 h 00 (18.5 h en ligne) | 84 h 00 (10.5 h en ligne) → **72 h 00 (9.0 h en ligne)** | 64 h 00 (8.0 h en ligne) → **56 h 24 (7.4 h en ligne)** |
+| 21 EveningPlayer | pas en 168 h (14 h en ligne) | pas en 168 h (14 h en ligne) → **144 h 00 (12.0 h en ligne) ¹** | 120 h 24 (10.4 h en ligne) ¹ → **96 h 24 (8.4 h en ligne)** |
+| 22 WeekendPlayer | pas en 168 h (16 h en ligne) | pas en 168 h (16 h en ligne) → **144 h 00 (12.0 h en ligne) ¹** | 144 h 00 (12.0 h en ligne) ¹ → **97 h 41 (9.7 h en ligne)** |
+| 23 Forgetful | pas en 168 h (56 h en ligne) | pas en 168 h (56 h en ligne) | pas en 168 h (56 h en ligne) |
+| 24 ReturningVeteran | pas en 168 h (14 h en ligne) | pas en 168 h (14 h en ligne) → **108 h 00 (9.0 h en ligne) ¹** | 99 h 00 (8.3 h en ligne) ¹ → **78 h 00 (6.5 h en ligne)** |
+
+Ce que montre l'audit :
+
+- **Les joueurs appliqués** gagnent 4 h 30 à 7 h 40 dans l'univers 2, et jusqu'à 7 h dans l'univers 3. Le
+  Speedrunner fait ses trois univers en 53 h 07 au lieu de 59 h 23.
+- **Les joueurs « le moins cher »** (optimiste passif, acheteur en lots, cliqueur occasionnel, débutant) sont le plus
+  souvent plus lents qu'avant, jusqu'à 19 h, et parfois plus rapides (l'acheteur en lots dans les univers 2 et 3).
+  C'est leur façon de jouer, plus la variance de leurs choix au hasard : une seule graine par profil ne mesure pas un
+  écart de quelques heures. Trois d'entre eux ne font pas de défis de Big Bang, donc ne gagnent rien de la nouvelle
+  règle.
+- **Toujours au plafond** : l'AFK (une visite par heure) n'avance presque pas. L'ouverture demande une trentaine de
+  fusions à la main avant les automatismes, et il en fait une par visite ; chaque explosion efface ensuite ses
+  automatismes. Le distrait (20 minutes par heure, une occasion sur deux manquée) reste au premier univers, avec un
+  Big Bang en 168 h ; il en faisait trois en 0.133, quand il suivait l'ordre d'achat du modèle (il l'oublie
+  maintenant). Partis d'une sauvegarde, il atteint 4 Big Bangs dans l'univers 2 et 7 dans l'univers 3. C'est un constat d'équilibrage : le jeu ne laisse presque rien à ces rythmes-là.
+- Les joueurs intermittents (mobile, soir, week-end, vétéran revenant) jouent 14 à 16 h en 168 h. Ils restent au
+  plafond du premier univers, mais finissent les univers 2 et 3 quand ils partent d'une sauvegarde.
 
 ## Les bots partis de zéro : succès et défis (0.86)
 

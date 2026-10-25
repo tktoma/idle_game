@@ -155,18 +155,6 @@ class NextUniverseTest {
         return game;
     }
 
-    /** Le troisième univers, au premier Big Bang : le vide se propose. */
-    private static Game thirdUniverse() {
-        Game game = fresh();
-        game.testFormUniverse();
-        assertTrue(game.startNextUniverse());
-        game.testFormUniverse();
-        assertTrue(game.startNextUniverse());
-        game.start();
-        game.state().setBigBangs(1);
-        return game;
-    }
-
     @Test
     void chaqueProfilASaFaconDeJouerLUniversDeux() {
         assertEquals(IdleProfiles24.PROFILES.length, IdleProfiles24.STYLES.length, "une façon de jouer par profil");
@@ -195,12 +183,12 @@ class NextUniverseTest {
         Game chemist = everythingOffered();
         new NextUniversePolicy(IdleProfiles24.STYLES[6], new Random(1)).play(chemist);
         assertEquals(CycleChoice.SYNTHESIS, chemist.cycleChoice());
-        // L'expert relance le régime, prend l'élément le plus utile (ici le plus lourd) et choisit la fusion.
+        // L'expert relance le régime, prend l'élément le plus utile (ici le plus lourd) et met en réserve (0.135).
         Game expert = everythingOffered();
         NextUniversePolicy best = new NextUniversePolicy(IdleProfiles24.STYLES[0], new Random(1));
         best.play(expert);
         assertEquals(1, best.regimes);
-        assertEquals(CycleChoice.FUSION, expert.cycleChoice());
+        assertEquals(CycleChoice.RESERVE, expert.cycleChoice());
         assertTrue(expert.elementCount(118) > 0);
         // Le cliqueur au hasard choisit quand même un cycle, au hasard.
         Game random = everythingOffered();
@@ -281,37 +269,15 @@ class NextUniverseTest {
     }
 
     @Test
-    void leBotOuvreLeVideEtAcheteDAbordCeQuiRaccourcitLeTroisiemeActe() {
-        Game game = thirdUniverse();
-        assertTrue(game.isVoidOffered(), "premier Big Bang du troisième univers : le vide se propose");
-        NextUniversePolicy policy = new NextUniversePolicy(CycleChoice.FUSION);
-        game.state().setColliderEnergy(0);
-        policy.playVoid(game);
-        assertFalse(game.isVoidUnlocked(), "sans de quoi payer, le vide reste fermé");
-        game.state().setColliderEnergy(game.voidPrice() * 2);
-        assertTrue(policy.playVoid(game) >= 1);
-        assertTrue(game.isVoidUnlocked());
-        assertEquals(NextUniversePolicy.VOID_SHARE, game.state().voidShare(), 1e-12);
-        assertEquals(1, policy.voidOpened);
-        // De quoi tout payer des trois améliorations du troisième acte, et un peu plus.
-        game.state().setVoidEnergy(idle.core.math.BigNum.of(1e6));
-        policy.playVoid(game);
-        for (Game.VoidUpgrade first : NextUniversePolicy.VOID_FIRST) {
-            assertEquals(first.max(), game.voidLevel(first), first.name() + " : au plus haut d'abord");
-        }
-        assertTrue(policy.voidUpgrades > 25);
-    }
-
-    @Test
-    void sansVideLeBotNeTouchePasAuVide() {
-        Game game = thirdUniverse();
-        game.state().setColliderEnergy(game.voidPrice() * 2);
-        System.setProperty("idle.sansVide", "true");
-        try {
-            assertEquals(0, new NextUniversePolicy(CycleChoice.FUSION).playVoid(game));
-            assertFalse(game.isVoidUnlocked());
-        } finally {
-            System.clearProperty("idle.sansVide");
-        }
+    void lesDefisDeBigBangCommencentParCeuxQuiNeRemettentRienAZero() throws Exception {
+        // Version 0.135 : le premier univers garde l'ordre du catalogue ; ensuite, le ciel figé et la barre haute d'abord.
+        RobotCosmosPlanner first = new RobotCosmosPlanner(fresh(), 20);
+        assertEquals(java.util.List.of(idle.core.bigbang.BangChallenge.values()), first.bangChallengeOrder(false));
+        RobotCosmosPlanner later = new RobotCosmosPlanner(load(UNIVERSE_ONE), 20);
+        assertTrue(later.g.isSecondUniverse());
+        var order = later.bangChallengeOrder(true);
+        assertEquals(idle.core.bigbang.BangChallenge.FROZEN, order.get(0), "gratuit quand le Big Bang est prêt");
+        assertEquals(idle.core.bigbang.BangChallenge.RAISED, order.get(1), "ne remet rien à zéro non plus");
+        assertEquals(idle.core.bigbang.BangChallenge.values().length, order.size(), "tous, une fois chacun");
     }
 }

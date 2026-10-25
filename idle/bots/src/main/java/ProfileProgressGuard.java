@@ -71,9 +71,11 @@ final class ProfileProgressGuard {
                 ||s.online()+.001<previous.online()||s.offline()+.001<previous.offline()
                 ||s.decisions()<previous.decisions())
             return save(s,Verdict.INVALID,"horloge ou decisions en regression");
+        // Version 0.135 : la matière rassemblée ne compte plus seule comme un jalon. Le collectionneur rassemblait des
+        // molécules hors de la liste pendant 150 h, bloqué au premier astre, et le garde-fou y voyait un progrès ; la
+        // matière que la liste demande, elle, fait baisser les manques.
         boolean objective=s.won()||s.bangs()>previous.bangs()
                 ||s.mature()>previous.mature()||s.cosmos()>previous.cosmos()
-                ||s.gathered()>previous.gathered()
                 ||(Objects.equals(s.target(),previous.target())&&s.deficits()<previous.deficits())
                 ||!Objects.equals(s.target(),previous.target());
         boolean production=s.molecules()>previous.molecules()||s.creations()>previous.creations()

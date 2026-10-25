@@ -311,12 +311,13 @@ public abstract class GameUniverse extends GameAtoms {
         return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
     }
 
-    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
             case 2 -> isPlaneThresholdReached();
             case 3 -> isVolumeThresholdReached();
+            case 4 -> isDurationThresholdReached();
             default -> false;
         };
     }
@@ -832,6 +833,182 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
+    // La durée, quatrième dimension (version 0.134)
+    // ------------------------------------------------------------------
+
+    /**
+     * Un rond, un bouton au milieu : tant qu'on le tient, les spirales avancent du bord vers le centre, de
+     * {@link #durationTurnsPerSecond()} tours par seconde, et l'atteignent au bout de {@link #durationMaxSeconds()}
+     * secondes ; tenir plus longtemps n'apporte plus rien, sans rien faire perdre. Au relâchement, chaque spirale donne
+     * ses éclats de la durée : chaque tour vaut un de plus que le précédent (1, 2, 3… fois la valeur), donc tenir
+     * longtemps rapporte bien plus que plusieurs appuis courts.
+     */
+    public static final double DURATION_MAX_SECONDS = 6, DURATION_TIME_STEP = 2;
+    /** Tours par seconde au départ, et ce que chaque niveau de vitesse leur ajoute (+20 %). */
+    public static final double DURATION_TURNS = 0.5, DURATION_SPEED_STEP = 0.2;
+    /** Éclats de la durée à gagner pour son seuil, comme les cent des trois premières : il ouvre le palier 5 de la graine. */
+    public static final double DURATION_THRESHOLD = 100;
+
+    /**
+     * Les améliorations de la durée : leur prix de départ en éclats de la durée, la croissance, le plafond. Dans
+     * l'ordre de la sauvegarde : vitesse des spirales, nombre de spirales, valeur, temps au plus.
+     */
+    public enum DurationUpgrade {
+        SPEED(3, 2.4, 15), COUNT(6, 3, 9), VALUE(5, 3, Integer.MAX_VALUE), TIME(4, 2.2, 20);
+
+        private final double cost, growth;
+        private final int max;
+
+        DurationUpgrade(double cost, double growth, int max) {
+            this.cost = cost;
+            this.growth = growth;
+            this.max = max;
+        }
+
+        public int max() {
+            return max;
+        }
+    }
+
+    /** Le bouton tenu, et depuis combien de secondes ; ni l'un ni l'autre ne se sauvegarde. */
+    private boolean durationHeld;
+    private double durationHeldSeconds;
+    private long durationReleases;
+    private double durationLastReward;
+
+    /** La durée s'ouvre avec le quatrième univers : une dimension par univers. */
+    public boolean isDurationOpen() {
+        return dimensionsUnlocked() >= 4;
+    }
+
+    public int durationLevel(DurationUpgrade upgrade) {
+        return state.durationLevel(upgrade.ordinal());
+    }
+
+    /** Le temps au bout duquel les spirales atteignent le centre : 6 s, et 2 s de plus par niveau. */
+    public double durationMaxSeconds() {
+        return DURATION_MAX_SECONDS + DURATION_TIME_STEP * durationLevel(DurationUpgrade.TIME);
+    }
+
+    /** Les tours que fait chaque spirale par seconde tenue : 0,5, ×1,2 par niveau de vitesse. */
+    public double durationTurnsPerSecond() {
+        return DURATION_TURNS * Math.pow(1 + DURATION_SPEED_STEP, durationLevel(DurationUpgrade.SPEED));
+    }
+
+    /** Les spirales qui avancent ensemble : 1, et une de plus par niveau. */
+    public int durationSpirals() {
+        return 1 + durationLevel(DurationUpgrade.COUNT);
+    }
+
+    /** Ce que vaut le premier tour d'une spirale ; le n-ième vaut n fois autant. */
+    public double durationValue() {
+        return 1 + durationLevel(DurationUpgrade.VALUE);
+    }
+
+    /** Les tours d'une spirale entière, du bord au centre. */
+    public double durationTurnsMax() {
+        return durationTurnsPerSecond() * durationMaxSeconds();
+    }
+
+    /** Ce que donne un relâchement après {@code seconds} secondes tenues : chaque spirale, (n² + n) ÷ 2 fois la valeur pour n tours. */
+    public double durationRewardFor(double seconds) {
+        double turns = durationTurnsPerSecond() * Math.max(0, Math.min(seconds, durationMaxSeconds()));
+        return durationSpirals() * durationValue() * (turns * turns + turns) / 2;
+    }
+
+    public boolean isDurationHeld() {
+        return durationHeld;
+    }
+
+    /** Depuis combien de secondes le bouton est tenu, sans dépasser le temps au plus. */
+    public double durationHeldSeconds() {
+        return durationHeld ? durationHeldSeconds : 0;
+    }
+
+    /** Où en sont les spirales : 0 au bord, 1 au centre. */
+    public double durationProgress() {
+        return durationHeld ? Math.min(1, durationHeldSeconds / durationMaxSeconds()) : 0;
+    }
+
+    /** Ce que donnerait un relâchement maintenant. */
+    public double durationPending() {
+        return durationHeld ? durationRewardFor(durationHeldSeconds) : 0;
+    }
+
+    /** Les relâchements qui ont donné des éclats, et ce qu'a donné le dernier : pour la fenêtre. */
+    public long durationReleases() {
+        return durationReleases;
+    }
+
+    public double durationLastReward() {
+        return durationLastReward;
+    }
+
+    /** Le bouton est enfoncé : les spirales repartent du bord. Faux si la dimension est fermée ou déjà tenue. */
+    public boolean holdDuration() {
+        if (!isDurationOpen() || durationHeld) return false;
+        durationHeld = true;
+        durationHeldSeconds = 0;
+        return true;
+    }
+
+    /** Le bouton est relâché : les spirales donnent leurs éclats et repartent du bord. Rend les éclats donnés. */
+    public double releaseDuration() {
+        if (!durationHeld) return 0;
+        double reward = isDurationOpen() ? durationRewardFor(durationHeldSeconds) : 0;
+        durationHeld = false;
+        durationHeldSeconds = 0;
+        if (reward > 0) {
+            state.setDurationShards(state.durationShards() + reward);
+            state.setDurationShardsEarned(state.durationShardsEarned() + reward);
+            durationReleases++;
+            durationLastReward = reward;
+        }
+        return reward;
+    }
+
+    /** Le bouton lâché sans rien donner : une partie relue, un outil d'essai. */
+    public void dropDuration() {
+        durationHeld = false;
+        durationHeldSeconds = 0;
+    }
+
+    /** Le temps passe pour le bouton tenu, jusqu'au temps au plus. */
+    void runDuration(double dt) {
+        if (!durationHeld || dt <= 0) return;
+        if (!isDurationOpen()) {
+            durationHeld = false;
+            durationHeldSeconds = 0;
+            return;
+        }
+        durationHeldSeconds = Math.min(durationMaxSeconds(), durationHeldSeconds + dt);
+    }
+
+    /** Vrai une fois le seuil de la durée atteint : {@link #DURATION_THRESHOLD} éclats de la durée gagnés en tout. */
+    public boolean isDurationThresholdReached() {
+        return state.durationShardsEarned() >= DURATION_THRESHOLD - 1e-9;
+    }
+
+    /** Prix du prochain niveau, en éclats de la durée ; infini une fois au plus haut. */
+    public double durationCost(DurationUpgrade upgrade) {
+        int level = durationLevel(upgrade);
+        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+    }
+
+    /** Les améliorations de la durée s'achètent bouton relâché : les spirales ne changent pas en cours de route. */
+    public boolean canBuyDuration(DurationUpgrade upgrade) {
+        return isDurationOpen() && !durationHeld && durationLevel(upgrade) < upgrade.max
+                && state.durationShards() >= durationCost(upgrade) - 1e-9;
+    }
+
+    public boolean buyDuration(DurationUpgrade upgrade) {
+        if (!canBuyDuration(upgrade)) return false;
+        state.setDurationShards(Math.max(0, state.durationShards() - durationCost(upgrade)));
+        state.setDurationLevel(upgrade.ordinal(), durationLevel(upgrade) + 1);
+        return true;
+    }
+
+    // ------------------------------------------------------------------
     // La graine qui germe (version 0.103)
     // ------------------------------------------------------------------
 
@@ -952,6 +1129,10 @@ public abstract class GameUniverse extends GameAtoms {
         state.setVolumeShards(0);
         state.setVolumeShardsEarned(0);
         for (int i = 0; i < VolumeUpgrade.values().length; i++) state.setVolumeLevel(i, 0);
+        state.setDurationShards(0);
+        state.setDurationShardsEarned(0);
+        for (int i = 0; i < DurationUpgrade.values().length; i++) state.setDurationLevel(i, 0);
+        dropDuration();
         leaveVolume();
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
             state.setUniverseUpgradeLevel(upgrade.id(), 0);
@@ -1601,7 +1782,9 @@ public abstract class GameUniverse extends GameAtoms {
                     + wholeText(BigNum.of(state.voidAccumulated() + (!launching && state.voidOpen() ? state.voidEnergy().toDouble() : 0)))
                     + ").");
             // Version 0.128 : le volume traverse les univers lui aussi.
-            kept.add(isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
+            // Version 0.134 : la durée traverse les univers elle aussi.
+            kept.add(isDurationOpen() ? "Les dimensions : éclats de la ligne, du plan, du volume et de la durée, et leurs améliorations."
+                    : isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
                     : "Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
             kept.add("La graine : palier " + seedStage() + ", et ses arrosages."
                     + (launching && canOpenNextUniverse()

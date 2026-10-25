@@ -22,7 +22,7 @@ import java.util.Random;
  * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
  * argument {@code strict} exige au contraire que chaque profil forme son univers.
  *
- * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut) dit combien d'univers former. Au-dela du
+ * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut, 3 au plus depuis la 0.133) dit combien d'univers former. Au-dela du
  * premier, le bot lance l'univers suivant des que l'univers se forme, et rejoue les trois actes avec ce que le deuxieme
  * univers ajoute ({@link NextUniversePolicy}), sans dimensions ni graine. La victoire est alors le dernier univers vise.
  */
@@ -69,6 +69,9 @@ public final class FreshUniverseAudit {
                 .append(bot.nextUniverse.families).append(", elements offerts ").append(bot.nextUniverse.freeElements)
                 .append(" ; facon de jouer ").append(bot.nextUniverse.style()).append('\n');
         report.append("anomalies_du_ciel_saisies=").append(bot.skyEventsCaught).append('\n');
+        report.append("vide=ouvert ").append(bot.voidPolicy.opened).append(" fois, ").append(bot.voidPolicy.bought)
+                .append(" ameliorations, ").append(bot.voidPolicy.sacrifices).append(" sacrifices ; facon de jouer ")
+                .append(bot.voidPolicy.style()).append('\n');
         report.append("production_particules_par_s=").append(game.productionPerSecond()).append('\n');
         report.append("particules=").append(game.state().particles()).append('\n');
         report.append("atomes=").append(game.state().atoms()).append('\n');

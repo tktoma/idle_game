@@ -23,6 +23,16 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.134", "La durée : la quatrième dimension se joue", List.of(
+                    "Au quatrième univers, la dimension 4, la durée, se joue : un rond, et un bouton au milieu.",
+                    "Tant qu'on tient le bouton (clic tenu, ou la barre d'espace), les spirales avancent du bord vers le "
+                            + "centre ; au relâchement, elles donnent des éclats de la durée, propres à cette dimension.",
+                    "Plus on tient, plus chaque tour rapporte : le premier tour vaut 1, le deuxième 2, le troisième 3… Les "
+                            + "spirales atteignent le centre en 6 s au départ ; tenir plus ne rapporte plus rien, sans rien faire perdre.",
+                    "Quatre améliorations, bouton relâché : vitesse des spirales (+20 %), nombre de spirales (jusqu'à 10), "
+                            + "valeur, et temps au plus (+2 s par niveau, jusqu'à 46 s).",
+                    "Le seuil de la durée, cent éclats gagnés, ouvre le palier 5 de la graine, donc l'univers 5.",
+                    "L'aide (H), page « Dimensions », explique la durée.")),
             new Note("0.132", "Le vide raccourcit le troisième acte", List.of(
                     "Nouvelle amélioration du vide, « Rassemblement plus court » : −16 % par niveau du délai de deux heures de "
                             + "l'amas de galaxies et de l'univers, cinq niveaux, jusqu'à −80 %.",

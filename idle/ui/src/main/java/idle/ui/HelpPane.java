@@ -224,7 +224,14 @@ final class HelpPane extends StackPane {
                         + "souris sans clic, qui reste retenue dans la vue (Échap la rend, un clic la reprend), et un clic "
                         + "cueille la boule sous la croix. Une plongée dure "
                         + idle.ui.common.ElementText.number(game.volumeDiveSeconds()) + " secondes ; à la fin, le cube rejette "
-                        + "le joueur, et ses améliorations s'achètent dehors." : "")));
+                        + "le joueur, et ses améliorations s'achètent dehors." : "")
+                // La durée (version 0.134).
+                + (game.isDurationOpen() ? " Dans la durée, on tient le bouton au milieu du rond (clic tenu, ou la barre "
+                        + "d'espace) : les spirales avancent du bord vers le centre, qu'elles atteignent en "
+                        + idle.ui.common.ElementText.number(game.durationMaxSeconds()) + " secondes. Au relâchement, chaque "
+                        + "tour fait vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
+                        + "courts, et tenir au-delà du centre ne rapporte plus rien, sans rien faire perdre. Ses améliorations "
+                        + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")));
         // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
         if (game.isVoidOffered() || game.isVoidUnlocked() || !game.state().voidHistory().isEmpty()) sections.add(new Section("Le vide",
                 "Au premier Big Bang du troisième univers, puis de chaque univers suivant, le vide se propose dans l'onglet "

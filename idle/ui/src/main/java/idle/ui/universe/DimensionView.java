@@ -22,6 +22,9 @@ import javafx.scene.text.TextAlignment;
  * <p>Le volume a la sienne depuis la version 0.128 : on clique le cube qui tourne, la vue plonge jusqu'en son
  * centre, et l'on regarde autour de soi (clic gauche tenu) pour cueillir les boules qui y apparaissent (clic
  * droit). À la fin du minuteur, le cube rejette le joueur : la vue ressort, et le cube tourne de nouveau.
+ *
+ * <p>La durée a la sienne depuis la version 0.134 : un rond, un bouton au milieu ; tant qu'on le tient, les spirales
+ * avancent du bord vers le centre, et au relâchement leurs éclats montent du bouton.
  */
 public final class DimensionView extends Canvas {
 
@@ -83,6 +86,12 @@ public final class DimensionView extends Canvas {
     private final List<Pickup> misses = new ArrayList<>();
     private final List<Pickup> volumePickups = new ArrayList<>();
     private boolean motion = true;
+    /** La durée (version 0.134) : les éclats donnés au relâchement, qui montent du bouton. */
+    private final List<Pickup> durationPickups = new ArrayList<>();
+    /** Les tours qu'une spirale dessine au plus : au-delà, le rond serait plein ; elle en représente alors davantage. */
+    public static final double DURATION_DRAWN_TURNS = 8;
+    /** Le rond et le bouton, relatifs au plus petit côté de la vue. */
+    private static final double DURATION_RING = 0.4, DURATION_BUTTON = 0.08;
 
     // La caméra libre (version 0.128) : dedans, le regard suit la souris sans clic, comme dans un jeu à la première personne.
     /** Vrai quand le joueur a choisi la caméra libre (un pixel de souris tourne le regard d'un pixel d'écran au centre). */
@@ -113,6 +122,8 @@ public final class DimensionView extends Canvas {
             if (freeLook(event.getX(), event.getY()) || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
         });
         setOnMouseReleased(event -> {
+            // La durée (version 0.134) : relâcher le bouton, où que soit la souris, donne les éclats.
+            releaseHold();
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
@@ -282,6 +293,10 @@ public final class DimensionView extends Canvas {
         motion = moving;
         if (dimension == Dimension.LINE) noteTouches(Math.min(elapsed, 0.1), moving);
         if (dimension == Dimension.PLANE) notePickups(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.DURATION) {
+            for (Pickup pickup : durationPickups) pickup.age += Math.min(elapsed, 0.1);
+            durationPickups.removeIf(pickup -> pickup.age > 1.4);
+        }
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
             edgeTurn(Math.min(elapsed, 0.1));
@@ -327,6 +342,7 @@ public final class DimensionView extends Canvas {
         born.clear();
         misses.clear();
         volumePickups.clear();
+        durationPickups.clear();
     }
 
     /** L'orientation du cube qui tourne, dehors, à cet instant : la même que depuis la version 0.081. */
@@ -348,6 +364,7 @@ public final class DimensionView extends Canvas {
     }
 
     private javafx.scene.Cursor cursorAt(double x, double y) {
+        if (dimension == Dimension.DURATION && game.isDurationOpen() && overDurationButton(x, y)) return javafx.scene.Cursor.HAND;
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
         // La caméra libre cache la souris : la croix au centre de la vue la remplace.
         if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
@@ -361,6 +378,7 @@ public final class DimensionView extends Canvas {
      * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
+        if (dimension == Dimension.DURATION) return pressDuration(x, y);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
             if (secondary || !overCube(x, y)) return false;
@@ -774,7 +792,10 @@ public final class DimensionView extends Canvas {
             case LINE -> line(g, w, cx, cy, u);
             case PLANE -> plane(g, w, h, cx, cy, u);
             case VOLUME -> volumeScene(g, w, h, cx, cy, u);
-            case DURATION -> duration(g, w, cx, cy, u);
+            case DURATION -> {
+                if (game.isDurationOpen()) durationScene(g, cx, cy, u);
+                else duration(g, w, cx, cy, u);
+            }
             case BRANCHES -> branches(g, w * 0.1, cy, w * 0.8, u * 0.32, 6, 1);
             case POSSIBLES -> possibles(g, w, cx, cy, u);
             case BEGINNINGS -> beginnings(g, w, h, u);
@@ -967,6 +988,133 @@ public final class DimensionView extends Canvas {
         g.setStroke(Color.WHITE);
         g.setGlobalAlpha(0.8);
         g.strokeLine(x, cy - u * 0.15, x, cy + u * 0.22);
+    }
+
+    // ------------------------------------------------------------------
+    // La durée (version 0.134) : le rond, le bouton, les spirales
+    // ------------------------------------------------------------------
+
+    private double durationRing() {
+        return Math.min(getWidth(), getHeight()) * DURATION_RING;
+    }
+
+    private double durationButton() {
+        return Math.min(getWidth(), getHeight()) * DURATION_BUTTON;
+    }
+
+    /** Vrai si ce point de la vue est sur le bouton du milieu. */
+    public boolean overDurationButton(double x, double y) {
+        return Math.hypot(x - getWidth() / 2, y - getHeight() / 2) <= durationButton();
+    }
+
+    /** Un clic sur le bouton du milieu : les spirales partent du bord. Ailleurs dans le rond, rien. */
+    private boolean pressDuration(double x, double y) {
+        if (!game.isDurationOpen() || !overDurationButton(x, y)) return false;
+        return game.holdDuration();
+    }
+
+    /**
+     * Le bouton relâché (la souris, la barre d'espace, la fenêtre qui se ferme) : les spirales donnent leurs éclats,
+     * qui montent du bouton. Vrai s'il était tenu.
+     */
+    public boolean releaseHold() {
+        if (dimension != Dimension.DURATION || !game.isDurationHeld()) return false;
+        double reward = game.releaseDuration();
+        if (reward > 0 && durationPickups.size() < 12) {
+            Pickup mark = new Pickup();
+            mark.x = getWidth() / 2;
+            mark.y = getHeight() / 2;
+            mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(reward));
+            durationPickups.add(mark);
+        }
+        return true;
+    }
+
+    /** Les gains de la durée qui montent encore : pour les vérifications. */
+    public int durationPickupsShown() {
+        return durationPickups.size();
+    }
+
+    /**
+     * Le rond et ses spirales : chacune part du bord et s'enroule jusqu'au bouton ; la part déjà faite brille, la
+     * pointe avance tant qu'on tient. Au centre, le bouton, son anneau qui se remplit, et ce que donnerait un
+     * relâchement maintenant.
+     */
+    private void durationScene(GraphicsContext g, double cx, double cy, double u) {
+        Color c = color();
+        double ring = durationRing(), button = durationButton(), progress = game.durationProgress();
+        boolean held = game.isDurationHeld();
+        // Le rond.
+        UniverseView.glow(g, cx, cy, ring * 1.08, c, 0.12);
+        g.setStroke(c);
+        g.setLineWidth(2);
+        g.setGlobalAlpha(0.7);
+        g.strokeOval(cx - ring, cy - ring, ring * 2, ring * 2);
+        // Les spirales : au plus DURATION_DRAWN_TURNS tours dessinés, quoi que vaille la vitesse.
+        int spirals = game.durationSpirals();
+        double turns = Math.max(0.5, Math.min(DURATION_DRAWN_TURNS, game.durationTurnsMax()));
+        double spin = time * 0.08;
+        int steps = (int) Math.ceil(turns * 72);
+        for (int k = 0; k < spirals; k++) {
+            double start = spin + Math.PI * 2 * k / spirals;
+            double[] xs = new double[steps + 1], ys = new double[steps + 1];
+            for (int s = 0; s <= steps; s++) {
+                double f = s / (double) steps, angle = start + f * turns * Math.PI * 2, r = ring - (ring - button * 1.3) * f;
+                xs[s] = cx + Math.cos(angle) * r;
+                ys[s] = cy + Math.sin(angle) * r;
+            }
+            g.setLineWidth(1);
+            g.setGlobalAlpha(0.22);
+            g.strokePolyline(xs, ys, steps + 1);
+            int done = (int) Math.round(progress * steps);
+            if (done > 0) {
+                g.setLineWidth(2.4);
+                g.setGlobalAlpha(0.95);
+                g.strokePolyline(xs, ys, done + 1);
+                UniverseView.glow(g, xs[done], ys[done], 14, c, 0.9);
+                g.setFill(Color.WHITE);
+                g.setGlobalAlpha(1);
+                g.fillOval(xs[done] - 3, ys[done] - 3, 6, 6);
+            } else {
+                g.setFill(c);
+                g.setGlobalAlpha(0.8);
+                g.fillOval(xs[0] - 3, ys[0] - 3, 6, 6);
+            }
+        }
+        // Le bouton : un anneau qui se remplit avec le temps tenu, et qui bat une fois au centre.
+        boolean full = held && progress >= 1;
+        double beat = full ? 0.5 + 0.5 * Math.sin(time * 8) : 0;
+        UniverseView.glow(g, cx, cy, button * (1.8 + 0.6 * beat), c, held ? 0.6 + 0.3 * beat : 0.3);
+        g.setGlobalAlpha(1);
+        g.setFill(held ? c.deriveColor(0, 1, 0.55, 1) : Color.web("#141a2c"));
+        g.fillOval(cx - button, cy - button, button * 2, button * 2);
+        g.setStroke(c);
+        g.setLineWidth(2);
+        g.strokeOval(cx - button, cy - button, button * 2, button * 2);
+        if (held) {
+            g.setLineWidth(4);
+            g.strokeArc(cx - button - 6, cy - button - 6, button * 2 + 12, button * 2 + 12, 90, -360 * progress,
+                    javafx.scene.shape.ArcType.OPEN);
+        }
+        g.setFill(Color.WHITE);
+        g.setTextAlign(TextAlignment.CENTER);
+        g.setFont(Font.font(14));
+        g.fillText(!held ? "Tenir" : full ? "Relâchez" : String.format(java.util.Locale.ROOT, "%.1f s", game.durationHeldSeconds()),
+                cx, cy + 5);
+        if (held) {
+            g.setFont(Font.font(16));
+            g.fillText("+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.durationPending())), cx, cy - button - 18);
+        }
+        // Les éclats donnés au relâchement montent du bouton.
+        for (Pickup pickup : durationPickups) {
+            double t = pickup.age / 1.4;
+            UniverseView.glow(g, pickup.x, pickup.y, button + 60 * t, c, 0.7 * (1 - t));
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.setFont(Font.font(20));
+            g.fillText(pickup.text, pickup.x, pickup.y - button - 24 - 50 * t);
+        }
+        g.setGlobalAlpha(1);
     }
 
     // 5. Un arbre qui pousse de gauche à droite : à chaque nœud, le temps se sépare.

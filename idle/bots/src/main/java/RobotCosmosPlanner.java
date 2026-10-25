@@ -28,8 +28,42 @@ public class RobotCosmosPlanner {
   BigNum previousPersistenceReserve=BigNum.ZERO;
   /** La variante experte sait quand différer volontairement une fusion. */
   boolean waitForPatientFusion(){return false;}
+  /**
+   * Les choix de jeu des trois actes, dans chaque univers (version 0.135) : un expert suit l'ordre d'achat mesuré du
+   * modèle (§14.1) et l'arbre de matière noire au mieux, tente les défis de Big Bang et envoie ses sondes en long voyage
+   * avant de s'absenter ; un joueur moins appliqué achète le moins cher, ignore les défis de Big Bang ou n'envoie que
+   * des sauts courts.
+   *
+   * @param opening        suit l'ordre d'ouverture du modèle (sinon, l'amélioration d'atomes la moins chère)
+   * @param darkBest       l'arbre de matière noire au mieux (sinon, la case la moins chère)
+   * @param bangChallenges tente les défis de Big Bang
+   * @param longTrips      choisit la durée des voyages des sondes selon le temps jusqu'à son retour
+   */
+  record EarlyStyle(boolean opening, boolean darkBest, boolean bangChallenges, boolean longTrips) {
+    /** Le joueur expert : c'était le jeu de tous les bots avant la 0.135. */
+    static final EarlyStyle EXPERT=new EarlyStyle(true,true,true,false);
+  }
+  EarlyStyle earlyStyle=EarlyStyle.EXPERT;
   /** Certains profils veulent volontairement éviter l'usage d'une fonctionnalité. */
-  boolean useBangChallenges(){return true;}
+  boolean useBangChallenges(){return earlyStyle.bangChallenges();}
+  /** Le temps, en secondes, jusqu'au prochain retour du joueur : les profils le savent ; 0 pour les autres bots. */
+  double timeUntilBack(){return 0;}
+  /** La durée des voyages des sondes. */
+  ProbeTrip probeTrip(){
+    if(earlyStyle.longTrips()){
+      double away=timeUntilBack();
+      ProbeTrip best=null;
+      // La durée réelle du voyage (moteurs, bonus de Big Bang), pas la durée affichée de base.
+      for(ProbeTrip t:new ProbeTrip[]{ProbeTrip.HOUR,ProbeTrip.LONG,ProbeTrip.NIGHT})if(g.probeDuration(t)<=away)best=t;
+      if(best!=null)return best;
+    }
+    return !g.shoppingList().matter().isEmpty() || !g.shoppingList().items().isEmpty()
+        ? ProbeTrip.SHORT : (g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT);
+  }
+  /** Les achats en atomes, selon le style. */
+  void buyAtoms(int limit){if(earlyStyle.opening())atoms(g,limit);else FirstUniversePolicy.cheapestAtoms(g,limit);}
+  /** Les achats en matière noire, selon le style. */
+  void buyDark(int limit){if(earlyStyle.darkBest())dark(g,limit);else FirstUniversePolicy.cheapestDark(g,limit);}
   /**
    * Univers à former avant de s'arrêter (version 0.130) : 1 par défaut, le premier univers comme avant. Au-delà, le
    * bot lance l'univers suivant dès qu'un univers se forme ({@link NextUniversePolicy#launchNext}), et rejoue les trois
@@ -38,6 +72,10 @@ public class RobotCosmosPlanner {
   int targetUniverses=1;
   /** Les gestes du deuxième univers ; aucun dans le premier. Les profils y mettent leur façon de jouer (0.131). */
   NextUniversePolicy nextUniverse=new NextUniversePolicy();
+  /** Le vide du troisième univers (version 0.133) ; rien tant qu'il ne se propose pas. Les profils y mettent leur façon. */
+  VoidPolicy voidPolicy=new VoidPolicy();
+  /** Les automates du collisionneur que le bot a mis en pause pour garder l'énergie du vide. */
+  final Set<ColliderUpgrade> pausedForVoid=EnumSet.noneOf(ColliderUpgrade.class);
   /** Anomalies du ciel saisies (version 0.131). */
   int skyEventsCaught=0;
   /** Vrai pour jouer sans saisir les anomalies du ciel (propriété {@code idle.sansAnomalies}), comme avant la 0.131. */
@@ -137,6 +175,20 @@ public class RobotCosmosPlanner {
   static boolean skyReadyForNextBigBang(Game g){return FirstUniversePolicy.skyReady(g);}
   void collider(){
     if(!g.isColliderUnlocked())return;
+    // Version 0.133 : tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates
+    // d'achat attendent aussi, et repartent ensuite.
+    if(voidPolicy.savingForVoid(g)){
+      for(ColliderGenerator gen:ColliderGenerator.values()){
+        ColliderUpgrade auto=ColliderUpgrade.automationOf(gen);
+        if(g.isColliderAutomationRunning(auto)){g.toggleColliderAutomation(auto);pausedForVoid.add(auto);}
+      }
+      if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
+      return;
+    }
+    if(!pausedForVoid.isEmpty()){
+      for(ColliderUpgrade auto:pausedForVoid)if(g.state().isColliderPaused(auto))g.toggleColliderAutomation(auto);
+      pausedForVoid.clear();
+    }
     for(int i=0;i<70;i++){
       boolean bought=false;
       for(ColliderGenerator gen:ColliderGenerator.values()){
@@ -176,8 +228,7 @@ public class RobotCosmosPlanner {
     targets.sort((a,b)->Integer.compare(probePriority(b,shortages),probePriority(a,shortages)));
     // La matière des astres/du cosmos demande des réapprovisionnements fréquents :
     // les sauts courts restent utiles ; les longs voyages servent quand la liste est vide.
-    ProbeTrip trip=!g.shoppingList().matter().isEmpty() || !g.shoppingList().items().isEmpty()
-        ? ProbeTrip.SHORT : (g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT);
+    ProbeTrip trip=probeTrip();
     for(ProbeDestination destination:targets){
       if(g.canLaunchProbe(destination,trip))g.launchProbe(destination,trip);
     }
@@ -197,10 +248,16 @@ public class RobotCosmosPlanner {
        g.arrangeSystem(i);
      }
   }
-  /** Vise explicitement les deux étoiles mortes indispensables au huitième Big Bang. */
+  /**
+   * Vise explicitement les deux étoiles mortes indispensables au huitième Big Bang, et d'abord les astres plus petits
+   * qu'elles demandent (version 0.135 : la géante rouge de la naine blanche). Avant, une naine blanche à qui manquait
+   * sa géante rouge n'était pas visée, la liste restait sur une nébuleuse verrouillée jusqu'au huitième Big Bang, et
+   * le débutant restait bloqué à 25 astres dans l'univers 3.
+   */
   boolean preEighthBody(){
     if(g.bigBangs()!=7 || g.bodiesMature()>=28)return false;
-    String id=!g.hasBody("white_dwarf")?"white_dwarf":(!g.hasBody("neutron_star")?"neutron_star":null);
+    String id=null;
+    for(String wanted:new String[]{"white_dwarf","neutron_star"}){id=firstToForm(wanted,0);if(id!=null)break;}
     if(id==null)return false;
     Body body=g.body(id);
     if(g.canFormBody(id)){g.formBody(id);return true;}
@@ -241,6 +298,16 @@ public class RobotCosmosPlanner {
     }
     if(g.canFormBody(id))g.formBody(id);
     return true;
+  }
+  /** L'astre à former pour avancer vers celui-ci : lui, ou le premier astre plus petit qu'il demande et qui manque. */
+  String firstToForm(String bodyId,int depth){
+    if(g.hasBody(bodyId) || depth>16)return null;
+    for(String needed:g.body(bodyId).bodies()){
+      if(g.hasBody(needed))continue;
+      String sub=firstToForm(needed,depth+1);
+      if(sub!=null)return sub;
+    }
+    return bodyId;
   }
   /** Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. */
   boolean automateMatter(){
@@ -362,25 +429,60 @@ public class RobotCosmosPlanner {
       g.isBigBangConditionMet(BigBangCondition.ATOMS),
       g.completedChallenges(),g.achievementCount());
   }
-  /** Les trois défis de Big Bang se tentent sur les passages 6, 7 et 8,
-   * après le ciel mais avant de sacrifier une partie déjà prête à Big Bang. */
+  /**
+   * Les trois défis de Big Bang se tentent sur les passages 6, 7 et 8, après le ciel. Dans le premier univers, pas sur
+   * une partie déjà prête à Big Bang (elle serait sacrifiée), dans l'ordre du catalogue. À partir du deuxième (version
+   * 0.135), aussi quand le Big Bang est prêt, et d'abord les deux défis qui ne remettent rien à zéro : le ciel figé,
+   * gratuit quand le Big Bang est prêt, puis la barre haute (maturation ×2). Avant, il n'en passait presque aucun dans
+   * les univers suivants, où le ciel se réunit en même temps que le reste, alors que chacun y rend la maturation quatre
+   * fois plus rapide et double particules et molécules ({@link Game#universeBangFactor}) : après le huitième Big Bang,
+   * les sept derniers astres mûrissaient en quatre heures.
+   */
   boolean bangChallenges(){
     if(!useBangChallenges() || g.bigBangs()<Game.BANG_CHALLENGES_BIG_BANGS
         || g.bigBangs()>=8 || !skyReadyForNextBigBang(g)
         || !g.baseChallengesDone()
         || g.achievementCount()<Game.BIG_BANG_ACHIEVEMENTS
         || g.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)
-        || !g.canStartBangChallenge() || g.canBigBang())return false;
-    for(BangChallenge challenge:g.bangChallenges()){
+        || !g.canStartBangChallenge())return false;
+    // Le premier univers garde la règle d'avant par défaut : c'est la partie de référence de l'équilibrage (27 h).
+    boolean later=(g.isSecondUniverse() || BANG_CHALLENGES_FIRST) && !BANG_CHALLENGES_LATER.equals("avant");
+    if(g.canBigBang() && !later)return false;
+    for(BangChallenge challenge:bangChallengeOrder(later)){
       if(!g.isBangChallengeCompleted(challenge) && g.startBangChallenge(challenge))return true;
     }
     return false;
   }
+  /**
+   * L'ordre des défis de Big Bang ({@code -Didle.defisBB}) : « maturation » (ciel figé, barre haute, puis le
+   * catalogue), « gele » (ciel figé, puis le catalogue) ou « avant » (le catalogue, jamais sur une partie prête à Big
+   * Bang : la règle d'avant la 0.135). Mesuré en 0.135 avec « maturation », Speedrunner et Régulier : deuxième
+   * univers de 20 h 33–21 h 15 à 14 h 57–19 h 23 ; troisième de
+   * 12 h 08–20 h 18 à 10 h 40–12 h 31. « gele » et « maturation » font jeu égal (72,7 h sur cinq parties).
+   */
+  static final String BANG_CHALLENGES_LATER=System.getProperty("idle.defisBB","maturation");
+  /**
+   * {@code -Didle.defisBBPremier=true} : la même règle dès le premier univers. Mesuré en 0.135 : le Speedrunner y
+   * passe de 27 h 01 à 24 h 44, le Régulier de 34 h 26 à 31 h 59. Pas par défaut, parce que le premier univers du
+   * Speedrunner est la référence de l'équilibrage : à décider avec le reste de l'équilibrage.
+   */
+  static final boolean BANG_CHALLENGES_FIRST=Boolean.getBoolean("idle.defisBBPremier");
+  List<BangChallenge> bangChallengeOrder(boolean later){
+    if(!later)return g.bangChallenges();
+    List<BangChallenge> order=new ArrayList<>();
+    order.add(BangChallenge.FROZEN);
+    if(BANG_CHALLENGES_LATER.equals("maturation"))order.add(BangChallenge.RAISED);
+    for(BangChallenge c:g.bangChallenges())if(!order.contains(c))order.add(c);
+    return order;
+  }
   void resourceLoop(){
-    FirstUniversePolicy.bootstrapAutomations(g);
-    prioritizePersistence();
+    if(earlyStyle.opening()){
+      FirstUniversePolicy.bootstrapAutomations(g);
+      prioritizePersistence();
+    }
     // Version 0.130 : régime rapide, choix de cycle, famille préférée, éléments gratuits ; rien dans le premier univers.
     nextUniverse.play(g);
+    voidPolicy.play(g);
     if(bangChallenges())return;
     logBigBangDiagnostic();
     g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
@@ -409,14 +511,17 @@ public class RobotCosmosPlanner {
     }
     for(int i=0;i<5 && !stopFusion && !patientWait && g.canFuse();i++){
       g.fuse();
-      prioritizePersistence();
-      if(!finalMode)atoms(g,50);
+      if(earlyStyle.opening())prioritizePersistence();
+      if(!finalMode)buyAtoms(50);
       particle(g,200);
     }
-    FirstUniversePolicy.bootstrapAutomations(g);
-    prioritizePersistence();
-    // Les automatismes et cadences hors de l'ordre du §14.1 viennent après lui (« ensuite le moins cher »).
-    if(FirstUniversePolicy.openingDone(g))for(Automation a:g.automations()){
+    if(earlyStyle.opening()){
+      FirstUniversePolicy.bootstrapAutomations(g);
+      prioritizePersistence();
+    }
+    // Les automatismes et cadences hors de l'ordre du §14.1 viennent après lui (« ensuite le moins cher ») ; sans
+    // l'ordre d'ouverture, ils s'achètent dès qu'ils sont payables.
+    if(!earlyStyle.opening() || FirstUniversePolicy.openingDone(g))for(Automation a:g.automations()){
       if(g.canBuyAutomation(a.id()))g.buyAutomation(a.id());
       if(g.canSpeedUpAutomation(a.id()))g.speedUpAutomation(a.id());
     }
@@ -424,13 +529,13 @@ public class RobotCosmosPlanner {
       g.setAutomationEnabled("auto_fusion",false);
       patiencePausedByRobot=true;
     }
-    if(!finalMode)atoms(g,60);
+    if(!finalMode)buyAtoms(60);
     // Modèle 0.123 §4 et §14.2 : synthétiser dès l'ouverture du tableau, en gardant seulement les atomes
     // de la prochaine étape de l'ouverture. Avant, rien ne se synthétisait jusqu'à Persistance :
     // le tableau restait vide de 3 h 10 à 4 h 30 et la première explosion venait à 7 h au lieu de 5 h 12.
-    if(!finalMode)FirstUniversePolicy.synthesize(g,20);
+    if(!finalMode)FirstUniversePolicy.synthesize(g,20,earlyStyle.opening());
     if(g.state().explosions()>0)g.growDarkMatter(step);
-    dark(g,50);
+    buyDark(50);
     // Les automatismes sombres ouverts gratuitement doivent rester actifs,
     // sauf si le mode « à la main » du défi de Big Bang interdit leur action.
     boolean hold=FirstUniversePolicy.holdExplosions(g);
@@ -537,7 +642,8 @@ public class RobotCosmosPlanner {
    */
   void hunt(){
     if(!g.hasAchievement(Achievements.HOLD_LOCK) && g.isHoldLockUnlocked())g.setHoldLocked(true);
-    prioritizePersistence();
+    // Sans l'ordre d'ouverture, Persistance s'achète comme le reste, au plus bas prix (relecture 0.135).
+    if(earlyStyle.opening())prioritizePersistence();
     if(g.isTargetedSynthesisUnlocked()){
       boolean wantActinide=!g.hasAchievement(Achievements.TARGETED_ACTINIDE);
       if(wantActinide && g.synthesisTarget()!=idle.core.elements.ElementCategory.ACTINIDE)g.setSynthesisTarget(idle.core.elements.ElementCategory.ACTINIDE);

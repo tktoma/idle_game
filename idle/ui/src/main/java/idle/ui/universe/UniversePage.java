@@ -392,6 +392,7 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(1, game.isLineThresholdReached());
         dimensions.setMarked(2, game.isPlaneThresholdReached());
         dimensions.setMarked(3, game.isVolumeThresholdReached());
+        dimensions.setMarked(4, game.isDurationThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()) + "   |   cumul : "

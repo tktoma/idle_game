@@ -74,7 +74,9 @@ class BotsTest {
 
     @Test
     void laSyntheseCommenceDesLOuvertureDuTableauSansAttendrePersistance() {
-        Game g = new Game();
+        // Version 0.133 : une graine fixe. Avec le hasard de new Game(), le résultat dépendait des éléments tirés par
+        // les deux synthèses : le test échouait environ une fois sur trente.
+        Game g = new Game(42L);
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
         // Ouverture du §14.1 faite jusqu'aux automatismes ; Persistance (25) n'est pas encore achetée.
@@ -329,7 +331,7 @@ class BotsTest {
                 count++;
             }
         }
-        assertEquals(34, count, "8 de référence (dont le premier univers formé, version 0.130), 3 bloquées, 2 corrigées, 21 victoires historiques");
+        assertEquals(35, count, "9 de référence (dont les univers 1 et 2 formés, versions 0.130 et 0.133), 3 bloquées, 2 corrigées, 21 victoires historiques");
     }
 
     @Test

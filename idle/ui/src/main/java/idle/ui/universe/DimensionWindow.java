@@ -20,8 +20,9 @@ import javafx.scene.layout.VBox;
  *
  * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, son seuil et ses
  * cinq améliorations (version 0.102) sous le visuel. Le plan a la sienne depuis la version 0.104, et le volume depuis
- * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. Les sept
- * autres restent des visuels.
+ * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la
+ * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. Les six autres
+ * restent des visuels.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -48,6 +49,15 @@ public final class DimensionWindow extends BorderPane {
     private final java.util.Map<Game.VolumeUpgrade, Button> volumeButtons = new java.util.EnumMap<>(Game.VolumeUpgrade.class);
     private final javafx.scene.layout.FlowPane volumeRow = new javafx.scene.layout.FlowPane(12, 10);
     private final VBox volumePane;
+    /** La durée (version 0.134) : ses éclats, son seuil, ce qu'on y fait, et ses quatre améliorations. */
+    private final Label durationShards = new Label();
+    private final Label durationThreshold = new Label();
+    private final Label durationHint = new Label();
+    private final Label durationDetail = new Label();
+    private final java.util.Map<Game.DurationUpgrade, Button> durationButtons = new java.util.EnumMap<>(Game.DurationUpgrade.class);
+    private final VBox durationPane;
+    /** La barre d'espace tient le bouton de la durée, comme la souris. */
+    private boolean spaceHeld;
     /** La caméra libre (version 0.128) : le bouton, et où se range le choix (les réglages du jeu, ou la fenêtre seule). */
     private final Button freeCameraButton = new Button();
     private final java.util.function.BooleanSupplier freeCamera;
@@ -179,12 +189,50 @@ public final class DimensionWindow extends BorderPane {
         volumePane = new VBox(10, volumeShards, volumeThreshold, volumeHint, freeCameraButton, volumeDetail, volumeRow);
         volumePane.setAlignment(Pos.CENTER);
         volumePane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane));
+        durationShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
+        durationThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        durationHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        durationHint.setWrapText(true);
+        durationHint.setMaxWidth(820);
+        durationHint.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        durationHint.setAlignment(Pos.CENTER);
+        // Deux lignes toujours : le rond ne bouge pas quand le texte change, bouton tenu ou relâché.
+        durationHint.setMinHeight(38);
+        durationHint.setPrefHeight(38);
+        durationDetail.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
+        durationDetail.setWrapText(true);
+        durationDetail.setMaxWidth(820);
+        durationDetail.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        javafx.scene.layout.FlowPane durationRow = new javafx.scene.layout.FlowPane(12, 10);
+        durationRow.setAlignment(Pos.CENTER);
+        for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values()) {
+            Button button = new Button();
+            button.setStyle(BUTTON_STYLE);
+            button.setFocusTraversable(false);
+            button.setWrapText(true);
+            button.setPrefWidth(230);
+            button.setMinHeight(64);
+            button.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            button.setOnAction(event -> {
+                game.buyDuration(upgrade);
+                refresh();
+            });
+            durationButtons.put(upgrade, button);
+            durationRow.getChildren().add(button);
+        }
+        durationPane = new VBox(10, durationShards, durationThreshold, durationHint, durationDetail, durationRow);
+        durationPane.setAlignment(Pos.CENTER);
+        durationPane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane, volumePane, durationPane));
         setVisible(false);
     }
 
     /** Recopie la ligne ou le plan : leurs éclats, et ce que coûtent leurs améliorations. */
     private void refresh() {
+        boolean duration = view.dimension() == Dimension.DURATION && game.isDurationOpen();
+        durationPane.setVisible(duration);
+        durationPane.setManaged(duration);
+        if (duration) refreshDuration();
         boolean volume = view.dimension() == Dimension.VOLUME && game.isVolumeOpen();
         volumePane.setVisible(volume);
         volumePane.setManaged(volume);
@@ -274,6 +322,52 @@ public final class DimensionWindow extends BorderPane {
         }
     }
 
+    /** La durée : ses éclats, son seuil, ce qu'on y fait ; ses améliorations, bouton relâché. */
+    private void refreshDuration() {
+        durationShards.setText("Éclats de la durée : " + shardText(game.state().durationShards()));
+        durationThreshold.setText(game.isDurationThresholdReached()
+                ? "Seuil atteint : " + shardText(Game.DURATION_THRESHOLD) + " éclats de la durée gagnés, la dimension 4 porte son rond vert"
+                : "Seuil : " + shardText(game.state().durationShardsEarned()) + " / " + shardText(Game.DURATION_THRESHOLD) + " éclats de la durée gagnés");
+        boolean held = game.isDurationHeld();
+        durationHint.setText(!held
+                ? "Tenez le bouton du milieu (clic tenu, ou la barre d'espace) : les spirales avancent vers le centre, qu'elles "
+                        + "atteignent en " + seconds(game.durationMaxSeconds()) + " s. Relâchez pour gagner leurs éclats : plus on tient, plus chaque tour rapporte."
+                        + (game.durationReleases() > 0 ? " Dernier relâchement : +" + shardText(game.durationLastReward()) + "." : "")
+                : game.durationProgress() >= 1
+                ? "Les spirales sont au centre : tenir plus ne rapporte plus rien. Relâchez pour gagner +" + shardText(game.durationPending()) + "."
+                : "Tenu " + seconds(game.durationHeldSeconds()) + " s sur " + seconds(game.durationMaxSeconds())
+                        + " : relâcher maintenant donnerait +" + shardText(game.durationPending()) + ".");
+        durationDetail.setText(idle.ui.common.Detail.only("Chaque spirale fait " + shardText(game.durationTurnsPerSecond())
+                + " tour par seconde tenue, jusqu'au centre, " + shardText(game.durationTurnsMax()) + " tours en "
+                + seconds(game.durationMaxSeconds()) + " s. Au relâchement, chaque tour vaut un de plus que le précédent : n tours "
+                + "donnent (n² + n) ÷ 2 fois la valeur (" + shardText(game.durationValue()) + "), pour chacune des "
+                + game.durationSpirals() + " spirale" + (game.durationSpirals() > 1 ? "s" : "") + ". Tenir au-delà du centre ne "
+                + "rapporte rien de plus et ne fait rien perdre. Les améliorations s'achètent bouton relâché. Une absence relâche "
+                + "le bouton, qui donne ce qu'il avait. Les éclats de la durée, son seuil et ses améliorations traversent les "
+                + "univers ; le seuil ouvre le palier 5 de la graine."));
+        durationDetail.setVisible(!durationDetail.getText().isEmpty());
+        durationDetail.setManaged(durationDetail.isVisible());
+        for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values()) {
+            Button button = durationButtons.get(upgrade);
+            boolean full = game.durationLevel(upgrade) >= upgrade.max();
+            double cost = game.durationCost(upgrade);
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum"
+                    : "Prix : " + shardText(cost) + (cost < 2 ? " éclat de la durée" : " éclats de la durée")));
+            button.setDisable(held || !game.canBuyDuration(upgrade));
+        }
+    }
+
+    /** Une amélioration de la durée : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.DurationUpgrade upgrade) {
+        return switch (upgrade) {
+            case SPEED -> "Vitesse des spirales : " + shardText(game.durationTurnsPerSecond()) + " tour par seconde, 20 % plus vite";
+            case COUNT -> "Spirales : " + game.durationSpirals() + ", une de plus qui avance en même temps";
+            case VALUE -> "Valeur : le premier tour donne " + shardText(game.durationValue()) + " → " + shardText(game.durationValue() + 1);
+            case TIME -> "Temps au plus : " + seconds(game.durationMaxSeconds()) + " s → "
+                    + seconds(game.durationMaxSeconds() + Game.DURATION_TIME_STEP) + " s, des tours de plus";
+        };
+    }
+
     /** Une amélioration du volume : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.VolumeUpgrade upgrade) {
         return switch (upgrade) {
@@ -310,6 +404,17 @@ public final class DimensionWindow extends BorderPane {
         // Le volume (version 0.128) : en caméra libre, Échap rend la souris retenue ; la plongée continue.
         if (isVisible() && code == javafx.scene.input.KeyCode.ESCAPE && view.mouseHeld()) {
             if (down) view.releaseMouse();
+            return true;
+        }
+        // La durée (version 0.134) : la barre d'espace tient le bouton du milieu, comme la souris.
+        if (isVisible() && code == javafx.scene.input.KeyCode.SPACE && view.dimension() == Dimension.DURATION && game.isDurationOpen()) {
+            if (down && !spaceHeld) {
+                spaceHeld = true;
+                game.holdDuration();
+            } else if (!down) {
+                spaceHeld = false;
+                view.releaseHold();
+            }
             return true;
         }
         if (!isVisible() || view.dimension() != Dimension.PLANE || !game.isPlaneOpen()) return false;
@@ -367,6 +472,9 @@ public final class DimensionWindow extends BorderPane {
             case LINE -> dimension.line() + " Chaque trait que touche la boule donne des éclats de la ligne.";
             case PLANE -> dimension.line() + " Chaque éclat ramassé donne des éclats du plan, propres à cette dimension.";
             case VOLUME -> dimension.line() + " Plongez dans le cube : chaque boule cueillie de son centre donne des éclats du volume.";
+            case DURATION -> game.isDurationOpen()
+                    ? dimension.line() + " Tenez le bouton du milieu : plus les spirales vont loin vers le centre, plus elles donnent d'éclats de la durée."
+                    : dimension.line() + " Il n'y a rien à y faire pour l'instant.";
             default -> dimension.line() + " Il n'y a rien à y faire pour l'instant.";
         });
         setVisible(true);
@@ -375,6 +483,9 @@ public final class DimensionWindow extends BorderPane {
 
     /** Referme la fenêtre : retour au jeu. Une plongée en cours s'arrête là, le joueur ressort du cube. */
     public void close() {
+        // La durée : fermer la fenêtre relâche le bouton, qui donne ce qu'il avait.
+        view.releaseHold();
+        spaceHeld = false;
         held.clear();
         game.setPlaneInput(0, 0);
         if (game.isInVolume()) game.leaveVolume();
@@ -431,6 +542,19 @@ public final class DimensionWindow extends BorderPane {
 
     public String volumeShardsText() {
         return volumeShards.getText();
+    }
+
+    /** Le bouton d'une amélioration de la durée : pour les vérifications. */
+    public Button durationButton(Game.DurationUpgrade upgrade) {
+        return durationButtons.get(upgrade);
+    }
+
+    public String durationShardsText() {
+        return durationShards.getText();
+    }
+
+    public String durationHintText() {
+        return durationHint.getText();
     }
 
     /** Le bouton de la caméra libre : pour les vérifications. */

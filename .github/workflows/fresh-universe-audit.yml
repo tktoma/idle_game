@@ -21,7 +21,7 @@ on:
         required: true
         default: "false"
       univers:
-        description: "Univers a former : 1 (le premier, comme avant) ou 2 (le suivant se lance des l'univers forme ; sans dimensions ni graine ; parties deux fois plus longues, prevoir un horizon de 336 h)"
+        description: "Univers a former : 1 (le premier, comme avant), 2 ou 3 (le suivant se lance des l'univers forme ; le vide se joue dans le 3e ; sans dimensions ni graine ; prevoir un horizon de 168 h par univers)"
         required: true
         default: "1"
 
@@ -33,8 +33,8 @@ jobs:
   audit:
     name: Bots depuis zero ${{ matrix.first }}-${{ matrix.last }}
     runs-on: ubuntu-latest
-    # L'univers 2 double à peu près la partie : 6 h, le plus long qu'accepte un runner GitHub.
-    timeout-minutes: ${{ inputs.univers == '2' && 360 || 300 }}
+    # Les univers 2 et 3 allongent la partie : 6 h, le plus long qu'accepte un runner GitHub.
+    timeout-minutes: ${{ inputs.univers != '' && inputs.univers != '1' && 360 || 300 }}
     strategy:
       fail-fast: false
       # Trois profils par runner : les segments de six depassaient 5 h en CI.

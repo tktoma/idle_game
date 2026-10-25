@@ -223,6 +223,9 @@ class SaveTest {
         state.setVolumeShards(4.5);
         state.setVolumeShardsEarned(23);
         for (int i = 0; i < 5; i++) state.setVolumeLevel(i, i + 2);
+        state.setDurationShards(6.5);
+        state.setDurationShardsEarned(57);
+        for (int i = 0; i < 4; i++) state.setDurationLevel(i, i + 3);
         state.setVoidEnergy(BigNum.of(42));
         state.setVoidOpen(true);
         state.setVoidHoleOpen(true);

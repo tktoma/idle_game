@@ -192,6 +192,9 @@ public final class GameState extends GameStateResets {
         data.put("volumeShards", volumeShards);
         data.put("volumeShardsEarned", volumeShardsEarned);
         for (int i = 0; i < VOLUME_UPGRADES; i++) data.put("volumeLevel" + i, volumeLevel(i));
+        data.put("durationShards", durationShards);
+        data.put("durationShardsEarned", durationShardsEarned);
+        for (int i = 0; i < DURATION_UPGRADES; i++) data.put("durationLevel" + i, durationLevel(i));
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -445,6 +448,10 @@ public final class GameState extends GameStateResets {
         setVolumeShards(data.real("volumeShards", 0));
         setVolumeShardsEarned(data.real("volumeShardsEarned", 0));
         for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, data.whole("volumeLevel" + i, 0));
+        // La durée (version 0.134) : absente des sauvegardes d'avant, elle part de zéro.
+        setDurationShards(data.real("durationShards", 0));
+        setDurationShardsEarned(data.real("durationShardsEarned", 0));
+        for (int i = 0; i < DURATION_UPGRADES; i++) setDurationLevel(i, data.whole("durationLevel" + i, 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

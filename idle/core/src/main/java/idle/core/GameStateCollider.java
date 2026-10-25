@@ -378,6 +378,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double volumeKept = volumeShards, volumeEarned = volumeShardsEarned;
         int[] volumeKeptLevels = new int[VOLUME_UPGRADES];
         for (int i = 0; i < VOLUME_UPGRADES; i++) volumeKeptLevels[i] = volumeLevel(i);
+        double durationKept = durationShards, durationEarned = durationShardsEarned;
+        int[] durationKeptLevels = new int[DURATION_UPGRADES];
+        for (int i = 0; i < DURATION_UPGRADES; i++) durationKeptLevels[i] = durationLevel(i);
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -441,6 +444,10 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         volumeShards = volumeKept;
         volumeShardsEarned = volumeEarned;
         for (int i = 0; i < volumeKeptLevels.length; i++) setVolumeLevel(i, volumeKeptLevels[i]);
+        // La durée (version 0.134) aussi.
+        durationShards = durationKept;
+        durationShardsEarned = durationEarned;
+        for (int i = 0; i < durationKeptLevels.length; i++) setDurationLevel(i, durationKeptLevels[i]);
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
     }
@@ -692,6 +699,46 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             case 2 -> volumeSpawnLevel = value;
             case 3 -> volumeCountLevel = value;
             case 4 -> volumeSizeLevel = value;
+            default -> { }
+        }
+    }
+
+    /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    public double durationShards() {
+        return durationShards;
+    }
+
+    public void setDurationShards(double shards) {
+        durationShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Tous les éclats de la durée gagnés, dépensés ou non. */
+    public double durationShardsEarned() {
+        return durationShardsEarned;
+    }
+
+    public void setDurationShardsEarned(double earned) {
+        durationShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration de la durée, dans l'ordre de {@code Game.DurationUpgrade} ; 0 hors des quatre. */
+    public int durationLevel(int index) {
+        return switch (index) {
+            case 0 -> durationSpeedLevel;
+            case 1 -> durationCountLevel;
+            case 2 -> durationValueLevel;
+            case 3 -> durationTimeLevel;
+            default -> 0;
+        };
+    }
+
+    public void setDurationLevel(int index, int level) {
+        int value = Math.max(0, level);
+        switch (index) {
+            case 0 -> durationSpeedLevel = value;
+            case 1 -> durationCountLevel = value;
+            case 2 -> durationValueLevel = value;
+            case 3 -> durationTimeLevel = value;
             default -> { }
         }
     }

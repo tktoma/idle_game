@@ -32,6 +32,54 @@ et des journaux : c'est lui qu'emploient les autres documents. La **description*
 | 23 | Forgetful | Joueur distrait | Ouvre le jeu vingt minutes par heure, manque souvent les occasions d’agir. |
 | 24 | ReturningVeteran | Expert intermittent | Joue quinze minutes toutes les trois heures; stratégies précises pendant ses connexions. |
 
+## Les trois actes selon la personnalité (version 0.135)
+
+Dès le premier univers, et dans chaque univers ensuite, chaque profil fait ses propres choix dans les trois actes
+(`IdleProfiles24.EARLY_STYLES`) :
+
+- **Achats en atomes** : l'ordre d'ouverture mesuré du modèle (§14.1, avec Persistance au bon moment), ou
+  l'amélioration la moins chère qu'il peut payer.
+- **Arbre de matière noire** : au mieux (liaisons et nouveaux nœuds d'abord), ou la case la moins chère, comptée
+  en part de ce qu'il a dans la monnaie de la case. Dans les deux cas, la matière noire du Big Bang se garde (le
+  double pendant la barre haute), un niveau répétable ne prend pas plus de 5 % de la matière noire (1 % de sa branche
+  dans l'arbre), et les cases payées en atomes ou en particules attendent pendant la préparation du dernier Big Bang.
+  Le succès « compte juste » se prend quand l'occasion passe, dans les deux cas aussi.
+- **Défis de Big Bang** : tentés ou ignorés. Dans le premier univers, dans l'ordre du catalogue et jamais sur une
+  partie prête à Big Bang ; à partir du deuxième, aussi quand le Big Bang est prêt, le ciel figé et la barre haute
+  d'abord (ils ne remettent rien à zéro).
+- **Sondes** : la durée du voyage réglée sur le temps jusqu'à son retour (le plus long voyage qui revient avant
+  lui, en durée réelle, moteurs et bonus compris), ou les sauts courts. Un joueur toujours là qui décide souvent
+  garde donc les sauts courts : il revient avant la fin d'un voyage d'une heure.
+
+Le Speedrunner joue comme avant (l'expert). Le rythme (attention, décisions, présence) reste celui de la table du haut.
+
+| ID | Nom | Atomes | Arbre | Défis de Big Bang | Sondes | Pourquoi |
+|---:|---|---|---|---|---|---|
+| 1 | Speedrunner | ordre du modèle | au mieux | oui | courts | l'expert, toujours là |
+| 2 | Veteran | ordre du modèle | au mieux | oui | selon son absence |  |
+| 3 | Regular | ordre du modèle | au mieux | oui | selon son absence |  |
+| 4 | Methodical | ordre du modèle | au mieux | oui | selon son absence |  |
+| 5 | AchievementHunter | ordre du modèle | au mieux | oui | selon son absence | les défis de Big Bang donnent des succès |
+| 6 | Collector | ordre du modèle | la moins chère | oui | selon son absence | prend toutes les cases, la moins chère d'abord |
+| 7 | Chemist | ordre du modèle | au mieux | oui | selon son absence |  |
+| 8 | Astronomer | ordre du modèle | au mieux | oui | selon son absence |  |
+| 9 | Explorer | ordre du modèle | au mieux | oui | selon son absence | ses sondes partent jusqu'à son retour |
+| 10 | PassiveOptimist | le moins cher | la moins chère | non | selon son absence | compte sur les automatismes, pas d'effort de plus |
+| 11 | PrestigeAddict | ordre du modèle | au mieux | oui | selon son absence |  |
+| 12 | Hoarder | ordre du modèle | au mieux | non | selon son absence | ne risque pas un défi de Big Bang |
+| 13 | BulkBuyer | le moins cher | la moins chère | oui | selon son absence | achète en séries, le moins cher d'abord |
+| 14 | OneClick | le moins cher | la moins chère | non | courts | un achat, le moins cher |
+| 15 | RandomClicker | le moins cher | la moins chère | non | courts |  |
+| 16 | Beginner | le moins cher | la moins chère | non | courts | ne connaît ni l'ordre d'achat ni les défis de Big Bang |
+| 17 | AFKOpen | ordre du modèle | au mieux | oui | selon son absence | planifie bien, une visite par heure |
+| 18 | BackgroundWorker | ordre du modèle | au mieux | oui | selon son absence |  |
+| 19 | MobileSnacker | ordre du modèle | au mieux | oui | selon son absence | sondes d'une heure avant de fermer le jeu |
+| 20 | LunchBreak | ordre du modèle | au mieux | oui | selon son absence |  |
+| 21 | EveningPlayer | ordre du modèle | au mieux | oui | selon son absence | sondes en expédition pour la nuit |
+| 22 | WeekendPlayer | ordre du modèle | au mieux | oui | selon son absence |  |
+| 23 | Forgetful | le moins cher | la moins chère | non | courts | oublie l'ordre et les sondes |
+| 24 | ReturningVeteran | ordre du modèle | au mieux | oui | selon son absence | l'expert, peu présent |
+
 ## Le deuxième univers et le ciel (version 0.131)
 
 Dans le deuxième univers, chaque profil fait ses propres choix (`IdleProfiles24.STYLES`, lu par `NextUniversePolicy`) :
@@ -48,13 +96,15 @@ Dans le deuxième univers, chaque profil fait ses propres choix (`IdleProfiles24
   qui est son attention au ciel.
 
 Le Speedrunner et le Vétéran revenant jouent en experts (tout, toujours, au mieux), sans tirer de hasard pour cela.
-Les choix des autres viennent de leur caractère, pas d'une mesure (voir le README pour les durées).
+Leur cycle, la réserve, vient d'une mesure (0.135 : elle bat la fusion sur les quatre parties essayées) ; le Vétéran,
+le Régulier et les joueurs à sessions appliqués la prennent aussi. Les choix des autres viennent de leur caractère,
+pas d'une mesure (voir le README pour les durées).
 
 | ID | Nom | Cycle | Régime | Choix de cycle | Famille préférée | Éléments offerts | Anomalies du ciel | Pourquoi |
 |---:|---|---|---|---|---|---|---|---|
-| 1 | Speedrunner | fusion | 100 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | l'expert |
-| 2 | Veteran | fusion | 95 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | presque l'expert |
-| 3 | Regular | fusion | 70 % | 90 % | suit ce qui manque | 90 %, le plus utile | 90 % | le bon choix, pas toujours le geste |
+| 1 | Speedrunner | réserve | 100 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | l'expert |
+| 2 | Veteran | réserve | 95 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | presque l'expert |
+| 3 | Regular | réserve | 70 % | 90 % | suit ce qui manque | 90 %, le plus utile | 90 % | le bon choix, pas toujours le geste |
 | 4 | Methodical | réserve | 90 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | l'économe planifie et met en réserve |
 | 5 | AchievementHunter | fusion | 80 % | 90 % | suit ce qui manque | 90 %, le plus utile | 90 % | attentif, sans tout optimiser |
 | 6 | Collector | synthèse | 60 % | 90 % | suit ce qui manque | 100 %, le plus utile | 90 % | des éléments pour ses molécules |
@@ -71,10 +121,54 @@ Les choix des autres viennent de leur caractère, pas d'une mesure (voir le READ
 | 17 | AFKOpen | réserve | 0 % | 100 % | une fois | 100 %, le plus utile | 70 % | une visite par heure, le régime ne sert à rien |
 | 18 | BackgroundWorker | réserve | 10 % | 90 % | une fois | 90 %, le plus utile | 80 % | une décision toutes les dix minutes : le régime, rarement |
 | 19 | MobileSnacker | fusion | 50 % | 90 % | une fois | 90 %, le plus utile | 85 % | cinq minutes par heure |
-| 20 | LunchBreak | fusion | 60 % | 90 % | suit ce qui manque | 90 %, le plus utile | 90 % | des sessions de trente minutes bien remplies |
-| 21 | EveningPlayer | fusion | 90 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | deux heures d'expert par jour |
-| 22 | WeekendPlayer | fusion | 70 % | 90 % | suit ce qui manque | 90 %, le plus utile | 85 % | longues sessions, un peu moins appliqué |
+| 20 | LunchBreak | réserve | 60 % | 90 % | suit ce qui manque | 90 %, le plus utile | 90 % | des sessions de trente minutes bien remplies |
+| 21 | EveningPlayer | réserve | 90 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | deux heures d'expert par jour |
+| 22 | WeekendPlayer | réserve | 70 % | 90 % | suit ce qui manque | 90 %, le plus utile | 85 % | longues sessions, un peu moins appliqué |
 | 23 | Forgetful | synthèse | 20 % | 50 % | — | 50 %, le premier | 55 % | oublie souvent |
-| 24 | ReturningVeteran | fusion | 100 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | l'expert, peu présent |
+| 24 | ReturningVeteran | réserve | 100 % | 100 % | suit ce qui manque | 100 %, le plus utile | 100 % | l'expert, peu présent |
+
+## Le vide du troisième univers (version 0.133)
+
+Le vide se propose au premier Big Bang du troisième univers. Chaque profil le joue à sa façon
+(`IdleProfiles24.VOID_STYLES`, lu par `VoidPolicy`) :
+
+- **Ouverture** : la chance, à chaque décision où il est payable, de l'ouvrir. Tant qu'il se propose, le
+  collisionneur garde son énergie pour lui (achats et automates en attente, deux heures au plus).
+- **Part** : la part du collisionneur et de l'espace libre laissée au vide (25 % : le réglage du jeu, que gardent
+  ceux qui n'y touchent pas).
+- **Achats** : au mieux (d'abord maturation, rassemblement et allègement, qui raccourcissent le troisième acte ; une
+  amélioration de croissance seulement si elle est bon marché à côté, ou si le prochain raccourci est hors de portée),
+  le moins cher, ou au hasard ; et la chance de passer par le vide à une décision pour y acheter.
+- **Trou noir** : la chance de lui sacrifier les particules, une fois les huit Big Bangs faits et quand sa masse y
+  gagne (0 % : jamais).
+
+Les profils 1, 17, 21 et 24 jouent le vide en experts, sans tirer de hasard pour cela.
+
+| ID | Nom | Ouverture | Part | Achats | Passage | Trou noir | Pourquoi |
+|---:|---|---|---|---|---|---|---|
+| 1 | Speedrunner | 100 % | 50 % | au mieux | 100 % | 100 % | l'expert |
+| 2 | Veteran | 100 % | 50 % | au mieux | 95 % | 100 % | presque l'expert |
+| 3 | Regular | 90 % | 25 % | au mieux | 70 % | 80 % | garde le réglage du jeu |
+| 4 | Methodical | 100 % | 50 % | au mieux | 90 % | 100 % | planifie |
+| 5 | AchievementHunter | 90 % | 25 % | le moins cher | 80 % | 100 % | achète tout ce qui s'offre |
+| 6 | Collector | 90 % | 25 % | le moins cher | 80 % | 80 % | le moins cher, pour tout avoir |
+| 7 | Chemist | 90 % | 25 % | au mieux | 80 % | 80 % |  |
+| 8 | Astronomer | 100 % | 50 % | au mieux | 90 % | 100 % | ce qui raccourcit le ciel d'abord |
+| 9 | Explorer | 100 % | 75 % | au mieux | 90 % | 90 % | le collisionneur et le vide sont son terrain |
+| 10 | PassiveOptimist | 80 % | 25 % | le moins cher | 50 % | 30 % | peu de gestes |
+| 11 | PrestigeAddict | 100 % | 50 % | le moins cher | 80 % | 100 % |  |
+| 12 | Hoarder | 50 % | 25 % | au mieux | 30 % | 0 % | hésite à payer, ne sacrifie jamais ses particules |
+| 13 | BulkBuyer | 80 % | 25 % | le moins cher | 50 % | 50 % | de grosses séries, rarement |
+| 14 | OneClick | 70 % | 25 % | le moins cher | 60 % | 50 % |  |
+| 15 | RandomClicker | 60 % | 25 % | au hasard | 60 % | 50 % | au hasard |
+| 16 | Beginner | 50 % | 25 % | le moins cher | 50 % | 20 % | le premier venu |
+| 17 | AFKOpen | 100 % | 50 % | au mieux | 100 % | 100 % | une visite par heure, mais complète |
+| 18 | BackgroundWorker | 90 % | 50 % | au mieux | 80 % | 80 % |  |
+| 19 | MobileSnacker | 90 % | 25 % | le moins cher | 90 % | 80 % | vite, le moins cher |
+| 20 | LunchBreak | 90 % | 50 % | au mieux | 90 % | 90 % |  |
+| 21 | EveningPlayer | 100 % | 50 % | au mieux | 100 % | 100 % |  |
+| 22 | WeekendPlayer | 90 % | 50 % | au mieux | 90 % | 90 % |  |
+| 23 | Forgetful | 40 % | 25 % | le moins cher | 40 % | 30 % | oublie souvent |
+| 24 | ReturningVeteran | 100 % | 50 % | au mieux | 100 % | 100 % | l'expert, peu présent |
 
 **Attention :** les modes historiques ne sont pas des humains. L'ancien défaut de fusion et de synthèse après le Big Bang, qui bloquait les profils 11, 12 et 17, est corrigé depuis le 19 octobre 2026 (voir README, « Les correctifs des bots »).

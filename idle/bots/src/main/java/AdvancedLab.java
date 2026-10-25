@@ -28,7 +28,10 @@ public class AdvancedLab extends RobotCosmosPlanner {
   AdvancedLab(Game g,double dt,String mode,long seed){
     super(g,dt);this.mode=mode;policyRandom=new Random(seed ^ 0x71abcL);
     // Version 0.131 : le débutant joue le deuxième univers en débutant ; les autres modes, en experts.
-    if(mode.equals("DEBUTANT_APPRENANT"))nextUniverse=new NextUniversePolicy(IdleProfiles24.STYLES[15],new Random(seed ^ 0x2b2L));
+    if(mode.equals("DEBUTANT_APPRENANT")){
+      nextUniverse=new NextUniversePolicy(IdleProfiles24.STYLES[15],new Random(seed ^ 0x2b2L));
+      voidPolicy=new VoidPolicy(IdleProfiles24.VOID_STYLES[15],new Random(seed ^ 0x701dL));
+    }
     prevB=g.bodiesMature();prevA=g.assembliesFormed();prevM=g.moleculeKindsCreated();prevT=g.substancesFormed();
     prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevBl=g.bigBangs();prevExpl=g.state().explosions();prevMol=g.moleculesCreated();
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");

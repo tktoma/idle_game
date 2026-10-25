@@ -372,6 +372,9 @@ public abstract class GameStateResets extends GameStateCollider {
         volumeShards = 0;
         volumeShardsEarned = 0;
         for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, 0);
+        durationShards = 0;
+        durationShardsEarned = 0;
+        for (int i = 0; i < DURATION_UPGRADES; i++) setDurationLevel(i, 0);
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;

@@ -191,18 +191,8 @@ final class FirstUniversePolicy {
             if (needsPersistence(game)) return count;
         }
         for (int n = 0; n < limit; n++) {
-            Upgrade choice = null;
             // Tant qu'il manque un succès d'achat précis, prendre l'occasion sans dépenser davantage.
-            if (!game.hasAchievement(Achievements.EXACT_CHANGE)) {
-                for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
-                    if (game.canBuy(upgrade.id())
-                            && game.costOf(upgrade.id()).gte(BigNum.of(Achievements.EXACT_CHANGE_COST))
-                            && game.costOf(upgrade.id()).equals(game.state().atoms())) {
-                        choice = upgrade;
-                        break;
-                    }
-                }
-            }
+            Upgrade choice = exactChange(game);
             if (choice == null) {
                 Step step = nextStep(game);
                 if (step != null) {
@@ -230,8 +220,13 @@ final class FirstUniversePolicy {
      * prochaine étape de l'ouverture ni à la réserve réglée dans le jeu.
      */
     static int synthesize(Game game, int limit) {
+        return synthesize(game, limit, true);
+    }
+
+    /** Pareil ; {@code opening} faux : sans garder d'atomes pour l'ordre d'ouverture (le joueur ne le suit pas). */
+    static int synthesize(Game game, int limit, boolean opening) {
         int count = 0;
-        BigNum keep = game.synthesisReserve().max(openingReserve(game));
+        BigNum keep = opening ? game.synthesisReserve().max(openingReserve(game)) : game.synthesisReserve();
         for (int n = 0; n < limit && game.canSynthesize(); n++) {
             if (game.state().atoms().subtract(game.synthesisCost()).lt(keep)) break;
             game.synthesize();
@@ -289,12 +284,109 @@ final class FirstUniversePolicy {
         return count;
     }
 
+    /**
+     * Le joueur qui ne suit pas l'ordre du modèle (version 0.135) : un automatisme dès qu'il en voit un, et il garde
+     * ses atomes pour lui tant qu'il ne peut pas le payer (c'est ce que tout joueur d'idle veut d'abord) ; sinon ce
+     * qui se paie en atomes et coûte le moins, amélioration (Persistance comprise, sans la peser contre une synthèse)
+     * ou cadence. Il prend quand même l'occasion du succès « compte juste » (payer pile ce qu'il a) : le jeu
+     * l'affiche, et sans lui la marge des quarante succès du Big Bang est mince. Sans la priorité aux automatismes,
+     * les petites améliorations prenaient chaque atome dès sa fusion, et la fusion automatique (15 atomes) ne
+     * s'achetait qu'après une centaine d'heures : le distrait n'avait aucun Big Bang en 168 h (audit de la 0.135).
+     */
+    static int cheapestAtoms(Game game, int limit) {
+        int count = 0;
+        for (int n = 0; n < limit; n++) {
+            Upgrade exact = exactChange(game);
+            if (exact != null) {
+                if (!game.buy(exact.id())) break;
+                count++;
+                continue;
+            }
+            boolean saving = false, boughtAutomation = false;
+            for (idle.core.upgrades.Automation automation : game.automations()) {
+                String id = automation.id();
+                if (!game.isAutomationAvailable(id) || game.ownsAutomation(id)) continue;
+                if (game.canBuyAutomation(id) && game.buyAutomation(id)) { boughtAutomation = true; break; }
+                saving = true;
+            }
+            if (boughtAutomation) { count++; continue; }
+            if (saving) break;
+            Runnable purchase = null;
+            BigNum best = null;
+            for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
+                if (!game.canBuy(upgrade.id())) continue;
+                BigNum cost = game.costOf(upgrade.id());
+                if (best == null || cost.lt(best)) { best = cost; String id = upgrade.id(); purchase = () -> game.buy(id); }
+            }
+            for (idle.core.upgrades.Automation automation : game.automations()) {
+                String id = automation.id();
+                if (game.canSpeedUpAutomation(id) && (best == null || game.automationSpeedCost(id).lt(best))) {
+                    best = game.automationSpeedCost(id); purchase = () -> game.speedUpAutomation(id);
+                }
+            }
+            if (purchase == null) break;
+            BigNum before = game.state().atoms();
+            purchase.run();
+            if (!game.state().atoms().lt(before)) break;
+            count++;
+        }
+        return count;
+    }
+
+    /** L'amélioration d'atomes qui coûte pile les atomes en main, tant que le succès « compte juste » manque. */
+    private static Upgrade exactChange(Game game) {
+        if (game.hasAchievement(Achievements.EXACT_CHANGE)) return null;
+        for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
+            if (game.canBuy(upgrade.id()) && game.costOf(upgrade.id()).gte(BigNum.of(Achievements.EXACT_CHANGE_COST))
+                    && game.costOf(upgrade.id()).equals(game.state().atoms())) return upgrade;
+        }
+        return null;
+    }
+
+    /**
+     * Pareil pour l'arbre de matière noire et sa boutique : la case la moins chère, comptée en part de ce que le joueur
+     * a dans la monnaie de la case (les cases se paient en matière noire, en atomes, en particules ou en mètres). Il
+     * garde la matière noire que le Big Bang demande (celle du défi de la barre haute pendant ce défi), comme le jeu
+     * l'affiche dans ses conditions, et ne vide pas sa réserve dans les niveaux répétables : comme l'expert, au plus
+     * 5 % de la matière noire pour un niveau de boutique, {@link Game#TREE_REPEAT_SHARE} de la branche pour un niveau
+     * de l'arbre. Pendant la préparation du dernier Big Bang, les cases payées en atomes ou en particules attendent.
+     */
+    static int cheapestDark(Game game, int limit) {
+        boolean bank = game.bigBangs() < 8 && game.baseChallengesDone()
+                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
+        boolean finalMode = finalBangPreparation(game);
+        int count = 0;
+        for (int n = 0; n < limit; n++) {
+            DarkUpgrade choice = null;
+            double choiceShare = Double.POSITIVE_INFINITY;
+            for (DarkUpgrade upgrade : game.darkUpgrades()) {
+                if (!game.canBuyDark(upgrade.id())) continue;
+                boolean darkPaid = upgrade.branch() == DarkUpgrade.Branch.DARK_MATTER || upgrade.isLink();
+                if (finalMode && !darkPaid) continue;
+                if (!affordableDark(game, upgrade, bank, game.bigBangDarkMatter())) continue;
+                BigNum cost = game.darkCostOf(upgrade.id());
+                BigNum balance = upgrade.isLink() ? game.state().darkMatter() : game.darkBalance(upgrade.branch());
+                boolean repeat = !upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0;
+                if (repeat && cost.gt(balance.multiply(upgrade.inTree() ? Game.TREE_REPEAT_SHARE : 0.05))) continue;
+                double share = balance.sign() <= 0 ? Double.POSITIVE_INFINITY : cost.divide(balance).toDouble();
+                if (choice == null || share < choiceShare) { choice = upgrade; choiceShare = share; }
+            }
+            if (choice == null || !game.buyDark(choice.id())) break;
+            count++;
+        }
+        return count;
+    }
+
     private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank) {
+        return affordableDark(game, upgrade, bank, Game.BIG_BANG_DARK_MATTER);
+    }
+
+    private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank, BigNum bigBangDarkMatter) {
         if (!game.canBuyDark(upgrade.id())) return false;
         if (upgrade.branch() != DarkUpgrade.Branch.DARK_MATTER && !upgrade.isLink()) return true;
         return DarkMatterReservePolicy.allowPurchase(
                 bank, game.state().darkMatter(), game.darkCostOf(upgrade.id()),
-                Game.BIG_BANG_DARK_MATTER);
+                bigBangDarkMatter);
     }
 
     /**
