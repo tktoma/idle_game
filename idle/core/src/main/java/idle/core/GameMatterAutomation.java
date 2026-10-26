@@ -826,6 +826,11 @@ public abstract class GameMatterAutomation extends GameMolecules {
         int bestMissing = Integer.MAX_VALUE;
         for (Body body : bodies.values()) {
             if (state.hasBody(body.id())) continue;
+            // Version 0.138 : une matière exotique n'est pas à portée avant son palier (huitième Big Bang). Sans cela,
+            // une nébuleuse planétaire dont la matière était déjà réunie (zéro condition manquante) devenait la cible,
+            // jamais formable : la liste de courses restait vide et le 28e astre qu'attend le huitième Big Bang
+            // n'était plus visé (le Thésauriseur bloquait à 27 astres pendant 24 h).
+            if (body.tier() == Body.Tier.EXOTIC && !isExoticUnlocked()) continue;
             boolean reachable = true;
             for (String smaller : body.bodies()) reachable &= isBodyMature(smaller);
             if (!reachable) continue;

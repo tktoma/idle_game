@@ -74,6 +74,26 @@ class LisibiliteTest {
         }
 
         @Test
+        void lesMatieresExotiquesAttendentLeHuitiemeBigBang() {
+            // Version 0.138 : au septième Big Bang, la nébuleuse planétaire (zéro condition manquante une fois sa
+            // matière réunie) ne doit pas passer devant le dernier astre ordinaire, le seul que le joueur peut former.
+            Game game = openGame(1e12);
+            GameTestSupport.bangs(game, 7);
+            assertFalse(game.isExoticUnlocked());
+            for (Body body : game.bodies()) {
+                if (body.tier() != Body.Tier.EXOTIC && !body.id().equals("supermassive_black_hole")) game.state().addBody(body.id());
+            }
+            assertEquals("supermassive_black_hole", game.nextBody().id(), "le dernier astre ordinaire");
+            assertEquals(ShoppingList.Kind.BODY, game.shoppingList().kind());
+            assertEquals(game.body("supermassive_black_hole").name(), game.shoppingList().target());
+            game.state().addBody("supermassive_black_hole");
+            assertNull(game.nextBody(), "avant le huitième Big Bang, aucune matière exotique n'est visée");
+            GameTestSupport.bangs(game, 8);
+            assertTrue(game.isExoticUnlocked());
+            assertEquals(Body.Tier.EXOTIC, game.nextBody().tier(), "au huitième, les matières exotiques reviennent");
+        }
+
+        @Test
         void tousFormesIlNYEnAPlus() {
             Game game = openGame(1e12);
             for (Body body : game.bodies()) game.state().addBody(body.id()); Systemes.trois(game);

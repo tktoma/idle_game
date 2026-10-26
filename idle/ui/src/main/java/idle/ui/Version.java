@@ -23,6 +23,12 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.138", "Le prochain astre n'est plus une matière exotique trop tôt", List.of(
+                    "Avant le huitième Big Bang, la liste de courses et l'objectif ne visent plus une matière exotique : "
+                            + "une nébuleuse planétaire dont la matière était déjà réunie passait devant le dernier astre "
+                            + "ordinaire, sans pouvoir être formée, et la liste restait vide.",
+                    "Profil de test : le Thésauriseur, bloqué à 27 astres pendant 24 h depuis la 0.131, repasse le huitième "
+                            + "Big Bang et forme l'univers en 19 h ; le Prestige passe de 14 h 54 à 11 h 46 ; le Speedrunner forme l'univers 1 en 26 h 53 au lieu de 27 h 01.")),
             new Note("0.137", "L'arrosoir de la graine", List.of(
                     "La graine ne s'arrose plus d'un bouton : un arrosoir attend sur une étagère de bois, en bas à droite de la "
                             + "sous-page « Graine d'univers ». Un bouton posé sur l'étagère le débloque, une fois.",
