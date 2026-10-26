@@ -23,6 +23,18 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.136", "Un quart d'heure par dimension", List.of(
+                    "Le rond vert de chaque dimension demande environ un quart d'heure de jeu appliqué, au lieu d'une à trois "
+                            + "minutes : 250 000 éclats de la ligne, 3 500 du plan, 8 000 du volume et 15 millions de la "
+                            + "durée, au lieu de 100 chacune.",
+                    "Les améliorations de la durée montent plus vite de prix (×3,4, ×4, ×4 et ×3,2 par niveau au lieu de "
+                            + "×2,4, ×3, ×3 et ×2,2) : elles ne sont plus toutes au plus haut en trois minutes.",
+                    "Outils d'essai : « +10 % du seuil » remplace « +100 éclats » pour chaque dimension.",
+                    "Profil de test : un bot par dimension mesure le temps jusqu'au rond vert.")),
+            new Note("0.135", "Les bots jouent mieux, chacun à sa façon", List.of(
+                    "Profil de test : dès le premier univers, chaque profil de bot fait ses propres choix (ordre d'achat, "
+                            + "arbre de matière noire, défis de Big Bang, durée des voyages des sondes), et à partir du "
+                            + "deuxième univers les bots font les défis de Big Bang même quand le Big Bang est prêt.")),
             new Note("0.134", "La durée : la quatrième dimension se joue", List.of(
                     "Au quatrième univers, la dimension 4, la durée, se joue : un rond, et un bouton au milieu.",
                     "Tant qu'on tient le bouton (clic tenu, ou la barre d'espace), les spirales avancent du bord vers le "

@@ -301,9 +301,10 @@ final class DebugBar extends VBox {
                     game.state().setSeedWaterings(0);
                 }));
         group("Dimensions",
-                tool("+100 éclats de la ligne", () -> {
-                    game.state().setDimensionShards(game.state().dimensionShards() + 100);
-                    game.state().setDimensionShardsEarned(game.state().dimensionShardsEarned() + 100);
+                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
+                tool("+10 % du seuil de la ligne", () -> {
+                    game.state().setDimensionShards(game.state().dimensionShards() + Game.LINE_THRESHOLD / 10);
+                    game.state().setDimensionShardsEarned(game.state().dimensionShardsEarned() + Game.LINE_THRESHOLD / 10);
                 }),
                 tool("Seuil de la ligne", () -> game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD))),
                 tool("Ligne au maximum", () -> {
@@ -313,17 +314,19 @@ final class DebugBar extends VBox {
                     game.state().setLineBallsLevel(game.lineMaxLevel(Game.LineUpgrade.BALLS));
                     game.state().setLineCountLevel(game.lineMaxLevel(Game.LineUpgrade.LINES));
                 }),
-                tool("+100 éclats du plan", () -> {
-                    game.state().setPlaneShards(game.state().planeShards() + 100);
-                    game.state().setPlaneShardsEarned(game.state().planeShardsEarned() + 100);
+                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
+                tool("+10 % du seuil du plan", () -> {
+                    game.state().setPlaneShards(game.state().planeShards() + Game.PLANE_THRESHOLD / 10);
+                    game.state().setPlaneShardsEarned(game.state().planeShardsEarned() + Game.PLANE_THRESHOLD / 10);
                 }),
                 tool("Seuil du plan", () -> game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD))),
                 tool("Plan au maximum", () -> {
                     for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) game.state().setPlaneLevel(upgrade.ordinal(), upgrade.max());
                 }),
-                tool("+100 éclats du volume", () -> {
-                    game.state().setVolumeShards(game.state().volumeShards() + 100);
-                    game.state().setVolumeShardsEarned(game.state().volumeShardsEarned() + 100);
+                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
+                tool("+10 % du seuil du volume", () -> {
+                    game.state().setVolumeShards(game.state().volumeShards() + Game.VOLUME_THRESHOLD / 10);
+                    game.state().setVolumeShardsEarned(game.state().volumeShardsEarned() + Game.VOLUME_THRESHOLD / 10);
                 }),
                 tool("Seuil du volume", () -> game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD))),
                 tool("Volume au maximum", () -> {
@@ -332,9 +335,10 @@ final class DebugBar extends VBox {
                         game.state().setVolumeLevel(upgrade.ordinal(), upgrade == Game.VolumeUpgrade.VALUE ? 10 : upgrade.max());
                 }),
                 // La durée (version 0.134), quatrième dimension.
-                tool("+100 éclats de la durée", () -> {
-                    game.state().setDurationShards(game.state().durationShards() + 100);
-                    game.state().setDurationShardsEarned(game.state().durationShardsEarned() + 100);
+                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
+                tool("+10 % du seuil de la durée", () -> {
+                    game.state().setDurationShards(game.state().durationShards() + Game.DURATION_THRESHOLD / 10);
+                    game.state().setDurationShardsEarned(game.state().durationShardsEarned() + Game.DURATION_THRESHOLD / 10);
                 }),
                 tool("Seuil de la durée", () -> game.state().setDurationShardsEarned(Math.max(game.state().durationShardsEarned(), Game.DURATION_THRESHOLD))),
                 tool("Durée au maximum", () -> {

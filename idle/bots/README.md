@@ -399,6 +399,48 @@ Ce que montre l'audit :
 - Les joueurs intermittents (mobile, soir, week-end, vétéran revenant) jouent 14 à 16 h en 168 h. Ils restent au
   plafond du premier univers, mais finissent les univers 2 et 3 quand ils partent d'une sauvegarde.
 
+## Un bot par dimension (version 0.136)
+
+Les dimensions se jouent chacune à part : leurs éclats ne servent qu'à elles, et rien d'autre dans la partie ne les
+lit. `DimensionBots` a donc un bot par dimension, sans lien avec les autres bots. Chacun part de la dimension qui
+vient de s'ouvrir (`checkpoint_universe1_speedrunner.save`, partie secondaire remise à zéro, univers ajoutés par
+l'outil d'essai). Il joue comme un joueur appliqué, et mesure le temps jusqu'au rond vert :
+
+- **la ligne** tourne seule ; le joueur passe acheter toutes les 5 s ;
+- **le plan** : il file droit vers l'éclat le plus proche, et repart 0,25 s après chaque éclat ramassé ;
+- **le volume** : il vise chaque boule en 0,3 s + 0,012 / rayon (0,78 s au départ), replonge 1 s après la fin d'une
+  plongée et achète entre deux ;
+- **la durée** : il tient jusqu'au centre, relâche, et rappuie 0,3 s après.
+
+Il achète au meilleur rapport : le gain d'éclats par seconde d'un niveau, divisé par son prix, d'après un modèle simple
+de chaque dimension. Le modèle choisit ; c'est la partie réelle qui mesure.
+
+```bash
+python run.py dimensions              # les quatre ; ou : python run.py dimensions plan --minutes 30
+java -Didle.achatDimension=moinsCher -Didle.lenteurDimension=2 -cp … DimensionBots toutes 60
+```
+
+`-Didle.achatDimension=moinsCher` achète le moins cher. `-Didle.lenteurDimension=2` rend le joueur deux fois plus lent
+à réagir, viser et revenir. `-Didle.objectifDimension=infini` joue jusqu'au temps donné et écrit les éclats gagnés
+minute par minute : c'est ce qui a servi à placer les seuils.
+
+**Avant la 0.136**, le rond vert venait en 2 min 58 (ligne), 1 min 33 (plan), 55 s (volume) et 31 s (durée), avec
+100 éclats pour chacune. Les seuils sont maintenant ce qu'un joueur appliqué gagne en un quart d'heure : 250 000
+éclats de la ligne, 3 500 du plan, 8 000 du volume et 15 millions de la durée. La durée a aussi des améliorations
+plus chères : ×3,4, ×4, ×4 et ×3,2 par niveau, au lieu de ×2,4, ×3, ×3 et ×2,2. Sinon ses trois améliorations
+plafonnées étaient au plus haut en trois minutes, et le reste du quart d'heure ne se jouait qu'à la valeur.
+
+| Dimension | Appliqué | Le moins cher | Deux fois plus lent | Les deux |
+|---|---|---|---|---|
+| Ligne | 14 min 29 | 14 min 46 | 14 min 52 | 15 min 07 |
+| Plan | 14 min 36 | 17 min 04 | 14 min 39 | 17 min 05 |
+| Volume | 14 min 35 | 16 min 21 | 24 min 59 | 29 min 50 |
+| Durée | 14 min 19 | 15 min 13 | 14 min 31 | 15 min 25 |
+
+Le volume dépend le plus du joueur : on y vise chaque boule, et un joueur deux fois plus lent y met 25 minutes. La
+ligne avance seule, même en son absence ; elle ne dépend presque que du temps. `DimensionBotsTest` garde chaque
+dimension entre 12 et 18 minutes pour le joueur appliqué.
+
 ## Les bots partis de zéro : succès et défis (0.86)
 
 Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :

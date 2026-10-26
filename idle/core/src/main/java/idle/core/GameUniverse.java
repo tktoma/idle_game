@@ -221,8 +221,12 @@ public abstract class GameUniverse extends GameAtoms {
     public static final int LINE_MAX_SPEED = 20;
     /** Boules et lignes en plus, au plus : dix boules par ligne, cinq lignes. */
     public static final int LINE_MAX_EXTRA_BALLS = 9, LINE_MAX_EXTRA_LINES = 4;
-    /** Le seuil de la ligne (version 0.102) : tant d'éclats gagnés en tout, et la dimension 1 est marquée. */
-    public static final double LINE_THRESHOLD = 100;
+    /**
+     * Le seuil de la ligne (version 0.102) : tant d'éclats gagnés en tout, et la dimension 1 est marquée. Version 0.136 :
+     * 250 000 au lieu de 100, qu'un joueur appliqué atteignait en 3 minutes ; il lui en faut maintenant environ 15 (bot
+     * {@code DimensionBots} des bots).
+     */
+    public static final double LINE_THRESHOLD = 250_000;
 
     /** Prix des deux premières améliorations de la ligne, en éclats, et leur croissance à chaque niveau. */
     public static final double LINE_YIELD_COST = 1, LINE_TICKS_COST = 2, LINE_COST_GROWTH = 3;
@@ -303,8 +307,8 @@ public abstract class GameUniverse extends GameAtoms {
         return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() * lineBalls() * lineCount() / lineHalfTrip() : 0;
     }
 
-    /** Éclats du plan à gagner pour son seuil (version 0.120), comme les cent de la ligne. */
-    public static final double PLANE_THRESHOLD = 100;
+    /** Éclats du plan à gagner pour son seuil (version 0.120) : 3 500 depuis la version 0.136 (100 avant), environ 15 minutes de jeu appliqué. */
+    public static final double PLANE_THRESHOLD = 3_500;
 
     /** Vrai une fois le seuil du plan atteint : {@link #PLANE_THRESHOLD} éclats du plan gagnés en tout. */
     public boolean isPlaneThresholdReached() {
@@ -614,8 +618,11 @@ public abstract class GameUniverse extends GameAtoms {
     public static final int VOLUME_MAX_BALLS = 4;
     /** Une plongée dure 12 s au départ, et chaque niveau de durée ajoute 3 s : le cube rejette le joueur à la fin. */
     public static final double VOLUME_DIVE_SECONDS = 12, VOLUME_DIVE_STEP = 3;
-    /** Éclats du volume à gagner pour son seuil, comme les cent de la ligne et du plan : il ouvre le palier 4 de la graine. */
-    public static final double VOLUME_THRESHOLD = 100;
+    /**
+     * Éclats du volume à gagner pour son seuil : il ouvre le palier 4 de la graine. 8 000 depuis la version 0.136 (100
+     * avant), environ 15 minutes de jeu appliqué.
+     */
+    public static final double VOLUME_THRESHOLD = 8_000;
 
     /**
      * Les améliorations du volume, qui s'achètent hors du cube : leur prix de départ en éclats du volume, la
@@ -846,15 +853,21 @@ public abstract class GameUniverse extends GameAtoms {
     public static final double DURATION_MAX_SECONDS = 6, DURATION_TIME_STEP = 2;
     /** Tours par seconde au départ, et ce que chaque niveau de vitesse leur ajoute (+20 %). */
     public static final double DURATION_TURNS = 0.5, DURATION_SPEED_STEP = 0.2;
-    /** Éclats de la durée à gagner pour son seuil, comme les cent des trois premières : il ouvre le palier 5 de la graine. */
-    public static final double DURATION_THRESHOLD = 100;
+    /**
+     * Éclats de la durée à gagner pour son seuil : il ouvre le palier 5 de la graine. 15 millions depuis la version 0.136
+     * (100 avant) : les éclats d'un relâchement montent avec le carré des tours, et le seuil vient après environ 15 minutes
+     * de jeu appliqué.
+     */
+    public static final double DURATION_THRESHOLD = 15_000_000;
 
     /**
      * Les améliorations de la durée : leur prix de départ en éclats de la durée, la croissance, le plafond. Dans
-     * l'ordre de la sauvegarde : vitesse des spirales, nombre de spirales, valeur, temps au plus.
+     * l'ordre de la sauvegarde : vitesse des spirales, nombre de spirales, valeur, temps au plus. Version 0.136 : chaque
+     * niveau coûte une fois de plus le prix du précédent (×3,4, ×4, ×4, ×3,2 au lieu de ×2,4, ×3, ×3, ×2,2) ; avant, les
+     * trois améliorations plafonnées étaient au plus haut en trois minutes.
      */
     public enum DurationUpgrade {
-        SPEED(3, 2.4, 15), COUNT(6, 3, 9), VALUE(5, 3, Integer.MAX_VALUE), TIME(4, 2.2, 20);
+        SPEED(3, 3.4, 15), COUNT(6, 4, 9), VALUE(5, 4, Integer.MAX_VALUE), TIME(4, 3.2, 20);
 
         private final double cost, growth;
         private final int max;

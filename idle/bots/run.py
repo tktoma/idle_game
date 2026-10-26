@@ -74,6 +74,9 @@ def main():
     z.add_argument('--hours',type=float,default=168);z.add_argument('--step',type=float,default=20)
     z.add_argument('--univers',type=int,choices=[1,2,3],default=1);z.add_argument('--strict',action='store_true')
     z.add_argument('--out',default=None)
+    z=sub.add_parser('dimensions',help="un bot par dimension : le temps jusqu'au rond vert (DimensionBots)")
+    z.add_argument('dimension',nargs='?',choices=['ligne','plan','volume','duree','toutes'],default='toutes')
+    z.add_argument('--minutes',type=float,default=60)
     z=sub.add_parser('empreinte',help="joue les 4 parties de l'empreinte du moteur");z.add_argument('--out',required=True);z.add_argument('parties',nargs='*')
     z=sub.add_parser('comparer',help="compare deux dossiers d'empreintes (ou deux sauvegardes)");z.add_argument('a');z.add_argument('b')
     z=sub.add_parser('phase3');z.add_argument('--explosions',type=int,default=1);z.add_argument('--hours',type=int,default=8);z.add_argument('--seed',type=int,default=42)
@@ -88,6 +91,8 @@ def main():
     if a.command=='audit':
         folder=(pathlib.Path(a.out) if a.out else R/'sorties'/f'audit_{a.de:02d}-{a.a:02d}_univers{a.univers}').resolve()
         os.chdir(R);sys.exit(execute(['FreshUniverseAudit',a.de,a.a,a.hours,a.step,folder,str(a.strict).lower(),a.univers]))
+    if a.command=='dimensions':
+        os.chdir(R);sys.exit(execute(['DimensionBots',a.dimension,a.minutes]))
     if a.command=='phase3':sys.exit(execute(['RobotPhase3',a.explosions,a.hours,a.seed]))
     if a.command=='batch':
         if not (1<=a.workers<=8):sys.exit('--workers must be 1..8')

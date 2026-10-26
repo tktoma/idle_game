@@ -113,7 +113,7 @@ class DureeTest {
         assertEquals(3, game.durationCost(DurationUpgrade.SPEED), 1e-12);
         assertTrue(game.buyDuration(DurationUpgrade.SPEED));
         assertEquals(0.6, game.durationTurnsPerSecond(), 1e-12, "+20 %");
-        assertEquals(7.2, game.durationCost(DurationUpgrade.SPEED), 1e-9, "×2,4 par niveau");
+        assertEquals(10.2, game.durationCost(DurationUpgrade.SPEED), 1e-9, "×3,4 par niveau (0.136 ; ×2,4 avant)");
         assertTrue(game.buyDuration(DurationUpgrade.COUNT));
         assertEquals(2, game.durationSpirals());
         assertTrue(game.buyDuration(DurationUpgrade.VALUE));
