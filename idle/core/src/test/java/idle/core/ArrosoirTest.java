@@ -80,15 +80,15 @@ class ArrosoirTest {
     }
 
     @Test
-    void laGraineQuiAttendUnSeuilNeBoitPas() {
+    void laGraineBoitSansLeSeuilDeLaDimensionUn() {
+        // Version 0.139 : les seuils des dimensions ne retiennent plus la graine.
         Game game = ready();
         game.state().setDimensionShardsEarned(0);
-        assertFalse(game.canTendSeed());
+        assertTrue(game.canTendSeed());
         assertTrue(game.unlockWateringCan());
         game.setWatering(true);
-        game.tick(10);
-        assertFalse(game.state().seedSprouted(), "l'objectif de la dimension 1 manque");
-        assertEquals(0, game.wateringPoured(), "rien ne s'accumule en attendant");
+        game.tick(1);
+        assertTrue(game.state().seedSprouted());
     }
 
     @Test

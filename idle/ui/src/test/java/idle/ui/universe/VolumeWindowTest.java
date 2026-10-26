@@ -100,7 +100,7 @@ class VolumeWindowTest {
             assertEquals(1, game.state().volumeShards(), 1e-12, "une boule cueillie : un éclat du volume");
             assertEquals(1, view.volumePickupsShown(), "son gain monte");
             window.frame(0.05, true);
-            assertEquals("Éclats du volume : 1", window.volumeShardsText());
+            assertEquals("Sphères du volume : 1", window.volumeShardsText());
             assertTrue(view.press(5, 5, true), "un clic droit dans le vide sert aussi : il ne cueille rien");
             assertEquals(1, game.state().volumeShards(), 1e-12);
             return null;

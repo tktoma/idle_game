@@ -218,22 +218,21 @@ class VolumeTest {
         assertEquals(0, game.volumeCollected());
     }
 
+    /** Version 0.139 : le seuil du volume lui met son rond vert ; la graine, elle, ne l'attend plus. */
     @Test
-    void leSeuilDuVolumeOuvreLePalierQuatreDeLaGraine() {
+    void leSeuilDuVolumeMarqueLaDimensionSansRetenirLaGraine() {
         Game game = third();
         assertFalse(game.isDimensionThresholdReached(3));
-        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
-        game.state().setPlaneShardsEarned(Game.PLANE_THRESHOLD);
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(Game.seedStageWaterings(4));
-        assertEquals(3, game.seedStage(), "sans le seuil du volume, la graine reste au palier 3");
-        assertFalse(game.canTendSeed());
+        assertEquals(4, game.seedStage(), "sans le seuil du volume, les arrosages suffisent au palier 4");
+        assertTrue(game.canTendSeed());
         game.state().setVolumeShardsEarned(Game.VOLUME_THRESHOLD - 0.5);
         assertFalse(game.isVolumeThresholdReached());
         game.state().setVolumeShardsEarned(Game.VOLUME_THRESHOLD);
         assertTrue(game.isVolumeThresholdReached());
         assertTrue(game.isDimensionThresholdReached(3));
-        assertEquals(4, game.seedStage(), "le seuil atteint, la graine passe au palier 4");
+        assertEquals(4, game.seedStage(), "le seuil ne change rien au palier");
         assertFalse(game.isDimensionThresholdReached(4), "la durée n'a pas son seuil");
     }
 

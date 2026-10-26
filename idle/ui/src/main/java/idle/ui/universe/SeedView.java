@@ -97,6 +97,44 @@ public final class SeedView extends Canvas {
         boolean splashed;
     }
 
+    // Le tuyau d'arrosage et le chrono (version 0.139).
+    private static final Color HOSE = Color.web("#3f8f4a");
+    private static final Color HOSE_LIGHT = Color.web("#7cc985");
+    private static final Color CHRONO_FACE = Color.web("#14202c");
+    private static final Color CHRONO_TIME = Color.web("#8fd3ff");
+    private static final Color BRASS = Color.web("#c9a24a");
+    private boolean hoseShown, hoseFlowing;
+    private double hoseTimer;
+    private final java.util.List<Stream> hoseSpray = new java.util.ArrayList<>();
+    private boolean chronoShown, chronoRunning;
+    private double chronoFill, chronoHand;
+
+    /** Le tuyau d'arrosage : posé dans la vue une fois acheté, et s'il verse en ce moment. */
+    public void setHose(boolean shown, boolean flowing) {
+        hoseShown = shown;
+        hoseFlowing = shown && flowing;
+    }
+
+    public boolean isHoseShown() {
+        return hoseShown;
+    }
+
+    /** Les gouttes du tuyau : pour les vérifications. */
+    public int hoseDrops() {
+        return hoseSpray.size();
+    }
+
+    /** Le chrono sur l'étage du haut : là ou non, sa part remplie (0 à 1), et s'il accélère le jeu. */
+    public void setChrono(boolean shown, double fill, boolean running) {
+        chronoShown = shown;
+        chronoFill = Math.max(0, Math.min(1, fill));
+        chronoRunning = shown && running;
+    }
+
+    public boolean isChronoShown() {
+        return chronoShown;
+    }
+
     private boolean canUnlocked;
     /** Où est l'arrosoir (son centre, en points de la vue) ; NaN : sur l'étagère, avant le premier dessin. */
     private double canX = Double.NaN, canY = Double.NaN;
@@ -275,7 +313,39 @@ public final class SeedView extends Canvas {
                 stream.add(drop);
             }
         } else streamTimer = 0;
+        // Le tuyau arrose seul : un jet en cloche de sa lance vers le pied de la plante.
+        if (hoseFlowing && plantHalf > 0) {
+            hoseTimer += dt;
+            while (hoseTimer >= 0.05) {
+                hoseTimer -= 0.05;
+                double[] tip = hoseNozzle();
+                Stream drop = new Stream();
+                // Une cloche qui retombe sur la plante en un peu plus d'une demi-seconde.
+                double spread = (UniverseView.noise(++dropCount * 5 + 4) - 0.5) * 0.3;
+                double flight = 0.6 * (1 + spread), fall = Math.max(300, getHeight() * 1.6);
+                double reach = Math.max(1, plantX - tip[0]) * (0.75 + 0.2 * UniverseView.noise(dropCount * 5 + 5));
+                drop.x = tip[0];
+                drop.y = tip[1];
+                drop.land = plantBottom - canSize() * 0.1;
+                drop.vx = reach / flight;
+                drop.vy = (drop.land - tip[1] - 0.5 * fall * flight * flight) / flight;
+                hoseSpray.add(drop);
+            }
+        } else hoseTimer = 0;
+        if (chronoShown) chronoHand += dt * (chronoRunning ? 5 : 0.4);
         double gravity = Math.max(300, getHeight() * 1.6);
+        for (Stream drop : hoseSpray) {
+            drop.age += dt;
+            if (drop.splashed) continue;
+            drop.vy += gravity * dt;
+            drop.x += drop.vx * dt;
+            drop.y += drop.vy * dt;
+            if (drop.vy > 0 && drop.y >= drop.land || drop.y >= getHeight()) {
+                drop.splashed = true;
+                drop.age = 0;
+            }
+        }
+        hoseSpray.removeIf(drop -> drop.splashed ? drop.age > 0.35 : drop.age > 3);
         for (Stream drop : stream) {
             drop.age += dt;
             if (drop.splashed) continue;
@@ -641,7 +711,10 @@ public final class SeedView extends Canvas {
         double s = canSize(), x = shelfX(), top = shelfTop(), plank = s * 2.4, thick = Math.max(5, s * 0.14);
         // Une petite étagère de bois : deux montants, un fond plus sombre, une planche du haut et celle où se pose
         // l'arrosoir, posée sur deux pieds.
-        double left = x - plank / 2, right = x + plank / 2, high = top - s * 1.35, post = Math.max(4, s * 0.1);
+        // Version 0.139 : un étage de plus pour le chrono, au-dessus de l'arrosoir.
+        double level = s * 1.35, mid = top - level, high = top - level * (chronoShown ? 2 : 1);
+        double left = x - plank / 2, right = x + plank / 2, post = Math.max(4, s * 0.1);
+        drawHose(g, s);
         g.setGlobalAlpha(0.55);
         g.setFill(SHELF_EDGE);
         g.fillRect(left + post, high, plank - 2 * post, top - high);
@@ -649,11 +722,13 @@ public final class SeedView extends Canvas {
         g.setFill(SHELF);
         g.fillRect(left, high - thick, post, top + thick * 2 - high);
         g.fillRect(right - post, high - thick, post, top + thick * 2 - high);
-        g.fillRoundRect(left - thick * 0.4, high - thick, plank + thick * 0.8, thick, 3, 3);
-        g.fillRoundRect(left - thick * 0.4, top, plank + thick * 0.8, thick, 3, 3);
-        g.setFill(SHELF_EDGE);
-        g.fillRect(left - thick * 0.4, top + thick * 0.65, plank + thick * 0.8, thick * 0.35);
-        g.fillRect(left - thick * 0.4, high - thick * 0.35, plank + thick * 0.8, thick * 0.35);
+        for (double board : chronoShown ? new double[] {top, mid, high - thick} : new double[] {top, high - thick}) {
+            g.setFill(SHELF);
+            g.fillRoundRect(left - thick * 0.4, board, plank + thick * 0.8, thick, 3, 3);
+            g.setFill(SHELF_EDGE);
+            g.fillRect(left - thick * 0.4, board + thick * 0.65, plank + thick * 0.8, thick * 0.35);
+        }
+        if (chronoShown) drawChrono(g, x, mid - level / 2, s * 0.45);
         // Le fil du bois.
         g.setStroke(SHELF_EDGE);
         g.setGlobalAlpha(0.35);
@@ -679,6 +754,17 @@ public final class SeedView extends Canvas {
                 UniverseView.glow(g, drop.x, drop.y, r * 2.5, WATER, 0.25);
             }
         }
+        for (Stream drop : hoseSpray) {
+            double r = Math.max(1.6, s * 0.035);
+            g.setFill(WATER);
+            if (drop.splashed) {
+                g.setGlobalAlpha(0.6 * (1 - drop.age / 0.35));
+                g.fillOval(drop.x - r * 1.5, drop.y - r * 0.5, r * 3, r);
+            } else {
+                g.setGlobalAlpha(0.85);
+                g.fillOval(drop.x - r, drop.y - r, 2 * r, 2 * r);
+            }
+        }
         g.setGlobalAlpha(1);
 
         if (!canUnlocked) {
@@ -689,6 +775,73 @@ public final class SeedView extends Canvas {
             return;
         }
         drawCan(g, canX(), canY(), s, CAN_TILT_DEGREES * tilt, false);
+    }
+
+    /** La lance du tuyau : près du pied de la plante, à droite, tournée vers elle. */
+    private double[] hoseNozzle() {
+        double s = canSize();
+        return new double[] {plantX - Math.max(plantHalf * 0.75, s * 1.6), plantBottom - s * 0.15};
+    }
+
+    /**
+     * Le tuyau d'arrosage : il vient du bord gauche, loin de l'étagère, court au sol et finit par sa lance, au pied de
+     * la plante.
+     */
+    private void drawHose(GraphicsContext g, double s) {
+        if (!hoseShown || plantHalf <= 0) return;
+        double h = getHeight();
+        double[] tip = hoseNozzle();
+        double floor = h - s * 0.12;
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        for (int pass = 0; pass < 2; pass++) {
+            g.setStroke(pass == 0 ? HOSE : HOSE_LIGHT);
+            g.setLineWidth(pass == 0 ? Math.max(4, s * 0.16) : Math.max(1.5, s * 0.05));
+            g.setGlobalAlpha(pass == 0 ? 1 : 0.6);
+            g.beginPath();
+            g.moveTo(-s, floor);
+            g.bezierCurveTo(s * 3, floor + s * 0.05, tip[0] - s * 2.5, floor, tip[0] - s * 0.55, tip[1] + s * 0.05);
+            g.stroke();
+        }
+        g.setGlobalAlpha(1);
+        // La lance, de laiton, tournée vers la plante.
+        g.save();
+        g.translate(tip[0], tip[1]);
+        g.rotate(-20);
+        g.setFill(BRASS);
+        g.fillRoundRect(-s * 0.05, -s * 0.08, s * 0.55, s * 0.16, 4, 4);
+        g.fillOval(-s * 0.1, -s * 0.11, s * 0.16, s * 0.22);
+        g.restore();
+    }
+
+    /**
+     * Le chrono de l'étage du haut : un cadran sombre que remplit le temps gardé (en bleu), une aiguille qui tourne
+     * vite quand il accélère le jeu, lentement sinon, et un remontoir de laiton.
+     */
+    private void drawChrono(GraphicsContext g, double x, double y, double r) {
+        if (chronoRunning) UniverseView.glow(g, x, y, r * 2.2, CHRONO_TIME, 0.35);
+        g.setFill(BRASS);
+        g.fillRect(x - r * 0.12, y - r * 1.25, r * 0.24, r * 0.3);
+        g.fillOval(x - r * 0.22, y - r * 1.4, r * 0.44, r * 0.22);
+        g.setFill(CHRONO_FACE);
+        g.fillOval(x - r, y - r, 2 * r, 2 * r);
+        g.setFill(CHRONO_TIME);
+        g.setGlobalAlpha(0.8);
+        g.fillArc(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7, 90, -360 * chronoFill, javafx.scene.shape.ArcType.ROUND);
+        g.setGlobalAlpha(1);
+        g.setStroke(BRASS);
+        g.setLineWidth(Math.max(2, r * 0.14));
+        g.strokeOval(x - r, y - r, 2 * r, 2 * r);
+        g.setLineWidth(Math.max(1, r * 0.05));
+        for (int k = 0; k < 12; k++) {
+            double a = Math.PI * 2 * k / 12;
+            g.strokeLine(x + Math.cos(a) * r * 0.78, y + Math.sin(a) * r * 0.78, x + Math.cos(a) * r * 0.9, y + Math.sin(a) * r * 0.9);
+        }
+        double a = chronoHand - Math.PI / 2;
+        g.setStroke(SEAM);
+        g.setLineWidth(Math.max(1.5, r * 0.08));
+        g.strokeLine(x, y, x + Math.cos(a) * r * 0.7, y + Math.sin(a) * r * 0.7);
+        g.setFill(BRASS);
+        g.fillOval(x - r * 0.1, y - r * 0.1, r * 0.2, r * 0.2);
     }
 
     /** Un arrosoir de fer peint, centré en ({@code x}, {@code y}), penché de {@code degrees} : seulement sa silhouette si {@code ghost}. */

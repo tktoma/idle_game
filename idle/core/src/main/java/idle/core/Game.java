@@ -342,6 +342,8 @@ public final class Game extends GameVoid {
         if (dt < 0 || Double.isNaN(dt) || Double.isInfinite(dt)) {
             throw new IllegalArgumentException("Durée invalide : " + dt);
         }
+        // Le chrono (version 0.139) : il se remplit, et en jeu il fait passer le temps plus vite, tout le jeu compris.
+        dt = runChrono(dt, !away);
         if (away) {
             takeAbsencePaths();
             startChallengeWhileAway();

@@ -176,22 +176,20 @@ class DureeTest {
         assertEquals(0, game.state().durationShardsEarned());
     }
 
+    /** Version 0.139 : le seuil de la durée lui met son rond vert ; la graine, elle, ne l'attend plus. */
     @Test
-    void leSeuilDeLaDureeOuvreLePalierCinqDeLaGraine() {
+    void leSeuilDeLaDureeMarqueLaDimensionSansRetenirLaGraine() {
         Game game = fourth();
-        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
-        game.state().setPlaneShardsEarned(Game.PLANE_THRESHOLD);
-        game.state().setVolumeShardsEarned(Game.VOLUME_THRESHOLD);
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(Game.seedStageWaterings(5));
-        assertEquals(4, game.seedStage(), "sans le seuil de la durée, la graine reste au palier 4");
-        assertFalse(game.canTendSeed());
+        assertEquals(5, game.seedStage(), "sans aucun seuil, les arrosages suffisent au palier 5");
+        assertTrue(game.canTendSeed());
         game.state().setDurationShardsEarned(Game.DURATION_THRESHOLD - 0.5);
         assertFalse(game.isDurationThresholdReached());
         game.state().setDurationShardsEarned(Game.DURATION_THRESHOLD);
         assertTrue(game.isDurationThresholdReached());
         assertTrue(game.isDimensionThresholdReached(4));
-        assertEquals(5, game.seedStage(), "le seuil atteint, la graine passe au palier 5");
+        assertEquals(5, game.seedStage(), "le seuil ne change rien au palier");
         assertFalse(game.isDimensionThresholdReached(5), "la dimension 5 n'a pas encore de seuil");
     }
 

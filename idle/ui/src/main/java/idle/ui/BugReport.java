@@ -57,6 +57,12 @@ final class BugReport {
         if (game.universes() > 0) {
             text.append("Graine d'univers : palier ").append(game.seedStage()).append(" · ")
                     .append(Format.count(game.state().universeSeeds())).append(" graine(s) d'univers").append('\n');
+            // Le chrono (version 0.139) fait passer tout le jeu plus vite : le rapport dit son réglage.
+            if (game.isChronoUnlocked()) {
+                text.append("Chrono : ×").append(game.chronoSpeed()).append(" · gardé ")
+                        .append(Format.duration(game.chronoStored())).append(" sur ")
+                        .append(Format.duration(game.chronoCapacity())).append('\n');
+            }
         }
         text.append("Paliers de Big Bang : ").append(milestones(game)).append('\n');
         text.append("En cours : ").append(running(game)).append('\n');

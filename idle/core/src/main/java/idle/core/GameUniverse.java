@@ -619,8 +619,8 @@ public abstract class GameUniverse extends GameAtoms {
     /** Une plongée dure 12 s au départ, et chaque niveau de durée ajoute 3 s : le cube rejette le joueur à la fin. */
     public static final double VOLUME_DIVE_SECONDS = 12, VOLUME_DIVE_STEP = 3;
     /**
-     * Éclats du volume à gagner pour son seuil : il ouvre le palier 4 de la graine. 8 000 depuis la version 0.136 (100
-     * avant), environ 15 minutes de jeu appliqué.
+     * Éclats du volume (ses sphères) à gagner pour son seuil, qui lui met le rond vert (jusqu'à la 0.138, il ouvrait
+     * aussi le palier 4 de la graine). 8 000 depuis la version 0.136 (100 avant), environ 15 minutes de jeu appliqué.
      */
     public static final double VOLUME_THRESHOLD = 8_000;
 
@@ -854,9 +854,9 @@ public abstract class GameUniverse extends GameAtoms {
     /** Tours par seconde au départ, et ce que chaque niveau de vitesse leur ajoute (+20 %). */
     public static final double DURATION_TURNS = 0.5, DURATION_SPEED_STEP = 0.2;
     /**
-     * Éclats de la durée à gagner pour son seuil : il ouvre le palier 5 de la graine. 15 millions depuis la version 0.136
-     * (100 avant) : les éclats d'un relâchement montent avec le carré des tours, et le seuil vient après environ 15 minutes
-     * de jeu appliqué.
+     * Éclats de la durée (ses instants) à gagner pour son seuil, qui lui met le rond vert (jusqu'à la 0.138, il ouvrait
+     * aussi le palier 5 de la graine). 15 millions depuis la version 0.136 (100 avant) : les éclats d'un relâchement
+     * montent avec le carré des tours, et le seuil vient après environ 15 minutes de jeu appliqué.
      */
     public static final double DURATION_THRESHOLD = 15_000_000;
 
@@ -1026,15 +1026,13 @@ public abstract class GameUniverse extends GameAtoms {
     // ------------------------------------------------------------------
 
     /**
-     * Vrai si le bouton de la graine peut servir : l'univers est formé (il n'y a qu'une graine, la sienne)
-     * et l'objectif de la dimension 1 (son seuil, {@link #isLineThresholdReached()}) est atteint. Version
-     * 0.105 : il ne demande plus de graine en réserve, ce qui le laissait grisé une fois l'objectif atteint.
+     * Vrai si la graine peut être arrosée : l'univers est formé (il n'y a qu'une graine, la sienne) et elle n'est pas
+     * encore l'arbre-monde. Version 0.139 : les seuils des dimensions ne la retiennent plus (de la 0.103 à la 0.138, il
+     * fallait l'objectif de la dimension 1 pour la faire germer, puis le seuil de la dimension de chaque palier) ; ils
+     * ne donnent plus que le rond vert de leur dimension.
      */
     public boolean canTendSeed() {
-        // Version 0.120 : la graine ne s'arrose qu'une fois le seuil de la dimension de son palier atteint (la ligne
-        // au premier, le plan au deuxième…), et plus au dernier.
-        int stage = seedStage();
-        return isUniverseFormed() && stage < SEED_STAGES && isDimensionThresholdReached(stage);
+        return isUniverseFormed() && seedStage() < SEED_STAGES;
     }
 
     /** Arrosages qui font du germe une brindille (version 0.106) : c'est elle qui ouvre le deuxième univers. */
@@ -1042,8 +1040,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /**
      * Les paliers de la graine (version 0.120), de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N. Chacun
-     * demande {@link #SEED_TWIG_WATERINGS} arrosages de plus que le précédent, une fois atteint le seuil de la
-     * dimension du palier d'avant : la ligne pour la tige (palier 2), le plan pour le palier 3, et ainsi de suite.
+     * demande {@link #SEED_TWIG_WATERINGS} arrosages de plus que le précédent (version 0.139 : seulement des arrosages ;
+     * avant, aussi le seuil de la dimension du palier d'avant).
      */
     public static final int SEED_STAGES = 11;
 
@@ -1061,7 +1059,7 @@ public abstract class GameUniverse extends GameAtoms {
     public int seedStage() {
         if (!state.seedSprouted()) return 1;
         int stage = 1;
-        while (stage < SEED_STAGES && state.seedWaterings() >= seedStageWaterings(stage + 1) && isDimensionThresholdReached(stage)) stage++;
+        while (stage < SEED_STAGES && state.seedWaterings() >= seedStageWaterings(stage + 1)) stage++;
         return stage;
     }
 
@@ -1146,31 +1144,280 @@ public abstract class GameUniverse extends GameAtoms {
         return watering ? wateringPoured : 0;
     }
 
-    /** L'arrosoir verse pendant {@code dt} secondes : un arrosage à chaque seconde pleine, tant que la graine l'accepte. */
+    /**
+     * L'arrosoir tenu et le tuyau (version 0.139) versent pendant {@code dt} secondes : un arrosage à chaque arrosage
+     * plein, tant que la graine l'accepte. Le tuyau verse seul, sans qu'on le tienne.
+     */
     void runWatering(double dt) {
-        if (!watering || dt <= 0) return;
-        if (!state.wateringCan()) {
-            setWatering(false);
+        if (dt <= 0) return;
+        if (watering && !state.wateringCan()) setWatering(false);
+        if (!canTendSeed()) {
+            wateringPoured = 0;
+            hosePoured = 0;
             return;
+        }
+        if (watering) {
+            wateringPoured += dt * wateringCanRate();
+            while (wateringPoured >= 1 && canTendSeed()) {
+                wateringPoured -= 1;
+                tendSeed();
+            }
+        }
+        double hose = hoseRate();
+        if (hose > 0) {
+            hosePoured += dt * hose;
+            while (hosePoured >= 1 && canTendSeed()) {
+                hosePoured -= 1;
+                tendSeed();
+            }
         }
         if (!canTendSeed()) {
             wateringPoured = 0;
-            return;
+            hosePoured = 0;
         }
-        wateringPoured += dt * WATERING_CAN_PER_SECOND;
-        while (wateringPoured >= 1 && canTendSeed()) {
-            wateringPoured -= 1;
-            tendSeed();
-        }
-        if (!canTendSeed()) wateringPoured = 0;
     }
 
-    /** Le premier arrosage fait germer la graine ; les suivants arrosent son germe, qui grandit. Faux si fermé. */
+    /**
+     * Le premier arrosage fait germer la graine ; les suivants arrosent son germe, qui grandit, et chacun compte pour
+     * {@link #seedSoilFactor()} grâce à la terre fertile (version 0.139). Faux si fermé.
+     */
     public boolean tendSeed() {
         if (!canTendSeed()) return false;
         if (!state.seedSprouted()) state.setSeedSprouted(true);
-        else state.setSeedWaterings(state.seedWaterings() + 1);
+        else state.setSeedWaterings(state.seedWaterings() + seedSoilFactor());
         return true;
+    }
+
+    // ------------------------------------------------------------------
+    // Les améliorations de la graine et le chrono (version 0.139)
+    // ------------------------------------------------------------------
+
+    /**
+     * Le nom de la ressource de chaque dimension (version 0.139), ses éclats : les segments de la ligne, les facettes
+     * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
+     * pas encore.
+     */
+    public static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants");
+
+    /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
+    public static String dimensionResourceName(int number) {
+        return number >= 1 && number <= DIMENSION_RESOURCES.size() ? DIMENSION_RESOURCES.get(number - 1)
+                : "éclats de la dimension " + number;
+    }
+
+    /** La réserve de la ressource de la dimension {@code number} (1 à 4) ; 0 pour les autres. */
+    public double dimensionResource(int number) {
+        return switch (number) {
+            case 1 -> state.dimensionShards();
+            case 2 -> state.planeShards();
+            case 3 -> state.volumeShards();
+            case 4 -> state.durationShards();
+            default -> 0;
+        };
+    }
+
+    private void spendDimensionResource(int number, double amount) {
+        switch (number) {
+            case 1 -> state.setDimensionShards(Math.max(0, state.dimensionShards() - amount));
+            case 2 -> state.setPlaneShards(Math.max(0, state.planeShards() - amount));
+            case 3 -> state.setVolumeShards(Math.max(0, state.volumeShards() - amount));
+            case 4 -> state.setDurationShards(Math.max(0, state.durationShards() - amount));
+            default -> throw new IllegalArgumentException("Pas de ressource pour la dimension " + number);
+        }
+    }
+
+    /**
+     * Les améliorations de la graine, payées avec la ressource d'une dimension : quatre pour l'arrosage et l'étagère,
+     * quatre pour le chrono, une par dimension dans chaque groupe. Dans l'ordre de la sauvegarde.
+     */
+    public enum SeedUpgrade {
+        /** Segments de la ligne : +1 arrosage par seconde de l'arrosoir tenu, par niveau. */
+        WATERING(1, "Débit de l'arrosoir", 25_000, 3, 20, false),
+        /** Facettes du plan : le tuyau d'arrosage, qui verse seul 10 % de ce que verse l'arrosoir, +10 % par niveau. */
+        HOSE(2, "Tuyau d'arrosage", 350, 2.5, 10, false),
+        /** Sphères du volume : la terre fertile, chaque arrosage compte double, ×2 encore par niveau. */
+        SOIL(3, "Terre fertile", 800, 3, 10, false),
+        /** Instants de la durée : un étage de plus à l'étagère, avec le chrono. */
+        CHRONO(4, "Étage du chrono", 1_500_000, 1, 1, false),
+        /** Segments : le chrono se remplit plus vite. */
+        CHRONO_FILL(1, "Remplissage du chrono", 50_000, 3, 20, true),
+        /** Facettes : il garde plus de temps. */
+        CHRONO_CAPACITY(2, "Réserve du chrono", 500, 2.5, 20, true),
+        /** Sphères : il accélère davantage. */
+        CHRONO_SPEED(3, "Accélération du chrono", 1_000, 3, 8, true),
+        /** Instants : il perd moins à grande vitesse. */
+        CHRONO_LOSS(4, "Pertes du chrono", 2_000_000, 4, 15, true);
+
+        private final int dimension;
+        private final String label;
+        private final double cost, growth;
+        private final int max;
+        private final boolean chrono;
+
+        SeedUpgrade(int dimension, String label, double cost, double growth, int max, boolean chrono) {
+            this.dimension = dimension;
+            this.label = label;
+            this.cost = cost;
+            this.growth = growth;
+            this.max = max;
+            this.chrono = chrono;
+        }
+
+        /** La dimension dont la ressource la paie. */
+        public int dimension() {
+            return dimension;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public int max() {
+            return max;
+        }
+
+        /** Vrai pour celles du chrono, qui attendent son étage. */
+        public boolean chrono() {
+            return chrono;
+        }
+    }
+
+    public int seedUpgradeLevel(SeedUpgrade upgrade) {
+        return state.seedUpgradeLevel(upgrade.ordinal());
+    }
+
+    /** Prix du prochain niveau, dans la ressource de sa dimension ; infini une fois au plus haut. */
+    public double seedUpgradeCost(SeedUpgrade upgrade) {
+        int level = seedUpgradeLevel(upgrade);
+        // Arrondi à l'unité au-dessus : les croissances ×2,5 ne laissent pas de prix à virgule.
+        if (level >= upgrade.max) return Double.POSITIVE_INFINITY;
+        return Math.ceil(upgrade.cost * Math.pow(upgrade.growth, level) - 1e-9);
+    }
+
+    /**
+     * Vrai si l'amélioration est ouverte : sa dimension existe, l'arrosoir est débloqué (pour son débit), l'étage du
+     * chrono est là (pour celles du chrono).
+     */
+    public boolean isSeedUpgradeOpen(SeedUpgrade upgrade) {
+        if (!isUniverseFormed() || dimensionsUnlocked() < upgrade.dimension) return false;
+        if (upgrade == SeedUpgrade.WATERING && !state.wateringCan()) return false;
+        return !upgrade.chrono || isChronoUnlocked();
+    }
+
+    public boolean canBuySeedUpgrade(SeedUpgrade upgrade) {
+        return isSeedUpgradeOpen(upgrade) && seedUpgradeLevel(upgrade) < upgrade.max
+                && dimensionResource(upgrade.dimension) >= seedUpgradeCost(upgrade) - 1e-9;
+    }
+
+    public boolean buySeedUpgrade(SeedUpgrade upgrade) {
+        if (!canBuySeedUpgrade(upgrade)) return false;
+        spendDimensionResource(upgrade.dimension, seedUpgradeCost(upgrade));
+        state.setSeedUpgradeLevel(upgrade.ordinal(), seedUpgradeLevel(upgrade) + 1);
+        return true;
+    }
+
+    /** Arrosages par seconde de l'arrosoir tenu : 1, et 1 de plus par niveau de débit. */
+    public double wateringCanRate() {
+        return WATERING_CAN_PER_SECOND * (1 + seedUpgradeLevel(SeedUpgrade.WATERING));
+    }
+
+    /** Ce que verse le tuyau, en part de ce que verse l'arrosoir : 10 % par niveau, 0 sans tuyau. */
+    public double hoseShare() {
+        return 0.1 * seedUpgradeLevel(SeedUpgrade.HOSE);
+    }
+
+    /** Arrosages par seconde du tuyau, qui verse seul. */
+    public double hoseRate() {
+        return hoseShare() * wateringCanRate();
+    }
+
+    public boolean hasHose() {
+        return seedUpgradeLevel(SeedUpgrade.HOSE) > 0;
+    }
+
+    /** Ce que compte chaque arrosage grâce à la terre fertile : 1, puis ×2 par niveau. */
+    public long seedSoilFactor() {
+        return 1L << Math.min(40, seedUpgradeLevel(SeedUpgrade.SOIL));
+    }
+
+    /** Le tuyau verse seul : la part déjà versée de son prochain arrosage, qui ne se sauvegarde pas. */
+    private double hosePoured;
+
+    // Le chrono : il se remplit de temps tout seul, et ce temps sert à faire passer le jeu plus vite.
+
+    /** Au départ, le chrono garde 0,1 seconde par seconde de jeu, 5 minutes au plus, et accélère jusqu'à ×2. */
+    public static final double CHRONO_FILL = 0.1, CHRONO_CAPACITY = 300, CHRONO_MAX_SPEED = 2;
+    /** Ce que perd le chrono par point d'accélération au-delà de ×1 : 10 %, ×0,85 par niveau de pertes, 90 % au plus. */
+    public static final double CHRONO_LOSS_STEP = 0.1, CHRONO_LOSS_CUT = 0.85, CHRONO_LOSS_MAX = 0.9;
+
+    public boolean isChronoUnlocked() {
+        return seedUpgradeLevel(SeedUpgrade.CHRONO) > 0;
+    }
+
+    /** Secondes gardées par seconde : 0,1, et 0,1 de plus par niveau de remplissage. */
+    public double chronoFillRate() {
+        return CHRONO_FILL * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_FILL));
+    }
+
+    /** Le temps que garde le chrono au plus : 5 minutes, et 5 de plus par niveau de réserve. */
+    public double chronoCapacity() {
+        return CHRONO_CAPACITY * (1 + seedUpgradeLevel(SeedUpgrade.CHRONO_CAPACITY));
+    }
+
+    /** L'accélération la plus forte : ×2, et +1 par niveau. */
+    public double chronoMaxSpeed() {
+        return CHRONO_MAX_SPEED + seedUpgradeLevel(SeedUpgrade.CHRONO_SPEED);
+    }
+
+    /** La part perdue du temps du chrono à l'accélération {@code speed} : plus on va vite, plus on perd. */
+    public double chronoLoss(double speed) {
+        double extra = Math.max(0, speed - 1);
+        return Math.min(CHRONO_LOSS_MAX, CHRONO_LOSS_STEP * extra * Math.pow(CHRONO_LOSS_CUT, seedUpgradeLevel(SeedUpgrade.CHRONO_LOSS)));
+    }
+
+    /** Le temps gardé dans le chrono, en secondes. */
+    public double chronoStored() {
+        return state.chronoStored();
+    }
+
+    /** L'accélération choisie, de ×1 (arrêté) à {@link #chronoMaxSpeed()}. */
+    public double chronoSpeed() {
+        return Math.max(1, Math.min(chronoMaxSpeed(), state.chronoSpeed()));
+    }
+
+    /** Règle l'accélération, entre ×1 et le plus fort ; ×1 l'arrête. */
+    public void setChronoSpeed(double speed) {
+        state.setChronoSpeed(Double.isFinite(speed) ? Math.max(1, Math.min(chronoMaxSpeed(), speed)) : 1);
+    }
+
+    /** Vrai tant que le chrono accélère le jeu : réglé au-dessus de ×1, avec du temps gardé. */
+    public boolean isChronoRunning() {
+        return isChronoUnlocked() && chronoSpeed() > 1 + 1e-9 && state.chronoStored() > 1e-9;
+    }
+
+    /**
+     * Le chrono pendant {@code dt} secondes réelles : il se remplit, et s'il accélère, il rend le temps de jeu à jouer.
+     * À l'accélération k, une seconde réelle en vaut k ; les k − 1 de plus se prennent dans le chrono, plus ce qui
+     * s'en perd ({@link #chronoLoss(double)}). Sans assez de temps gardé, l'accélération se réduit à ce qui reste.
+     * Une absence remplit le chrono sans rien accélérer.
+     */
+    double runChrono(double dt, boolean accelerate) {
+        if (!isChronoUnlocked() || dt <= 0) return dt;
+        double stored = Math.min(chronoCapacity(), state.chronoStored() + dt * chronoFillRate());
+        double played = dt;
+        double speed = chronoSpeed();
+        if (accelerate && speed > 1) {
+            double keep = 1 - chronoLoss(speed);
+            double extra = (speed - 1) * dt, cost = extra / keep;
+            if (cost > stored) {
+                extra = stored * keep;
+                cost = stored;
+            }
+            stored -= cost;
+            played += extra;
+        }
+        state.setChronoStored(Math.max(0, stored));
+        return played;
     }
 
     /** Outil d'essai : de l'énergie du vide en plus. */
@@ -1205,6 +1452,9 @@ public abstract class GameUniverse extends GameAtoms {
         state.setSeedWaterings(0);
         state.setWateringCan(false);
         setWatering(false);
+        for (int i = 0; i < SeedUpgrade.values().length; i++) state.setSeedUpgradeLevel(i, 0);
+        state.setChronoStored(0);
+        state.setChronoSpeed(1);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);

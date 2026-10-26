@@ -29,6 +29,27 @@ public final class DimensionWindow extends BorderPane {
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 16; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + UniversePage.COLOR + "; -fx-background-color: #141a2c; -fx-border-color: #3b4670;";
 
+    /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
+    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8";
+    private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
+
+    /**
+     * Les couleurs d'un bouton d'amélioration (version 0.140 : plus visibles, même format). Achetable, il prend la couleur
+     * de sa dimension : bordure épaisse, halo, texte blanc. Sinon il reste lisible (JavaFX éteint à 40 % ce qui est
+     * désactivé, le bouton garde son opacité). Au plus haut, il passe au vert. La bordure plus épaisse prend sur le
+     * retrait du texte : le bouton ne change pas de taille.
+     */
+    static void paintUpgrade(Button button, boolean buyable, boolean full, String accent) {
+        String look = full
+                ? " -fx-padding: 8 16; -fx-border-width: 1; -fx-text-fill: #9be7a8; -fx-background-color: #14261b; -fx-border-color: #4f9a5c;"
+                : buyable
+                ? " -fx-padding: 7 15; -fx-border-width: 2; -fx-cursor: hand; -fx-text-fill: #ffffff;"
+                        + " -fx-background-color: linear-gradient(#27314f, #1a2240); -fx-border-color: " + accent + ";"
+                        + " -fx-effect: dropshadow(gaussian, " + accent + "66, 10, 0.25, 0, 0);"
+                : " -fx-padding: 8 16; -fx-border-width: 1; -fx-text-fill: #9aa3bd; -fx-background-color: #10141f; -fx-border-color: #2c3450;";
+        button.setStyle(UPGRADE_STYLE + look);
+    }
+
     private final Game game;
     private final DimensionView view;
     /** La ligne : ses éclats, et ses deux améliorations. */
@@ -245,31 +266,33 @@ public final class DimensionWindow extends BorderPane {
         linePane.setVisible(line);
         linePane.setManaged(line);
         if (!line) return;
-        shards.setText("Éclats de la ligne : " + shardText(game.state().dimensionShards())
+        shards.setText("Segments de la ligne : " + shardText(game.state().dimensionShards())
                 + "   (+" + rate(game.lineShardsPerSecond()) + " par seconde)");
         threshold.setText(game.isLineThresholdReached()
-                ? "Seuil atteint : " + shardText(Game.LINE_THRESHOLD) + " éclats de la ligne gagnés, la dimension 1 porte son rond vert"
-                : "Seuil : " + shardText(game.state().dimensionShardsEarned()) + " / " + shardText(Game.LINE_THRESHOLD) + " éclats de la ligne gagnés");
+                ? "Seuil atteint : " + shardText(Game.LINE_THRESHOLD) + " segments gagnés, la dimension 1 porte son rond vert"
+                : "Seuil : " + shardText(game.state().dimensionShardsEarned()) + " / " + shardText(Game.LINE_THRESHOLD) + " segments gagnés");
         for (Game.LineUpgrade upgrade : Game.LineUpgrade.values()) {
             Button button = buttons.get(upgrade);
             boolean full = game.lineLevel(upgrade) >= game.lineMaxLevel(upgrade);
-            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(game.lineCost(upgrade)) + (game.lineCost(upgrade) < 2 ? " éclat" : " éclats")));
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(game.lineCost(upgrade)) + (game.lineCost(upgrade) < 2 ? " segment" : " segments")));
             button.setDisable(!game.canBuyLine(upgrade));
+            paintUpgrade(button, game.canBuyLine(upgrade), full, UniversePage.COLOR);
         }
     }
 
     private void refreshPlane() {
-        planeShards.setText("Éclats du plan : " + shardText(game.state().planeShards()));
-        // Le seuil du plan (version 0.120), comme celui de la ligne : il ouvre le palier 3 de la graine.
+        planeShards.setText("Facettes du plan : " + shardText(game.state().planeShards()));
+        // Le seuil du plan (version 0.120), comme celui de la ligne : son rond vert (version 0.139 : il n'ouvre plus de palier de la graine).
         planeThreshold.setText(game.isPlaneThresholdReached()
-                ? "Seuil atteint : " + shardText(Game.PLANE_THRESHOLD) + " éclats du plan gagnés, la dimension 2 porte son rond vert"
-                : "Seuil : " + shardText(game.state().planeShardsEarned()) + " / " + shardText(Game.PLANE_THRESHOLD) + " éclats du plan gagnés");
+                ? "Seuil atteint : " + shardText(Game.PLANE_THRESHOLD) + " facettes gagnées, la dimension 2 porte son rond vert"
+                : "Seuil : " + shardText(game.state().planeShardsEarned()) + " / " + shardText(Game.PLANE_THRESHOLD) + " facettes gagnées");
         for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) {
             Button button = planeButtons.get(upgrade);
             boolean full = game.planeLevel(upgrade) >= upgrade.max();
             double cost = game.planeCost(upgrade);
-            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(cost) + (cost < 2 ? " éclat du plan" : " éclats du plan")));
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(cost) + (cost < 2 ? " facette" : " facettes")));
             button.setDisable(!game.canBuyPlane(upgrade));
+            paintUpgrade(button, game.canBuyPlane(upgrade), full, PLANE_COLOR);
         }
     }
 
@@ -278,10 +301,10 @@ public final class DimensionWindow extends BorderPane {
      * s'achètent pas pendant une plongée ; dedans, ce qu'on y fait et le temps qu'il reste.
      */
     private void refreshVolume() {
-        volumeShards.setText("Éclats du volume : " + shardText(game.state().volumeShards()));
+        volumeShards.setText("Sphères du volume : " + shardText(game.state().volumeShards()));
         volumeThreshold.setText(game.isVolumeThresholdReached()
-                ? "Seuil atteint : " + shardText(Game.VOLUME_THRESHOLD) + " éclats du volume gagnés, la dimension 3 porte son rond vert"
-                : "Seuil : " + shardText(game.state().volumeShardsEarned()) + " / " + shardText(Game.VOLUME_THRESHOLD) + " éclats du volume gagnés");
+                ? "Seuil atteint : " + shardText(Game.VOLUME_THRESHOLD) + " sphères gagnées, la dimension 3 porte son rond vert"
+                : "Seuil : " + shardText(game.state().volumeShardsEarned()) + " / " + shardText(Game.VOLUME_THRESHOLD) + " sphères gagnées");
         boolean outside = view.dive() == DimensionView.Dive.OUTSIDE;
         volumeHint.setText(switch (view.dive()) {
             case OUTSIDE -> "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
@@ -301,8 +324,8 @@ public final class DimensionWindow extends BorderPane {
                 + game.volumeMaxBalls() + " à la fois au plus, entre " + shardText(Game.VOLUME_SPAWN_NEAR) + " et "
                 + shardText(Game.VOLUME_SPAWN_FAR) + " du centre. Le clic droit cueille la plus proche que traverse le "
                 + "regard ; une boule plus grosse se vise mieux. À la fin du minuteur, ou si le jeu passe en absence, la "
-                + "plongée s'arrête et les boules restantes s'en vont. Les éclats du volume, son seuil et ses améliorations "
-                + "traversent les univers ; le seuil ouvre le palier 4 de la graine. En caméra libre, la souris disparaît "
+                + "plongée s'arrête et les boules restantes s'en vont. Les sphères, le seuil et les améliorations du volume "
+                + "traversent les univers ; le seuil marque la dimension d'un rond vert, et les sphères paient aussi des améliorations de la graine. En caméra libre, la souris disparaît "
                 + "dans le cube et y reste retenue : chaque mouvement tourne le regard et elle revient seule au centre. "
                 + "Échap la rend sans finir la plongée, un clic dans la vue la reprend ; quand le jeu n'a pas la main "
                 + "(Alt+Tab), elle n'est jamais retenue. Si le système refuse de la déplacer, pousser un bord fait tourner "
@@ -317,21 +340,22 @@ public final class DimensionWindow extends BorderPane {
             Button button = volumeButtons.get(upgrade);
             boolean full = game.volumeLevel(upgrade) >= upgrade.max();
             double cost = game.volumeCost(upgrade);
-            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(cost) + (cost < 2 ? " éclat du volume" : " éclats du volume")));
+            button.setText(describe(upgrade) + "\n" + (full ? "Au maximum" : "Prix : " + shardText(cost) + (cost < 2 ? " sphère" : " sphères")));
             button.setDisable(!outside || !game.canBuyVolume(upgrade));
+            paintUpgrade(button, outside && game.canBuyVolume(upgrade), full, VOLUME_COLOR);
         }
     }
 
     /** La durée : ses éclats, son seuil, ce qu'on y fait ; ses améliorations, bouton relâché. */
     private void refreshDuration() {
-        durationShards.setText("Éclats de la durée : " + shardText(game.state().durationShards()));
+        durationShards.setText("Instants de la durée : " + shardText(game.state().durationShards()));
         durationThreshold.setText(game.isDurationThresholdReached()
-                ? "Seuil atteint : " + shardText(Game.DURATION_THRESHOLD) + " éclats de la durée gagnés, la dimension 4 porte son rond vert"
-                : "Seuil : " + shardText(game.state().durationShardsEarned()) + " / " + shardText(Game.DURATION_THRESHOLD) + " éclats de la durée gagnés");
+                ? "Seuil atteint : " + shardText(Game.DURATION_THRESHOLD) + " instants gagnés, la dimension 4 porte son rond vert"
+                : "Seuil : " + shardText(game.state().durationShardsEarned()) + " / " + shardText(Game.DURATION_THRESHOLD) + " instants gagnés");
         boolean held = game.isDurationHeld();
         durationHint.setText(!held
                 ? "Tenez le bouton du milieu (clic tenu, ou la barre d'espace) : les spirales avancent vers le centre, qu'elles "
-                        + "atteignent en " + seconds(game.durationMaxSeconds()) + " s. Relâchez pour gagner leurs éclats : plus on tient, plus chaque tour rapporte."
+                        + "atteignent en " + seconds(game.durationMaxSeconds()) + " s. Relâchez pour gagner leurs instants : plus on tient, plus chaque tour rapporte."
                         + (game.durationReleases() > 0 ? " Dernier relâchement : +" + shardText(game.durationLastReward()) + "." : "")
                 : game.durationProgress() >= 1
                 ? "Les spirales sont au centre : tenir plus ne rapporte plus rien. Relâchez pour gagner +" + shardText(game.durationPending()) + "."
@@ -343,8 +367,8 @@ public final class DimensionWindow extends BorderPane {
                 + "donnent (n² + n) ÷ 2 fois la valeur (" + shardText(game.durationValue()) + "), pour chacune des "
                 + game.durationSpirals() + " spirale" + (game.durationSpirals() > 1 ? "s" : "") + ". Tenir au-delà du centre ne "
                 + "rapporte rien de plus et ne fait rien perdre. Les améliorations s'achètent bouton relâché. Une absence relâche "
-                + "le bouton, qui donne ce qu'il avait. Les éclats de la durée, son seuil et ses améliorations traversent les "
-                + "univers ; le seuil ouvre le palier 5 de la graine."));
+                + "le bouton, qui donne ce qu'il avait. Les instants, le seuil et les améliorations de la durée traversent les "
+                + "univers ; le seuil marque la dimension d'un rond vert, et les instants paient aussi des améliorations de la graine."));
         durationDetail.setVisible(!durationDetail.getText().isEmpty());
         durationDetail.setManaged(durationDetail.isVisible());
         for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values()) {
@@ -352,8 +376,9 @@ public final class DimensionWindow extends BorderPane {
             boolean full = game.durationLevel(upgrade) >= upgrade.max();
             double cost = game.durationCost(upgrade);
             button.setText(describe(upgrade) + "\n" + (full ? "Au maximum"
-                    : "Prix : " + shardText(cost) + (cost < 2 ? " éclat de la durée" : " éclats de la durée")));
+                    : "Prix : " + shardText(cost) + (cost < 2 ? " instant" : " instants")));
             button.setDisable(held || !game.canBuyDuration(upgrade));
+            paintUpgrade(button, !held && game.canBuyDuration(upgrade), full, DURATION_COLOR);
         }
     }
 
@@ -384,7 +409,7 @@ public final class DimensionWindow extends BorderPane {
     /** Une amélioration du plan : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.PlaneUpgrade upgrade) {
         return switch (upgrade) {
-            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + 1);
+            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + 1) + " facettes";
             case SPAWN -> "Réapparition : un éclat toutes les " + seconds(game.planeSpawnSeconds()) + " s, 15 % plus vite";
             case COUNT -> "Nombre : " + game.planeMaxShards() + " éclats à la fois au plus, un de plus";
             case SPEED -> "Vitesse du point : 20 % plus vite (×" + shardText(game.planeSpeed() / Game.PLANE_SPEED) + ")";
@@ -443,7 +468,7 @@ public final class DimensionWindow extends BorderPane {
     private String describe(Game.LineUpgrade upgrade) {
         return switch (upgrade) {
             case YIELD -> "Densité (niveau " + game.lineLevel(upgrade) + ") : " + shardText(game.lineShardsPerTouch())
-                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD) + " éclat par trait touché";
+                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD) + " segment par trait touché";
             case TICKS -> "Graduation (" + game.lineTicks() + " traits) : un trait de plus, tous à égale distance";
             case SPEED -> "Élan (vitesse ×" + shardText(game.lineSpeed()) + ") : les boules vont 25 % plus vite";
             case BALLS -> "Boules (" + game.lineBalls() + " par ligne) : une boule de plus sur chaque ligne";
@@ -469,11 +494,11 @@ public final class DimensionWindow extends BorderPane {
         held.clear();
         game.setPlaneInput(0, 0);
         line.setText(switch (dimension) {
-            case LINE -> dimension.line() + " Chaque trait que touche la boule donne des éclats de la ligne.";
-            case PLANE -> dimension.line() + " Chaque éclat ramassé donne des éclats du plan, propres à cette dimension.";
-            case VOLUME -> dimension.line() + " Plongez dans le cube : chaque boule cueillie de son centre donne des éclats du volume.";
+            case LINE -> dimension.line() + " Chaque trait que touche la boule donne des segments.";
+            case PLANE -> dimension.line() + " Chaque éclat ramassé donne des facettes, propres à cette dimension.";
+            case VOLUME -> dimension.line() + " Plongez dans le cube : chaque boule cueillie de son centre donne des sphères.";
             case DURATION -> game.isDurationOpen()
-                    ? dimension.line() + " Tenez le bouton du milieu : plus les spirales vont loin vers le centre, plus elles donnent d'éclats de la durée."
+                    ? dimension.line() + " Tenez le bouton du milieu : plus les spirales vont loin vers le centre, plus elles donnent d'instants."
                     : dimension.line() + " Il n'y a rien à y faire pour l'instant.";
             default -> dimension.line() + " Il n'y a rien à y faire pour l'instant.";
         });

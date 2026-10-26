@@ -53,7 +53,7 @@ class DurationWindowTest {
             DimensionWindow window = window(game);
             DimensionView view = window.view();
             assertTrue(window.titleText().contains("Dimension 4"));
-            assertTrue(window.durationShardsText().contains("Éclats de la durée"));
+            assertTrue(window.durationShardsText().contains("Instants de la durée"));
             double cx = view.getWidth() / 2, cy = view.getHeight() / 2;
             assertFalse(view.press(cx + view.getWidth() * 0.3, cy, false), "ailleurs dans le rond, rien");
             assertFalse(game.isDurationHeld());

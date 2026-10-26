@@ -261,6 +261,15 @@ public abstract class GameStateBase {
     double durationShardsEarned = 0;
     int durationSpeedLevel = 0, durationCountLevel = 0, durationValueLevel = 0, durationTimeLevel = 0;
     static final int DURATION_UPGRADES = 4;
+    /**
+     * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
+     * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
+     * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
+     */
+    static final int SEED_UPGRADES = 8;
+    final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
+    double chronoStored = 0;
+    double chronoSpeed = 1;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

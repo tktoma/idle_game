@@ -1,4 +1,8 @@
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import idle.core.Game;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,5 +38,35 @@ class DimensionBotsTest {
     @Test
     void laDuree() throws Exception {
         quarterOfAnHour("duree");
+    }
+
+    /**
+     * Version 0.140 : le joueur appliqué joue aussi une partie déjà en cours, pas à pas (les outils « Bots dimension » du
+     * profil de test). Les quatre dimensions ouvertes, chacun gagne des éclats en deux minutes et achète.
+     */
+    @Test
+    void leJoueurJoueUnePartieEnCoursPasAPas() throws Exception {
+        Game game = DimensionBots.open(4);
+        for (String name : java.util.List.of("ligne", "plan", "volume", "duree")) {
+            DimensionBots.Player player = DimensionBots.player(game, name);
+            double before = player.earned();
+            for (int step = 0; step < 2400; step++) {     // deux minutes, en pas de 0,05 s
+                assertTrue(player.decide(DimensionBots.STEP), name + " : la dimension est ouverte");
+                game.tick(DimensionBots.STEP);
+            }
+            assertTrue(player.earned() > before, name + " : des éclats gagnés");
+            assertFalse(player.purchases().isEmpty(), name + " : des achats");
+            assertEquals(120, player.t, 1e-6);
+        }
+    }
+
+    /** Une dimension fermée : le joueur n'y fait rien et le dit. */
+    @Test
+    void leJoueurNeJouePasUneDimensionFermee() throws Exception {
+        Game game = DimensionBots.open(1);
+        DimensionBots.Player plane = DimensionBots.player(game, "plan");
+        assertFalse(plane.isOpen());
+        assertFalse(plane.decide(DimensionBots.STEP));
+        assertTrue(DimensionBots.player(game, "ligne").decide(DimensionBots.STEP));
     }
 }

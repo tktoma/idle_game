@@ -1,0 +1,161 @@
+package idle.ui.universe;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import idle.core.Game;
+import idle.core.GameUniverse.SeedUpgrade;
+import idle.ui.FxTestSupport;
+import javafx.scene.Scene;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
+ * sa ressource ; les branches 5 à 10 verrouillées ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ */
+class GraineAmeliorationsPageTest {
+
+    @BeforeAll
+    static void setup() {
+        FxTestSupport.start();
+    }
+
+    /** Quatre univers, les quatre dimensions ouvertes, l'arrosoir débloqué et de quoi tout payer. */
+    private static Game rich() {
+        Game game = new Game();
+        game.start();
+        game.testFormUniverse();
+        while (game.universes() < 4) assertTrue(game.testAddUniverse());
+        assertTrue(game.unlockWateringCan());
+        game.state().setDimensionShards(1e12);
+        game.state().setPlaneShards(1e12);
+        game.state().setVolumeShards(1e12);
+        game.state().setDurationShards(1e15);
+        return game;
+    }
+
+    private static UniversePage page(Game game) {
+        UniversePage page = new UniversePage(game);
+        new Scene(page, 1200, 760);
+        page.select(UniversePage.SEED);
+        page.refresh();
+        page.applyCss();
+        page.layout();
+        page.frame(0.016, true);
+        return page;
+    }
+
+    @Test
+    void lesCartesAchetentAvecLaRessourceDeLeurDimension() {
+        FxTestSupport.fx(() -> {
+            Game game = rich();
+            UniversePage page = page(game);
+            SeedUpgradesPane pane = page.seedUpgrades();
+            assertEquals(1, pane.branch());
+            assertTrue(pane.resourceText().getText().startsWith("Segments de la ligne"), pane.resourceText().getText());
+            assertTrue(pane.button(SeedUpgrade.WATERING).getText().contains("Débit de l'arrosoir"));
+            double segments = game.dimensionResource(1);
+            pane.button(SeedUpgrade.WATERING).fire();
+            assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.WATERING));
+            assertTrue(game.dimensionResource(1) < segments, "payé en segments");
+            // Le plan : le tuyau, que la vue dessine aussitôt.
+            pane.select(2);
+            assertTrue(pane.resourceText().getText().startsWith("Facettes du plan"), pane.resourceText().getText());
+            assertFalse(page.seedView().isHoseShown());
+            pane.button(SeedUpgrade.HOSE).fire();
+            assertTrue(game.hasHose());
+            for (int i = 0; i < 60; i++) page.frame(0.016, true);
+            assertTrue(page.seedView().isHoseShown());
+            assertTrue(page.seedView().hoseDrops() > 0, "le tuyau arrose");
+            // Le volume : la terre fertile double chaque arrosage.
+            pane.select(3);
+            pane.button(SeedUpgrade.SOIL).fire();
+            assertEquals(2, game.seedSoilFactor());
+            return null;
+        });
+    }
+
+    /** Version 0.140 : les cartes se voient mieux, même format ; leur état décide de leurs couleurs. */
+    @Test
+    void lesCartesDisentCeQuiSAcheteCeQuiManqueEtCeQuiEstFerme() {
+        FxTestSupport.fx(() -> {
+            Game game = new Game();
+            game.start();
+            game.testFormUniverse();
+            while (game.universes() < 2) assertTrue(game.testAddUniverse());
+            game.state().setPlaneShards(120);
+            SeedUpgradesPane pane = page(game).seedUpgrades();
+            pane.select(2);
+            javafx.scene.control.Button hose = pane.button(SeedUpgrade.HOSE);
+            assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose));
+            assertTrue(hose.getText().contains("il en manque 230"), hose.getText());
+            assertTrue(hose.isDisabled());
+            assertTrue(hose.getStyle().contains("-fx-opacity: 1"), "désactivée, la carte reste lisible");
+            assertEquals(SeedUpgradesPane.CardState.LOCKED, SeedUpgradesPane.state(pane.button(SeedUpgrade.CHRONO_CAPACITY)));
+            assertFalse(pane.isBranchOpen(3), "deux univers : le volume n'est pas ouvert");
+            game.state().setPlaneShards(400);
+            pane.refresh();
+            assertEquals(SeedUpgradesPane.CardState.BUY, SeedUpgradesPane.state(hose));
+            assertFalse(hose.isDisabled());
+            assertTrue(pane.hasPurchase(2), "l'onglet du plan porte sa pastille");
+            hose.fire();
+            assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.HOSE));
+            assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose), "le niveau suivant coûte 875");
+            game.state().setSeedUpgradeLevel(SeedUpgrade.HOSE.ordinal(), SeedUpgrade.HOSE.max());
+            pane.refresh();
+            assertEquals(SeedUpgradesPane.CardState.MAX, SeedUpgradesPane.state(hose));
+            assertTrue(hose.getText().endsWith("Au maximum"));
+            // Une carte garde la hauteur de ses deux lignes : elle ne prend pas toute la colonne.
+            assertTrue(hose.prefHeight(-1) < 120, "hauteur " + hose.prefHeight(-1));
+            return null;
+        });
+    }
+
+    @Test
+    void lesBranchesDesDimensionsAVenirSontVerrouillees() {
+        FxTestSupport.fx(() -> {
+            Game game = rich();
+            SeedUpgradesPane pane = page(game).seedUpgrades();
+            for (int d = 5; d <= SeedUpgradesPane.BRANCHES; d++) {
+                assertFalse(pane.isBranchOpen(d));
+                pane.select(d);
+                assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));
+                assertEquals(2, pane.placeholders().size());
+                assertTrue(pane.placeholders().stream().allMatch(b -> b.isDisabled() && b.getText().startsWith("???")));
+                assertTrue(pane.placeholders().get(0).getText().contains("dimension " + d));
+            }
+            for (int d = 1; d <= 4; d++) assertTrue(pane.isBranchOpen(d));
+            return null;
+        });
+    }
+
+    @Test
+    void leChronoSAchetePuisSeRegle() {
+        FxTestSupport.fx(() -> {
+            Game game = rich();
+            UniversePage page = page(game);
+            SeedUpgradesPane pane = page.seedUpgrades();
+            assertFalse(pane.chronoSlider().isVisible() && pane.chronoSlider().getParent().isVisible());
+            pane.select(1);
+            assertTrue(pane.button(SeedUpgrade.CHRONO_FILL).isDisabled(), "sans l'étage, pas de remplissage");
+            pane.select(4);
+            assertTrue(pane.resourceText().getText().startsWith("Instants de la durée"), pane.resourceText().getText());
+            pane.button(SeedUpgrade.CHRONO).fire();
+            assertTrue(game.isChronoUnlocked());
+            for (int i = 0; i < 30; i++) page.frame(0.016, true);
+            assertTrue(page.seedView().isChronoShown(), "l'étage du chrono sur l'étagère");
+            assertTrue(pane.chronoSlider().getParent().isVisible());
+            assertTrue(pane.chronoText().getText().startsWith("Gardé"), pane.chronoText().getText());
+            assertEquals(Game.CHRONO_MAX_SPEED, pane.chronoSlider().getMax(), 1e-9);
+            pane.chronoSlider().setValue(1.6);
+            assertEquals(1.5, game.chronoSpeed(), 1e-9, "le réglage va par quarts");
+            pane.select(1);
+            assertFalse(pane.button(SeedUpgrade.CHRONO_FILL).isDisabled());
+            pane.button(SeedUpgrade.CHRONO_FILL).fire();
+            assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.CHRONO_FILL));
+            return null;
+        });
+    }
+}

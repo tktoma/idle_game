@@ -214,6 +214,9 @@ class SaveTest {
         state.setSeedSprouted(true);
         state.setSeedWaterings(17);
         state.setWateringCan(true);
+        for (int i = 0; i < 8; i++) state.setSeedUpgradeLevel(i, i + 1);
+        state.setChronoStored(123.5);
+        state.setChronoSpeed(2.5);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);
@@ -344,6 +347,9 @@ class SaveTest {
             for (int i = 0; i < Math.min(x.length, y.length); i++) {
                 if (!sameNumber(x[i], y[i], loose)) found.add(path + "[" + i + "] : " + x[i] + " ≠ " + y[i]);
             }
+        } else if (a instanceof int[] x && b instanceof int[] y) {
+            // Les niveaux des améliorations de la graine (version 0.139).
+            if (!java.util.Arrays.equals(x, y)) found.add(path + " : " + java.util.Arrays.toString(x) + " ≠ " + java.util.Arrays.toString(y));
         } else if (a instanceof Map<?, ?> x && b instanceof Map<?, ?> y) {
             if (!x.keySet().equals(y.keySet())) found.add(path + " : clés " + x.keySet() + " ≠ " + y.keySet());
             for (Object key : x.keySet()) {

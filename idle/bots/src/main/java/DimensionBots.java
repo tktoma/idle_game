@@ -92,21 +92,7 @@ final class DimensionBots {
     }
 
     static Result line(double maxSeconds) throws Exception {
-        Game g = open(1);
-        List<String> bought = new ArrayList<>();
-        List<double[]> curve = new ArrayList<>();
-        double t = 0, nextCheck = 0, nextCurve = 0;
-        while (t < maxSeconds && g.state().dimensionShardsEarned() < goal(Game.LINE_THRESHOLD)) {
-            if (t >= nextCheck) {
-                nextCheck += LINE_CHECK_SECONDS;
-                for (LineUpgrade best; (best = bestLine(g)) != null && g.buyLine(best); )
-                    bought.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.lineLevel(best)));
-            }
-            if (t >= nextCurve) { curve.add(new double[]{t, g.state().dimensionShardsEarned()}); nextCurve += 60; }
-            g.tick(STEP);
-            t += STEP;
-        }
-        return new Result("ligne", t, g.state().dimensionShardsEarned() >= goal(Game.LINE_THRESHOLD), bought, curve);
+        return measure("ligne", maxSeconds);
     }
 
     /** Le niveau de la ligne au meilleur rapport, s'il se paie maintenant ; sinon on attend le meilleur. */
@@ -164,35 +150,7 @@ final class DimensionBots {
     }
 
     static Result plane(double maxSeconds) throws Exception {
-        Game g = open(2);
-        List<String> bought = new ArrayList<>();
-        List<double[]> curve = new ArrayList<>();
-        double t = 0, nextCurve = 0, pause = 0;
-        long collected = g.planeCollected();
-        while (t < maxSeconds && g.state().planeShardsEarned() < goal(Game.PLANE_THRESHOLD)) {
-            for (PlaneUpgrade best; (best = bestPlane(g)) != null && g.buyPlane(best); )
-                bought.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.planeLevel(best)));
-            if (g.planeCollected() > collected) { collected = g.planeCollected(); pause = PLANE_REACTION_SECONDS; }
-            PlaneShard target = null;
-            double nearest = Double.POSITIVE_INFINITY;
-            for (PlaneShard s : g.planeShardsOnBoard()) {
-                double d = Math.hypot(s.x() - g.planeX(), s.y() - g.planeY());
-                if (d < nearest) { nearest = d; target = s; }
-            }
-            if (pause > 0 || target == null) g.setPlaneInput(0, 0);
-            else {
-                double dx = target.x() - g.planeX(), dy = target.y() - g.planeY(), len = Math.hypot(dx, dy);
-                // Ralentir au dernier pas pour ne pas passer à côté : le joueur vise.
-                double step = g.planeSpeed() * STEP;
-                double k = len > 1e-9 ? Math.min(1, len / step) / len : 0;
-                g.setPlaneInput(dx * k, dy * k);
-            }
-            pause -= STEP;
-            if (t >= nextCurve) { curve.add(new double[]{t, g.state().planeShardsEarned()}); nextCurve += 60; }
-            g.tick(STEP);
-            t += STEP;
-        }
-        return new Result("plan", t, g.state().planeShardsEarned() >= goal(Game.PLANE_THRESHOLD), bought, curve);
+        return measure("plan", maxSeconds);
     }
 
     // ------------------------------------------------------------------
@@ -237,28 +195,7 @@ final class DimensionBots {
     }
 
     static Result volume(double maxSeconds) throws Exception {
-        Game g = open(3);
-        List<String> bought = new ArrayList<>();
-        List<double[]> curve = new ArrayList<>();
-        double t = 0, nextCurve = 0, outside = 0, aiming = 0;
-        while (t < maxSeconds && g.state().volumeShardsEarned() < goal(Game.VOLUME_THRESHOLD)) {
-            if (!g.isInVolume()) {
-                for (VolumeUpgrade best; (best = bestVolume(g)) != null && g.buyVolume(best); )
-                    bought.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.volumeLevel(best)));
-                outside += STEP;
-                if (outside >= VOLUME_REENTRY_SECONDS && g.enterVolume()) { outside = 0; aiming = 0; }
-            } else if (!g.volumeBalls().isEmpty()) {
-                aiming += STEP;
-                if (aiming >= volumeAimSeconds(g.volumeBallRadius())) {
-                    VolumeBall ball = g.volumeBalls().get(0);
-                    if (g.shootVolume(ball.x(), ball.y(), ball.z()) != null) aiming = 0;
-                }
-            }
-            if (t >= nextCurve) { curve.add(new double[]{t, g.state().volumeShardsEarned()}); nextCurve += 60; }
-            g.tick(STEP);
-            t += STEP;
-        }
-        return new Result("volume", t, g.state().volumeShardsEarned() >= goal(Game.VOLUME_THRESHOLD), bought, curve);
+        return measure("volume", maxSeconds);
     }
 
     // ------------------------------------------------------------------
@@ -292,24 +229,169 @@ final class DimensionBots {
     }
 
     static Result duration(double maxSeconds) throws Exception {
-        Game g = open(4);
-        List<String> bought = new ArrayList<>();
-        List<double[]> curve = new ArrayList<>();
-        double t = 0, nextCurve = 0, released = DURATION_REACTION_SECONDS;
-        while (t < maxSeconds && g.state().durationShardsEarned() < goal(Game.DURATION_THRESHOLD)) {
+        return measure("duree", maxSeconds);
+    }
+
+    // ------------------------------------------------------------------
+    // Le joueur appliqué, pas à pas (version 0.140)
+    // ------------------------------------------------------------------
+
+    /** Le numéro de la dimension d'un bot : 1 pour la ligne, 2 le plan, 3 le volume, 4 la durée. */
+    static int number(String name) {
+        return switch (name) {
+            case "ligne" -> 1;
+            case "plan" -> 2;
+            case "volume" -> 3;
+            case "duree" -> 4;
+            default -> throw new IllegalArgumentException("ligne, plan, volume ou duree : " + name);
+        };
+    }
+
+    /** Le joueur appliqué d'une dimension, pour cette partie : celle d'une mesure, ou celle du profil de test. */
+    static Player player(Game game, String name) {
+        return new Player(game, name);
+    }
+
+    /**
+     * Le joueur appliqué d'une dimension, pas à pas (version 0.140) : avant chaque pas du jeu, {@link #decide} achète,
+     * vise, plonge, tient ou relâche, comme décrit en tête de la classe. Les mesures s'en servent sur une partie neuve ;
+     * le profil de test, sur la partie en cours (outils « Bots dimension »), en direct ou en avance rapide.
+     */
+    static final class Player {
+        final Game g;
+        final String name;
+        final int number;
+        final List<String> purchases = new ArrayList<>();
+        /** Le temps de jeu depuis que le joueur a commencé : il date ses achats. */
+        double t;
+        private double nextCheck, pause, outside, aiming, released = DURATION_REACTION_SECONDS;
+        private long collected;
+
+        Player(Game game, String name) {
+            this.g = game;
+            this.name = name;
+            this.number = number(name);
+            this.collected = game.planeCollected();
+        }
+
+        /** Vrai si la dimension est ouverte dans cette partie : sinon le joueur n'y fait rien. */
+        boolean isOpen() {
+            return g.dimensionsUnlocked() >= number;
+        }
+
+        /** Les éclats gagnés dans cette dimension. */
+        double earned() {
+            return switch (number) {
+                case 1 -> g.state().dimensionShardsEarned();
+                case 2 -> g.state().planeShardsEarned();
+                case 3 -> g.state().volumeShardsEarned();
+                default -> g.state().durationShardsEarned();
+            };
+        }
+
+        /** Le seuil du jeu pour cette dimension, celui du rond vert. */
+        double threshold() {
+            return switch (number) {
+                case 1 -> Game.LINE_THRESHOLD;
+                case 2 -> Game.PLANE_THRESHOLD;
+                case 3 -> Game.VOLUME_THRESHOLD;
+                default -> Game.DURATION_THRESHOLD;
+            };
+        }
+
+        /** Vrai si la dimension a son rond vert dans cette partie. */
+        boolean reached() {
+            return earned() >= threshold();
+        }
+
+        List<String> purchases() {
+            return purchases;
+        }
+
+        /** Ce que fait le joueur avant un pas de {@code dt} secondes du jeu. Vrai s'il a pu jouer (la dimension est ouverte). */
+        boolean decide(double dt) {
+            if (!isOpen()) return false;
+            switch (number) {
+                case 1 -> line();
+                case 2 -> plane(dt);
+                case 3 -> volume(dt);
+                default -> duration(dt);
+            }
+            t += dt;
+            return true;
+        }
+
+        /** La ligne tourne seule : un passage toutes les quelques secondes pour acheter. */
+        private void line() {
+            if (t < nextCheck) return;
+            nextCheck += LINE_CHECK_SECONDS;
+            for (LineUpgrade best; (best = bestLine(g)) != null && g.buyLine(best); )
+                purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.lineLevel(best)));
+        }
+
+        /** Le plan : droit vers l'éclat le plus proche, une courte pause après chaque éclat ramassé. */
+        private void plane(double dt) {
+            for (PlaneUpgrade best; (best = bestPlane(g)) != null && g.buyPlane(best); )
+                purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.planeLevel(best)));
+            if (g.planeCollected() > collected) { collected = g.planeCollected(); pause = PLANE_REACTION_SECONDS; }
+            PlaneShard target = null;
+            double nearest = Double.POSITIVE_INFINITY;
+            for (PlaneShard s : g.planeShardsOnBoard()) {
+                double d = Math.hypot(s.x() - g.planeX(), s.y() - g.planeY());
+                if (d < nearest) { nearest = d; target = s; }
+            }
+            if (pause > 0 || target == null) g.setPlaneInput(0, 0);
+            else {
+                double dx = target.x() - g.planeX(), dy = target.y() - g.planeY(), len = Math.hypot(dx, dy);
+                // Ralentir au dernier pas pour ne pas passer à côté : le joueur vise.
+                double step = g.planeSpeed() * dt;
+                double k = len > 1e-9 ? Math.min(1, len / step) / len : 0;
+                g.setPlaneInput(dx * k, dy * k);
+            }
+            pause -= dt;
+        }
+
+        /** Le volume : achats entre deux plongées, puis chaque boule visée le temps qu'il faut. */
+        private void volume(double dt) {
+            if (!g.isInVolume()) {
+                for (VolumeUpgrade best; (best = bestVolume(g)) != null && g.buyVolume(best); )
+                    purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.volumeLevel(best)));
+                outside += dt;
+                if (outside >= VOLUME_REENTRY_SECONDS && g.enterVolume()) { outside = 0; aiming = 0; }
+            } else if (!g.volumeBalls().isEmpty()) {
+                aiming += dt;
+                if (aiming >= volumeAimSeconds(g.volumeBallRadius())) {
+                    VolumeBall ball = g.volumeBalls().get(0);
+                    if (g.shootVolume(ball.x(), ball.y(), ball.z()) != null) aiming = 0;
+                }
+            }
+        }
+
+        /** La durée : tenir jusqu'au centre, relâcher, acheter, rappuyer. */
+        private void duration(double dt) {
             if (g.isDurationHeld()) {
                 if (g.durationProgress() >= 1) { g.releaseDuration(); released = 0; }
             } else {
                 for (DurationUpgrade best; (best = bestDuration(g)) != null && g.buyDuration(best); )
-                    bought.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.durationLevel(best)));
-                released += STEP;
+                    purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.durationLevel(best)));
+                released += dt;
                 if (released >= DURATION_REACTION_SECONDS) g.holdDuration();
             }
-            if (t >= nextCurve) { curve.add(new double[]{t, g.state().durationShardsEarned()}); nextCurve += 60; }
-            g.tick(STEP);
+        }
+    }
+
+    /** Une mesure : le joueur appliqué, sur une partie où la dimension vient de s'ouvrir, jusqu'au rond vert. */
+    static Result measure(String name, double maxSeconds) throws Exception {
+        Player p = player(open(number(name)), name);
+        List<double[]> curve = new ArrayList<>();
+        double t = 0, nextCurve = 0;
+        while (t < maxSeconds && p.earned() < goal(p.threshold())) {
+            p.decide(STEP);
+            if (t >= nextCurve) { curve.add(new double[]{t, p.earned()}); nextCurve += 60; }
+            p.g.tick(STEP);
             t += STEP;
         }
-        return new Result("duree", t, g.state().durationShardsEarned() >= goal(Game.DURATION_THRESHOLD), bought, curve);
+        return new Result(name, t, p.earned() >= goal(p.threshold()), p.purchases(), curve);
     }
 
     // ------------------------------------------------------------------

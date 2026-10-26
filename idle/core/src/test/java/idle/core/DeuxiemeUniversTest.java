@@ -284,15 +284,14 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void laGraineGermeAuSeuilDeLaDimensionUnPuisSArrose() {
+    void laGraineGermeDesLUniversFormePuisSArrose() {
         Game game = firstUniverse();
         assertTrue(!game.state().universeSeeds().lt(idle.core.math.BigNum.ONE), "former l'univers donne une graine");
-        assertFalse(game.canTendSeed(), "sous le seuil de la dimension 1");
-        assertFalse(game.tendSeed());
-        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
+        assertFalse(game.isLineThresholdReached());
+        // Version 0.139 : le seuil de la dimension 1 ne la retient plus.
         // Il n'y a qu'une graine, celle de l'univers : le bouton ne demande pas de graine en réserve (0.105).
         game.state().setUniverseSeeds(idle.core.math.BigNum.ZERO);
-        assertTrue(game.canTendSeed(), "l'objectif atteint suffit");
+        assertTrue(game.canTendSeed(), "l'univers formé suffit");
         assertTrue(game.tendSeed());
         assertTrue(game.state().seedSprouted(), "le premier clic la fait germer");
         assertEquals(0, game.state().seedWaterings());
@@ -550,28 +549,28 @@ class DeuxiemeUniversTest {
 
     @Test
     void lesPaliersDeLaGraineOuvrentLesUnivers() {
-        // Version 0.120 : le palier N de la graine ouvre l'univers N ; le palier 3 attend le seuil du plan, puis 30 arrosages.
+        // Version 0.120 : le palier N de la graine ouvre l'univers N. Version 0.139 : trente arrosages par palier suffisent,
+        // sans les seuils des dimensions.
         Game game = firstUniverse();
         assertEquals(1, game.seedStage());
-        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
         assertTrue(game.tendSeed(), "elle germe");
-        for (long k = 0; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
+        for (long k = 0; k < Game.SEED_TWIG_WATERINGS - 1; k++) assertTrue(game.tendSeed());
+        assertEquals(1, game.seedStage(), "29 arrosages : pas encore");
+        assertTrue(game.tendSeed());
         assertEquals(2, game.seedStage(), "la tige");
-        assertFalse(game.tendSeed(), "le plan n'a pas son seuil : la graine attend");
         assertTrue(game.canOpenNextUniverse(), "la tige ouvre l'univers 2");
         assertTrue(game.startNextUniverse());
         game.testFormUniverse();
         assertEquals(2, game.universes());
         assertFalse(game.canOpenNextUniverse(), "l'univers 3 attend le palier 3");
-        game.state().setPlaneShardsEarned(Game.PLANE_THRESHOLD);
-        assertTrue(game.isPlaneThresholdReached());
+        assertFalse(game.isPlaneThresholdReached(), "le plan n'a pas son seuil : la graine ne l'attend plus");
         for (long k = 1; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
         assertEquals(2, game.seedStage(), "29 arrosages de plus : pas encore");
         assertTrue(game.tendSeed());
         assertEquals(3, game.seedStage(), "trente de plus : la graine craquelée");
         assertEquals("la graine craquelée", Game.SEED_STAGE_NAMES.get(2));
         assertTrue(game.canOpenNextUniverse(), "le palier 3 ouvre l'univers 3");
-        assertFalse(game.tendSeed(), "la dimension 3 n'existe pas encore : la graine attend");
+        assertTrue(game.tendSeed(), "la dimension 3 n'existe pas encore, la graine boit quand même");
         assertEquals(11, Game.SEED_STAGE_NAMES.size());
         assertEquals(300, Game.seedStageWaterings(11));
     }

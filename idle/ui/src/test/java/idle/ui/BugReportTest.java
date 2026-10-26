@@ -38,9 +38,26 @@ class BugReportTest {
         assertTrue(report.contains("Paliers de Big Bang : "));
         assertTrue(report.contains("En cours : rien de particulier"));
         assertTrue(report.contains("Aucune erreur depuis le lancement."));
+        assertFalse(report.contains("Chrono :"), "pas de chrono avant son étage");
         // La partie est au bout, et se relit.
         String exported = report.substring(report.indexOf("Partie :\n") + "Partie :\n".length()).strip();
         assertEquals(3600, SaveCodec.read(exported).state().timePlayed(), 1e-9);
+    }
+
+    /** Version 0.139 : le chrono accélère tout le jeu ; le rapport dit son réglage et ce qu'il garde. */
+    @Test
+    void leRapportDitLeChrono(@TempDir Path folder) {
+        SaveStore store = SaveStore.of(List.of("--dossier=" + folder));
+        Game game = new Game(7L);
+        game.start();
+        game.testFormUniverse();
+        while (game.universes() < 4) assertTrue(game.testAddUniverse());
+        game.state().setDurationShards(1e7);
+        assertTrue(game.buySeedUpgrade(Game.SeedUpgrade.CHRONO));
+        game.state().setChronoStored(90);
+        game.setChronoSpeed(1.5);
+        String report = BugReport.of(game, store, new BugReport.Session(7L, "Univers", false));
+        assertTrue(report.contains("Chrono : ×1.5 · gardé "), report);
     }
 
     @Test

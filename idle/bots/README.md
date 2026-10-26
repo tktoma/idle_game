@@ -441,6 +441,12 @@ Le volume dépend le plus du joueur : on y vise chaque boule, et un joueur deux 
 ligne avance seule, même en son absence ; elle ne dépend presque que du temps. `DimensionBotsTest` garde chaque
 dimension entre 12 et 18 minutes pour le joueur appliqué.
 
+**Dans le profil de test (version 0.140)**, le même joueur appliqué (`DimensionBots.Player`, qui décide avant chaque
+pas du jeu) joue la partie en cours : groupe « Bots dimension », à côté de « Dimensions ». On choisit la dimension, puis
+« En direct » (il joue à chaque image : ouvrir la fenêtre de la dimension pour le voir), « +1 min » ou « +5 min avec le
+bot », ou « Jusqu'au rond vert (30 min au plus) », en avance rapide annulable. Les mesures passent par le même
+joueur, et donnent exactement les mêmes temps et les mêmes achats qu'avant.
+
 ## Les bots partis de zéro : succès et défis (0.86)
 
 Dans le profil de test, un bot lancé sur une partie neuve restait bloqué : 37 succès et aucun défi après 24 h de jeu, alors que le premier Big Bang en demande 40 et les 10 défis. Quatre correctifs dans `RobotCosmosPlanner`, qui servent à tous les bots :

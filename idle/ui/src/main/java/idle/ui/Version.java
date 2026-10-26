@@ -23,6 +23,28 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.140", "Des améliorations qui se voient", List.of(
+                    "Les cartes des améliorations de la graine gardent leur format, mais se voient mieux : une carte qui "
+                            + "s'achète a une bordure dorée et son prix en vert ; s'il manque de quoi payer, le prix passe en "
+                            + "orange et dit ce qui manque ; une carte fermée reste lisible ; au maximum, elle passe au vert.",
+                    "L'onglet d'une branche où quelque chose s'achète porte une pastille.",
+                    "Les boutons d'amélioration des dimensions suivent : achetables, ils prennent la couleur de leur "
+                            + "dimension ; sinon ils restent lisibles au lieu de s'éteindre.",
+                    "Profil de test : les outils des dimensions sont refaits, une rangée par dimension (l'ouvrir, +10 % du "
+                            + "seuil, le seuil, ses améliorations au maximum ou à zéro), plus la graine et son chrono. À côté, "
+                            + "« Bots dimension » fait jouer le bot d'une dimension, en direct ou en avance rapide.")),
+            new Note("0.139", "Les ressources des dimensions font grandir la graine", List.of(
+                    "La graine ne dépend plus des seuils des dimensions : seuls les arrosages la font passer d'un palier à "
+                            + "l'autre, et chaque palier ouvre toujours un univers. Le rond vert marque toujours le seuil d'une dimension.",
+                    "Les éclats des dimensions ont un nom : les segments de la ligne, les facettes du plan, les sphères du "
+                            + "volume, les instants de la durée.",
+                    "Nouvelles améliorations de la graine, une branche par dimension : le débit de l'arrosoir (segments, +1 "
+                            + "arrosage par seconde), le tuyau d'arrosage qui arrose seul 10 % de l'arrosoir et plus (facettes), la "
+                            + "terre fertile qui fait compter chaque arrosage double (sphères), l'étage du chrono (instants).",
+                    "Le chrono, sur l'étage du haut de l'étagère, se remplit de temps tout seul, même en absence. Réglé au-dessus "
+                            + "de ×1, il fait passer tout le jeu plus vite, et plus il va vite, plus il perd de temps. Ses "
+                            + "améliorations : remplissage (segments), réserve (facettes), accélération (sphères), pertes (instants).",
+                    "Les branches des dimensions 5 à 10 sont déjà là, verrouillées, en attendant leurs dimensions.")),
             new Note("0.138", "Le prochain astre n'est plus une matière exotique trop tôt", List.of(
                     "Avant le huitième Big Bang, la liste de courses et l'objectif ne visent plus une matière exotique : "
                             + "une nébuleuse planétaire dont la matière était déjà réunie passait devant le dernier astre "

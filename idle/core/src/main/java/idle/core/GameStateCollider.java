@@ -382,6 +382,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double durationKept = durationShards, durationEarned = durationShardsEarned;
         int[] durationKeptLevels = new int[DURATION_UPGRADES];
         for (int i = 0; i < DURATION_UPGRADES; i++) durationKeptLevels[i] = durationLevel(i);
+        // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
+        int[] seedKeptLevels = seedUpgradeLevels.clone();
+        double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -450,6 +453,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         durationShards = durationKept;
         durationShardsEarned = durationEarned;
         for (int i = 0; i < durationKeptLevels.length; i++) setDurationLevel(i, durationKeptLevels[i]);
+        System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
+        chronoStored = chronoKept;
+        chronoSpeed = chronoSpeedKept;
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
     }
@@ -730,6 +736,33 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setDurationShardsEarned(double earned) {
         durationShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration de la graine, dans l'ordre de {@code Game.SeedUpgrade} ; 0 hors des huit. */
+    public int seedUpgradeLevel(int index) {
+        return index >= 0 && index < SEED_UPGRADES ? seedUpgradeLevels[index] : 0;
+    }
+
+    public void setSeedUpgradeLevel(int index, int level) {
+        if (index >= 0 && index < SEED_UPGRADES) seedUpgradeLevels[index] = Math.max(0, level);
+    }
+
+    /** Le temps gardé dans le chrono (version 0.139), en secondes. */
+    public double chronoStored() {
+        return chronoStored;
+    }
+
+    public void setChronoStored(double seconds) {
+        chronoStored = seconds >= 0 && Double.isFinite(seconds) ? seconds : 0;
+    }
+
+    /** L'accélération choisie pour le chrono : 1 (arrêté) au moins. */
+    public double chronoSpeed() {
+        return chronoSpeed;
+    }
+
+    public void setChronoSpeed(double speed) {
+        chronoSpeed = speed >= 1 && Double.isFinite(speed) ? speed : 1;
     }
 
     /** Niveau d'une amélioration de la durée, dans l'ordre de {@code Game.DurationUpgrade} ; 0 hors des quatre. */

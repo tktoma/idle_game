@@ -53,6 +53,9 @@ import javafx.scene.layout.VBox;
  *   <li><b>Collisionneur</b> : énergie, générateurs, améliorations, quarks, quark top, énergie des trous noirs ;</li>
  *   <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
  *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
+ *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), puis la
+ *       graine et son chrono ;</li>
+ *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension joue la partie en cours.</li>
  * </ul>
  * Un outil qui ajoute de la matière noire ouvre l'onglet correspondant, comme le ferait une
  * première explosion.
@@ -109,6 +112,19 @@ final class DebugBar extends VBox {
     private BotBridge bot;
     private boolean live = false;
     private double sinceDecision = 0;
+
+    // Les bots des dimensions (version 0.140)
+    /** Les rangées des outils des dimensions : leur nom et leur ressource. */
+    private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)"};
+    /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
+    static final int DIMENSION_BATCH = 400;
+    private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
+    private final Button dimensionLive = new Button();
+    private final Button dimensionCancel = new Button("Annuler l'avance rapide");
+    private DimensionBotBridge dimensionBot;
+    private boolean dimensionLiveOn = false;
+    /** Vrai pendant une avance rapide d'un bot de dimension : l'annuler relâche ce qu'il tenait. */
+    private boolean dimensionJob = false;
 
     /** Le nom court d'un cosmétique, pour son bouton : « Sépia », « Romaine ». */
     private static String cosmeticName(Cosmetic cosmetic) {
@@ -305,52 +321,51 @@ final class DebugBar extends VBox {
                     game.setWatering(false);
                     game.state().setWateringCan(false);
                 }));
-        group("Dimensions",
-                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
-                tool("+10 % du seuil de la ligne", () -> {
-                    game.state().setDimensionShards(game.state().dimensionShards() + Game.LINE_THRESHOLD / 10);
-                    game.state().setDimensionShardsEarned(game.state().dimensionShardsEarned() + Game.LINE_THRESHOLD / 10);
+        // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
+        // améliorations au plus haut ou à zéro), puis la graine et son chrono.
+        VBox dimensionRows = new VBox(4);
+        for (int d = 1; d <= DimensionBotBridge.NAMES.size(); d++) {
+            int number = d;
+            dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
+                    tool("Ouvrir", () -> openDimension(number)),
+                    tool("+10 % du seuil", () -> addDimensionShards(number, dimensionThreshold(number) / 10)),
+                    tool("Seuil atteint", () -> reachDimensionThreshold(number)),
+                    tool("Améliorations au maximum", () -> setDimensionLevels(number, true)),
+                    tool("Améliorations à zéro", () -> setDimensionLevels(number, false))));
+        }
+        dimensionRows.getChildren().add(row("Graine et chrono",
+                tool("Améliorations de la graine au maximum", () -> setSeedUpgrades(true)),
+                tool("Améliorations de la graine à zéro", () -> setSeedUpgrades(false)),
+                tool("Chrono plein", () -> {
+                    if (!game.isChronoUnlocked()) game.state().setSeedUpgradeLevel(Game.SeedUpgrade.CHRONO.ordinal(), 1);
+                    game.state().setChronoStored(game.chronoCapacity());
                 }),
-                tool("Seuil de la ligne", () -> game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD))),
-                tool("Ligne au maximum", () -> {
-                    game.state().setLineYieldLevel(game.lineMaxLevel(Game.LineUpgrade.YIELD));
-                    game.state().setLineTicksLevel(game.lineMaxLevel(Game.LineUpgrade.TICKS));
-                    game.state().setLineSpeedLevel(game.lineMaxLevel(Game.LineUpgrade.SPEED));
-                    game.state().setLineBallsLevel(game.lineMaxLevel(Game.LineUpgrade.BALLS));
-                    game.state().setLineCountLevel(game.lineMaxLevel(Game.LineUpgrade.LINES));
-                }),
-                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
-                tool("+10 % du seuil du plan", () -> {
-                    game.state().setPlaneShards(game.state().planeShards() + Game.PLANE_THRESHOLD / 10);
-                    game.state().setPlaneShardsEarned(game.state().planeShardsEarned() + Game.PLANE_THRESHOLD / 10);
-                }),
-                tool("Seuil du plan", () -> game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD))),
-                tool("Plan au maximum", () -> {
-                    for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) game.state().setPlaneLevel(upgrade.ordinal(), upgrade.max());
-                }),
-                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
-                tool("+10 % du seuil du volume", () -> {
-                    game.state().setVolumeShards(game.state().volumeShards() + Game.VOLUME_THRESHOLD / 10);
-                    game.state().setVolumeShardsEarned(game.state().volumeShardsEarned() + Game.VOLUME_THRESHOLD / 10);
-                }),
-                tool("Seuil du volume", () -> game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD))),
-                tool("Volume au maximum", () -> {
-                    // La valeur n'a pas de plafond : dix niveaux suffisent à l'essai.
-                    for (Game.VolumeUpgrade upgrade : Game.VolumeUpgrade.values())
-                        game.state().setVolumeLevel(upgrade.ordinal(), upgrade == Game.VolumeUpgrade.VALUE ? 10 : upgrade.max());
-                }),
-                // La durée (version 0.134), quatrième dimension.
-                // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).
-                tool("+10 % du seuil de la durée", () -> {
-                    game.state().setDurationShards(game.state().durationShards() + Game.DURATION_THRESHOLD / 10);
-                    game.state().setDurationShardsEarned(game.state().durationShardsEarned() + Game.DURATION_THRESHOLD / 10);
-                }),
-                tool("Seuil de la durée", () -> game.state().setDurationShardsEarned(Math.max(game.state().durationShardsEarned(), Game.DURATION_THRESHOLD))),
-                tool("Durée au maximum", () -> {
-                    // La valeur n'a pas de plafond : dix niveaux suffisent à l'essai.
-                    for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values())
-                        game.state().setDurationLevel(upgrade.ordinal(), upgrade == Game.DurationUpgrade.VALUE ? 10 : upgrade.max());
-                }));
+                tool("Chrono vide", () -> game.state().setChronoStored(0))));
+        group("Dimensions", dimensionRows);
+        // Version 0.140 : à côté des dimensions, leurs bots (DimensionBots, le joueur appliqué qui règle les seuils), qui
+        // jouent la dimension choisie de la partie en cours, en direct ou en avance rapide.
+        dimensionChoice.getItems().setAll(DimensionBotBridge.LABELS);
+        dimensionChoice.setValue(DimensionBotBridge.LABELS.get(0));
+        dimensionChoice.setFocusTraversable(false);
+        dimensionChoice.setStyle("-fx-font-size: 12px;");
+        dimensionChoice.setOnAction(event -> {
+            stopDimensionLive();
+            dimensionBot = null;
+            refreshDimensionBots();
+        });
+        dimensionLive.setStyle(TOOL_STYLE);
+        dimensionLive.setFocusTraversable(false);
+        dimensionLive.setOnAction(event -> toggleDimensionLive());
+        dimensionCancel.setStyle(TOOL_STYLE);
+        dimensionCancel.setFocusTraversable(false);
+        dimensionCancel.setOnAction(event -> cancelFastForward());
+        dimensionCancel.setDisable(true);
+        Label dimensionTitle = new Label("Bot de dimension :");
+        dimensionTitle.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffd9d4;");
+        group("Bots dimension", dimensionTitle, dimensionChoice, dimensionLive, dimensionCancel,
+                tool("+1 min avec le bot", () -> dimensionSkip(60, false)),
+                tool("+5 min avec le bot", () -> dimensionSkip(300, false)),
+                tool("Jusqu'au rond vert (30 min au plus)", () -> dimensionSkip(1800, true)));
         tabGroup("VOID", "Le vide",
                 tool("+10 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(10))),
                 tool("+1 000 énergie du vide", () -> game.testAddVoidEnergy(BigNum.of(1000))),
@@ -440,6 +455,7 @@ final class DebugBar extends VBox {
         right.getChildren().add(status);
         right.getChildren().add(botNote);
         refreshBots();
+        refreshDimensionBots();
         refresh();
     }
 
@@ -481,7 +497,9 @@ final class DebugBar extends VBox {
      * {@link BotBridge#STEP} secondes de jeu, comme dans ses campagnes.
      */
     void frame(double gameSeconds) {
-        if (!live || !game.isStarted()) return;
+        if (!game.isStarted()) return;
+        if (dimensionLiveOn) liveDimension(gameSeconds);
+        if (!live) return;
         sinceDecision += gameSeconds;
         int decisions = 0;
         while (sinceDecision >= BotBridge.STEP && decisions < 50) {
@@ -509,6 +527,9 @@ final class DebugBar extends VBox {
                 Format.duration(fastForward.advancedSeconds()) + ".");
         fastForward = null;
         botCancel.setDisable(true);
+        dimensionCancel.setDisable(true);
+        if (dimensionJob && dimensionBot != null) releaseDimension(dimensionBot);
+        dimensionJob = false;
     }
 
     /** Lance une avance JavaFX non bloquante, avec budget de 10 pas par impulsion. */
@@ -520,21 +541,38 @@ final class DebugBar extends VBox {
         refreshBots();
         int startingBang = game.bigBangs();
         int explosions = game.state().explosions();
-        fastForward = new BotFastForwardJob(seconds, BotBridge.STEP, game::tick,
-                b::act, () -> untilBang && game.bigBangs() != startingBang);
+        runJob(new BotFastForwardJob(seconds, BotBridge.STEP, game::tick,
+                b::act, () -> untilBang && game.bigBangs() != startingBang), 10, "Bot", (state, elapsed) -> {
+            if (state == BotFastForwardJob.End.BOT_ERROR) note("Bot arrêté : décision impossible.");
+            else if (state == BotFastForwardJob.End.TARGET_REACHED)
+                note("Big Bang atteint en " + Format.duration(elapsed) + ".");
+            else note("Avance de " + Format.duration(elapsed) + " terminée : +" +
+                    (game.state().explosions() - explosions) + " explosion(s), +" +
+                    (game.bigBangs() - startingBang) + " Big Bang(s).");
+        });
+    }
+
+    /**
+     * Une avance rapide sur le fil JavaFX (version 0.140 : commune au bot de la partie et à ceux des dimensions) :
+     * {@code batch} pas à chaque impulsion de 25 ms, annulable ; {@code done} dit comment elle a fini.
+     */
+    private void runJob(BotFastForwardJob job, int batch, String who,
+                        java.util.function.BiConsumer<BotFastForwardJob.End, Double> done) {
+        fastForward = job;
         botCancel.setDisable(false);
+        dimensionCancel.setDisable(false);
         botTimeline = new javafx.animation.Timeline(new javafx.animation.KeyFrame(
                 javafx.util.Duration.millis(25), event -> {
             if (fastForward == null) return;
             BotFastForwardJob.End state;
-            try { state = fastForward.runBatch(10); }
+            try { state = fastForward.runBatch(batch); }
             catch (RuntimeException error) {
                 cancelFastForward();
                 note("Erreur pendant l'avance du bot : " + error.getMessage());
                 return;
             }
             if (state == BotFastForwardJob.End.RUNNING) {
-                note("Bot : " + Format.duration(fastForward.advancedSeconds()) + " / " +
+                note(who + " : " + Format.duration(fastForward.advancedSeconds()) + " / " +
                         Format.duration(fastForward.totalSeconds()) + " — Annuler reste disponible.");
                 return;
             }
@@ -543,15 +581,212 @@ final class DebugBar extends VBox {
             botTimeline = null;
             fastForward = null;
             botCancel.setDisable(true);
-            if (state == BotFastForwardJob.End.BOT_ERROR) note("Bot arrêté : décision impossible.");
-            else if (state == BotFastForwardJob.End.TARGET_REACHED)
-                note("Big Bang atteint en " + Format.duration(elapsed) + ".");
-            else note("Avance de " + Format.duration(elapsed) + " terminée : +" +
-                    (game.state().explosions() - explosions) + " explosion(s), +" +
-                    (game.bigBangs() - startingBang) + " Big Bang(s).");
+            dimensionCancel.setDisable(true);
+            done.accept(state, elapsed);
+            refresh();
         }));
         botTimeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
         botTimeline.play();
+    }
+
+    // ------------------------------------------------------------------
+    // Les dimensions et leurs bots (version 0.140)
+    // ------------------------------------------------------------------
+
+    /** Une rangée d'outils avec son nom devant. */
+    private HBox row(String name, javafx.scene.Node... tools) {
+        Label label = new Label(name);
+        label.setMinWidth(130);
+        label.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + ACCENT + ";");
+        HBox row = new HBox(6, label);
+        row.getChildren().addAll(tools);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    /** Ouvre la dimension {@code number} : l'univers formé, puis autant d'univers qu'il en faut. */
+    private void openDimension(int number) {
+        if (!game.isUniverseFormed()) game.testFormUniverse();
+        for (int guard = 0; guard < Game.MAX_DIMENSIONS && game.dimensionsUnlocked() < number; guard++) {
+            if (!game.testAddUniverse()) break;
+        }
+    }
+
+    private static double dimensionThreshold(int number) {
+        return switch (number) {
+            case 1 -> Game.LINE_THRESHOLD;
+            case 2 -> Game.PLANE_THRESHOLD;
+            case 3 -> Game.VOLUME_THRESHOLD;
+            default -> Game.DURATION_THRESHOLD;
+        };
+    }
+
+    /** Des éclats de la dimension, gagnés : la ressource à dépenser, et autant vers le seuil. */
+    private void addDimensionShards(int number, double amount) {
+        GameState state = game.state();
+        switch (number) {
+            case 1 -> {
+                state.setDimensionShards(state.dimensionShards() + amount);
+                state.setDimensionShardsEarned(state.dimensionShardsEarned() + amount);
+            }
+            case 2 -> {
+                state.setPlaneShards(state.planeShards() + amount);
+                state.setPlaneShardsEarned(state.planeShardsEarned() + amount);
+            }
+            case 3 -> {
+                state.setVolumeShards(state.volumeShards() + amount);
+                state.setVolumeShardsEarned(state.volumeShardsEarned() + amount);
+            }
+            default -> {
+                state.setDurationShards(state.durationShards() + amount);
+                state.setDurationShardsEarned(state.durationShardsEarned() + amount);
+            }
+        }
+    }
+
+    /** Le seuil atteint : les éclats gagnés qu'il faut, sans rien ajouter à la ressource. */
+    private void reachDimensionThreshold(int number) {
+        GameState state = game.state();
+        double threshold = dimensionThreshold(number);
+        switch (number) {
+            case 1 -> state.setDimensionShardsEarned(Math.max(state.dimensionShardsEarned(), threshold));
+            case 2 -> state.setPlaneShardsEarned(Math.max(state.planeShardsEarned(), threshold));
+            case 3 -> state.setVolumeShardsEarned(Math.max(state.volumeShardsEarned(), threshold));
+            default -> state.setDurationShardsEarned(Math.max(state.durationShardsEarned(), threshold));
+        }
+    }
+
+    /** Les améliorations de la dimension au plus haut, ou à zéro. La valeur du volume et de la durée n'a pas de plafond : dix niveaux. */
+    private void setDimensionLevels(int number, boolean max) {
+        GameState state = game.state();
+        switch (number) {
+            case 1 -> {
+                state.setLineYieldLevel(max ? game.lineMaxLevel(Game.LineUpgrade.YIELD) : 0);
+                state.setLineTicksLevel(max ? game.lineMaxLevel(Game.LineUpgrade.TICKS) : 0);
+                state.setLineSpeedLevel(max ? game.lineMaxLevel(Game.LineUpgrade.SPEED) : 0);
+                state.setLineBallsLevel(max ? game.lineMaxLevel(Game.LineUpgrade.BALLS) : 0);
+                state.setLineCountLevel(max ? game.lineMaxLevel(Game.LineUpgrade.LINES) : 0);
+            }
+            case 2 -> {
+                for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values())
+                    state.setPlaneLevel(upgrade.ordinal(), max ? upgrade.max() : 0);
+            }
+            case 3 -> {
+                for (Game.VolumeUpgrade upgrade : Game.VolumeUpgrade.values())
+                    state.setVolumeLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.VolumeUpgrade.VALUE ? 10 : upgrade.max());
+            }
+            default -> {
+                for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values())
+                    state.setDurationLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.DurationUpgrade.VALUE ? 10 : upgrade.max());
+            }
+        }
+    }
+
+    /**
+     * Les améliorations de la graine au plus haut (avec l'arrosoir, que demande son débit), ou à zéro avec le chrono
+     * vide et réglé à ×1.
+     */
+    private void setSeedUpgrades(boolean max) {
+        for (Game.SeedUpgrade upgrade : Game.SeedUpgrade.values())
+            game.state().setSeedUpgradeLevel(upgrade.ordinal(), max ? upgrade.max() : 0);
+        if (max) game.state().setWateringCan(true);
+        else {
+            game.state().setChronoStored(0);
+            game.setChronoSpeed(1);
+        }
+    }
+
+    /** Le bot de la dimension choisie, créé à la demande ; {@code null} si les bots ne sont pas là. */
+    private DimensionBotBridge dimensionBot() {
+        int number = Math.max(1, DimensionBotBridge.LABELS.indexOf(dimensionChoice.getValue()) + 1);
+        if (dimensionBot == null || dimensionBot.number() != number) dimensionBot = DimensionBotBridge.of(game, number);
+        if (dimensionBot == null) note("Les bots ne sont pas là : lancez le jeu avec le module « bots » (runTest l'ajoute).");
+        return dimensionBot;
+    }
+
+    /** Vrai si la dimension du bot est ouverte ; sinon la barre le dit. */
+    private boolean dimensionOpen(DimensionBotBridge b) {
+        if (game.dimensionsUnlocked() >= b.number()) return true;
+        note("La dimension " + b.number() + " n'est pas ouverte : « Ouvrir » dans Dimensions, ou +1 univers.");
+        return false;
+    }
+
+    private void refreshDimensionBots() {
+        dimensionLive.setText(dimensionLiveOn ? "En direct : en marche" : "En direct : coupé");
+    }
+
+    private void toggleDimensionLive() {
+        if (!game.isStarted()) return;
+        if (dimensionLiveOn) stopDimensionLive();
+        else {
+            DimensionBotBridge b = dimensionBot();
+            dimensionLiveOn = b != null && dimensionOpen(b);
+            if (dimensionLiveOn) note("Le bot " + b.of() + " joue en direct : ouvrez sa fenêtre pour le voir.");
+        }
+        refreshDimensionBots();
+    }
+
+    /** Coupe le bot de dimension en direct, et relâche ce qu'il tenait. */
+    private void stopDimensionLive() {
+        if (dimensionLiveOn && dimensionBot != null) releaseDimension(dimensionBot);
+        dimensionLiveOn = false;
+        refreshDimensionBots();
+    }
+
+    /** En direct : le bot décide avant chaque image, sur le temps de jeu qui vient de passer. */
+    private void liveDimension(double gameSeconds) {
+        DimensionBotBridge b = dimensionBot();
+        if (b == null || !b.decide(gameSeconds)) {
+            stopDimensionLive();
+            note("Le bot de dimension s'est arrêté : sa dimension n'est plus ouverte.");
+        }
+    }
+
+    /** Le bot s'arrête : le point du plan s'immobilise, le bouton de la durée se relâche (il donne ce qu'il avait). */
+    private void releaseDimension(DimensionBotBridge b) {
+        if (b.number() == 2) game.setPlaneInput(0, 0);
+        if (b.number() == 4 && game.isDurationHeld()) game.releaseDuration();
+    }
+
+    /** Le bot de la dimension choisie joue {@code seconds} secondes, ou jusqu'au rond vert, en avance rapide. */
+    private void dimensionSkip(double seconds, boolean untilGreen) {
+        DimensionBotBridge b = dimensionBot();
+        if (b == null || !dimensionOpen(b)) return;
+        if (untilGreen && b.reached()) {
+            note("Le rond vert " + b.of() + " est déjà là.");
+            return;
+        }
+        if (isFastForwarding()) cancelFastForward();
+        stopDimensionLive();
+        live = false;
+        refreshBots();
+        int bought = b.purchases();
+        dimensionJob = true;
+        runJob(new BotFastForwardJob(seconds, DimensionBotBridge.STEP, game::tick,
+                () -> b.decide(DimensionBotBridge.STEP), () -> untilGreen && b.reached()),
+                DIMENSION_BATCH, "Bot " + b.of(), (state, elapsed) -> {
+            dimensionJob = false;
+            releaseDimension(b);
+            int count = b.purchases() - bought;
+            if (state == BotFastForwardJob.End.BOT_ERROR) note("Bot " + b.of() + " arrêté : la dimension s'est fermée.");
+            else if (state == BotFastForwardJob.End.TARGET_REACHED)
+                note("Rond vert " + b.of() + " en " + Format.duration(elapsed) + " (" + count + " achats).");
+            else note("Bot " + b.of() + " : " + Format.duration(elapsed) + " joués, " + count + " achats"
+                    + (b.reached() ? ", rond vert là." : "."));
+        });
+    }
+
+    /** Pour les vérifications : le choix de la dimension, le bouton du direct, et si le bot joue en direct. */
+    javafx.scene.control.ComboBox<String> dimensionBotChoice() {
+        return dimensionChoice;
+    }
+
+    Button dimensionLiveButton() {
+        return dimensionLive;
+    }
+
+    boolean dimensionBotLive() {
+        return dimensionLiveOn;
     }
 
     /** Fait avancer la partie sans bloquer l'interface JavaFX. */
@@ -607,18 +842,14 @@ final class DebugBar extends VBox {
         return open == null ? "" : open.getText();
     }
 
-    /** La graine passe au palier suivant : les seuils des dimensions qu'il faut, et les arrosages. */
+    /** La graine passe au palier suivant : les arrosages qu'il faut. */
     private void nextSeedStage() {
         int stage = game.seedStage();
         if (stage >= Game.SEED_STAGES) return;
         if (!game.isUniverseFormed()) game.testFormUniverse();
         game.state().setSeedSprouted(true);
-        if (stage >= 1) game.state().setDimensionShardsEarned(Math.max(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD));
-        if (stage >= 2) game.state().setPlaneShardsEarned(Math.max(game.state().planeShardsEarned(), Game.PLANE_THRESHOLD));
-        if (stage >= 3) game.state().setVolumeShardsEarned(Math.max(game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD));
-        if (stage >= 4) game.state().setDurationShardsEarned(Math.max(game.state().durationShardsEarned(), Game.DURATION_THRESHOLD));
+        // Version 0.139 : seuls les arrosages comptent, les seuils des dimensions ne retiennent plus la graine.
         game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(stage + 1)));
-        if (game.seedStage() == stage) note("La graine attend le seuil de la dimension " + stage + ", qui n'existe pas encore.");
     }
 
     /** Ajoute un groupe : son bouton sur la première ligne, et ses outils sur une ligne repliée. */
