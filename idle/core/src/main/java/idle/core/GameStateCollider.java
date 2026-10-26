@@ -371,6 +371,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double earned = dimensionShardsEarned;
         boolean sprouted = seedSprouted;
         long waterings = seedWaterings;
+        boolean can = wateringCan;
         boolean twig = twigOpened;
         int seedOpened = seedUniversesOpened;
         double planeKept = planeShards, planeEarned = planeShardsEarned;
@@ -435,6 +436,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         dimensionShardsEarned = earned;
         seedSprouted = sprouted;
         seedWaterings = waterings;
+        wateringCan = can;
         twigOpened = twig;
         seedUniversesOpened = seedOpened;
         planeShards = planeKept;
@@ -581,6 +583,15 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setDimensionShardsEarned(double earned) {
         dimensionShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Vrai une fois l'arrosoir débloqué (version 0.137) : il reste d'un univers à l'autre, comme la graine. */
+    public boolean wateringCan() {
+        return wateringCan;
+    }
+
+    public void setWateringCan(boolean unlocked) {
+        wateringCan = unlocked;
     }
 
     /** Vrai une fois la graine d'univers germée. */

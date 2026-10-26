@@ -16,6 +16,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -101,8 +102,15 @@ public final class UniversePage extends VBox {
     private final SeedView seedView = new SeedView();
     private final Label seedLine = new Label();
     private final Label voidCumul = new Label();
-    /** Le bouton de la graine (version 0.103) : il la fait germer, puis arrose son germe. */
-    private final Button tendSeed = new Button();
+    /**
+     * Où en est la graine (version 0.137 ; avant, le bouton qui la faisait germer puis l'arrosait) : l'arrosoir le
+     * remplace, sur son étagère de la vue.
+     */
+    private final Label seedStatus = new Label();
+    /** Le bouton posé sur l'étagère, qui débloque l'arrosoir (version 0.137). */
+    private final Button unlockCan = new Button("Débloquer l'arrosoir");
+    /** Ce que l'arrosoir avait versé à la dernière image : pour saluer la brindille et rafraîchir la page. */
+    private long lastWaterings = -1;
     private final VBox seedPane;
 
     private final StackPane pages;
@@ -228,31 +236,35 @@ public final class UniversePage extends VBox {
 
         // « Graine d'univers » : le nombre, en grand, et la graine.
         seedLine.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + SEED_COLOR + ";");
-        Label seedHint = new Label("La graine de l'univers, la seule. Elle germe une fois l'objectif de la dimension 1 atteint ;"
-                + " chaque arrosage fait ensuite grandir son germe.");
+        Label seedHint = new Label("La graine de l'univers, la seule. Débloquez l'arrosoir sur l'étagère, puis glissez-le sur la"
+                + " graine : penché sur elle, il l'arrose, " + (int) Game.WATERING_CAN_PER_SECOND + " arrosage par seconde. Le premier"
+                + " la fait germer, une fois l'objectif de la dimension 1 atteint ; les suivants font grandir son germe. Relâché,"
+                + " il revient sur l'étagère.");
         seedHint.setWrapText(true);
         seedHint.setMaxWidth(560);
         seedHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8ab80; -fx-text-alignment: center;");
         CanvasPane seedHolder = CanvasPane.filling(seedView);
         VBox.setVgrow(seedHolder, Priority.ALWAYS);
-        tendSeed.setStyle("-fx-font-size: 14px; -fx-padding: 8 20; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+        seedStatus.setStyle("-fx-font-size: 14px; -fx-text-fill: " + SEED_COLOR + "; -fx-text-alignment: center; -fx-alignment: center;");
+        seedStatus.setWrapText(true);
+        seedStatus.setMaxWidth(560);
+        unlockCan.setStyle("-fx-font-size: 13px; -fx-padding: 6 14; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
                 + " -fx-text-fill: #10151f; -fx-background-color: " + SEED_COLOR + "; -fx-border-color: #fff6d2;");
-        tendSeed.setFocusTraversable(false);
-        tendSeed.setWrapText(true);
-        tendSeed.setMaxWidth(560);
-        tendSeed.setOnAction(event -> {
-            boolean watering = game.state().seedSprouted(), wasTwig = game.isSeedTwig();
-            if (!game.tendSeed()) return;
-            if (watering) seedView.water();
-            // La brindille (version 0.106) ouvre le deuxième univers ; depuis la 0.111, il faut cliquer pour le lancer.
-            if (!wasTwig && game.isSeedTwig()) seedView.celebrate();
-            refresh();
+        unlockCan.setFocusTraversable(false);
+        unlockCan.setOnAction(event -> {
+            if (game.unlockWateringCan()) refresh();
         });
+        // L'étagère est dessinée dans la vue ; son bouton se tient au-dessus d'elle, au même endroit.
+        Pane canLayer = new Pane(unlockCan);
+        canLayer.setPickOnBounds(false);
+        seedHolder.setMinSize(0, 0);
+        StackPane seedStage = new StackPane(seedHolder, canLayer);
+        VBox.setVgrow(seedStage, Priority.ALWAYS);
         // Le cumul du vide (version 0.129) : ce qu'il restait d'énergie du vide à la formation de chaque univers.
         voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
         voidCumul.setWrapText(true);
         voidCumul.setMaxWidth(620);
-        seedPane = new VBox(8, seedLine, seedHint, voidCumul, tendSeed, seedHolder);
+        seedPane = new VBox(8, seedLine, seedHint, voidCumul, seedStatus, seedStage);
         seedPane.setAlignment(Pos.TOP_CENTER);
 
         // Par-dessus les sous-pages : le lancement, et le bouton qui le déclenche, au centre comme celui du tout
@@ -411,22 +423,24 @@ public final class UniversePage extends VBox {
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
         seedView.setSprout(game.state().seedSprouted(), game.state().seedWaterings());
         boolean seedOpen = game.canTendSeed();
-        tendSeed.setDisable(!seedOpen);
+        seedView.setCanUnlocked(game.isWateringCanUnlocked());
+        unlockCan.setVisible(game.canUnlockWateringCan());
         long waterings = game.state().seedWaterings();
         int stage = game.seedStage();
         seedView.setStage(stage);
         long nextWaterings = Game.seedStageWaterings(Math.min(Game.SEED_STAGES, stage + 1));
         seedLine.setText("La graine d'univers : palier " + stage + " sur " + Game.SEED_STAGES + ", " + Game.SEED_STAGE_NAMES.get(stage - 1));
-        tendSeed.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
+        String can = game.isWateringCanUnlocked() ? "" : "Débloquez l'arrosoir sur l'étagère. ";
+        seedStatus.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
                 : stage >= 2 && !game.isDimensionThresholdReached(stage)
                 ? "La graine attend le seuil de la dimension " + stage + " pour grandir encore"
                 : stage >= 2
-                ? "Arroser " + Game.SEED_STAGE_NAMES.get(stage - 1) + " (" + waterings + " sur " + nextWaterings + " arrosages, palier "
-                        + (stage + 1) + " : " + Game.SEED_STAGE_NAMES.get(stage) + ")"
+                ? can + "Arroser " + Game.SEED_STAGE_NAMES.get(stage - 1) + " : " + waterings + " sur " + nextWaterings + " arrosages, palier "
+                        + (stage + 1) + " : " + Game.SEED_STAGE_NAMES.get(stage)
                 : game.state().seedSprouted()
-                ? "Arroser le germe (" + waterings + (waterings > 1 ? " arrosages" : " arrosage") + " sur " + Game.SEED_TWIG_WATERINGS + ")"
-                : seedOpen ? "Faire germer la graine"
-                : "Faire germer la graine : il faut l'objectif de la dimension 1, "
+                ? can + "Arroser le germe : " + waterings + (waterings > 1 ? " arrosages" : " arrosage") + " sur " + Game.SEED_TWIG_WATERINGS
+                : seedOpen ? can + "Le premier arrosage fait germer la graine"
+                : "La graine germera au premier arrosage : il faut l'objectif de la dimension 1, "
                         + Format.darkMatter(BigNum.of(Math.min(game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD)))
                         + " / " + Format.darkMatter(BigNum.of(Game.LINE_THRESHOLD)) + " éclats de la ligne gagnés");
         seedTab.setText("Graine d'univers");
@@ -470,10 +484,22 @@ public final class UniversePage extends VBox {
         double scale = moving && next.isVisible() ? 1 + 0.03 * (1 + Math.sin(pulse * Math.PI / 1.1)) : 1;
         next.setScaleX(scale);
         next.setScaleY(scale);
+        // L'arrosoir (version 0.137) : penché sur la graine, il arrose ; le jeu compte, la page suit.
+        game.setWatering(selected == SEED && seedView.isPouring());
+        long waterings = game.state().seedWaterings() + (game.state().seedSprouted() ? 1 : 0);
+        if (lastWaterings >= 0 && waterings != lastWaterings) {
+            // La brindille (version 0.106) ouvre le deuxième univers : un éclat la salue.
+            if (game.isSeedTwig() && game.state().seedWaterings() == Game.SEED_TWIG_WATERINGS) seedView.celebrate();
+            refresh();
+        }
+        lastWaterings = waterings;
         switch (selected) {
             case DIMENSIONS -> dimensions.frame(elapsed, moving);
             case VOID -> voidView.frame(elapsed, moving);
-            case SEED -> seedView.frame(elapsed, moving);
+            case SEED -> {
+                seedView.frame(elapsed, moving);
+                placeUnlockCan();
+            }
             default -> view.frame(elapsed, moving);
         }
     }
@@ -488,11 +514,24 @@ public final class UniversePage extends VBox {
         return launch;
     }
 
-    /** La graine d'univers : pour les vérifications. */
-    /** Le bouton de la graine : pour les vérifications. */
-    public Button tendSeedButton() {
-        return tendSeed;
+    /** Le bouton de l'étagère pose l'arrosoir au-dessus de la planche, au milieu. */
+    private void placeUnlockCan() {
+        if (!unlockCan.isVisible()) return;
+        double width = unlockCan.prefWidth(-1), height = unlockCan.prefHeight(width);
+        unlockCan.resizeRelocate(Math.max(4, Math.min(seedView.getWidth() - width - 4, seedView.shelfX() - width / 2)),
+                Math.max(4, seedView.shelfMiddleY() - height / 2), width, height);
     }
+
+    /** Ce que dit la page de la graine, et le bouton qui débloque l'arrosoir : pour les vérifications. */
+    public Label seedStatus() {
+        return seedStatus;
+    }
+
+    public Button unlockCanButton() {
+        return unlockCan;
+    }
+
+    /** La graine d'univers : pour les vérifications. */
 
     public SeedView seedView() {
         return seedView;

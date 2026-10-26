@@ -377,6 +377,9 @@ public final class Game extends GameVoid {
         // La durée (version 0.134) aussi : une absence relâche le bouton tenu, qui donne ce qu'il avait.
         if (away && isDurationHeld()) releaseDuration();
         runDuration(dt);
+        // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
+        if (away && isWatering()) setWatering(false);
+        runWatering(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;

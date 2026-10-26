@@ -299,6 +299,11 @@ final class DebugBar extends VBox {
                 tool("Graine à zéro", () -> {
                     game.state().setSeedSprouted(false);
                     game.state().setSeedWaterings(0);
+                }),
+                // L'arrosoir (version 0.137) : le reprendre pour revoir le bouton de l'étagère.
+                tool("Reprendre l'arrosoir", () -> {
+                    game.setWatering(false);
+                    game.state().setWateringCan(false);
                 }));
         group("Dimensions",
                 // Version 0.136 : un dixième du seuil (cent éclats ne pesaient plus rien à côté des nouveaux seuils).

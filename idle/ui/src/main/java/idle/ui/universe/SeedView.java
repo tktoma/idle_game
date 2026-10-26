@@ -12,6 +12,10 @@ import javafx.scene.paint.Color;
  * <p>Version 0.103 : la graine ne germe plus seule. Le bouton de la sous-page la fait germer une fois
  * l'objectif de la dimension 1 atteint ; ensuite, chaque clic fait tomber une goutte d'eau sur le germe,
  * qui grandit et prend des feuilles.
+ *
+ * <p>Version 0.137 : plus de bouton, un arrosoir. Il attend sur une étagère de bois, en bas à droite ; un bouton posé sur
+ * l'étagère le débloque. On le prend à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, et
+ * le jeu compte un arrosage par seconde ({@code Game#setWatering}). Relâché, il revient tout seul sur l'étagère.
  */
 public final class SeedView extends Canvas {
 
@@ -73,8 +77,217 @@ public final class SeedView extends Canvas {
     /** Ce que la vue garde de sa taille à chaque palier : elle s'éloigne pour que la plante tienne. */
     private static final double[] ZOOM = {1, 1, 1, 0.85, 0.62, 0.55, 0.46, 0.39, 0.34, 0.29, 0.25};
 
+    // ------------------------------------------------------------------
+    // L'arrosoir (version 0.137)
+    // ------------------------------------------------------------------
+
+    private static final Color CAN = Color.web("#5f93ab");
+    private static final Color CAN_DARK = Color.web("#3c6478");
+    private static final Color CAN_LIGHT = Color.web("#a9d4e6");
+    private static final Color SHELF = Color.web("#8a6440");
+    private static final Color SHELF_EDGE = Color.web("#5a3f26");
+    /** L'inclinaison de l'arrosoir penché, en degrés : le bec descend vers la graine. */
+    public static final double CAN_TILT_DEGREES = 62;
+
+    /** Une goutte qui coule du bec : où elle est, sa vitesse, et son âge. */
+    private static final class Stream {
+        double x, y, vx, vy, age;
+        /** Où elle touche la plante : au moins un peu sous le bec, pour qu'on la voie tomber. */
+        double land;
+        boolean splashed;
+    }
+
+    private boolean canUnlocked;
+    /** Où est l'arrosoir (son centre, en points de la vue) ; NaN : sur l'étagère, avant le premier dessin. */
+    private double canX = Double.NaN, canY = Double.NaN;
+    private boolean dragging;
+    private double grabX, grabY;
+    /** De 0 (droit) à 1 (penché) : il suit en douceur. */
+    private double tilt;
+    private boolean overPlant;
+    private double streamTimer;
+    private final java.util.List<Stream> stream = new java.util.ArrayList<>();
+    /** Ce que le dernier dessin a vu de la plante : son axe, sa demi-largeur, son sommet et son pied. */
+    private double plantX, plantHalf, plantTop, plantBottom;
+
     public SeedView() {
         super(800, 400);
+        setOnMousePressed(event -> {
+            if (grab(event.getX(), event.getY())) event.consume();
+        });
+        setOnMouseDragged(event -> {
+            if (dragging) {
+                drag(event.getX(), event.getY());
+                event.consume();
+            }
+        });
+        setOnMouseReleased(event -> release());
+        setOnMouseMoved(event -> setCursor(canUnlocked && overCan(event.getX(), event.getY())
+                ? javafx.scene.Cursor.OPEN_HAND : javafx.scene.Cursor.DEFAULT));
+    }
+
+    /** L'arrosoir est-il débloqué : sinon, l'étagère attend, avec son bouton. */
+    public void setCanUnlocked(boolean unlocked) {
+        canUnlocked = unlocked;
+        if (!unlocked) {
+            dragging = false;
+            tilt = 0;
+        }
+    }
+
+    public boolean isCanUnlocked() {
+        return canUnlocked;
+    }
+
+    /** La taille de l'arrosoir, et celle de l'étagère : à la mesure de la vue. */
+    private double canSize() {
+        return Math.max(26, Math.min(getWidth(), getHeight()) * 0.11);
+    }
+
+    /** Le milieu de l'étagère, sur sa planche : là où l'arrosoir se pose, et où se tient le bouton qui le débloque. */
+    public double shelfX() {
+        // En bas à droite de la vue.
+        return getWidth() - Math.max(canSize() * 1.6, getWidth() * 0.12);
+    }
+
+    /** Le dessus de la planche de l'étagère. */
+    public double shelfTop() {
+        return getHeight() - Math.max(canSize() * 0.55, getHeight() * 0.07);
+    }
+
+    /** Le milieu de l'étagère en hauteur, entre ses deux planches : là où se tient le bouton qui débloque l'arrosoir. */
+    public double shelfMiddleY() {
+        return shelfTop() - canSize() * 0.68;
+    }
+
+    /** Où l'arrosoir se pose sur l'étagère. */
+    private double homeX() {
+        return shelfX();
+    }
+
+    private double homeY() {
+        return shelfTop() - canSize() * 0.42;
+    }
+
+    public double canX() {
+        return Double.isNaN(canX) ? homeX() : canX;
+    }
+
+    public double canY() {
+        return Double.isNaN(canY) ? homeY() : canY;
+    }
+
+    /** De 0 à 1 : penché ou non. */
+    public double tilt() {
+        return tilt;
+    }
+
+    public boolean isDragging() {
+        return dragging;
+    }
+
+    private boolean overCan(double x, double y) {
+        double s = canSize();
+        return Math.abs(x - canX()) <= s * 0.75 && Math.abs(y - canY()) <= s * 0.6;
+    }
+
+    /** Prend l'arrosoir si le point est dessus. Rend vrai s'il est pris. */
+    public boolean grab(double x, double y) {
+        if (!canUnlocked || !overCan(x, y)) return false;
+        dragging = true;
+        grabX = x - canX();
+        grabY = y - canY();
+        setCursor(javafx.scene.Cursor.CLOSED_HAND);
+        return true;
+    }
+
+    /** L'arrosoir suit la souris, sans sortir de la vue. */
+    public void drag(double x, double y) {
+        if (!dragging) return;
+        double s = canSize();
+        canX = Math.max(s * 0.6, Math.min(getWidth() - s, x - grabX));
+        canY = Math.max(s * 0.6, Math.min(getHeight() - s * 0.5, y - grabY));
+        overPlant = pourPointOverPlant();
+    }
+
+    /** Relâché : il se redresse et revient sur l'étagère. */
+    public void release() {
+        if (!dragging) return;
+        dragging = false;
+        overPlant = false;
+        setCursor(javafx.scene.Cursor.DEFAULT);
+    }
+
+    /** Là où tombe l'eau de l'arrosoir penché : un peu à droite de son centre, sous le bec. */
+    private double pourX() {
+        return canX() + canSize() * 0.95;
+    }
+
+    private boolean pourPointOverPlant() {
+        if (plantHalf <= 0) return false;
+        double x = pourX(), y = canY();
+        return Math.abs(x - plantX) <= plantHalf && y <= plantBottom && y >= plantTop - getHeight() * 0.4;
+    }
+
+    /** Vrai tant que l'arrosoir, tenu au-dessus de la graine, est assez penché pour verser : le jeu compte alors ses arrosages. */
+    public boolean isPouring() {
+        return canUnlocked && dragging && overPlant && tilt > 0.6 && seeds >= 1;
+    }
+
+    /** Les gouttes qui coulent du bec : pour les vérifications. */
+    public int streamDrops() {
+        return stream.size();
+    }
+
+    /** Le bout du bec, en points de la vue, l'arrosoir penché comme il l'est. */
+    private double[] spout() {
+        double s = canSize(), a = Math.toRadians(CAN_TILT_DEGREES * tilt);
+        double lx = s * 0.95, ly = -s * 0.42;
+        return new double[] {canX() + lx * Math.cos(a) - ly * Math.sin(a), canY() + lx * Math.sin(a) + ly * Math.cos(a)};
+    }
+
+    /** L'arrosoir avance : il suit la main ou revient sur l'étagère, se penche ou se redresse, et l'eau coule. */
+    private void moveCan(double dt) {
+        if (!dragging && !Double.isNaN(canX)) {
+            double k = Math.min(1, dt * 7);
+            canX += (homeX() - canX) * k;
+            canY += (homeY() - canY) * k;
+            if (Math.hypot(homeX() - canX, homeY() - canY) < 0.5) canX = canY = Double.NaN;
+        }
+        if (dragging) overPlant = pourPointOverPlant();
+        double target = dragging && overPlant ? 1 : 0;
+        tilt += (target - tilt) * Math.min(1, dt * 6);
+        if (isPouring()) {
+            streamTimer += dt;
+            // Un filet de gouttes qui sort du bec dans son axe, en éventail léger, puis tombe.
+            double a = Math.toRadians(CAN_TILT_DEGREES * tilt - 35);
+            while (streamTimer >= 0.02) {
+                streamTimer -= 0.02;
+                double[] tip = spout();
+                Stream drop = new Stream();
+                double spread = (UniverseView.noise(++dropCount * 5 + 1) - 0.5) * 0.5;
+                double speed = canSize() * (1.4 + 0.6 * UniverseView.noise(dropCount * 5 + 2));
+                drop.x = tip[0];
+                drop.y = tip[1];
+                drop.vx = Math.cos(a + spread) * speed;
+                drop.vy = Math.sin(a + spread) * speed;
+                drop.land = Math.max(plantTop + (plantBottom - plantTop) * 0.1, tip[1] + canSize() * (0.9 + 0.4 * UniverseView.noise(dropCount * 5 + 3)));
+                stream.add(drop);
+            }
+        } else streamTimer = 0;
+        double gravity = Math.max(300, getHeight() * 1.6);
+        for (Stream drop : stream) {
+            drop.age += dt;
+            if (drop.splashed) continue;
+            drop.vy += gravity * dt;
+            drop.x += drop.vx * dt;
+            drop.y += drop.vy * dt;
+            if (drop.y >= drop.land || drop.y >= getHeight()) {
+                drop.splashed = true;
+                drop.age = 0;
+            }
+        }
+        stream.removeIf(drop -> drop.splashed ? drop.age > 0.35 : drop.age > 3);
     }
 
     /** Le nombre de graines à montrer (un réel : il peut être très grand). */
@@ -193,7 +406,9 @@ public final class SeedView extends Canvas {
         }
         for (Drop drop : drops) drop.age += dt;
         drops.removeIf(drop -> drop.age > DROP_SECONDS + 0.6);
+        moveCan(dt);
         draw();
+        drawShelfAndCan();
     }
 
     private void draw() {
@@ -211,6 +426,7 @@ public final class SeedView extends Canvas {
         double cx = w / 2 + shake, cy = h * (0.55 + 0.33 * Math.min(1, (1 - zoom) / 0.75));
         double size = Math.min(w, h) * 0.16 * zoom;
         boolean any = seeds >= 1;
+        plantHalf = 0;
 
         // La poussière qui monte, lentement, et s'éteint en haut ; de plus en plus dense avec les paliers.
         int motes = MOTES + (stage > 4 ? 30 * (stage - 4) : 0);
@@ -328,6 +544,12 @@ public final class SeedView extends Canvas {
             g.setGlobalAlpha(1);
         }
 
+        // Où l'arrosoir verse (version 0.137) : la plante, de son pied à son sommet.
+        plantX = cx;
+        plantTop = Math.min(topY, cy - size);
+        plantBottom = cy + size * 0.5;
+        plantHalf = Math.max(size * 1.6, (cy - plantTop) * 0.45);
+
         // Les gouttes : elles tombent du haut sur le germe, puis éclaboussent.
         for (Drop drop : drops) {
             double targetX = topX + drop.drift * size * 0.2;
@@ -406,6 +628,107 @@ public final class SeedView extends Canvas {
         g.setGlobalAlpha(1);
         UniverseView.glow(g, cx - s * 0.25, cy - s * 0.15, s * 0.45, SEAM, 0.45);
         if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge, EVOLVE_SECONDS);
+    }
+
+    /**
+     * L'étagère de bois et l'arrosoir (version 0.137), par-dessus le reste : avant le déblocage, l'étagère est vide et
+     * l'arrosoir n'y est qu'une ombre, sous le bouton qui le débloque.
+     */
+    private void drawShelfAndCan() {
+        double w = getWidth(), h = getHeight();
+        if (w <= 0 || h <= 0 || seeds < 1) return;
+        GraphicsContext g = getGraphicsContext2D();
+        double s = canSize(), x = shelfX(), top = shelfTop(), plank = s * 2.4, thick = Math.max(5, s * 0.14);
+        // Une petite étagère de bois : deux montants, un fond plus sombre, une planche du haut et celle où se pose
+        // l'arrosoir, posée sur deux pieds.
+        double left = x - plank / 2, right = x + plank / 2, high = top - s * 1.35, post = Math.max(4, s * 0.1);
+        g.setGlobalAlpha(0.55);
+        g.setFill(SHELF_EDGE);
+        g.fillRect(left + post, high, plank - 2 * post, top - high);
+        g.setGlobalAlpha(1);
+        g.setFill(SHELF);
+        g.fillRect(left, high - thick, post, top + thick * 2 - high);
+        g.fillRect(right - post, high - thick, post, top + thick * 2 - high);
+        g.fillRoundRect(left - thick * 0.4, high - thick, plank + thick * 0.8, thick, 3, 3);
+        g.fillRoundRect(left - thick * 0.4, top, plank + thick * 0.8, thick, 3, 3);
+        g.setFill(SHELF_EDGE);
+        g.fillRect(left - thick * 0.4, top + thick * 0.65, plank + thick * 0.8, thick * 0.35);
+        g.fillRect(left - thick * 0.4, high - thick * 0.35, plank + thick * 0.8, thick * 0.35);
+        // Le fil du bois.
+        g.setStroke(SHELF_EDGE);
+        g.setGlobalAlpha(0.35);
+        g.setLineWidth(1);
+        g.strokeLine(left + plank * 0.05, top + thick * 0.35, x + plank * 0.1, top + thick * 0.3);
+        g.strokeLine(x - plank * 0.1, high - thick * 0.6, right - plank * 0.05, high - thick * 0.65);
+        g.setGlobalAlpha(1);
+
+        // L'eau qui coule du bec, puis éclabousse.
+        for (Stream drop : stream) {
+            double r = Math.max(2, s * 0.045);
+            g.setFill(WATER);
+            if (drop.splashed) {
+                double t = drop.age / 0.35;
+                g.setGlobalAlpha(0.7 * (1 - t));
+                for (int k = 0; k < 3; k++) {
+                    double a = Math.PI + Math.PI * (k + 0.5) / 3, d = s * 0.25 * t;
+                    g.fillOval(drop.x + Math.cos(a) * d - r, drop.y + Math.sin(a) * d * 0.5 - r, 2 * r, 2 * r);
+                }
+            } else {
+                g.setGlobalAlpha(0.9);
+                g.fillOval(drop.x - r, drop.y - r * 1.4, 2 * r, 2.8 * r);
+                UniverseView.glow(g, drop.x, drop.y, r * 2.5, WATER, 0.25);
+            }
+        }
+        g.setGlobalAlpha(1);
+
+        if (!canUnlocked) {
+            // Une ombre sur l'étagère : ce que le bouton débloque.
+            g.setGlobalAlpha(0.22);
+            drawCan(g, homeX(), homeY(), s, 0, true);
+            g.setGlobalAlpha(1);
+            return;
+        }
+        drawCan(g, canX(), canY(), s, CAN_TILT_DEGREES * tilt, false);
+    }
+
+    /** Un arrosoir de fer peint, centré en ({@code x}, {@code y}), penché de {@code degrees} : seulement sa silhouette si {@code ghost}. */
+    private static void drawCan(GraphicsContext g, double x, double y, double s, double degrees, boolean ghost) {
+        g.save();
+        g.translate(x, y);
+        g.rotate(degrees);
+        // L'anse, à l'arrière : elle part du rebord, monte en boucle et redescend se fixer au dos du corps. Dessinée avant
+        // le corps, pour que ses deux bouts s'y enfoncent.
+        g.setStroke(ghost ? MOTE : CAN_DARK);
+        g.setLineWidth(Math.max(2, s * 0.09));
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.beginPath();
+        g.moveTo(-s * 0.1, -s * 0.3);
+        g.bezierCurveTo(-s * 0.15, -s * 0.95, -s * 0.95, -s * 0.85, -s * 0.42, s * 0.08);
+        g.stroke();
+        // Le bec, du bas du corps vers le haut à droite, et sa pomme.
+        g.setFill(ghost ? MOTE : CAN_DARK);
+        g.fillPolygon(new double[] {s * 0.3, s * 0.42, s * 1.0, s * 0.9},
+                new double[] {s * 0.18, s * 0.02, -s * 0.36, -s * 0.46}, 4);
+        g.save();
+        g.translate(s * 0.97, -s * 0.43);
+        g.rotate(-40);
+        g.setFill(ghost ? MOTE : CAN);
+        g.fillOval(-s * 0.06, -s * 0.13, s * 0.12, s * 0.26);
+        g.restore();
+        // Le corps, un peu plus large en bas, et son rebord.
+        g.setFill(ghost ? MOTE : CAN);
+        g.fillPolygon(new double[] {-s * 0.4, s * 0.4, s * 0.46, -s * 0.46}, new double[] {-s * 0.3, -s * 0.3, s * 0.38, s * 0.38}, 4);
+        g.fillOval(-s * 0.46, s * 0.3, s * 0.92, s * 0.16);
+        if (!ghost) {
+            g.setFill(CAN_DARK);
+            g.fillOval(-s * 0.4, -s * 0.36, s * 0.8, s * 0.14);
+            // Un reflet le long du flanc.
+            g.setFill(CAN_LIGHT);
+            g.setGlobalAlpha(g.getGlobalAlpha() * 0.6);
+            g.fillPolygon(new double[] {-s * 0.3, -s * 0.2, -s * 0.24, -s * 0.36}, new double[] {-s * 0.22, -s * 0.22, s * 0.3, s * 0.3}, 4);
+            g.setGlobalAlpha(1);
+        }
+        g.restore();
     }
 
     /**

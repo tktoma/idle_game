@@ -363,6 +363,7 @@ public abstract class GameStateResets extends GameStateCollider {
         lineCountLevel = 0;
         dimensionShardsEarned = 0;
         seedSprouted = false;
+        wateringCan = false;
         twigOpened = false;
         seedUniversesOpened = 0;
         seedWaterings = 0;

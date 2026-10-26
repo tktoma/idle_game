@@ -23,6 +23,13 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.137", "L'arrosoir de la graine", List.of(
+                    "La graine ne s'arrose plus d'un bouton : un arrosoir attend sur une étagère de bois, en bas à droite de la "
+                            + "sous-page « Graine d'univers ». Un bouton posé sur l'étagère le débloque, une fois.",
+                    "On prend l'arrosoir à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, "
+                            + "et la graine reçoit un arrosage par seconde. Le premier la fait germer.",
+                    "Relâché, l'arrosoir se redresse et revient tout seul sur l'étagère. Une absence le repose aussi.",
+                    "Outil d'essai : « Reprendre l'arrosoir », pour revoir le bouton de l'étagère.")),
             new Note("0.136", "Un quart d'heure par dimension", List.of(
                     "Le rond vert de chaque dimension demande environ un quart d'heure de jeu appliqué, au lieu d'une à trois "
                             + "minutes : 250 000 éclats de la ligne, 3 500 du plan, 8 000 du volume et 15 millions de la "

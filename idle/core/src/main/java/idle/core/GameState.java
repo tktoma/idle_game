@@ -183,6 +183,7 @@ public final class GameState extends GameStateResets {
         data.put("lineCountLevel", lineCountLevel);
         data.put("dimensionShardsEarned", dimensionShardsEarned);
         data.put("seedSprouted", seedSprouted);
+        data.put("wateringCan", wateringCan);
         data.put("twigOpened", twigOpened);
         data.put("seedUniversesOpened", seedUniversesOpened);
         data.put("seedWaterings", seedWaterings);
@@ -437,6 +438,8 @@ public final class GameState extends GameStateResets {
         // Une sauvegarde de la 0.101 n'a pas ce total : les éclats en réserve en sont le minimum.
         setDimensionShardsEarned(data.real("dimensionShardsEarned", dimensionShards));
         setSeedSprouted(data.flag("seedSprouted", false));
+        // Version 0.137 : une partie d'avant n'a pas d'arrosoir ; il se débloque d'un clic sur l'étagère.
+        setWateringCan(data.flag("wateringCan", false));
         setSeedWaterings(data.count("seedWaterings", 0));
         // Une partie d'avant la 0.109 déjà dans l'univers 2 ouvert par la brindille : elle ne le rouvrira pas.
         setTwigOpened(data.flag("twigOpened", data.flag("replaying", false) && seedSprouted && seedWaterings >= GameUniverse.SEED_TWIG_WATERINGS));

@@ -11,15 +11,14 @@ import idle.core.upgrades.Upgrades;
 import idle.ui.automation.AutomationPage;
 import idle.ui.common.PlanBar;
 import java.util.Random;
-import javafx.application.Platform;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /** Test d'interaction sur le véritable thread JavaFX, sous Xvfb dans la CI. */
 class GuiInteractionsTest {
     @BeforeAll static void setup() { FxTestSupport.start(); }
-    @AfterAll static void shutdown() { Platform.exit(); }
+    // Version 0.137 : plus de Platform.exit() après ces tests. Le toolkit est partagé (FxTestSupport) et ne redémarre
+    // pas : toute classe de test JavaFX lancée ensuite attendait 20 s et échouait (ArrosoirPageTest l'a montré).
 
     @Test void suiviMatiereEstFacultatifEtReversible() {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,

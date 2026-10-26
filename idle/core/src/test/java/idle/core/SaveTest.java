@@ -213,6 +213,7 @@ class SaveTest {
         state.setDimensionShardsEarned(140.5);
         state.setSeedSprouted(true);
         state.setSeedWaterings(17);
+        state.setWateringCan(true);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);

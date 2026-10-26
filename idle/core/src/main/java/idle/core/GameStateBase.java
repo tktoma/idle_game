@@ -231,6 +231,8 @@ public abstract class GameStateBase {
     /** La graine d'univers (version 0.103) : germée ou non, et combien de fois son germe a été arrosé. */
     boolean seedSprouted = false;
     long seedWaterings = 0;
+    /** L'arrosoir de la graine (version 0.137) : débloqué sur son étagère, il remplace le bouton d'arrosage. */
+    boolean wateringCan = false;
     /** Vrai une fois que la brindille a ouvert la partie du deuxième univers (version 0.109) : elle ne l'ouvre qu'une fois. */
     boolean twigOpened = false;
     /** Univers que la graine a ouverts (version 0.120) : le palier N + 1 ouvre le suivant. */

@@ -1098,7 +1098,74 @@ public abstract class GameUniverse extends GameAtoms {
         return twigOpensUniverse() && startNextUniverse();
     }
 
-    /** Le premier clic fait germer la graine ; les suivants arrosent son germe, qui grandit. Faux si fermé. */
+    // ------------------------------------------------------------------
+    // L'arrosoir (version 0.137)
+    // ------------------------------------------------------------------
+
+    /** Arrosages par seconde que donne l'arrosoir penché sur la graine. */
+    public static final double WATERING_CAN_PER_SECOND = 1;
+
+    /** L'arrosoir penché sur la graine, et la part d'arrosage déjà versée ; ni l'un ni l'autre ne se sauvegarde. */
+    private boolean watering;
+    private double wateringPoured;
+
+    /** Vrai une fois l'arrosoir débloqué. */
+    public boolean isWateringCanUnlocked() {
+        return state.wateringCan();
+    }
+
+    /** L'arrosoir se débloque dès que la graine existe, c'est-à-dire dès le premier univers formé ; il est gratuit. */
+    public boolean canUnlockWateringCan() {
+        return isUniverseFormed() && !state.wateringCan();
+    }
+
+    /** Débloque l'arrosoir, posé sur son étagère. */
+    public boolean unlockWateringCan() {
+        if (!canUnlockWateringCan()) return false;
+        state.setWateringCan(true);
+        return true;
+    }
+
+    /**
+     * L'arrosoir est penché sur la graine ({@code true}) ou repris ({@code false}). Penché, il verse
+     * {@link #WATERING_CAN_PER_SECOND} arrosage par seconde, tant que la graine peut être arrosée : le premier la fait
+     * germer, comme le faisait le premier clic du bouton.
+     */
+    public void setWatering(boolean pouring) {
+        boolean next = pouring && state.wateringCan();
+        if (!next) wateringPoured = 0;
+        watering = next;
+    }
+
+    public boolean isWatering() {
+        return watering;
+    }
+
+    /** La part de l'arrosage en cours déjà versée, de 0 à 1. */
+    public double wateringPoured() {
+        return watering ? wateringPoured : 0;
+    }
+
+    /** L'arrosoir verse pendant {@code dt} secondes : un arrosage à chaque seconde pleine, tant que la graine l'accepte. */
+    void runWatering(double dt) {
+        if (!watering || dt <= 0) return;
+        if (!state.wateringCan()) {
+            setWatering(false);
+            return;
+        }
+        if (!canTendSeed()) {
+            wateringPoured = 0;
+            return;
+        }
+        wateringPoured += dt * WATERING_CAN_PER_SECOND;
+        while (wateringPoured >= 1 && canTendSeed()) {
+            wateringPoured -= 1;
+            tendSeed();
+        }
+        if (!canTendSeed()) wateringPoured = 0;
+    }
+
+    /** Le premier arrosage fait germer la graine ; les suivants arrosent son germe, qui grandit. Faux si fermé. */
     public boolean tendSeed() {
         if (!canTendSeed()) return false;
         if (!state.seedSprouted()) state.setSeedSprouted(true);
@@ -1136,6 +1203,8 @@ public abstract class GameUniverse extends GameAtoms {
         state.setDimensionShardsEarned(0);
         state.setSeedSprouted(false);
         state.setSeedWaterings(0);
+        state.setWateringCan(false);
+        setWatering(false);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
