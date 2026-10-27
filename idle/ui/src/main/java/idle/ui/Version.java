@@ -23,6 +23,10 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.144", "Les racines de l'arbre-monde", List.of(
+                    "À l'arbre-monde, les deux bulles du bas, celle de la graine et celle des racines, remontent un peu et "
+                            + "s'écartent l'une de l'autre : elles étaient serrées au bas de la vue.",
+                    "La bulle des racines, tout en bas, a une aura dorée qui respire.")),
             new Note("0.143", "Le réseau des bulles, jusqu'à l'arbre-monde", List.of(
                     "Les bulles de l'arbre continuent jusqu'au dernier palier de la graine : deux de plus au jeune arbre, deux "
                             + "à l'arbre mûr, deux à l'arbre ancien, quatre à l'arbre géant, et trois à l'arbre-monde, dont une "

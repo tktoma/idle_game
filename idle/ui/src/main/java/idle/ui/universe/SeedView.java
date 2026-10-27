@@ -922,6 +922,28 @@ public final class SeedView extends Canvas {
             bubbleX[i] = baseX + at[0] * kx;
             bubbleY[i] = Math.min(getHeight() - bubbleR * 1.2, baseY - at[1] * k);
         }
+        // Les deux bulles du bas à l'arbre-monde (version 0.144) : la graine et les racines remontent un peu et
+        // s'écartent, au lieu d'être serrées au bas de la vue.
+        int seed = -1, roots = -1;
+        for (int i = 0; i < n; i++) {
+            if (bubbles.get(i).place() == 0) seed = i;
+            if (bubbles.get(i).place() == ROOTS_PLACE) roots = i;
+        }
+        if (seed >= 0 && roots >= 0) {
+            double gap = bubbleR * 3.6;
+            double rootsY = Math.min(baseY + gap - bubbleR, getHeight() - bubbleR * 2.0);
+            bubbleY[roots] = rootsY;
+            bubbleY[seed] = rootsY - gap;
+        }
+    }
+
+    /** La place des racines dans le schéma : la bulle tout en bas, sous la graine, à l'aura dorée. */
+    static final int ROOTS_PLACE = 16;
+    private static final Color ROOTS_GOLD = Color.web("#ffd27f");
+
+    /** Le rayon des bulles au dernier dessin : pour les vérifications. */
+    public double bubbleRadius() {
+        return bubbleR;
     }
 
     /**
@@ -964,6 +986,16 @@ public final class SeedView extends Canvas {
             double x = bubbleX[i], y = bubbleY[i];
             double r = bubbleR * (i == hovered ? 1.08 : 1);
             double pulse = 0.5 + 0.5 * Math.sin(time * 3 + i);
+            // Les racines (version 0.144) : une aura dorée qui respire, achetées ou non.
+            if (bubble.place() == ROOTS_PLACE) {
+                double breath = 0.5 + 0.5 * Math.sin(time * 1.6);
+                UniverseView.glow(g, x, y, r * (2.8 + 0.6 * breath), ROOTS_GOLD, 0.65 + 0.25 * breath);
+                UniverseView.glow(g, x, y, r * 1.6, Color.web("#fff1b8"), 0.5);
+                g.setStroke(ROOTS_GOLD);
+                g.setLineWidth(2.2);
+                g.setGlobalAlpha(0.55 + 0.35 * breath);
+                g.strokeOval(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6);
+            }
             // Un fond sombre derrière la bulle : elle se détache du feuillage.
             g.setFill(Color.web("#06121a"));
             g.setGlobalAlpha(0.6);
