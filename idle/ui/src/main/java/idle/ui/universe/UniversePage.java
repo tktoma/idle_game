@@ -24,15 +24,16 @@ import javafx.scene.layout.VBox;
 
 /**
  * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé
- * (version 0.080, refaite en 0.081). Quatre sous-onglets, sans logique pour l'instant :
+ * (version 0.080, refaite en 0.081). Trois sous-onglets :
  * <ul>
  *   <li>« Univers » : les univers en bulles, les graines d'univers, les quatre améliorations (Brane,
  *       Bulk, Paysage, Omnivers) et les outils d'essai ;</li>
  *   <li>« Graine d'univers » (version 0.083) : la ressource principale, en grand, et son visuel ;</li>
  *   <li>« Dimensions », dès le premier univers (version 0.100) : dix points autour d'un onzième, une dimension
  *       de plus par univers ; chacune ouvre sa fenêtre ;</li>
- *   <li>« Vide », le deuxième acte de la partie secondaire, dès qu'il y a de l'énergie du vide.</li>
  * </ul>
+ * Le sous-onglet « Vide » est parti à la version 0.142 : le vide se joue dans son onglet, et son cumul, dans la graine,
+ * paie les bulles de l'arbre.
  */
 public final class UniversePage extends VBox {
 
@@ -43,8 +44,8 @@ public final class UniversePage extends VBox {
 
     static final int MAIN = 0;
     static final int DIMENSIONS = 1;
-    static final int VOID = 2;
-    static final int SEED = 3;
+    /** Version 0.142 : plus de sous-onglet « Vide » ; le vide se joue dans son onglet, son cumul est dans la graine. */
+    static final int SEED = 2;
     /** La couleur de la graine d'univers : un or de paille. */
     static final String SEED_COLOR = "#e6d27a";
 
@@ -56,9 +57,8 @@ public final class UniversePage extends VBox {
     private final Game game;
     private final Button mainTab = new Button("Univers");
     private final Button dimensionsTab = new Button("Dimensions");
-    private final Button voidTab = new Button("Vide");
     private final Button seedTab = new Button("Graine d'univers");
-    private final HBox subTabs = new HBox(mainTab, seedTab, dimensionsTab, voidTab);
+    private final HBox subTabs = new HBox(mainTab, seedTab, dimensionsTab);
     private int selected = MAIN;
 
     // Sous-onglet « Univers »
@@ -93,11 +93,6 @@ public final class UniversePage extends VBox {
     private final Label dimensionsLine = new Label();
     private final VBox dimensionsPane;
 
-    // Sous-onglet « Vide »
-    private final VoidView voidView = new VoidView();
-    private final Label voidLine = new Label();
-    private final VBox voidPane;
-
     // Sous-onglet « Graine d'univers »
     private final SeedView seedView = new SeedView();
     private final Label seedLine = new Label();
@@ -127,7 +122,7 @@ public final class UniversePage extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(0, 16, 10, 16));
 
-        Button[] tabs = {mainTab, dimensionsTab, voidTab, seedTab};
+        Button[] tabs = {mainTab, dimensionsTab, seedTab};
         for (int i = 0; i < tabs.length; i++) {
             int index = i;
             tabs[i].setFocusTraversable(false);
@@ -224,19 +219,6 @@ public final class UniversePage extends VBox {
         dimensionsPane = new VBox(8, dimensionsLine, dimensionsHolder);
         dimensionsPane.setAlignment(Pos.TOP_CENTER);
 
-        // « Vide » : l'énergie du vide, et son visuel.
-        voidLine.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + VOID_COLOR + ";");
-        Label voidHint = new Label("Le deuxième acte de la partie secondaire. Il se joue dans les anciens onglets : au premier Big Bang"
-                + " du troisième univers, il se propose dans le collisionneur, puis a son onglet, « Le vide ». Son cumul est dans le"
-                + " sous-onglet Graine.");
-        voidHint.setWrapText(true);
-        voidHint.setMaxWidth(620);
-        voidHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        CanvasPane voidHolder = CanvasPane.filling(voidView);
-        VBox.setVgrow(voidHolder, Priority.ALWAYS);
-        voidPane = new VBox(8, voidLine, voidHint, voidHolder);
-        voidPane.setAlignment(Pos.TOP_CENTER);
-
         // « Graine d'univers » : le nombre, en grand, et la graine.
         seedLine.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + SEED_COLOR + ";");
         Label seedHint = new Label("La graine de l'univers, la seule. Débloquez l'arrosoir sur l'étagère, puis glissez-le sur la"
@@ -261,6 +243,8 @@ public final class UniversePage extends VBox {
         canLayer.setPickOnBounds(false);
         seedHolder.setMinSize(0, 0);
         StackPane seedStage = new StackPane(seedHolder, canLayer);
+        // Les bulles de l'arbre (version 0.142) : un clic sur l'une l'achète, avec l'énergie du vide accumulée.
+        seedView.setOnBubble(this::clickBubble);
         VBox.setVgrow(seedStage, Priority.ALWAYS);
         // Le cumul du vide (version 0.129) : ce qu'il restait d'énergie du vide à la formation de chaque univers.
         voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
@@ -283,7 +267,7 @@ public final class UniversePage extends VBox {
         // début, visible de chacune. La lumière du lancement naît là où il était.
         CanvasPane launchHolder = CanvasPane.filling(launch);
         launchHolder.setMouseTransparent(true);
-        pages = new StackPane(mainPane, dimensionsPane, voidPane, seedPane, launchHolder, next);
+        pages = new StackPane(mainPane, dimensionsPane, seedPane, launchHolder, next);
         StackPane.setAlignment(next, Pos.CENTER);
         VBox.setVgrow(pages, Priority.ALWAYS);
         getChildren().addAll(subTabs, pages);
@@ -339,16 +323,13 @@ public final class UniversePage extends VBox {
 
     public void select(int index) {
         if (index == DIMENSIONS && !game.isDimensionsUnlocked()) index = MAIN;
-        if (index == VOID && !isVoidOpen()) index = MAIN;
         selected = index;
         mainPane.setVisible(index == MAIN);
         dimensionsPane.setVisible(index == DIMENSIONS);
-        voidPane.setVisible(index == VOID);
         seedPane.setVisible(index == SEED);
         mainTab.setStyle(style(index == MAIN, COLOR));
         seedTab.setStyle(style(index == SEED, SEED_COLOR));
         dimensionsTab.setStyle(style(index == DIMENSIONS, COLOR));
-        voidTab.setStyle(style(index == VOID, VOID_COLOR));
     }
 
     public int selected() {
@@ -359,15 +340,9 @@ public final class UniversePage extends VBox {
     public void step(int direction) {
         java.util.List<Integer> shown = new java.util.ArrayList<>(java.util.List.of(MAIN, SEED));
         if (game.isDimensionsUnlocked()) shown.add(DIMENSIONS);
-        if (isVoidOpen()) shown.add(VOID);
         int at = Math.max(0, shown.indexOf(selected));
         select(shown.get(Math.floorMod(at + direction, shown.size())));
         refresh();
-    }
-
-    /** Le sous-onglet du vide : une fois le vide ouvert, ou un cumul gardé (et avec l'outil d'essai, dès qu'il y a de l'énergie). */
-    private boolean isVoidOpen() {
-        return game.isVoidUnlocked() || !game.state().voidHistory().isEmpty() || game.state().voidEnergy().sign() > 0;
     }
 
     private static String style(boolean selected, String color) {
@@ -383,10 +358,7 @@ public final class UniversePage extends VBox {
         boolean dims = game.isDimensionsUnlocked();
         dimensionsTab.setVisible(dims);
         dimensionsTab.setManaged(dims);
-        boolean voidOpen = isVoidOpen();
-        voidTab.setVisible(voidOpen);
-        voidTab.setManaged(voidOpen);
-        if ((selected == DIMENSIONS && !dims) || (selected == VOID && !voidOpen)) select(MAIN);
+        if (selected == DIMENSIONS && !dims) select(MAIN);
         resources.setText(universes + " univers"
                 + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
                 // Le bonus permanent des univers formés (version 0.112).
@@ -419,17 +391,21 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(4, game.isDurationThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
-        voidLine.setText("Énergie du vide : " + Format.count(game.state().voidEnergy()) + "   |   cumul : "
-                + Format.count(BigNum.of(game.voidAccumulated())));
         java.util.Map<String, Double> history = game.state().voidHistory();
-        voidCumul.setVisible(!history.isEmpty());
-        voidCumul.setManaged(!history.isEmpty());
-        if (!history.isEmpty()) {
+        boolean bubbles = !game.treeBubblesShown().isEmpty();
+        voidCumul.setVisible(!history.isEmpty() || bubbles);
+        voidCumul.setManaged(voidCumul.isVisible());
+        if (history.isEmpty()) {
+            voidCumul.setText("Énergie du vide accumulée : 0. Ce qu'il reste d'énergie du vide à la formation d'un univers "
+                    + "s'ajoute ici, et paie les bulles de l'arbre.");
+        } else {
             StringBuilder each = new StringBuilder();
             history.forEach((universe, stock) -> each.append(each.length() == 0 ? "" : ", ").append("univers ").append(universe)
                     .append(" : ").append(Format.count(BigNum.of(stock))));
+            // Version 0.142 : elle paie les bulles de l'arbre ; la ligne dit ce qu'il en reste à dépenser.
             voidCumul.setText("Énergie du vide accumulée : " + Format.count(BigNum.of(game.voidAccumulated())) + " (" + each
-                    + "). Ce qu'il restait à la formation de chaque univers ; elle servira à l'arbre de la graine, plus tard.");
+                    + "), ce qu'il restait à la formation de chaque univers. À dépenser pour les bulles de l'arbre : "
+                    + Format.count(BigNum.of(game.voidAvailable())) + ".");
         }
         // Il n'y a qu'une graine (version 0.105) : pas de compteur, la graine est là dès que l'univers est formé.
         seedView.setSeeds(game.isUniverseFormed() ? 1 : 0);
@@ -505,12 +481,12 @@ public final class UniversePage extends VBox {
         lastWaterings = waterings;
         switch (selected) {
             case DIMENSIONS -> dimensions.frame(elapsed, moving);
-            case VOID -> voidView.frame(elapsed, moving);
             case SEED -> {
                 // Le tuyau et le chrono (version 0.139) : ce que la vue en montre suit le jeu à chaque image.
                 seedView.setHose(game.hasHose(), game.hasHose() && game.canTendSeed());
                 seedView.setChrono(game.isChronoUnlocked(), game.chronoCapacity() > 0 ? game.chronoStored() / game.chronoCapacity() : 0,
                         game.isChronoRunning());
+                seedView.setBubbles(bubbles());
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;
@@ -544,6 +520,38 @@ public final class UniversePage extends VBox {
     /** Ce que dit la page de la graine, et le bouton qui débloque l'arrosoir : pour les vérifications. */
     public Label seedStatus() {
         return seedStatus;
+    }
+
+    /** Les bulles de l'arbre (version 0.142), comme la vue les dessine : leur place, leur prix, leur état, leurs liens. */
+    private java.util.List<SeedView.Bubble> bubbles() {
+        java.util.List<Game.TreeBubble> shown = game.treeBubblesShown();
+        java.util.List<SeedView.Bubble> list = new java.util.ArrayList<>();
+        for (Game.TreeBubble bubble : shown) {
+            boolean bought = game.isTreeBubbleBought(bubble);
+            SeedView.BubbleState state = bought ? SeedView.BubbleState.BOUGHT
+                    : !game.isTreeBubbleOpen(bubble) ? SeedView.BubbleState.CLOSED
+                    : game.canBuyTreeBubble(bubble) ? SeedView.BubbleState.BUY : SeedView.BubbleState.SHORT;
+            String price = switch (state) {
+                case BOUGHT -> "Achetée (pas encore d'effet)";
+                case CLOSED -> bubble.below().size() == 1 ? "Il faut d'abord : " + bubble.below().get(0).label()
+                        : "Il faut d'abord une des bulles reliées en dessous";
+                case BUY -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide";
+                case SHORT -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide (il en manque "
+                        + Format.count(BigNum.of(Math.ceil(bubble.cost() - game.voidAvailable()))) + ")";
+            };
+            java.util.List<Integer> below = new java.util.ArrayList<>();
+            for (Game.TreeBubble under : bubble.below()) if (shown.contains(under)) below.add(shown.indexOf(under));
+            list.add(new SeedView.Bubble(bubble.ordinal(), bubble.label(), price, state, below));
+        }
+        return list;
+    }
+
+    /** Un clic sur une bulle : achetée si elle peut l'être. */
+    private void clickBubble(int index) {
+        java.util.List<Game.TreeBubble> shown = game.treeBubblesShown();
+        if (index < 0 || index >= shown.size()) return;
+        if (game.buyTreeBubble(shown.get(index))) refresh();
+        seedView.setBubbles(bubbles());
     }
 
     public SeedUpgradesPane seedUpgrades() {

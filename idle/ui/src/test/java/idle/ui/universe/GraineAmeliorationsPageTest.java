@@ -113,6 +113,33 @@ class GraineAmeliorationsPageTest {
         });
     }
 
+    /**
+     * Version 0.141 : le panneau se rafraîchit quatre fois par seconde sans retirer ses cartes. Avant, un clic dont
+     * l'appui et le relâché encadraient un rafraîchissement se perdait (vu avec une vraie souris sous Xvfb).
+     */
+    @Test
+    void lesCartesRestentEnPlaceQuandLePanneauSeRafraichit() {
+        FxTestSupport.fx(() -> {
+            Game game = rich();
+            UniversePage page = page(game);
+            SeedUpgradesPane pane = page.seedUpgrades();
+            javafx.scene.control.Button card = pane.button(SeedUpgrade.WATERING);
+            javafx.scene.Parent column = card.getParent();
+            int[] changes = {0};
+            ((javafx.scene.layout.Pane) column).getChildren().addListener(
+                    (javafx.collections.ListChangeListener<javafx.scene.Node>) change -> changes[0]++);
+            for (int i = 0; i < 20; i++) page.frame(0.25, true);
+            card.fire();
+            pane.refresh();
+            assertEquals(0, changes[0], "les cartes de la même branche ne bougent pas");
+            assertEquals(column, card.getParent());
+            pane.select(2);
+            assertTrue(changes[0] > 0, "changer de branche change les cartes");
+            assertFalse(column.getChildrenUnmodifiable().contains(card));
+            return null;
+        });
+    }
+
     @Test
     void lesBranchesDesDimensionsAVenirSontVerrouillees() {
         FxTestSupport.fx(() -> {

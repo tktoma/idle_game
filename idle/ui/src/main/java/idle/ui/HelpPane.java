@@ -221,7 +221,10 @@ final class HelpPane extends StackPane {
                 + "l'arrosoir, tuyau d'arrosage, terre fertile, étage du chrono et ses réglages). La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
                 + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
-                + "pertes d'autant plus fortes qu'il va vite. La ligne avance seule : chaque trait "
+                + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
+                + "une à la base, sur la graine, puis deux sur le feuillage au palier suivant et trois à la cime au palier d'après, "
+                + "reliées entre elles. Un clic achète une bulle avec l'énergie du vide accumulée, une fois achetée une des bulles "
+                + "reliées en dessous ; elles n'ont pas encore d'effet. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
                 + (game.isVolumeOpen() ? " Dans le volume, on clique le cube pour y plonger, puis on regarde autour de soi, "
@@ -253,8 +256,8 @@ final class HelpPane extends StackPane {
                 + " % par niveau du temps de maturation des astres, aussi pour ceux qui mûrissent déjà) et rassemblement plus court "
                 + "(−" + Math.round(Game.VOID_SETTLE_STEP * 100) + " % par niveau du délai de l'amas et de l'univers). Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
                 + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
-                + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers ; le vide, son trou noir et ses "
-                + "améliorations repartent de zéro dans l'univers suivant."));
+                + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers, où il paie les bulles de l'arbre ; "
+                + "le vide, son trou noir et ses améliorations repartent de zéro dans l'univers suivant."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
                 + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")

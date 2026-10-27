@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.142", "Les bulles de l'arbre", List.of(
+                    "Au palier de la graine qui ouvre l'univers 4, à la fin de la dimension 3, une bulle naît à la base de "
+                            + "l'arbre, sur la graine. Au palier suivant, deux bulles sur le feuillage ; au palier d'après, trois "
+                            + "à la cime. Elles sont reliées : chacune s'ouvre quand une bulle reliée en dessous est achetée, et "
+                            + "il faut celle de la base pour les autres.",
+                    "Un clic sur une bulle l'achète avec l'énergie du vide accumulée, celle qu'il restait à la formation de "
+                            + "chaque univers, affichée sur la page de la graine avec ce qu'il en reste à dépenser. Au survol, "
+                            + "une bulle dit son nom et son prix. Achetée, elle s'allume ; elle n'a pas encore d'effet.",
+                    "Le sous-onglet « Vide » de l'onglet Univers est retiré : le vide se joue dans son onglet, et son cumul "
+                            + "est sur la page de la graine.")),
+            new Note("0.141", "Les améliorations de la graine s'achètent au premier clic", List.of(
+                    "Les cartes des améliorations de la graine se rafraîchissaient quatre fois par seconde en étant retirées "
+                            + "puis remises : un clic tombé entre l'appui et le relâché était perdu, et beaucoup de cartes "
+                            + "semblaient ne pas s'acheter. Elles restent maintenant en place ; seul leur contenu change.",
+                    "Le curseur du chrono va par quarts et ne saute plus pendant qu'on le glisse.")),
             new Note("0.140", "Des améliorations qui se voient", List.of(
                     "Les cartes des améliorations de la graine gardent leur format, mais se voient mieux : une carte qui "
                             + "s'achète a une bordure dorée et son prix en vert ; s'il manque de quoi payer, le prix passe en "

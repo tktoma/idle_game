@@ -320,6 +320,15 @@ final class DebugBar extends VBox {
                 tool("Reprendre l'arrosoir", () -> {
                     game.setWatering(false);
                     game.state().setWateringCan(false);
+                }),
+                // Les bulles de l'arbre (version 0.142) : de quoi les payer, et les reprendre.
+                tool("+1 000 d'énergie du vide accumulée", () -> {
+                    String last = String.valueOf(Math.max(1, game.universes()));
+                    game.state().noteVoidHistory(last, game.state().voidHistory().getOrDefault(last, 0.0) + 1000);
+                }),
+                tool("Bulles de l'arbre à zéro", () -> {
+                    game.state().clearTreeBubbles();
+                    game.state().setVoidSpent(0);
                 }));
         // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.

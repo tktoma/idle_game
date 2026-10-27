@@ -270,6 +270,12 @@ public abstract class GameStateBase {
     final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
     double chronoStored = 0;
     double chronoSpeed = 1;
+    /**
+     * Les bulles de l'arbre (version 0.142) : celles achetées, un bit par bulle dans l'ordre de {@code Game.TreeBubble},
+     * et l'énergie du vide accumulée (celle qui restait à la formation de chaque univers) déjà dépensée pour elles.
+     */
+    int treeBubbles = 0;
+    double voidSpent = 0;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

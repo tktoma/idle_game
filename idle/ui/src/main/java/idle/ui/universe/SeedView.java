@@ -135,6 +135,83 @@ public final class SeedView extends Canvas {
         return chronoShown;
     }
 
+    // Les bulles de l'arbre (version 0.142) : un arbre d'améliorations posé sur l'arbre, payé avec l'énergie du vide.
+    /** L'état d'une bulle, qui décide de son éclat. */
+    public enum BubbleState {
+        /** Aucune des bulles reliées en dessous n'est achetée. */
+        CLOSED,
+        /** Ouverte, mais l'énergie du vide manque. */
+        SHORT,
+        /** S'achète maintenant : un clic. */
+        BUY,
+        /** Achetée : elle reste allumée. */
+        BOUGHT
+    }
+
+    /**
+     * Une bulle à dessiner : sa place (0 à la base, sur la graine ; 1 et 2 sur le feuillage, à gauche et à droite ; 3, 4
+     * et 5 à la cime, de gauche à droite), son nom, son prix, son état, et les bulles reliées en dessous (leurs rangs
+     * dans la liste).
+     */
+    public record Bubble(int place, String name, String price, BubbleState state, java.util.List<Integer> below) { }
+
+    private static final Color BUBBLE = Color.web("#9fe6ff");
+    private static final Color BUBBLE_DEEP = Color.web("#3a8fb8");
+    private java.util.List<Bubble> bubbles = java.util.List.of();
+    private double[] bubbleX = new double[0], bubbleY = new double[0];
+    private double bubbleR;
+    private int hovered = -1;
+    private java.util.function.IntConsumer onBubble = index -> { };
+    /** Ce que le dernier dessin a vu : la graine (centre, taille) et le feuillage (centre, rayon ; 0 sans arbre). */
+    private double seedX, seedY, seedSize, crownX, crownY, crownR;
+
+    /** Les bulles de l'arbre, dans l'ordre où l'application les connaît. */
+    public void setBubbles(java.util.List<Bubble> shown) {
+        bubbles = java.util.List.copyOf(shown);
+        if (hovered >= bubbles.size()) hovered = -1;
+    }
+
+    /** Ce que fait un clic sur une bulle : son rang dans la liste donnée. */
+    public void setOnBubble(java.util.function.IntConsumer action) {
+        onBubble = action == null ? index -> { } : action;
+    }
+
+    public int bubbleCount() {
+        return bubbles.size();
+    }
+
+    /** La bulle sous ce point (son rang), ou -1. */
+    public int bubbleAt(double x, double y) {
+        for (int i = 0; i < Math.min(bubbles.size(), bubbleX.length); i++) {
+            if (Math.hypot(x - bubbleX[i], y - bubbleY[i]) <= bubbleR * 1.15) return i;
+        }
+        return -1;
+    }
+
+    /** Où est la bulle {@code index} au dernier dessin : pour les vérifications. */
+    public double[] bubblePoint(int index) {
+        return new double[] {bubbleX[index], bubbleY[index]};
+    }
+
+    /** La bulle survolée, dont l'étiquette s'affiche ; -1 sinon. */
+    public int hoveredBubble() {
+        return hovered;
+    }
+
+    /** Survole ce point : l'étiquette de la bulle qui s'y trouve s'affiche. */
+    public void hover(double x, double y) {
+        hovered = bubbleAt(x, y);
+    }
+
+    /** Un clic à ce point : vrai s'il tombe sur une bulle, qui est alors achetée si elle peut l'être. */
+    public boolean clickBubble(double x, double y) {
+        int hit = bubbleAt(x, y);
+        if (hit < 0) return false;
+        hovered = hit;
+        onBubble.accept(hit);
+        return true;
+    }
+
     private boolean canUnlocked;
     /** Où est l'arrosoir (son centre, en points de la vue) ; NaN : sur l'étagère, avant le premier dessin. */
     private double canX = Double.NaN, canY = Double.NaN;
@@ -151,7 +228,8 @@ public final class SeedView extends Canvas {
     public SeedView() {
         super(800, 400);
         setOnMousePressed(event -> {
-            if (grab(event.getX(), event.getY())) event.consume();
+            // Une bulle d'abord (version 0.142) : sinon, l'arrosoir.
+            if (clickBubble(event.getX(), event.getY()) || grab(event.getX(), event.getY())) event.consume();
         });
         setOnMouseDragged(event -> {
             if (dragging) {
@@ -160,8 +238,13 @@ public final class SeedView extends Canvas {
             }
         });
         setOnMouseReleased(event -> release());
-        setOnMouseMoved(event -> setCursor(canUnlocked && overCan(event.getX(), event.getY())
-                ? javafx.scene.Cursor.OPEN_HAND : javafx.scene.Cursor.DEFAULT));
+        setOnMouseMoved(event -> {
+            hover(event.getX(), event.getY());
+            boolean buy = hovered >= 0 && bubbles.get(hovered).state() == BubbleState.BUY;
+            setCursor(buy ? javafx.scene.Cursor.HAND : canUnlocked && overCan(event.getX(), event.getY())
+                    ? javafx.scene.Cursor.OPEN_HAND : javafx.scene.Cursor.DEFAULT);
+        });
+        setOnMouseExited(event -> hovered = -1);
     }
 
     /** L'arrosoir est-il débloqué : sinon, l'étagère attend, avec son bouton. */
@@ -478,7 +561,9 @@ public final class SeedView extends Canvas {
         drops.removeIf(drop -> drop.age > DROP_SECONDS + 0.6);
         moveCan(dt);
         draw();
+        drawBubbles();
         drawShelfAndCan();
+        drawBubbleLabel();
     }
 
     private void draw() {
@@ -497,6 +582,10 @@ public final class SeedView extends Canvas {
         double size = Math.min(w, h) * 0.16 * zoom;
         boolean any = seeds >= 1;
         plantHalf = 0;
+        seedX = cx;
+        seedY = cy;
+        seedSize = any ? size : 0;
+        crownR = 0;
 
         // La poussière qui monte, lentement, et s'éteint en haut ; de plus en plus dense avec les paliers.
         int motes = MOTES + (stage > 4 ? 30 * (stage - 4) : 0);
@@ -563,6 +652,9 @@ public final class SeedView extends Canvas {
             double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time);
             topX = top[0];
             topY = top[1];
+            crownX = top[0];
+            crownY = top[1];
+            crownR = top[2];
             grow = 0;
         }
         // Plus épaisse à chaque palier : la tige craquelée puis brisée (version 0.120).
@@ -787,6 +879,145 @@ public final class SeedView extends Canvas {
      * Le tuyau d'arrosage : il vient du bord gauche, loin de l'étagère, court au sol et finit par sa lance, au pied de
      * la plante.
      */
+    /** Où se pose une bulle, avant qu'elle flotte : la base sur la graine, les autres sur le feuillage et la cime. */
+    private double[] bubblePlace(int place) {
+        if (place == 0 || crownR <= 0) return new double[] {seedX, seedY + seedSize * 0.05};
+        // L'écart suit le feuillage, sans descendre sous une part de la vue : les bulles du schéma restent bien séparées.
+        double u = Math.max(crownR, Math.min(getWidth(), getHeight()) * 0.17);
+        return switch (place) {
+            case 1 -> new double[] {crownX - u * 0.75, crownY + u * 0.3};
+            case 2 -> new double[] {crownX + u * 0.75, crownY + u * 0.3};
+            case 3 -> new double[] {crownX - u * 1.25, crownY - u * 0.45};
+            case 4 -> new double[] {crownX, crownY - u * 0.75};
+            default -> new double[] {crownX + u * 1.25, crownY - u * 0.45};
+        };
+    }
+
+    /**
+     * Les bulles de l'arbre (version 0.142) et leurs liens : chaque bulle reliée aux bulles d'en dessous qui l'ouvrent.
+     * Elles flottent un peu. Achetable, une bulle pulse ; achetée, elle reste allumée ; sinon elle n'est qu'un reflet,
+     * en pointillé tant qu'aucune bulle reliée en dessous n'est achetée.
+     */
+    private void drawBubbles() {
+        int n = bubbles.size();
+        if (bubbleX.length != n) {
+            bubbleX = new double[n];
+            bubbleY = new double[n];
+        }
+        if (n == 0 || seedSize <= 0) return;
+        GraphicsContext g = getGraphicsContext2D();
+        // Une taille tenue par la vue, pas par la graine (qui rapetisse quand l'arbre grandit) : lisible à tous les paliers.
+        bubbleR = Math.max(13, Math.min(getWidth(), getHeight()) * 0.036);
+        for (int i = 0; i < n; i++) {
+            double[] at = bubblePlace(bubbles.get(i).place());
+            bubbleX[i] = at[0];
+            bubbleY[i] = at[1] + Math.sin(time * 1.3 + i * 2.1) * bubbleR * 0.12;
+        }
+        // Les liens d'abord, derrière : de bord à bord, allumés quand les deux bulles sont achetées.
+        for (int i = 0; i < n; i++) {
+            for (int j : bubbles.get(i).below()) {
+                if (j < 0 || j >= n) continue;
+                double dx = bubbleX[i] - bubbleX[j], dy = bubbleY[i] - bubbleY[j], len = Math.hypot(dx, dy);
+                if (len <= 2 * bubbleR) continue;
+                double ux = dx / len, uy = dy / len;
+                boolean lit = bubbles.get(i).state() == BubbleState.BOUGHT && bubbles.get(j).state() == BubbleState.BOUGHT;
+                boolean open = bubbles.get(j).state() == BubbleState.BOUGHT;
+                g.setStroke(BUBBLE);
+                g.setLineWidth(lit ? 2.4 : 1.5);
+                g.setGlobalAlpha(lit ? 0.9 : open ? 0.55 : 0.25);
+                if (!open) g.setLineDashes(5, 5);
+                g.strokeLine(bubbleX[j] + ux * bubbleR, bubbleY[j] + uy * bubbleR, bubbleX[i] - ux * bubbleR, bubbleY[i] - uy * bubbleR);
+                g.setLineDashes();
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            Bubble bubble = bubbles.get(i);
+            double x = bubbleX[i], y = bubbleY[i];
+            double r = bubbleR * (i == hovered ? 1.08 : 1);
+            double pulse = 0.5 + 0.5 * Math.sin(time * 3 + i);
+            // Un fond sombre derrière la bulle : elle se détache du feuillage.
+            g.setFill(Color.web("#06121a"));
+            g.setGlobalAlpha(0.6);
+            g.fillOval(x - r * 1.08, y - r * 1.08, r * 2.16, r * 2.16);
+            switch (bubble.state()) {
+                case BOUGHT -> {
+                    UniverseView.glow(g, x, y, r * 2.4, BUBBLE, 0.55);
+                    g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x - r * 0.3, y - r * 0.3, r * 1.3, false,
+                            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.web("#e8fbff")),
+                            new javafx.scene.paint.Stop(0.55, BUBBLE), new javafx.scene.paint.Stop(1, BUBBLE_DEEP)));
+                    g.setGlobalAlpha(0.85);
+                    g.fillOval(x - r, y - r, 2 * r, 2 * r);
+                }
+                case BUY -> {
+                    UniverseView.glow(g, x, y, r * (1.8 + 0.6 * pulse), BUBBLE, 0.25 + 0.25 * pulse);
+                    g.setFill(BUBBLE);
+                    g.setGlobalAlpha(0.18);
+                    g.fillOval(x - r, y - r, 2 * r, 2 * r);
+                }
+                default -> {
+                    g.setFill(BUBBLE);
+                    g.setGlobalAlpha(0.07);
+                    g.fillOval(x - r, y - r, 2 * r, 2 * r);
+                }
+            }
+            // Le bord, et le reflet en haut à gauche.
+            g.setStroke(BUBBLE);
+            g.setLineWidth(bubble.state() == BubbleState.BUY ? 2.2 : 1.4);
+            g.setGlobalAlpha(switch (bubble.state()) {
+                case BOUGHT -> 0.95;
+                case BUY -> 0.6 + 0.4 * pulse;
+                case SHORT -> 0.45;
+                case CLOSED -> 0.22;
+            });
+            if (bubble.state() == BubbleState.CLOSED) g.setLineDashes(4, 4);
+            g.strokeOval(x - r, y - r, 2 * r, 2 * r);
+            g.setLineDashes();
+            g.setFill(Color.WHITE);
+            g.setGlobalAlpha(bubble.state() == BubbleState.CLOSED ? 0.2 : 0.55);
+            g.fillOval(x - r * 0.55, y - r * 0.62, r * 0.42, r * 0.26);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** L'étiquette de la bulle survolée : son nom et son prix, au-dessus d'elle, par-dessus le reste. */
+    private void drawBubbleLabel() {
+        if (hovered < 0 || hovered >= bubbles.size() || hovered >= bubbleX.length) return;
+        Bubble bubble = bubbles.get(hovered);
+        GraphicsContext g = getGraphicsContext2D();
+        g.save();
+        javafx.scene.text.Font name = javafx.scene.text.Font.font(null, javafx.scene.text.FontWeight.BOLD, 13);
+        javafx.scene.text.Font price = javafx.scene.text.Font.font(12);
+        javafx.scene.text.Text measure = new javafx.scene.text.Text(bubble.name());
+        measure.setFont(name);
+        double width = measure.getLayoutBounds().getWidth();
+        measure.setText(bubble.price());
+        measure.setFont(price);
+        width = Math.max(width, measure.getLayoutBounds().getWidth()) + 20;
+        double height = 42;
+        double x = Math.max(4, Math.min(getWidth() - width - 4, bubbleX[hovered] - width / 2));
+        double y = Math.max(4, bubbleY[hovered] - bubbleR - height - 8);
+        g.setGlobalAlpha(0.92);
+        g.setFill(Color.web("#0d1a24"));
+        g.fillRoundRect(x, y, width, height, 10, 10);
+        g.setStroke(BUBBLE);
+        g.setLineWidth(1.2);
+        g.strokeRoundRect(x, y, width, height, 10, 10);
+        g.setGlobalAlpha(1);
+        g.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
+        g.setTextBaseline(javafx.geometry.VPos.TOP);
+        g.setFont(name);
+        g.setFill(Color.web("#e8fbff"));
+        g.fillText(bubble.name(), x + 10, y + 6);
+        g.setFont(price);
+        g.setFill(switch (bubble.state()) {
+            case BUY, BOUGHT -> Color.web("#a8f0b0");
+            case SHORT -> Color.web("#ffb48a");
+            case CLOSED -> Color.web("#9aa3bd");
+        });
+        g.fillText(bubble.price(), x + 10, y + 23);
+        g.restore();
+    }
+
     private void drawHose(GraphicsContext g, double s) {
         if (!hoseShown || plantHalf <= 0) return;
         double h = getHeight();

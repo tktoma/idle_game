@@ -385,6 +385,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
+        // Les bulles de l'arbre et l'énergie du vide dépensée (version 0.142) aussi, comme le cumul du vide.
+        int bubblesKept = treeBubbles;
+        double voidSpentKept = voidSpent;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -456,6 +459,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
+        treeBubbles = bubblesKept;
+        voidSpent = voidSpentKept;
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
     }
@@ -763,6 +768,38 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setChronoSpeed(double speed) {
         chronoSpeed = speed >= 1 && Double.isFinite(speed) ? speed : 1;
+    }
+
+    /** Vrai si la bulle de l'arbre {@code index} (version 0.142, ordre de {@code Game.TreeBubble}) est achetée. */
+    public boolean treeBubbleBought(int index) {
+        return index >= 0 && index < 31 && (treeBubbles & (1 << index)) != 0;
+    }
+
+    public void setTreeBubbleBought(int index, boolean bought) {
+        if (index < 0 || index >= 31) return;
+        treeBubbles = bought ? treeBubbles | (1 << index) : treeBubbles & ~(1 << index);
+    }
+
+    /** Les bulles achetées, un bit par bulle : pour la sauvegarde. */
+    public int treeBubbles() {
+        return treeBubbles;
+    }
+
+    public void setTreeBubbles(int bits) {
+        treeBubbles = Math.max(0, bits);
+    }
+
+    public void clearTreeBubbles() {
+        treeBubbles = 0;
+    }
+
+    /** L'énergie du vide accumulée déjà dépensée (version 0.142) : le cumul affiché reste celui des univers formés. */
+    public double voidSpent() {
+        return voidSpent;
+    }
+
+    public void setVoidSpent(double spent) {
+        voidSpent = spent >= 0 && Double.isFinite(spent) ? spent : 0;
     }
 
     /** Niveau d'une amélioration de la durée, dans l'ordre de {@code Game.DurationUpgrade} ; 0 hors des quatre. */

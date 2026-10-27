@@ -217,6 +217,8 @@ class SaveTest {
         for (int i = 0; i < 8; i++) state.setSeedUpgradeLevel(i, i + 1);
         state.setChronoStored(123.5);
         state.setChronoSpeed(2.5);
+        state.setTreeBubbles(0b101);
+        state.setVoidSpent(456.25);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);

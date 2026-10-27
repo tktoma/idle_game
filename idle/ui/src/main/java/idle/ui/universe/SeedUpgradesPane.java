@@ -81,6 +81,10 @@ public final class SeedUpgradesPane extends VBox {
         chronoSpeedLine.setWrapText(true);
         chronoSpeedLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8c8d8;");
         chronoSpeed.setBlockIncrement(0.25);
+        // Le réglage va par quarts, et le curseur aussi (version 0.141) : il ne saute plus d'un cran pendant qu'on le glisse.
+        chronoSpeed.setMajorTickUnit(0.25);
+        chronoSpeed.setMinorTickCount(0);
+        chronoSpeed.setSnapToTicks(true);
         chronoSpeed.setFocusTraversable(false);
         chronoSpeed.valueProperty().addListener((obs, before, after) -> {
             if (syncing) return;
@@ -275,7 +279,10 @@ public final class SeedUpgradesPane extends VBox {
                     : open ? " -fx-background-color: #2e2c20; -fx-text-fill: " + COLOR + "; -fx-border-color: #6b6248;"
                     : " -fx-background-color: #1a1a1f; -fx-text-fill: #6c6a60;"));
         }
-        cards.getChildren().clear();
+        // Version 0.141 : les cartes restent en place, seul leur contenu change. Avant, chaque rafraîchissement (quatre
+        // par seconde) les retirait puis les remettait : un clic dont l'appui et le relâché tombaient de part et d'autre
+        // était perdu, et beaucoup de cartes semblaient ne pas s'acheter.
+        List<Button> shown = new ArrayList<>();
         if (branch <= BRANCH_NAMES.length) {
             resource.setText(capitalize(Game.dimensionResourceName(branch)) + " " + dimensionName(branch) + " : "
                     + (game.dimensionsUnlocked() >= branch ? amount(game.dimensionResource(branch)) : "pas encore ouverte"));
@@ -283,7 +290,7 @@ public final class SeedUpgradesPane extends VBox {
                 if (upgrade.dimension() != branch) continue;
                 Button button = buttons.get(upgrade);
                 fill(button, describe(upgrade), price(upgrade), state(upgrade));
-                cards.getChildren().add(button);
+                shown.add(button);
             }
         } else {
             // Les dimensions 5 à 10 : leurs branches existent déjà, sans rien à acheter.
@@ -291,8 +298,9 @@ public final class SeedUpgradesPane extends VBox {
                     + "et une du chrono.");
             fill(placeholders.get(0), "??? (branche de la graine)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
             fill(placeholders.get(1), "??? (branche du chrono)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
-            cards.getChildren().addAll(placeholders);
+            shown.addAll(placeholders);
         }
+        if (!cards.getChildren().equals(shown)) cards.getChildren().setAll(shown);
         refreshChrono();
     }
 
@@ -314,10 +322,13 @@ public final class SeedUpgradesPane extends VBox {
         chronoBox.setVisible(shown);
         chronoBox.setManaged(shown);
         if (!shown) return;
-        syncing = true;
-        chronoSpeed.setMax(game.chronoMaxSpeed());
-        chronoSpeed.setValue(game.chronoSpeed());
-        syncing = false;
+        // Pendant qu'on le glisse, le curseur est à la main du joueur : le rafraîchissement ne le replace pas.
+        if (!chronoSpeed.isValueChanging()) {
+            syncing = true;
+            chronoSpeed.setMax(game.chronoMaxSpeed());
+            chronoSpeed.setValue(game.chronoSpeed());
+            syncing = false;
+        }
         chronoLine.setText("Gardé : " + Format.duration(game.chronoStored()) + " sur " + Format.duration(game.chronoCapacity())
                 + " (+" + amount(game.chronoFillRate()) + " s par seconde, même en absence)");
         double speed = game.chronoSpeed();

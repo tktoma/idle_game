@@ -1189,6 +1189,107 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     // ------------------------------------------------------------------
+    // Les bulles de l'arbre (version 0.142)
+    // ------------------------------------------------------------------
+
+    /**
+     * Les bulles de l'arbre (version 0.142) : un arbre d'améliorations posé sur l'arbre de la graine, payé avec l'énergie
+     * du vide accumulée. Au palier qui ouvre l'univers 4 (la fin de la dimension 3), une bulle naît à la base, sur la
+     * graine ; au palier suivant, deux sur le feuillage, reliées à elle ; au palier d'après, trois à la cime : celle de
+     * gauche reliée à la bulle de gauche, celle de droite à la bulle de droite, celle du milieu aux deux. Une bulle
+     * s'achète quand une des bulles auxquelles elle est reliée en dessous l'est déjà. Pour l'instant, un visuel :
+     * achetée, une bulle s'allume, sans autre effet.
+     */
+    public enum TreeBubble {
+        // Les prix : le Speedrunner garde environ 4 500 d'énergie du vide à la formation de l'univers 3 (mesuré à la
+        // 0.142) ; de quoi payer la base et une bulle du feuillage, la suite avec les univers suivants.
+        SEED(4, "Bulle de la graine", 1_000),
+        LEAVES_LEFT(5, "Bulle du feuillage, à gauche", 2_000, 0),
+        LEAVES_RIGHT(5, "Bulle du feuillage, à droite", 2_000, 0),
+        CROWN_LEFT(6, "Bulle de la cime, à gauche", 4_000, 1),
+        CROWN_MIDDLE(6, "Bulle de la cime, au milieu", 4_000, 1, 2),
+        CROWN_RIGHT(6, "Bulle de la cime, à droite", 4_000, 2);
+
+        private final int stage;
+        private final String label;
+        private final double cost;
+        /** Les bulles auxquelles elle est reliée en dessous (leurs rangs) : une achetée l'ouvre. */
+        private final int[] below;
+
+        TreeBubble(int stage, String label, double cost, int... below) {
+            this.stage = stage;
+            this.label = label;
+            this.cost = cost;
+            this.below = below;
+        }
+
+        /** Le palier de la graine où elle naît. */
+        public int stage() {
+            return stage;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        /** Son prix, en énergie du vide accumulée. */
+        public double cost() {
+            return cost;
+        }
+
+        /** Les bulles auxquelles elle est reliée en dessous ; aucune pour celle de la base. */
+        public java.util.List<TreeBubble> below() {
+            java.util.List<TreeBubble> list = new java.util.ArrayList<>();
+            for (int index : below) list.add(values()[index]);
+            return list;
+        }
+    }
+
+    /**
+     * L'énergie du vide qu'on peut dépenser : ce qu'il restait à la formation de chaque univers, additionné, moins ce
+     * que les bulles ont déjà coûté.
+     */
+    public double voidAvailable() {
+        return Math.max(0, state.voidAccumulated() - state.voidSpent());
+    }
+
+    /** Vrai si la bulle est née : l'univers formé, la graine à son palier. */
+    public boolean isTreeBubbleShown(TreeBubble bubble) {
+        return isUniverseFormed() && seedStage() >= bubble.stage;
+    }
+
+    public boolean isTreeBubbleBought(TreeBubble bubble) {
+        return state.treeBubbleBought(bubble.ordinal());
+    }
+
+    /** Les bulles nées : pour l'affichage. */
+    public java.util.List<TreeBubble> treeBubblesShown() {
+        java.util.List<TreeBubble> shown = new java.util.ArrayList<>();
+        for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleShown(bubble)) shown.add(bubble);
+        return shown;
+    }
+
+    /** Vrai si une des bulles auxquelles elle est reliée en dessous est achetée (la base n'en attend aucune). */
+    public boolean isTreeBubbleOpen(TreeBubble bubble) {
+        if (!isTreeBubbleShown(bubble)) return false;
+        if (bubble.below().isEmpty()) return true;
+        for (TreeBubble under : bubble.below()) if (isTreeBubbleBought(under)) return true;
+        return false;
+    }
+
+    public boolean canBuyTreeBubble(TreeBubble bubble) {
+        return isTreeBubbleOpen(bubble) && !isTreeBubbleBought(bubble) && voidAvailable() >= bubble.cost - 1e-9;
+    }
+
+    /** Achète la bulle avec l'énergie du vide accumulée ; vrai si c'est fait. */
+    public boolean buyTreeBubble(TreeBubble bubble) {
+        if (!canBuyTreeBubble(bubble)) return false;
+        state.setVoidSpent(state.voidSpent() + bubble.cost);
+        state.setTreeBubbleBought(bubble.ordinal(), true);
+        return true;
+    }
+
+    // ------------------------------------------------------------------
     // Les améliorations de la graine et le chrono (version 0.139)
     // ------------------------------------------------------------------
 
@@ -1455,6 +1556,8 @@ public abstract class GameUniverse extends GameAtoms {
         for (int i = 0; i < SeedUpgrade.values().length; i++) state.setSeedUpgradeLevel(i, 0);
         state.setChronoStored(0);
         state.setChronoSpeed(1);
+        state.clearTreeBubbles();
+        state.setVoidSpent(0);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);

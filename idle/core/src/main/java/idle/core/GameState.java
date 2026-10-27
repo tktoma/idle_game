@@ -199,6 +199,8 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
+        data.put("treeBubbles", treeBubbles);
+        data.put("voidSpent", voidSpent);
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -462,6 +464,9 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));
         setChronoSpeed(data.real("chronoSpeed", 1));
+        // Les bulles de l'arbre (version 0.142) : absentes d'avant, rien d'acheté ni de dépensé.
+        setTreeBubbles(data.whole("treeBubbles", 0));
+        setVoidSpent(data.real("voidSpent", 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

@@ -257,7 +257,8 @@ public final class VoidPage extends VBox {
         note.setText("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
                 + "l'espace libre, celui que les molécules n'ont pas pris. Le réglage borne ce que le vide en prend. L'énergie du vide "
                 + "fond de " + percent(Game.VOID_DECAY) + " par seconde : elle monte vers l'équilibre, le gain par seconde divisé par la fonte. "
-                + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers) ; "
+                + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers), "
+                + "qui paie les bulles de l'arbre ; "
                 + "le vide, ses améliorations et son trou noir repartent de zéro dans l'univers suivant."
                 + (hole ? "" : " Le premier trou noir formé dans le ciel ouvre le trou noir du vide."));
     }

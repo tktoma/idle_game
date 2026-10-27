@@ -122,7 +122,8 @@ final class SeedTree {
         if (stage >= 7) fallingLeaves(g, shape, baseY, height, stage, i, time);
         if (stage >= 6) fireflies(g, shape, stage, time);
         if (stage >= 8) sap(g, shape, stage, time);
-        return new double[] {shape.crownX, shape.crownY};
+        // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent (version 0.142).
+        return new double[] {shape.crownX, shape.crownY, shape.crownRadius};
     }
 
     // ------------------------------------------------------------------
