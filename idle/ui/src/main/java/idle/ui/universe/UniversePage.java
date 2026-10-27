@@ -533,8 +533,8 @@ public final class UniversePage extends VBox {
                     : game.canBuyTreeBubble(bubble) ? SeedView.BubbleState.BUY : SeedView.BubbleState.SHORT;
             String price = switch (state) {
                 case BOUGHT -> "Achetée (pas encore d'effet)";
-                case CLOSED -> bubble.below().size() == 1 ? "Il faut d'abord : " + bubble.below().get(0).label()
-                        : "Il faut d'abord une des bulles reliées en dessous";
+                case CLOSED -> shownLinks(bubble, shown).size() == 1 ? "Il faut d'abord : " + shownLinks(bubble, shown).get(0).label()
+                        : "Il faut d'abord une bulle reliée à elle";
                 case BUY -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide";
                 case SHORT -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide (il en manque "
                         + Format.count(BigNum.of(Math.ceil(bubble.cost() - game.voidAvailable()))) + ")";
@@ -544,6 +544,13 @@ public final class UniversePage extends VBox {
             list.add(new SeedView.Bubble(bubble.ordinal(), bubble.label(), price, state, below));
         }
         return list;
+    }
+
+    /** Les bulles nées reliées à celle-ci : celles qui peuvent l'ouvrir. */
+    private static java.util.List<Game.TreeBubble> shownLinks(Game.TreeBubble bubble, java.util.List<Game.TreeBubble> shown) {
+        java.util.List<Game.TreeBubble> links = new java.util.ArrayList<>(bubble.links());
+        links.retainAll(shown);
+        return links;
     }
 
     /** Un clic sur une bulle : achetée si elle peut l'être. */

@@ -20,14 +20,17 @@ final class SeedTree {
     private SeedTree() {
     }
 
-    /** Hauteur de l'arbre, en part de la hauteur de la vue, du palier 5 au palier 11. */
-    private static final double[] HEIGHT = {0.36, 0.40, 0.46, 0.51, 0.54, 0.56, 0.58};
+    /**
+     * Hauteur de l'arbre, en part de la hauteur de la vue, du palier 5 au palier 11. Version 0.143 : le jeune arbre un
+     * peu plus grand (0,46 avant), il paraissait plus petit que l'arbuste d'avant.
+     */
+    private static final double[] HEIGHT = {0.36, 0.40, 0.50, 0.51, 0.54, 0.56, 0.58};
     /** Largeur du tronc au pied, en part de la hauteur de l'arbre. */
     private static final double[] TRUNK = {0.075, 0.035, 0.055, 0.08, 0.11, 0.13, 0.15};
     /** Profondeur des ramifications. */
     private static final int[] DEPTH = {4, 3, 5, 6, 6, 6, 6};
     /** Écart des rameaux : le bonsaï s'étale, le jeune arbre monte, le géant s'ouvre. */
-    private static final double[] SPREAD = {0.75, 0.55, 0.42, 0.50, 0.52, 0.48, 0.50};
+    private static final double[] SPREAD = {0.75, 0.55, 0.46, 0.50, 0.52, 0.48, 0.50};
     /** Torsion : l'arbre ancien se tord, le jeune pousse droit. */
     private static final double[] TWIST = {0.35, 0.25, 0.12, 0.20, 0.45, 0.25, 0.30};
     /** Taille des touffes de feuilles, en part de la hauteur. */

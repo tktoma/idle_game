@@ -23,6 +23,15 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.143", "Le réseau des bulles, jusqu'à l'arbre-monde", List.of(
+                    "Les bulles de l'arbre continuent jusqu'au dernier palier de la graine : deux de plus au jeune arbre, deux "
+                            + "à l'arbre mûr, deux à l'arbre ancien, quatre à l'arbre géant, et trois à l'arbre-monde, dont une "
+                            + "dans les racines, sous la graine. Dix-neuf en tout, reliées comme un réseau.",
+                    "Une bulle s'ouvre quand une bulle reliée à elle est achetée, d'un côté comme de l'autre du lien : on "
+                            + "commence toujours par la base, puis on avance de proche en proche.",
+                    "Les bulles portent le nom du palier où elles naissent (« Bulle du bonsaï, à gauche »…) et coûtent "
+                            + "environ une fois et demie plus à chaque palier, de 1 000 à 30 000 d'énergie du vide.",
+                    "Le jeune arbre est un peu plus grand : il paraissait plus petit que l'arbuste d'avant.")),
             new Note("0.142", "Les bulles de l'arbre", List.of(
                     "Au palier de la graine qui ouvre l'univers 4, à la fin de la dimension 3, une bulle naît à la base de "
                             + "l'arbre, sur la graine. Au palier suivant, deux bulles sur le feuillage ; au palier d'après, trois "

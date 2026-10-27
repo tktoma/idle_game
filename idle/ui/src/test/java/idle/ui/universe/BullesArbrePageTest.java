@@ -102,4 +102,33 @@ class BullesArbrePageTest {
             return null;
         });
     }
+
+    /** Version 0.143 : à l'arbre-monde, les dix-neuf bulles du schéma, toutes dans la vue ; les racines sous la graine. */
+    @Test
+    void lArbreMondePorteToutLeReseau() {
+        FxTestSupport.fx(() -> {
+            Game game = at(11, 1e12);
+            UniversePage page = page(game);
+            SeedView view = page.seedView();
+            assertEquals(TreeBubble.values().length, view.bubbleCount());
+            double width = view.getWidth(), height = view.getHeight();
+            for (int i = 0; i < view.bubbleCount(); i++) {
+                double[] at = view.bubblePoint(i);
+                assertTrue(at[0] > 0 && at[0] < width && at[1] > 0 && at[1] < height, "bulle " + i + " dans la vue");
+            }
+            double base = view.bubblePoint(TreeBubble.SEED.ordinal())[1];
+            assertTrue(view.bubblePoint(TreeBubble.ROOTS.ordinal())[1] > base, "les racines sous la graine");
+            for (int i = 0; i < view.bubbleCount(); i++) {
+                assertTrue(view.bubblePoint(TreeBubble.SUMMIT.ordinal())[1] <= view.bubblePoint(i)[1] + 1, "le sommet en haut");
+            }
+            // Le réseau s'achète de proche en proche, par la base puis les racines.
+            double[] seed = view.bubblePoint(TreeBubble.SEED.ordinal());
+            view.clickBubble(seed[0], seed[1]);
+            page.frame(0.016, true);
+            double[] roots = view.bubblePoint(TreeBubble.ROOTS.ordinal());
+            view.clickBubble(roots[0], roots[1]);
+            assertTrue(game.isTreeBubbleBought(TreeBubble.ROOTS));
+            return null;
+        });
+    }
 }

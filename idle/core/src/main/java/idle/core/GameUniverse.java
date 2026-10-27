@@ -1193,27 +1193,42 @@ public abstract class GameUniverse extends GameAtoms {
     // ------------------------------------------------------------------
 
     /**
-     * Les bulles de l'arbre (version 0.142) : un arbre d'améliorations posé sur l'arbre de la graine, payé avec l'énergie
-     * du vide accumulée. Au palier qui ouvre l'univers 4 (la fin de la dimension 3), une bulle naît à la base, sur la
-     * graine ; au palier suivant, deux sur le feuillage, reliées à elle ; au palier d'après, trois à la cime : celle de
-     * gauche reliée à la bulle de gauche, celle de droite à la bulle de droite, celle du milieu aux deux. Une bulle
-     * s'achète quand une des bulles auxquelles elle est reliée en dessous l'est déjà. Pour l'instant, un visuel :
-     * achetée, une bulle s'allume, sans autre effet.
+     * Les bulles de l'arbre (version 0.142, réseau complet à la 0.143) : un réseau d'améliorations posé sur l'arbre de la
+     * graine, payé avec l'énergie du vide accumulée. Au palier qui ouvre l'univers 4 (la fin de la dimension 3), une
+     * bulle naît à la base, sur la graine ; chaque palier suivant en ajoute, reliées aux bulles d'avant, jusqu'à
+     * l'arbre-monde : 1, 2, 3, 2, 2, 2, 4 puis 3 (dont une dans les racines, sous la graine). Une bulle s'ouvre quand une
+     * bulle à laquelle elle est reliée est achetée : la base d'abord, puis le réseau de proche en proche. Pour
+     * l'instant, un visuel : achetée, une bulle s'allume, sans autre effet.
+     *
+     * <p>L'ordre des bulles est celui de la sauvegarde (un bit par bulle) : les nouvelles s'ajoutent à la fin.
      */
     public enum TreeBubble {
         // Les prix : le Speedrunner garde environ 4 500 d'énergie du vide à la formation de l'univers 3 (mesuré à la
-        // 0.142) ; de quoi payer la base et une bulle du feuillage, la suite avec les univers suivants.
+        // 0.142) ; de quoi payer la base et une bulle du bonsaï. Ensuite, environ ×1,5 par palier (choix arbitraire).
         SEED(4, "Bulle de la graine", 1_000),
-        LEAVES_LEFT(5, "Bulle du feuillage, à gauche", 2_000, 0),
-        LEAVES_RIGHT(5, "Bulle du feuillage, à droite", 2_000, 0),
-        CROWN_LEFT(6, "Bulle de la cime, à gauche", 4_000, 1),
-        CROWN_MIDDLE(6, "Bulle de la cime, au milieu", 4_000, 1, 2),
-        CROWN_RIGHT(6, "Bulle de la cime, à droite", 4_000, 2);
+        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 2_000, 0),
+        LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 2_000, 0),
+        CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 4_000, 1),
+        CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 4_000, 1, 2),
+        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 4_000, 2),
+        YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 6_000, 3, 4),
+        YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 6_000, 4, 5),
+        MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 9_000, 3, 6),
+        MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 9_000, 5, 7),
+        ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 13_000, 6, 8),
+        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 13_000, 7, 9),
+        GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 20_000, 10),
+        GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 20_000, 8, 12),
+        GIANT_RIGHT_HIGH(10, "Bulle de l'arbre géant, tout à droite", 20_000, 11),
+        GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 20_000, 9, 14),
+        ROOTS(11, "Bulle des racines", 30_000, 0, 13, 15),
+        HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 4, 6, 7),
+        SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 10, 11, 17);
 
         private final int stage;
         private final String label;
         private final double cost;
-        /** Les bulles auxquelles elle est reliée en dessous (leurs rangs) : une achetée l'ouvre. */
+        /** Les bulles d'avant auxquelles elle est reliée (leurs rangs) : chaque lien n'est noté qu'une fois, ici. */
         private final int[] below;
 
         TreeBubble(int stage, String label, double cost, int... below) {
@@ -1237,10 +1252,17 @@ public abstract class GameUniverse extends GameAtoms {
             return cost;
         }
 
-        /** Les bulles auxquelles elle est reliée en dessous ; aucune pour celle de la base. */
+        /** Les bulles d'avant auxquelles elle est reliée ; aucune pour celle de la base. */
         public java.util.List<TreeBubble> below() {
             java.util.List<TreeBubble> list = new java.util.ArrayList<>();
             for (int index : below) list.add(values()[index]);
+            return list;
+        }
+
+        /** Toutes les bulles reliées à elle : celles d'avant, et celles d'après qui la nomment. */
+        public java.util.List<TreeBubble> links() {
+            java.util.List<TreeBubble> list = new java.util.ArrayList<>(below());
+            for (TreeBubble other : values()) if (other.below().contains(this)) list.add(other);
             return list;
         }
     }
@@ -1269,11 +1291,14 @@ public abstract class GameUniverse extends GameAtoms {
         return shown;
     }
 
-    /** Vrai si une des bulles auxquelles elle est reliée en dessous est achetée (la base n'en attend aucune). */
+    /**
+     * Vrai si la bulle est née et qu'une bulle reliée à elle est achetée (version 0.143 : d'un côté comme de l'autre du
+     * lien). La base n'attend rien : c'est par elle que le réseau commence.
+     */
     public boolean isTreeBubbleOpen(TreeBubble bubble) {
         if (!isTreeBubbleShown(bubble)) return false;
-        if (bubble.below().isEmpty()) return true;
-        for (TreeBubble under : bubble.below()) if (isTreeBubbleBought(under)) return true;
+        if (bubble == TreeBubble.SEED) return true;
+        for (TreeBubble linked : bubble.links()) if (isTreeBubbleBought(linked)) return true;
         return false;
     }
 

@@ -34,7 +34,42 @@ class BullesArbreTest {
         assertEquals(List.of(TreeBubble.SEED, TreeBubble.LEAVES_LEFT, TreeBubble.LEAVES_RIGHT), at(5, 0).treeBubblesShown(),
                 "puis deux sur le feuillage");
         assertEquals(6, at(6, 0).treeBubblesShown().size(), "puis trois à la cime");
-        assertEquals(6, at(11, 0).treeBubblesShown().size());
+        // Version 0.143 : les schémas des paliers 7 à 11.
+        int[] counts = {1, 3, 6, 8, 10, 12, 16, 19};
+        for (int stage = 4; stage <= 11; stage++) {
+            assertEquals(counts[stage - 4], at(stage, 0).treeBubblesShown().size(), "palier " + stage);
+        }
+    }
+
+    /** Les liens des schémas 7 à 11, tels que dessinés. */
+    @Test
+    void lesLiensSuiventLesSchemas() {
+        assertEquals(List.of(TreeBubble.CROWN_LEFT, TreeBubble.CROWN_MIDDLE), TreeBubble.YOUNG_LEFT.below());
+        assertEquals(List.of(TreeBubble.CROWN_RIGHT, TreeBubble.YOUNG_RIGHT), TreeBubble.MATURE_RIGHT.below());
+        assertEquals(List.of(TreeBubble.YOUNG_LEFT, TreeBubble.MATURE_LEFT), TreeBubble.ANCIENT_LEFT.below());
+        assertEquals(List.of(TreeBubble.MATURE_LEFT, TreeBubble.GIANT_LEFT_HIGH), TreeBubble.GIANT_LEFT_LOW.below());
+        assertEquals(List.of(TreeBubble.SEED, TreeBubble.GIANT_LEFT_LOW, TreeBubble.GIANT_RIGHT_LOW), TreeBubble.ROOTS.below());
+        assertEquals(List.of(TreeBubble.ANCIENT_LEFT, TreeBubble.ANCIENT_RIGHT, TreeBubble.HEART), TreeBubble.SUMMIT.below());
+        // Chaque lien vaut dans les deux sens.
+        assertTrue(TreeBubble.SEED.links().containsAll(List.of(TreeBubble.LEAVES_LEFT, TreeBubble.LEAVES_RIGHT, TreeBubble.ROOTS)));
+        for (TreeBubble bubble : TreeBubble.values()) {
+            for (TreeBubble linked : bubble.links()) assertTrue(linked.links().contains(bubble), bubble + " – " + linked);
+            for (TreeBubble under : bubble.below()) assertTrue(under.stage() <= bubble.stage(), bubble + " après " + under);
+        }
+    }
+
+    /** Version 0.143 : une bulle s'ouvre par n'importe quelle bulle reliée, aussi par une bulle d'un palier d'après. */
+    @Test
+    void uneBulleSOuvreParNImporteQuelLien() {
+        Game game = at(11, 1e12);
+        assertFalse(game.isTreeBubbleOpen(TreeBubble.ROOTS), "rien d'acheté : seule la base s'ouvre");
+        assertTrue(game.isTreeBubbleOpen(TreeBubble.SEED));
+        assertTrue(game.buyTreeBubble(TreeBubble.SEED));
+        assertTrue(game.buyTreeBubble(TreeBubble.ROOTS), "les racines, reliées à la base");
+        assertTrue(game.buyTreeBubble(TreeBubble.GIANT_LEFT_LOW), "puis l'arbre géant, par les racines");
+        assertTrue(game.buyTreeBubble(TreeBubble.MATURE_LEFT), "puis l'arbre mûr, par le lien d'en haut");
+        assertTrue(game.isTreeBubbleOpen(TreeBubble.CROWN_LEFT), "l'arbuste s'ouvre par l'arbre mûr");
+        assertFalse(game.isTreeBubbleOpen(TreeBubble.CROWN_RIGHT));
     }
 
     @Test

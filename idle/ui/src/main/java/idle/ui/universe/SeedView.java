@@ -138,7 +138,7 @@ public final class SeedView extends Canvas {
     // Les bulles de l'arbre (version 0.142) : un arbre d'améliorations posé sur l'arbre, payé avec l'énergie du vide.
     /** L'état d'une bulle, qui décide de son éclat. */
     public enum BubbleState {
-        /** Aucune des bulles reliées en dessous n'est achetée. */
+        /** Aucune bulle reliée à elle n'est achetée. */
         CLOSED,
         /** Ouverte, mais l'énergie du vide manque. */
         SHORT,
@@ -149,9 +149,8 @@ public final class SeedView extends Canvas {
     }
 
     /**
-     * Une bulle à dessiner : sa place (0 à la base, sur la graine ; 1 et 2 sur le feuillage, à gauche et à droite ; 3, 4
-     * et 5 à la cime, de gauche à droite), son nom, son prix, son état, et les bulles reliées en dessous (leurs rangs
-     * dans la liste).
+     * Une bulle à dessiner : sa place (son rang dans le jeu, qui donne sa position dans le schéma), son nom, son prix,
+     * son état, et les bulles d'avant auxquelles elle est reliée (leurs rangs dans la liste).
      */
     public record Bubble(int place, String name, String price, BubbleState state, java.util.List<Integer> below) { }
 
@@ -879,24 +878,56 @@ public final class SeedView extends Canvas {
      * Le tuyau d'arrosage : il vient du bord gauche, loin de l'étagère, court au sol et finit par sa lance, au pied de
      * la plante.
      */
-    /** Où se pose une bulle, avant qu'elle flotte : la base sur la graine, les autres sur le feuillage et la cime. */
-    private double[] bubblePlace(int place) {
-        if (place == 0 || crownR <= 0) return new double[] {seedX, seedY + seedSize * 0.05};
-        // L'écart suit le feuillage, sans descendre sous une part de la vue : les bulles du schéma restent bien séparées.
-        double u = Math.max(crownR, Math.min(getWidth(), getHeight()) * 0.17);
-        return switch (place) {
-            case 1 -> new double[] {crownX - u * 0.75, crownY + u * 0.3};
-            case 2 -> new double[] {crownX + u * 0.75, crownY + u * 0.3};
-            case 3 -> new double[] {crownX - u * 1.25, crownY - u * 0.45};
-            case 4 -> new double[] {crownX, crownY - u * 0.75};
-            default -> new double[] {crownX + u * 1.25, crownY - u * 0.45};
-        };
+    /**
+     * Le schéma des bulles (version 0.143), repris des dessins des paliers 7 à 11 et rendu symétrique : pour chaque place
+     * (le rang de la bulle dans le jeu), sa position en unités du dessin, la base à l'origine, vers la droite et vers le
+     * haut. Les racines sont sous la base.
+     */
+    private static final double[][] SCHEMA = {
+            {0, 0},
+            {-130, 182}, {130, 182},
+            {-268, 390}, {0, 390}, {268, 390},
+            {-156, 567}, {156, 567},
+            {-436, 480}, {436, 480},
+            {-336, 638}, {336, 638},
+            {-626, 582}, {-500, 295}, {626, 582}, {500, 295},
+            {0, -158}, {0, 574}, {0, 725}};
+
+    /**
+     * Les positions des bulles, avant qu'elles flottent : la base sur la graine, et la rangée la plus haute des bulles
+     * nées en haut du feuillage. Le schéma garde ses proportions ; s'il est trop large pour la vue, il rétrécit. Les
+     * racines, sous la graine, restent dans la vue.
+     */
+    private void placeBubbles() {
+        int n = bubbles.size();
+        double baseX = seedX, baseY = seedY + seedSize * 0.05;
+        double top = 0, wide = 0;
+        for (Bubble bubble : bubbles) {
+            double[] at = SCHEMA[Math.max(0, Math.min(SCHEMA.length - 1, bubble.place()))];
+            top = Math.max(top, at[1]);
+            wide = Math.max(wide, Math.abs(at[0]));
+        }
+        double k = 0, kx = 0;
+        if (top > 0 && crownR > 0) {
+            // Le bonsaï n'a que sa rangée du feuillage : elle se pose dans ses plateaux, pas au-dessus.
+            boolean bonsai = top < SCHEMA[3][1];
+            double crownTop = bonsai ? crownY + crownR * 0.1 : crownY - crownR * 0.35;
+            k = Math.max(0, baseY - crownTop) / top;
+            if (wide > 0) k = Math.min(k, (getWidth() * 0.47 - bubbleR) / wide);
+            k = Math.min(k, (baseY - bubbleR * 1.6) / top);
+            kx = bonsai && wide > 0 ? Math.min(k, crownR * 0.75 / wide) : k;
+        }
+        for (int i = 0; i < n; i++) {
+            double[] at = SCHEMA[Math.max(0, Math.min(SCHEMA.length - 1, bubbles.get(i).place()))];
+            bubbleX[i] = baseX + at[0] * kx;
+            bubbleY[i] = Math.min(getHeight() - bubbleR * 1.2, baseY - at[1] * k);
+        }
     }
 
     /**
      * Les bulles de l'arbre (version 0.142) et leurs liens : chaque bulle reliée aux bulles d'en dessous qui l'ouvrent.
      * Elles flottent un peu. Achetable, une bulle pulse ; achetée, elle reste allumée ; sinon elle n'est qu'un reflet,
-     * en pointillé tant qu'aucune bulle reliée en dessous n'est achetée.
+     * en pointillé tant qu'aucune bulle reliée n'est achetée.
      */
     private void drawBubbles() {
         int n = bubbles.size();
@@ -908,11 +939,8 @@ public final class SeedView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         // Une taille tenue par la vue, pas par la graine (qui rapetisse quand l'arbre grandit) : lisible à tous les paliers.
         bubbleR = Math.max(13, Math.min(getWidth(), getHeight()) * 0.036);
-        for (int i = 0; i < n; i++) {
-            double[] at = bubblePlace(bubbles.get(i).place());
-            bubbleX[i] = at[0];
-            bubbleY[i] = at[1] + Math.sin(time * 1.3 + i * 2.1) * bubbleR * 0.12;
-        }
+        placeBubbles();
+        for (int i = 0; i < n; i++) bubbleY[i] += Math.sin(time * 1.3 + i * 2.1) * bubbleR * 0.12;
         // Les liens d'abord, derrière : de bord à bord, allumés quand les deux bulles sont achetées.
         for (int i = 0; i < n; i++) {
             for (int j : bubbles.get(i).below()) {
@@ -921,7 +949,8 @@ public final class SeedView extends Canvas {
                 if (len <= 2 * bubbleR) continue;
                 double ux = dx / len, uy = dy / len;
                 boolean lit = bubbles.get(i).state() == BubbleState.BOUGHT && bubbles.get(j).state() == BubbleState.BOUGHT;
-                boolean open = bubbles.get(j).state() == BubbleState.BOUGHT;
+                // Un lien vaut dans les deux sens (version 0.143) : plein dès qu'un de ses bouts est acheté.
+                boolean open = bubbles.get(j).state() == BubbleState.BOUGHT || bubbles.get(i).state() == BubbleState.BOUGHT;
                 g.setStroke(BUBBLE);
                 g.setLineWidth(lit ? 2.4 : 1.5);
                 g.setGlobalAlpha(lit ? 0.9 : open ? 0.55 : 0.25);
