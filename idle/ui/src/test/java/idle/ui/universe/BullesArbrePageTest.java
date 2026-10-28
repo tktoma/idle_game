@@ -149,7 +149,12 @@ class BullesArbrePageTest {
                 assertTrue(at[0] > 0 && at[0] < width && at[1] > 0 && at[1] < height, "bulle " + i + " dans la vue");
             }
             double base = view.bubblePoint(TreeBubble.SEED.ordinal())[1];
-            assertTrue(view.bubblePoint(TreeBubble.ROOTS.ordinal())[1] > base, "les racines sous la graine");
+            double rootsY = view.bubblePoint(TreeBubble.ROOTS.ordinal())[1];
+            assertTrue(rootsY > base, "les racines sous la graine");
+            // Version 0.144 : les deux bulles du bas s'écartent, et les racines ne touchent plus le bas de la vue.
+            assertTrue(rootsY - base >= view.bubbleRadius() * 3.4, "écart " + (rootsY - base));
+            // Les bulles flottent de ±0,12 rayon : la marge en tient compte.
+            assertTrue(rootsY <= height - view.bubbleRadius() * 1.85, "racines à " + rootsY + " sur " + height);
             for (int i = 0; i < view.bubbleCount(); i++) {
                 assertTrue(view.bubblePoint(TreeBubble.SUMMIT.ordinal())[1] <= view.bubblePoint(i)[1] + 1, "le sommet en haut");
             }

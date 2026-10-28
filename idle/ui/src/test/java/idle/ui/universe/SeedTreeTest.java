@@ -14,6 +14,11 @@ import org.junit.jupiter.api.Test;
  * L'arbre de la graine dessiné palier par palier (versions 0.120 à 0.143), sous Xvfb : du bonsaï (palier 5) à
  * l'arbre-monde (palier 11), chaque palier dessine un arbre plus haut, au feuillage posé au-dessus du pied, qui
  * grandit pendant le passage ; l'intensité des effets monte de 0 au palier 4 à 1 à l'arbre-monde.
+ *
+ * <p>Le centre du feuillage que rend {@link SeedTree#draw} est celui des touffes de feuilles dessinées (depuis la
+ * version 0.121) : pas exactement sur l'axe du pied ni à 72 % de la hauteur. Mesuré à la 0.145 : à moins de 0,18 rayon
+ * de l'axe, et entre 0,81 et 1,23 fois la hauteur de l'arbre au-dessus du pied (le bonsaï porte ses plateaux au-dessus
+ * de son tronc, l'arbuste s'étale plus bas). Les bulles de l'arbre (version 0.142) s'y posent. Le test le vérifie ainsi.
  */
 class SeedTreeTest {
 
@@ -36,17 +41,20 @@ class SeedTreeTest {
             for (int stage = 5; stage <= 11; stage++) {
                 double[] crown = SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0);
                 assertEquals(3, crown.length);
-                assertEquals(BASE_X, crown[0], 1e-9, "palier " + stage + " : le feuillage est centré sur le pied");
+                assertEquals(BASE_X, crown[0], crown[2] * 0.25, "palier " + stage + " : le feuillage est centré sur le pied, à un quart de rayon près");
                 assertTrue(crown[1] < BASE_Y, "palier " + stage + " : le feuillage est au-dessus du pied");
                 assertTrue(crown[1] > 0, "palier " + stage + " : et dans la vue");
                 assertTrue(crown[2] > 0, "palier " + stage + " : un rayon de feuillage");
-                assertTrue(crown[1] < previousCrown, "palier " + stage + " : plus haut que le palier d'avant (" + crown[1] + " contre " + previousCrown + ")");
+                // L'arbuste (palier 6) s'étale depuis le sol, plus bas que les plateaux du bonsaï : la montée vaut
+                // à partir du jeune arbre.
+                if (stage >= 7) assertTrue(crown[1] < previousCrown, "palier " + stage + " : plus haut que le palier d'avant (" + crown[1] + " contre " + previousCrown + ")");
                 assertTrue(SeedTree.lastTips > 0, "palier " + stage + " : des touffes de feuilles");
                 previousCrown = crown[1];
             }
-            // Les hauteurs : du bonsaï à 36 % de la vue à l'arbre-monde à 58 %, le feuillage à 72 % de la hauteur.
-            assertEquals(BASE_Y - 0.36 * H * 0.72, SeedTree.draw(g, W, H, BASE_X, BASE_Y, 5, 1, 0)[1], 1e-9);
-            assertEquals(BASE_Y - 0.58 * H * 0.72, SeedTree.draw(g, W, H, BASE_X, BASE_Y, 11, 1, 0)[1], 1e-9);
+            // Les hauteurs : du bonsaï à 36 % de la vue à l'arbre-monde à 58 %, le feuillage à la hauteur de l'arbre.
+            atTreeHeight(SeedTree.draw(g, W, H, BASE_X, BASE_Y, 5, 1, 0)[1], 0.36 * H, "bonsaï");
+            atTreeHeight(SeedTree.draw(g, W, H, BASE_X, BASE_Y, 6, 1, 0)[1], 0.40 * H, "arbuste");
+            atTreeHeight(SeedTree.draw(g, W, H, BASE_X, BASE_Y, 11, 1, 0)[1], 0.58 * H, "arbre-monde");
             return null;
         });
     }
@@ -60,10 +68,17 @@ class SeedTreeTest {
             double[] grown = SeedTree.draw(g, W, H, BASE_X, BASE_Y, 7, 1, 0);
             assertTrue(young[1] > half[1] && half[1] > grown[1], "le feuillage monte à mesure que l'arbre pousse");
             assertTrue(young[2] < half[2] && half[2] < grown[2], "et s'élargit");
-            // À zéro, l'arbre fait 35 % de sa taille.
-            assertEquals(BASE_Y - 0.50 * H * 0.35 * 0.72, young[1], 1e-9);
+            // À zéro, l'arbre fait 35 % de sa taille (le jeune arbre : 50 % de la vue depuis la 0.143).
+            atTreeHeight(young[1], 0.50 * H * 0.35, "jeune arbre naissant");
+            atTreeHeight(grown[1], 0.50 * H, "jeune arbre");
             return null;
         });
+    }
+
+    /** Le centre du feuillage à la hauteur d'un arbre de cette taille posé sur le pied : de 0,7 à 1,3 fois. */
+    private static void atTreeHeight(double crownY, double height, String what) {
+        assertTrue(crownY <= BASE_Y - height * 0.7 && crownY >= BASE_Y - height * 1.3,
+                what + " : feuillage à " + (BASE_Y - crownY) + " au-dessus du pied, pour un arbre de " + height);
     }
 
     @Test

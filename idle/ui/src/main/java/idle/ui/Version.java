@@ -23,6 +23,12 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.145", "Les racines de l'arbre-monde, de retour", List.of(
+                    "À l'arbre-monde, les deux bulles du bas, celle de la graine et celle des racines, remontent un peu et "
+                            + "s'écartent à nouveau, et la bulle des racines retrouve son aura dorée : le grand ménage de la 0.144 "
+                            + "les avait effacées.",
+                    "Tests : celui de l'arbre de la graine vérifie le vrai centre du feuillage, celui des touffes de feuilles, "
+                            + "au lieu d'une position fixe qu'il n'a jamais eue.")),
             new Note("0.144", "Grand ménage : moins de code, mêmes règles", List.of(
                     "Statistiques : nouvelle sous-page « Univers » (univers formés, graine et arrosoir, les quatre dimensions et "
                             + "leurs seuils, le vide et ses paires, les bulles de l'arbre, les règles du deuxième univers), avec "
