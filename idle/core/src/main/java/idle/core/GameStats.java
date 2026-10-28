@@ -98,10 +98,10 @@ public final class GameStats {
     private final Set<String> unlockedOnce = new HashSet<>();
 
     /** Nombre maximal de durées d'explosion gardées : au-delà, les plus anciennes sont oubliées. */
-    public static final int MAX_EXPLOSION_TIMES = 60;
+    private static final int MAX_EXPLOSION_TIMES = 60;
 
     /** Nombre maximal de durées de Big Bang gardées : au-delà, les plus anciennes sont oubliées. */
-    public static final int MAX_BIG_BANG_TIMES = 60;
+    private static final int MAX_BIG_BANG_TIMES = 60;
 
     /** Les grandes premières du troisième acte, dont le jeu retient l'instant ({@link #reachedAt(Step)}). */
     public enum Step {
@@ -447,12 +447,8 @@ public final class GameStats {
         data.put(prefix + "moleculesAttracted", moleculesAttracted);
         data.put(prefix + "biggestCreation", biggestCreation);
         data.put(prefix + "moleculeElementsSpent", moleculeElementsSpent);
-        Map<String, Double> reached = new java.util.LinkedHashMap<>();
-        steps.forEach((step, time) -> reached.put(step.name(), time));
-        data.putDoubles(prefix + "steps", reached);
-        Map<String, Double> reachedThisUniverseMap = new java.util.LinkedHashMap<>();
-        universeSteps.forEach((step, time) -> reachedThisUniverseMap.put(step.name(), time));
-        data.putDoubles(prefix + "universeSteps", reachedThisUniverseMap);
+        writeSteps(data, prefix + "steps", steps);
+        writeSteps(data, prefix + "universeSteps", universeSteps);
         data.put(prefix + "universeStart", universeStart);
         data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
         data.put(prefix + "universeBigBangs", universeBigBangs);
@@ -506,18 +502,8 @@ public final class GameStats {
         moleculesAttracted = data.count(prefix + "moleculesAttracted", 0);
         biggestCreation = data.whole(prefix + "biggestCreation", 0);
         moleculeElementsSpent = data.count(prefix + "moleculeElementsSpent", 0);
-        steps.clear();
-        data.doubles(prefix + "steps").forEach((name, time) -> {
-            for (Step step : Step.values()) {
-                if (step.name().equals(name)) steps.put(step, time);
-            }
-        });
-        universeSteps.clear();
-        data.doubles(prefix + "universeSteps").forEach((name, time) -> {
-            for (Step step : Step.values()) {
-                if (step.name().equals(name)) universeSteps.put(step, time);
-            }
-        });
+        readSteps(data, prefix + "steps", steps);
+        readSteps(data, prefix + "universeSteps", universeSteps);
         universeStart = data.real(prefix + "universeStart", 0);
         unlockedOnce.clear();
         unlockedOnce.addAll(data.list(prefix + "unlockedOnce"));
@@ -540,6 +526,23 @@ public final class GameStats {
     void addTime(double seconds) {
         runTime += seconds;
         bigBangTime += seconds;
+    }
+
+    /** Écrit des étapes et leurs instants sous {@code key}, par leur nom. */
+    private static void writeSteps(SaveData data, String key, Map<Step, Double> reached) {
+        Map<String, Double> byName = new java.util.LinkedHashMap<>();
+        reached.forEach((step, time) -> byName.put(step.name(), time));
+        data.putDoubles(key, byName);
+    }
+
+    /** Relit dans {@code into} les étapes écrites sous {@code key} ; un nom d'une autre version est écarté. */
+    private static void readSteps(SaveData data, String key, Map<Step, Double> into) {
+        into.clear();
+        data.doubles(key).forEach((name, time) -> {
+            for (Step step : Step.values()) {
+                if (step.name().equals(name)) into.put(step, time);
+            }
+        });
     }
 
     /**

@@ -3,6 +3,9 @@ package idle.core;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangAchievement;
 import idle.core.bigbang.BangChallenge;
+import idle.core.collider.ColliderAchievement;
+import idle.core.collider.ColliderGenerator;
+import idle.core.collider.ColliderUpgrade;
 import idle.core.elements.ElementEffect;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
@@ -34,7 +37,11 @@ public final class Multipliers {
         ATOMS("Atomes par fusion"),
         DARK_MATTER("Matière noire par explosion"),
         DARK_GROWTH("Élan de la matière noire"),
-        SPACE("Espace par seconde");
+        SPACE("Espace par seconde"),
+        /** Version 0.144 : les trois autres grandeurs qui se gagnent par seconde. */
+        COLLIDER_ENERGY("Énergie du collisionneur par seconde"),
+        VOID_ENERGY("Énergie du vide par seconde"),
+        LINE_SHARDS("Segments de la ligne par seconde");
 
         private final String label;
 
@@ -99,6 +106,9 @@ public final class Multipliers {
             case ATOMS -> game.isStarted() && game.stats().fusions() > 0;
             case DARK_MATTER, DARK_GROWTH -> game.isDarkMatterUnlocked() && game.darkMatterEarned().sign() > 0;
             case SPACE -> game.isBigBangUnlocked();
+            case COLLIDER_ENERGY -> game.isColliderUnlocked();
+            case VOID_ENERGY -> game.isVoidUnlocked() && game.voidGainPerSecond() > 0;
+            case LINE_SHARDS -> game.isLineOpen();
         };
     }
 
@@ -110,6 +120,9 @@ public final class Multipliers {
             case DARK_MATTER -> game.darkMatterPerExplosion().log10();
             case DARK_GROWTH -> Math.log10(game.darkMatterMomentum());
             case SPACE -> game.spacePerSecond().log10();
+            case COLLIDER_ENERGY -> log(game.colliderEnergyPerSecond());
+            case VOID_ENERGY -> log(game.voidGainPerSecond());
+            case LINE_SHARDS -> log(game.lineShardsPerSecond());
         };
     }
 
@@ -123,6 +136,9 @@ public final class Multipliers {
             case DARK_MATTER -> darkMatter(game, factors);
             case DARK_GROWTH -> darkGrowth(game, factors);
             case SPACE -> space(game, factors);
+            case COLLIDER_ENERGY -> colliderEnergy(game, factors);
+            case VOID_ENERGY -> voidEnergy(game, factors);
+            case LINE_SHARDS -> lineShards(game, factors);
         }
         return factors;
     }
@@ -292,5 +308,46 @@ public final class Multipliers {
         add(factors, Aspect.BIG_BANG, "Sursaut des sondes", log(game.probeBoostMultiplier()));
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.SPACE)));
         add(factors, Aspect.BIG_BANG, "Sillage de comète", log(game.cometBoost()));
+    }
+
+    /** L'énergie du collisionneur (version 0.144) : {@link Game#colliderEnergyPerSecond()}, facteur par facteur. */
+    private static void colliderEnergy(Game game, List<Factor> factors) {
+        ColliderGenerator beam = ColliderGenerator.BEAM;
+        add(factors, Aspect.BASE, "Un faisceau croisé", log(beam.power()));
+        double beams = 1 + game.state().colliderGenerators(beam);
+        add(factors, Aspect.GENERATORS, Math.round(beams) + " faisceaux croisés", log(beams));
+        int energy = game.colliderUpgradeLevel(ColliderUpgrade.ENERGY);
+        add(factors, Aspect.UPGRADES, ColliderUpgrade.ENERGY.label() + " : " + energy + " niveaux", energy * log(2));
+        add(factors, Aspect.ACHIEVEMENTS, "Succès « " + ColliderAchievement.HUNDRED.title() + " »",
+                log(game.hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1));
+        ColliderAchievement output = ColliderAchievement.of(beam, ColliderAchievement.Kind.OUTPUT);
+        add(factors, Aspect.ACHIEVEMENTS, "Succès « " + output.title() + " »", log(game.hasColliderAchievement(output) ? 2 : 1));
+        add(factors, Aspect.ACHIEVEMENTS, "Succès « " + ColliderAchievement.QUARTER_THOUSAND.title() + " »",
+                log(game.hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND) ? 1.5 : 1));
+    }
+
+    /**
+     * L'énergie du vide (version 0.144) : {@link Game#voidGainPerSecond()}. Le rythme des paires est le rythme de base
+     * borné par la part d'énergie du collisionneur et la part d'espace libre que le joueur laisse au vide ; ce que la
+     * borne retire est un frein, nommé d'après ce qui borne ({@link Game#voidLimit()}).
+     */
+    private static void voidEnergy(Game game, List<Factor> factors) {
+        add(factors, Aspect.BASE, "Une paire par seconde", log(Game.VOID_BASE_RATE));
+        int rate = game.voidLevel(Game.VoidUpgrade.RATE);
+        add(factors, Aspect.UPGRADES, "Rythme des paires : " + rate + " niveaux", rate * log(Game.VOID_RATE_STEP));
+        add(factors, Aspect.BRAKE, "Part du collisionneur et de l'espace laissée au vide (" + game.voidLimit() + ")",
+                log(game.voidRate()) - log(game.voidBaseRate()));
+        int gain = game.voidLevel(Game.VoidUpgrade.GAIN);
+        add(factors, Aspect.UPGRADES, "Gain par paire : " + gain + " niveaux", log(game.voidPairGain()));
+    }
+
+    /** Les segments de la ligne (version 0.144) : {@link Game#lineShardsPerSecond()}, facteur par facteur. */
+    private static void lineShards(Game game, List<Factor> factors) {
+        add(factors, Aspect.BASE, "Un dixième d'éclat par trait, un aller en " + String.format(java.util.Locale.FRANCE, "%.1f", Game.LINE_HALF_TRIP) + " s", log(Game.LINE_SHARD / Game.LINE_HALF_TRIP));
+        add(factors, Aspect.UPGRADES, game.lineTicks() - 1 + " traits touchés par aller", log(game.lineTicks() - 1));
+        add(factors, Aspect.UPGRADES, "Éclats par trait : " + game.state().lineYieldLevel() + " niveaux", log(1 + game.state().lineYieldLevel()));
+        add(factors, Aspect.UPGRADES, game.lineBalls() + " boules par ligne", log(game.lineBalls()));
+        add(factors, Aspect.UPGRADES, game.lineCount() + " lignes", log(game.lineCount()));
+        add(factors, Aspect.UPGRADES, "Vitesse des boules : " + game.state().lineSpeedLevel() + " niveaux", log(game.lineSpeed()));
     }
 }

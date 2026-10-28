@@ -267,6 +267,8 @@ public abstract class GameStateResets extends GameStateCollider {
     public void reset() {
         clearMatter();
         clearDarkMatter();
+        clearCollider();
+        clearBigBangAct();
         fusionThreshold = 0;
         holdLocked = false;
         enabledDarkAutomations.clear();
@@ -275,38 +277,17 @@ public abstract class GameStateResets extends GameStateCollider {
         challengeTimes.clear();
         achievements.clear();
         achievementsVersion++;
-        bigBangs = 0;
-        molecules.clear();
         logKinds.clear();
-        substances.clear();
-        assemblies.clear();
-        bodies.clear();
-        maturing.clear();
-        solarSystems.clear();
-        substancesSeen = null;
-        assembliesSeen = null;
-        bodiesSeen = null;
-        cosmos = 0;
         autoHold = true;
         autoMolecules = true;
         autoFollowList = true;
         autoFollowMatter = false;
-        automatedMolecules.clear();
-        spaceUpgrades.clear();
         automationPaused = false;
-        favoriteMolecules.clear();
         autoGather = true;
         autoForm = true;
         autoMoleculeReserve = 0;
         explosionRecord = 0;
-        cometWait = 0;
-        cometVisible = 0;
-        cometBoost = 0;
         cometsCaught = 0;
-        skyEvent = null;
-        skyEventVisible = 0;
-        skyEventWait = 0;
-        windLeft = 0;
         skyEventsCaught = 0;
         endSeen = false;
         extraUniverses = 0;
@@ -316,7 +297,6 @@ public abstract class GameStateResets extends GameStateCollider {
         systemPlan.clear();
         java.util.Collections.fill(savedSystemPlans, "");
         forkResetArmed = false;
-        plannedBodies.clear();
         stateCaps.clear();
         recipeReservation = false;
         replaying = false;
@@ -352,15 +332,11 @@ public abstract class GameStateResets extends GameStateCollider {
         voidShare = 0.25;
         voidPrice = 0;
         voidSacrificed = BigNum.ZERO;
-        for (int i = 0; i < VOID_UPGRADES; i++) setVoidLevel(i, 0);
+        java.util.Arrays.fill(voidLevels, 0);
         voidHistory.clear();
         dimensionShards = 0;
         linePhase = 0;
-        lineYieldLevel = 0;
-        lineTicksLevel = 0;
-        lineSpeedLevel = 0;
-        lineBallsLevel = 0;
-        lineCountLevel = 0;
+        java.util.Arrays.fill(lineLevels, 0);
         dimensionShardsEarned = 0;
         seedSprouted = false;
         wateringCan = false;
@@ -369,13 +345,13 @@ public abstract class GameStateResets extends GameStateCollider {
         seedWaterings = 0;
         planeShards = 0;
         planeShardsEarned = 0;
-        for (int i = 0; i < 5; i++) setPlaneLevel(i, 0);
+        java.util.Arrays.fill(planeLevels, 0);
         volumeShards = 0;
         volumeShardsEarned = 0;
-        for (int i = 0; i < VOLUME_UPGRADES; i++) setVolumeLevel(i, 0);
+        java.util.Arrays.fill(volumeLevels, 0);
         durationShards = 0;
         durationShardsEarned = 0;
-        for (int i = 0; i < DURATION_UPGRADES; i++) setDurationLevel(i, 0);
+        java.util.Arrays.fill(durationLevels, 0);
         java.util.Arrays.fill(seedUpgradeLevels, 0);
         chronoStored = 0;
         chronoSpeed = 1;
@@ -384,39 +360,13 @@ public abstract class GameStateResets extends GameStateCollider {
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;
-        colliderEnergy = 0;
-        colliderGenerators.clear();
-        colliderGeneratorsBought.clear();
-        colliderPhase = 0;
-        colliderCrossings = 0;
-        colliderCaught = -1;
-        colliderUpgrades.clear();
-        colliderPaused.clear();
-        quarks.clear();
-        colliderEnergyProduced = 0;
-        collisions.clear();
-        collisionRuns = 0;
-        topLeft = 0;
-        overheatLeft = 0;
-        probes.clear();
-        probeRewards.clear();
-        probeUpgrades.clear();
-        probeRuns = 0;
         probeLaunches = 0;
         probeSamples = 0;
-        probeBoostLeft = 0;
-        // Les records restent : ils sont ce que le joueur cherche à battre à la partie suivante.
-        activeBangChallenge = null;
-        completedBangChallenges.clear();
-        boughtMilestones.clear();
         bangChallengeTimes.clear();
-        bangChallengeStarted = 0;
         atomUpgradeOrder.clear();
         atomUpgradeOrdered = false;
         automationOrder.clear();
         automationOrdered = false;
-        moleculesVersion++;
-        space = BigNum.ZERO;
         stats = new GameStats();
     }
 
@@ -497,8 +447,8 @@ public abstract class GameStateResets extends GameStateCollider {
     /**
      * Efface tout le collisionneur : son énergie, produite comme dépensée, ses générateurs, ses
      * améliorations et leurs pauses, les quarks, les collisions en cours, le quark top et la
-     * surchauffe. Rien d'autre ne bouge. Aucune étape du jeu ne le fait (le collisionneur
-     * traverse les actes) : c'est un outil de test.
+     * surchauffe. Rien d'autre ne bouge. Aucune étape du jeu ne le fait seul (le collisionneur
+     * traverse les actes) : c'est un outil de test, et une part de {@link #reset()}.
      */
     public void clearCollider() {
         colliderEnergy = 0;
@@ -522,7 +472,7 @@ public abstract class GameStateResets extends GameStateCollider {
      * substances, les assemblages, les astres, les systèmes solaires, l'espace et ses
      * améliorations, le cosmos, les comètes, les sondes et les défis du Big Bang. La matière, la
      * matière noire et le collisionneur restent ; les succès et les records aussi. Un outil de
-     * test : aucune étape du jeu ne revient en arrière ainsi.
+     * test, et une part de {@link #reset()} : aucune étape du jeu ne revient en arrière ainsi.
      */
     public void clearBigBangAct() {
         bigBangs = 0;

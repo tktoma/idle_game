@@ -10,8 +10,11 @@ import idle.core.save.*;
 import java.util.*;
 import java.nio.file.*;
 
-/** Experience V2: huit agents, retraits de mecaniques, journal d'evenements et mesures de stagnation.
- * Les robots sont des politiques experimentales, PAS des utilisateurs mesures.
+/**
+ * Expérience V2 : douze politiques (huit agents et quatre retraits de mécaniques), journal d'événements et mesures de
+ * stagnation. Les robots sont des politiques expérimentales, PAS des utilisateurs mesurés. {@code GUIDE_UI} n'a aucun
+ * comportement propre (le planificateur par défaut) ; {@code ADAPTATIF} n'en diffère que par sa chance de planifier.
+ * Le profil de test de l'interface ({@code BotBridge}) construit ce bot et appelle {@link #act()} à chaque décision.
  */
 public class AdvancedLab extends RobotCosmosPlanner {
   static final String[] MODES={"ECONOMISTE","PLAN_PRESTIGE","DEPENDANCES","ADAPTATIF","EXPERT_COMPLET","DEBUTANT_APPRENANT","GUIDE_UI","RECUPERATION", "SANS_IMPULSIONS","SANS_COMETES","SANS_TECH","SANS_LISTE"};
@@ -19,11 +22,9 @@ public class AdvancedLab extends RobotCosmosPlanner {
   final Random policyRandom;
   final ArrayList<String> rows =new ArrayList<>();
   final ArrayList<String> events =new ArrayList<>();
-  double wall=0, lastMilestone=0, lastUseful=0, maxStall=0, idleMinutes=0;
+  double wall=0, lastMilestone=0, maxStall=0, idleMinutes=0;
   int acts=0, meaningful=0, failed=0, extras=0, caught=0, pulses=0, collisionRuns=0, probeRuns=0;
-  int prevB,prevA,prevM,prevT,prevS,prevC,prevBl,prevExpl;
-  long prevMol;
-  String oldTarget="";
+  int prevB,prevA,prevT,prevS,prevC,prevBl,prevExpl;
   double reachedGalaxy=Double.NaN,reachedCluster=Double.NaN,reachedUniverse=Double.NaN,reachedB8=Double.NaN;
   AdvancedLab(Game g,double dt,String mode,long seed){
     super(g,dt);this.mode=mode;policyRandom=new Random(seed ^ 0x71abcL);
@@ -32,8 +33,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
       nextUniverse=new NextUniversePolicy(IdleProfiles24.STYLES[15],new Random(seed ^ 0x2b2L));
       voidPolicy=new VoidPolicy(IdleProfiles24.VOID_STYLES[15],new Random(seed ^ 0x701dL));
     }
-    prevB=g.bodiesMature();prevA=g.assembliesFormed();prevM=g.moleculeKindsCreated();prevT=g.substancesFormed();
-    prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevBl=g.bigBangs();prevExpl=g.state().explosions();prevMol=g.moleculesCreated();
+    rememberState();
     rows.add("wall_h,game_h,bb,explosions,parts_log,atoms_log,space,space_per_s,space_free,molecules,sortes,substances,assemblages,astres_murs,systemes,cosmos,objectif,decisions,interventions_inutiles,stagnation_h");
     events.add("wall_h,event,detail");
   }
@@ -97,7 +97,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
     lastMilestone=wall; meaningful++;
   }
   void captureEvents(){
-    if(g.bigBangs()!=prevBl){event("BIG_BANG",String.valueOf(g.bigBangs()));if(g.bigBangs()>=8&&Double.isNaN(reachedB8))reachedB8=wall/3600;}
+    if(g.bigBangs()!=prevBl){event("BIG_BANG",String.valueOf(g.bigBangs()));if(g.bigBangs()>=Bots.LAST_BIG_BANG&&Double.isNaN(reachedB8))reachedB8=wall/3600;}
     if(g.state().explosions()!=prevExpl)event("EXPLOSION",String.valueOf(g.state().explosions()));
     if(g.bodiesMature()!=prevB)event("ASTRES_MURS",String.valueOf(g.bodiesMature()));
     if(g.assembliesFormed()!=prevA)event("ASSEMBLAGES",String.valueOf(g.assembliesFormed()));
@@ -108,7 +108,7 @@ public class AdvancedLab extends RobotCosmosPlanner {
   }
   /** L'état relevé, auquel le pas suivant se compare. */
   void rememberState(){
-    prevBl=g.bigBangs();prevExpl=g.state().explosions();prevB=g.bodiesMature();prevA=g.assembliesFormed();prevT=g.substancesFormed();prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);prevM=g.moleculeKindsCreated();prevMol=g.moleculesCreated();
+    prevBl=g.bigBangs();prevExpl=g.state().explosions();prevB=g.bodiesMature();prevA=g.assembliesFormed();prevT=g.substancesFormed();prevS=g.solarSystemsComplete();prevC=RobotCosmosPlanner.cosmosStage(g);
   }
   void snapshot(){
     String wish=g.shoppingList().target().replace(',',';').replace('\n',' ');
@@ -141,15 +141,14 @@ public class AdvancedLab extends RobotCosmosPlanner {
     boolean won=NextUniversePolicy.reached(g,targetUniverses);
     if(won)Files.writeString(out.resolve("winner.save"),SaveCodec.write(g.state(),0));
     String res=String.format(Locale.ROOT,"%s,%d,%.5f,%.5f,%.5f,%.5f,%.5f,%d,%d,%d,%.5f,%.5f,%d,%d,%d,%d,%d,%d,%d,%s,%d",mode,won?1:0,wall/3600,reachedB8,reachedGalaxy,reachedCluster,reachedUniverse,acts,meaningful,failed,maxStall/3600,idleMinutes/60,g.hasCosmos(Cosmos.UNIVERSE)?endBB:g.bigBangs(),g.hasCosmos(Cosmos.UNIVERSE)?endMature:g.bodiesMature(),RobotCosmosPlanner.cosmosStage(g),caught,pulses,extras,g.universes(),universeHours(),skyEventsCaught);
-    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats,univers_formes,univers_h,anomalies\n"+res+"\n");
+    Files.writeString(out.resolve("result.csv"),"robot,victoire,heures,bb8_h,galaxie_h,amas_h,univers_h,decisions,evenements,sans_progres,plus_longue_stagnation_h,temps_stagnation_30min_h,bb,astres,cosmos,cometes,impulsions,meilleurs_achats,univers_formes,instants_univers_h,anomalies\n"+res+"\n");
     System.out.println("RESULT,"+res);
   }
   public static void main(String[]args)throws Exception{
     if(args.length<6){System.err.println("Usage: mode checkpoint hours step seed output [univers]");System.exit(2);}
     String mode=args[0];Path cp=Path.of(args[1]);double hours=Double.parseDouble(args[2]),dt=Double.parseDouble(args[3]);long seed=Long.parseLong(args[4]);
-    GameState st=SaveCodec.read(Files.readString(cp)).state();
-    Game g=new Game(st,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(seed));
-    System.out.printf(Locale.ROOT,"START,%s,%.3f,%d%n",mode,st.timePlayed()/3600,g.bigBangs());
+    Game g=Bots.load(cp,seed);
+    System.out.printf(Locale.ROOT,"START,%s,%.3f,%d%n",mode,g.state().timePlayed()/3600,g.bigBangs());
     AdvancedLab lab=new AdvancedLab(g,dt,mode,seed);
     if(args.length>6)lab.targetUniverses=Integer.parseInt(args[6]);
     lab.runLab(hours,Path.of(args[5]));

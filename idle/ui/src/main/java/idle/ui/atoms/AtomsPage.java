@@ -8,15 +8,17 @@ import idle.core.upgrades.Upgrade;
 import idle.ui.GameApp;
 import idle.ui.Settings;
 import idle.ui.common.Breakdown;
+import idle.ui.common.BuyAmountRow;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.StableHeight;
+import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -53,12 +55,6 @@ public final class AtomsPage extends VBox {
         return subTabs;
     }
 
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
-
-    private static final String AMOUNT_STYLE = "-fx-font-size: 12px; -fx-padding: 3 12; -fx-cursor: hand;"
-            + " -fx-background-radius: 6; -fx-border-radius: 6;";
-
     private final Game game;
     private final Settings settings;
     private final Label balanceLabel = new Label();
@@ -87,11 +83,12 @@ public final class AtomsPage extends VBox {
     private final Map<Upgrade, Card> upgradeCards = new LinkedHashMap<>();
     private final TileGrid upgradeGrid = new TileGrid(200, 4, 10);
     /** La quantité achetée à chaque clic, une fois l'achat groupé acquis : la même que pour les particules. */
-    private final Map<Settings.BuyAmount, Button> amountButtons = new java.util.EnumMap<>(Settings.BuyAmount.class);
-    private final HBox amountRow = new HBox(6);
+    private final BuyAmountRow amountRow;
+    /** Ses boutons : pour les vérifications. */
+    private final Map<Settings.BuyAmount, Button> amountButtons;
     private final Label amountHint = new Label();
-    private final VBox upgradesBox = new VBox(8, amountRow, amountHint, upgradeGrid);
-    private final ScrollPane upgradesPane = new ScrollPane(upgradesBox);
+    private final VBox upgradesBox;
+    private final ScrollPane upgradesPane;
 
     // Sous-page « Tableau périodique »
     private final PeriodicTablePage tablePage;
@@ -104,6 +101,10 @@ public final class AtomsPage extends VBox {
         this.tablePage = new PeriodicTablePage(game);
         this.bonusBreakdown = Breakdown.attach(bonusLabel, game, Breakdown.Of.ATOMS);
         this.tablePane = new ScrollPane(tablePage);
+        this.amountRow = new BuyAmountRow(settings, this::refresh);
+        this.amountButtons = amountRow.buttons();
+        this.upgradesBox = new VBox(8, amountRow, amountHint, upgradeGrid);
+        this.upgradesPane = new ScrollPane(upgradesBox);
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 24, 24));
 
@@ -115,19 +116,7 @@ public final class AtomsPage extends VBox {
         StableHeight.of(balanceLabel);
         StableHeight.of(bonusLabel);
 
-        // Une sous-page n'est recopiée que lorsqu'elle est affichée : elle l'est donc dès qu'on la choisit.
-        atomTab.setOnAction(event -> {
-            select(0);
-            refresh();
-        });
-        upgradesTab.setOnAction(event -> {
-            select(1);
-            refresh();
-        });
-        tableTab.setOnAction(event -> {
-            select(2);
-            refresh();
-        });
+        SubTabs.wire(false, this::select, this::refresh, atomTab, upgradesTab, tableTab);
         subTabs = new HBox(atomTab, upgradesTab, tableTab);
         subTabs.setAlignment(Pos.CENTER);
 
@@ -142,29 +131,9 @@ public final class AtomsPage extends VBox {
         upgradeGrid.setPadding(new Insets(4, 0, 12, 0));
         upgradesBox.setAlignment(Pos.TOP_CENTER);
         upgradesBox.setPadding(new Insets(10, 0, 0, 0));
-        Label amountLabel = new Label("Quantité par achat :");
-        amountLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        amountRow.getChildren().add(amountLabel);
-        amountRow.setAlignment(Pos.CENTER);
-        for (Settings.BuyAmount amount : Settings.BuyAmount.values()) {
-            Button button = new Button(amount.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                settings.setBuyAmount(amount);
-                refresh();
-            });
-            amountButtons.put(amount, button);
-            amountRow.getChildren().add(button);
-        }
-        amountHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        amountHint.setWrapText(true);
-        amountHint.setTextAlignment(TextAlignment.CENTER);
-        upgradesPane.setFitToWidth(true);
-        upgradesPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        upgradesPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        tablePane.setFitToWidth(true);
-        tablePane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        tablePane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.note(amountHint);
+        Labels.transparent(upgradesPane);
+        Labels.transparent(tablePane);
 
         // Une carte par amélioration payée en atomes : en ajouter une dans core suffit à la faire apparaître.
         for (Upgrade upgrade : game.upgrades(Resource.ATOMS)) {
@@ -211,15 +180,9 @@ public final class AtomsPage extends VBox {
         atomPane.setVisible(index == 0);
         upgradesPane.setVisible(index == 1);
         tablePane.setVisible(index == 2);
-        atomTab.setStyle(subTabStyle(index == 0));
-        upgradesTab.setStyle(subTabStyle(index == 1));
-        tableTab.setStyle(subTabStyle(index == 2));
-    }
-
-    private static String subTabStyle(boolean selected) {
-        return SUB_TAB_STYLE + (selected
-                ? " -fx-text-fill: #ffd27f; -fx-border-color: transparent transparent #ffd27f transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
+        atomTab.setStyle(SubTabs.style(index == 0, "#ffd27f"));
+        upgradesTab.setStyle(SubTabs.style(index == 1, "#ffd27f"));
+        tableTab.setStyle(SubTabs.style(index == 2, "#ffd27f"));
     }
 
     /** Fait avancer l'animation de l'atome, quand il est visible ; figé si le joueur a coupé son effet. */
@@ -272,9 +235,7 @@ public final class AtomsPage extends VBox {
             boolean bulk = game.isBulkAtomBuyUnlocked();
             amountRow.setVisible(bulk);
             amountRow.setManaged(bulk);
-            amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
-                    ? " -fx-text-fill: #0b0e14; -fx-background-color: " + GameApp.ATOMS_COLOR + "; -fx-border-color: #ffffff;"
-                    : " -fx-text-fill: " + GameApp.ATOMS_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
+            amountRow.paint(settings.buyAmount(), GameApp.ATOMS_COLOR);
             // Tant que l'achat groupé n'est pas acquis, une ligne dit où le trouver, à qui a déjà de la matière noire.
             String hint = bulk ? Detail.only("La quantité choisie vaut aussi pour les améliorations payées en particules.")
                     : game.isDarkMatterUnlocked() ? "L'achat par dix ou « max » s'ouvre avec « Achat groupé », dans les améliorations payées en matière noire."

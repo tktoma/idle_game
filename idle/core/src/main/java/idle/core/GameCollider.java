@@ -92,7 +92,7 @@ public abstract class GameCollider extends GameDarkTree {
      * des 250 générateurs (×1,5), et pour ceux qui produisent un autre générateur, les générateurs
      * renforcés (×2 par niveau).
      */
-    public double colliderOutputMultiplier(ColliderGenerator generator) {
+    private double colliderOutputMultiplier(ColliderGenerator generator) {
         double multiplier = hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.OUTPUT)) ? 2 : 1;
         if (hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND)) multiplier *= 1.5;
         if (generator != ColliderGenerator.BEAM) multiplier *= Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.GENERATOR_POWER));
@@ -170,7 +170,7 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Ce par quoi les améliorations multiplient l'énergie. */
-    public double colliderEnergyMultiplier() {
+    private double colliderEnergyMultiplier() {
         double multiplier = Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.ENERGY))
                 * (hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1);
         return multiplier;
@@ -246,11 +246,6 @@ public abstract class GameCollider extends GameDarkTree {
     /** La phase des faisceaux, de 0 à 1 : ils se croisent dans le détecteur à 0,5. */
     public double colliderBeamPhase() {
         return state.colliderPhase();
-    }
-
-    /** Vrai si la phase tombe dans le moment du croisement, de la largeur de départ. */
-    public static boolean inResonance(double phase) {
-        return Math.abs(phase - 0.5) <= RESONANCE_WINDOW / 2;
     }
 
     /** Vrai pendant que les faisceaux se croisent, détecteur élargi compris. */
@@ -409,7 +404,7 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /** Tous les combien de croisements le déclencheur automatique capte : 5, 3 puis 1 ; 0 sans lui. */
-    public int autoCatchEvery() {
+    private int autoCatchEvery() {
         return switch (colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH)) {
             case 0 -> 0;
             case 1 -> 5;

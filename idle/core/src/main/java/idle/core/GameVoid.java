@@ -48,12 +48,12 @@ public abstract class GameVoid extends GameBigBang {
     public static final double VOID_BASE_RATE = 1;
     public static final double VOID_RATE_STEP = 1.25;
     /** Ce que coûte une paire : une demi-seconde de collisionneur, et un cinquième de seconde d'expansion, chacun −15 % par niveau. */
-    public static final double VOID_PAIR_ENERGY_SECONDS = 0.5;
-    public static final double VOID_PAIR_SPACE_SECONDS = 0.2;
-    public static final double VOID_COST_STEP = 0.85;
+    private static final double VOID_PAIR_ENERGY_SECONDS = 0.5;
+    private static final double VOID_PAIR_SPACE_SECONDS = 0.2;
+    private static final double VOID_COST_STEP = 0.85;
     /** La fonte : 0,2 % par seconde (moitié en près de six minutes), −10 % par niveau. */
     public static final double VOID_DECAY = 0.002;
-    public static final double VOID_DECAY_STEP = 0.9;
+    private static final double VOID_DECAY_STEP = 0.9;
     /** La masse du trou noir au plus. */
     public static final double VOID_MAX_MASS = 15;
 
@@ -243,7 +243,7 @@ public abstract class GameVoid extends GameBigBang {
     }
 
     /** La masse que donneraient ces particules sacrifiées. */
-    public static double voidMassOf(BigNum sacrificed) {
+    private static double voidMassOf(BigNum sacrificed) {
         if (sacrificed.sign() <= 0) return 0;
         double digits = sacrificed.compareTo(BigNum.of(1e300)) > 0 ? sacrificed.log10() : Math.log10(1 + sacrificed.toDouble());
         return Math.min(VOID_MAX_MASS, 2 * Math.log10(1 + digits));

@@ -7,20 +7,17 @@ import idle.core.molecules.*;
 import idle.core.sky.*;
 import idle.core.collider.*;
 import idle.core.probes.*;
-import idle.core.save.*;
 import idle.core.achievements.*;
 import java.util.*;
-import java.nio.file.*;
 
-/** Politique à objectifs : progression de matière + prérequis des Big Bangs et du cosmos. */
+/**
+ * Politique à objectifs : progression de matière + prérequis des Big Bangs et du cosmos. C'est le planificateur que
+ * tous les bots partagent ; chacun ({@link AdvancedLab}, {@link IdleProfiles24}) pilote lui-même la boucle du jeu et
+ * appelle {@link #collider()}, {@link #probes()}, {@link #cosmos()} et {@link #resourceLoop()} à chaque décision.
+ */
 public class RobotCosmosPlanner {
-  static final Path OUTPUT_DIR=Path.of(System.getProperty("idle.outputDir", "sorties"));
   final Game g;
   final double step;
-  double elapsed=0;
-  int prevBangs,prevBodies,prevAssemblies,prevSub,prevCosmos,prevMature;
-  long prevMolecules;
-  boolean abandoned=false;
   /** Vrai quand c'est le robot qui a coupé la fusion et la synthèse automatiques (avant un Big Bang) : il les rallume ensuite. */
   boolean fusionPausedByRobot=false;
   boolean patiencePausedByRobot=false;
@@ -58,12 +55,12 @@ public class RobotCosmosPlanner {
       if(best!=null)return best;
     }
     return !g.shoppingList().matter().isEmpty() || !g.shoppingList().items().isEmpty()
-        ? ProbeTrip.SHORT : (g.bigBangs()>=5 ? ProbeTrip.HOUR : ProbeTrip.SHORT);
+        ? ProbeTrip.SHORT : (g.bigBangs()>=Game.BANG_CHALLENGES_BIG_BANGS ? ProbeTrip.HOUR : ProbeTrip.SHORT);
   }
   /** Les achats en atomes, selon le style. */
-  void buyAtoms(int limit){if(earlyStyle.opening())atoms(g,limit);else FirstUniversePolicy.cheapestAtoms(g,limit);}
+  void buyAtoms(int limit){if(earlyStyle.opening())FirstUniversePolicy.atoms(g,limit);else FirstUniversePolicy.cheapestAtoms(g,limit);}
   /** Les achats en matière noire, selon le style. */
-  void buyDark(int limit){if(earlyStyle.darkBest())dark(g,limit);else FirstUniversePolicy.cheapestDark(g,limit);}
+  void buyDark(int limit){if(earlyStyle.darkBest())FirstUniversePolicy.dark(g,limit);else FirstUniversePolicy.cheapestDark(g,limit);}
   /**
    * Univers à former avant de s'arrêter (version 0.130) : 1 par défaut, le premier univers comme avant. Au-delà, le
    * bot lance l'univers suivant dès qu'un univers se forme ({@link NextUniversePolicy#launchNext}), et rejoue les trois
@@ -93,7 +90,7 @@ public class RobotCosmosPlanner {
   /** L'instant de la formation de chaque univers, en secondes de {@link #clockSeconds()}, dans l'ordre. */
   final List<Double> universeTimes=new ArrayList<>();
   /** Univers déjà formés au dernier relevé. */
-  int universesSeen=-1;
+  int universesSeen;
   /** Vrai au pas où le bot vient de lancer l'univers suivant. */
   boolean launchedNextUniverse=false;
   /** L'horloge des relevés : le temps de jeu ; les profils et le bot V2 comptent le temps réel. */
@@ -105,14 +102,12 @@ public class RobotCosmosPlanner {
    */
   boolean universeProgress(){
     launchedNextUniverse=false;
-    if(universesSeen<0)universesSeen=g.universes();
     while(universesSeen<g.universes()){universesSeen++;universeTimes.add(clockSeconds());}
     if(NextUniversePolicy.reached(g,targetUniverses))return true;
     if(NextUniversePolicy.launchNext(g,targetUniverses)){
       launchedNextUniverse=true;
       // Les explosions repartent de zéro : un défi abandonné dans l'univers d'avant se retente normalement.
-      failedChallenges.clear();
-      challengeStart=-1;
+      forgetFailedChallenges();
       System.out.printf(Locale.ROOT,"NEXT_UNIVERSE,%.4f,%d%n",clockSeconds()/3600,g.universes()+1);
     }
     return false;
@@ -143,14 +138,11 @@ public class RobotCosmosPlanner {
 
   /** Le joueur revient : la prochaine absence repart de zéro. */
   void back(){awaySeconds=0;}
-  final List<String> csv=new ArrayList<>();
-  int tickCount=0;
   /** Échelles du cosmos formées, 3 une fois l'univers formé : former l'univers remet le cosmos à zéro (0.83). */
   static int cosmosStage(Game g){return g.hasCosmos(Cosmos.UNIVERSE)?Cosmos.values().length:g.cosmosFormed();}
-  RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;prevBangs=g.bigBangs();universesSeen=g.universes();csv.add("total_hours,bigbangs,explosions,challenges,achievements,elements,molecules,substances,assemblies,bodies,mature,systems,cosmos,space,freeSpace,spaceRate,shopping");}
-  static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=null;for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (b==null||g.costOf(u.id()).lt(g.costOf(b.id()))))b=u;if(b==null)break;g.buy(b.id());}}
-  static void atoms(Game g,int limit){FirstUniversePolicy.atoms(g,limit);}
-  static void dark(Game g,int limit){FirstUniversePolicy.dark(g,limit);}
+  RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;universesSeen=g.universes();bigBangsSeen=g.bigBangs();explosionsSeen=g.state().explosions();}
+  /** Achète, au plus {@code limit} fois, l'amélioration en particules la moins chère. */
+  static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=Bots.cheapest(g,Resource.PARTICLES);if(b==null)break;g.buy(b.id());}}
   /** Réserve les 25 atomes nécessaires à Persistance seulement après l'automatisation. */
   void prioritizePersistence(){
     if(FirstUniversePolicy.readyForPersistence(g)){
@@ -166,13 +158,11 @@ public class RobotCosmosPlanner {
     }
     if(!FirstUniversePolicy.readyForPersistence(g) && persistenceReserveManaged){
       // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser.
-      if(g.synthesisReserve().equals(BigNum.of(25)))
+      if(g.synthesisReserve().equals(g.costOf("atom_keep")))
         g.setSynthesisReserve(previousPersistenceReserve);
       persistenceReserveManaged=false;
     }
   }
-  /** La préparation d'un Big Bang ne doit pas stopper la chimie avant les 18/24/28 astres mûrs. */
-  static boolean skyReadyForNextBigBang(Game g){return FirstUniversePolicy.skyReady(g);}
   void collider(){
     if(!g.isColliderUnlocked())return;
     // Version 0.133 : tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates
@@ -252,10 +242,12 @@ public class RobotCosmosPlanner {
    * Vise explicitement les deux étoiles mortes indispensables au huitième Big Bang, et d'abord les astres plus petits
    * qu'elles demandent (version 0.135 : la géante rouge de la naine blanche). Avant, une naine blanche à qui manquait
    * sa géante rouge n'était pas visée, la liste restait sur une nébuleuse verrouillée jusqu'au huitième Big Bang, et
-   * le débutant restait bloqué à 25 astres dans l'univers 3.
+   * le débutant restait bloqué à 25 astres dans l'univers 3. Les molécules et la matière demandées sont celles que le
+   * vide allège ({@link Game#bodyMolecules}, {@link Game#bodyMatter}) : avant la 0.141, les quantités brutes du
+   * catalogue faisaient produire trop dans l'univers 3.
    */
   boolean preEighthBody(){
-    if(g.bigBangs()!=7 || g.bodiesMature()>=28)return false;
+    if(g.bigBangs()!=Bots.LAST_BIG_BANG-1 || g.bodiesMature()>=Game.BIG_BANG_SKY[Game.BIG_BANG_SKY.length-1])return false;
     String id=null;
     for(String wanted:new String[]{"white_dwarf","neutron_star"}){id=firstToForm(wanted,0);if(id!=null)break;}
     if(id==null)return false;
@@ -272,23 +264,17 @@ public class RobotCosmosPlanner {
       }
       if(g.canFormAssembly(aId))g.formAssembly(aId);
     }
-    for(var required:body.molecules().entrySet()){
+    for(var required:g.bodyMolecules(body).entrySet()){
       String m=required.getKey();
       for(int i=0;i<25 && g.moleculeCount(m)<required.getValue() && g.canCreateMolecule(m);i++)g.createMolecule(m);
       if(g.canFormSubstance(m))g.formSubstance(m);
     }
-    for(var required:body.matter().entrySet()){
+    for(var required:g.bodyMatter(body).entrySet()){
       var matter=required.getKey();long objective=required.getValue();
       if(g.gatheredInState(matter)>=objective)continue;
-      Molecule cheapest=null;double min=Double.POSITIVE_INFINITY;
-      for(Molecule m:g.molecules()) if(m.hasState()&&m.state()==matter&&g.isMoleculeKindUnlocked(m.kind())&&g.isMoleculeWithinReach(m.id())&&g.canCreateMolecule(m.id())){
-          double v=g.moleculeVolume(m.id()).toDouble();
-          if(g.hasSubstance(m.id()) && v<min){cheapest=m;min=v;}
-      }
+      Molecule cheapest=Bots.cheapestInState(g,matter,m->g.isMoleculeKindUnlocked(m.kind())&&g.isMoleculeWithinReach(m.id())&&g.canCreateMolecule(m.id())&&g.hasSubstance(m.id()));
       if(cheapest==null){
-        for(Molecule m:g.molecules()) if(m.hasState()&&m.state()==matter&&g.isMoleculeKindUnlocked(m.kind())&&g.isMoleculeWithinReach(m.id())&&g.canCreateMolecule(m.id())){
-            double v=g.moleculeVolume(m.id()).toDouble();if(v<min){cheapest=m;min=v;}
-        }
+        cheapest=Bots.cheapestInState(g,matter,m->g.isMoleculeKindUnlocked(m.kind())&&g.isMoleculeWithinReach(m.id())&&g.canCreateMolecule(m.id()));
         if(cheapest!=null){for(int k=0;k<4&&g.moleculeCount(cheapest.id())<3&&g.canCreateMolecule(cheapest.id());k++)g.createMolecule(cheapest.id());
           if(g.canFormSubstance(cheapest.id()))g.formSubstance(cheapest.id());}
       }
@@ -311,8 +297,7 @@ public class RobotCosmosPlanner {
   }
   /** Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. */
   boolean automateMatter(){
-    // Quand le suivi du moteur est actif, laisser le jeu gérer lui-même l'entretien des états.
-    // Cela évite de mélanger les deux politiques pendant les tests A/B.
+    // Quand le suivi des besoins de matière du moteur est actif (option du jeu), il gère lui-même les états.
     if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
     // Les cinq états ont des exigences indépendantes pour le cosmos.
@@ -327,8 +312,6 @@ public class RobotCosmosPlanner {
     return !chosen.isEmpty();
   }
   void cosmos(){
-    // Option pour les bancs de test : OFF par défaut, ON seulement dans la branche A/B dédiée.
-    if(Boolean.getBoolean("idle.testAutoMatter") && g.isStateCapUnlocked())g.setAutoFollowMatter(true);
     for(SpaceUpgrade up:g.spaceUpgrades())if(g.canBuySpaceUpgrade(up.id()))g.buySpaceUpgrade(up.id());
     g.setAutoFollowList(true);
     g.setAutoMoleculeReserve(0.10);
@@ -345,7 +328,7 @@ public class RobotCosmosPlanner {
        int s=g.formAllSubstances(),a=g.formAllAssemblies(),b=g.formAllBodies();
        if(s+a+b==0)break;
     }
-    if(g.nextCosmos()!=null&&g.canFormCosmos(g.nextCosmos())){Cosmos c=g.nextCosmos();if(g.formCosmos(c))System.out.printf("COSMOS_DONE,%.4f,%s%n",elapsed/3600,c);}
+    if(g.nextCosmos()!=null&&g.canFormCosmos(g.nextCosmos())){Cosmos c=g.nextCosmos();if(g.formCosmos(c))System.out.printf(Locale.ROOT,"COSMOS_DONE,%.4f,%s%n",g.state().timePlayed()/3600,c);}
     systems();
     // Objectif spécial de huitième Big Bang : contourne la liste qui privilégie les astres exotiques verrouillés.
     if(preEighthBody()){systems();return;}
@@ -376,15 +359,9 @@ public class RobotCosmosPlanner {
     for(var e:wish.matter().entrySet()){
       if(e.getValue()<=0)continue;
       long target=g.gatheredInState(e.getKey())+e.getValue(); // shoppingList.matter contient le MANQUE, pas le seuil absolu
-      Molecule choice=null;double min=Double.POSITIVE_INFINITY;
-      for(Molecule m:g.molecules())if(m.hasState()&&m.state()==e.getKey()&&g.hasSubstance(m.id())&&g.canCreateMolecule(m.id())){
-        double v=g.moleculeVolume(m.id()).toDouble();if(v<min){min=v;choice=m;}
-      }
+      Molecule choice=Bots.cheapestInState(g,e.getKey(),m->g.hasSubstance(m.id())&&g.canCreateMolecule(m.id()));
       if(choice==null){ // Aucun amas rassemblé dans cet état : en ouvrir un avant de produire en masse.
-        Molecule starter=null;double cheapest=Double.POSITIVE_INFINITY;
-        for(Molecule m:g.molecules())if(m.hasState() && m.state()==e.getKey() && g.isMoleculeKindUnlocked(m.kind()) && !g.hasSubstance(m.id()) && g.isMoleculeWithinReach(m.id())){
-          double v=g.moleculeVolume(m.id()).toDouble();if(v<cheapest){starter=m;cheapest=v;}
-        }
+        Molecule starter=Bots.cheapestInState(g,e.getKey(),m->g.isMoleculeKindUnlocked(m.kind()) && !g.hasSubstance(m.id()) && g.isMoleculeWithinReach(m.id()));
         if(starter!=null){for(int i=0;i<5&&g.moleculeCount(starter.id())<3&&g.canCreateMolecule(starter.id());i++)g.createMolecule(starter.id());
             if(g.canFormSubstance(starter.id()))g.formSubstance(starter.id());
             if(g.hasSubstance(starter.id()))choice=starter;
@@ -423,7 +400,7 @@ public class RobotCosmosPlanner {
     System.out.printf(Locale.ROOT,
       "BB_STATUS,t=%.2fh,dm_disponible=%s,dm_depensee=%s,dm_totale=%s,dm_manquante=%s,conditions=%d/%d,particules=%s,atomes=%s,defis=%d,succes=%d%n",
       now/3600,g.state().darkMatter(),g.state().darkMatterSpent(),g.darkMatterEarned(),
-      Game.BIG_BANG_DARK_MATTER.subtract(g.state().darkMatter()).max(BigNum.ZERO),
+      g.bigBangDarkMatter().subtract(g.state().darkMatter()).max(BigNum.ZERO),
       g.bigBangConditionsMet(),g.bigBangConditions().size(),
       g.isBigBangConditionMet(BigBangCondition.PARTICLES),
       g.isBigBangConditionMet(BigBangCondition.ATOMS),
@@ -436,31 +413,42 @@ public class RobotCosmosPlanner {
    * gratuit quand le Big Bang est prêt, puis la barre haute (maturation ×2). Avant, il n'en passait presque aucun dans
    * les univers suivants, où le ciel se réunit en même temps que le reste, alors que chacun y rend la maturation quatre
    * fois plus rapide et double particules et molécules ({@link Game#universeBangFactor}) : après le huitième Big Bang,
-   * les sept derniers astres mûrissaient en quatre heures.
+   * les sept derniers astres mûrissaient en quatre heures. La matière noire exigée est celle du moteur
+   * ({@link Game#bigBangDarkMatter()} : le double pendant la barre haute).
    */
   boolean bangChallenges(){
     if(!useBangChallenges() || g.bigBangs()<Game.BANG_CHALLENGES_BIG_BANGS
-        || g.bigBangs()>=8 || !skyReadyForNextBigBang(g)
+        || g.bigBangs()>=Bots.LAST_BIG_BANG || !FirstUniversePolicy.skyReady(g)
         || !g.baseChallengesDone()
         || g.achievementCount()<Game.BIG_BANG_ACHIEVEMENTS
-        || g.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)
+        || g.state().darkMatter().lt(g.bigBangDarkMatter())
         || !g.canStartBangChallenge())return false;
     // Le premier univers garde la règle d'avant par défaut : c'est la partie de référence de l'équilibrage (27 h).
-    boolean later=(g.isSecondUniverse() || BANG_CHALLENGES_FIRST) && !BANG_CHALLENGES_LATER.equals("avant");
+    String setting=bangChallengesSetting();
+    boolean later=(g.isSecondUniverse() || BANG_CHALLENGES_FIRST) && !setting.equals("avant");
     if(g.canBigBang() && !later)return false;
     for(BangChallenge challenge:bangChallengeOrder(later)){
       if(!g.isBangChallengeCompleted(challenge) && g.startBangChallenge(challenge))return true;
     }
     return false;
   }
+  /** Les valeurs admises de la propriété {@code idle.defisBB}. */
+  static final List<String> BANG_CHALLENGE_SETTINGS=List.of("maturation","gele","avant");
   /**
    * L'ordre des défis de Big Bang ({@code -Didle.defisBB}) : « maturation » (ciel figé, barre haute, puis le
    * catalogue), « gele » (ciel figé, puis le catalogue) ou « avant » (le catalogue, jamais sur une partie prête à Big
    * Bang : la règle d'avant la 0.135). Mesuré en 0.135 avec « maturation », Speedrunner et Régulier : deuxième
    * univers de 20 h 33–21 h 15 à 14 h 57–19 h 23 ; troisième de
    * 12 h 08–20 h 18 à 10 h 40–12 h 31. « gele » et « maturation » font jeu égal (72,7 h sur cinq parties).
+   * Lue à chaque usage, et refusée avec un message clair hors de {@link #BANG_CHALLENGE_SETTINGS} : avant la 0.141,
+   * une valeur inconnue jouait « gele » en silence.
    */
-  static final String BANG_CHALLENGES_LATER=System.getProperty("idle.defisBB","maturation");
+  static String bangChallengesSetting(){
+    String wanted=System.getProperty("idle.defisBB","maturation").trim();
+    if(!BANG_CHALLENGE_SETTINGS.contains(wanted))
+      throw new IllegalArgumentException("idle.defisBB="+wanted+" : "+String.join(", ",BANG_CHALLENGE_SETTINGS)+" attendu");
+    return wanted;
+  }
   /**
    * {@code -Didle.defisBBPremier=true} : la même règle dès le premier univers. Mesuré en 0.135 : le Speedrunner y
    * passe de 27 h 01 à 24 h 44, le Régulier de 34 h 26 à 31 h 59. Pas par défaut, parce que le premier univers du
@@ -471,7 +459,7 @@ public class RobotCosmosPlanner {
     if(!later)return g.bangChallenges();
     List<BangChallenge> order=new ArrayList<>();
     order.add(BangChallenge.FROZEN);
-    if(BANG_CHALLENGES_LATER.equals("maturation"))order.add(BangChallenge.RAISED);
+    if(bangChallengesSetting().equals("maturation"))order.add(BangChallenge.RAISED);
     for(BangChallenge c:g.bangChallenges())if(!order.contains(c))order.add(c);
     return order;
   }
@@ -489,7 +477,9 @@ public class RobotCosmosPlanner {
     // Réduire les décisions pendant la phase de production pure.
     particle(g,500);
     boolean finalMode=FirstUniversePolicy.finalBangPreparation(g);
-    boolean stopFusion=finalMode && g.state().atoms().gte(Game.BIG_BANG_ATOMS);
+    // Les atomes exigés sont ceux du moteur : cent fois plus pendant la barre haute (avant la 0.141, la fusion se
+    // coupait à 1e12 atomes quand le défi en demandait 1e14).
+    boolean stopFusion=finalMode && g.state().atoms().gte(g.bigBangAtoms());
     boolean patientWait=waitForPatientFusion() && !stopFusion;
     if(stopFusion){
       g.setAutomationEnabled("auto_fusion",false);
@@ -561,13 +551,14 @@ public class RobotCosmosPlanner {
     // Correctif du 19/10/2026 (0.86) : le bot explosait à chaque décision, et ne réunissait jamais les particules ou
     // les atomes des cases chères de l'arbre (Densité…) : sa production plafonnait vers 1e45. Il laisse maintenant
     // grandir la partie tant qu'une case de l'arbre, ouverte mais trop chère, peut le devenir, au plus 20 minutes.
-    boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.baseChallengesDone() && g.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER) && waitsForTree();
-    if(g.bigBangs()<8 && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity && !hold)))g.explode();
-    if(g.canBigBang() && (g.bigBangs()<6 || (g.bigBangs()<8 && g.bodiesMature()>=g.bigBangSkyRequirement()))){
-        // Temps de jeu : « elapsed » n'avance pas quand un profil pilote lui-même la boucle (IdleProfiles24).
+    boolean prepareDensity=g.bigBangs()==0 && !g.inChallenge() && g.baseChallengesDone() && g.state().darkMatter().gte(g.bigBangDarkMatter()) && waitsForTree();
+    if(g.bigBangs()<Bots.LAST_BIG_BANG && g.canExplode() && (g.inChallenge() || (!finalMode && !prepareDensity && !hold)))g.explode();
+    // Le ciel exigé (18, 24, 28 astres mûrs) fait partie des conditions que canBigBang vérifie.
+    if(g.canBigBang() && g.bigBangs()<Bots.LAST_BIG_BANG){
+        // Temps de jeu : les profils et le bot V2 pilotent eux-mêmes la boucle, le planificateur n'a pas d'horloge à lui.
         double current=g.state().timePlayed()/3600;
         int old=g.bigBangs();
-        if(g.bigBang()){System.out.printf("BIGBANG_DONE,%.4f,%d,%d%n",current,old,g.bigBangs());abandoned=true;}
+        if(g.bigBang())System.out.printf(Locale.ROOT,"BIGBANG_DONE,%.4f,%d,%d%n",current,old,g.bigBangs());
     }
   }
   /** Une partie ne patiente jamais plus longtemps pour une case de l'arbre, en secondes de jeu. */
@@ -599,6 +590,8 @@ public class RobotCosmosPlanner {
 
   /** Les défis tentés sans succès, et l'explosion où chacun pourra être retenté. */
   final Map<String,Integer> failedChallenges=new HashMap<>();
+  /** Les Big Bangs et les explosions de la partie au dernier passage dans {@link #challenges()}. */
+  int bigBangsSeen, explosionsSeen;
   /** Temps de jeu au début du défi en cours. */
   double challengeStart=-1;
   /** Un défi qui ne se réussit pas en ce temps de jeu est abandonné, pour être retenté plus tard. */
@@ -606,13 +599,25 @@ public class RobotCosmosPlanner {
   /** Explosions avant de retenter un défi abandonné. */
   static final int CHALLENGE_RETRY_EXPLOSIONS=25;
 
+  /** Oublie les défis abandonnés : leur attente se comptait en explosions d'une partie qui vient d'être remise à zéro. */
+  void forgetFailedChallenges(){
+    failedChallenges.clear();
+    challengeStart=-1;
+    bigBangsSeen=g.bigBangs();
+    explosionsSeen=g.state().explosions();
+  }
+
   /**
    * Les défis, un par un, dans l'ordre : dès que l'arbre a un peu avancé (10 explosions), le premier défi ouvert et
    * pas encore réussi commence ; une explosion le réussit. Trop long (2 h de jeu), il est abandonné et retenté 25
-   * explosions plus tard. Le premier abandon donne aussi le succès « Demi-tour ».
+   * explosions plus tard. Le premier abandon donne aussi le succès « Demi-tour ». Un Big Bang, un défi de Big Bang qui
+   * remet à zéro ou le lancement d'un univers remettent les explosions à zéro : les attentes notées avant tombent
+   * (avant la 0.141, un défi abandonné à 30 explosions attendait 55 explosions de la partie suivante au lieu de 25).
    */
   void challenges(){
     double now=g.state().timePlayed();
+    if(g.bigBangs()!=bigBangsSeen || g.state().explosions()<explosionsSeen)forgetFailedChallenges();
+    explosionsSeen=g.state().explosions();
     if(g.inChallenge()){
       if(challengeStart<0)challengeStart=now;
       if(now-challengeStart>CHALLENGE_GIVE_UP){
@@ -624,7 +629,7 @@ public class RobotCosmosPlanner {
     }
     challengeStart=-1;
     // Les défis effacent le tableau. Finir les astres de ce Big Bang avant de recommencer.
-    if(!skyReadyForNextBigBang(g))return;
+    if(!FirstUniversePolicy.skyReady(g))return;
     if(g.completedChallenges()>=g.challenges().size() || g.state().explosions()<10)return;
     for(Challenge c:g.challenges()){
       if(!g.isChallengeUnlocked(c.id()) || g.isChallengeCompleted(c.id()))continue;
@@ -654,52 +659,8 @@ public class RobotCosmosPlanner {
     if(!wantReserve && g.synthesisReserve().equals(BigNum.of(50)) && g.hasAchievement("feat_reserve"))g.setSynthesisReserve(BigNum.ZERO);
     if(!g.hasAchievement(Achievements.BUY_EVERYTHING))g.buyAllWithParticles();
     if(!g.hasAchievement(Achievements.BULK_PURCHASE)){
-      Upgrade cheapest=null;
-      for(Upgrade u:g.upgrades(Resource.PARTICLES))if(g.canBuy(u.id()) && (cheapest==null||g.costOf(u.id()).lt(g.costOf(cheapest.id()))))cheapest=u;
+      Upgrade cheapest=Bots.cheapest(g,Resource.PARTICLES);
       if(cheapest!=null)g.buy(cheapest.id(),Integer.MAX_VALUE);
     }
-  }
-
-  void snapshot(){
-    String target=g.shoppingList().target().replace(',',';');
-    String line=String.format(java.util.Locale.ROOT,"%.4f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s,%s",
-      (g.state().timePlayed())/3600,g.bigBangs(),g.state().explosions(),g.completedChallenges(),g.achievementCount(),g.discoveredElements(),g.moleculesCreated(),
-      g.substancesFormed(),g.assembliesFormed(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),g.state().space(),g.freeSpace(),g.spacePerSecond(),target);
-    csv.add(line);System.out.println("HOUR,"+line);
-  }
-  void run(double hours) throws Exception {
-    Files.createDirectories(OUTPUT_DIR);
-    int max=(int)Math.ceil(hours*3600/step);
-    for(int i=1;i<=max;i++){
-      elapsed+=step;tickCount++;
-      g.tick(step);
-      if(g.isCometVisible())g.catchComet();
-      catchSkyEvent();
-      if(g.isPulseUnlocked())for(int c=0;c<g.pulseCharges();c++)g.pulse();
-      if(g.state().explosions()>0 || g.isBigBangUnlocked()){
-        collider();
-      }
-      probes();
-      cosmos();
-      resourceLoop();
-      if(g.bodiesFormed()!=prevBodies || g.assembliesFormed()!=prevAssemblies || RobotCosmosPlanner.cosmosStage(g)!=prevCosmos || g.bodiesMature()!=prevMature){
-         if(g.bodiesFormed()!=prevBodies)System.out.printf("BODY,%.4f,%d,%s%n",g.state().timePlayed()/3600,g.bodiesFormed(),g.nextBody()==null?"-":g.nextBody().id());
-         if(g.assembliesFormed()!=prevAssemblies)System.out.printf("ASSEMBLY,%.4f,%d%n",g.state().timePlayed()/3600,g.assembliesFormed());
-         prevBodies=g.bodiesFormed();prevAssemblies=g.assembliesFormed();prevCosmos=RobotCosmosPlanner.cosmosStage(g);prevMature=g.bodiesMature();
-      }
-      if(i%(int)Math.max(1,Math.round(3600/step))==0){snapshot();Files.writeString(OUTPUT_DIR.resolve("cosmic_planner_checkpoint.save"),SaveCodec.write(g.state(),0));Files.write(OUTPUT_DIR.resolve("cosmic_planner.csv"),csv);}
-      if(universeProgress()){System.out.println("UNIVERSE_DONE,"+g.state().timePlayed()/3600+","+g.universes());snapshot();Files.writeString(OUTPUT_DIR.resolve("checkpoint_universe_finished.save"),SaveCodec.write(g.state(),0));break;}
-    }
-    Files.write(OUTPUT_DIR.resolve("cosmic_planner.csv"),csv);
-    System.out.println("FINISHED,bangs="+g.bigBangs()+",molecules="+g.moleculesCreated()+",bodies="+g.bodiesFormed()+",cosmos="+RobotCosmosPlanner.cosmosStage(g));
-  }
-  public static void main(String[] args) throws Exception {
-    Path checkpoint=Path.of(args.length>0?args[0]:"sauvegardes/reference/checkpoint_bigbang.save");
-    GameState state=SaveCodec.read(Files.readString(checkpoint)).state();
-    Game game=new Game(state,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(42));
-    System.out.printf("LOADED,bb=%d,space=%s,time=%.3f,cosmos=%d%n",game.bigBangs(),game.state().space(),game.state().timePlayed()/3600,RobotCosmosPlanner.cosmosStage(game));
-    RobotCosmosPlanner planner=new RobotCosmosPlanner(game,args.length>2?Double.parseDouble(args[2]):10);
-    if(args.length>3)planner.targetUniverses=Integer.parseInt(args[3]);
-    planner.run(args.length>1?Double.parseDouble(args[1]):20);
   }
 }

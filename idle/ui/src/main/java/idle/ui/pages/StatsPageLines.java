@@ -17,6 +17,7 @@ import idle.ui.automation.AutomationPage;
 import idle.ui.bigbang.BigBangPage;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.universe.UniversePage;
 import idle.ui.vacuum.VoidPage;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +89,8 @@ public abstract class StatsPageLines extends StatsPageBase {
             new Held("Matière noire", ChartPane.VIOLET, StatsHistory.Stat.DARK_MATTER, false),
             new Held("Espace", ChartPane.ORANGE, StatsHistory.Stat.SPACE, false),
             new Held("Molécules", ChartPane.AQUA, StatsHistory.Stat.MOLECULES, true),
-            new Held("Énergie du collisionneur", ChartPane.GREEN, StatsHistory.Stat.COLLIDER_ENERGY, false));
+            new Held("Énergie du collisionneur", ChartPane.GREEN, StatsHistory.Stat.COLLIDER_ENERGY, false),
+            new Held("Énergie du vide", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, false));
 
     /** Graduations de l'échelle logarithmique double : 1, 10, 1000, 1e10, 1e30, 1e100, 1e300, 1e1000… */
     private static final double[] DOUBLE_LOG_TICKS = doubleLogTicks(0, 1, 3, 10, 30, 100, 300, 1_000, 3_000, 10_000, 100_000, 1_000_000);
@@ -213,7 +215,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Espace par seconde", "ce que l'expansion ajoute chaque seconde", ChartPane.YELLOW, StatsHistory.Stat.SPACE_RATE, () -> true);
         curve("Expansion multipliée par la matière noire", this::darkSpace,
                 () -> new ChartPane("Expansion multipliée par la matière noire", "selon la matière noire en réserve",
-                        true, Format::clock, StatsPage::multiplier, false, 1, Double.NaN),
+                        true, Format::clock, Format::multiplier, false, 1, Double.NaN),
                 new Line("Matière noire", ChartPane.VIOLET, sample -> sample.value(StatsHistory.Stat.DARK_SPACE)));
         count("Molécules créées", "", ChartPane.YELLOW, StatsHistory.Stat.MOLECULES, () -> game.moleculesCreated() > 0);
         curve("Créations de molécules", () -> stats().moleculeCreations() > 0,
@@ -255,13 +257,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Rassemblement automatique", () -> game.isAutoGatherEnabled() ? "en marche" : "coupé", game::isAutoGatherUnlocked);
         row("Formation automatique", () -> game.isAutoFormEnabled() ? "en marche" : "coupée", game::isAutoFormUnlocked);
         charted("Expansion multipliée par la matière noire", row("Expansion multipliée par la matière noire",
-                () -> multiplier(game.darkMatterSpaceBoost()), () -> game.darkMatterSpaceBoost() > 1));
-        // Le vide (version 0.132), une fois ouvert : sa réserve, ses améliorations et ce qu'il retire au troisième acte.
-        row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "
-                + Format.count(BigNum.of(game.voidEquilibrium())) + ")", game::isVoidUnlocked);
-        row("Niveaux d'amélioration du vide", () -> Format.whole(VoidPage.levelsOwned(game)), game::isVoidUnlocked);
-        row("Ce que le vide raccourcit", () -> VoidPage.actThreeCuts(game), game::isVoidUnlocked);
-        row("Masse du trou noir", () -> ElementText.number(game.voidMass()), () -> game.isVoidUnlocked() && game.isVoidHoleOpen());
+                () -> Format.multiplier(game.darkMatterSpaceBoost()), () -> game.darkMatterSpaceBoost() > 1));
 
         section("Big Bangs");
         charted("Durée de chaque Big Bang", row("Durée du dernier", () -> Format.duration(stats().lastBigBangTime())));
@@ -280,7 +276,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Collections à moitié réunies", () -> game.collectionsAt(1) + " / " + game.collections().size());
         row("Collections complètes", () -> game.collectionsAt(2) + " / " + game.collections().size());
         row("Comètes saisies", () -> Format.whole(game.cometsCaught()));
-        row("Sillage de comète", () -> "espace " + multiplier(game.cometBoost()) + ", encore " + Format.wait(game.cometBoostLeft()),
+        row("Sillage de comète", () -> "espace " + Format.multiplier(game.cometBoost()) + ", encore " + Format.wait(game.cometBoostLeft()),
                 () -> game.cometBoost() > 1);
         row("Défis de Big Bang réussis", () -> game.completedBangChallenges() + " / " + game.bangChallenges().size(),
                 game::isBangChallengesUnlocked);
@@ -288,11 +284,11 @@ public abstract class StatsPageLines extends StatsPageBase {
                 () -> game.activeBangChallenge() != null);
 
         section("Ce que donnent les paliers");
-        row("Matière noire des explosions", () -> multiplier(game.bigBangDarkMatterFactor()), () -> game.bigBangDarkMatterFactor() > 1);
-        row("Univers formés : matière noire et sa croissance", () -> multiplier(game.universeDarkMatterFactor()), () -> game.universeDarkMatterFactor() > 1);
-        row("Espace par seconde", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)),
+        row("Matière noire des explosions", () -> Format.multiplier(game.bigBangDarkMatterFactor()), () -> game.bigBangDarkMatterFactor() > 1);
+        row("Univers formés : matière noire et sa croissance", () -> Format.multiplier(game.universeDarkMatterFactor()), () -> game.universeDarkMatterFactor() > 1);
+        row("Espace par seconde", () -> Format.multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)),
                 () -> game.bigBangMilestoneBoost(Molecule.Stat.SPACE) > 1);
-        row("Ce que les amas attirent", () -> multiplier(game.accretionFactor()), () -> game.accretionFactor() > 1);
+        row("Ce que les amas attirent", () -> Format.multiplier(game.accretionFactor()), () -> game.accretionFactor() > 1);
 
         section("Expansion de la matière");
         charted("Espace créé", row("Espace créé", () -> Format.count(game.state().space())));
@@ -303,12 +299,12 @@ public abstract class StatsPageLines extends StatsPageBase {
 
         section("D'où vient l'expansion");
         row("Un par Big Bang", () -> "+" + ElementText.number(Game.SPACE_PER_SECOND * game.bigBangs()) + " par seconde");
-        row("Molécules, assemblages et astres", () -> multiplier(game.matterBoost(Molecule.Stat.SPACE)));
-        row("Améliorations d'espace", () -> multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)));
-        row("Paliers", () -> multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)));
-        row("Matière noire en réserve", () -> multiplier(game.darkMatterSpaceBoost()), this::darkSpace);
-        row("Collections", () -> multiplier(game.collectionBoost(Molecule.Stat.SPACE)), () -> game.collectionBoost(Molecule.Stat.SPACE) > 1);
-        row("Défis de Big Bang", () -> multiplier(game.bangReward(BangChallenge.Reward.SPACE)),
+        row("Molécules, assemblages et astres", () -> Format.multiplier(game.matterBoost(Molecule.Stat.SPACE)));
+        row("Améliorations d'espace", () -> Format.multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)));
+        row("Paliers", () -> Format.multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)));
+        row("Matière noire en réserve", () -> Format.multiplier(game.darkMatterSpaceBoost()), this::darkSpace);
+        row("Collections", () -> Format.multiplier(game.collectionBoost(Molecule.Stat.SPACE)), () -> game.collectionBoost(Molecule.Stat.SPACE) > 1);
+        row("Défis de Big Bang", () -> Format.multiplier(game.bangReward(BangChallenge.Reward.SPACE)),
                 () -> game.bangReward(BangChallenge.Reward.SPACE) > 1);
 
         section("Molécules");
@@ -353,13 +349,104 @@ public abstract class StatsPageLines extends StatsPageBase {
         }
 
         section("Ce que la matière multiplie");
-        row("Particules", () -> multiplier(game.moleculeBoost(Molecule.Stat.PARTICLES)), this::boosted);
-        row("Atomes par fusion", () -> multiplier(game.moleculeBoost(Molecule.Stat.ATOMS)), this::boosted);
-        row("Espace par seconde", () -> multiplier(game.moleculeBoost(Molecule.Stat.SPACE)), this::boosted);
-        row("Croissance de la matière noire", () -> multiplier(game.moleculeBoost(Molecule.Stat.DARK_GROWTH)), this::boosted);
-        row("dont les améliorations d'espace", () -> "atomes " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.ATOMS))
-                + ", particules " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.PARTICLES))
-                + ", espace " + multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)), this::upgraded);
+        row("Particules", () -> Format.multiplier(game.moleculeBoost(Molecule.Stat.PARTICLES)), this::boosted);
+        row("Atomes par fusion", () -> Format.multiplier(game.moleculeBoost(Molecule.Stat.ATOMS)), this::boosted);
+        row("Espace par seconde", () -> Format.multiplier(game.moleculeBoost(Molecule.Stat.SPACE)), this::boosted);
+        row("Croissance de la matière noire", () -> Format.multiplier(game.moleculeBoost(Molecule.Stat.DARK_GROWTH)), this::boosted);
+        row("dont les améliorations d'espace", () -> "atomes " + Format.multiplier(game.spaceUpgradeBoost(Molecule.Stat.ATOMS))
+                + ", particules " + Format.multiplier(game.spaceUpgradeBoost(Molecule.Stat.PARTICLES))
+                + ", espace " + Format.multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)), this::upgraded);
+    }
+
+    /**
+     * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
+     * univers formés et la graine, les dimensions et leurs éclats, le vide, les bulles de l'arbre, et les règles du
+     * deuxième univers (régime, cycle, épreuves, skins, recherches).
+     */
+    void universe() {
+        page("Univers", UniversePage.COLOR, () -> game.universes() > 0, "au premier univers formé");
+        curves();
+        count("Univers formés", "depuis le début du jeu", ChartPane.YELLOW, StatsHistory.Stat.UNIVERSES, () -> true);
+        count("Arrosages de la graine", "reçus par la graine d'univers", ChartPane.GREEN, StatsHistory.Stat.SEED_WATERINGS,
+                () -> game.state().seedWaterings() > 0);
+        log("Segments de la ligne", "gagnés en tout", ChartPane.BLUE, StatsHistory.Stat.LINE_SHARDS, game::isLineOpen);
+        log("Facettes du plan", "gagnées en tout", ChartPane.MAGENTA, StatsHistory.Stat.PLANE_SHARDS, game::isPlaneOpen);
+        log("Sphères du volume", "gagnées en tout", ChartPane.AQUA, StatsHistory.Stat.VOLUME_SHARDS, game::isVolumeOpen);
+        log("Instants de la durée", "gagnés en tout", ChartPane.ORANGE, StatsHistory.Stat.DURATION_SHARDS, game::isDurationOpen);
+        log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
+        log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
+
+        section("Univers et graine");
+        charted("Univers formés", row("Univers formés", () -> Format.whole(game.universes())));
+        row("Univers en cours", () -> "le " + (game.universes() + 1) + (game.isReplaying() ? "ᵉ, rejoué depuis le début" : "ᵉ"),
+                () -> !game.isUniverseFormed());
+        row("Prochain univers", () -> game.canOpenNextUniverse() ? "prêt à s'ouvrir"
+                : "au palier " + game.nextUniverseStage() + " de la graine", game::isUniverseFormed);
+        row("Palier de la graine", () -> game.seedStage() + " / " + Game.SEED_STAGES, () -> game.state().seedSprouted());
+        charted("Arrosages de la graine", row("Arrosages reçus", () -> Format.whole(game.state().seedWaterings()),
+                () -> game.state().seedWaterings() > 0));
+        row("Arrosoir", () -> game.isWatering() ? "tenu, " + ElementText.number(game.wateringCanRate()) + " arrosages par seconde"
+                : ElementText.number(game.wateringCanRate()) + " arrosages par seconde quand il est tenu", game::isWateringCanUnlocked);
+        row("Tuyau d'arrosage", () -> ElementText.number(game.hoseRate()) + " arrosages par seconde, tout seul", game::hasHose);
+        row("Chrono", () -> (game.isChronoRunning() ? "en marche, ×" + ElementText.number(game.chronoSpeed()) + ", " : "")
+                + Format.duration(game.chronoStored()) + " en réserve sur " + Format.duration(game.chronoCapacity()), game::isChronoUnlocked);
+        row("Fusions depuis l'univers", () -> Format.whole(game.fusionsSinceUniverse()), () -> game.universes() > 0);
+
+        section("Dimensions");
+        row("Dimensions ouvertes", () -> game.dimensionsUnlocked() + " / " + Game.MAX_DIMENSIONS, game::isDimensionsUnlocked);
+        dimension(1, "Ligne", Game.LINE_THRESHOLD, game::isLineOpen, () -> game.state().dimensionShardsEarned(), "Segments de la ligne");
+        row("Segments par seconde", () -> ElementText.number(game.lineShardsPerSecond()), game::isLineOpen);
+        dimension(2, "Plan", Game.PLANE_THRESHOLD, game::isPlaneOpen, () -> game.state().planeShardsEarned(), "Facettes du plan");
+        row("Facettes ramassées", () -> Format.whole(game.planeCollected()), game::isPlaneOpen);
+        dimension(3, "Volume", Game.VOLUME_THRESHOLD, game::isVolumeOpen, () -> game.state().volumeShardsEarned(), "Sphères du volume");
+        row("Plongées dans le volume", () -> Format.whole(game.volumeDives()) + ", " + Format.whole(game.volumeCollected()) + " sphères touchées",
+                game::isVolumeOpen);
+        dimension(4, "Durée", Game.DURATION_THRESHOLD, game::isDurationOpen, () -> game.state().durationShardsEarned(), "Instants de la durée");
+        row("Lâchers de la durée", () -> Format.whole(game.durationReleases()), game::isDurationOpen);
+
+        section("Le vide");
+        charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "
+                + Format.count(BigNum.of(game.voidEquilibrium())) + ")", game::isVoidUnlocked));
+        charted("Énergie du vide par seconde", row("Gagnée par seconde", () -> ElementText.number(game.voidGainPerSecond())
+                + ", borné par " + (game.voidLimit().equals("rythme") ? "le rythme" : "l'" + game.voidLimit()), game::isVoidUnlocked));
+        row("Paires vivantes", () -> Format.whole(Math.round(game.voidPairs())) + " (" + Format.whole(Math.round(game.voidPairsBorn()))
+                + " nées depuis l'ouverture)", game::isVoidUnlocked);
+        row("Niveaux d'amélioration du vide", () -> Format.whole(VoidPage.levelsOwned(game)), game::isVoidUnlocked);
+        row("Ce que le vide raccourcit", () -> VoidPage.actThreeCuts(game), game::isVoidUnlocked);
+        row("Masse du trou noir", () -> ElementText.number(game.voidMass()), () -> game.isVoidUnlocked() && game.isVoidHoleOpen());
+        row("Énergie du vide gardée des univers formés", () -> Format.count(BigNum.of(game.voidAvailable())) + " disponible",
+                () -> game.state().voidAccumulated() > 0);
+        row("Bulles de l'arbre", () -> {
+            int bought = 0;
+            for (Game.TreeBubble bubble : Game.TreeBubble.values()) if (game.isTreeBubbleBought(bubble)) bought++;
+            return bought + " / " + game.treeBubblesShown().size() + " achetées";
+        }, () -> !game.treeBubblesShown().isEmpty());
+
+        section("Les règles du deuxième univers");
+        row("Régime rapide", () -> game.regimeMultiplier() > 1 ? "en cours, ×" + ElementText.number(game.regimeMultiplier())
+                : game.canStartRegime() ? "prêt" : "pas encore prêt", game::isRegimeUnlocked);
+        row("Synergie des rangs", () -> Format.multiplier(game.synergyMultiplier()), game::isSynergyUnlocked);
+        row("Cycle parfait", () -> Format.multiplier(game.perfectCycleMultiplier()), game::isPerfectCycleUnlocked);
+        row("Choix de cycle", () -> game.cycleChoice() == null ? "pas encore choisi" : game.cycleChoice().label(), game::isCycleChoiceUnlocked);
+        row("Famille préférée", () -> game.preferredFamily() == null ? "aucune" : game.preferredFamily().label(), game::isFamilyPreferenceUnlocked);
+        row("Épreuve en cours", () -> game.activeTrial().label() + ", encore " + Format.wait(game.trialLeft()), () -> game.activeTrial() != null);
+        row("Épreuves réussies", () -> {
+            int done = 0;
+            for (idle.core.universe.Trial trial : idle.core.universe.Trial.values()) if (game.isTrialCompleted(trial)) done++;
+            return done + " / " + idle.core.universe.Trial.values().length;
+        }, () -> game.universes() > 0);
+        row("Skins débloqués", () -> game.skinsUnlocked() + " / " + idle.core.universe.Skin.values().length, game::isSkinsUnlocked);
+        row("Recherche du prisme", () -> game.hasPrismResearch() ? "faite" : "pas encore", () -> game.universes() > 0);
+        row("Paliers de la recherche dense", () -> Format.whole(game.denseTiers()), game::isDenseResearchUnlocked);
+    }
+
+    /** Une dimension : sa ressource en réserve, ce qu'elle a gagné en tout et où en est son seuil. */
+    private void dimension(int number, String name, double threshold, java.util.function.BooleanSupplier open,
+            java.util.function.DoubleSupplier earned, String graph) {
+        charted(graph, row(name + " : " + Game.dimensionResourceName(number), () -> ElementText.number(game.dimensionResource(number))
+                + " en réserve, " + ElementText.number(earned.getAsDouble()) + " gagnés en tout", open));
+        row(name + " : seuil", () -> game.isDimensionThresholdReached(number) ? "atteint (" + ElementText.number(threshold) + ")"
+                : ElementText.number(earned.getAsDouble()) + " / " + ElementText.number(threshold), open);
     }
 
     /** Vrai une fois atteint le palier qui fait dépendre l'expansion de la matière noire : il peut valoir ×1, réserve vide. */
@@ -420,10 +507,6 @@ public abstract class StatsPageLines extends StatsPageBase {
             if (game.spaceUpgradeBoost(stat) > 1) return true;
         }
         return false;
-    }
-
-    static String multiplier(double value) {
-        return Format.multiplier(BigNum.of(value));
     }
 
     /** Une puissance de dix, écrite comme une quantité : 0 → « 1 », 3 → « 1000 », 12,3 → « 2.00e12 ». */

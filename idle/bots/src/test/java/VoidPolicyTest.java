@@ -3,13 +3,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameState;
 import idle.core.GameUniverse.VoidUpgrade;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 
@@ -17,10 +12,7 @@ import org.junit.jupiter.api.Test;
 class VoidPolicyTest {
 
     private static Game fresh() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return Bots.fresh(42);
     }
 
     /** Le troisième univers, juste après son premier Big Bang : le vide se propose, et le collisionneur peut le payer. */
@@ -170,6 +162,45 @@ class VoidPolicyTest {
         for (int i = 0; i < 20; i++) clicker.play(game);
         assertTrue(clicker.bought > 0);
         assertEquals(0.25, game.state().voidShare(), 1e-12, "il garde le réglage du jeu");
+    }
+
+    @Test
+    void leMoinsCherAcheteLAmeliorationDuVideLaMoinsChereQuelleQuElleSoit() {
+        // Plan.CHEAPEST (AchievementHunter, Collector, PrestigeAddict…) : pas de préférence pour les raccourcis.
+        Game game = thirdUniverse();
+        game.testOpenVoid();
+        game.state().setVoidEnergy(BigNum.of(10_000));
+        VoidUpgrade cheapest = null;
+        for (VoidUpgrade upgrade : VoidUpgrade.values())
+            if (game.canBuyVoid(upgrade) && (cheapest == null || game.voidCost(upgrade) < game.voidCost(cheapest))) cheapest = upgrade;
+        assertTrue(cheapest != null && !VoidPolicy.SHORTENERS.contains(cheapest), "la croissance la moins chère est moins chère que les raccourcis : " + cheapest);
+        VoidPolicy policy = new VoidPolicy(new VoidPolicy.Style(1, 0.25, VoidPolicy.Plan.CHEAPEST, 1, 1), new NoRandom());
+        policy.play(game);
+        assertTrue(policy.bought > 1);
+        assertTrue(game.voidLevel(cheapest) >= 1, "le premier achat est le moins cher de tous");
+        assertTrue(game.state().voidEnergy().toDouble() < 1_000, "il dépense tant qu'il peut payer : " + game.state().voidEnergy());
+    }
+
+    @Test
+    void laPartDuVideImposeeEstValidee() {
+        // Correctif 0.141 (B10) : une valeur fautive de idle.partVide arrêtait la campagne par une NumberFormatException
+        // au premier univers 3 ; elle est refusée d'emblée, avec un message clair, et une part hors de 0 à 1 aussi.
+        assertEquals(null, VoidPolicy.configuredShare());
+        try {
+            System.setProperty("idle.partVide", "0.3");
+            assertEquals(0.3, VoidPolicy.configuredShare(), 1e-12);
+            Game game = thirdUniverse();
+            new VoidPolicy(VoidPolicy.Style.EXPERT, new NoRandom()).play(game);
+            assertEquals(0.3, game.state().voidShare(), 1e-12, "la part imposée remplace celle du profil");
+            for (String bad : new String[] {"abc", "2", "-0.1"}) {
+                System.setProperty("idle.partVide", bad);
+                IllegalArgumentException refused = org.junit.jupiter.api.Assertions.assertThrows(
+                        IllegalArgumentException.class, VoidPolicy::configuredShare, bad);
+                assertTrue(refused.getMessage().contains("idle.partVide=" + bad), refused.getMessage());
+            }
+        } finally {
+            System.clearProperty("idle.partVide");
+        }
     }
 
     @Test

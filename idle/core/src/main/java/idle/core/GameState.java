@@ -39,6 +39,9 @@ public final class GameState extends GameStateResets {
     // Sauvegarde
     // ------------------------------------------------------------------
 
+    /** Les clés de sauvegarde des cinq niveaux de la ligne, dans l'ordre de {@code Game.LineUpgrade} (nommées depuis la 0.101). */
+    private static final String[] LINE_LEVEL_KEYS = {"lineYieldLevel", "lineTicksLevel", "lineSpeedLevel", "lineBallsLevel", "lineCountLevel"};
+
     /**
      * Range toute la partie dans une sauvegarde. Ce qui se recalcule (les compteurs de version,
      * les listes gardées pour aller vite) n'y est pas ; les ensembles sans ordre sont triés, pour
@@ -133,11 +136,11 @@ public final class GameState extends GameStateResets {
         data.put("synergyOpen", synergyOpen);
         data.put("perfectStreak", perfectStreak);
         data.put("perfectLeft", perfectLeft);
-        if (cycleChoice != null) data.putList("cycleChoice", List.of(cycleChoice));
-        if (preferredFamily != null) data.putList("preferredFamily", List.of(preferredFamily));
+        if (cycleChoice != null) data.put("cycleChoice", SaveData.escape(cycleChoice));
+        if (preferredFamily != null) data.put("preferredFamily", SaveData.escape(preferredFamily));
         data.put("preferenceDraws", preferenceDraws);
         data.put("freeElementsUsed", freeElementsUsed);
-        if (activeTrial != null) data.putList("activeTrial", List.of(activeTrial));
+        if (activeTrial != null) data.put("activeTrial", SaveData.escape(activeTrial));
         data.put("trialStart", trialStart);
         data.put("trialBase", trialBase);
         data.put("trialCount", trialCount);
@@ -176,11 +179,7 @@ public final class GameState extends GameStateResets {
         data.putDoubles("voidHistory", voidHistory);
         data.put("dimensionShards", dimensionShards);
         data.put("linePhase", linePhase);
-        data.put("lineYieldLevel", lineYieldLevel);
-        data.put("lineTicksLevel", lineTicksLevel);
-        data.put("lineSpeedLevel", lineSpeedLevel);
-        data.put("lineBallsLevel", lineBallsLevel);
-        data.put("lineCountLevel", lineCountLevel);
+        for (int i = 0; i < LINE_UPGRADES; i++) data.put(LINE_LEVEL_KEYS[i], lineLevels[i]);
         data.put("dimensionShardsEarned", dimensionShardsEarned);
         data.put("seedSprouted", seedSprouted);
         data.put("wateringCan", wateringCan);
@@ -189,7 +188,7 @@ public final class GameState extends GameStateResets {
         data.put("seedWaterings", seedWaterings);
         data.put("planeShards", planeShards);
         data.put("planeShardsEarned", planeShardsEarned);
-        for (int i = 0; i < 5; i++) data.put("planeLevel" + i, planeLevel(i));
+        for (int i = 0; i < PLANE_UPGRADES; i++) data.put("planeLevel" + i, planeLevel(i));
         data.put("volumeShards", volumeShards);
         data.put("volumeShardsEarned", volumeShardsEarned);
         for (int i = 0; i < VOLUME_UPGRADES; i++) data.put("volumeLevel" + i, volumeLevel(i));
@@ -378,11 +377,11 @@ public final class GameState extends GameStateResets {
         synergyOpen = data.flag("synergyOpen", false);
         setPerfectStreak(data.whole("perfectStreak", 0));
         setPerfectLeft(data.real("perfectLeft", 0));
-        setCycleChoice(String.join("", data.list("cycleChoice")));
-        setPreferredFamily(String.join("", data.list("preferredFamily")));
+        setCycleChoice(SaveData.unescape(data.text("cycleChoice", "")));
+        setPreferredFamily(SaveData.unescape(data.text("preferredFamily", "")));
         setPreferenceDraws(data.whole("preferenceDraws", 0));
         setFreeElementsUsed(data.whole("freeElementsUsed", 0));
-        setActiveTrial(String.join("", data.list("activeTrial")));
+        setActiveTrial(SaveData.unescape(data.text("activeTrial", "")));
         trialStart = data.real("trialStart", 0);
         trialBase = data.real("trialBase", 0);
         setTrialCount(data.whole("trialCount", 0));
@@ -435,11 +434,7 @@ public final class GameState extends GameStateResets {
         data.doubles("voidHistory").forEach(this::noteVoidHistory);
         setDimensionShards(data.real("dimensionShards", 0));
         setLinePhase(data.real("linePhase", 0));
-        setLineYieldLevel(data.whole("lineYieldLevel", 0));
-        setLineTicksLevel(data.whole("lineTicksLevel", 0));
-        setLineSpeedLevel(data.whole("lineSpeedLevel", 0));
-        setLineBallsLevel(data.whole("lineBallsLevel", 0));
-        setLineCountLevel(data.whole("lineCountLevel", 0));
+        for (int i = 0; i < LINE_UPGRADES; i++) setLineLevel(i, data.whole(LINE_LEVEL_KEYS[i], 0));
         // Une sauvegarde de la 0.101 n'a pas ce total : les éclats en réserve en sont le minimum.
         setDimensionShardsEarned(data.real("dimensionShardsEarned", dimensionShards));
         setSeedSprouted(data.flag("seedSprouted", false));
@@ -451,7 +446,7 @@ public final class GameState extends GameStateResets {
         setSeedUniversesOpened(data.whole("seedUniversesOpened", twigOpened ? 1 : 0));
         setPlaneShards(data.real("planeShards", 0));
         setPlaneShardsEarned(data.real("planeShardsEarned", 0));
-        for (int i = 0; i < 5; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));
+        for (int i = 0; i < PLANE_UPGRADES; i++) setPlaneLevel(i, data.whole("planeLevel" + i, 0));
         // Le volume (version 0.128) : absent des sauvegardes d'avant, il part de zéro.
         setVolumeShards(data.real("volumeShards", 0));
         setVolumeShardsEarned(data.real("volumeShardsEarned", 0));
@@ -474,47 +469,17 @@ public final class GameState extends GameStateResets {
         setColliderEnergy(data.real("colliderEnergy", 0));
         colliderGenerators.clear();
         colliderGeneratorsBought.clear();
-        data.doubles("colliderGenerators").forEach((name, amount) -> {
-            try {
-                setColliderGenerators(ColliderGenerator.valueOf(name), amount);
-            } catch (IllegalArgumentException unknown) {
-                // un générateur d'une autre version : écarté
-            }
-        });
-        data.ints("colliderGeneratorsBought").forEach((name, bought) -> {
-            try {
-                setColliderGeneratorsBought(ColliderGenerator.valueOf(name), bought);
-            } catch (IllegalArgumentException unknown) {
-                // un générateur d'une autre version : écarté
-            }
-        });
+        known(data.doubles("colliderGenerators"), ColliderGenerator.class, this::setColliderGenerators);
+        known(data.ints("colliderGeneratorsBought"), ColliderGenerator.class, this::setColliderGeneratorsBought);
         setColliderPhase(data.real("colliderPhase", 0));
         setColliderCrossings((long) data.real("colliderCrossings", 0));
         colliderCaught = (long) data.real("colliderCaught", -1);
         colliderUpgrades.clear();
-        data.ints("colliderUpgrades").forEach((name, level) -> {
-            try {
-                setColliderUpgradeLevel(ColliderUpgrade.valueOf(name), level);
-            } catch (IllegalArgumentException unknown) {
-                // une amélioration d'une autre version : écartée
-            }
-        });
+        known(data.ints("colliderUpgrades"), ColliderUpgrade.class, this::setColliderUpgradeLevel);
         colliderPaused.clear();
-        for (String name : data.list("colliderPaused")) {
-            try {
-                colliderPaused.add(ColliderUpgrade.valueOf(name));
-            } catch (IllegalArgumentException unknown) {
-                // un automate d'une autre version : écarté
-            }
-        }
+        for (String name : data.list("colliderPaused")) known(name, ColliderUpgrade.class, colliderPaused::add);
         quarks.clear();
-        data.ints("quarks").forEach((name, count) -> {
-            try {
-                setQuarks(Quark.valueOf(name), count);
-            } catch (IllegalArgumentException unknown) {
-                // une saveur d'une autre version : écartée
-            }
-        });
+        known(data.ints("quarks"), Quark.class, this::setQuarks);
         // Avant la version 0.062, l'énergie produite n'était pas comptée : l'énergie en réserve en tient lieu.
         setColliderEnergyProduced(data.real("colliderEnergyProduced", colliderEnergy));
         collisions.clear();
@@ -552,13 +517,7 @@ public final class GameState extends GameStateResets {
             }
         }
         probeUpgrades.clear();
-        data.ints("probeUpgrades").forEach((name, level) -> {
-            try {
-                setProbeUpgradeLevel(ProbeUpgrade.valueOf(name), level);
-            } catch (IllegalArgumentException unknown) {
-                // une amélioration d'une autre version : écartée
-            }
-        });
+        known(data.ints("probeUpgrades"), ProbeUpgrade.class, this::setProbeUpgradeLevel);
         setProbeRuns((long) data.real("probeRuns", 0));
         setProbeLaunches((long) data.real("probeLaunches", 0));
         setProbeSamples((long) data.real("probeSamples", 0));
@@ -615,8 +574,8 @@ public final class GameState extends GameStateResets {
             upgradeLevels.keySet().retainAll(known.upgrades());
             atomUpgradeOrder.retainAll(known.upgrades());
         }
-        if (!known.automations().isEmpty()) automationOrder.retainAll(known.automations());
         if (!known.automations().isEmpty()) {
+            automationOrder.retainAll(known.automations());
             ownedAutomations.retainAll(known.automations());
             enabledAutomations.retainAll(known.automations());
             automationSpeedLevels.keySet().retainAll(known.automations());
@@ -683,4 +642,19 @@ public final class GameState extends GameStateResets {
     public Map<String, Integer> upgradeLevels() {
         return Map.copyOf(upgradeLevels);
     }
+
+    /** Donne à {@code action} chaque entrée dont la clé nomme une constante de {@code type} ; les noms d'une autre version sont écartés. */
+    private static <E extends Enum<E>, V> void known(Map<String, V> entries, Class<E> type, java.util.function.BiConsumer<E, V> action) {
+        entries.forEach((name, value) -> known(name, type, constant -> action.accept(constant, value)));
+    }
+
+    /** Donne à {@code action} la constante de {@code type} que nomme {@code name}, s'il y en a une ; sinon rien. */
+    private static <E extends Enum<E>> void known(String name, Class<E> type, java.util.function.Consumer<E> action) {
+        try {
+            action.accept(Enum.valueOf(type, name));
+        } catch (IllegalArgumentException unknown) {
+            // un nom d'une autre version : écarté
+        }
+    }
+
 }

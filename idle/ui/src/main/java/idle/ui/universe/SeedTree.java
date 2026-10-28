@@ -108,10 +108,10 @@ final class SeedTree {
         } else if (stage == 5) {
             // Le bonsaï : un tronc en S, court et épais, puis des plateaux de feuillage.
             double mx = baseX + height * 0.14, my = baseY - height * 0.30;
-            taper(g, baseX, baseY, mx, my, trunk, trunk * 0.8, BARK, BARK_DARK, 6);
+            taper(g, baseX, baseY, mx, my, trunk, trunk * 0.8, BARK, 6);
             shape.segments.add(new Segment(baseX, baseY, mx, my, trunk, 0));
             double nx = baseX - height * 0.06, ny = baseY - height * 0.52;
-            taper(g, mx, my, nx, ny, trunk * 0.8, trunk * 0.62, BARK, BARK_DARK, 6);
+            taper(g, mx, my, nx, ny, trunk * 0.8, trunk * 0.62, BARK, 6);
             shape.segments.add(new Segment(mx, my, nx, ny, trunk * 0.8, 0));
             branch(g, shape, nx, ny, height * 0.30, -0.15 + sway, trunk * 0.6, DEPTH[i], 5, i, time, 1);
         } else {
@@ -198,7 +198,7 @@ final class SeedTree {
         double a = angle + wiggle * 0.5 + Math.sin(time * 0.9 + level + seed % 7) * 0.012 * level;
         double ex = x + Math.sin(a) * length, ey = y - Math.cos(a) * length;
         double end = width * 0.68;
-        taper(g, x, y, ex, ey, width, end, level <= 1 ? BARK : BARK_LIGHT, BARK_DARK, level <= 1 ? 5 : 2);
+        taper(g, x, y, ex, ey, width, end, level <= 1 ? BARK : BARK_LIGHT, level <= 1 ? 5 : 2);
         shape.segments.add(new Segment(x, y, ex, ey, width, level));
         // Les nœuds de l'arbre ancien.
         if (i == 4 && level <= 2 && UniverseView.noise(seed * 3 + 9) > 0.6) {
@@ -229,13 +229,13 @@ final class SeedTree {
      * Un segment de bois qui s'effile, de {@code w0} à {@code w1}, avec son ombre et ses lignes d'écorce.
      */
     private static void taper(GraphicsContext g, double x0, double y0, double x1, double y1, double w0, double w1, Color wood,
-            Color shade, int barkLines) {
+            int barkLines) {
         double dx = x1 - x0, dy = y1 - y0, len = Math.max(1e-6, Math.hypot(dx, dy));
         double nx = -dy / len, ny = dx / len;
         double[] xs = {x0 + nx * w0 / 2, x1 + nx * w1 / 2, x1 - nx * w1 / 2, x0 - nx * w0 / 2};
         double[] ys = {y0 + ny * w0 / 2, y1 + ny * w1 / 2, y1 - ny * w1 / 2, y0 - ny * w0 / 2};
         g.setGlobalAlpha(1);
-        g.setFill(shade);
+        g.setFill(BARK_DARK);
         g.fillPolygon(xs, ys, 4);
         // La face éclairée : un peu plus étroite, décalée vers la gauche.
         double[] lx = {x0 + nx * w0 * 0.42, x1 + nx * w1 * 0.42, x1 - nx * w1 * 0.15, x0 - nx * w0 * 0.15};
@@ -243,7 +243,7 @@ final class SeedTree {
         g.setFill(wood);
         g.fillPolygon(lx, ly, 4);
         if (w0 > 4) {
-            g.setStroke(shade);
+            g.setStroke(BARK_DARK);
             g.setLineWidth(Math.max(0.8, w0 * 0.05));
             g.setGlobalAlpha(0.55);
             for (int k = 0; k < barkLines; k++) {
@@ -421,9 +421,9 @@ final class SeedTree {
      * Le passage vers un palier d'arbre, de plus en plus marqué : des ondes qui partent du pied, plus nombreuses et plus
      * grandes à chaque palier, et une gerbe de lumière. {@code age} en secondes depuis le début du passage.
      */
-    static void evolveBurst(GraphicsContext g, double w, double h, double x, double y, int stage, double age, double seconds) {
+    static void evolveBurst(GraphicsContext g, double w, double h, double x, double y, int stage, double age) {
         double p = 0.35 + 0.65 * prominence(stage);
-        double t = Math.max(0, Math.min(1, age / seconds));
+        double t = Math.max(0, Math.min(1, age / SeedView.EVOLVE_SECONDS));
         int waves = 1 + (int) Math.round(4 * p);
         for (int k = 0; k < waves; k++) {
             double local = t * 1.4 - k * 0.12;

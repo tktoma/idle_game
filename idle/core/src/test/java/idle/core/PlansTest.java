@@ -4,15 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
-import idle.core.save.SaveCodec;
 import idle.core.sky.SolarSystem;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
-import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.084 : les plans de l'arbre et des systèmes solaires, en code texte, et la réouverture des bifurcations. */
@@ -20,22 +14,11 @@ class PlansTest {
 
     /** Une partie où la bifurcation « matière » est ouverte, ses deux voies payables. */
     private static Game atFork() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        game.state().setDarkMatter(BigNum.of(12));
-        game.state().setExplosions(12);
-        for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
-        game.state().setAtoms(BigNum.of(5000));
-        return game;
+        return GameTestSupport.atFork();
     }
 
     private static GameState reread(GameState state) {
-        try {
-            return SaveCodec.read(SaveCodec.write(state, 0)).state();
-        } catch (Exception unreadable) {
-            throw new AssertionError(unreadable);
-        }
+        return GameTestSupport.reread(state);
     }
 
     @Test
@@ -98,7 +81,7 @@ class PlansTest {
         game.setForkResetArmed(true);
         assertTrue(game.state().forkResetArmed());
         assertTrue(reread(game.state()).forkResetArmed());
-        for (int number = 1; number <= idle.core.elements.PeriodicTable.ELEMENTS.size(); number++) game.state().setElementCount(number, 1);
+        GameTestSupport.fillTable(game, 1);
         assertTrue(game.canExplode());
         assertTrue(game.explode());
         assertEquals(0, game.state().darkLevelOf("dark_rich_fusion"), "la voie est rendue");
@@ -108,14 +91,7 @@ class PlansTest {
     }
 
     private static Game systems() {
-        Game game = new Game();
-        game.start();
-        GameTestSupport.bangs(game, 6);
-        for (String id : List.of("yellow_sun", "blue_giant", "rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet",
-                "icy_moon", "rocky_moon")) {
-            game.state().addBody(id);
-        }
-        return game;
+        return Systemes.huitAstres(6);
     }
 
     @Test

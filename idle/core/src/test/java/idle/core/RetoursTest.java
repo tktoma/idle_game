@@ -5,33 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.ShoppingList;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Les retours de jeu de la version 0.047 : l'achat groupé en atomes dès le début, les gestes de
- * confort moins chers, l'automatisme des automatismes pendant les défis, et la liste de courses
+ * L'achat groupé en atomes dès les premiers atomes, le prix des gestes de confort, l'automatisme des automatismes
+ * pendant un défi, l'impulsion d'expansion (version 0.047), la création au hasard dans un rayon et la liste de courses
  * qui suit les assemblages et les astres formés.
  */
 class RetoursTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     @Nested
@@ -56,11 +46,9 @@ class RetoursTest {
             while (game.buy("generator")) { /* de quoi fusionner */ }
             assertTrue(game.fuse());
             assertTrue(game.isBulkAtomBuyUnlocked());            // les améliorations en atomes restent à la fusion
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), element.category().maxCopies());
+            GameTestSupport.fillTableToMax(game);
             assertTrue(game.explode());
-            assertFalse(game.isBulkAtomBuyUnlocked());           // mais pas à l'explosion…
-            game.state().setDarkLevel("dark_shop_bulk", 1);
-            assertTrue(game.isBulkAtomBuyUnlocked());            // …sauf avec celui de la matière noire, pour toujours
+            assertFalse(game.isBulkAtomBuyUnlocked());           // mais pas à l'explosion (celui de l'arbre, lui, reste : ConfortTest)
         }
     }
 
@@ -127,10 +115,12 @@ class RetoursTest {
         void uneImpulsionDonneDixSecondesDExpansionDUnCoup() {
             Game game = afterBigBang();
             game.state().setPulseCharges(2);
-            BigNum expected = game.spacePerSecond().multiply(Game.PULSE_SECONDS);
             BigNum before = game.state().space();
+            Game witness = afterBigBang();
+            witness.tick(10);
             assertTrue(game.pulse());
-            assertEquals(before.add(expected).toDouble(), game.state().space().toDouble(), 1e-9);
+            assertEquals(witness.state().space().toDouble(), game.state().space().toDouble() - before.toDouble(), 1e-9,
+                    "ce que dix secondes d'expansion auraient donné");
             assertEquals(1, game.pulseCharges());
             assertEquals(1, game.pulses());
             assertTrue(game.pulse());
@@ -159,7 +149,7 @@ class RetoursTest {
             Game game = newGame();
             GameTestSupport.bangs(game, bigBangs);
             game.state().setSpace(BigNum.of(1, 6));
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             return game;
         }
 

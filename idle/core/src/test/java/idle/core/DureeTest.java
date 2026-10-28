@@ -17,12 +17,7 @@ class DureeTest {
 
     /** Une partie au quatrième univers : la quatrième dimension est ouverte. */
     static Game fourth() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
-        for (int k = 0; k < 3; k++) assertTrue(game.testAddUniverse());
-        assertEquals(4, game.universes());
-        return game;
+        return GameTestSupport.universe(4);
     }
 
     /** Tient le bouton {@code seconds} secondes, par petits pas, puis le relâche ; rend ce qu'il a donné. */
@@ -39,12 +34,7 @@ class DureeTest {
 
     @Test
     void laDureeSOuvreAuQuatriemeUnivers() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
-        assertTrue(game.testAddUniverse());
-        assertTrue(game.testAddUniverse());
-        assertEquals(3, game.universes());
+        Game game = GameTestSupport.universe(3);
         assertFalse(game.isDurationOpen(), "trois univers : la quatrième dimension est fermée");
         assertFalse(game.holdDuration(), "on ne tient pas le bouton d'une dimension fermée");
         assertEquals(0, game.releaseDuration());
@@ -120,9 +110,8 @@ class DureeTest {
         assertEquals(2, game.durationValue(), 1e-12);
         assertTrue(game.buyDuration(DurationUpgrade.TIME));
         assertEquals(8, game.durationMaxSeconds(), 1e-12, "+2 s au temps au plus");
-        // Deux spirales, valeur 2, 0,6 tour par seconde pendant 8 s : 4,8 tours chacune.
-        double turns = 0.6 * 8;
-        assertEquals(2 * 2 * (turns * turns + turns) / 2, game.durationRewardFor(100), 1e-9);
+        // Deux spirales, valeur 2, 0,6 tour par seconde pendant 8 s : 4,8 tours chacune, (4,8² + 4,8) ÷ 2 = 13,92 par spirale et par unité de valeur.
+        assertEquals(55.68, game.durationRewardFor(100), 1e-9);
         assertEquals(1, game.durationLevel(DurationUpgrade.TIME));
     }
 
@@ -145,8 +134,7 @@ class DureeTest {
         assertEquals(46, game.durationMaxSeconds(), 1e-12, "46 s au plus");
         game.state().setDurationShards(0);
         assertFalse(game.buyDuration(DurationUpgrade.VALUE), "pas assez d'éclats");
-        Game closed = new Game();
-        closed.start();
+        Game closed = GameTestSupport.realGame();
         closed.state().setDurationShards(1e9);
         assertFalse(closed.buyDuration(DurationUpgrade.VALUE), "dimension fermée");
     }
@@ -213,10 +201,68 @@ class DureeTest {
 
     @Test
     void uneSauvegardeDAvantLaDureePartDeZero() throws Exception {
-        GameState read = SaveCodec.read(SaveCodec.write(new GameState(), 0)).state();
+        Game game = fourth();
+        game.state().setDurationShards(5);
+        game.state().setDurationShardsEarned(9);
+        game.state().setDurationLevel(0, 3);
+        String text = SaveCodec.write(game.state(), 0);
+        String old = text.replaceAll("(?m)^duration[A-Za-z0-9]*=.*\\R", "");
+        assertFalse(old.contains("durationShards="), "les clés de la durée sont retirées");
+        GameState read = SaveCodec.read(old).state();
         assertEquals(0, read.durationShards());
         assertEquals(0, read.durationShardsEarned());
         for (int i = 0; i < DurationUpgrade.values().length; i++) assertEquals(0, read.durationLevel(i));
+    }
+
+    @Test
+    void lesPrixDesQuatreAmeliorationsEtLeurCroissance() {
+        Game game = fourth();
+        assertEquals(3, game.durationCost(DurationUpgrade.SPEED), 1e-9, "vitesse : 3 instants");
+        assertEquals(6, game.durationCost(DurationUpgrade.COUNT), 1e-9, "spirales : 6");
+        assertEquals(5, game.durationCost(DurationUpgrade.VALUE), 1e-9, "valeur : 5");
+        assertEquals(4, game.durationCost(DurationUpgrade.TIME), 1e-9, "temps au plus : 4");
+        game.state().setDurationLevel(DurationUpgrade.COUNT.ordinal(), 1);
+        assertEquals(24, game.durationCost(DurationUpgrade.COUNT), 1e-9, "spirales ×4 par niveau");
+        game.state().setDurationLevel(DurationUpgrade.COUNT.ordinal(), 3);
+        assertEquals(384, game.durationCost(DurationUpgrade.COUNT), 1e-9);
+        game.state().setDurationLevel(DurationUpgrade.VALUE.ordinal(), 2);
+        assertEquals(80, game.durationCost(DurationUpgrade.VALUE), 1e-9, "valeur ×4 par niveau");
+        game.state().setDurationLevel(DurationUpgrade.TIME.ordinal(), 1);
+        assertEquals(12.8, game.durationCost(DurationUpgrade.TIME), 1e-9, "temps ×3,2 par niveau");
+        game.state().setDurationLevel(DurationUpgrade.TIME.ordinal(), 3);
+        assertEquals(131.072, game.durationCost(DurationUpgrade.TIME), 1e-9);
+        assertEquals(12, game.durationMaxSeconds(), 1e-12, "+2 s par niveau : 6, 8, 10, 12");
+        game.state().setDurationLevel(DurationUpgrade.SPEED.ordinal(), 3);
+        assertEquals(117.912, game.durationCost(DurationUpgrade.SPEED), 1e-9, "3 × 3,4³");
+        game.state().setDurationShards(5);
+        game.state().setDurationLevel(DurationUpgrade.VALUE.ordinal(), 0);
+        assertTrue(game.buyDuration(DurationUpgrade.VALUE));
+        assertEquals(0, game.state().durationShards(), 1e-9, "le prix est pris");
+        assertEquals(20, game.durationCost(DurationUpgrade.VALUE), 1e-9);
+    }
+
+    @Test
+    void leSeuilDeLaDureeEstQuinzeMillionsDInstants() {
+        Game game = fourth();
+        assertEquals(15_000_000, Game.DURATION_THRESHOLD, 0, "version 0.136");
+        game.state().setDurationShardsEarned(14_999_999);
+        assertFalse(game.isDurationThresholdReached());
+        game.state().setDurationShardsEarned(15_000_000);
+        assertTrue(game.isDurationThresholdReached());
+    }
+
+    @Test
+    void lacherLeBoutonSansRienDonner() {
+        Game game = fourth();
+        assertTrue(game.holdDuration());
+        game.tick(3);
+        assertTrue(game.durationPending() > 0);
+        game.dropDuration();
+        assertFalse(game.isDurationHeld(), "le bouton est lâché");
+        assertEquals(0, game.durationHeldSeconds(), 0, "sans rien garder du temps tenu");
+        assertEquals(0, game.state().durationShards(), 0, "et sans rien donner");
+        assertEquals(0, game.durationReleases(), "ce n'est pas un relâchement du joueur");
+        assertEquals(0, game.releaseDuration(), "il n'y a plus rien à relâcher");
     }
 
     @Test

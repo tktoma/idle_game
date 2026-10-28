@@ -119,29 +119,48 @@ public abstract class GameUniverse extends GameAtoms {
      * trois qui raccourcissent le troisième acte vont plus loin (maturation −70 %, rassemblement −80 %) et montent de
      * prix moins vite (×2) : elles se gagnent au fil de l'acte, mesurées sur le Speedrunner du troisième univers.
      */
-    public enum VoidUpgrade {
+    public enum VoidUpgrade implements Priced {
         GAIN(10, 3.7, Integer.MAX_VALUE), RATE(20, 3.9, 20), ENERGY(15, 4.0, 15), SPACE(15, 4.0, 15), DECAY(25, 4.1, 15),
         LIGHTEN(300, 2.0, 10), MATURE(200, 2.0, 10), SETTLE(800, 2.0, 5);
 
-        private final double cost, growth;
-        private final int max;
+        private final Price price;
 
         VoidUpgrade(double cost, double growth, int max) {
-            this.cost = cost;
-            this.growth = growth;
-            this.max = max;
+            price = new Price(cost, growth, max);
         }
 
-        public int max() {
-            return max;
+        @Override
+        public Price price() {
+            return price;
+        }
+    }
+
+    /** Le prix d'une amélioration à niveaux : {@code base × growth^niveau}, jusqu'au niveau {@code max} exclu. */
+    public record Price(double base, double growth, int max) {
+    }
+
+    /** Une amélioration à niveaux dont le prix suit un {@link Price} : ce que partagent les améliorations des dimensions, du vide et de la graine. */
+    public interface Priced {
+        Price price();
+
+        /** Le prix du premier niveau. */
+        default double baseCost() {
+            return price().base();
         }
 
-        public double baseCost() {
-            return cost;
+        /** Ce par quoi le prix est multiplié à chaque niveau. */
+        default double growth() {
+            return price().growth();
         }
 
-        public double growth() {
-            return growth;
+        /** Le niveau le plus haut. */
+        default int max() {
+            return price().max();
+        }
+
+        /** Le prix du niveau suivant {@code level} ; infini une fois au plus haut. */
+        default double cost(int level) {
+            return level >= max() ? Double.POSITIVE_INFINITY : baseCost() * Math.pow(growth(), level);
         }
     }
 
@@ -232,14 +251,19 @@ public abstract class GameUniverse extends GameAtoms {
     public static final double LINE_YIELD_COST = 1, LINE_TICKS_COST = 2, LINE_COST_GROWTH = 3;
 
     /** Les améliorations de la ligne : leur prix de départ en éclats, et la croissance à chaque niveau. */
-    public enum LineUpgrade {
-        YIELD(LINE_YIELD_COST, LINE_COST_GROWTH), TICKS(LINE_TICKS_COST, LINE_COST_GROWTH), SPEED(5, 3), BALLS(10, 4), LINES(25, 5);
+    public enum LineUpgrade implements Priced {
+        YIELD(LINE_YIELD_COST, LINE_COST_GROWTH, Integer.MAX_VALUE), TICKS(LINE_TICKS_COST, LINE_COST_GROWTH, LINE_MAX_EXTRA_TICKS),
+        SPEED(5, 3, LINE_MAX_SPEED), BALLS(10, 4, LINE_MAX_EXTRA_BALLS), LINES(25, 5, LINE_MAX_EXTRA_LINES);
 
-        private final double cost, growth;
+        private final Price price;
 
-        LineUpgrade(double cost, double growth) {
-            this.cost = cost;
-            this.growth = growth;
+        LineUpgrade(double cost, double growth, int max) {
+            price = new Price(cost, growth, max);
+        }
+
+        @Override
+        public Price price() {
+            return price;
         }
     }
 
@@ -297,11 +321,6 @@ public abstract class GameUniverse extends GameAtoms {
         return linePosition(0, 0);
     }
 
-    /** Vrai tant que la première boule va vers le bout de la ligne ; faux au retour. */
-    public boolean lineGoingOut() {
-        return state.linePhase() < 1;
-    }
-
     /** Éclats par seconde : chaque aller d'une boule touche tous les traits sauf celui d'où elle part. */
     public double lineShardsPerSecond() {
         return isLineOpen() ? (lineTicks() - 1) * lineShardsPerTouch() * lineBalls() * lineCount() / lineHalfTrip() : 0;
@@ -357,30 +376,17 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Le niveau d'une amélioration de la ligne. */
     public int lineLevel(LineUpgrade upgrade) {
-        return switch (upgrade) {
-            case YIELD -> state.lineYieldLevel();
-            case TICKS -> state.lineTicksLevel();
-            case SPEED -> state.lineSpeedLevel();
-            case BALLS -> state.lineBallsLevel();
-            case LINES -> state.lineCountLevel();
-        };
+        return state.lineLevel(upgrade.ordinal());
     }
 
     /** Le niveau le plus haut d'une amélioration de la ligne ; sans limite pour la densité. */
     public int lineMaxLevel(LineUpgrade upgrade) {
-        return switch (upgrade) {
-            case YIELD -> Integer.MAX_VALUE;
-            case TICKS -> LINE_MAX_EXTRA_TICKS;
-            case SPEED -> LINE_MAX_SPEED;
-            case BALLS -> LINE_MAX_EXTRA_BALLS;
-            case LINES -> LINE_MAX_EXTRA_LINES;
-        };
+        return upgrade.max();
     }
 
     /** Prix du prochain niveau, en éclats ; infini une fois au plus haut. */
     public double lineCost(LineUpgrade upgrade) {
-        int level = lineLevel(upgrade);
-        return level >= lineMaxLevel(upgrade) ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+        return upgrade.cost(lineLevel(upgrade));
     }
 
     public boolean canBuyLine(LineUpgrade upgrade) {
@@ -391,18 +397,11 @@ public abstract class GameUniverse extends GameAtoms {
     public boolean buyLine(LineUpgrade upgrade) {
         if (!canBuyLine(upgrade)) return false;
         state.setDimensionShards(Math.max(0, state.dimensionShards() - lineCost(upgrade)));
-        int level = lineLevel(upgrade) + 1;
-        switch (upgrade) {
-            case YIELD -> state.setLineYieldLevel(level);
-            case TICKS -> state.setLineTicksLevel(level);
-            case SPEED -> state.setLineSpeedLevel(level);
-            case BALLS -> state.setLineBallsLevel(level);
-            case LINES -> state.setLineCountLevel(level);
-        }
+        state.setLineLevel(upgrade.ordinal(), lineLevel(upgrade) + 1);
         return true;
     }
 
-    // Les deux premières, sous leur nom de la 0.101.
+    // Les améliorations de densité et de traits sous leur nom de la 0.101 : des tests s'en servent encore.
     public double lineYieldCost() {
         return lineCost(LineUpgrade.YIELD);
     }
@@ -445,20 +444,18 @@ public abstract class GameUniverse extends GameAtoms {
     public static final int PLANE_MAX_SHARDS = 3;
 
     /** Les améliorations du plan : leur prix de départ en éclats du plan, la croissance, le plafond. */
-    public enum PlaneUpgrade {
+    public enum PlaneUpgrade implements Priced {
         VALUE(5, 3, Integer.MAX_VALUE), SPAWN(3, 2.5, 15), COUNT(4, 3, 17), SPEED(3, 2.5, 15), SIZE(4, 2.5, 15);
 
-        private final double cost, growth;
-        private final int max;
+        private final Price price;
 
         PlaneUpgrade(double cost, double growth, int max) {
-            this.cost = cost;
-            this.growth = growth;
-            this.max = max;
+            price = new Price(cost, growth, max);
         }
 
-        public int max() {
-            return max;
+        @Override
+        public Price price() {
+            return price;
         }
     }
 
@@ -536,17 +533,6 @@ public abstract class GameUniverse extends GameAtoms {
         planeY = clampPlane(y, planePlayerRadius());
     }
 
-    /** Outil d'essai : retire tous les éclats posés sur le plan. */
-    public void testClearPlane() {
-        planeShardsOnBoard.clear();
-        planeSpawnTimer = 0;
-    }
-
-    /** Pose un éclat sur le plan : pour les essais. */
-    public void addPlaneShard(double x, double y) {
-        if (planeShardsOnBoard.size() < planeMaxShards()) planeShardsOnBoard.add(new PlaneShard(x, y));
-    }
-
     private static double clampPlane(double value, double radius) {
         return Math.max(-PLANE_EDGE + radius, Math.min(PLANE_EDGE - radius, value));
     }
@@ -585,12 +571,11 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Prix du prochain niveau, en éclats du plan ; infini une fois au plus haut. */
     public double planeCost(PlaneUpgrade upgrade) {
-        int level = planeLevel(upgrade);
-        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+        return upgrade.cost(planeLevel(upgrade));
     }
 
     public boolean canBuyPlane(PlaneUpgrade upgrade) {
-        return isPlaneOpen() && planeLevel(upgrade) < upgrade.max && state.planeShards() >= planeCost(upgrade) - 1e-9;
+        return isPlaneOpen() && planeLevel(upgrade) < upgrade.max() && state.planeShards() >= planeCost(upgrade) - 1e-9;
     }
 
     public boolean buyPlane(PlaneUpgrade upgrade) {
@@ -628,20 +613,18 @@ public abstract class GameUniverse extends GameAtoms {
      * Les améliorations du volume, qui s'achètent hors du cube : leur prix de départ en éclats du volume, la
      * croissance, le plafond. Dans l'ordre de la sauvegarde : durée, valeur, réapparition, nombre, taille.
      */
-    public enum VolumeUpgrade {
+    public enum VolumeUpgrade implements Priced {
         TIME(3, 2.2, 20), VALUE(5, 3, Integer.MAX_VALUE), SPAWN(3, 2.5, 15), COUNT(4, 3, 16), SIZE(4, 2.5, 15);
 
-        private final double cost, growth;
-        private final int max;
+        private final Price price;
 
         VolumeUpgrade(double cost, double growth, int max) {
-            this.cost = cost;
-            this.growth = growth;
-            this.max = max;
+            price = new Price(cost, growth, max);
         }
 
-        public int max() {
-            return max;
+        @Override
+        public Price price() {
+            return price;
         }
     }
 
@@ -822,13 +805,12 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Prix du prochain niveau, en éclats du volume ; infini une fois au plus haut. */
     public double volumeCost(VolumeUpgrade upgrade) {
-        int level = volumeLevel(upgrade);
-        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+        return upgrade.cost(volumeLevel(upgrade));
     }
 
     /** Les améliorations du volume s'achètent hors du cube, jamais pendant une plongée. */
     public boolean canBuyVolume(VolumeUpgrade upgrade) {
-        return isVolumeOpen() && !inVolume && volumeLevel(upgrade) < upgrade.max
+        return isVolumeOpen() && !inVolume && volumeLevel(upgrade) < upgrade.max()
                 && state.volumeShards() >= volumeCost(upgrade) - 1e-9;
     }
 
@@ -866,20 +848,18 @@ public abstract class GameUniverse extends GameAtoms {
      * niveau coûte une fois de plus le prix du précédent (×3,4, ×4, ×4, ×3,2 au lieu de ×2,4, ×3, ×3, ×2,2) ; avant, les
      * trois améliorations plafonnées étaient au plus haut en trois minutes.
      */
-    public enum DurationUpgrade {
+    public enum DurationUpgrade implements Priced {
         SPEED(3, 3.4, 15), COUNT(6, 4, 9), VALUE(5, 4, Integer.MAX_VALUE), TIME(4, 3.2, 20);
 
-        private final double cost, growth;
-        private final int max;
+        private final Price price;
 
         DurationUpgrade(double cost, double growth, int max) {
-            this.cost = cost;
-            this.growth = growth;
-            this.max = max;
+            price = new Price(cost, growth, max);
         }
 
-        public int max() {
-            return max;
+        @Override
+        public Price price() {
+            return price;
         }
     }
 
@@ -1004,13 +984,12 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Prix du prochain niveau, en éclats de la durée ; infini une fois au plus haut. */
     public double durationCost(DurationUpgrade upgrade) {
-        int level = durationLevel(upgrade);
-        return level >= upgrade.max ? Double.POSITIVE_INFINITY : upgrade.cost * Math.pow(upgrade.growth, level);
+        return upgrade.cost(durationLevel(upgrade));
     }
 
     /** Les améliorations de la durée s'achètent bouton relâché : les spirales ne changent pas en cours de route. */
     public boolean canBuyDuration(DurationUpgrade upgrade) {
-        return isDurationOpen() && !durationHeld && durationLevel(upgrade) < upgrade.max
+        return isDurationOpen() && !durationHeld && durationLevel(upgrade) < upgrade.max()
                 && state.durationShards() >= durationCost(upgrade) - 1e-9;
     }
 
@@ -1323,7 +1302,7 @@ public abstract class GameUniverse extends GameAtoms {
      * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
      * pas encore.
      */
-    public static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants");
+    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants");
 
     /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
     public static String dimensionResourceName(int number) {
@@ -1356,7 +1335,7 @@ public abstract class GameUniverse extends GameAtoms {
      * Les améliorations de la graine, payées avec la ressource d'une dimension : quatre pour l'arrosage et l'étagère,
      * quatre pour le chrono, une par dimension dans chaque groupe. Dans l'ordre de la sauvegarde.
      */
-    public enum SeedUpgrade {
+    public enum SeedUpgrade implements Priced {
         /** Segments de la ligne : +1 arrosage par seconde de l'arrosoir tenu, par niveau. */
         WATERING(1, "Débit de l'arrosoir", 25_000, 3, 20, false),
         /** Facettes du plan : le tuyau d'arrosage, qui verse seul 10 % de ce que verse l'arrosoir, +10 % par niveau. */
@@ -1376,16 +1355,13 @@ public abstract class GameUniverse extends GameAtoms {
 
         private final int dimension;
         private final String label;
-        private final double cost, growth;
-        private final int max;
+        private final Price price;
         private final boolean chrono;
 
         SeedUpgrade(int dimension, String label, double cost, double growth, int max, boolean chrono) {
             this.dimension = dimension;
             this.label = label;
-            this.cost = cost;
-            this.growth = growth;
-            this.max = max;
+            this.price = new Price(cost, growth, max);
             this.chrono = chrono;
         }
 
@@ -1398,8 +1374,9 @@ public abstract class GameUniverse extends GameAtoms {
             return label;
         }
 
-        public int max() {
-            return max;
+        @Override
+        public Price price() {
+            return price;
         }
 
         /** Vrai pour celles du chrono, qui attendent son étage. */
@@ -1414,10 +1391,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Prix du prochain niveau, dans la ressource de sa dimension ; infini une fois au plus haut. */
     public double seedUpgradeCost(SeedUpgrade upgrade) {
-        int level = seedUpgradeLevel(upgrade);
         // Arrondi à l'unité au-dessus : les croissances ×2,5 ne laissent pas de prix à virgule.
-        if (level >= upgrade.max) return Double.POSITIVE_INFINITY;
-        return Math.ceil(upgrade.cost * Math.pow(upgrade.growth, level) - 1e-9);
+        return Math.ceil(upgrade.cost(seedUpgradeLevel(upgrade)) - 1e-9);
     }
 
     /**
@@ -1431,7 +1406,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     public boolean canBuySeedUpgrade(SeedUpgrade upgrade) {
-        return isSeedUpgradeOpen(upgrade) && seedUpgradeLevel(upgrade) < upgrade.max
+        return isSeedUpgradeOpen(upgrade) && seedUpgradeLevel(upgrade) < upgrade.max()
                 && dimensionResource(upgrade.dimension) >= seedUpgradeCost(upgrade) - 1e-9;
     }
 
@@ -1568,11 +1543,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.clearVoidHistory();
         state.setDimensionShards(0);
         state.setLinePhase(0);
-        state.setLineYieldLevel(0);
-        state.setLineTicksLevel(0);
-        state.setLineSpeedLevel(0);
-        state.setLineBallsLevel(0);
-        state.setLineCountLevel(0);
+        for (int i = 0; i < LineUpgrade.values().length; i++) state.setLineLevel(i, 0);
         state.setDimensionShardsEarned(0);
         state.setSeedSprouted(false);
         state.setSeedWaterings(0);
@@ -1996,11 +1967,11 @@ public abstract class GameUniverse extends GameAtoms {
     private static final idle.core.universe.Skin[] DENSE_SKINS = {idle.core.universe.Skin.ATOM_DENSE, idle.core.universe.Skin.TABLE_LEAD,
             idle.core.universe.Skin.ATOM_STELLAR, idle.core.universe.Skin.TABLE_GOLD};
     /** Les paliers de la matière noire (gagnée dans le deuxième univers) et leurs skins. */
-    public static final BigNum[] DARK_TIERS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 4), BigNum.of(1, 5)};
+    private static final BigNum[] DARK_TIERS = {BigNum.of(100), BigNum.of(1, 3), BigNum.of(1, 4), BigNum.of(1, 5)};
     private static final idle.core.universe.Skin[] DARK_SKINS = {idle.core.universe.Skin.DARK_OBSIDIAN, idle.core.universe.Skin.DARK_VORTEX,
             idle.core.universe.Skin.DARK_NEBULA, idle.core.universe.Skin.DARK_PULSAR};
     /** Les paliers du Big Bang (Big Bangs du deuxième univers) et leurs skins. */
-    public static final int[] BANG_TIERS = {1, 3};
+    private static final int[] BANG_TIERS = {1, 3};
     private static final idle.core.universe.Skin[] BANG_SKINS = {idle.core.universe.Skin.BANG_AURORA, idle.core.universe.Skin.BANG_SUPERNOVA};
 
     /** Les paliers de la matière noire atteints, de 0 à 4. */

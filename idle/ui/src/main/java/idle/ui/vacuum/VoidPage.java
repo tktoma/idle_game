@@ -8,6 +8,8 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Locale;
@@ -21,7 +23,6 @@ import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * L'onglet du vide (version 0.099, jouable depuis la 0.129) : le deuxième acte de la partie secondaire, ouvert dans le
@@ -29,13 +30,14 @@ import javafx.scene.text.TextAlignment;
  * virtuelles, qui coûtent de son énergie et de l'espace libre et donnent de l'énergie du vide ; celle-ci fond vers un
  * équilibre, affiché. Le réglage dit la part du collisionneur et de l'espace libre que le vide peut prendre. Le trou
  * noir, au premier trou noir formé, prend les particules qu'on lui sacrifie. Deux sous-onglets : « Paires » (tout ce
- * qui précède) et « Améliorations » (les sept, en énergie du vide) ; la réserve et son équilibre restent en haut des deux.
+ * qui précède) et « Améliorations » (les huit, en énergie du vide) ; la réserve et son équilibre restent en haut des deux.
  */
 public final class VoidPage extends VBox {
 
     /** La couleur du vide : celle de son sous-onglet dans la partie secondaire. */
     public static final String COLOR = idle.ui.universe.UniversePage.VOID_COLOR;
-    private static final String HOLE_COLOR = "#ff9a3a";
+    /** La couleur du trou noir du vide : son texte ici, et sa nouveauté dans {@link idle.ui.PopupPane}. */
+    public static final String HOLE_COLOR = "#ff9a3a";
 
     private final Game game;
     private final Label energy = new Label();
@@ -48,11 +50,13 @@ public final class VoidPage extends VBox {
     private final VBox holeBox;
     private final Label note = new Label();
     private final Map<VoidUpgrade, Card> cards = new EnumMap<>(VoidUpgrade.class);
+    /** Ce que les cartes montrent (niveaux, achetables, détails, signes) : leurs longs textes ne se refont que si ça change. */
+    private String cardsKey = "";
+    /** Si la note du bas a été écrite avec le trou noir ouvert ; elle ne change qu'avec lui. */
+    private Boolean notedHole;
     private final VoidView view = new VoidView();
     /** Les sous-onglets : les paires, et les améliorations. */
     public static final int PAIRS = 0, UPGRADES = 1;
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
     private final Button pairsTab = new Button("Paires");
     private final Button upgradesTab = new Button("Améliorations");
     private final HBox subTabs = new HBox(pairsTab, upgradesTab);
@@ -69,9 +73,7 @@ public final class VoidPage extends VBox {
         setPadding(new Insets(14, 16, 14, 16));
         energy.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         for (Label label : new Label[] {pairsLine, costLine, shareLabel}) {
-            label.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
-            label.setWrapText(true);
-            label.setTextAlignment(TextAlignment.CENTER);
+            Labels.centered(label, "-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
             label.setMaxWidth(860);
             // Le dessin prend la hauteur qui reste : les lignes gardent la leur, entières, sans « … ».
             label.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
@@ -96,10 +98,8 @@ public final class VoidPage extends VBox {
         pane.setMaxWidth(900);
         VBox.setVgrow(pane, Priority.ALWAYS);
 
-        holeLine.setStyle("-fx-font-size: 13px; -fx-text-fill: " + HOLE_COLOR + ";");
-        holeLine.setWrapText(true);
+        Labels.centered(holeLine, "-fx-font-size: 13px; -fx-text-fill: " + HOLE_COLOR + ";");
         holeLine.setMaxWidth(860);
-        holeLine.setTextAlignment(TextAlignment.CENTER);
         sacrifice.setFocusTraversable(false);
         sacrifice.setStyle("-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6;"
                 + " -fx-background-color: #2a1a0c; -fx-text-fill: " + HOLE_COLOR + "; -fx-border-color: " + HOLE_COLOR + "; -fx-border-radius: 6;");
@@ -120,15 +120,9 @@ public final class VoidPage extends VBox {
             cards.put(upgrade, card);
             upgrades.add(card);
         }
-        note.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        note.setWrapText(true);
-        note.setMaxWidth(860);
-        note.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(note, 860);
 
-        upgradesNote.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        upgradesNote.setWrapText(true);
-        upgradesNote.setMaxWidth(860);
-        upgradesNote.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(upgradesNote, 860);
         upgradesNote.setText("Payées en énergie du vide, elles ne valent que pour cet univers : à sa formation, elles repartent "
                 + "de zéro avec le vide. L'allègement du ciel et la maturation plus courte servent le reste de la partie.");
 
@@ -137,28 +131,18 @@ public final class VoidPage extends VBox {
         note.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         pairsPane = new VBox(10, pairsLine, costLine, shareRow, pane, holeBox, note);
         pairsPane.setAlignment(Pos.TOP_CENTER);
-        // « Améliorations » : les sept cartes.
+        // « Améliorations » : les huit cartes.
         VBox upgradesBox = new VBox(10, upgrades, upgradesNote);
         upgradesBox.setAlignment(Pos.TOP_CENTER);
         ScrollPane scroll = new ScrollPane(upgradesBox);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(scroll);
         upgradesPane = new VBox(scroll);
         VBox.setVgrow(scroll, Priority.ALWAYS);
         javafx.scene.layout.StackPane pages = new javafx.scene.layout.StackPane(pairsPane, upgradesPane);
         pages.setAlignment(Pos.TOP_CENTER);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
-        Button[] tabs = {pairsTab, upgradesTab};
-        for (int i = 0; i < tabs.length; i++) {
-            int index = i;
-            tabs[i].setFocusTraversable(false);
-            tabs[i].setOnAction(event -> {
-                select(index);
-                refresh();
-            });
-        }
+        SubTabs.wire(true, this::select, this::refresh, pairsTab, upgradesTab);
         subTabs.setAlignment(Pos.CENTER);
         getChildren().addAll(subTabs, energy, pages);
         select(PAIRS);
@@ -174,8 +158,8 @@ public final class VoidPage extends VBox {
         selected = index == UPGRADES ? UPGRADES : PAIRS;
         pairsPane.setVisible(selected == PAIRS);
         upgradesPane.setVisible(selected == UPGRADES);
-        pairsTab.setStyle(style(selected == PAIRS));
-        upgradesTab.setStyle(style(selected == UPGRADES));
+        pairsTab.setStyle(SubTabs.style(selected == PAIRS, COLOR));
+        upgradesTab.setStyle(SubTabs.style(selected == UPGRADES, COLOR));
     }
 
     public int selected() {
@@ -186,12 +170,6 @@ public final class VoidPage extends VBox {
     public void step(int direction) {
         select(Math.floorMod(selected + direction, 2));
         refresh();
-    }
-
-    private static String style(boolean on) {
-        return SUB_TAB_STYLE + (on
-                ? " -fx-text-fill: " + COLOR + "; -fx-border-color: transparent transparent " + COLOR + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
     public Button upgradesTab() {
@@ -244,23 +222,31 @@ public final class VoidPage extends VBox {
                     + decimal(game.voidMassAfterSacrifice()));
         }
 
-        for (Map.Entry<VoidUpgrade, Card> entry : cards.entrySet()) {
-            VoidUpgrade upgrade = entry.getKey();
-            int level = game.voidLevel(upgrade);
-            boolean max = level >= upgrade.max();
-            Card.State state = max ? Card.State.DONE : game.canBuyVoid(upgrade) ? Card.State.READY
-                    : level > 0 ? Card.State.STARTED : Card.State.WAITING;
-            entry.getValue().show(state, level > 0 ? String.valueOf(level) : "",
-                    upgrade.max() == Integer.MAX_VALUE ? "" : level + " / " + upgrade.max(), title(upgrade), line(upgrade),
-                    detail(upgrade), max ? "max" : Format.count(BigNum.of(game.voidCost(upgrade))) + " énergie du vide", "");
+        StringBuilder key = new StringBuilder().append(Detail.shown()).append(Card.signsShown());
+        for (VoidUpgrade upgrade : cards.keySet()) key.append('/').append(game.voidLevel(upgrade)).append(game.canBuyVoid(upgrade) ? '+' : '-');
+        if (!key.toString().equals(cardsKey)) {
+            cardsKey = key.toString();
+            for (Map.Entry<VoidUpgrade, Card> entry : cards.entrySet()) {
+                VoidUpgrade upgrade = entry.getKey();
+                int level = game.voidLevel(upgrade);
+                boolean max = level >= upgrade.max();
+                Card.State state = max ? Card.State.DONE : game.canBuyVoid(upgrade) ? Card.State.READY
+                        : level > 0 ? Card.State.STARTED : Card.State.WAITING;
+                entry.getValue().show(state, level > 0 ? String.valueOf(level) : "",
+                        upgrade.max() == Integer.MAX_VALUE ? "" : level + " / " + upgrade.max(), title(upgrade), line(upgrade),
+                        detail(upgrade), max ? "max" : Format.count(BigNum.of(game.voidCost(upgrade))) + " énergie du vide", "");
+            }
         }
-        note.setText("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
-                + "l'espace libre, celui que les molécules n'ont pas pris. Le réglage borne ce que le vide en prend. L'énergie du vide "
-                + "fond de " + percent(Game.VOID_DECAY) + " par seconde : elle monte vers l'équilibre, le gain par seconde divisé par la fonte. "
-                + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers), "
-                + "qui paie les bulles de l'arbre ; "
-                + "le vide, ses améliorations et son trou noir repartent de zéro dans l'univers suivant."
-                + (hole ? "" : " Le premier trou noir formé dans le ciel ouvre le trou noir du vide."));
+        if (notedHole == null || notedHole != hole) {
+            notedHole = hole;
+            note.setText("Les paires naissent du collisionneur et vivent quelques secondes : chacune coûte de son énergie et tient de "
+                    + "l'espace libre, celui que les molécules n'ont pas pris. Le réglage borne ce que le vide en prend. L'énergie du vide "
+                    + "fond de " + percent(Game.VOID_DECAY) + " par seconde : elle monte vers l'équilibre, le gain par seconde divisé par la fonte. "
+                    + "À la formation de l'univers, ce qu'il en reste s'ajoute au cumul, gardé (sous-onglet Graine de l'onglet Univers), "
+                    + "qui paie les bulles de l'arbre ; "
+                    + "le vide, ses améliorations et son trou noir repartent de zéro dans l'univers suivant."
+                    + (hole ? "" : " Le premier trou noir formé dans le ciel ouvre le trou noir du vide."));
+        }
     }
 
     private static String limitText(String limit) {
@@ -287,7 +273,7 @@ public final class VoidPage extends VBox {
     private String line(VoidUpgrade upgrade) {
         return switch (upgrade) {
             case GAIN -> "+1 énergie du vide par paire (" + decimal(game.voidPairGain()) + ")";
-            case RATE -> "+25 % de paires par seconde (" + decimal(game.voidBaseRate()) + " au plus)";
+            case RATE -> "+" + percent(Game.VOID_RATE_STEP - 1) + " de paires par seconde (" + decimal(game.voidBaseRate()) + " au plus)";
             case ENERGY -> "−15 % d'énergie du collisionneur par paire";
             case SPACE -> "−15 % d'espace par paire";
             case DECAY -> "−10 % de fonte";
@@ -301,7 +287,8 @@ public final class VoidPage extends VBox {
         String price = " Prix ×" + ElementText.number(upgrade.growth()) + " par niveau.";
         return switch (upgrade) {
             case GAIN -> "Chaque paire donne 1 énergie du vide à sa naissance, plus 1 par niveau. Sans plafond." + price;
-            case RATE -> "Le rythme le plus haut des paires : 1 par seconde, ×1,25 par niveau, " + upgrade.max() + " niveaux. La part "
+            case RATE -> "Le rythme le plus haut des paires : " + Math.round(Game.VOID_BASE_RATE) + " par seconde, ×"
+                    + String.format(Locale.FRANCE, "%.2f", Game.VOID_RATE_STEP) + " par niveau, " + upgrade.max() + " niveaux. La part "
                     + "du collisionneur et celle de l'espace libre le bornent aussi." + price;
             case ENERGY -> "Une paire coûte une demi-seconde de production du collisionneur, ×0,85 par niveau, " + upgrade.max()
                     + " niveaux : la même part de collisionneur paie plus de paires." + price;

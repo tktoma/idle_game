@@ -32,9 +32,9 @@ public abstract class GamePlans extends GameCollider {
     // ------------------------------------------------------------------
 
     /** Le début d'un code de l'arbre. */
-    public static final String TREE_CODE_PREFIX = "arbre:";
+    private static final String TREE_CODE_PREFIX = "arbre:";
     /** Le début d'un code des systèmes solaires. */
-    public static final String SYSTEMS_CODE_PREFIX = "systemes:";
+    private static final String SYSTEMS_CODE_PREFIX = "systemes:";
     /** Intervalle, en secondes de jeu, entre deux passages des plans. */
     public static final double PLAN_CHECK_SECONDS = 1;
 
@@ -169,7 +169,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Prend tout ce que le plan de l'arbre permet maintenant ; renvoie le nombre de cases prises. */
-    public int applyDarkPlan() {
+    private int applyDarkPlan() {
         int taken = 0;
         for (String id : state.darkPlan()) {
             if (!darkUpgrades.containsKey(id) || state.darkLevelOf(id) > 0) continue;
@@ -301,7 +301,7 @@ public abstract class GamePlans extends GameCollider {
     }
 
     /** Place tout ce que le plan des systèmes permet maintenant ; renvoie le nombre d'astres placés. */
-    public int applySystemPlan() {
+    private int applySystemPlan() {
         if (state.systemPlan().isEmpty() || !isSolarSystemsUnlocked()) return 0;
         int placed = 0;
         for (SolarSystem plan : state.systemPlan()) {

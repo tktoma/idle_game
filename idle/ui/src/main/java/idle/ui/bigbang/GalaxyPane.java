@@ -11,6 +11,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
@@ -20,7 +21,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * La sous-page « Univers » de l'onglet Big Bang : les trois dernières échelles du jeu, formées
@@ -55,10 +55,7 @@ public final class GalaxyPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 0, 0));
 
-        intro.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        intro.setWrapText(true);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        intro.setMaxWidth(760);
+        Labels.note(intro, 760);
 
         CanvasPane viewPane = CanvasPane.filling(view);
         viewPane.setMinHeight(VIEW_HEIGHT);

@@ -37,15 +37,7 @@ final class DimensionBotBridge {
     }
 
     private static Class<?> botClass() {
-        try {
-            return Class.forName(BOT_CLASS, true, Thread.currentThread().getContextClassLoader());
-        } catch (ClassNotFoundException | LinkageError absent) {
-            try {
-                return Class.forName(BOT_CLASS);
-            } catch (ClassNotFoundException | LinkageError stillAbsent) {
-                return null;
-            }
-        }
+        return BotBridge.botClass(BOT_CLASS);
     }
 
     /** Vrai si les bots des dimensions sont là. */

@@ -7,6 +7,7 @@ import idle.core.universe.Trial;
 import idle.ui.common.Format;
 import idle.ui.common.Card;
 import idle.ui.common.ElementText;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -15,7 +16,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * L'onglet « Skins » (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après
@@ -36,7 +36,6 @@ public final class SkinsPage extends VBox {
     private final Card prism = new Card(COLOR);
     private final Card dense = new Card(COLOR);
     private final Map<Trial, Card> trials = new EnumMap<>(Trial.class);
-    private Runnable changed = () -> { };
 
     public SkinsPage(Game game) {
         super(10);
@@ -45,10 +44,8 @@ public final class SkinsPage extends VBox {
         setPadding(new Insets(16, 24, 16, 24));
         Label title = new Label("Skins");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        summary.setStyle("-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
-        summary.setWrapText(true);
+        Labels.centered(summary, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
         summary.setMaxWidth(760);
-        summary.setTextAlignment(TextAlignment.CENTER);
         getChildren().addAll(title, summary);
         // Version 0.088 : les recherches, le record et les épreuves qui donnent les skins.
         record.setStyle("-fx-font-size: 12px; -fx-text-fill: #cfe3ff;");
@@ -56,12 +53,10 @@ public final class SkinsPage extends VBox {
         research.setMaxWidth(820);
         prism.setOnAction(() -> {
             game.buyPrismResearch();
-            changed.run();
             refresh();
         });
         dense.setOnAction(() -> {
             game.buyDenseTier();
-            changed.run();
             refresh();
         });
         research.add(prism);
@@ -88,7 +83,6 @@ public final class SkinsPage extends VBox {
             classic.setDoneClickable(true);
             classic.setOnAction(() -> {
                 game.chooseSkin(visual, null);
-                changed.run();
                 refresh();
             });
             classics.put(visual, classic);
@@ -98,7 +92,6 @@ public final class SkinsPage extends VBox {
                 Card card = new Card(COLOR);
                 card.setOnAction(() -> {
                     game.chooseSkin(visual, skin);
-                    changed.run();
                     refresh();
                 });
                 cards.put(skin, card);
@@ -124,11 +117,6 @@ public final class SkinsPage extends VBox {
         Label name = new Label(text);
         name.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0; -fx-text-fill: " + COLOR + ";");
         return name;
-    }
-
-    /** Ce qu'il faut refaire quand un skin vient d'être choisi : redessiner ce qu'il habille. */
-    public void setOnChanged(Runnable action) {
-        changed = action == null ? () -> { } : action;
     }
 
     public void refresh() {
@@ -214,10 +202,5 @@ public final class SkinsPage extends VBox {
 
     public Card denseCard() {
         return dense;
-    }
-
-    /** Le résumé du haut : pour les vérifications. */
-    public String summaryText() {
-        return summary.getText();
     }
 }

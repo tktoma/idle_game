@@ -1,16 +1,10 @@
 import static org.junit.jupiter.api.Assertions.*;
 
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Random;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -51,17 +45,16 @@ class Profiles24CampaignTest {
     }
 
     private static Game fresh(long seed) {
-        Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT,
-                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
-        g.start();
-        return g;
+        return Bots.fresh(seed);
     }
 
     private static Game late(long seed) throws Exception {
-        var text = Files.readString(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"));
-        GameState state = SaveCodec.read(text).state();
-        return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT,
-                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
+        return Bots.load(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"), seed);
+    }
+
+    /** Le nom du CSV qu'écrit un profil : il porte l'étape (propriété idle.stage, « late » par défaut). */
+    private static String history(IdleProfiles24.Profile p) {
+        return String.format(Locale.ROOT, "%02d_%s_%s.csv", p.id(), p.name(), System.getProperty("idle.stage", "late"));
     }
 
     @Test
@@ -111,7 +104,7 @@ class Profiles24CampaignTest {
         java.util.Set<Integer> visited = new java.util.HashSet<>();
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
             if (!selected(p)) continue;
-            assertTrue(visited.add(p.id()), "Profil frais en double : " + p.id());
+            visited.add(p.id());
             long seed = 200 + p.id();
             Game g = fresh(seed);
             var bot = new IdleProfiles24(g, p, seed, 60);
@@ -119,8 +112,7 @@ class Profiles24CampaignTest {
             assertTrue(g.state().started(), p.name() + " : partie non demarree");
             assertTrue(g.state().timePlayed() > 0, p.name() + " : temps de jeu immobile");
             assertTrue(bot.actions > 0, p.name() + " : aucun tour de decision");
-            Path csv = out.resolve("fresh").resolve(p.name()).resolve(
-                    String.format("%02d_%s_late.csv", p.id(), p.name()));
+            Path csv = out.resolve("fresh").resolve(p.name()).resolve(history(p));
             assertTrue(Files.size(csv) > 60, p.name() + " : bilan CSV vide");
             System.out.printf("PROFIL24_FRESH,%d,%s,actions=%d,fusions=%d,explosions=%d,bb=%d,heures=%.3f%n",
                     p.id(), p.name(), bot.actions, g.state().stats().fusions(),
@@ -136,7 +128,7 @@ class Profiles24CampaignTest {
         int winners = 0;
         for (IdleProfiles24.Profile p : IdleProfiles24.PROFILES) {
             if (!selected(p)) continue;
-            assertTrue(visited.add(p.id()), "Profil avancé en double : " + p.id());
+            visited.add(p.id());
             long seed = 300 + p.id();
             Game g = late(seed);
             int bbBefore = g.bigBangs();

@@ -109,8 +109,7 @@ class JeuAchatsTest extends GameTestSupport {
 
         @Test
         void dansLeJeuLesParticulesDoublentTousLes25Niveaux() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             Upgrade speed = game.upgrades().stream().filter(u -> u.id().equals("speed")).findFirst().orElseThrow();
             assertEquals(new Effect.MultiplySpeed(1.10, Upgrades.SPEED_MILESTONE_EVERY, 2), speed.effect());
             assertEquals(25, game.nextSpeedMilestone("speed"));
@@ -203,8 +202,7 @@ class JeuAchatsTest extends GameTestSupport {
 
         @Test
         void leJeuASonCouplageEtSonAutomatisme() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             Upgrade upgrade = game.upgrades(Resource.PARTICLES).stream()
                     .filter(u -> u.id().equals("coupling")).findFirst().orElseThrow();
             assertEquals(new Effect.MultiplyByGenerators(0.02), upgrade.effect());
@@ -433,8 +431,7 @@ class JeuAchatsTest extends GameTestSupport {
 
         @Test
         void dansLeJeuElleResteSousLePlafondDAtomesPendantTreizeNiveaux() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             Upgrade upgrade = game.upgrades(Resource.ATOMS).stream()
                     .filter(u -> u.id().equals("atom_overload")).findFirst().orElseThrow();
             assertEquals(new Effect.Overload(1.3), upgrade.effect());

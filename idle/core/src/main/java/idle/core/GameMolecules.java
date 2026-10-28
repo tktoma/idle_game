@@ -5,14 +5,11 @@ import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.collider.ColliderUpgrade;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.ShoppingList;
-import idle.core.sky.Assemblies;
 import idle.core.sky.Assembly;
-import idle.core.sky.Bodies;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
 import idle.core.upgrades.Automation;
@@ -42,6 +39,8 @@ public abstract class GameMolecules extends GameUniverse {
     abstract SpaceUpgrade spaceUpgrade(String spaceUpgradeId);
     public abstract boolean canBuySpaceUpgrade(String spaceUpgradeId);
     public abstract BigNum spacePerSecond();
+    /** Vrai si une amélioration d'espace acquise a un effet de cette sorte ; faux avant le premier Big Bang. */
+    abstract boolean ownsSpaceEffect(Class<? extends SpaceUpgrade.Effect> type);
 
 
     // ------------------------------------------------------------------
@@ -167,7 +166,7 @@ public abstract class GameMolecules extends GameUniverse {
 
     /**
      * Vrai si une molécule de cette sorte peut se payer un jour avec le nombre d'exemplaires par
-     * élément que le joueur a le droit de posséder en ce moment ({@link #maxCopiesOf(Element)}).
+     * élément que le joueur a le droit de posséder en ce moment ({@link #maxCopiesOf(idle.core.elements.Element)}).
      * Faux : il faut d'abord les Isotopes de l'arbre, ou relever le plafond d'un de ses éléments.
      */
     public boolean isMoleculeWithinReach(String moleculeId) {
@@ -417,7 +416,7 @@ public abstract class GameMolecules extends GameUniverse {
     }
 
     /** Ce par quoi la galaxie, l'amas et l'univers formés multiplient toutes les grandeurs de la matière (version 0.068). */
-    public double cosmosFactor() {
+    private double cosmosFactor() {
         double factor = 1;
         for (Cosmos scale : Cosmos.values()) if (hasCosmos(scale)) factor *= scale.factor();
         return factor;
@@ -603,11 +602,7 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre le rassemblement des molécules ({@link SpaceUpgrade.OpenStates}). */
     public boolean isStatesUnlocked() {
-        if (!isBigBangUnlocked()) return false;
-        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
-            if (upgrade.effect() instanceof SpaceUpgrade.OpenStates && state.ownsSpaceUpgrade(upgrade.id())) return true;
-        }
-        return false;
+        return ownsSpaceEffect(SpaceUpgrade.OpenStates.class);
     }
 
     /** Vrai si les molécules de cette sorte sont rassemblées en leur substance : un gaz, un liquide ou un solide. */
@@ -703,14 +698,10 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre les assemblages ({@link SpaceUpgrade.OpenAssemblies}). */
     public boolean isAssembliesUnlocked() {
-        if (!isBigBangUnlocked()) return false;
-        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
-            if (upgrade.effect() instanceof SpaceUpgrade.OpenAssemblies && state.ownsSpaceUpgrade(upgrade.id())) return true;
-        }
-        return false;
+        return ownsSpaceEffect(SpaceUpgrade.OpenAssemblies.class);
     }
 
-    /** Tous les assemblages, dans l'ordre du catalogue ({@link Assemblies}). */
+    /** Tous les assemblages, dans l'ordre du catalogue ({@link idle.core.sky.Assemblies}). */
     public List<Assembly> assemblies() {
         if (assemblyList == null) assemblyList = List.copyOf(assemblies.values());
         return assemblyList;
@@ -796,14 +787,10 @@ public abstract class GameMolecules extends GameUniverse {
 
     /** Vrai une fois acquise l'amélioration d'espace qui ouvre les astres ({@link SpaceUpgrade.OpenBodies}). */
     public boolean isBodiesUnlocked() {
-        if (!isBigBangUnlocked()) return false;
-        for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
-            if (upgrade.effect() instanceof SpaceUpgrade.OpenBodies && state.ownsSpaceUpgrade(upgrade.id())) return true;
-        }
-        return false;
+        return ownsSpaceEffect(SpaceUpgrade.OpenBodies.class);
     }
 
-    /** Tous les astres, du plus petit au plus grand ({@link Bodies}). */
+    /** Tous les astres, du plus petit au plus grand ({@link idle.core.sky.Bodies}). */
     public List<Body> bodies() {
         if (bodyList == null) bodyList = List.copyOf(bodies.values());
         return bodyList;

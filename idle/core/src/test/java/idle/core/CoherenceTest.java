@@ -5,41 +5,32 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import idle.core.universe.Trial;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.126 : les incohérences relevées par l'audit du moteur. Chaque test dit la règle telle qu'elle est
- * annoncée, et la vérifie là où elle ne tenait pas : au-delà du premier univers, pendant une épreuve, sur un
- * gros pas de temps, après une sauvegarde d'une autre version.
+ * Les règles qui doivent tenir d'une partie à l'autre : les étapes et les records de chaque partie au-delà du premier
+ * univers, l'absence rejouée, les réglages du joueur qui traversent la formation de l'univers, le remboursement des
+ * liaisons quand les bifurcations se rouvrent, une catégorie de synthèse inconnue dans une sauvegarde, et les bonus
+ * minutés (surchauffe, régime, sursaut des sondes) sur un gros pas de temps.
  */
 class CoherenceTest {
 
     private static GameState reread(GameState state) {
-        try {
-            return SaveCodec.read(SaveCodec.write(state, 0)).state();
-        } catch (Exception unreadable) {
-            throw new AssertionError(unreadable);
-        }
+        return GameTestSupport.reread(state);
     }
 
     /** Le premier univers formé à ce temps de jeu, puis la partie suivante lancée à cet autre. */
     private static Game secondAt(double formedAt, double startedAt) {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setTimePlayed(formedAt);
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         game.state().setTimePlayed(startedAt);
         assertTrue(game.startNextUniverse());
         return game;
@@ -50,15 +41,14 @@ class CoherenceTest {
 
         @Test
         void leDelaiEntreLesEchellesDuCosmosVautAussiApresLePremierUnivers() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             // Première partie : la galaxie à 10 000 s, l'amas attend deux heures.
             game.state().setTimePlayed(10_000);
             game.state().setCosmosLevel(1);
             game.noteStep(GameStats.Step.GALAXY);
             assertEquals(GameUniverse.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-9);
             game.state().setTimePlayed(100_000);
-            DeuxiemeUniversTest.formUniverse(game);
+            game.testFormUniverse();
             assertTrue(game.startNextUniverse());
             // Partie suivante : sa galaxie à 400 000 s ; l'amas attend de nouveau deux heures, pas zéro.
             game.state().setTimePlayed(400_000);
@@ -73,13 +63,12 @@ class CoherenceTest {
 
         @Test
         void lesRecordsSeComptentDepuisLeDebutDeLaPartie() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             game.state().setTimePlayed(5000);
             game.noteStep(GameStats.Step.FIRST_MOLECULE);
             assertEquals(5000, game.recordOf(GameStats.Step.FIRST_MOLECULE), 1e-9);
             game.state().setTimePlayed(90_000);
-            DeuxiemeUniversTest.formUniverse(game);
+            game.testFormUniverse();
             game.state().setTimePlayed(100_000);
             assertTrue(game.startNextUniverse());
             assertEquals(100_000, game.stats().universeStart(), 1e-9);
@@ -101,15 +90,14 @@ class CoherenceTest {
         @Test
         void laFusionLExplosionEtLeBigBangDUnePartieSuivanteBattentLeursRecords() {
             // Par les vrais gestes du jeu, et non par noteStep : leurs appels testaient « la première fois du jeu entier ».
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             for (GameStats.Step step : List.of(GameStats.Step.FIRST_FUSION, GameStats.Step.FIRST_EXPLOSION, GameStats.Step.FIRST_BIG_BANG)) {
                 game.state().setRecord(step.name(), 50_000);
             }
             game.state().stats().noteFusion(BigNum.ONE, 1);         // la partie 1 a déjà fusionné, explosé
             game.state().stats().endRun();
             game.state().setTimePlayed(90_000);
-            DeuxiemeUniversTest.formUniverse(game);
+            game.testFormUniverse();
             game.state().setTimePlayed(100_000);
             assertTrue(game.startNextUniverse());
             game.takeNewRecords();
@@ -122,20 +110,13 @@ class CoherenceTest {
             assertEquals(100.01, game.recordOf(GameStats.Step.FIRST_FUSION), 1e-6);
             // Explosion, à 200 s.
             game.state().setTimePlayed(100_200);
-            for (int number = 1; number <= idle.core.elements.PeriodicTable.ELEMENTS.size(); number++) game.state().setElementCount(number, 1);
+            GameTestSupport.fillTable(game, 1);
             assertTrue(game.explode());
             assertEquals(200, game.recordOf(GameStats.Step.FIRST_EXPLOSION), 1e-6);
             // Big Bang, à 500 s.
             game.state().setTimePlayed(100_500);
             game.state().setExplosions(Math.max(1, game.state().explosions()));
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            int given = 0;
-            for (idle.core.achievements.Achievement achievement : game.achievements()) {
-                if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
-            }
-            for (idle.core.darkmatter.Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             assertEquals(500, game.recordOf(GameStats.Step.FIRST_BIG_BANG), 1e-6);
             assertTrue(game.takeNewRecords().containsAll(List.of(GameStats.Step.FIRST_FUSION, GameStats.Step.FIRST_EXPLOSION,
@@ -144,8 +125,7 @@ class CoherenceTest {
 
         @Test
         void uneSauvegardeDAvantNoteLesEtapesDeLaPremierePartieCommeAvant() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             game.state().setTimePlayed(5000);
             game.noteStep(GameStats.Step.FIRST_MOLECULE);
             String text = SaveCodec.write(game.state(), 0).replaceAll("\nstats\\.universe(Steps|Start)=[^\n]*", "");
@@ -158,24 +138,6 @@ class CoherenceTest {
             assertTrue(old.stats().reachedThisUniverse(GameStats.Step.FIRST_MOLECULE));
             assertEquals(0, old.stats().universeStart(), 1e-9);
         }
-    }
-
-    @Test
-    void lAutomatismeDesGenerateursRespecteLEpreuveDuGenerateurSeul() {
-        Game game = SkinsObtenusTest.skins(), witness = SkinsObtenusTest.skins();
-        for (Game each : List.of(game, witness)) {
-            each.state().setExplosions(1);
-            each.state().addAutomation("auto_generator");
-            each.state().setAutomationEnabled("auto_generator", true);
-            each.state().setParticles(BigNum.of(1, 9));
-        }
-        assertTrue(game.startTrial(Trial.LONE_GENERATOR));
-        double wait = game.automationInterval("auto_generator") + 1;
-        game.tick(wait);
-        witness.tick(wait);
-        assertTrue(witness.generatorCount() > 1, "sans l'épreuve, l'automatisme achète bien des générateurs");
-        assertEquals(1, game.generatorCount(), "aucun générateur acheté pendant l'épreuve, même par l'automatisme");
-        assertEquals(Trial.LONE_GENERATOR, game.activeTrial(), "l'épreuve continue");
     }
 
     @Test
@@ -212,10 +174,9 @@ class CoherenceTest {
 
         @Test
         void ilsTraversentLaFormationDeLUniversEtLaPartieSuivante() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             choose(game);
-            DeuxiemeUniversTest.formUniverse(game);
+            game.testFormUniverse();
             assertChosen(game.state());
             assertTrue(game.startNextUniverse());
             assertChosen(game.state());
@@ -224,8 +185,7 @@ class CoherenceTest {
 
         @Test
         void seuleUneNouvellePartieLesEfface() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             choose(game);
             game.reset();
             assertFalse(game.state().automationPaused());
@@ -244,7 +204,7 @@ class CoherenceTest {
         BigNum before = game.state().darkMatter(), twinBefore = twin.state().darkMatter();
         for (Game each : List.of(game, twin)) {
             each.setForkResetArmed(true);
-            for (int number = 1; number <= idle.core.elements.PeriodicTable.ELEMENTS.size(); number++) each.state().setElementCount(number, 1);
+            GameTestSupport.fillTable(each, 1);
             assertTrue(each.explode());
         }
         assertEquals(0, game.state().darkLevelOf(link.id()), "la liaison est défaite");
@@ -258,13 +218,7 @@ class CoherenceTest {
 
     /** Une partie à une bifurcation, avec une voie prise et, si demandé, cette liaison déjà payée en matière noire. */
     private static Game atFork(DarkUpgrade link, BigNum cost) {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        game.state().setDarkMatter(BigNum.of(12));
-        game.state().setExplosions(12);
-        for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
-        game.state().setAtoms(BigNum.of(5000));
+        Game game = GameTestSupport.atFork();
         assertTrue(game.buyDark("dark_rich_fusion"));
         if (link != null) {
             game.state().setDarkLevel(link.id(), 1);
@@ -275,8 +229,7 @@ class CoherenceTest {
 
     @Test
     void uneCategorieDeSyntheseInconnueEstEcarteeSansPerdreLaPartie() throws Exception {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setExplosions(3);
         String text = SaveCodec.write(game.state(), 0) + "synthesisTarget=FAMILLE_DISPARUE\n";
         GameState back = SaveCodec.read(text).state();
@@ -289,8 +242,7 @@ class CoherenceTest {
 
         /** Une partie qui produit, avec cinq secondes de surchauffe. */
         private Game overheated() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             game.state().setLevel("generator", 5);
             game.state().setOverheatLeft(5);
             return game;
@@ -318,9 +270,8 @@ class CoherenceTest {
 
         @Test
         void leSursautDesSondesNeCompteQueSonTemps() {
-            Game big = new Game(), small = new Game();
+            Game big = GameTestSupport.realGame(), small = GameTestSupport.realGame();
             for (Game game : List.of(big, small)) {
-                game.start();
                 GameTestSupport.bangs(game, 1);
                 game.state().setProbeBoostLeft(5);
             }

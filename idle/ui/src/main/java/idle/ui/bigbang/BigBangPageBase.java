@@ -12,6 +12,7 @@ import idle.ui.common.Breakdown;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
 import idle.ui.common.FilterBar;
+import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.common.StableHeight;
 import idle.ui.common.TileGrid;
@@ -29,7 +30,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * La page du Big Bang, première partie : ses sous-pages, ses cartes et sa construction.
@@ -50,13 +50,13 @@ public abstract class BigBangPageBase extends VBox {
         this.bangChallenges = new BangChallengesPane(game, this::refresh);
         this.bodiesPane = new BodiesPane(game, this::refresh);
         this.bodiesScroll = new ScrollPane(bodiesPane);
-        BigBangPage.transparent(bodiesScroll);
+        Labels.transparent(bodiesScroll);
         this.probesPane = new ProbesPane(game, this::refresh);
         this.probesScroll = new ScrollPane(probesPane);
-        BigBangPage.transparent(probesScroll);
+        Labels.transparent(probesScroll);
         this.systemsPane = new SystemsPane(game, this::refresh);
         this.systemsScroll = new ScrollPane(systemsPane);
-        BigBangPage.transparent(systemsScroll);
+        Labels.transparent(systemsScroll);
         this.galaxyPane = new GalaxyPane(game, this::refresh, () -> {
             // La plus grande échelle formée : la galaxie, ou plus loin, l'amas de galaxies, l'univers.
             spaceView.showGalaxy(true);
@@ -69,9 +69,7 @@ public abstract class BigBangPageBase extends VBox {
         setPadding(new Insets(16, 24, 16, 24));
 
         countLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        sinceLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        sinceLabel.setWrapText(true);
-        sinceLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(sinceLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
         moleculesTab.setOnAction(event -> select(0));
         expansionTab.setOnAction(event -> select(1));
@@ -98,7 +96,7 @@ public abstract class BigBangPageBase extends VBox {
         // Les molécules : une phrase, les rayons du catalogue, puis les cartes du rayon choisi.
         moleculesPane.setAlignment(Pos.TOP_CENTER);
         moleculesPane.setPadding(new Insets(10, 0, 10, 0));
-        BigBangPage.note(moleculesIntro);
+        Labels.note(moleculesIntro, 760);
         FlowPane chips = new FlowPane(6, 6);
         chips.setAlignment(Pos.CENTER);
         favoritesChip.setFocusTraversable(false);
@@ -130,18 +128,14 @@ public abstract class BigBangPageBase extends VBox {
         useNames.put(Use.CREATABLE, "Créables maintenant");
         useNames.put(Use.WANTED, "Utiles au prochain astre");
         useFilter = moleculeFilter.group("Toutes", useNames);
-        BigBangPage.note(moleculesFound);
-        nextKindLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        nextKindLabel.setWrapText(true);
-        nextKindLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(moleculesFound, 760);
+        Labels.centered(nextKindLabel, "-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         nextKindLabel.setMaxWidth(760);
         gridHolder.setMaxWidth(900);
         moleculesPane.getChildren().add(moleculesIntro);
         moleculesPane.getChildren().add(moleculeFilter);
-        needsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        needsLabel.setWrapText(true);
+        Labels.centered(needsLabel, "-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         needsLabel.setMaxWidth(760);
-        needsLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         moleculesPane.getChildren().add(needsLabel);
         moleculesPane.getChildren().add(chips);
         bestLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #ffe9c2;");
@@ -174,7 +168,7 @@ public abstract class BigBangPageBase extends VBox {
         bestLabel.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(bestLabel, Priority.ALWAYS);
         StableHeight.of(bestBar);
-        BigBangPage.note(collectionLabel);
+        Labels.note(collectionLabel, 760);
         moleculesPane.getChildren().add(collectionLabel);
         pulseBar.setAlignment(Pos.CENTER);
         moleculesPane.getChildren().add(pulseBar);
@@ -197,16 +191,14 @@ public abstract class BigBangPageBase extends VBox {
         moleculesPane.getChildren().add(foundRow);
         moleculesPane.getChildren().add(nextKindLabel);
         moleculesPane.getChildren().add(gridHolder);
-        BigBangPage.transparent(moleculesScroll);
+        Labels.transparent(moleculesScroll);
 
         // L'expansion : les nombres, la vue de l'espace, et de quoi s'en approcher ou s'en éloigner.
         expansionPane.setAlignment(Pos.TOP_CENTER);
         expansionPane.setPadding(new Insets(10, 0, 0, 0));
         spaceLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #fffaf0;");
-        rateLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        rateLabel.setWrapText(true);
-        rateLabel.setTextAlignment(TextAlignment.CENTER);
-        BigBangPage.note(expansionNote);
+        Labels.centered(rateLabel, "-fx-font-size: 13px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
+        Labels.note(expansionNote, 760);
         zoomOut.setOnAction(event -> spaceView.zoom(1 / SpaceView.ZOOM_STEP));
         zoomIn.setOnAction(event -> spaceView.zoom(SpaceView.ZOOM_STEP));
         zoomAll.setOnAction(event -> spaceView.fit());
@@ -266,7 +258,7 @@ public abstract class BigBangPageBase extends VBox {
         // Les améliorations d'espace : une carte chacune, montrée quand elle devient accessible.
         upgradesPane.setAlignment(Pos.TOP_CENTER);
         upgradesPane.setPadding(new Insets(10, 0, 10, 0));
-        BigBangPage.note(upgradesIntro);
+        Labels.note(upgradesIntro, 760);
         for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
             // Une tuile, pas un bouton : l'amélioration est acquise d'elle-même quand son seuil est atteint.
             Card card = new Card(GameApp.BIG_BANG_COLOR);
@@ -276,12 +268,12 @@ public abstract class BigBangPageBase extends VBox {
         upgradesGrid.setMaxWidth(820);
         upgradesPane.getChildren().add(upgradesIntro);
         upgradesPane.getChildren().add(upgradesGrid);
-        BigBangPage.transparent(upgradesScroll);
+        Labels.transparent(upgradesScroll);
 
         // Les paliers de Big Bang : une carte chacun, toujours montrée ; depuis la version 0.124, un clic paie le palier ouvert.
         milestonesPane.setAlignment(Pos.TOP_CENTER);
         milestonesPane.setPadding(new Insets(10, 0, 10, 0));
-        BigBangPage.note(milestonesIntro);
+        Labels.note(milestonesIntro, 760);
         for (BigBangMilestone milestone : game.bigBangMilestones()) {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
             card.setOnAction(() -> {
@@ -295,13 +287,13 @@ public abstract class BigBangPageBase extends VBox {
         milestonesPane.getChildren().add(milestonesIntro);
         milestonesPane.getChildren().add(milestonesGrid);
         milestonesPane.getChildren().add(bangChallenges);
-        BigBangPage.transparent(milestonesScroll);
+        Labels.transparent(milestonesScroll);
 
         // Les états de la matière : un lieu par état, et dans chacun une carte par molécule qui s'y
         // rassemble. Une carte n'est construite que lorsque le joueur a créé sa molécule ({@link #stateCard}).
         statesPane.setAlignment(Pos.TOP_CENTER);
         statesPane.setPadding(new Insets(10, 0, 10, 0));
-        BigBangPage.note(statesIntro);
+        Labels.note(statesIntro, 760);
         statesPane.getChildren().add(statesIntro);
         bulk(gatherAll, () -> game.formAllSubstances());
         // Tous confiés : le bouton les retire tous ; sinon il confie ceux qui ne le sont pas encore.
@@ -319,13 +311,13 @@ public abstract class BigBangPageBase extends VBox {
             statesPane.getChildren().add(title);
             statesPane.getChildren().add(grid);
         }
-        BigBangPage.transparent(statesScroll);
+        Labels.transparent(statesScroll);
 
         // Les assemblages : une section par famille, et dans chacune une carte par assemblage, construite
         // quand le joueur a créé un de ses ingrédients ({@link #assemblyCard}).
         assembliesPane.setAlignment(Pos.TOP_CENTER);
         assembliesPane.setPadding(new Insets(10, 0, 10, 0));
-        BigBangPage.note(assembliesIntro);
+        Labels.note(assembliesIntro, 760);
         assembliesPane.getChildren().add(assembliesIntro);
         bulk(assembleAll, () -> game.formAllAssemblies());
         assembliesPane.getChildren().add(assembleAll);
@@ -339,7 +331,7 @@ public abstract class BigBangPageBase extends VBox {
             assembliesPane.getChildren().add(title);
             assembliesPane.getChildren().add(grid);
         }
-        BigBangPage.transparent(assembliesScroll);
+        Labels.transparent(assembliesScroll);
 
         // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
         StackPane pages = new StackPane(moleculesScroll, expansionPane, upgradesScroll, statesScroll, assembliesScroll, bodiesScroll,
@@ -389,8 +381,6 @@ public abstract class BigBangPageBase extends VBox {
         return subTabs;
     }
 
-    static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
     static final String CHIP_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
             + " -fx-background-radius: 12; -fx-border-radius: 12;";
     static final String ZOOM_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"

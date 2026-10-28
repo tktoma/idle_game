@@ -134,13 +134,30 @@ final class VoidPolicy {
         if (!game.isVoidUnlocked()) return done;
         if (shareSetFor != game.universes()) {
             shareSetFor = game.universes();
-            // -Didle.partVide=0.25 (par exemple) impose une part à tous les profils, pour les essais.
-            String forced = System.getProperty("idle.partVide", "").trim();
-            game.setVoidShare(forced.isEmpty() ? style.share() : Double.parseDouble(forced));
+            Double forced = configuredShare();
+            game.setVoidShare(forced != null ? forced : style.share());
         }
         if (chance(style.buyCare())) done += buy(game);
         done += feedHole(game);
         return done;
+    }
+
+    /**
+     * La part du vide que {@code -Didle.partVide} impose à tous les profils pour les essais (0,25 par exemple), ou
+     * {@code null} sans la propriété. Refusée avec un message clair si ce n'est pas un nombre de 0 à 1 : avant la
+     * 0.141, une valeur fautive arrêtait la campagne au premier univers 3 par une NumberFormatException.
+     */
+    static Double configuredShare() {
+        String wanted = System.getProperty("idle.partVide", "").trim();
+        if (wanted.isEmpty()) return null;
+        double share;
+        try {
+            share = Double.parseDouble(wanted);
+        } catch (NumberFormatException notANumber) {
+            throw new IllegalArgumentException("idle.partVide=" + wanted + " : un nombre de 0 à 1 attendu", notANumber);
+        }
+        if (!(share >= 0 && share <= 1)) throw new IllegalArgumentException("idle.partVide=" + wanted + " : un nombre de 0 à 1 attendu");
+        return share;
     }
 
     /** Vrai quand le bot a coupé la fusion automatique pour laisser des particules au trou noir. */
@@ -159,7 +176,7 @@ final class VoidPolicy {
             resumeFusion(game);
             return fed ? 1 : 0;
         }
-        boolean wanted = game.isVoidHoleOpen() && game.bigBangs() >= 8 && game.voidMass() < SACRIFICE_TARGET_MASS;
+        boolean wanted = game.isVoidHoleOpen() && game.bigBangs() >= Bots.LAST_BIG_BANG && game.voidMass() < SACRIFICE_TARGET_MASS;
         if (!wanted) {
             resumeFusion(game);
             return 0;
@@ -183,7 +200,7 @@ final class VoidPolicy {
      * quand elle y gagne au moins {@link #SACRIFICE_MIN_GAIN}.
      */
     static boolean worthSacrifice(Game game) {
-        return game.canSacrificeParticles() && game.bigBangs() >= 8 && game.voidMass() < SACRIFICE_TARGET_MASS
+        return game.canSacrificeParticles() && game.bigBangs() >= Bots.LAST_BIG_BANG && game.voidMass() < SACRIFICE_TARGET_MASS
                 && game.voidMassAfterSacrifice() - game.voidMass() >= SACRIFICE_MIN_GAIN;
     }
 

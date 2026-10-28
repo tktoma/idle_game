@@ -1,15 +1,14 @@
 package idle.ui;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
 import idle.core.universe.Trial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -17,13 +16,15 @@ import javafx.scene.text.TextAlignment;
  * Les fenêtres d'explication (version 0.089), par-dessus la fenêtre, une seule fois chacune :
  * <ul>
  *   <li>à l'ouverture d'un onglet, ce qu'est sa ressource et comment elle marche, en deux ou trois phrases ;</li>
- *   <li>dans le deuxième univers, chaque nouveauté des trois actes au moment où elle s'ouvre.</li>
+ *   <li>dans le deuxième univers, chaque nouveauté des trois actes au moment où elle s'ouvre ;</li>
+ *   <li>dans le troisième univers et les suivants, le vide quand il se propose, puis son trou noir
+ *       ({@link #voidEntries(Game)}).</li>
  * </ul>
  * Ce qui s'ouvre au même moment se lit dans la même fenêtre. Le jeu continue derrière ; « Compris »
  * la ferme, et la suivante attend son tour. Une partie d'avant cette version ne revoit pas ce
  * qu'elle connaît déjà : au premier relevé, tout ce qui est déjà ouvert est marqué vu sans rien montrer.
  */
-final class PopupPane extends StackPane {
+final class PopupPane extends Overlay {
 
     /** Une explication : son identifiant gardé dans la sauvegarde, son titre, son texte, sa couleur et quand elle s'ouvre. */
     record Entry(String id, String group, String heading, String text, String color, BooleanSupplier open) {
@@ -41,6 +42,7 @@ final class PopupPane extends StackPane {
     private List<Entry> shown = List.of();
 
     PopupPane(Game game) {
+        super("-fx-background-color: #0b0e14b0;");
         this.game = game;
         group.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
         button.setOnAction(event -> close());
@@ -48,10 +50,7 @@ final class PopupPane extends StackPane {
         card.setAlignment(Pos.CENTER);
         card.setMaxWidth(520);
         card.setMaxHeight(USE_PREF_SIZE);
-        setStyle("-fx-background-color: #0b0e14b0;");
-        setPadding(new Insets(24));
-        getChildren().add(card);
-        setVisible(false);
+        mount(card);
     }
 
     /** Vrai tant qu'une fenêtre est affichée. */
@@ -138,8 +137,7 @@ final class PopupPane extends StackPane {
             item.setAlignment(Pos.CENTER);
             items.getChildren().add(item);
         }
-        card.setStyle("-fx-background-color: #16202e; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-width: 2;"
-                + " -fx-border-color: " + color + "; -fx-padding: 22 30;");
+        card.setStyle(cardStyle(color, true, "22 30"));
         button.setStyle(BUTTON_STYLE + " -fx-background-color: " + color + ";");
         setVisible(true);
     }
@@ -178,7 +176,7 @@ final class PopupPane extends StackPane {
                     + "les améliorations du vide ; ce qu'il en reste à la formation de l'univers rejoint le cumul.";
             case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
                     + "des améliorations qui restent, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
-            case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute 2\u00a0% à toutes les "
+            case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute " + Math.round(Skin.BONUS * 100) + "\u00a0% à toutes les "
                     + "ressources, et ces bonus s'additionnent, que le skin soit choisi ou non : le choisir ne change que l'apparence.";
             default -> null;
         };
@@ -197,19 +195,19 @@ final class PopupPane extends StackPane {
         BooleanSupplier act2 = () -> game.isReplaying() && game.isDarkMatterUnlocked();
         BooleanSupplier act3 = () -> game.isReplaying() && game.isBigBangUnlocked();
         return List.of(
-                gated(act1, "second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +15\u00a0% de cadence "
-                        + "pendant 20 s, puis 40 s de repos. Il se relance toujours à la main.", blue, game::isRegimeUnlocked),
+                gated(act1, "second:regime", one, "Régime des générateurs", "Un bouton dans l'onglet Particules : +" + Math.round(Game.REGIME_GAIN * 100) + "\u00a0% de cadence "
+                        + "pendant " + (int) Game.REGIME_SECONDS + " s, puis " + (int) Game.REGIME_REST_SECONDS + " s de repos. Il se relance toujours à la main.", blue, game::isRegimeUnlocked),
                 gated(act1, "second:synergy", one, "Synergie des rangs", "Dès le dixième générateur, chacun produit un peu plus, "
-                        + "jusqu'à +0,5\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
+                        + "jusqu'à +" + String.format(java.util.Locale.FRANCE, "%.1f", Game.SYNERGY_MAX * 100) + "\u00a0%, selon son rang.", blue, game::isSynergyUnlocked),
                 gated(act1, "second:perfect", one, "Prime de cycle parfait", "Trois fusions de suite sans buter sur le plafond "
-                        + "d'atomes : +10\u00a0% de particules pendant une minute.", gold, game::isPerfectCycleUnlocked),
+                        + "d'atomes : +" + Math.round(Game.PERFECT_GAIN * 100) + "\u00a0% de particules pendant une minute.", gold, game::isPerfectCycleUnlocked),
                 gated(act1, "second:free", one, "Éléments gratuits", "Tous les dix éléments découverts, un élément gratuit : dans "
                         + "le tableau périodique, un clic sur un élément pas encore découvert le prend.", gold,
                         () -> second.getAsBoolean() && game.freeElementsAvailable() > 0),
                 gated(act1, "second:dense", one, "Recherche sur le noyau dense", "Un million d'atomes créés : quatre paliers payés "
                         + "en atomes, dans l'onglet Skins. Chacun donne un skin d'atome ou de tableau.", skins, game::isDenseResearchUnlocked),
                 gated(act2, "second:preference", two, "Famille préférée", "Avec la synthèse ciblée, choisissez une famille dans le "
-                        + "tableau : ses chances montent à chaque tirage au hasard, jusqu'à ×2.", violet, game::isFamilyPreferenceUnlocked),
+                        + "tableau : ses chances montent à chaque tirage au hasard, jusqu'à ×" + Math.round(1 + Game.PREFERENCE_STEP * Game.PREFERENCE_MAX_DRAWS) + ".", violet, game::isFamilyPreferenceUnlocked),
                 gated(act2, "second:trials", two, "Les épreuves", "Dans l'onglet Skins, des épreuves volontaires : une à la fois, "
                         + "abandonnables sans rien perdre. Chacune réussie donne un skin.", skins,
                         () -> game.isTrialUnlocked(Trial.LONE_GENERATOR) || game.isTrialUnlocked(Trial.SOFT_CONTRACTION)),
@@ -217,7 +215,7 @@ final class PopupPane extends StackPane {
                         + "croisements sous la contrainte du temps. Le défi du détecteur suit, au Détecteur élargi niveau 3.", skins,
                         () -> game.isTrialUnlocked(Trial.NO_OVERHEAT)),
                 gated(act2, "second:leak", two, "La fuite", "Un onzième défi, au milieu des autres : les particules fuient de plus "
-                        + "en plus vite tant qu'aucune amélioration n'est achetée, et le tableau ne peut pas exploser avant 2 minutes. "
+                        + "en plus vite tant qu'aucune amélioration n'est achetée, et le tableau ne peut pas exploser avant " + (int) (Game.LEAK_MIN_SECONDS / 60) + " minutes. "
                         + "Réussi, il donne le calme du Big Bang : tant qu'aucune amélioration n'est achetée, même par les "
                         + "automatismes, les particules qu'il demande baissent, jusqu'à une seule au bout d'une heure.", violet,
                         game::isLeakChallengeShown),
@@ -244,7 +242,7 @@ final class PopupPane extends StackPane {
                         game::isVoidOffered),
                 new Entry("void:hole", "Troisième univers — le vide", "Le trou noir du vide", "Un trou noir est formé : dans l'onglet "
                         + "du vide, sacrifiez-lui des particules. Sa masse raccourcit la vie des paires, qui rendent leur espace plus "
-                        + "vite, et ralentit la fonte de l'énergie du vide.", "#ff9a3a", game::isVoidHoleOpen));
+                        + "vite, et ralentit la fonte de l'énergie du vide.", idle.ui.vacuum.VoidPage.HOLE_COLOR, game::isVoidHoleOpen));
     }
 
     /** Une nouveauté du deuxième univers, qui attend que son acte soit ouvert (version 0.109). */

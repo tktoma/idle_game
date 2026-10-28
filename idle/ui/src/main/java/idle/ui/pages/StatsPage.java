@@ -11,6 +11,8 @@ import idle.core.math.BigNum;
 import idle.ui.EventLog;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +22,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -94,10 +95,6 @@ public final class StatsPage extends StatsPageLines {
         refresh();
     }
 
-    /**
-     * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
-     * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
-     */
     /** Le collisionneur (version 0.063) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
     void collider() {
         page("Collisionneur", "#6fe3ff", game::isColliderUnlocked, "à la première explosion");
@@ -235,6 +232,10 @@ public final class StatsPage extends StatsPageLines {
         row(step.label(), () -> Double.isNaN(game.recordOf(step)) ? NOT_YET : Format.duration(game.recordOf(step)));
     }
 
+    /**
+     * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
+     * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
+     */
     void journal() {
         page("Journal", STATS_COLOR, () -> true, "");
         section("Les " + EventLog.CAPACITY + " dernières annonces");
@@ -273,9 +274,7 @@ public final class StatsPage extends StatsPageLines {
         SubPage page = new SubPage(name, color, unlocked, howToUnlock);
         page.content.setAlignment(Pos.TOP_CENTER);
         page.content.setPadding(new Insets(8, 0, 12, 0));
-        page.scroll.setFitToWidth(true);
-        page.scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        page.scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(page.scroll);
         page.tab.setOnAction(event -> {
             select(page);
             refresh();
@@ -414,6 +413,36 @@ public final class StatsPage extends StatsPageLines {
         Tooltip.install(box, new Tooltip("Voir la courbe : " + graph));
     }
 
+    /** Les noms des sous-pages débloquées, dans l'ordre des onglets : pour les vérifications. */
+    public List<String> openSubPages() {
+        List<String> names = new ArrayList<>();
+        for (SubPage page : pages) if (page.unlocked.getAsBoolean()) names.add(page.tab.getText());
+        return names;
+    }
+
+    /** Ouvre la sous-page de ce nom et la met à jour ; faux si elle n'existe pas ou n'est pas débloquée : pour les vérifications. */
+    public boolean openSubPage(String name) {
+        for (SubPage page : pages) {
+            if (!page.tab.getText().equals(name) || !page.unlocked.getAsBoolean()) continue;
+            select(page);
+            refresh();
+            return true;
+        }
+        return false;
+    }
+
+    /** Les lignes visibles de la sous-page à l'écran, « nom : valeur » : pour les vérifications. */
+    public List<String> shownRows() {
+        List<String> lines = new ArrayList<>();
+        for (Row row : selected.rows) if (row.box().isVisible()) lines.add(row.name() + " : " + row.value().getText());
+        return lines;
+    }
+
+    /** Les courbes que le menu de la sous-page à l'écran propose : pour les vérifications. */
+    public List<String> offeredGraphs() {
+        return List.copyOf(selected.offered);
+    }
+
     /** Passe à la sous-page ouverte suivante ou précédente, en boucle. */
     public void step(int direction) {
         int index = pages.indexOf(selected);
@@ -431,9 +460,7 @@ public final class StatsPage extends StatsPageLines {
         selected = page;
         for (SubPage each : pages) {
             each.scroll.setVisible(each == page);
-            each.tab.setStyle(SUB_TAB_STYLE + (each == page
-                    ? " -fx-text-fill: " + each.color + "; -fx-border-color: transparent transparent " + each.color + " transparent;"
-                    : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;"));
+            each.tab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, each == page, each.color));
         }
     }
 

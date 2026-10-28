@@ -13,8 +13,7 @@ import org.junit.jupiter.api.Test;
 class MaturationTest {
 
     private static Game game() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 5);
         return game;
     }

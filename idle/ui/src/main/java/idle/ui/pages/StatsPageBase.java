@@ -17,6 +17,7 @@ import idle.ui.GameApp;
 import idle.ui.automation.AutomationPage;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -34,7 +35,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * La page des statistiques, première partie : sa construction et ses sous-pages.
@@ -55,9 +55,7 @@ public abstract class StatsPageBase extends VBox {
         Label title = new Label("Statistiques");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + STATS_COLOR + ";");
         subTabs.setAlignment(Pos.CENTER);
-        nextLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        nextLabel.setWrapText(true);
-        nextLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(nextLabel);
 
         rangeRow.setAlignment(Pos.CENTER);
         wholeButton.setOnAction(event -> {
@@ -77,6 +75,7 @@ public abstract class StatsPageBase extends VBox {
         periodicTable();
         darkMatter();
         bigBang();
+        universe();
         collider();
         records();
         journal();
@@ -107,6 +106,7 @@ public abstract class StatsPageBase extends VBox {
     abstract int count(boolean inTree);
     abstract String nextGoal();
     abstract void bigBang();
+    abstract void universe();
     abstract List<ChartPane.Series> explosionSeries();
     abstract void collider();
     abstract void multipliers();
@@ -126,8 +126,6 @@ public abstract class StatsPageBase extends VBox {
 
 
     static final String STATS_COLOR = "#7fe0d4";
-    static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
     static final String NAME_STYLE = "-fx-font-size: 13px; -fx-text-fill: #b9c7d6;";
     static final String VALUE_STYLE = "-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;";
     static final String ROW_STYLE = "-fx-padding: 5 12; -fx-background-color: #121821; -fx-background-radius: 4;";
@@ -311,9 +309,9 @@ public abstract class StatsPageBase extends VBox {
         charted("Paliers de vitesse", row("Paliers de vitesse atteints", () -> game.speedMilestones() + " : particules "
                 + Format.multiplier(game.speedMilestoneMultiplier()), () -> game.speedMilestones() > 0));
         charted("Ce que les éléments multiplient", row("Éléments : particules",
-                () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.PARTICLES)), this::tableSeen));
+                () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.PARTICLES)), this::tableSeen));
         charted("Ce que les éléments multiplient", row("Éléments : vitesse",
-                () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.SPEED)), this::tableSeen));
+                () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.SPEED)), this::tableSeen));
         charted("Ce que l'arbre multiplie", row("Arbre de matière noire : particules",
                 () -> Format.multiplier(game.darkParticlesMultiplier()), this::exploded));
 
@@ -369,14 +367,14 @@ public abstract class StatsPageBase extends VBox {
         section("Atomes par fusion");
         charted("Atomes par fusion", row("Actuellement", () -> Format.amount(game.atomsPerFusion())));
         row("Record", () -> Format.amount(stats().bestAtomsPerFusion()));
-        charted("Rendement de fusion", row("Rendement de fusion", () -> StatsPage.multiplier(game.fusionYield())));
+        charted("Rendement de fusion", row("Rendement de fusion", () -> Format.multiplier(game.fusionYield())));
         charted("Ce que les éléments multiplient",
-                row("Éléments", () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.ATOMS)), this::tableSeen));
+                row("Éléments", () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.ATOMS)), this::tableSeen));
         row("Arbre de matière noire", () -> "+" + ElementText.number(game.darkAtomsPerFusion()) + " atome de base", this::exploded);
-        row("Améliorations en matière noire", () -> StatsPage.multiplier(game.darkAtomsMultiplier()), this::exploded);
+        row("Améliorations en matière noire", () -> Format.multiplier(game.darkAtomsMultiplier()), this::exploded);
         row("Groupes de générateurs fusionnés", () -> String.valueOf(game.fusionGroups()),
                 () -> game.maxGeneratorCount() > game.generatorsPerAtom());
-        row("Prime de groupe", () -> StatsPage.multiplier(game.fusionGroupBonus()),
+        row("Prime de groupe", () -> Format.multiplier(game.fusionGroupBonus()),
                 () -> game.maxGeneratorCount() > game.generatorsPerAtom());
 
         section("Améliorations");
@@ -477,10 +475,10 @@ public abstract class StatsPageBase extends VBox {
 
         section("Ce que rapportent les éléments");
         charted("Ce que les éléments multiplient",
-                row("Particules", () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.PARTICLES))));
+                row("Particules", () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.PARTICLES))));
         charted("Ce que les éléments multiplient",
-                row("Vitesse", () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.SPEED))));
-        row("Atomes par fusion", () -> StatsPage.multiplier(game.elementMultiplier(ElementEffect.Stat.ATOMS)));
+                row("Vitesse", () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.SPEED))));
+        row("Atomes par fusion", () -> Format.multiplier(game.elementMultiplier(ElementEffect.Stat.ATOMS)));
         row("Prix de la vitesse", () -> "÷" + ElementText.number(game.elementCostDivisor(ElementEffect.CostTarget.SPEED_UPGRADES)));
         row("Prix des améliorations en atomes",
                 () -> "÷" + ElementText.number(game.elementCostDivisor(ElementEffect.CostTarget.ATOM_UPGRADES)));
@@ -563,15 +561,15 @@ public abstract class StatsPageBase extends VBox {
         charted("Paliers de taille",
                 row("Paliers de taille atteints", () -> game.landmarksReached() + " / " + SizeScale.MILESTONES.size()));
         row("Paliers : particules", () -> Format.multiplier(game.landmarkParticlesMultiplier()), () -> game.landmarksReached() > 0);
-        row("Paliers : atomes par fusion", () -> StatsPage.multiplier(game.landmarkAtomsMultiplier()), () -> game.landmarksReached() > 1);
-        row("Paliers : croissance", () -> StatsPage.multiplier(game.landmarkExpansionMultiplier()), () -> game.landmarksReached() > 2);
+        row("Paliers : atomes par fusion", () -> Format.multiplier(game.landmarkAtomsMultiplier()), () -> game.landmarksReached() > 1);
+        row("Paliers : croissance", () -> Format.multiplier(game.landmarkExpansionMultiplier()), () -> game.landmarksReached() > 2);
 
         section("Croissance");
         charted("Croissance par seconde d'appui", row("Par seconde d'appui", () -> {
             BigNum growth = game.darkMatterGrowthPerSecond();
             return growth.lt(BigNum.of(2)) ? "+" + ElementText.percent(growth.toDouble() - 1) : Format.multiplier(growth);
         }));
-        row("Avancement de la partie", () -> StatsPage.multiplier(game.darkMatterProgressFactor()));
+        row("Avancement de la partie", () -> Format.multiplier(game.darkMatterProgressFactor()));
         row("Arbre : élan", () -> Format.multiplier(game.darkExpansionMultiplier()));
         charted("Résistance", row("Résistance", () -> "÷" + Format.amount(game.darkMatterResistance())));
         row("Croissance spontanée", () -> ElementText.percent(game.darkAutoExpansionShare()) + " de la vitesse d'appui",

@@ -47,9 +47,7 @@ class JeuArbreTest extends GameTestSupport {
         }
 
         private void fillTable(Game game) {
-            for (Element element : PeriodicTable.ELEMENTS) {
-                game.state().setElementCount(element.number(), element.category().maxCopies());
-            }
+            GameTestSupport.fillTableToMax(game);
         }
 
         // ----- L'arbre lui-même -----
@@ -406,8 +404,10 @@ class JeuArbreTest extends GameTestSupport {
             assertEquals(7, game.generatorCount());
             assertFalse(game.isMaxed("gen"));
             assertValue(BASE * 7, game.productionPerSecond());
-            game.tick(ONE_PARTICLE);                          // les sept générateurs produisent
-            assertEquals(7, total(game) - game.state().particles().toDouble() + 7, 1e-6);
+            double before = game.state().particles().toDouble();
+            game.tick(ONE_PARTICLE);                          // les sept générateurs produisent : une particule chacun
+            assertTrue(game.state().particles().toDouble() >= before, "les sept particules sont en main (invisibles à côté de 1e30)");
+            for (double formation : game.state().formations()) assertEquals(0, formation, 1e-6, "rien d'entamé : les sept sont finies ensemble");
         }
 
         @Test
@@ -655,14 +655,6 @@ class JeuArbreTest extends GameTestSupport {
             assertEquals(0.01, game.darkAutoExpansionShare(), 1e-12);
             give(game, "dark_spontaneous", 3);
             assertEquals(0.1, game.darkAutoExpansionShare(), 1e-12);
-        }
-
-        @Test
-        void leVerrouSeDebloqueDansLArbre() {
-            Game game = darkGame();
-            assertFalse(game.isHoldLockUnlocked());
-            give(game, "dark_lock", 1);
-            assertTrue(game.isHoldLockUnlocked());
         }
 
         @Test

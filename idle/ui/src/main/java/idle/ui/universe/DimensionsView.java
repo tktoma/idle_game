@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.ui.common.CanvasPane;
 import java.util.function.IntConsumer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -103,12 +104,8 @@ public final class DimensionsView extends Canvas {
 
     private void draw() {
         double w = getWidth(), h = getHeight();
-        if (w <= 0 || h <= 0) return;
-        GraphicsContext g = getGraphicsContext2D();
-        g.setGlobalAlpha(1);
-        g.clearRect(0, 0, w, h);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
+        GraphicsContext g = CanvasPane.begin(this, BACK);
+        if (g == null) return;
         g.setFill(Color.web("#dfe6ff"));
         for (int i = 0; i < 120; i++) {
             g.setGlobalAlpha(0.1 + 0.25 * (0.5 + 0.5 * Math.sin(time * 0.5 + i)));

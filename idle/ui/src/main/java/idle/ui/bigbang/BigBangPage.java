@@ -24,8 +24,8 @@ import javafx.scene.control.Button;
 /**
  * L'onglet « Big Bang » : l'acte qui s'ouvre au premier Big Bang ({@link Game#bigBang()}).
  *
- * <p>En haut, le nombre de Big Bangs déclenchés. En dessous, six sous-pages, dont les trois
- * dernières n'apparaissent qu'une fois ouvertes par une amélioration :
+ * <p>En haut, le nombre de Big Bangs déclenchés. En dessous, dix sous-pages ; à partir des états,
+ * chacune n'apparaît qu'une fois ouverte par une amélioration ou un Big Bang :
  * <ul>
  *   <li>« Molécules » : le catalogue ({@link Game#molecules()}), un rayon à la fois
  *       ({@link Molecule.Kind}). Seuls les rayons ouverts sont proposés : les petites molécules
@@ -50,7 +50,12 @@ import javafx.scene.control.Button;
  *       plusieurs sortes de molécules ({@link Game#formAssembly(String)}), une section par famille.
  *       Un assemblage n'y apparaît que lorsque le joueur a créé au moins un de ses ingrédients ;</li>
  *   <li>« Astres » : le ciel et les corps qu'on y forme, de l'amas de roches à la planète
- *       ({@link BodiesPane}).</li>
+ *       ({@link BodiesPane}) ;</li>
+ *   <li>« Univers » : la galaxie, l'amas de galaxies et l'univers ({@link GalaxyPane}) ;</li>
+ *   <li>« Paliers » : les paliers de Big Bang et, au cinquième, les défis de Big Bang
+ *       ({@link BangChallengesPane}) ;</li>
+ *   <li>« Sondes » : les voyages et leur butin ({@link idle.ui.probes.ProbesPane}) ;</li>
+ *   <li>« Systèmes solaires » : les planètes et lunes rangées autour des étoiles ({@link SystemsPane}).</li>
  * </ul>
  * Une fois les gestes groupés acquis, un bouton en haut des états, des assemblages et des astres
  * fait d'un coup tout ce qui est possible. Un sous-onglet où quelque chose est prêt porte une

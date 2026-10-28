@@ -11,8 +11,7 @@ class SaveMetaTest {
 
     @Test
     void leNomEtLaVersionTraversentLExportEtLAperçu() throws Exception {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setTimePlayed(3600);
         GameTestSupport.bangs(game, 2);
         String text = SaveCodec.export(game.state(), 1_000, new SaveCodec.Meta("Avant = le\nBig Bang", "0.127"));
@@ -27,8 +26,7 @@ class SaveMetaTest {
 
     @Test
     void uneSauvegardeSansCesRenseignementsSeLitToujours() throws Exception {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         SaveCodec.Save save = SaveCodec.read(SaveCodec.write(game.state(), 5));
         assertEquals(SaveCodec.Meta.NONE, save.meta());
         assertTrue(SaveCodec.preview(SaveCodec.write(game.state(), 5)).meta().label().isEmpty());

@@ -5,25 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.BigBangMilestones;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.bigbang.SpaceUpgrades;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.Molecules;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -37,9 +30,7 @@ class JeuEspaceTest extends GameTestSupport {
     class AmeliorationsDEspace {
 
         private Game game(double space) {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(space));
             return game;
@@ -521,11 +512,7 @@ class JeuEspaceTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.ownsSpaceUpgrade("space_acid"));
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertTrue(game.ownsSpaceUpgrade("space_acid"));
@@ -550,9 +537,7 @@ class JeuEspaceTest extends GameTestSupport {
 
         /** Après un premier Big Bang, rassemblement ouvert, beaucoup d'espace, et {@code count} molécules de chaque sorte demandée. */
         private Game game(int count, String... moleculeIds) {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             game.state().addSpaceUpgrade("space_states");
@@ -883,9 +868,16 @@ class JeuEspaceTest extends GameTestSupport {
 
         @Test
         void rassemblerNeFaitJamaisRienPerdre() {
+            // Une seule partie, remise dans le même état pour chacune des molécules : 430 constructions complètes prenaient des secondes.
+            Game game = game(3);
             for (Molecule molecule : Molecules.DEFAULT) {
                 if (!molecule.hasState()) continue;
-                Game game = game(3, molecule.id());
+                game.reset();
+                game.start();
+                GameTestSupport.bangs(game, 1);
+                game.state().setSpace(BigNum.of(1, 9));
+                game.state().addSpaceUpgrade("space_states");
+                game.state().setMoleculeCount(molecule.id(), 3);
                 double[] before = new double[Molecule.Stat.values().length];
                 for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.moleculeBoost(stat);
                 int copies = game.maxTotalCopies();
@@ -920,11 +912,7 @@ class JeuEspaceTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.hasSubstance(WATER));
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertTrue(game.hasSubstance(WATER));

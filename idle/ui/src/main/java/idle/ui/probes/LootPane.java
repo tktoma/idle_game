@@ -3,6 +3,7 @@ package idle.ui.probes;
 import idle.core.Game;
 import idle.core.probes.Probe;
 import idle.core.probes.ProbeReward;
+import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
@@ -13,7 +14,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Le butin d'une sonde, par-dessus la fenêtre : une carte au premier plan, retournée. Un clic
@@ -55,9 +55,7 @@ public final class LootPane extends StackPane {
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #fff2dc;");
         counter.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9b79a;");
         cardKind.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        cardText.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #fff2dc;");
-        cardText.setWrapText(true);
-        cardText.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(cardText, "-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #fff2dc;");
         cardText.setMaxWidth(300);
         cardHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #a8987f;");
         card.setAlignment(Pos.CENTER);

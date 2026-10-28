@@ -9,6 +9,8 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.FilterBar;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
 import java.util.ArrayList;
@@ -18,10 +20,7 @@ import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * La page du Big Bang : le choix des sous-pages, les filtres et le tri des molécules, le meilleur achat et les cartes.
@@ -79,21 +78,6 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         }
     }
 
-    /** Une zone qui défile en hauteur seulement, sans fond propre. */
-    static void transparent(ScrollPane scroll) {
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-    }
-
-    /** Une phrase d'explication : discrète, centrée, qui passe à la ligne. */
-    static void note(Label label) {
-        label.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        label.setWrapText(true);
-        label.setTextAlignment(TextAlignment.CENTER);
-        label.setMaxWidth(760);
-    }
-
     /**
      * Affiche une sous-page : 0 = les molécules, 1 = l'expansion de la matière, 2 = les améliorations,
      * 3 = les états de la matière, 4 = les assemblages, 5 = les astres, 6 = l'univers (galaxie, amas de galaxies, univers),
@@ -114,16 +98,16 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         milestonesScroll.setVisible(index == 7);
         probesScroll.setVisible(index == 8);
         systemsScroll.setVisible(index == 9);
-        systemsTab.setStyle(subTabStyle(index == 9));
-        probesTab.setStyle(subTabStyle(index == 8));
-        moleculesTab.setStyle(subTabStyle(index == 0));
-        expansionTab.setStyle(subTabStyle(index == 1));
-        upgradesTab.setStyle(subTabStyle(index == 2));
-        statesTab.setStyle(subTabStyle(index == 3));
-        assembliesTab.setStyle(subTabStyle(index == 4));
-        bodiesTab.setStyle(subTabStyle(index == 5));
-        galaxyTab.setStyle(subTabStyle(index == 6));
-        milestonesTab.setStyle(subTabStyle(index == 7));
+        systemsTab.setStyle(SubTabs.style(index == 9, GameApp.BIG_BANG_COLOR));
+        probesTab.setStyle(SubTabs.style(index == 8, GameApp.BIG_BANG_COLOR));
+        moleculesTab.setStyle(SubTabs.style(index == 0, GameApp.BIG_BANG_COLOR));
+        expansionTab.setStyle(SubTabs.style(index == 1, GameApp.BIG_BANG_COLOR));
+        upgradesTab.setStyle(SubTabs.style(index == 2, GameApp.BIG_BANG_COLOR));
+        statesTab.setStyle(SubTabs.style(index == 3, GameApp.BIG_BANG_COLOR));
+        assembliesTab.setStyle(SubTabs.style(index == 4, GameApp.BIG_BANG_COLOR));
+        bodiesTab.setStyle(SubTabs.style(index == 5, GameApp.BIG_BANG_COLOR));
+        galaxyTab.setStyle(SubTabs.style(index == 6, GameApp.BIG_BANG_COLOR));
+        milestonesTab.setStyle(SubTabs.style(index == 7, GameApp.BIG_BANG_COLOR));
     }
 
     /** Les sondes : pour les vérifications et le raccourci. */
@@ -139,13 +123,6 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     /** La sous-page affichée, numérotée comme dans {@link #select(int)}. */
     public int selected() {
         return selected;
-    }
-
-    private static String subTabStyle(boolean selected) {
-        return SUB_TAB_STYLE + (selected
-                ? " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-border-color: transparent transparent "
-                        + GameApp.BIG_BANG_COLOR + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
     /** Affiche un rayon du catalogue ; ses cartes sont construites à la première visite. */
@@ -460,11 +437,6 @@ public abstract class BigBangPageControls extends BigBangPageBase {
                     + (on ? " -fx-text-fill: #10151f; -fx-background-color: " + GameApp.BIG_BANG_COLOR + ";"
                             : " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;"));
         });
-    }
-
-    /** Les boutons du petit arbre du cycle : pour les vérifications. */
-    public Button cycleButton(idle.core.universe.CycleChoice choice) {
-        return cycleButtons.get(choice);
     }
 
     /** Les systèmes solaires : pour les vérifications. */

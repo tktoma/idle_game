@@ -61,13 +61,36 @@ public abstract class GameSystems extends GameBase {
 
     /** Vrai une fois les sondes ouvertes : au palier du troisième Big Bang. */
     public boolean isProbesUnlocked() {
+        return milestoneGives(BigBangMilestone.Probes.class);
+    }
+
+    /** Les effets de cette sorte que donnent les paliers de Big Bang atteints, dans l'ordre des paliers. */
+    <E extends BigBangMilestone.Effect> List<E> reachedEffects(Class<E> kind) {
+        return milestoneEffects(kind, false);
+    }
+
+    /**
+     * Comme {@link #reachedEffects(Class)}, en comptant aussi le palier que le prochain Big Bang atteindra :
+     * le Big Bang qui ouvre un palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
+     */
+    <E extends BigBangMilestone.Effect> List<E> nextBigBangEffects(Class<E> kind) {
+        return milestoneEffects(kind, true);
+    }
+
+    private <E extends BigBangMilestone.Effect> List<E> milestoneEffects(Class<E> kind, boolean withNextBigBang) {
+        List<E> found = new ArrayList<>();
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
+            if (!isBigBangMilestoneReached(milestone) && !(withNextBigBang && milestone.bigBangs() == state.bigBangs() + 1)) continue;
             for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.Probes) return true;
+                if (kind.isInstance(effect)) found.add(kind.cast(effect));
             }
         }
-        return false;
+        return found;
+    }
+
+    /** Vrai si un palier atteint donne cet effet. */
+    boolean milestoneGives(Class<? extends BigBangMilestone.Effect> kind) {
+        return !reachedEffects(kind).isEmpty();
     }
 
     /** Sondes en vol à la fois : une, plus le hangar. */
@@ -459,25 +482,7 @@ public abstract class GameSystems extends GameBase {
 
     /** Les paliers « des places de plus » atteints. */
     private List<BigBangMilestone.MorePlaces> reachedMorePlaces() {
-        List<BigBangMilestone.MorePlaces> found = new ArrayList<>();
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.MorePlaces more) found.add(more);
-            }
-        }
-        return found;
-    }
-
-    /** Vrai si un palier atteint donne cet effet. */
-    private boolean milestoneGives(Class<? extends BigBangMilestone.Effect> kind) {
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (kind.isInstance(effect)) return true;
-            }
-        }
-        return false;
+        return reachedEffects(BigBangMilestone.MorePlaces.class);
     }
 
     /** Vrai une fois les matières exotiques ouvertes, au huitième Big Bang : leurs astres peuvent se former. */
@@ -557,14 +562,14 @@ public abstract class GameSystems extends GameBase {
     }
 
     /** Systèmes où se trouve cette planète. */
-    public int planetPlacements(String planetId) {
+    private int planetPlacements(String planetId) {
         int count = 0;
         for (SolarSystem system : state.solarSystems()) if (system.planets().contains(planetId)) count++;
         return count;
     }
 
     /** Vrai si cette planète peut encore entrer dans un système : une fois, ou deux une fois les trois défis de Big Bang réussis (version 0.116). */
-    public boolean canPlaceAgain(String planetId) {
+    private boolean canPlaceAgain(String planetId) {
         return planetPlacements(planetId) < (planetsTwice() ? 2 : 1);
     }
 

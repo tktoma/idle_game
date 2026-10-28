@@ -4,9 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
 import idle.core.molecules.ShoppingList;
 import idle.core.probes.Probe;
@@ -14,11 +11,8 @@ import idle.core.probes.ProbeDestination;
 import idle.core.probes.ProbeReward;
 import idle.core.probes.ProbeTrip;
 import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.086 : l'onde d'urgence chimique, et les sondes qui servent pendant l'absence. */
@@ -26,14 +20,10 @@ class SondesAbsenceTest {
 
     /** Une partie au troisième Big Bang, le troisième acte ouvert, et quelques éléments découverts. */
     private static Game game() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 3);
         game.state().setSpace(BigNum.of(1, 12));
-        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-            if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-        }
+        GameTestSupport.openSpace(game);
         return game;
     }
 

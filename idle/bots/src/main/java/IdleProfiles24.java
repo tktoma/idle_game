@@ -47,7 +47,7 @@ new Profile(24,"ReturningVeteran","Expert mais seulement 15 min / 3 h",60,10800,
  * préférée, chance de prendre les éléments offerts, et lequel.
  */
 static final NextUniversePolicy.Style[] STYLES = {
-style(CycleChoice.RESERVE,  1.00,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  1 Speedrunner : l'expert
+NextUniversePolicy.Style.EXPERT,                                                                           //  1 Speedrunner : l'expert
 style(CycleChoice.RESERVE,   .95,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  2 Veteran : presque l'expert
 style(CycleChoice.RESERVE,   .70, .90,NextUniversePolicy.Family.FOLLOW, .90,NextUniversePolicy.Pick.NEEDED), //  3 Regular : le bon choix, pas toujours le geste
 style(CycleChoice.RESERVE,   .90,1.00,NextUniversePolicy.Family.FOLLOW,1.00,NextUniversePolicy.Pick.NEEDED), //  4 Methodical : l'économe planifie et met en réserve
@@ -78,7 +78,7 @@ style(CycleChoice.RESERVE,  1.00,1.00,NextUniversePolicy.Family.FOLLOW,1.00,Next
  * chance de nourrir le trou noir.
  */
 static final VoidPolicy.Style[] VOID_STYLES = {
-vstyle(1.00, .50,VoidPolicy.Plan.BEST,    1.00,1.00), //  1 Speedrunner : l'expert
+VoidPolicy.Style.EXPERT,                             //  1 Speedrunner : l'expert
 vstyle(1.00, .50,VoidPolicy.Plan.BEST,     .95,1.00), //  2 Veteran : presque l'expert
 vstyle( .90, .25,VoidPolicy.Plan.BEST,     .70, .80), //  3 Regular : garde le réglage du jeu
 vstyle(1.00, .50,VoidPolicy.Plan.BEST,     .90,1.00), //  4 Methodical : planifie
@@ -108,7 +108,7 @@ vstyle(1.00, .50,VoidPolicy.Plan.BEST,    1.00,1.00), // 24 ReturningVeteran : l
  * d'achat du modèle, l'arbre de matière noire au mieux, tente les défis de Big Bang, règle ses sondes sur son absence.
  */
 static final EarlyStyle[] EARLY_STYLES = {
-early(true, true, true, false), //  1 Speedrunner : l'expert, toujours là
+EarlyStyle.EXPERT,              //  1 Speedrunner : l'expert, toujours là
 early(true, true, true, true ), //  2 Veteran
 early(true, true, true, true ), //  3 Regular
 early(true, true, true, true ), //  4 Methodical
@@ -149,8 +149,7 @@ final Random skyRng;
 double wallSeconds=0, onlineSeconds=0, creditedOfflineSeconds=0;
 int actions=0, planningActions=0, techActions=0, otherActions=0;
 int first8=-1, galaxy=-1, cluster=-1, universe=-1;
-int lastBang, lastBody, lastCosmos, lastExplosions;
-boolean originalMoleculeAutomation;
+int lastBang, lastCosmos, lastExplosions;
 final ProfileProgressGuard progressGuard;
 double nextGuardSampleAt=ProfileProgressGuard.SAMPLE_SECONDS;
 IdleProfiles24(Game game, Profile profile, long seed, double decisionStep){
@@ -162,7 +161,7 @@ this.nextUniverse=new NextUniversePolicy(STYLES[profile.id-1],new Random(seed ^ 
 this.earlyStyle=EARLY_STYLES[profile.id-1];
 // Version 0.133 : et le vide du troisième univers, à sa façon aussi.
 this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (profile.id*6151L) ^ 0x701dL));
-lastBang=game.bigBangs();lastBody=game.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
+lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
 }
 /** Les relevés des univers se comptent en temps réel, comme le reste du bilan des profils. */
@@ -180,7 +179,7 @@ return left<=next+step ? left+(p.cycleSeconds()-p.onlineSeconds()) : next;
 @Override void probes(){ if(rng.nextDouble()<p.techAttention()) { super.probes(); techActions++; } }
 @Override void collider(){ if(rng.nextDouble()<p.techAttention()) super.collider(); }
 static boolean allowExtraPrestige(Game game){
-return game.bigBangs()<8
+return game.bigBangs()<Bots.LAST_BIG_BANG
 && !game.canBigBang()
 && !FirstUniversePolicy.finalBangPreparation(game)
 && !FirstUniversePolicy.holdExplosions(game)
@@ -244,7 +243,6 @@ int count=(int)Math.ceil(horizonWallHours*3600/dt);
 double actionInterval=Math.max(1,p.actionEverySeconds());
 double nextActionAt=Math.min(actionInterval,dt);
 double startGameTime=g.state().timePlayed();
-int startBang=g.bigBangs(),startBody=g.bodiesFormed();
 StringBuilder logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));
 for(int i=0;i<count;i++){
@@ -265,11 +263,11 @@ if(g.skyEvent()!=null && !skyEventsOff() && skyRng.nextDouble()<p.skyAttention()
 if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
       int charges=g.pulseCharges();
       for(int k=0;k<charges;k++){
-        // Pour les conditions 18/24/28 astres et les 35 astres de la galaxie,
+        // Pour les conditions 18/24/28 astres et tous les astres du catalogue (la galaxie),
         // une minute de maturation gagne davantage qu'une impulsion d'espace.
-        boolean needsMaturation=g.bigBangs()>=5
-            && (g.bigBangs()<8 && !FirstUniversePolicy.skyReady(g)
-                || g.bigBangs()>=8 && g.bodiesMature()<35);
+        boolean needsMaturation=g.bigBangs()>=Game.BANG_CHALLENGES_BIG_BANGS
+            && (g.bigBangs()<Bots.LAST_BIG_BANG && !FirstUniversePolicy.skyReady(g)
+                || g.bigBangs()>=Bots.LAST_BIG_BANG && g.bodiesMature()<g.bodies().size());
         if(needsMaturation && !g.maturingBodies().isEmpty()){
           if(!g.hastenMaturation(g.maturingBodies().get(0)))g.pulse();
         }else g.pulse();
@@ -285,14 +283,14 @@ nextActionAt=Math.max(nextActionAt,wallSeconds+Math.min(actionInterval,dt));
 // Version 0.130 : la fin des deux premiers actes de chaque univers (première explosion, premier Big Bang).
 if(lastExplosions==0 && g.state().explosions()>0 && g.bigBangs()==0)event("EXPLOSION1");
 if(lastBang==0 && g.bigBangs()>0)event("BB1");
-if(lastBang<8 && g.bigBangs()>=8){if(first8<0)first8=i;event("BB8");}
+if(lastBang<Bots.LAST_BIG_BANG && g.bigBangs()>=Bots.LAST_BIG_BANG){if(first8<0)first8=i;event("BB8");}
 if(lastCosmos<1 && RobotCosmosPlanner.cosmosStage(g)>=1){if(galaxy<0)galaxy=i;event("GALAXY");}
 if(lastCosmos<2 && RobotCosmosPlanner.cosmosStage(g)>=2){if(cluster<0)cluster=i;event("CLUSTER");}
 if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){if(universe<0)universe=i;event("UNIVERSE");}
 // Version 0.130 : l'univers visé atteint, la partie s'arrête ; avant, l'univers suivant se lance.
 boolean done=universeProgress();
 if(launchedNextUniverse)event("NEXT_UNIVERSE");
-lastBang=g.bigBangs();lastBody=g.bodiesFormed();lastCosmos=RobotCosmosPlanner.cosmosStage(g);lastExplosions=g.state().explosions();
+lastBang=g.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(g);lastExplosions=g.state().explosions();
 if(wallSeconds+0.000001>=nextGuardSampleAt || done){
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,isOnline));
 while(nextGuardSampleAt<=wallSeconds+0.000001)nextGuardSampleAt+=ProfileProgressGuard.SAMPLE_SECONDS;
@@ -315,8 +313,7 @@ int id=Integer.parseInt(args[0]);Profile p=PROFILES[id-1];
 Path file=Path.of(args[1]);double hours=Double.parseDouble(args[2]),step=Double.parseDouble(args[3]);
 Path out=Path.of(args[4]);long seed=args.length>5?Long.parseLong(args[5]):42;
 if(args.length>6)System.setProperty("idle.stage",args[6]);
-GameState state=SaveCodec.read(Files.readString(file)).state();
-Game game=new Game(state,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,idle.core.achievements.Achievements.DEFAULT,new Random(seed));
+Game game=Bots.load(file,seed);
 IdleProfiles24 bot=new IdleProfiles24(game,p,seed,step);
 if(args.length>7)bot.targetUniverses=Integer.parseInt(args[7]);
 bot.execute(hours,out);

@@ -220,9 +220,9 @@ public final class Game extends GameVoid {
     /** Part du temps d'absence qui compte au premier acte, avant la première explosion. */
     public static final double OFFLINE_RATE_PARTICLES = 0.10;
     /** Part du temps d'absence qui compte au deuxième acte, de la première explosion au premier Big Bang. */
-    public static final double OFFLINE_RATE_DARK_MATTER = 0.40;
+    private static final double OFFLINE_RATE_DARK_MATTER = 0.40;
     /** Part du temps d'absence qui compte au troisième acte, du premier Big Bang à l'univers. */
-    public static final double OFFLINE_RATE_BIG_BANG = 0.70;
+    private static final double OFFLINE_RATE_BIG_BANG = 0.70;
     /** Part du temps d'absence qui compte une fois l'univers formé : tout. */
     public static final double OFFLINE_RATE_UNIVERSE = 1.0;
 
@@ -643,6 +643,14 @@ public final class Game extends GameVoid {
                 case COLLIDER_ENERGY_RATE -> isColliderUnlocked() ? power(BigNum.of(colliderEnergyPerSecond())) : Double.NaN;
                 case COLLISIONS -> isCollisionsUnlocked() ? state.collisionRuns() : Double.NaN;
                 case QUARKS -> isCollisionsUnlocked() ? totalQuarks() : Double.NaN;
+                case UNIVERSES -> universes();
+                case VOID_ENERGY -> isVoidUnlocked() ? power(voidEnergy()) : Double.NaN;
+                case VOID_ENERGY_RATE -> isVoidUnlocked() ? power(BigNum.of(voidGainPerSecond())) : Double.NaN;
+                case LINE_SHARDS -> isLineOpen() ? power(BigNum.of(state.dimensionShardsEarned())) : Double.NaN;
+                case PLANE_SHARDS -> isPlaneOpen() ? power(BigNum.of(state.planeShardsEarned())) : Double.NaN;
+                case VOLUME_SHARDS -> isVolumeOpen() ? power(BigNum.of(state.volumeShardsEarned())) : Double.NaN;
+                case DURATION_SHARDS -> isDurationOpen() ? power(BigNum.of(state.durationShardsEarned())) : Double.NaN;
+                case SEED_WATERINGS -> isUniverseFormed() || state.seedWaterings() > 0 ? state.seedWaterings() : Double.NaN;
                 case PARTICLES -> power(state.particles());
                 case ATOMS -> power(state.atoms());
                 case ELEMENT_COPIES -> ownedCopies();

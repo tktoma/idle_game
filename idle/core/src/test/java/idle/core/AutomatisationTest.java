@@ -5,21 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.upgrades.Automation;
-import idle.core.upgrades.Automations;
 import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -31,10 +23,7 @@ import org.junit.jupiter.api.Test;
 class AutomatisationTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     /** Une partie qui connaît la matière noire : assez pour tous ses automatismes, sauf celui de l'arbre. */
@@ -55,12 +44,11 @@ class AutomatisationTest {
     }
 
     private static void fillTable(Game game, int copies) {
-        for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), copies);
+        GameTestSupport.fillTable(game, copies);
     }
 
     private static void give(Game game, String id, int count) {
-        game.state().setMoleculeCount(id, count);
-        game.state().addSubstance(id);
+        GameTestSupport.give(game, id, count);
     }
 
     private static List<String> ids(List<Upgrade> upgrades) {
@@ -144,38 +132,35 @@ class AutomatisationTest {
             Game game = darkGame();
             game.setAtomUpgradeOrdered(true);
             assertTrue(game.setDarkAutomationEnabled("dark_auto_atoms", true));
-            // Une amélioration que le plafond d'atomes interdit, mise en tête : elle ne bloque pas la suite.
-            Upgrade blocked = null;
-            for (Upgrade upgrade : game.atomUpgradeOrder()) {
-                if (game.costOf(upgrade.id()).gt(game.atomCap())) blocked = upgrade;
-            }
-            if (blocked != null) {
-                while (game.moveAtomUpgrade(blocked.id(), -1)) { }
-            }
+            // Au départ, tout le catalogue tient sous le plafond : on monte la surcharge (sans limite) jusqu'à ce que son
+            // prochain niveau le dépasse, et on la met en tête ; elle ne bloque pas la suite.
+            Upgrade blocked = game.upgrade("atom_overload");
+            game.state().setLevel(blocked.id(), 30);
+            assertTrue(game.costOf(blocked.id()).gt(game.atomCap()), "2 849 atomes pour le 31e niveau, le plafond est à 118");
+            while (game.moveAtomUpgrade(blocked.id(), -1)) { }
+            assertEquals(blocked, game.atomUpgradeOrder().get(0));
             game.state().setAtoms(game.atomCap());
             game.tick(1.05);
             int bought = 0;
             for (Upgrade upgrade : game.atomUpgradeOrder()) bought += game.levelOf(upgrade.id());
-            assertEquals(1, bought);
-            if (blocked != null) assertEquals(0, game.levelOf(blocked.id()));
+            assertEquals(31, bought, "un seul achat de plus que les trente niveaux posés");
+            assertEquals(30, game.levelOf(blocked.id()), "la surcharge, en tête mais trop chère, n'est pas achetée");
 
             // Une amélioration au maximum en tête : il passe à la suivante.
-            Upgrade limited = null;
-            for (Upgrade upgrade : game.atomUpgradeOrder()) {
-                if (upgrade != blocked && upgrade.hasLimit() && limited == null) limited = upgrade;
-            }
-            if (limited != null) {
-                game.state().setLevel(limited.id(), limited.maxLevel());
-                while (game.moveAtomUpgrade(limited.id(), -1)) { }
-                assertTrue(game.isMaxed(limited.id()));
-                game.state().setAtoms(game.atomCap());
-                int before = 0;
-                for (Upgrade upgrade : game.atomUpgradeOrder()) before += game.levelOf(upgrade.id());
-                game.tick(1.05);
-                int after = 0;
-                for (Upgrade upgrade : game.atomUpgradeOrder()) after += game.levelOf(upgrade.id());
-                assertEquals(before + 1, after);
-            }
+            Upgrade limited = game.upgrade("atom_mass");
+            assertTrue(limited.hasLimit() && limited.maxLevel() == 1, "la masse n'a qu'un niveau");
+            game.state().setLevel(limited.id(), limited.maxLevel());
+            while (game.moveAtomUpgrade(limited.id(), -1)) { }
+            assertEquals(limited, game.atomUpgradeOrder().get(0));
+            assertTrue(game.isMaxed(limited.id()));
+            game.state().setAtoms(game.atomCap());
+            int before = 0;
+            for (Upgrade upgrade : game.atomUpgradeOrder()) before += game.levelOf(upgrade.id());
+            game.tick(1.05);
+            int after = 0;
+            for (Upgrade upgrade : game.atomUpgradeOrder()) after += game.levelOf(upgrade.id());
+            assertEquals(before + 1, after, "une amélioration achetée, plus loin dans l'ordre");
+            assertEquals(1, game.levelOf(limited.id()));
         }
 
         @Test
@@ -486,9 +471,7 @@ class AutomatisationTest {
             Game game = newGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
-            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             game.takeNewSpaceUpgrades();
             // De tout, en quantité : chaque assemblage puis chaque astre à portée doit se former sans un clic.
             for (Molecule molecule : game.molecules()) give(game, molecule.id(), 100_000);
@@ -510,9 +493,7 @@ class AutomatisationTest {
             Game game = newGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
-            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             for (Molecule molecule : game.molecules()) give(game, molecule.id(), 100_000);
             assertTrue(game.setAutoFormEnabled(false));
             int ready = game.assembliesReady();

@@ -5,10 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkAutomation;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
@@ -17,12 +15,9 @@ import idle.core.molecules.ShoppingList;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
 import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -35,10 +30,7 @@ import org.junit.jupiter.api.Test;
 class ConfortTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     /** Après un premier Big Bang, sans aucune amélioration d'espace et sans espace. */
@@ -52,15 +44,12 @@ class ConfortTest {
     private static Game openGame() {
         Game game = afterBigBang();
         game.state().setSpace(BigNum.of(1, 12));
-        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-            if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-        }
+        GameTestSupport.openSpace(game);
         return game;
     }
 
     private static void give(Game game, String id, int count) {
-        game.state().setMoleculeCount(id, count);
-        game.state().addSubstance(id);
+        GameTestSupport.give(game, id, count);
     }
 
     @Nested
@@ -521,13 +510,15 @@ class ConfortTest {
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.BODY, list.kind());
             assertFalse(list.ready());
+            // Rien de formé : le premier astre du catalogue, l'amas rocheux, est le plus avancé à portée.
+            assertEquals(first.name(), list.target());
             // Les ingrédients de tous ses assemblages, et la matière qu'il demande.
             int ingredients = 0;
             for (String assembly : first.assemblies()) ingredients += game.assembly(assembly).ingredients().size();
-            if (list.target().equals(first.name())) {
-                assertTrue(list.items().size() >= Math.min(1, ingredients));
-                for (Molecule.State state : first.matter().keySet()) assertTrue(list.matter().containsKey(state), state.name());
-            }
+            assertTrue(ingredients > 0, "l'amas rocheux demande un assemblage avec des ingrédients");
+            assertFalse(list.items().isEmpty());
+            assertFalse(first.matter().isEmpty(), "il demande aussi de la matière");
+            for (Molecule.State state : first.matter().keySet()) assertTrue(list.matter().containsKey(state), state.name());
             // Un astre dont les astres plus petits ne sont pas formés n'est jamais visé.
             Body target = game.bodies().stream().filter(body -> body.name().equals(list.target())).findFirst().orElseThrow();
             for (String smaller : target.bodies()) assertTrue(game.hasBody(smaller));
@@ -566,15 +557,15 @@ class ConfortTest {
             for (String assembly : body.assemblies()) game.state().addAssembly(assembly);
             for (Map.Entry<String, Integer> molecule : body.molecules().entrySet()) game.state().setMoleculeCount(molecule.getKey(), molecule.getValue());
             ShoppingList list = game.shoppingList();
-            if (list.target().equals(body.name())) {
-                Molecule.State state = body.matter().keySet().iterator().next();
-                int missing = (int) Math.max(0, body.matter().get(state) - game.gatheredInState(state));
-                if (missing > 0) {
-                    assertEquals(missing, list.matter().get(state));
-                    Molecule any = game.molecules().stream().filter(each -> each.state() == state).findFirst().orElseThrow();
-                    assertTrue(list.wants(any));
-                }
-            }
+            assertEquals(body.name(), list.target(), "le seul astre sans ses petits qui reste à former");
+            Molecule.State state = body.matter().keySet().iterator().next();
+            int missing = (int) Math.max(0, body.matter().get(state) - game.gatheredInState(state));
+            assertTrue(missing > 0, "rien n'est rassemblé : toute sa matière manque");
+            assertEquals(missing, list.matter().get(state));
+            Molecule any = game.molecules().stream().filter(each -> each.state() == state).findFirst().orElseThrow();
+            assertTrue(list.wants(any));
+            Molecule other = game.molecules().stream().filter(each -> each.hasState() && each.state() != state).findFirst().orElseThrow();
+            assertFalse(list.wants(other), "une molécule d'un autre état ne sert à rien ici");
         }
 
         @Test

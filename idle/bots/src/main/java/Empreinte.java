@@ -1,7 +1,5 @@
 import idle.core.*;
-import idle.core.darkmatter.*;
 import idle.core.save.*;
-import idle.core.upgrades.*;
 import java.nio.file.*;
 import java.util.*;
 
@@ -17,12 +15,8 @@ import java.util.*;
  * <p>Usage : {@code Empreinte <dossier-de-sortie> [debut|bigbang|v2|absent ...]}, depuis le dossier bots.
  */
 public class Empreinte {
-  static Game game(GameState state, long seed) {
-    return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, idle.core.achievements.Achievements.DEFAULT, new Random(seed));
-  }
-
-  static GameState save(String file) throws Exception {
-    return SaveCodec.read(Files.readString(Path.of("sauvegardes/reference", file))).state();
+  static Game save(String file, long seed) throws Exception {
+    return Bots.load(Path.of("sauvegardes/reference", file), seed);
   }
 
   public static void main(String[] args) throws Exception {
@@ -34,10 +28,10 @@ public class Empreinte {
       long t0 = System.nanoTime();
       Game g;
       switch (part) {
-        case "debut" -> { g = game(new GameState(), 7); g.start(); new FreshPhaseProfiles(g, FreshPhaseProfiles.PROFILES[0], 7, 20).runFresh(10, logs); }
-        case "bigbang" -> { g = game(save("checkpoint_bigbang.save"), 3); new IdleProfiles24(g, IdleProfiles24.PROFILES[2], 3, 20).execute(6, logs); }
-        case "v2" -> { g = game(save("checkpoint_before_eighth.save"), 42); new AdvancedLab(g, 20, "DEPENDANCES", 42).runLab(12, logs); }
-        case "absent" -> { g = game(save("checkpoint_before_eighth.save"), 5); new IdleProfiles24(g, IdleProfiles24.PROFILES[19], 5, 20).execute(30, logs); }
+        case "debut" -> { g = Bots.fresh(7); new FreshPhaseProfiles(g, FreshPhaseProfiles.PROFILES[0], 7, 20).runFresh(10, logs); }
+        case "bigbang" -> { g = save("checkpoint_bigbang.save", 3); new IdleProfiles24(g, IdleProfiles24.PROFILES[2], 3, 20).execute(6, logs); }
+        case "v2" -> { g = save("checkpoint_before_eighth.save", 42); new AdvancedLab(g, 20, "DEPENDANCES", 42).runLab(12, logs); }
+        case "absent" -> { g = save("checkpoint_before_eighth.save", 5); new IdleProfiles24(g, IdleProfiles24.PROFILES[19], 5, 20).execute(30, logs); }
         default -> throw new IllegalArgumentException("partie inconnue : " + part);
       }
       Files.writeString(out.resolve(part + ".save"), SaveCodec.write(g.state(), 0));

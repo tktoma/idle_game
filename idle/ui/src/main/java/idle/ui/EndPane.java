@@ -5,11 +5,9 @@ import idle.core.GameStats;
 import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -18,12 +16,10 @@ import javafx.scene.text.TextAlignment;
  * formé. Il dit le temps de jeu, la durée de chaque acte et ce que valent les records, quelques
  * chiffres de la partie, puis laisse continuer. Le jeu continue de tourner derrière.
  */
-final class EndPane extends StackPane {
+final class EndPane extends Overlay {
 
-    private static final String CARD_STYLE = "-fx-background-color: #16202e; -fx-background-radius: 10; -fx-border-radius: 10;"
-            + " -fx-border-color: #ffd27f; -fx-padding: 24 30;";
-    private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 6;"
-            + " -fx-border-radius: 6; -fx-text-fill: #0b0e14; -fx-background-color: #ffd27f; -fx-border-color: #ffffff;";
+    private static final String CARD_STYLE = cardStyle("#ffd27f", false, "24 30");
+    private static final String BUTTON_STYLE = buttonStyle("8 18", "#ffd27f");
 
     private final Game game;
     private final Label title = new Label("L'univers est formé");
@@ -33,6 +29,7 @@ final class EndPane extends StackPane {
     private final Button button = new Button("Continuer");
 
     EndPane(Game game) {
+        super(VEIL);
         this.game = game;
         title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #ffd27f;");
         for (Label label : List.of(summary, acts, numbers)) {
@@ -49,10 +46,7 @@ final class EndPane extends StackPane {
         card.setStyle(CARD_STYLE);
         card.setMaxWidth(520);
         card.setMaxHeight(USE_PREF_SIZE);
-        setStyle("-fx-background-color: #0b0e14cc;");
-        setPadding(new Insets(24));
-        getChildren().add(card);
-        setVisible(false);
+        mount(card);
     }
 
     /** Vrai tant que l'écran est affiché. */

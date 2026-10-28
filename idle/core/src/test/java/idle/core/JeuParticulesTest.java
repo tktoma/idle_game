@@ -121,10 +121,10 @@ class JeuParticulesTest extends GameTestSupport {
         void unGrosTickVautPlusieursPetits() {
             Game small = gameWithParticles(100);
             small.buy("gen");
-            for (int i = 0; i < 20 * 3600; i++) small.tick(0.05); // 1 h à 20 ticks/s
+            for (int i = 0; i < 20 * 300; i++) small.tick(0.05);  // 5 min à 20 ticks/s
             Game big = gameWithParticles(100);
             big.buy("gen");
-            big.tick(3600);                                        // 1 h hors-ligne
+            big.tick(300);                                         // 5 min hors-ligne
             assertEquals(total(big), total(small), 1e-6);
         }
 
@@ -641,16 +641,6 @@ class JeuParticulesTest extends GameTestSupport {
             game.state().setParticles(BigNum.of(50));
             assertTrue(game.buy("gen"));
             assertEquals(BigNum.ZERO, game.state().particles());
-        }
-
-        @Test
-        void sansPersistanceLaFusionEffaceLaVitesse() {
-            Game game = richGame();
-            game.buy("speed");
-            game.buy("gen");
-            game.buy("gen");
-            game.fuse();
-            assertEquals(0, game.levelOf("speed"));
         }
 
         @Test

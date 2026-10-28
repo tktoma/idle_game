@@ -1,9 +1,5 @@
 import idle.core.*;
-import idle.core.upgrades.*;
-import idle.core.darkmatter.*;
-import idle.core.achievements.*;
 import idle.core.sky.*;
-import idle.core.save.*;
 import java.nio.file.*;
 import java.util.*;
 
@@ -19,8 +15,7 @@ import java.util.*;
 public class VerifyVictory {
   public static void main(String[] args) throws Exception {
     String file = args.length == 0 ? "sauvegardes/reference/checkpoint_universe_5s.save" : args[0];
-    GameState state = SaveCodec.read(Files.readString(Path.of(file))).state();
-    Game g = new Game(state,Upgrades.DEFAULT,Automations.DEFAULT,DarkUpgrades.DEFAULT,Achievements.DEFAULT,new Random(42));
+    Game g = Bots.load(Path.of(file), 42);
     if (!g.hasCosmos(Cosmos.UNIVERSE)) throw new AssertionError("Univers absent : la partie n'est pas gagnée");
     // Une sauvegarde écrite après la remise à zéro de l'univers garde son bilan ; une plus ancienne a encore tout en place.
     long[] tally = g.stats().universeTally();

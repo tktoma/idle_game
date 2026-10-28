@@ -16,10 +16,7 @@ class GraineAmeliorationsTest {
 
     /** Quatre univers : les quatre dimensions sont ouvertes, l'arrosoir débloqué, de quoi tout payer. */
     private static Game rich() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
-        while (game.universes() < 4) assertTrue(game.testAddUniverse());
+        Game game = GameTestSupport.universe(4);
         assertTrue(game.unlockWateringCan());
         game.state().setDimensionShards(1e12);
         game.state().setPlaneShards(1e12);
@@ -51,9 +48,7 @@ class GraineAmeliorationsTest {
 
     @Test
     void lesAmeliorationsAttendentLeurDimensionLArrosoirEtLEtageDuChrono() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.universe(1);
         game.state().setDimensionShards(1e12);
         game.state().setPlaneShards(1e12);
         assertFalse(game.isSeedUpgradeOpen(SeedUpgrade.WATERING), "pas d'arrosoir");
@@ -146,10 +141,13 @@ class GraineAmeliorationsTest {
         assertEquals(1, copy.seedUpgradeLevel(SeedUpgrade.CHRONO.ordinal()));
         assertEquals(42, copy.chronoStored(), 1e-9);
         assertEquals(1.5, copy.chronoSpeed(), 1e-9);
-        GameState old = SaveCodec.read(SaveCodec.write(new GameState(), 1)).state();
-        assertEquals(0, old.seedUpgradeLevel(0));
+        String text = SaveCodec.write(game.state(), 1).replaceAll("(?m)^(seedUpgrade[0-9]+|chrono[A-Za-z]*)=.*\\R", "");
+        assertFalse(text.contains("seedUpgrade0=") || text.contains("chronoStored="), "les clés de la 0.139 sont retirées");
+        GameState old = SaveCodec.read(text).state();
+        assertEquals(0, old.seedUpgradeLevel(SeedUpgrade.SOIL.ordinal()), "une sauvegarde d'avant repart sans amélioration");
+        assertEquals(0, old.chronoStored(), 1e-12);
         assertEquals(1, old.chronoSpeed(), 1e-12);
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.SOIL), "former l'univers suivant ne les reprend pas");
         assertEquals(42, game.chronoStored(), 1e-9);
         game.testResetUniverses();

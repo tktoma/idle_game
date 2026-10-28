@@ -3,7 +3,6 @@ package idle.core;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangMilestone;
-import idle.core.bigbang.BigBangMilestones;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
@@ -33,7 +32,6 @@ public abstract class GameMatterAutomation extends GameMolecules {
 
     // Ce que fournissent les parties suivantes.
     public abstract double bangReward(BangChallenge.Reward reward);
-    abstract boolean ownsSpaceEffect(Class<? extends SpaceUpgrade.Effect> type);
 
 
     // ------------------------------------------------------------------
@@ -54,14 +52,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
      * le palier qui le donne est atteint, ou ce Big Bang l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsChallenges() {
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            // Le Big Bang qui ouvre le palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
-            if (milestone.bigBangs() != state.bigBangs() + 1 && !isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.KeepChallenges) return true;
-            }
-        }
-        return false;
+        return !nextBigBangEffects(BigBangMilestone.KeepChallenges.class).isEmpty();
     }
 
     /**
@@ -70,25 +61,12 @@ public abstract class GameMatterAutomation extends GameMolecules {
      * l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsDarkTree() {
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            // Le Big Bang qui ouvre le palier en profite déjà ; les suivants, une fois le palier payé (version 0.124).
-            if (milestone.bigBangs() != state.bigBangs() + 1 && !isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.KeepDarkTree) return true;
-            }
-        }
-        return false;
+        return !nextBigBangEffects(BigBangMilestone.KeepDarkTree.class).isEmpty();
     }
 
     /** Vrai une fois atteint le palier de Big Bang qui donne la création automatique ({@link BigBangMilestone.AutoMolecules}). */
     public boolean isMoleculeAutomationUnlocked() {
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.AutoMolecules) return true;
-            }
-        }
-        return false;
+        return milestoneGives(BigBangMilestone.AutoMolecules.class);
     }
 
     /** Vrai si la création automatique est réglée sur « en marche » ; elle l'est par défaut dès qu'elle est acquise. */
@@ -681,12 +659,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
     public double bigBangDarkMatterFactor() {
         if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double factor = 1;
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.DarkMatter dark) factor *= dark.factor();
-            }
-        }
+        for (BigBangMilestone.DarkMatter dark : reachedEffects(BigBangMilestone.DarkMatter.class)) factor *= dark.factor();
         return factor;
     }
 
@@ -695,12 +668,7 @@ public abstract class GameMatterAutomation extends GameMolecules {
         // La récompense d'un défi de Big Bang reste, même pendant celui qui fait taire les paliers.
         double factor = bangReward(BangChallenge.Reward.ACCRETION);
         if (bangRuled(BangChallenge.FORGOTTEN)) return factor;
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.Accretion accretion) factor *= accretion.factor();
-            }
-        }
+        for (BigBangMilestone.Accretion accretion : reachedEffects(BigBangMilestone.Accretion.class)) factor *= accretion.factor();
         return factor;
     }
 

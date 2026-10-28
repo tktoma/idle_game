@@ -5,11 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
@@ -20,17 +15,17 @@ import idle.core.sky.Assembly;
 import idle.core.sky.Bodies;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Les règles du jeu : les assemblages et les astres.
+ * Les assemblages et les astres : le catalogue, ce que chacun demande, la galaxie, l'amas et l'univers qui se forment,
+ * et ce qu'ils gardent au Big Bang. Avec eux, deux règles de la même échelle : les outils d'essai des univers et des
+ * dimensions ({@code lesUniversEtLeursDimensionsSansLogique}), et le plafond d'un milliard de molécules par sorte
+ * ({@code leNombreDeMoleculesDepasseDeuxMilliardsEnTout}).
  */
 class JeuAstresTest extends GameTestSupport {
 
@@ -40,9 +35,7 @@ class JeuAstresTest extends GameTestSupport {
 
         /** Après un premier Big Bang, rassemblements et assemblages ouverts, beaucoup d'espace. */
         private Game game() {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
             game.state().addSpaceUpgrade("space_states");
@@ -86,13 +79,13 @@ class JeuAstresTest extends GameTestSupport {
                 int most = assembly.family() == Assembly.Family.STELLAR ? 1500 : 450;
                 assertTrue(assembly.size() >= 150 && assembly.size() <= most, assembly.id() + " : " + assembly.size());
             }
-            Assembly granite = new Game().assembly("granitic_rock");
+            Assembly granite = new Game(42L).assembly("granitic_rock");
             assertEquals("Roche granitique", granite.name());
             assertEquals(Map.of("SiO2", 120, "KAlSi3O8", 90, "NaAlSi3O8", 60), granite.ingredients());
             assertEquals(270, granite.size());
             assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 1.35), granite.boost());      // 270 molécules : +135 %
             // Des pierres précieuses : presque rien que leur cristal, et les traces qui les colorent.
-            Assembly gems = new Game().assembly("corundum_gems");
+            Assembly gems = new Game(42L).assembly("corundum_gems");
             assertEquals(300, gems.ingredients().get("Al2O3"));
             assertEquals(4, gems.ingredients().get("Cr2O3"));
             assertEquals(Molecule.Stat.DARK_GROWTH, gems.boost().stat());
@@ -106,9 +99,7 @@ class JeuAstresTest extends GameTestSupport {
             give(game, "CO2", 4);
             assertTrue(game.isAssembliesUnlocked());
             assertTrue(game.canFormAssembly("air"));
-            Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            closed.start();
+            Game closed = GameTestSupport.realGame();
             GameTestSupport.bangs(closed, 1);
             closed.state().addSpaceUpgrade("space_states");
             give(closed, "N2", 312);
@@ -241,11 +232,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.hasAssembly("air"));
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertTrue(game.hasAssembly("air"));
@@ -273,14 +260,10 @@ class JeuAstresTest extends GameTestSupport {
 
         /** Après un premier Big Bang, tout ouvert jusqu'aux astres, beaucoup d'espace. */
         private Game game() {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 12));
-            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             return game;
         }
 
@@ -618,9 +601,7 @@ class JeuAstresTest extends GameTestSupport {
         void lAppuiAutomatiqueFaitGrossirLaMatiereNoireSansClic() {
             Game game = game();
             // Sans l'amélioration : rien ne grossit seul.
-            Game bare = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            bare.start();
+            Game bare = GameTestSupport.realGame();
             GameTestSupport.bangs(bare, 1);
             bare.state().setExplosions(1);
             bare.state().setDarkMatter(BigNum.of(5));
@@ -728,11 +709,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.hasGalaxy());
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertTrue(game.hasGalaxy() && game.isGalaxyUnlocked());
@@ -843,9 +820,7 @@ class JeuAstresTest extends GameTestSupport {
             supply(game, "rocky_rubble");
             assertTrue(game.isBodiesUnlocked());
             assertTrue(game.canFormBody("rocky_rubble"));
-            Game closed = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            closed.start();
+            Game closed = GameTestSupport.realGame();
             GameTestSupport.bangs(closed, 1);
             closed.state().setSpace(BigNum.of(100_000));
             closed.state().addSpaceUpgrade("space_states");
@@ -951,11 +926,7 @@ class JeuAstresTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.hasBody("icy_comet"));
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertTrue(game.hasBody("icy_comet"));

@@ -366,8 +366,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // Le vide (version 0.129) repart de zéro à chaque univers : seul son historique reste.
         Map<String, Double> voidKept = new java.util.LinkedHashMap<>(voidHistory);
         double shards = dimensionShards, phase = linePhase;
-        int yieldLevel = lineYieldLevel, ticksLevel = lineTicksLevel;
-        int speedLevel = lineSpeedLevel, ballsLevel = lineBallsLevel, countLevel = lineCountLevel;
+        int[] lineKeptLevels = lineLevels.clone();
         double earned = dimensionShardsEarned;
         boolean sprouted = seedSprouted;
         long waterings = seedWaterings;
@@ -375,13 +374,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         boolean twig = twigOpened;
         int seedOpened = seedUniversesOpened;
         double planeKept = planeShards, planeEarned = planeShardsEarned;
-        int[] planeKeptLevels = {planeValueLevel, planeSpawnLevel, planeCountLevel, planeSpeedLevel, planeSizeLevel};
+        int[] planeKeptLevels = planeLevels.clone();
         double volumeKept = volumeShards, volumeEarned = volumeShardsEarned;
-        int[] volumeKeptLevels = new int[VOLUME_UPGRADES];
-        for (int i = 0; i < VOLUME_UPGRADES; i++) volumeKeptLevels[i] = volumeLevel(i);
+        int[] volumeKeptLevels = volumeLevels.clone();
         double durationKept = durationShards, durationEarned = durationShardsEarned;
-        int[] durationKeptLevels = new int[DURATION_UPGRADES];
-        for (int i = 0; i < DURATION_UPGRADES; i++) durationKeptLevels[i] = durationLevel(i);
+        int[] durationKeptLevels = durationLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -434,11 +431,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // La ligne (version 0.101) appartient à la partie secondaire : elle traverse les univers.
         dimensionShards = shards;
         linePhase = phase;
-        lineYieldLevel = yieldLevel;
-        lineTicksLevel = ticksLevel;
-        lineSpeedLevel = speedLevel;
-        lineBallsLevel = ballsLevel;
-        lineCountLevel = countLevel;
+        System.arraycopy(lineKeptLevels, 0, lineLevels, 0, LINE_UPGRADES);
         dimensionShardsEarned = earned;
         seedSprouted = sprouted;
         seedWaterings = waterings;
@@ -447,15 +440,15 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         seedUniversesOpened = seedOpened;
         planeShards = planeKept;
         planeShardsEarned = planeEarned;
-        for (int i = 0; i < planeKeptLevels.length; i++) setPlaneLevel(i, planeKeptLevels[i]);
+        System.arraycopy(planeKeptLevels, 0, planeLevels, 0, PLANE_UPGRADES);
         // Le volume (version 0.128) traverse les univers, comme la ligne et le plan.
         volumeShards = volumeKept;
         volumeShardsEarned = volumeEarned;
-        for (int i = 0; i < volumeKeptLevels.length; i++) setVolumeLevel(i, volumeKeptLevels[i]);
+        System.arraycopy(volumeKeptLevels, 0, volumeLevels, 0, VOLUME_UPGRADES);
         // La durée (version 0.134) aussi.
         durationShards = durationKept;
         durationShardsEarned = durationEarned;
-        for (int i = 0; i < durationKeptLevels.length; i++) setDurationLevel(i, durationKeptLevels[i]);
+        System.arraycopy(durationKeptLevels, 0, durationLevels, 0, DURATION_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -542,49 +535,68 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         linePhase = phase >= 0 && phase < 2 ? phase : 0;
     }
 
+    /** Niveau d'une amélioration de la ligne, dans l'ordre de {@code Game.LineUpgrade} ; 0 hors des cinq. */
+    public int lineLevel(int index) {
+        return level(lineLevels, index);
+    }
+
+    public void setLineLevel(int index, int level) {
+        setLevel(lineLevels, index, level);
+    }
+
     /** Niveau de l'amélioration qui augmente les éclats de chaque trait touché. */
     public int lineYieldLevel() {
-        return lineYieldLevel;
+        return lineLevels[0];
     }
 
     public void setLineYieldLevel(int level) {
-        lineYieldLevel = Math.max(0, level);
+        setLineLevel(0, level);
     }
 
     /** Niveau de l'amélioration qui ajoute des traits sur la ligne : un trait de plus par niveau. */
     public int lineTicksLevel() {
-        return lineTicksLevel;
+        return lineLevels[1];
     }
 
     public void setLineTicksLevel(int level) {
-        lineTicksLevel = Math.max(0, level);
+        setLineLevel(1, level);
     }
 
     /** Niveau de l'amélioration qui accélère la boule. */
     public int lineSpeedLevel() {
-        return lineSpeedLevel;
+        return lineLevels[2];
     }
 
     public void setLineSpeedLevel(int level) {
-        lineSpeedLevel = Math.max(0, level);
+        setLineLevel(2, level);
     }
 
     /** Niveau de l'amélioration qui ajoute des boules : une de plus par niveau, sur chaque ligne. */
     public int lineBallsLevel() {
-        return lineBallsLevel;
+        return lineLevels[3];
     }
 
     public void setLineBallsLevel(int level) {
-        lineBallsLevel = Math.max(0, level);
+        setLineLevel(3, level);
     }
 
     /** Niveau de l'amélioration qui ajoute des lignes : une de plus par niveau. */
     public int lineCountLevel() {
-        return lineCountLevel;
+        return lineLevels[4];
     }
 
     public void setLineCountLevel(int level) {
-        lineCountLevel = Math.max(0, level);
+        setLineLevel(4, level);
+    }
+
+    /** Le niveau rangé à {@code index} dans un tableau de niveaux ; 0 hors du tableau. */
+    private static int level(int[] levels, int index) {
+        return index >= 0 && index < levels.length ? levels[index] : 0;
+    }
+
+    /** Range {@code level} (0 au moins) à {@code index} dans un tableau de niveaux ; rien hors du tableau. */
+    private static void setLevel(int[] levels, int index, int level) {
+        if (index >= 0 && index < levels.length) levels[index] = Math.max(0, level);
     }
 
     /** Tous les éclats de dimension gagnés, dépensés ou non : c'est eux que compte le seuil. */
@@ -659,28 +671,13 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         planeShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
     }
 
-    /** Niveau d'une amélioration du plan, dans l'ordre de {@code Game.PlaneUpgrade}. */
+    /** Niveau d'une amélioration du plan, dans l'ordre de {@code Game.PlaneUpgrade} ; 0 hors des cinq. */
     public int planeLevel(int index) {
-        return switch (index) {
-            case 0 -> planeValueLevel;
-            case 1 -> planeSpawnLevel;
-            case 2 -> planeCountLevel;
-            case 3 -> planeSpeedLevel;
-            case 4 -> planeSizeLevel;
-            default -> 0;
-        };
+        return level(planeLevels, index);
     }
 
     public void setPlaneLevel(int index, int level) {
-        int value = Math.max(0, level);
-        switch (index) {
-            case 0 -> planeValueLevel = value;
-            case 1 -> planeSpawnLevel = value;
-            case 2 -> planeCountLevel = value;
-            case 3 -> planeSpeedLevel = value;
-            case 4 -> planeSizeLevel = value;
-            default -> { }
-        }
+        setLevel(planeLevels, index, level);
     }
 
     /** Éclats du volume (version 0.128) : propres à la troisième dimension. */
@@ -703,26 +700,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Niveau d'une amélioration du volume, dans l'ordre de {@code Game.VolumeUpgrade} ; 0 hors des cinq. */
     public int volumeLevel(int index) {
-        return switch (index) {
-            case 0 -> volumeTimeLevel;
-            case 1 -> volumeValueLevel;
-            case 2 -> volumeSpawnLevel;
-            case 3 -> volumeCountLevel;
-            case 4 -> volumeSizeLevel;
-            default -> 0;
-        };
+        return level(volumeLevels, index);
     }
 
     public void setVolumeLevel(int index, int level) {
-        int value = Math.max(0, level);
-        switch (index) {
-            case 0 -> volumeTimeLevel = value;
-            case 1 -> volumeValueLevel = value;
-            case 2 -> volumeSpawnLevel = value;
-            case 3 -> volumeCountLevel = value;
-            case 4 -> volumeSizeLevel = value;
-            default -> { }
-        }
+        setLevel(volumeLevels, index, level);
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
@@ -745,11 +727,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Niveau d'une amélioration de la graine, dans l'ordre de {@code Game.SeedUpgrade} ; 0 hors des huit. */
     public int seedUpgradeLevel(int index) {
-        return index >= 0 && index < SEED_UPGRADES ? seedUpgradeLevels[index] : 0;
+        return level(seedUpgradeLevels, index);
     }
 
     public void setSeedUpgradeLevel(int index, int level) {
-        if (index >= 0 && index < SEED_UPGRADES) seedUpgradeLevels[index] = Math.max(0, level);
+        setLevel(seedUpgradeLevels, index, level);
     }
 
     /** Le temps gardé dans le chrono (version 0.139), en secondes. */
@@ -804,24 +786,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Niveau d'une amélioration de la durée, dans l'ordre de {@code Game.DurationUpgrade} ; 0 hors des quatre. */
     public int durationLevel(int index) {
-        return switch (index) {
-            case 0 -> durationSpeedLevel;
-            case 1 -> durationCountLevel;
-            case 2 -> durationValueLevel;
-            case 3 -> durationTimeLevel;
-            default -> 0;
-        };
+        return level(durationLevels, index);
     }
 
     public void setDurationLevel(int index, int level) {
-        int value = Math.max(0, level);
-        switch (index) {
-            case 0 -> durationSpeedLevel = value;
-            case 1 -> durationCountLevel = value;
-            case 2 -> durationValueLevel = value;
-            case 3 -> durationTimeLevel = value;
-            default -> { }
-        }
+        setLevel(durationLevels, index, level);
     }
 
     /** Univers créés après le premier (version 0.081). */
@@ -897,32 +866,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Niveau d'une amélioration du vide, dans l'ordre de {@code Game.VoidUpgrade} ; 0 hors des huit. */
     public int voidLevel(int index) {
-        return switch (index) {
-            case 0 -> voidGainLevel;
-            case 1 -> voidRateLevel;
-            case 2 -> voidEnergyLevel;
-            case 3 -> voidSpaceLevel;
-            case 4 -> voidDecayLevel;
-            case 5 -> voidLightenLevel;
-            case 6 -> voidMatureLevel;
-            case 7 -> voidSettleLevel;
-            default -> 0;
-        };
+        return level(voidLevels, index);
     }
 
     public void setVoidLevel(int index, int level) {
-        int value = Math.max(0, level);
-        switch (index) {
-            case 0 -> voidGainLevel = value;
-            case 1 -> voidRateLevel = value;
-            case 2 -> voidEnergyLevel = value;
-            case 3 -> voidSpaceLevel = value;
-            case 4 -> voidDecayLevel = value;
-            case 5 -> voidLightenLevel = value;
-            case 6 -> voidMatureLevel = value;
-            case 7 -> voidSettleLevel = value;
-            default -> { }
-        }
+        setLevel(voidLevels, index, level);
     }
 
     /** Le vide de chaque univers formé : son numéro → l'énergie du vide qu'il restait à sa formation. */

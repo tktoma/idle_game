@@ -210,11 +210,6 @@ public enum ColliderUpgrade {
         return generator;
     }
 
-    /** Vrai pour un automate de générateur. */
-    public boolean isAutomation() {
-        return generator != null;
-    }
-
     /** La saveur qu'ouvre cette amélioration (le quark bas pour « Collisions », qui ouvre aussi le haut), ou {@code null}. */
     public Quark flavor() {
         return flavor;

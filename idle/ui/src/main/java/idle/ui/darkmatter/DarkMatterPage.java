@@ -11,7 +11,9 @@ import idle.ui.common.CanvasPane;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.StableHeight;
+import idle.ui.common.SubTabs;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -21,7 +23,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Contenu de l'onglet « Matière noire ». En haut, la quantité disponible et la quantité gagnée ;
@@ -47,9 +48,6 @@ import javafx.scene.text.TextAlignment;
  * <p>L'onglet n'apparaît qu'après la première explosion du tableau périodique.
  */
 public final class DarkMatterPage extends VBox {
-
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
 
     private final Game game;
     private final Label balanceLabel = new Label();
@@ -115,29 +113,11 @@ public final class DarkMatterPage extends VBox {
 
         balanceLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + ";");
         sizeLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #efe4ff;");
-        landmarkLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
-        landmarkLabel.setWrapText(true);
-        landmarkLabel.setTextAlignment(TextAlignment.CENTER);
-        milestoneLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #7fe0d4;");
-        milestoneLabel.setWrapText(true);
-        milestoneLabel.setTextAlignment(TextAlignment.CENTER);
-        speedLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        speedLabel.setWrapText(true);
-        speedLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(landmarkLabel, "-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
+        Labels.centered(milestoneLabel, "-fx-font-size: 13px; -fx-text-fill: #7fe0d4;");
+        Labels.centered(speedLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
 
-        // Une sous-page n'est recopiée que lorsqu'elle est affichée : elle l'est donc dès qu'on la choisit.
-        pointTab.setOnAction(event -> {
-            select(0);
-            refresh();
-        });
-        treeTab.setOnAction(event -> {
-            select(1);
-            refresh();
-        });
-        challengesTab.setOnAction(event -> {
-            select(2);
-            refresh();
-        });
+        SubTabs.wire(false, this::select, this::refresh, pointTab, treeTab, challengesTab);
         subTabs = new HBox(pointTab, treeTab, challengesTab);
         subTabs.setAlignment(Pos.CENTER);
 
@@ -167,9 +147,7 @@ public final class DarkMatterPage extends VBox {
                 + "en l'atteignant, sans rien dépenser. Pour les particules, une seconde de production compte comme "
                 + "des particules en main. Les liaisons, entre deux branches, se paient en matière noire. La "
                 + "matière noire dépensée reste comptée comme gagnée : la croissance n'y perd rien.");
-        mockNotice.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        mockNotice.setWrapText(true);
-        mockNotice.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(mockNotice);
         treePane.setAlignment(Pos.TOP_CENTER);
         treePane.setPadding(new Insets(10, 0, 10, 0));
         treePane.getChildren().add(mockNotice);
@@ -181,14 +159,10 @@ public final class DarkMatterPage extends VBox {
         treePane.getChildren().add(treePlan);
         treePane.getChildren().add(reopen);
         treePane.getChildren().add(tree);
-        treeScroll.setFitToWidth(true);
-        treeScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        treeScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(treeScroll);
 
         // Les sous-pages sont empilées au même endroit ; une seule est visible à la fois.
-        challengesScroll.setFitToWidth(true);
-        challengesScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        challengesScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(challengesScroll);
         StackPane pages = new StackPane(pointPane, treeScroll, challengesScroll);
         VBox.setVgrow(pages, Priority.ALWAYS);
 
@@ -280,16 +254,9 @@ public final class DarkMatterPage extends VBox {
         pointPane.setVisible(index == 0);
         treeScroll.setVisible(index == 1);
         challengesScroll.setVisible(index == 2);
-        pointTab.setStyle(subTabStyle(index == 0));
-        treeTab.setStyle(subTabStyle(index == 1));
-        challengesTab.setStyle(subTabStyle(index == 2));
-    }
-
-    private static String subTabStyle(boolean selected) {
-        return SUB_TAB_STYLE + (selected
-                ? " -fx-text-fill: " + GameApp.DARK_MATTER_COLOR + "; -fx-border-color: transparent transparent "
-                        + GameApp.DARK_MATTER_COLOR + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
+        pointTab.setStyle(SubTabs.style(index == 0, GameApp.DARK_MATTER_COLOR));
+        treeTab.setStyle(SubTabs.style(index == 1, GameApp.DARK_MATTER_COLOR));
+        challengesTab.setStyle(SubTabs.style(index == 2, GameApp.DARK_MATTER_COLOR));
     }
 
     /**

@@ -12,6 +12,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,7 +22,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Contenu de l'onglet « Succès » : le compte, ce que les succès rapportent en tout, puis une
@@ -59,13 +59,8 @@ public final class AchievementsPage extends VBox {
         setPadding(new Insets(16, 24, 16, 24));
 
         countLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.ACHIEVEMENTS_COLOR + ";");
-        bonusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
-        bonusLabel.setWrapText(true);
-        bonusLabel.setTextAlignment(TextAlignment.CENTER);
-        hintLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        hintLabel.setWrapText(true);
-        hintLabel.setTextAlignment(TextAlignment.CENTER);
-        hintLabel.setMaxWidth(640);
+        Labels.centered(bonusLabel, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
+        Labels.note(hintLabel, 640);
         hintLabel.setText("Chaque succès ajoute " + AchievementText.common() + ", quel qu'il soit. Les tuiles dorées "
                 + "récompensent une action précise et portent en plus un bonus à elles. L'ordre est celui où on les "
                 + "obtient d'ordinaire ; survolez une tuile pour lire ce qu'elle demande.");

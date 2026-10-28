@@ -3,7 +3,14 @@ package idle.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.achievements.Achievement;
+import idle.core.bigbang.SpaceUpgrade;
+import idle.core.darkmatter.Challenge;
+import idle.core.elements.Element;
+import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
+import idle.core.save.SaveCodec;
+import idle.core.sky.Body;
 import idle.core.upgrades.Automation;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
@@ -12,9 +19,98 @@ import java.util.Random;
 
 /**
  * Ce que partagent les tests des règles du jeu : un petit catalogue d'améliorations et d'automatismes,
- * et les parties toutes prêtes.
+ * les parties toutes prêtes, et les mises en situation du vrai jeu (catalogues complets, hasard graîné) :
+ * l'espace ouvert, le Big Bang prêt, la bifurcation « matière », le n-ième univers, la relecture d'une sauvegarde.
  */
 abstract class GameTestSupport {
+
+    // ------------------------------------------------------------------
+    // Le vrai jeu, avec ses catalogues complets et un hasard reproductible
+    // ------------------------------------------------------------------
+
+    /** Le vrai jeu, catalogues complets et succès compris, démarré, le hasard de la synthèse tiré de la graine 42. */
+    static Game realGame() {
+        Game game = new Game(42L);
+        game.start();
+        return game;
+    }
+
+    /** Une partie au n-ième univers (1 au moins) : le premier formé, les autres ajoutés par l'outil d'essai ; n dimensions ouvertes. */
+    static Game universe(int count) {
+        Game game = realGame();
+        game.testFormUniverse();
+        for (int k = 1; k < count; k++) assertTrue(game.testAddUniverse());
+        assertEquals(count, game.universes());
+        return game;
+    }
+
+    /**
+     * Donne toutes les améliorations d'espace sauf celles qui multiplient une grandeur ({@link SpaceUpgrade.Boost}) :
+     * elles fausseraient les comptes et ont leurs propres tests.
+     */
+    static void openSpace(Game game) {
+        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
+            if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
+        }
+    }
+
+    /**
+     * Réunit exactement ce que le Big Bang demande : une explosion, les particules, les atomes, la matière noire,
+     * les succès (juste le compte demandé), tous les défis, et du sixième au huitième Big Bang les astres mûrs.
+     */
+    static void readyForBigBang(Game game) {
+        game.state().setExplosions(Math.max(1, game.state().explosions()));
+        game.state().setParticles(Game.BIG_BANG_PARTICLES);
+        game.state().setAtoms(Game.BIG_BANG_ATOMS);
+        game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+        int given = 0;
+        for (Achievement achievement : game.achievements()) {
+            if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
+        }
+        for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+        for (Body body : game.bodies()) {
+            if (game.bodiesMature() >= game.bigBangSkyRequirement()) break;
+            game.state().addBody(body.id());
+        }
+    }
+
+    /** Remplit le tableau périodique : {@code copies} exemplaires de chacun des 118 éléments. */
+    static void fillTable(Game game, int copies) {
+        for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), copies);
+    }
+
+    /** Remplit le tableau périodique jusqu'au plafond de chaque élément. */
+    static void fillTableToMax(Game game) {
+        for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), element.category().maxCopies());
+    }
+
+    /** Donne {@code count} exemplaires de cette molécule, rassemblée en substance. */
+    static void give(Game game, String moleculeId, int count) {
+        game.state().setMoleculeCount(moleculeId, count);
+        game.state().addSubstance(moleculeId);
+    }
+
+    /**
+     * Une partie à la bifurcation « matière » de l'arbre de matière noire, ses deux voies payables : douze explosions,
+     * douze de matière noire, les trois cases qui y mènent, et 5 000 atomes.
+     */
+    static Game atFork() {
+        Game game = realGame();
+        game.state().setDarkMatter(BigNum.of(12));
+        game.state().setExplosions(12);
+        for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
+        game.state().setAtoms(BigNum.of(5000));
+        return game;
+    }
+
+    /** Écrit cet état en texte de sauvegarde et le relit : ce que verrait une partie rechargée. */
+    static GameState reread(GameState state) {
+        try {
+            return SaveCodec.read(SaveCodec.write(state, 0)).state();
+        } catch (Exception unreadable) {
+            throw new AssertionError(unreadable);
+        }
+    }
 
     /**
      * Met la partie à ce nombre de Big Bangs, paliers payés (version 0.124 : un palier ouvert ne

@@ -11,6 +11,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.MatterText;
 import idle.ui.common.TileGrid;
 import idle.ui.probes.ProbesPane;
@@ -24,7 +25,6 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * La sous-page « Astres » de l'onglet Big Bang : les corps du ciel que le joueur forme en cumulant
@@ -77,10 +77,7 @@ public final class BodiesPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 0, 0));
 
-        intro.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        intro.setWrapText(true);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        intro.setMaxWidth(760);
+        Labels.note(intro, 760);
 
         CanvasPane skyPane = CanvasPane.filling(sky);
         skyPane.setMinHeight(SKY_HEIGHT);
@@ -134,10 +131,8 @@ public final class BodiesPane extends VBox {
             hastenButtons.add(hasten);
             maturationBox.getChildren().add(row);
         }
-        planTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        planTitle.setWrapText(true);
+        Labels.centered(planTitle, "-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
         planTitle.setMaxWidth(760);
-        planTitle.setTextAlignment(TextAlignment.CENTER);
         planMissing.setStyle("-fx-font-size: 12px; -fx-text-fill: #e8f4ff;");
         planDone.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f9f86;");
         for (Label label : new Label[] {planMissing, planDone}) {

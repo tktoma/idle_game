@@ -1,13 +1,14 @@
 package idle.ui.pages;
 
 import idle.core.math.BigNum;
-import idle.ui.Cosmetic;
 import idle.ui.GameApp;
 import idle.ui.Settings;
 import idle.ui.Shortcuts;
 import idle.ui.Version;
 import idle.ui.common.Detail;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -34,7 +35,7 @@ import javafx.scene.text.TextAlignment;
  *   <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le
  *       rapport de bug, la version du jeu et ses notes.</li>
  * </ul>
- * Un thème ou une notation à débloquer ({@link Cosmetic}) montre, tant qu'il est fermé, un
+ * Un thème ou une notation à débloquer ({@link idle.ui.Cosmetic}) montre, tant qu'il est fermé, un
  * cadenas et un indice ; une fois ouvert, ce qu'il fallait faire.
  * Chaque réglage s'applique tout de suite. Les règles du jeu ne changent pas : les réglages sont
  * dans {@link Settings}, pas dans core.
@@ -62,9 +63,6 @@ public final class SettingsPage extends VBox {
             return label;
         }
     }
-
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
 
     private static final String SETTINGS_COLOR = "#d6dde6";
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand;"
@@ -198,6 +196,8 @@ public final class SettingsPage extends VBox {
     private final Label recordsLabel = new Label();
     private final Map<Settings.Notation, Button> notationButtons = new EnumMap<>(Settings.Notation.class);
     private final Label notationExample = new Label();
+    /** La notation dont les exemples sont écrits : ils ne se recalculent que si elle change. */
+    private Settings.Notation exampleNotation;
     private final Button effectsButton = new Button();
     private final Button soundButton = new Button();
     private final Button tabsTopButton = new Button("En haut (la disposition actuelle)");
@@ -272,17 +272,10 @@ public final class SettingsPage extends VBox {
         javafx.scene.layout.FlowPane notationFlow = new javafx.scene.layout.FlowPane(8, 8);
         notationFlow.setAlignment(Pos.CENTER);
         notationFlow.setMaxWidth(640);
-        for (Settings.Notation notation : Settings.Notation.values()) {
-            Button button = new Button(notation.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                notationHint = settings.isOpen(notation) ? "" : "Fermée. Indice : " + notation.unlock().hint();
-                if (settings.isOpen(notation)) settings.setNotation(notation);
-                refresh();
-            });
-            notationButtons.put(notation, button);
-            notationFlow.getChildren().add(button);
-        }
+        choiceRow(notationFlow, Settings.Notation.values(), Settings.Notation::label, notation -> {
+            notationHint = settings.isOpen(notation) ? "" : "Fermée. Indice : " + notation.unlock().hint();
+            if (settings.isOpen(notation)) settings.setNotation(notation);
+        }, notationButtons, true);
         block("Notation des grands nombres",
                 "Comment s'écrivent les nombres à partir d'un million, partout dans le jeu. Celles marquées d'un "
                         + "cadenas s'ouvrent en faisant quelque chose de très précis : un clic dessus donne un indice.");
@@ -294,20 +287,13 @@ public final class SettingsPage extends VBox {
         javafx.scene.layout.FlowPane themes = new javafx.scene.layout.FlowPane(8, 8);
         themes.setAlignment(Pos.CENTER);
         themes.setMaxWidth(640);
-        for (Settings.Theme theme : Settings.Theme.values()) {
-            Button button = new Button(theme.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                themeHint = settings.isOpen(theme) ? "" : "Fermé. Indice : " + theme.unlock().hint();
-                if (settings.isOpen(theme)) {
-                    settings.setTheme(theme);
-                    this.onAppearance.run();
-                }
-                refresh();
-            });
-            themeButtons.put(theme, button);
-            themes.getChildren().add(button);
-        }
+        choiceRow(themes, Settings.Theme.values(), Settings.Theme::label, theme -> {
+            themeHint = settings.isOpen(theme) ? "" : "Fermé. Indice : " + theme.unlock().hint();
+            if (settings.isOpen(theme)) {
+                settings.setTheme(theme);
+                this.onAppearance.run();
+            }
+        }, themeButtons, true);
         block("Thème", "Chaque thème filtre les couleurs du thème sombre. Le thème clair les inverse : le fond devient clair, "
                 + "les textes foncés, et chaque couleur garde sa teinte. Les autres tournent les teintes, les éteignent ou "
                 + "les teintent. Ceux marqués d'un cadenas s'ouvrent en faisant quelque chose de très précis : un clic "
@@ -317,16 +303,10 @@ public final class SettingsPage extends VBox {
 
         HBox scales = new HBox(8);
         scales.setAlignment(Pos.CENTER);
-        for (Settings.Scale scale : Settings.Scale.values()) {
-            Button button = new Button(scale.label());
-            button.setOnAction(event -> {
-                settings.setScale(scale);
-                this.onAppearance.run();
-                refresh();
-            });
-            scaleButtons.put(scale, button);
-            scales.getChildren().add(button);
-        }
+        choiceRow(scales, Settings.Scale.values(), Settings.Scale::label, scale -> {
+            settings.setScale(scale);
+            this.onAppearance.run();
+        }, scaleButtons, false);
         block("Taille de l'interface", "Agrandit ou réduit tout ensemble : les textes, les boutons et les dessins.");
         target.getChildren().add(scales);
 
@@ -334,15 +314,8 @@ public final class SettingsPage extends VBox {
         javafx.scene.layout.FlowPane sizes = new javafx.scene.layout.FlowPane(8, 8);
         sizes.setAlignment(Pos.CENTER);
         sizes.setMaxWidth(760);
-        for (Settings.WindowSize size : Settings.WindowSize.values()) {
-            Button button = new Button(size.text());
-            button.setOnAction(event -> {
-                windowSize.accept(size);
-                refresh();
-            });
-            sizeButtons.put(size, button);
-            sizes.getChildren().add(button);
-        }
+        // Le receveur se branche après (setWindowSize) : on le relit au clic.
+        choiceRow(sizes, Settings.WindowSize.values(), Settings.WindowSize::text, size -> windowSize.accept(size), sizeButtons, false);
         block("Taille de la fenêtre", "Un format prédéfini, recentré sur l'écran. La fenêtre se redimensionne toujours à la main, "
                 + "mais pas en dessous d'une taille où tout reste utilisable ; cette limite grandit avec la taille de l'interface.");
         target.getChildren().add(sizes);
@@ -409,16 +382,8 @@ public final class SettingsPage extends VBox {
         target.getChildren().add(effectsButton);
         effectRow.setAlignment(Pos.CENTER);
         effectRow.setMaxWidth(640);
-        for (Settings.Effect effect : Settings.Effect.values()) {
-            Button button = new Button(effect.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                settings.setEffect(effect, !settings.effectChosen(effect));
-                refresh();
-            });
-            effectButtons.put(effect, button);
-            effectRow.getChildren().add(button);
-        }
+        choiceRow(effectRow, Settings.Effect.values(), Settings.Effect::label,
+                effect -> settings.setEffect(effect, !settings.effectChosen(effect)), effectButtons, true);
         target.getChildren().add(effectRow);
 
         block("Sons",
@@ -448,16 +413,7 @@ public final class SettingsPage extends VBox {
                         + GameApp.ICONIFIED_FPS + " quand elle est réduite.");
         HBox rateRow = new HBox(8);
         rateRow.setAlignment(Pos.CENTER);
-        for (Settings.FrameRate rate : Settings.FrameRate.values()) {
-            Button button = new Button();
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                settings.setFrameRate(rate);
-                refresh();
-            });
-            frameRateButtons.put(rate, button);
-            rateRow.getChildren().add(button);
-        }
+        choiceRow(rateRow, Settings.FrameRate.values(), rate -> "", settings::setFrameRate, frameRateButtons, true);
         energyButton.setOnAction(event -> {
             settings.setSaveEnergy(!settings.saveEnergy());
             refresh();
@@ -576,16 +532,7 @@ public final class SettingsPage extends VBox {
         Label delayLabel = new Label("Sauvegarde automatique toutes les");
         delayLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9d1d9;");
         delayRow.getChildren().add(delayLabel);
-        for (Settings.SaveDelay delay : Settings.SaveDelay.values()) {
-            Button button = new Button(delay.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                settings.setSaveDelay(delay);
-                refresh();
-            });
-            saveDelayButtons.put(delay, button);
-            delayRow.getChildren().add(button);
-        }
+        choiceRow(delayRow, Settings.SaveDelay.values(), Settings.SaveDelay::label, settings::setSaveDelay, saveDelayButtons, true);
         target.getChildren().add(delayRow);
         saveButton.setStyle(OFF_STYLE);
         saveButton.setOnAction(event -> {
@@ -841,11 +788,32 @@ public final class SettingsPage extends VBox {
     }
 
     private void note(Label label) {
-        label.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        label.setWrapText(true);
-        label.setTextAlignment(TextAlignment.CENTER);
-        label.setMaxWidth(560);
+        Labels.note(label, 560);
         (target == null ? getChildren() : target.getChildren()).add(label);
+    }
+
+    /** Un bouton à deux états : son texte selon l'état, éclairé quand il est actif. */
+    private static void toggle(Button button, boolean on, String onText, String offText) {
+        button.setText(on ? onText : offText);
+        button.setStyle(on ? ON_STYLE : OFF_STYLE);
+    }
+
+    /**
+     * Une rangée de choix : un bouton par valeur, qui l'applique puis recopie la page. {@code focusless} retire les
+     * boutons du parcours au clavier. Leurs couleurs (celui qui est choisi est éclairé) se posent dans {@link #refresh()}.
+     */
+    private <E> void choiceRow(javafx.scene.layout.Pane row, E[] values, java.util.function.Function<E, String> label,
+            java.util.function.Consumer<E> choose, Map<E, Button> buttons, boolean focusless) {
+        for (E value : values) {
+            Button button = new Button(label.apply(value));
+            if (focusless) button.setFocusTraversable(false);
+            button.setOnAction(event -> {
+                choose.accept(value);
+                refresh();
+            });
+            buttons.put(value, button);
+            row.getChildren().add(button);
+        }
     }
 
     /**
@@ -881,20 +849,21 @@ public final class SettingsPage extends VBox {
 
     /** Recopie les réglages dans les boutons. */
     public void refresh() {
-        sectionTabs.forEach((section, tab) -> tab.setStyle(SUB_TAB_STYLE + (section == selected
-                ? " -fx-text-fill: " + SETTINGS_COLOR + "; -fx-border-color: transparent transparent " + SETTINGS_COLOR + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;")));
+        sectionTabs.forEach((section, tab) -> tab.setStyle(SubTabs.style(SubTabs.NARROW_STYLE, section == selected, SETTINGS_COLOR)));
         notationButtons.forEach((notation, button) -> {
             boolean open = settings.isOpen(notation);
             button.setText(open ? notation.label() : "🔒 " + notation.label());
             button.setStyle(notation == settings.notation() ? ON_STYLE : open ? OFF_STYLE : LOCKED_STYLE);
             tip(button, open && notation.unlock() != null ? "Débloquée en : " + notation.unlock().condition() : open ? "" : notation.unlock().hint());
         });
-        StringBuilder example = new StringBuilder("Exemples : ");
-        for (int i = 0; i < SAMPLES.length; i++) {
-            example.append(i == 0 ? "" : "   ·   ").append(Format.big(SAMPLES[i]));
+        if (exampleNotation != Format.notation()) {
+            exampleNotation = Format.notation();
+            StringBuilder example = new StringBuilder("Exemples : ");
+            for (int i = 0; i < SAMPLES.length; i++) {
+                example.append(i == 0 ? "" : "   ·   ").append(Format.big(SAMPLES[i]));
+            }
+            notationExample.setText(example.toString());
         }
-        notationExample.setText(example.toString());
 
         themeButtons.forEach((theme, button) -> {
             boolean open = settings.isOpen(theme);
@@ -915,8 +884,7 @@ public final class SettingsPage extends VBox {
             tip(button, effect.description());
         });
         saveDelayButtons.forEach((delay, button) -> button.setStyle(delay == settings.saveDelay() ? ON_STYLE : OFF_STYLE));
-        offlineButton.setText(settings.offline() ? "Temps hors ligne : rejoué au retour" : "Temps hors ligne : ignoré");
-        offlineButton.setStyle(settings.offline() ? ON_STYLE : OFF_STYLE);
+        toggle(offlineButton, settings.offline(), "Temps hors ligne : rejoué au retour", "Temps hors ligne : ignoré");
         scaleButtons.forEach((scale, button) -> button.setStyle(scale == settings.scale() ? ON_STYLE : OFF_STYLE));
         Settings.WindowSize current = sizeNow.get();
         sizeButtons.forEach((size, button) -> {
@@ -924,24 +892,18 @@ public final class SettingsPage extends VBox {
             button.setDisable(!fits);
             button.setStyle(size == current ? ON_STYLE : OFF_STYLE);
         });
-        notificationsButton.setText(settings.notifications() ? "Notifications : affichées" : "Notifications : coupées");
-        notificationsButton.setStyle(settings.notifications() ? ON_STYLE : OFF_STYLE);
-        goalButton.setText(settings.showGoal() ? "Objectif : affiché" : "Objectif : caché");
-        goalButton.setStyle(settings.showGoal() ? ON_STYLE : OFF_STYLE);
-        signsButton.setText(settings.stateSigns() ? "Signes d'état : affichés" : "Signes d'état : cachés");
-        signsButton.setStyle(settings.stateSigns() ? ON_STYLE : OFF_STYLE);
-        chronoButton.setText(settings.chrono() ? "Chrono : affiché" : "Chrono : caché");
-        chronoButton.setStyle(settings.chrono() ? ON_STYLE : OFF_STYLE);
-        skyEventsButton.setText(settings.skyEvents() ? "Événements du ciel : montrés" : "Événements du ciel : masqués");
-        skyEventsButton.setStyle(settings.skyEvents() ? ON_STYLE : OFF_STYLE);
+        toggle(notificationsButton, settings.notifications(), "Notifications : affichées", "Notifications : coupées");
+        toggle(goalButton, settings.showGoal(), "Objectif : affiché", "Objectif : caché");
+        toggle(signsButton, settings.stateSigns(), "Signes d'état : affichés", "Signes d'état : cachés");
+        toggle(chronoButton, settings.chrono(), "Chrono : affiché", "Chrono : caché");
+        toggle(skyEventsButton, settings.skyEvents(), "Événements du ciel : montrés", "Événements du ciel : masqués");
         recordsLabel.setText(saves.records());
-        effectsButton.setText(settings.effects() ? "Effets visuels : affichés" : "Effets visuels : coupés");
+        toggle(effectsButton, settings.effects(), "Effets visuels : affichés", "Effets visuels : coupés");
         tabsTopButton.setStyle(settings.tabsLeft() ? OFF_STYLE : ON_STYLE);
         tabsLeftButton.setStyle(settings.tabsLeft() ? ON_STYLE : OFF_STYLE);
         tabOrderButton.setStyle(OFF_STYLE);
         tabOrderButton.setDisable(settings.tabOrder().isEmpty());
-        soundButton.setText(settings.sound() ? "Sons : activés" : "Sons : coupés");
-        soundButton.setStyle(settings.sound() ? ON_STYLE : OFF_STYLE);
+        toggle(soundButton, settings.sound(), "Sons : activés", "Sons : coupés");
         volumeLabel.setText("Volume : " + settings.volume() + " %");
         quieterButton.setDisable(!settings.sound() || settings.volume() <= 0);
         louderButton.setDisable(!settings.sound() || settings.volume() >= 100);
@@ -949,34 +911,26 @@ public final class SettingsPage extends VBox {
             entry.getValue().setText(entry.getKey().label() + " images/s");
             entry.getValue().setStyle(entry.getKey() == settings.frameRate() ? ON_STYLE : OFF_STYLE);
         }
-        energyButton.setText(settings.saveEnergy() ? "Économie d'énergie : oui" : "Économie d'énergie : non");
-        energyButton.setStyle(settings.saveEnergy() ? ON_STYLE : OFF_STYLE);
-        effectsButton.setStyle(settings.effects() ? ON_STYLE : OFF_STYLE);
-        confirmButton.setText(settings.confirmExplosion() ? "Explosion : demandée" : "Explosion : non demandée");
-        confirmButton.setStyle(settings.confirmExplosion() ? ON_STYLE : OFF_STYLE);
-        confirmBigBangButton.setText(settings.confirmBigBang() ? "Big Bang : demandée" : "Big Bang : non demandée");
-        confirmBigBangButton.setStyle(settings.confirmBigBang() ? ON_STYLE : OFF_STYLE);
-        confirmChallengeButton.setText(settings.confirmChallenge() ? "Défis : demandée" : "Défis : non demandée");
-        confirmChallengeButton.setStyle(settings.confirmChallenge() ? ON_STYLE : OFF_STYLE);
+        toggle(energyButton, settings.saveEnergy(), "Économie d'énergie : oui", "Économie d'énergie : non");
+        toggle(confirmButton, settings.confirmExplosion(), "Explosion : demandée", "Explosion : non demandée");
+        toggle(confirmBigBangButton, settings.confirmBigBang(), "Big Bang : demandée", "Big Bang : non demandée");
+        toggle(confirmChallengeButton, settings.confirmChallenge(), "Défis : demandée", "Défis : non demandée");
         // La liste des raccourcis : chaque touche est un bouton, éclairé pendant qu'il attend la nouvelle.
         keyList.setVisible(settings.shortcuts());
         keyList.setManaged(settings.shortcuts());
         keyButtons.forEach((action, button) -> {
             boolean waiting = capturing && capturingAction == action;
             KeyCode bound = settings.key(action);
-            button.setText(waiting ? "Appuyez sur une touche…" : bound == null ? "(aucune)" : Shortcuts.name(bound));
-            button.setStyle(waiting ? ON_STYLE : OFF_STYLE);
+            toggle(button, waiting, "Appuyez sur une touche…", bound == null ? "(aucune)" : Shortcuts.name(bound));
         });
         boolean custom = settings.shortcuts() && settings.hasCustomKeys();
         resetKeysButton.setVisible(custom);
         resetKeysButton.setManaged(custom);
         show(keyNote, capturingAction != null ? captureProblem : "");
-        shortcutsButton.setText(settings.shortcuts() ? "Raccourcis clavier : actifs" : "Raccourcis clavier : coupés");
-        shortcutsButton.setStyle(settings.shortcuts() ? ON_STYLE : OFF_STYLE);
+        toggle(shortcutsButton, settings.shortcuts(), "Raccourcis clavier : actifs", "Raccourcis clavier : coupés");
         String key = Detail.keyName(settings.detailKey());
         boolean detailWaiting = capturing && capturingAction == null;
-        detailKeyButton.setText(detailWaiting ? "Appuyez sur une touche… (Échap annule)" : "Touche : " + key + " (changer)");
-        detailKeyButton.setStyle(detailWaiting ? ON_STYLE : OFF_STYLE);
+        toggle(detailKeyButton, detailWaiting, "Appuyez sur une touche… (Échap annule)", "Touche : " + key + " (changer)");
         detailModeButton.setText(settings.detailToggle() ? "Un appui bascule" : "À tenir enfoncée");
         detailModeButton.setStyle(OFF_STYLE);
         show(detailKeyNote, capturingAction == null ? captureProblem : "");
@@ -985,8 +939,7 @@ public final class SettingsPage extends VBox {
             explanation.setVisible(Detail.shown());
             explanation.setManaged(Detail.shown());
         }
-        pauseButton.setText(settings.paused() ? "En pause : cliquer pour reprendre" : "Mettre en pause");
-        pauseButton.setStyle(settings.paused() ? ON_STYLE : OFF_STYLE);
+        toggle(pauseButton, settings.paused(), "En pause : cliquer pour reprendre", "Mettre en pause");
         resetButton.setText(resetArmed > 0
                 ? "Cliquer encore pour tout effacer (" + (int) Math.ceil(resetArmed) + " s)"
                 : "Recommencer de zéro");
@@ -1006,8 +959,7 @@ public final class SettingsPage extends VBox {
             armedLook(checkpointDelete.get(slot), "delete:" + slot, "Effacer", "Effacer ce point ?", used);
         }
         show(checkpointNote, checkpointMessage);
-        notesButton.setText(notesShown ? "Cacher les notes de version" : "Notes de version");
-        notesButton.setStyle(notesShown ? ON_STYLE : OFF_STYLE);
+        toggle(notesButton, notesShown, "Cacher les notes de version", "Notes de version");
         notesLabel.setVisible(notesShown);
         notesLabel.setManaged(notesShown);
     }

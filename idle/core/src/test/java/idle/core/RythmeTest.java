@@ -4,14 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
 import idle.core.upgrades.Automation;
-import idle.core.upgrades.Automations;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
 import idle.core.upgrades.Upgrades;
@@ -58,8 +55,7 @@ class RythmeTest {
 
     /** Le vrai jeu, tableau périodique ouvert, avec de quoi payer n'importe quelle synthèse. */
     private static Game chemist(long seed) {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(seed));
+        Game game = new Game(seed);
         game.start();
         game.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
         rich(game);
@@ -76,8 +72,7 @@ class RythmeTest {
         @Test
         void laVitesseDeDepartEstCelleDAvantMultiplieeParLeTempo() {
             assertEquals(0.25 * Game.TEMPO, Game.BASE_SPEED.toDouble(), 1e-12);
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             assertEquals(Game.BASE_SPEED.toDouble(), game.productionPerSecond().toDouble(), 1e-12);
         }
 

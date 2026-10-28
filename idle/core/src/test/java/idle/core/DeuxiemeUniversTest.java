@@ -9,61 +9,33 @@ import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
-import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
 import idle.core.universe.CycleChoice;
 import idle.core.universe.Skin;
 import idle.core.universe.SkinVisual;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.087 : le deuxième univers, la partie rejouée, l'onglet Skins et ce qui ne s'ouvre qu'à partir de là. */
+/**
+ * Les univers après le premier : la partie rejouée qui mène au deuxième univers, l'onglet Skins, le régime et la
+ * synergie, la graine et ses paliers qui ouvrent les univers suivants, la brindille, les défis de Big Bang du deuxième
+ * univers, la fuite, le choix du cycle et la préférence de famille. Les dimensions 1 et 2 ont leurs propres classes
+ * ({@link LigneTest}, {@link PlanTest}).
+ */
 class DeuxiemeUniversTest {
 
-    /** Une méthode du jeu, cherchée dans toute la chaîne de ses parties. */
-    private static java.lang.reflect.Method declared(String name) throws NoSuchMethodException {
-        for (Class<?> c = Game.class; c != null; c = c.getSuperclass()) {
-            for (java.lang.reflect.Method m : c.getDeclaredMethods()) if (m.getName().equals(name) && m.getParameterCount() == 0) return m;
-        }
-        throw new NoSuchMethodException(name);
-    }
-
-
-    /** Forme l'univers comme formCosmos le fait une fois les conditions réunies. */
-    static void formUniverse(Game game) {
-        game.state().setCosmosLevel(3);
-        try {
-            java.lang.reflect.Method form = declared("formUniverse");
-            form.setAccessible(true);
-            form.invoke(game);
-        } catch (ReflectiveOperationException broken) {
-            throw new AssertionError(broken);
-        }
-    }
-
-    /** Une partie dans le deuxième univers : le premier formé, les paliers rouverts. */
+    /** Une partie dans le deuxième univers : le premier formé, la partie suivante lancée, les paliers rouverts. */
     static Game second() {
-        Game game = new Game();
-        game.start();
-        formUniverse(game);
+        Game game = GameTestSupport.universe(1);
         assertTrue(game.startNextUniverse());
         return game;
     }
 
-    private static GameState reread(GameState state) {
-        try {
-            return SaveCodec.read(SaveCodec.write(state, 0)).state();
-        } catch (Exception unreadable) {
-            throw new AssertionError(unreadable);
-        }
-    }
-
     @Test
     void laPartieRejoueeMeneALUniversSuivant() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         assertFalse(game.isSecondUniverse());
         assertFalse(game.canStartNextUniverse());
-        formUniverse(game);
+        game.testFormUniverse();
         assertTrue(game.isSecondUniverse() && game.hasCosmos(Cosmos.UNIVERSE) && !game.isReplaying());
         assertEquals(1, game.universes());
         assertTrue(game.canStartNextUniverse());
@@ -72,11 +44,11 @@ class DeuxiemeUniversTest {
         // Rejouée : l'univers de cette partie n'est pas formé, mais le premier compte toujours.
         assertTrue(game.isReplaying() && !game.hasCosmos(Cosmos.UNIVERSE) && game.isUniverseFormed());
         assertEquals(1, game.universes());
-        assertEquals(Cosmos.GALAXY, game.nextCosmos() == null ? Cosmos.GALAXY : game.nextCosmos());
-        assertTrue(reread(game.state()).replaying());
+        assertEquals(Cosmos.GALAXY, game.nextCosmos(), "le cosmos de la partie rejouée repart de la galaxie");
+        assertTrue(GameTestSupport.reread(game.state()).replaying());
         // L'univers formé de nouveau : le deuxième, une graine de plus, tout remis à zéro.
         GameTestSupport.bangs(game, 4);
-        formUniverse(game);
+        game.testFormUniverse();
         assertEquals(2, game.universes());
         assertEquals(BigNum.of(2), game.state().universeSeeds());
         assertEquals(0, game.bigBangs());
@@ -87,10 +59,7 @@ class DeuxiemeUniversTest {
 
     @Test
     void lOngletSkinsSOuvreACinqFusionsDuDeuxiemeUnivers() {
-        Game game = new Game();
-        game.start();
-        game.state().stats();
-        formUniverse(game);
+        Game game = GameTestSupport.universe(1);
         assertFalse(game.isSkinsUnlocked());
         long base = game.state().fusionsAtUniverse();
         assertEquals(game.stats().fusions(), base);
@@ -107,7 +76,7 @@ class DeuxiemeUniversTest {
         assertTrue(game.chooseSkin(SkinVisual.DARK_ANIMATION, Skin.DARK_VORTEX));
         assertFalse(game.chooseSkin(SkinVisual.ATOM, Skin.DARK_VORTEX), "pas pour un autre visuel");
         assertFalse(game.chooseSkin(SkinVisual.ATOM, Skin.ATOM_DENSE), "pas un skin verrouillé");
-        formUniverse(game);
+        game.testFormUniverse();
         assertTrue(game.isSkinsUnlocked() && game.hasSkin(Skin.DARK_VORTEX));
         assertEquals(Skin.DARK_VORTEX, game.chosenSkin(SkinVisual.DARK_ANIMATION));
         assertNull(game.chosenSkin(SkinVisual.ATOM));
@@ -145,11 +114,24 @@ class DeuxiemeUniversTest {
         game.tick(Game.REGIME_REST_SECONDS);
         assertTrue(game.canStartRegime(), "reposé : il se relance");
         // Hors du deuxième univers, il ne s'ouvre pas.
-        Game first = new Game();
-        first.start();
+        Game first = GameTestSupport.realGame();
         first.state().setLevel("generator", Game.REGIME_GENERATORS - 1);
         first.tick(0.01);
         assertFalse(first.isRegimeUnlocked());
+    }
+
+    @Test
+    void laVitesseQuiTourneVraimentPorteLeRegimeEtLaSynergie() {
+        // Version 0.123 : la production voit le régime et la synergie, pas seulement l'animation.
+        Game game = second();
+        assertEquals(game.speed().toDouble(), game.runningSpeed().toDouble(), 1e-12, "sans régime ni synergie, la vitesse commune");
+        game.state().setLevel("generator", Game.SYNERGY_GENERATORS - 1);
+        game.tick(0.01);
+        assertTrue(game.isSynergyUnlocked() && game.isRegimeUnlocked());
+        assertTrue(game.startRegime());
+        double expected = game.speed().toDouble() * (1 + Game.REGIME_GAIN) * (1 + Game.SYNERGY_MAX);
+        assertEquals(expected, game.runningSpeed().toDouble(), expected * 1e-9, "vitesse × régime × synergie");
+        assertEquals(1.15575, game.runningSpeed().toDouble() / game.speed().toDouble(), 1e-9, "+15 % de régime et +0,5 % de synergie : ×1,15575");
     }
 
     @Test
@@ -172,125 +154,14 @@ class DeuxiemeUniversTest {
         assertEquals(1, game.perfectCycleMultiplier(), 0, "elle s'éteint");
     }
 
-    /** Une partie au premier univers formé : la première dimension est ouverte. */
-    private static Game firstUniverse() {
-        Game game = new Game();
-        game.start();
-        formUniverse(game);
-        return game;
-    }
-
-    @Test
-    void laLigneDonneUnDixiemeDEclatParTraitTouche() {
-        Game before = new Game();
-        before.start();
-        before.tick(100);
-        assertFalse(before.isLineOpen(), "avant l'univers, pas de dimension");
-        assertEquals(0, before.state().dimensionShards(), 0);
-        Game game = firstUniverse();
-        assertTrue(game.isLineOpen());
-        assertEquals(2, game.lineTicks(), "un trait au début, un à la fin");
-        game.state().setLinePhase(0);
-        game.state().setDimensionShards(0);
-        game.tick(Game.LINE_HALF_TRIP * 0.5);
-        assertEquals(0, game.state().dimensionShards(), 1e-9, "à mi-chemin, aucun trait touché");
-        assertEquals(0.5, game.linePosition(), 1e-9);
-        game.tick(Game.LINE_HALF_TRIP * 0.5);
-        assertEquals(0.1, game.state().dimensionShards(), 1e-9, "le bout : 0,1 éclat");
-        game.tick(Game.LINE_HALF_TRIP);
-        assertEquals(0.2, game.state().dimensionShards(), 1e-9, "retour au début : 0,1 de plus");
-        // Un grand pas compte autant que beaucoup de petits.
-        Game big = firstUniverse(), small = firstUniverse();
-        big.state().setLinePhase(0);
-        small.state().setLinePhase(0);
-        big.state().setDimensionShards(0);
-        small.state().setDimensionShards(0);
-        big.tick(100);
-        for (int k = 0; k < 1000; k++) small.tick(0.1);
-        assertEquals(big.state().dimensionShards(), small.state().dimensionShards(), 1e-6);
-        assertEquals(Math.floor(100 / Game.LINE_HALF_TRIP) * 0.1, big.state().dimensionShards(), 1e-6);
-    }
-
-    @Test
-    void lesDeuxAmeliorationsDeLaLigne() {
-        Game game = firstUniverse();
-        game.state().setLinePhase(0);
-        game.state().setDimensionShards(0.5);
-        assertFalse(game.canBuyLineYield(), "il faut " + Game.LINE_YIELD_COST + " éclat");
-        game.state().setDimensionShards(Game.LINE_YIELD_COST);
-        assertTrue(game.buyLineYield());
-        assertEquals(0, game.state().dimensionShards(), 1e-9);
-        assertEquals(0.2, game.lineShardsPerTouch(), 1e-9, "0,1 de plus par trait");
-        assertEquals(Game.LINE_YIELD_COST * Game.LINE_COST_GROWTH, game.lineYieldCost(), 1e-9);
-        game.state().setDimensionShards(Game.LINE_TICKS_COST);
-        assertTrue(game.buyLineTicks());
-        assertEquals(3, game.lineTicks(), "un trait au milieu");
-        game.state().setDimensionShards(0);
-        game.state().setLinePhase(0);
-        game.tick(Game.LINE_HALF_TRIP * 0.5);
-        assertEquals(0.2, game.state().dimensionShards(), 1e-9, "le trait du milieu, à égale distance des bouts");
-        game.tick(Game.LINE_HALF_TRIP * 0.5);
-        assertEquals(0.4, game.state().dimensionShards(), 1e-9);
-        assertEquals(2 * 0.2 / Game.LINE_HALF_TRIP, game.lineShardsPerSecond(), 1e-12);
-        game.state().setLineTicksLevel(Game.LINE_MAX_EXTRA_TICKS);
-        game.state().setDimensionShards(1e9);
-        assertFalse(game.canBuyLineTicks(), "quarante traits au plus");
-        // Les éclats et les améliorations traversent les univers.
-        game.state().setDimensionShards(5);
-        assertTrue(game.startNextUniverse());
-        assertEquals(5, game.state().dimensionShards(), 1e-9);
-        assertEquals(1, game.state().lineYieldLevel());
-    }
-
-    @Test
-    void vitesseBoulesEtLignesMultiplientLesEclats() {
-        Game game = firstUniverse();
-        double base = game.lineShardsPerSecond();
-        assertEquals(0.1 / Game.LINE_HALF_TRIP, base, 1e-12);
-        game.state().setDimensionShards(1e6);
-        assertTrue(game.buyLine(Game.LineUpgrade.SPEED));
-        assertEquals(1.25, game.lineSpeed(), 1e-12, "+25 % de vitesse");
-        assertEquals(Game.LINE_HALF_TRIP / 1.25, game.lineHalfTrip(), 1e-12);
-        assertTrue(game.buyLine(Game.LineUpgrade.BALLS));
-        assertEquals(2, game.lineBalls());
-        assertTrue(game.buyLine(Game.LineUpgrade.LINES));
-        assertEquals(2, game.lineCount());
-        assertEquals(base * 1.25 * 2 * 2, game.lineShardsPerSecond(), 1e-12);
-        // Le compte exact suit le débit annoncé, sur un long moment.
-        game.state().setDimensionShards(0);
-        game.state().setLinePhase(0);
-        game.tick(600);
-        assertEquals(game.lineShardsPerSecond() * 600, game.state().dimensionShards(), 0.5);
-        // Les boules d'une ligne sont réparties : la deuxième est au bout quand la première part.
-        game.state().setLinePhase(0);
-        assertEquals(0, game.linePosition(0, 0), 1e-12);
-        assertEquals(1, game.linePosition(0, 1), 1e-12);
-        game.state().setLineCountLevel(Game.LINE_MAX_EXTRA_LINES);
-        assertFalse(game.canBuyLine(Game.LineUpgrade.LINES), "cinq lignes au plus");
-    }
-
-    @Test
-    void leSeuilDeLaLigneCompteLesEclatsGagnes() {
-        Game game = firstUniverse();
-        assertFalse(game.isLineThresholdReached());
-        game.state().setDimensionShards(0);
-        game.state().setLinePhase(0);
-        game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD - 0.1);
-        game.tick(Game.LINE_HALF_TRIP);
-        assertTrue(game.isLineThresholdReached(), "le centième éclat gagné");
-        game.state().setDimensionShards(Game.LINE_YIELD_COST);
-        assertTrue(game.buyLineYield());
-        assertTrue(game.isLineThresholdReached(), "dépenser ne fait pas redescendre sous le seuil");
-    }
-
     @Test
     void laGraineGermeDesLUniversFormePuisSArrose() {
-        Game game = firstUniverse();
-        assertTrue(!game.state().universeSeeds().lt(idle.core.math.BigNum.ONE), "former l'univers donne une graine");
+        Game game = GameTestSupport.universe(1);
+        assertTrue(!game.state().universeSeeds().lt(BigNum.ONE), "former l'univers donne une graine");
         assertFalse(game.isLineThresholdReached());
         // Version 0.139 : le seuil de la dimension 1 ne la retient plus.
         // Il n'y a qu'une graine, celle de l'univers : le bouton ne demande pas de graine en réserve (0.105).
-        game.state().setUniverseSeeds(idle.core.math.BigNum.ZERO);
+        game.state().setUniverseSeeds(BigNum.ZERO);
         assertTrue(game.canTendSeed(), "l'univers formé suffit");
         assertTrue(game.tendSeed());
         assertTrue(game.state().seedSprouted(), "le premier clic la fait germer");
@@ -304,68 +175,24 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void lePlanSeJoueAuClavierEtRamasseSesEclats() {
-        Game game = firstUniverse();
-        assertFalse(game.isPlaneOpen(), "un seul univers : la deuxième dimension est fermée");
-        game.testAddUniverse();
-        assertTrue(game.isPlaneOpen());
-        game.tick(Game.PLANE_SPAWN_SECONDS * 10);
-        assertEquals(Game.PLANE_MAX_SHARDS, game.planeShardsOnBoard().size(), "trois éclats au plus");
-        // Le point va à droite, et ne sort pas du plan.
-        game.setPlanePosition(0, 0);
-        game.setPlaneInput(1, 0);
-        for (int k = 0; k < 200; k++) game.tick(0.1);
-        assertEquals(Game.PLANE_EDGE - game.planePlayerRadius(), game.planeX(), 1e-9, "arrêté au bord");
-        game.setPlaneInput(0, 0);
-        // Passer sur un éclat le ramasse : un éclat du plan, propre à cette dimension.
-        double line = game.state().dimensionShards();
-        game.state().setPlaneShards(0);
-        game.setPlanePosition(0, 0);
-        int before = game.planeShardsOnBoard().size();
-        java.util.List<Game.PlaneShard> left = new java.util.ArrayList<>(game.planeShardsOnBoard());
-        for (Game.PlaneShard shard : left) game.setPlanePosition(shard.x(), shard.y());
-        game.setPlanePosition(left.get(0).x(), left.get(0).y());
-        game.tick(0.01);
-        assertTrue(game.state().planeShards() >= 1, "au moins un éclat ramassé");
-        assertTrue(game.planeShardsOnBoard().size() < before);
-        assertEquals(line, game.state().dimensionShards(), 1e-6, "les éclats de la ligne ne bougent pas");
-    }
-
-    @Test
-    void lesCinqAmeliorationsDuPlan() {
-        Game game = firstUniverse();
-        game.testAddUniverse();
-        game.state().setPlaneShards(1e6);
-        for (Game.PlaneUpgrade upgrade : Game.PlaneUpgrade.values()) assertTrue(game.buyPlane(upgrade), upgrade.name());
-        assertEquals(2, game.planeValue(), 1e-12);
-        assertEquals(Game.PLANE_SPAWN_SECONDS * 0.85, game.planeSpawnSeconds(), 1e-12);
-        assertEquals(Game.PLANE_MAX_SHARDS + 1, game.planeMaxShards());
-        assertEquals(Game.PLANE_SPEED * 1.2, game.planeSpeed(), 1e-12);
-        assertEquals(Game.PLANE_PLAYER_RADIUS * (1 + Game.PLANE_SIZE_STEP), game.planePlayerRadius(), 1e-12);
-        game.state().setPlaneLevel(Game.PlaneUpgrade.COUNT.ordinal(), Game.PlaneUpgrade.COUNT.max());
-        assertFalse(game.canBuyPlane(Game.PlaneUpgrade.COUNT), "vingt éclats au plus");
-        assertEquals(20, game.planeMaxShards());
-        game.state().setPlaneShards(7);
-        assertTrue(game.startNextUniverse());
-        assertEquals(7, game.state().planeShards(), 1e-9, "les éclats du plan traversent les univers");
-    }
-
-    @Test
     void laBrindilleOuvreLeDeuxiemeUnivers() {
-        Game game = firstUniverse();
+        Game game = GameTestSupport.universe(1);
         game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
         assertFalse(game.canOpenNextUniverse(), "pas avant la brindille");
+        assertFalse(game.twigOpensUniverse());
+        assertEquals(2, game.nextUniverseStage(), "l'univers 2 attend le palier 2");
         assertTrue(game.tendSeed());
         for (long k = 1; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
         assertFalse(game.isSeedTwig(), "encore un germe à " + (Game.SEED_TWIG_WATERINGS - 1) + " arrosages");
         assertTrue(game.tendSeed());
         assertTrue(game.isSeedTwig(), "la brindille au trentième arrosage");
         assertTrue(game.canOpenNextUniverse());
+        assertTrue(game.twigOpensUniverse(), "la brindille est là, l'univers formé, aucune partie en cours : elle ouvre");
         // Ce qui aurait été joué entre-temps (anciens onglets montrés, partie d'avant) ne passe pas dans l'univers 2.
-        game.state().setParticles(idle.core.math.BigNum.of(1, 50));
-        game.state().setAtoms(idle.core.math.BigNum.of(1, 9));
+        game.state().setParticles(BigNum.of(1, 50));
+        game.state().setAtoms(BigNum.of(1, 9));
         GameTestSupport.bangs(game, 3);
-        game.state().setDarkMatter(idle.core.math.BigNum.of(500));
+        game.state().setDarkMatter(BigNum.of(500));
         double shards = game.state().dimensionShards();
         assertTrue(game.startNextUniverse());
         assertTrue(game.isReplaying(), "le jeu recommence, pour l'univers 2");
@@ -377,13 +204,14 @@ class DeuxiemeUniversTest {
         assertEquals(shards, game.state().dimensionShards(), 1e-9, "les dimensions gardent leurs éclats");
         assertEquals(1, game.universes(), "l'onglet Univers reste : un univers déjà formé");
         assertFalse(game.canOpenNextUniverse(), "pendant la partie, on ne rouvre rien");
+        assertFalse(game.twigOpensUniverse(), "la brindille a déjà ouvert le sien");
+        assertEquals(3, game.nextUniverseStage(), "le suivant attendra le palier 3");
     }
 
     @Test
     void lesDefisDeBigBangDuDeuxiemeUniversAccelerentLeTroisiemeActe() {
         // Version 0.116 : ×2 particules, ×4 maturation, par défi ; 0.118 : sondes ×2 et ×2, plus d'espace.
-        Game first = new Game();
-        first.start();
+        Game first = GameTestSupport.realGame();
         first.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
         assertEquals(1, first.universeBangFactor(2), 0, "rien dans le premier univers");
         Game game = second();
@@ -406,39 +234,9 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void lesDeuxDefisDeBigBangSansRemiseAZero() {
-        // Version 0.117 : « Barre haute » et « Ciel figé » ne remettent rien à zéro au départ.
-        Game game = second();
-        game.start();
-        GameTestSupport.bangs(game, Game.BANG_CHALLENGES_BIG_BANGS);
-        game.state().setParticles(BigNum.of(1, 50));
-        game.state().setAtoms(BigNum.of(1, 6));
-        BigNum particlesNeed = game.bigBangParticles();
-        assertTrue(game.startBangChallenge(idle.core.bigbang.BangChallenge.RAISED));
-        assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro");
-        assertEquals(1e6, game.state().atoms().toDouble(), 1e-6);
-        assertEquals(particlesNeed.log10() * 1.5, game.bigBangParticles().log10(), 1e-6, "une fois et demie plus d'ordres de grandeur");
-        assertEquals(Game.BIG_BANG_ATOMS.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
-        assertEquals(Game.BIG_BANG_DARK_MATTER.toDouble() * 2, game.bigBangDarkMatter().toDouble(), 1e-9);
-        assertTrue(game.abandonBangChallenge());
-        GameTestSupport.bangs(game, 6);
-        assertFalse(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "le Big Bang 7 demande un ciel qui n'est pas là");
-        GameTestSupport.bangs(game, 9);
-        assertTrue(game.startBangChallenge(idle.core.bigbang.BangChallenge.FROZEN), "au-delà du huitième, pas de ciel demandé");
-        assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro non plus");
-        for (var molecule : game.molecules()) assertFalse(game.canCreateMolecule(molecule.id()), "le troisième acte s'arrête");
-        game.abandonBangChallenge();
-        var rubble = idle.core.sky.Bodies.DEFAULT.get(0);
-        double slow = game.maturationSeconds(rubble);
-        game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
-        assertEquals(slow / 8, game.maturationSeconds(rubble), 1e-9, "sa récompense ×2, et le bonus du deuxième univers ×4");
-    }
-
-    @Test
     void laFuiteSOuvreAuxDixDefisEtDonneLeCalmeDuBigBang() {
         // Version 0.115 : un onzième défi, du deuxième univers, qui apparaît une fois les dix autres réussis.
-        Game game = firstUniverse();
-        assertTrue(game.startNextUniverse());
+        Game game = second();
         game.state().setExplosions(1);
         game.state().setDarkMatter(BigNum.of(1000));
         String leak = idle.core.darkmatter.Challenges.LEAK.id();
@@ -473,7 +271,7 @@ class DeuxiemeUniversTest {
         game.automating = false;
         assertEquals(50, game.state().upgradeCalm(), 0, "l'achat d'un automatisme ne compte pas");
         // Pas d'explosion avant deux minutes de défi.
-        for (var element : idle.core.elements.PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+        GameTestSupport.fillTable(game, 1);
         assertFalse(game.canExplode(), "moins de deux minutes : pas d'explosion");
         game.stats().addTime(Game.LEAK_MIN_SECONDS);
         assertTrue(game.canExplode());
@@ -488,7 +286,7 @@ class DeuxiemeUniversTest {
         game.state().setBangCalm(Game.BIG_BANG_CALM_SECONDS);
         assertEquals(1, game.bigBangParticles().toDouble(), 0, "une heure : une seule particule");
         // Version 0.124 : les achats des automatismes rompent aussi le calme, et la barre haute l'ignore.
-        game.state().setParticles(idle.core.math.BigNum.of(1, 100));
+        game.state().setParticles(BigNum.of(1, 100));
         game.state().setAutomationEnabled("auto_speed", true);
         game.state().addAutomation("auto_speed");
         game.tick(20);
@@ -501,10 +299,9 @@ class DeuxiemeUniversTest {
     @Test
     void uneVieilleSauvegardeDontLUniversEstFormeNeCompteQuUnUnivers() {
         // Version 0.113 : avant la 0.083, l'univers formé gardait son échelle du cosmos ; le chargement en comptait deux.
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setUniverseFormed(true);
-        game.state().setCosmosLevel(idle.core.sky.Cosmos.values().length);
+        game.state().setCosmosLevel(Cosmos.values().length);
         game.restored();
         assertEquals(1, game.universes());
         assertEquals(2, game.universeDarkMatterFactor(), 0);
@@ -513,11 +310,10 @@ class DeuxiemeUniversTest {
     @Test
     void chaqueUniversFormeDoubleLaMatiereNoireEtSaCroissance() {
         // Version 0.112 : ×2 par univers formé, multiplicatif, sur la matière noire des explosions et sa croissance.
-        Game before = new Game();
-        before.start();
+        Game before = GameTestSupport.realGame();
         assertEquals(1, before.universeDarkMatterFactor(), 0);
         BigNum base = before.darkMatterPerExplosion();
-        Game game = firstUniverse();
+        Game game = GameTestSupport.universe(1);
         assertEquals(2, game.universeDarkMatterFactor(), 0, "un univers formé : ×2");
         assertEquals(base.toDouble() * 2, game.darkMatterPerExplosion().toDouble(), 1e-9);
         game.state().setDarkMatter(BigNum.of(10));
@@ -533,10 +329,9 @@ class DeuxiemeUniversTest {
     @Test
     void laBrindilleOuvreUnUniversAtteintParLEchelleSeule() {
         // Version 0.110 : l'échelle du cosmos montée sans former l'univers bloquait la brindille.
-        Game game = new Game();
-        game.start();
-        game.state().setCosmosLevel(idle.core.sky.Cosmos.values().length);
-        game.state().setParticles(idle.core.math.BigNum.of(1, 20));
+        Game game = GameTestSupport.realGame();
+        game.state().setCosmosLevel(Cosmos.values().length);
+        game.state().setParticles(BigNum.of(1, 20));
         game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(44);
@@ -551,7 +346,7 @@ class DeuxiemeUniversTest {
     void lesPaliersDeLaGraineOuvrentLesUnivers() {
         // Version 0.120 : le palier N de la graine ouvre l'univers N. Version 0.139 : trente arrosages par palier suffisent,
         // sans les seuils des dimensions.
-        Game game = firstUniverse();
+        Game game = GameTestSupport.universe(1);
         assertEquals(1, game.seedStage());
         assertTrue(game.tendSeed(), "elle germe");
         for (long k = 0; k < Game.SEED_TWIG_WATERINGS - 1; k++) assertTrue(game.tendSeed());
@@ -576,22 +371,29 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void leVideSeProposeAuPremierBigBangDuTroisiemeUnivers() {
-        Game first = new Game();
-        GameTestSupport.bangs(first, 3);
-        assertFalse(first.isVoidOffered(), "pas dans le premier univers, même après des Big Bangs");
-        Game game = second();
-        GameTestSupport.bangs(game, 1);
-        assertFalse(game.isVoidOffered(), "version 0.116 : plus dans le deuxième univers");
-        GameTestSupport.bangs(game, 0);
-        assertTrue(game.testAddUniverse());
-        assertFalse(game.isVoidOffered(), "avant le premier Big Bang du troisième univers");
-        GameTestSupport.bangs(game, 1);
-        assertTrue(game.isVoidOffered());
-        // Version 0.129 : il se propose, et ne s'ouvre qu'une fois payé (VideTest).
-        assertFalse(game.isVoidUnlocked());
-        game.tick(60);
-        assertEquals(0, game.state().voidEnergy().sign());
+    void chaquePalierDeLaGraineJusquAuOnziemeOuvreSonUnivers() {
+        // Du palier 4 à l'arbre-monde (palier 11) : chaque palier N ouvre l'univers N, et seulement lui.
+        Game game = GameTestSupport.universe(1);
+        game.state().setSeedSprouted(true);
+        for (int stage = 2; stage <= Game.SEED_STAGES; stage++) {
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage) - 1);
+            assertEquals(stage - 1, game.seedStage(), "un arrosage de moins : le palier d'avant");
+            assertFalse(game.canOpenNextUniverse(), "l'univers " + stage + " attend le palier " + stage);
+            assertEquals(stage, game.nextUniverseStage());
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage));
+            assertEquals(stage, game.seedStage());
+            assertEquals(Game.SEED_STAGE_NAMES.get(stage - 1), Game.SEED_STAGE_NAMES.get(game.seedStage() - 1));
+            assertTrue(game.canOpenNextUniverse(), "le palier " + stage + " ouvre l'univers " + stage);
+            assertTrue(game.startNextUniverse());
+            assertFalse(game.canOpenNextUniverse(), "la partie en cours ne rouvre rien");
+            game.testFormUniverse();
+            assertEquals(stage, game.universes(), "l'univers " + stage + " est formé");
+            assertEquals(stage - 1, game.state().seedUniversesOpened());
+        }
+        assertEquals(11, game.universes());
+        assertEquals(300, game.state().seedWaterings(), "trente arrosages par palier : 300 pour l'arbre-monde");
+        assertEquals(Game.SEED_STAGES, game.nextUniverseStage(), "au-delà de l'arbre-monde, il n'y a plus de palier à attendre");
+        assertFalse(game.canTendSeed(), "l'arbre-monde ne boit plus");
     }
 
     @Test
@@ -604,14 +406,10 @@ class DeuxiemeUniversTest {
         assertTrue(game.chooseCycle(CycleChoice.FUSION));
         assertFalse(game.chooseCycle(CycleChoice.RESERVE), "un seul choix par cycle");
         assertEquals(atoms.toDouble() * (1 + CycleChoice.FUSION_GAIN), game.atomsPerFusion().toDouble(), atoms.toDouble() * 1e-9);
-        try {
-            java.lang.reflect.Method clear = declared("clearForBigBang");
-            clear.setAccessible(true);
-            clear.invoke(game);
-        } catch (ReflectiveOperationException broken) {
-            throw new AssertionError(broken);
-        }
+        GameTestSupport.readyForBigBang(game);
+        assertTrue(game.bigBang());
         assertNull(game.cycleChoice(), "le Big Bang le rend");
+        GameTestSupport.payMilestones(game);
         assertTrue(game.chooseCycle(CycleChoice.RESERVE));
         BigNum dark = game.darkMatterPerExplosion();
         game.state().setCycleChoice(null);
@@ -621,15 +419,13 @@ class DeuxiemeUniversTest {
     @Test
     void laPreferenceDeFamilleMonteAvecLesTiragesEtLesElementsGratuits() {
         Game game = second();
-        game.state().setDarkLevel("dark_targeting", 1);
-        if (!game.isTargetedSynthesisUnlocked()) {
-            for (var dark : game.darkUpgrades()) {
-                if (dark.effect() instanceof idle.core.darkmatter.DarkEffect.TargetedSynthesis) game.state().setDarkLevel(dark.id(), 1);
-            }
-        }
+        assertFalse(game.isFamilyPreferenceUnlocked(), "sans la synthèse ciblée, pas de préférence");
+        game.state().setDarkLevel("dark_shop_target", 1);
+        assertTrue(game.isTargetedSynthesisUnlocked(), "la case « Synthèse ciblée » de l'arbre");
         assertTrue(game.isFamilyPreferenceUnlocked());
         double chance = game.categoryChance(ElementCategory.NOBLE_GAS);
         assertTrue(game.setPreferredFamily(ElementCategory.NOBLE_GAS));
+        assertEquals(ElementCategory.NOBLE_GAS, game.preferredFamily());
         assertEquals(chance, game.categoryChance(ElementCategory.NOBLE_GAS), 1e-12, "aucun tirage : rien encore");
         game.state().setPreferenceDraws(Game.PREFERENCE_MAX_DRAWS + 5);
         assertEquals(2, game.preferenceMultiplier(ElementCategory.NOBLE_GAS), 1e-12, "×2 au plus");
@@ -643,8 +439,7 @@ class DeuxiemeUniversTest {
         assertTrue(game.claimFreeElement(92));
         assertEquals(1, game.elementCount(92));
         assertEquals(1, game.freeElementsAvailable());
-        Game first = new Game();
-        first.start();
+        Game first = GameTestSupport.realGame();
         for (int n = 1; n <= 20; n++) first.state().setElementCount(n, 1);
         assertEquals(0, first.freeElementsAvailable(), "pas avant le deuxième univers");
         assertEquals(PeriodicTable.ELEMENTS.size(), 118);

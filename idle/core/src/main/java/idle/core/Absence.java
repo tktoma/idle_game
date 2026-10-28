@@ -55,15 +55,6 @@ public final class Absence {
                          long moleculeCreations, int achievements, java.util.List<String> paths,
                          java.util.List<String> challengesStarted, int challengesDone, String challengeRunning, int probeTrips) {
 
-        /** Un bilan sans sondes : celui d'avant la 0.086. */
-        public Report(double away, double counted, double rate, double played, boolean skipped, BigNum particles,
-                      BigNum atoms, long fusions, long syntheses, long elements, long explosions, BigNum space,
-                      long moleculeCreations, int achievements, java.util.List<String> paths,
-                      java.util.List<String> challengesStarted, int challengesDone, String challengeRunning) {
-            this(away, counted, rate, played, skipped, particles, atoms, fusions, syntheses, elements, explosions, space,
-                    moleculeCreations, achievements, paths, challengesStarted, challengesDone, challengeRunning, 0);
-        }
-
         /** Vrai si l'absence n'a rien rapporté du tout : il n'y a alors rien à annoncer. */
         public boolean isEmpty() {
             return particles.isZero() && atoms.isZero() && fusions == 0 && syntheses == 0 && explosions == 0

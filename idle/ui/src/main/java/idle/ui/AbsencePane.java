@@ -3,15 +3,13 @@ package idle.ui;
 import idle.core.Absence;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Le retour après une absence, par-dessus la fenêtre : d'abord l'avancée du rattrapage, avec un
@@ -20,12 +18,10 @@ import javafx.scene.text.TextAlignment;
  * <p>Le calcul est dans {@link Absence} ; ce panneau ne fait que l'afficher. Tant qu'il est
  * ouvert, il prend les clics : la fenêtre dessous est assombrie.
  */
-final class AbsencePane extends StackPane {
+final class AbsencePane extends Overlay {
 
-    private static final String CARD_STYLE = "-fx-background-color: #16202e; -fx-background-radius: 10; -fx-border-radius: 10;"
-            + " -fx-border-color: #3a4a5e; -fx-padding: 22 28;";
-    private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 6;"
-            + " -fx-border-radius: 6; -fx-text-fill: #0b0e14; -fx-background-color: #d6dde6; -fx-border-color: #ffffff;";
+    private static final String CARD_STYLE = cardStyle("#3a4a5e", false, "22 28");
+    private static final String BUTTON_STYLE = buttonStyle("8 18", "#d6dde6");
 
     private final Label title = new Label("Pendant votre absence");
     private final Label summary = new Label();
@@ -39,24 +35,18 @@ final class AbsencePane extends StackPane {
 
     /** @param onSettled appelé une fois par absence, quand il ne reste plus rien à rejouer */
     AbsencePane(Runnable onSettled) {
+        super(VEIL);
         this.onSettled = onSettled;
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #e8f4ff;");
-        summary.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        summary.setWrapText(true);
-        summary.setTextAlignment(TextAlignment.CENTER);
-        body.setStyle("-fx-font-size: 14px; -fx-text-fill: #e8f4ff;");
-        body.setWrapText(true);
-        body.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(summary, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+        Labels.centered(body, "-fx-font-size: 14px; -fx-text-fill: #e8f4ff;");
         button.setStyle(BUTTON_STYLE);
         button.setOnAction(event -> press());
         card.setAlignment(Pos.CENTER);
         card.setStyle(CARD_STYLE);
         card.setMaxWidth(460);
         card.setMaxHeight(USE_PREF_SIZE);
-        setStyle("-fx-background-color: #0b0e14cc;");
-        setPadding(new Insets(24));
-        getChildren().add(card);
-        setVisible(false);
+        mount(card);
     }
 
     /** Ouvre le panneau sur une absence à rattraper. */

@@ -14,7 +14,7 @@ Les bots pilotent **le vrai moteur du jeu** (`idle/core`), sans interface. Ils n
 |---|---|
 | `moteur/` : une copie du moteur, à recopier à chaque version du jeu | supprimé : les bots se compilent contre `idle/core`, le moteur du jeu lui-même |
 | `bin/` : des fichiers `.class` déjà compilés | supprimé : `run.py` ou Gradle recompilent |
-| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 22 aujourd'hui) |
+| `bots/v2/` et `bots/profils_24/` (avec `IdleProfiles24.java` en double) | `src/main/java/` : les sources compilées, une seule fois chacune (13 à la fusion, 13 aujourd'hui après le ménage de la 0.141) |
 | `bots/historique/` | gardé à la fusion, puis retiré du dépôt le 20 octobre 2026 |
 | `docs/DOCUMENTATION_JEU_107_PAGES.pdf` | supprimé (le PDF qui était à la racine du dépôt a été retiré le 21 octobre 2026) |
 | `INVENTAIRE_SHA256.csv` | supprimé : les chemins ont changé, et git garde déjà l'empreinte de chaque fichier |
@@ -42,8 +42,7 @@ python run.py build                      # compile le moteur du jeu, puis les bo
 python run.py verify --save sauvegardes/reference/checkpoint_universe_5s.save
 python run.py v2 --bot DEPENDANCES --hours 12 --step 20 --seed 42
 python run.py profils --id 21 --hours 200 --step 20 --seed 42
-python run.py fresh --id 1 --hours 4 --step 20 --seed 42
-python run.py coach --checkpoint sauvegardes/profils_bloques/profil_12_72h.save --hours 12 --seed 42
+python run.py fresh --id 1 --hours 4 --step 20 --seed 42       # les deux premiers actes seulement, depuis zéro
 python run.py batch --tier rapide --workers 2
 ```
 
@@ -63,10 +62,32 @@ Avec Gradle, depuis `idle/` :
 
 | Dossier | Contenu |
 |---|---|
-| `src/main/java/` | Les 22 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `VoidPolicy` (le vide du troisième univers, version 0.133), `DarkMatterReservePolicy`, `ProfileProgressGuard` (le garde-fou des blocages), `CorrectedCoach` et `RobotPhase3`. Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory`, `Empreinte`, `OfflineBenchmark`, `AutoMatterBench` et `MakeAutoMatterCheckpoint` (pour `outils/ab_matiere.py`). Les audits ponctuels, lancés à la main avec `./gradlew :bots:bot -Pclasse=…` : `DependencyAudit`, `EconomyAudit`, `DiagnoseState`, `RescueBench` et `RecreateLosers`. |
-| `src/test/java/` | Les 9 classes de test : `BotsTest` (cohérence avec le jeu), `NextUniverseTest` (l'univers 2, version 0.130), `VoidPolicyTest` (le vide, version 0.133), `BotsExtendedValidationTest`, `DarkMatterReservePolicyTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
+| `src/main/java/` | Les 13 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve, les deux premiers actes seulement), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `VoidPolicy` (le vide du troisième univers, version 0.133), `DimensionBots` (un bot par dimension, à part, version 0.136), `ProfileProgressGuard` (le garde-fou des blocages) et `Bots` (le chargement d'une partie et les choix « le moins cher » partagés). Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory` et `Empreinte`. Les outils d'un diagnostic passé (`CorrectedCoach`, `RescueBench`, `RecreateLosers`, `RobotPhase3`, `DependencyAudit`, `DiagnoseState`, `EconomyAudit`, `OfflineBenchmark`, `AutoMatterBench`, `MakeAutoMatterCheckpoint`, `DarkMatterReservePolicy`) ont été retirés en 0.141 : rien ne les lançait plus, et les défauts qu'ils corrigeaient ou mesuraient sont réglés dans `RobotCosmosPlanner` (git les garde). |
+| `src/test/java/` | Les 10 classes de test : `BotsTest` (cohérence avec le jeu, et les correctifs de la 0.141), `NextUniverseTest` (l'univers 2, version 0.130), `VoidPolicyTest` (le vide, version 0.133), `EarlyStyleTest` (les styles des trois actes, version 0.135), `DimensionBotsTest` (les dimensions, version 0.136), `BotsExtendedValidationTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
 | `sauvegardes/` | `reference/` : 9 points de départ, dont la partie à 7 Big Bangs, une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201), le premier univers formé par le même Speedrunner (`checkpoint_universe1_speedrunner.save`, version 0.130), départ de l'univers 2, et le deuxième (`checkpoint_universe2_speedrunner.save`, version 0.133), départ de l'univers 3. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
-| `outils/` | `comparer_sauvegardes.py` (utilisé par `run.py comparer`), `ab_matiere.py` (création automatique de la matière, avec et sans) et `benchmark_actualise.py`. |
+| `outils/` | `comparer_sauvegardes.py` (utilisé par `run.py comparer`) et `benchmark_actualise.py` (les 24 profils depuis la partie à 7 Big Bangs). `ab_matiere.py`, l'A/B du suivi automatique de la matière, a été retiré en 0.141 : l'option est dans le jeu depuis la 0.12x (page des automatismes). |
+
+## Les propriétés système des bots
+
+Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 …` ; avec Gradle, dans `--args` elles ne passent pas : les poser dans `JAVA_TOOL_OPTIONS`). Aucune n'est lue par le jeu lui-même.
+
+| Propriété | Classe | Effet | Défaut |
+|---|---|---|---|
+| `idle.cycle` | `NextUniversePolicy` | Le choix de cycle de tous les profils dans l'univers 2 : `FUSION`, `SYNTHESIS` ou `RESERVE` ; autre valeur refusée. | celui du profil (`RESERVE` pour l'expert) |
+| `idle.sansNouveautesUnivers2` | `NextUniversePolicy` | `true` : l'univers 2 se rejoue sans ses nouveautés (régime, cycle, famille, éléments offerts). | `false` |
+| `idle.sansAnomalies` | `RobotCosmosPlanner` | `true` : les anomalies du ciel ne sont pas saisies, comme avant la 0.131. | `false` |
+| `idle.defisBB` | `RobotCosmosPlanner` | L'ordre des défis de Big Bang à partir de l'univers 2 : `maturation`, `gele` ou `avant` ; autre valeur refusée (0.141 : avant, elle jouait `gele` en silence). | `maturation` |
+| `idle.defisBBPremier` | `RobotCosmosPlanner` | `true` : la même règle des défis de Big Bang dès le premier univers (change la partie de référence). | `false` |
+| `idle.sansVide` | `VoidPolicy` | `true` : le vide reste fermé dans l'univers 3. | `false` |
+| `idle.traceVide` | `VoidPolicy` | `true` : chaque geste du vide s'écrit (`VIDE,…`). | `false` |
+| `idle.partVide` | `VoidPolicy` | La part du collisionneur et de l'espace libre laissée au vide par tous les profils, de 0 à 1 ; autre valeur refusée (0.141). | celle du profil |
+| `idle.croissanceVide` | `VoidPolicy` | La part du prochain raccourci qu'une amélioration de croissance du vide peut coûter, pour l'expert. | `0.5` |
+| `idle.masseTrouNoir` | `VoidPolicy` | La masse du trou noir au-delà de laquelle on ne le nourrit plus (`0` : jamais). | `10` |
+| `idle.stage` | `IdleProfiles24` | Le suffixe du CSV d'un profil (`01_Speedrunner_<stage>.csv`) ; le 7e argument de `IdleProfiles24` le pose. | `late` |
+| `idle.lenteurDimension` | `DimensionBots` | Le joueur des dimensions est autant de fois plus lent à réagir, viser et revenir. | `1` |
+| `idle.achatDimension` | `DimensionBots` | `moinsCher` : il achète le moins cher au lieu du meilleur rapport. | meilleur rapport |
+| `idle.objectifDimension` | `DimensionBots` | Les éclats à gagner au lieu du seuil du jeu, ou `infini` (jouer jusqu'au temps donné). | le seuil du jeu |
+| `idle.testProfilesStart`, `idle.testProfilesEnd` | `Profiles24CampaignTest`, `Profiles24LongCampaignTest` | Le segment de profils d'une campagne de test (la CI en lance quatre). | `1` et `24` |
 
 ## Les correctifs des bots (19 octobre 2026)
 
@@ -175,7 +196,8 @@ univers se joue et se mesure exactement comme avant (Speedrunner, graine 201 : t
   actes. La victoire est alors l'univers 2 formé.
 - **Ce que le deuxième univers ajoute** est dans `NextUniversePolicy`, que tous les bots appellent à chaque décision
   (rien ne s'y passe dans le premier univers) : le régime rapide relancé dès qu'il est prêt, un choix de cycle par
-  Big Bang (fusion par défaut, `-Didle.cycle=FUSION|SYNTHESIS|RESERVE` pour essayer les autres), la famille préférée
+  Big Bang (la réserve par défaut depuis la 0.135, `-Didle.cycle=FUSION|SYNTHESIS|RESERVE` pour essayer les autres ; un
+  défi de Big Bang qui remet à zéro rend aussi le choix, et l'expert le refait, correctif 0.141), la famille préférée
   qui suit la famille qui manque aux recettes, et les éléments offerts (d'abord ceux qui manquent à la liste, sinon le
   plus lourd). La Fuite, onzième défi, se tente avec les autres, mais jamais quand elle retarderait un Big Bang
   prêt ou en préparation : le Big Bang ne demande que les dix de toujours (les bots comptent donc
@@ -183,8 +205,8 @@ univers se joue et se mesure exactement comme avant (Speedrunner, graine 201 : t
   compteur d'explosions repart de zéro).
 - **Ce que les bots ne jouent pas, pour l'instant** : les dimensions, la graine et l'onglet Univers (améliorations,
   recherches, épreuves, skins). Comme la graine n'est pas jouée, l'univers suivant se lance comme l'outil d'essai
-  « Rouvrir les paliers », **sans attendre le palier 2 de la graine** qu'un joueur doit atteindre (30 arrosages et le
-  seuil de la ligne) : le temps de la graine n'est pas compté.
+  « Rouvrir les paliers », **sans attendre le palier 2 de la graine** qu'un joueur doit atteindre (30 arrosages ; depuis
+  la 0.139, le seuil de la ligne n'y entre plus) : le temps de la graine n'est pas compté.
 
 Pour lancer :
 
@@ -198,7 +220,10 @@ python run.py v2 --bot DEPENDANCES --univers 2 --checkpoint sauvegardes/referenc
 L'audit des 24 profils de l'action GitHub a la même option (`univers`, 1 par défaut). Les sorties gagnent les colonnes
 `univers_vises`, `univers_formes` et `univers_h` (instant de formation de chaque univers, en heures réelles) ; la ligne
 `RESULT` des profils gagne `universes`, `target`, `won` (la cible atteinte), `universeTimes` et ce que la politique a
-fait (`regimes`, `cycles`, `families`, `freeElements`). Les jalons `BB8at`, `galaxyAt`, `clusterAt` et `universeAt`
+fait (`regimes`, `cycles`, `families`, `freeElements`), puis `skyEvents` (anomalies du ciel saisies, 0.131), `voidOpened`,
+`voidBought` et `sacrifices` (le vide, 0.133). Dans `result.csv` du bot V2, la colonne `univers_h` est l'instant du
+premier univers formé et `instants_univers_h` (nommée `univers_h` en double avant la 0.141) la liste de tous.
+Les jalons `BB8at`, `galaxyAt`, `clusterAt` et `universeAt`
 restent ceux du premier univers formé pendant la partie : avec `--univers 2`, c'est `won` qui dit la victoire.
 `univers_h` et `universeTimes` ne listent que les univers formés pendant la partie (depuis la sauvegarde de
 l'univers 1, seul l'univers 2), `univers_formes` compte tous ceux de la partie.
@@ -286,8 +311,10 @@ tout, mêmes 8 679 décisions).
 - La façon de jouer de chaque profil est dans `PROFILS_24.md` ; `-Didle.traceVide=true` écrit chaque geste du vide ; `-Didle.sansVide=true` laisse le vide fermé,
   `-Didle.partVide=0.25` impose une part à tous.
 
-Ce que les bots ne jouent toujours pas : dimensions (dont le volume), graine et onglet Univers. L'univers suivant se
-lance donc sans les paliers 2 et 3 de la graine qu'un joueur doit atteindre.
+Ce que les bots ne jouent toujours pas dans une partie : la graine et l'onglet Univers (améliorations, recherches,
+épreuves, skins, chrono). Les dimensions se jouent à part, par `DimensionBots` (0.136, voir plus bas), sans que leurs
+éclats servent à la graine. L'univers suivant se lance donc sans les paliers 2 et 3 de la graine qu'un joueur doit
+atteindre.
 
 Mesures, départ `checkpoint_universe2_speedrunner.save`, une décision toutes les 20 s, univers 3 compté depuis son
 lancement :
@@ -353,7 +380,10 @@ univers du Speedrunner sert de référence à l'équilibrage.
 
 **L'audit des 24 profils sur les trois univers** : parties neuves, graine 200 + id, une décision toutes les 20 s, au
 plus 168 h réelles par univers. Chaque univers part de la fin du précédent quand le profil l'a gagné ; sinon, il part
-de la sauvegarde de référence (¹). La colonne de gauche de chaque univers est la 0.133.
+de la sauvegarde de référence (¹). Cette mesure a été faite univers par univers (`run.py profils --checkpoint …`
+pour les reprises) : ce n'est pas ce que fait `FreshUniverseAudit --univers 3` (ou l'action GitHub), dont l'horizon est
+global à l'essai, sans repli sur une sauvegarde quand un univers manque. La colonne de gauche de chaque univers est
+la 0.133.
 
 | Profil | Univers 1 (0.133 → 0.135) | Univers 2 (0.133 → 0.135) | Univers 3 (0.133 → 0.135) |
 |---|---|---|---|
@@ -466,7 +496,7 @@ Depuis la 0.83, former l'univers remet à zéro tout ce qui y a mené : Big Bang
 - les bots repèrent l'univers par `RobotCosmosPlanner.cosmosStage(g)`, qui vaut 3 une fois l'univers formé ;
 - le bilan du bot V2 (`result.csv`) garde les Big Bangs et les astres d'avant la remise à zéro ;
 - la ligne `RESULT` des 24 profils montre, elle, l'état d'après : `bb=0`, `bodies=0`. Le bilan d'avant est dans `g.stats().universeTally()` ;
-- `winner.save` et `checkpoint_universe_finished.save` sont désormais des parties remises à zéro, dans l'univers ;
+- `winner.save` (et, avant la 0.141, `checkpoint_universe_finished.save` du `main` de `RobotCosmosPlanner`, retiré) sont des parties remises à zéro, dans l'univers ;
 - la partie « fin de partie » de l'empreinte change donc entre la 0.82 et la 0.83 : c'est voulu.
 
 Les durées jusqu'à l'univers ne changent pas : 6 h 42 pour `DEPENDANCES` et 6 h 54 pour le profil 1, comme en 0.82.

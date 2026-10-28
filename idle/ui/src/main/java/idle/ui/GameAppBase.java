@@ -13,8 +13,10 @@ import idle.ui.bigbang.BigBangPage;
 import idle.ui.collider.ColliderPage;
 import idle.ui.collider.ColliderPane;
 import idle.ui.common.Breakdown;
+import idle.ui.common.BuyAmountRow;
 import idle.ui.common.Card;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.StableHeight;
 import idle.ui.common.TabIcon;
 import idle.ui.common.TileGrid;
@@ -104,9 +106,6 @@ public abstract class GameAppBase extends Application {
     /** Largeur maximale de la rangée des améliorations, et de la carte de fusion en dessous. */
     private static final double UPGRADES_WIDTH = 760;
     static final double FUSE_WIDTH = 380;
-    /** Style des trois boutons de quantité ; celui qui est choisi est éclairé. */
-    static final String AMOUNT_STYLE = "-fx-font-size: 12px; -fx-padding: 3 12; -fx-cursor: hand;"
-            + " -fx-background-radius: 6; -fx-border-radius: 6;";
     /** Nombre maximal de générateurs dessinés ; les suivants produisent sans être affichés. */
     static final int MAX_VISIBLE_GENERATORS = 30;
 
@@ -339,7 +338,7 @@ public abstract class GameAppBase extends Application {
     /** Les améliorations côte à côte ; dans une fenêtre étroite, elles se rangent sur plusieurs rangées. */
     private final TileGrid upgradeGrid = new TileGrid(170, 4, 8);
     /** Les trois quantités d'achat : ×1, ×10, max. */
-    final Map<Settings.BuyAmount, Button> amountButtons = new EnumMap<>(Settings.BuyAmount.class);
+    final BuyAmountRow amountRow = new BuyAmountRow(settings, this::refresh);
     /** Raccourci → amélioration payée en particules qu'il achète. */
     final Map<Shortcuts.Action, Upgrade> upgradeActions = new EnumMap<>(Shortcuts.Action.class);
     /** L'aide « Comment jouer », par-dessus la fenêtre, et le bouton qui l'ouvre, sous les onglets. */
@@ -374,21 +373,7 @@ public abstract class GameAppBase extends Application {
         controls.setAlignment(Pos.TOP_CENTER);
 
         // La quantité achetée à chaque clic : un niveau, dix, ou tout ce qui est à portée.
-        Label amountLabel = new Label("Quantité par achat :");
-        amountLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        HBox amounts = new HBox(6, amountLabel);
-        amounts.setAlignment(Pos.CENTER);
-        for (Settings.BuyAmount amount : Settings.BuyAmount.values()) {
-            Button button = new Button(amount.label());
-            button.setFocusTraversable(false);
-            button.setOnAction(event -> {
-                settings.setBuyAmount(amount);
-                refresh();
-            });
-            amountButtons.put(amount, button);
-            amounts.getChildren().add(button);
-        }
-        controls.getChildren().add(amounts);
+        controls.getChildren().add(amountRow);
         // Le deuxième univers (version 0.087) : le régime des générateurs, la synergie et la prime de cycle parfait.
         regimeButton.setFocusTraversable(false);
         regimeButton.setOnAction(event -> {
@@ -414,9 +399,7 @@ public abstract class GameAppBase extends Application {
         upgradeGrid.setMaxWidth(UPGRADES_WIDTH);
         controls.getChildren().add(upgradeGrid);
         controls.getChildren().add(fuseCard());
-        shortcutsLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #6f8296;");
-        shortcutsLabel.setWrapText(true);
-        shortcutsLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(shortcutsLabel, "-fx-font-size: 11px; -fx-text-fill: #6f8296;");
         controls.getChildren().add(shortcutsLabel);
 
         // Au centre : les générateurs, qui occupent toute la place restante.
@@ -427,20 +410,12 @@ public abstract class GameAppBase extends Application {
         particlesPage.setBottom(controls);
 
         // Les onglets sont empilés au même endroit ; un seul est visible à la fois.
-        automationScroll.setFitToWidth(true);
-        automationScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        automationScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        settingsScroll.setFitToWidth(true);
-        settingsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        settingsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        achievementsScroll.setFitToWidth(true);
-        achievementsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        achievementsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(automationScroll);
+        Labels.transparent(settingsScroll);
+        Labels.transparent(achievementsScroll);
         pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
                 universePage, voidPage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
-        skinsScroll.setFitToWidth(true);
-        skinsScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        skinsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(skinsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
         atomsTab.setOnAction(event -> open(Tab.ATOMS));
         automationTab.setOnAction(event -> open(Tab.AUTOMATION));

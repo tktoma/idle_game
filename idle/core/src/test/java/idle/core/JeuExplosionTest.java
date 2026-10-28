@@ -19,7 +19,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Les règles du jeu : l'explosion et la taille de la matière noire.
+ * L'explosion du tableau périodique (ce qu'elle demande, ce qu'elle donne, ce qu'elle efface) et la taille de la
+ * matière noire ; puis, dans l'arbre de matière noire, ce que la matière noire ouvre : les bifurcations et leurs
+ * liaisons, les accords, la superposition, et les voies d'absence.
  */
 class JeuExplosionTest extends GameTestSupport {
 
@@ -29,9 +31,7 @@ class JeuExplosionTest extends GameTestSupport {
 
         /** Remplit le tableau périodique : chaque élément à son maximum d'exemplaires. */
         private void fillTable(Game game) {
-            for (Element element : PeriodicTable.ELEMENTS) {
-                game.state().setElementCount(element.number(), element.category().maxCopies());
-            }
+            GameTestSupport.fillTableToMax(game);
         }
 
         /** Partie bien avancée : améliorations, automatismes, atomes, particules, tableau débloqué. */
@@ -261,9 +261,7 @@ class JeuExplosionTest extends GameTestSupport {
         /** Les bifurcations (0.069) : prendre une voie ferme l'autre ; la case d'après demande l'une ou l'autre. */
         @Test
         void uneBifurcationFermeLAutreVoie() {
-            Game game = gameWithDarkMatter(12);
-            for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
-            game.state().setAtoms(BigNum.of(5000));
+            Game game = GameTestSupport.atFork();
             assertEquals(List.of("dark_rich_fusion", "dark_fine_synthesis"), game.darkForkOptions("matiere").stream().map(DarkUpgrade::id).toList());
             assertTrue(game.canBuyDark("dark_rich_fusion") && game.canBuyDark("dark_fine_synthesis"));
             assertFalse(game.isDarkAvailable("dark_machines"));            // la case d'après attend une voie
@@ -338,8 +336,14 @@ class JeuExplosionTest extends GameTestSupport {
             for (String id : List.of("dark_burst", "dark_fine_synthesis", "dark_echo", "accord_absence")) game.state().setDarkLevel(id, 1);
             game.tick(0.1);
             assertEquals(null, game.activeChallenge());                    // jeu ouvert, rien non plus
+            assertTrue(game.takeAwayChallenges().isEmpty(), "rien à annoncer");
             game.tickAway(0.1);
             assertEquals("challenge_rust", game.activeChallenge().id());  // le premier défi ouvert
+            // Le journal d'absence le note une fois, par son nom, puis l'oublie.
+            assertEquals(List.of(game.activeChallenge().name()), game.takeAwayChallenges());
+            assertTrue(game.takeAwayChallenges().isEmpty(), "lu une fois, le journal est vide");
+            game.tickAway(0.1);
+            assertTrue(game.takeAwayChallenges().isEmpty(), "un défi déjà en cours : l'accord n'en lance pas d'autre");
         }
 
         @Test
@@ -401,9 +405,7 @@ class JeuExplosionTest extends GameTestSupport {
 
         @Test
         void laSuperpositionOuvreLesDeuxVoies() {
-            Game game = gameWithDarkMatter(12);
-            for (String id : List.of("dark_nucleus", "dark_multisynthesis", "dark_luck")) game.state().setDarkLevel(id, 1);
-            game.state().setAtoms(BigNum.of(5000));
+            Game game = GameTestSupport.atFork();
             assertTrue(game.buyDark("dark_fine_synthesis"));
             assertFalse(game.canBuyDark("dark_rich_fusion"));
             assertFalse(game.hasSuperposition());

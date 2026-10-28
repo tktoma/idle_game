@@ -13,6 +13,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -61,7 +62,6 @@ import javafx.util.Duration;
 public final class PeriodicTablePage extends VBox {
 
     /** Le tableau des cases (version 0.088). */
-    private GridPane tableGrid;
     /** Le skin dont les cases sont peintes : {@code null} pour le classique. */
     private idle.core.universe.Skin tableSkin;
 
@@ -152,21 +152,11 @@ public final class PeriodicTablePage extends VBox {
             game.synthesize();
             refresh();     // c'est l'affichage qui repère l'élément obtenu, comme pour une synthèse automatique
         });
-        resultLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
-        resultLabel.setWrapText(true);
-        resultLabel.setTextAlignment(TextAlignment.CENTER);
-        progressLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
-        progressLabel.setWrapText(true);
-        progressLabel.setTextAlignment(TextAlignment.CENTER);
-        automationLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
-        automationLabel.setWrapText(true);
-        automationLabel.setTextAlignment(TextAlignment.CENTER);
-        detailLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
-        detailLabel.setWrapText(true);
-        detailLabel.setTextAlignment(TextAlignment.CENTER);
-        bonusLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
-        bonusLabel.setWrapText(true);
-        bonusLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(resultLabel, "-fx-font-size: 14px; -fx-text-fill: #ffe9c2;");
+        Labels.centered(progressLabel, "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;");
+        Labels.centered(automationLabel, "-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        Labels.centered(detailLabel, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
+        Labels.centered(bonusLabel, "-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
 
         // La synthèse ciblée : choisir une famille coûte plusieurs synthèses.
         targets.setAlignment(Pos.CENTER);
@@ -186,9 +176,7 @@ public final class PeriodicTablePage extends VBox {
             targetButtons.put(category, button);
             targets.getChildren().add(button);
         }
-        targetLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        targetLabel.setWrapText(true);
-        targetLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(targetLabel);
 
         // Les ensembles : dix familles et sept périodes, une tuile chacun. Une tuile ne se clique pas.
         setsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 0 0 0; -fx-text-fill: #ffe9c2;");
@@ -200,7 +188,6 @@ public final class PeriodicTablePage extends VBox {
 
         // Le tableau : sept périodes, puis les lanthanides et les actinides sur deux lignes à part.
         GridPane table = new GridPane();
-        tableGrid = table;
         table.setHgap(CELL_GAP);
         table.setVgap(CELL_GAP);
         table.setAlignment(Pos.CENTER);
@@ -233,9 +220,7 @@ public final class PeriodicTablePage extends VBox {
                 + "plus : les tirages vont aux autres. Les éléments marqués ★ sont uniques : "
                 + "ils ne sortent qu'une fois, et le premier obtenu débloque la synthèse automatique. "
                 + "Un ensemble compte les éléments différents, pas les exemplaires : un seul de chaque suffit.");
-        legendHint.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        legendHint.setWrapText(true);
-        legendHint.setTextAlignment(TextAlignment.CENTER);
+        Labels.note(legendHint);
 
         // Les cases grandissent et rétrécissent avec la fenêtre.
         widthProperty().addListener((observable, before, after) -> fitCells(after.doubleValue()));
@@ -375,11 +360,6 @@ public final class PeriodicTablePage extends VBox {
         showDetail();
     }
 
-    /** Un clic sur la case de cet élément, comme le joueur : pour les vérifications. */
-    public void clickElement(int number) {
-        clickCell(PeriodicTable.element(number));
-    }
-
     /** La préférence et les éléments gratuits : cachés hors du deuxième univers. */
     private void refreshSecondUniverse() {
         boolean open = game.isFamilyPreferenceUnlocked();
@@ -404,16 +384,6 @@ public final class PeriodicTablePage extends VBox {
         freeLabel.setText(free > 0 ? free + (free > 1 ? " éléments gratuits" : " élément gratuit") + " : cliquez un élément pas encore découvert pour le prendre"
                 : "Éléments gratuits : un tous les " + Game.FREE_ELEMENT_EVERY + " éléments découverts (prochain à "
                         + ((game.discoveredElements() / Game.FREE_ELEMENT_EVERY + 1) * Game.FREE_ELEMENT_EVERY) + ")");
-    }
-
-    /** La liste de la famille préférée : pour les vérifications. */
-    public javafx.scene.control.ComboBox<String> preferenceChoice() {
-        return preference;
-    }
-
-    /** La ligne des éléments gratuits : pour les vérifications. */
-    public String freeText() {
-        return freeLabel.getText();
     }
 
     private void refreshTable() {

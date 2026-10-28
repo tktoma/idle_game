@@ -29,7 +29,7 @@ import java.util.zip.GZIPOutputStream;
 public final class SaveCodec {
 
     /** Premier mot de toute sauvegarde lisible. */
-    public static final String HEADER = "idle-save";
+    private static final String HEADER = "idle-save";
     /** Numéro du format écrit par cette version du jeu. Une sauvegarde d'un format plus récent est refusée. */
     public static final int VERSION = 1;
     /** Premier mot d'une partie exportée pour le presse-papiers. */
@@ -47,10 +47,6 @@ public final class SaveCodec {
      * @param meta    son nom et la version du jeu qui l'a écrite (version 0.127), vides pour une sauvegarde plus ancienne
      */
     public record Save(GameState state, long savedAt, int version, Meta meta) {
-
-        public Save(GameState state, long savedAt, int version) {
-            this(state, savedAt, version, Meta.NONE);
-        }
     }
 
     /**
@@ -158,6 +154,25 @@ public final class SaveCodec {
      *                    version plus récente du jeu
      */
     public static Save read(String text) throws Unreadable {
+        return parse(text).load(new GameState());
+    }
+
+    /** Le texte découpé en lignes {@code clé=valeur}, et le numéro de format de son en-tête. */
+    private record Parsed(SaveData data, int version) {
+
+        /** Charge la partie dans {@code state} et la rend sous forme de {@link Save}. */
+        Save load(GameState state) throws Unreadable {
+            try {
+                state.load(data);
+                Meta meta = new Meta(SaveData.unescape(data.text("label", "")), SaveData.unescape(data.text("gameVersion", "")));
+                return new Save(state, data.count("savedAt", 0), version, meta);
+            } catch (RuntimeException broken) {
+                throw new Unreadable("La sauvegarde est abîmée : " + broken.getMessage(), broken);
+            }
+        }
+    }
+
+    private static Parsed parse(String text) throws Unreadable {
         if (text == null || text.isBlank()) throw new Unreadable("Il n'y a rien à relire.", null);
         String trimmed = text.strip();
         if (trimmed.startsWith(EXPORT_PREFIX)) trimmed = unzip(trimmed.substring(EXPORT_PREFIX.length()));
@@ -175,14 +190,7 @@ public final class SaveCodec {
         }
         SaveData data = new SaveData();
         for (int i = 1; i < lines.length; i++) data.readLine(lines[i]);
-        GameState state = new GameState();
-        try {
-            state.load(data);
-            Meta meta = new Meta(SaveData.unescape(data.text("label", "")), SaveData.unescape(data.text("gameVersion", "")));
-            return new Save(state, data.count("savedAt", 0), version, meta);
-        } catch (RuntimeException broken) {
-            throw new Unreadable("La sauvegarde est abîmée : " + broken.getMessage(), broken);
-        }
+        return new Parsed(data, version);
     }
 
     /**
@@ -205,11 +213,10 @@ public final class SaveCodec {
      * @return la sauvegarde relue ; son état est une copie, celui qui compte est {@code target}
      */
     public static Save readInto(GameState target, String text) throws Unreadable {
-        Save save = read(text);
+        Parsed parsed = parse(text);
+        Save save = parsed.load(new GameState());
         // Relue sans erreur une première fois, elle se relit de même dans la partie en cours.
-        SaveData data = new SaveData();
-        for (String line : write(save.state(), save.savedAt()).split("\\R")) data.readLine(line);
-        target.load(data);
+        target.load(parsed.data());
         return save;
     }
 

@@ -148,14 +148,6 @@ public abstract class GameAppTabs extends GameAppWindow {
         layoutTabs();
     }
 
-    /** Remet les onglets dans leur ordre d'origine. */
-    void resetTabOrder() {
-        tabOrder.clear();
-        tabOrder.addAll(List.of(Tab.values()));
-        settings.setTabOrder("");
-        layoutTabs();
-    }
-
     /** L'ordre des onglets : pour les vérifications. */
     List<String> tabOrderNames() {
         List<String> names = new java.util.ArrayList<>();

@@ -5,24 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.bigbang.SpaceUpgrades;
-import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.Molecules;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -48,18 +39,13 @@ class JeuMoleculesTest extends GameTestSupport {
          */
         private Game gameAfterBigBang() {
             Game game = bareGameAfterBigBang();
-            for (SpaceUpgrade upgrade : SpaceUpgrades.DEFAULT) {
-                // Celles qui multiplient une grandeur fausseraient les comptes : elles ont leurs propres tests.
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             return game;
         }
 
         /** Le même, sans aucune amélioration d'espace : seules les petites molécules sont ouvertes. */
         private Game bareGameAfterBigBang() {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
             refill(game);
@@ -625,11 +611,7 @@ class JeuMoleculesTest extends GameTestSupport {
             assertTrue(game.explode());
             assertEquals(1, game.moleculeCount(WATER));
             assertEquals(0, game.discoveredElements());
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertEquals(2, game.bigBangs());

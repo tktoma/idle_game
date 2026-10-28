@@ -41,9 +41,10 @@ Dès le premier univers, et dans chaque univers ensuite, chaque profil fait ses 
   l'amélioration la moins chère qu'il peut payer.
 - **Arbre de matière noire** : au mieux (liaisons et nouveaux nœuds d'abord), ou la case la moins chère, comptée
   en part de ce qu'il a dans la monnaie de la case. Dans les deux cas, la matière noire du Big Bang se garde (le
-  double pendant la barre haute), un niveau répétable ne prend pas plus de 5 % de la matière noire (1 % de sa branche
-  dans l'arbre), et les cases payées en atomes ou en particules attendent pendant la préparation du dernier Big Bang.
-  Le succès « compte juste » se prend quand l'occasion passe, dans les deux cas aussi.
+  double pendant la barre haute : depuis la 0.141 pour l'expert aussi, qui gardait la constante de 500) et un niveau
+  répétable ne prend pas plus de 5 % de la matière noire (1 % de sa branche dans l'arbre). Chez le joueur « le moins
+  cher » seulement, les cases payées en atomes ou en particules attendent pendant la préparation du dernier Big Bang ;
+  l'expert les prend quand il le peut. Le succès « compte juste » se prend quand l'occasion passe, dans les deux cas.
 - **Défis de Big Bang** : tentés ou ignorés. Dans le premier univers, dans l'ordre du catalogue et jamais sur une
   partie prête à Big Bang ; à partir du deuxième, aussi quand le Big Bang est prêt, le ciel figé et la barre haute
   d'abord (ils ne remettent rien à zéro).

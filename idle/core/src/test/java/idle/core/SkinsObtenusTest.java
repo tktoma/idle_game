@@ -76,15 +76,46 @@ class SkinsObtenusTest {
         Game game = skins();
         assertFalse(game.isTrialUnlocked(Trial.LONE_GENERATOR), "avant une explosion");
         game.state().setExplosions(1);
+        // Avec deux générateurs, elle ne commence pas : il faut n'avoir que le premier.
+        game.state().setLevel("generator", 1);
+        assertEquals(2, game.generatorCount());
+        assertTrue(game.isTrialUnlocked(Trial.LONE_GENERATOR));
+        assertFalse(game.canStartTrial(Trial.LONE_GENERATOR), "deux générateurs : refusée");
+        assertFalse(game.startTrial(Trial.LONE_GENERATOR));
+        game.state().setLevel("generator", 0);
         assertEquals(1, game.generatorCount());
+        assertEquals(0, game.trialLeft(), 0, "sans épreuve, rien à attendre");
+        assertEquals(0, game.trialProgress(), 0);
+        assertTrue(game.canStartTrial(Trial.LONE_GENERATOR));
         assertTrue(game.startTrial(Trial.LONE_GENERATOR));
         assertFalse(game.startTrial(Trial.COLD_BANG), "une à la fois");
+        assertEquals(Double.POSITIVE_INFINITY, game.trialLeft(), "sans limite de temps");
         game.state().setParticles(BigNum.of(1, 40));
         assertFalse(game.canBuy("generator"), "aucun autre générateur");
+        game.state().setParticles(BigNum.of(1, 6));
+        assertEquals(0.5, game.trialProgress(), 1e-12, "1e6 particules : la moitié des douze ordres de grandeur");
         game.state().setParticles(BigNum.of(1, 12));
         game.tick(0.01);
         assertNull(game.activeTrial());
         assertTrue(game.isTrialCompleted(Trial.LONE_GENERATOR) && game.hasSkin(Skin.FUSION_LONE));
+    }
+
+    @Test
+    void lAutomatismeDesGenerateursRespecteLEpreuveDuGenerateurSeul() {
+        Game game = skins(), witness = skins();
+        for (Game each : java.util.List.of(game, witness)) {
+            each.state().setExplosions(1);
+            each.state().addAutomation("auto_generator");
+            each.state().setAutomationEnabled("auto_generator", true);
+            each.state().setParticles(BigNum.of(1, 9));
+        }
+        assertTrue(game.startTrial(Trial.LONE_GENERATOR));
+        double wait = game.automationInterval("auto_generator") + 1;
+        game.tick(wait);
+        witness.tick(wait);
+        assertTrue(witness.generatorCount() > 1, "sans l'épreuve, l'automatisme achète bien des générateurs");
+        assertEquals(1, game.generatorCount(), "aucun générateur acheté pendant l'épreuve, même par l'automatisme");
+        assertEquals(Trial.LONE_GENERATOR, game.activeTrial(), "l'épreuve continue");
     }
 
     @Test
@@ -121,11 +152,16 @@ class SkinsObtenusTest {
         game.tick(0.1);
         assertNull(game.activeTrial(), "la surchauffe la fait échouer");
         assertTrue(game.startTrial(Trial.LONE_COLLIDER));
+        game.state().setTrialCount(2);
+        assertEquals(0.25, game.trialProgress(), 1e-12, "deux croisements captés sur huit");
         game.state().setTrialCount(Trial.LONE_COLLIDER.goal());
         game.tick(0.1);
         assertTrue(game.hasSkin(Skin.COLLIDER_ICE));
         // Le temps écoulé fait échouer une épreuve limitée.
         assertTrue(game.startTrial(Trial.DETECTOR));
+        assertEquals(60, game.trialLeft(), 1e-9, "soixante secondes");
+        game.state().setTimePlayed(game.state().timePlayed() + 20);
+        assertEquals(40, game.trialLeft(), 1e-6, "vingt secondes plus tard, quarante restent");
         game.tick(Trial.DETECTOR.seconds() + 1);
         assertNull(game.activeTrial());
         assertFalse(game.isTrialCompleted(Trial.DETECTOR));
@@ -138,7 +174,7 @@ class SkinsObtenusTest {
         game.buyPrismResearch();
         game.state().addCompletedTrial(Trial.COLD_BANG.name());
         game.state().setRebuildRecord(42);
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertTrue(game.hasPrismResearch());
         assertTrue(game.isTrialCompleted(Trial.COLD_BANG));
         assertEquals(42, game.rebuildRecord(), 0);

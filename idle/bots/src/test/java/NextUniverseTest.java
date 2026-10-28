@@ -3,15 +3,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.save.SaveCodec;
+import idle.core.bigbang.BangChallenge;
 import idle.core.universe.CycleChoice;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,16 +22,11 @@ class NextUniverseTest {
     static final Path UNIVERSE_ONE = Path.of("sauvegardes", "reference", "checkpoint_universe1_speedrunner.save");
 
     private static Game fresh() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return Bots.fresh(42);
     }
 
     private static Game load(Path save) throws Exception {
-        GameState state = SaveCodec.read(Files.readString(save)).state();
-        return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT,
-                new Random(42));
+        return Bots.load(save, 42);
     }
 
     @Test
@@ -121,8 +112,9 @@ class NextUniverseTest {
 
     @Test
     void lesProfilsEnchainentSurLUniversDeux(@TempDir Path out) throws Exception {
-        IdleProfiles24.main(new String[] {"1", UNIVERSE_ONE.toString(), "0.2", "20", out.toString(), "201", "late", "2"});
-        assertTrue(Files.exists(out.resolve("01_Speedrunner_late.csv")), "l'historique de l'univers 2 est écrit");
+        String stage = System.getProperty("idle.stage", "late");
+        IdleProfiles24.main(new String[] {"1", UNIVERSE_ONE.toString(), "0.2", "20", out.toString(), "201", stage, "2"});
+        assertTrue(Files.exists(out.resolve(String.format(Locale.ROOT, "01_Speedrunner_%s.csv", stage))), "l'historique de l'univers 2 est écrit");
         assertFalse(Files.exists(out.resolve("01_Speedrunner_winner.save")), "l'univers 2 n'est pas fini en 12 minutes");
         // Le bilan de la partie : relancée dans l'univers 2, avec ses gestes.
         Game started = load(UNIVERSE_ONE);
@@ -140,7 +132,7 @@ class NextUniverseTest {
     void leBotV2EnchaineAussi(@TempDir Path out) throws Exception {
         AdvancedLab.main(new String[] {"DEPENDANCES", UNIVERSE_ONE.toString(), "0.1", "20", "42", out.toString(), "2"});
         String result = Files.readString(out.resolve("result.csv"));
-        assertTrue(result.lines().findFirst().orElse("").endsWith("univers_formes,univers_h,anomalies"));
+        assertTrue(result.lines().findFirst().orElse("").endsWith("univers_formes,instants_univers_h,anomalies"));
         assertTrue(Files.readString(out.resolve("events.csv")).contains("UNIVERS_SUIVANT"));
     }
 
@@ -244,6 +236,49 @@ class NextUniverseTest {
             game.tick(20);
         }
         assertTrue(expert.regimes > 0 && expert.cycles == 1 && expert.freeElements > 0);
+    }
+
+    @Test
+    void unDefiDeBigBangQuiRemetAZeroRendLeChoixDeCycleEtLExpertLeRefait() {
+        // Correctif 0.141 (B1) : un défi de Big Bang qui remet à zéro (vide, sans mémoire, à la main) rend le choix de
+        // cycle sans compter de Big Bang ; l'occasion de choix, clé « univers, Big Bangs », ne changeait pas et la
+        // partie entière du défi se jouait sans bonus de cycle.
+        Game game = everythingOffered();
+        game.state().setBigBangs(Game.BANG_CHALLENGES_BIG_BANGS);
+        NextUniversePolicy expert = new NextUniversePolicy(NextUniversePolicy.Style.EXPERT, new NoRandom());
+        expert.play(game);
+        assertEquals(CycleChoice.RESERVE, game.cycleChoice());
+        assertTrue(game.startBangChallenge(BangChallenge.VOID));
+        assertEquals(null, game.cycleChoice(), "le défi a rendu le choix");
+        assertEquals(Game.BANG_CHALLENGES_BIG_BANGS, game.bigBangs(), "sans compter de Big Bang");
+        expert.play(game);
+        assertEquals(CycleChoice.RESERVE, game.cycleChoice(), "l'expert rechoisit pour la partie du défi");
+        assertEquals(2, expert.cycles);
+        // Le distrait qui a laissé passer cette occasion-là n'y revient pas pendant le défi (une occasion, un tirage).
+        Game forgetful = everythingOffered();
+        forgetful.state().setBigBangs(Game.BANG_CHALLENGES_BIG_BANGS);
+        assertTrue(forgetful.startBangChallenge(BangChallenge.VOID));
+        NextUniversePolicy never = new NextUniversePolicy(new NextUniversePolicy.Style(CycleChoice.FUSION, 1, 0,
+                NextUniversePolicy.Family.NONE, 1, NextUniversePolicy.Pick.NEEDED), new NoRandom());
+        for (int i = 0; i < 5; i++) never.play(forgetful);
+        assertEquals(null, forgetful.cycleChoice());
+    }
+
+    @Test
+    void leCliqueurPrendUnElementOffertAuHasard() {
+        // Pick.RANDOM : n'importe quel élément pas encore découvert, et le hasard du profil sert.
+        Game game = everythingOffered();
+        int before = game.discoveredElements();
+        NextUniversePolicy clicker = new NextUniversePolicy(new NextUniversePolicy.Style(CycleChoice.FUSION, 1, 1,
+                NextUniversePolicy.Family.NONE, 1, NextUniversePolicy.Pick.RANDOM), new Random(5));
+        clicker.play(game);
+        assertEquals(1, clicker.freeElements);
+        assertEquals(before + 1, game.discoveredElements(), "un élément nouveau, quel qu'il soit");
+        assertEquals(0, game.freeElementsAvailable());
+        org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class, () -> new NextUniversePolicy(
+                new NextUniversePolicy.Style(CycleChoice.FUSION, 1, 1, NextUniversePolicy.Family.NONE, 1,
+                        NextUniversePolicy.Pick.RANDOM), new NoRandom()).play(everythingOffered()),
+                "le choix au hasard tire bien le hasard du profil");
     }
 
     @Test

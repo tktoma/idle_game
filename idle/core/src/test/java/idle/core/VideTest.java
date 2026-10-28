@@ -39,11 +39,7 @@ class VideTest {
     }
 
     private static GameState reread(GameState state) {
-        try {
-            return SaveCodec.read(SaveCodec.write(state, 0)).state();
-        } catch (Exception unreadable) {
-            throw new AssertionError(unreadable);
-        }
+        return GameTestSupport.reread(state);
     }
 
     // ------------------------------------------------------------------
@@ -52,8 +48,7 @@ class VideTest {
 
     @Test
     void leVideSeProposeAuPremierBigBangDuTroisiemeUnivers() {
-        Game first = new Game();
-        first.start();
+        Game first = GameTestSupport.realGame();
         GameTestSupport.bangs(first, 3);
         assertFalse(first.isVoidOffered(), "pas dans le premier univers, même après des Big Bangs");
         Game game = DeuxiemeUniversTest.second();
@@ -88,7 +83,7 @@ class VideTest {
         assertTrue(game.openVoid());
         assertEquals(0, game.colliderEnergy(), fixed * 1e-9);
         // L'univers suivant le refixe.
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertEquals(0, game.state().voidPrice());
     }
 
@@ -111,11 +106,16 @@ class VideTest {
     }
 
     @Test
-    void leVideOuvertSeRelitEtUneVieilleSauvegardeLeLaisseFerme() {
+    void leVideOuvertSeRelitEtUneVieilleSauvegardeLeLaisseFerme() throws Exception {
         Game game = open();
+        game.state().setVoidLevel(VoidUpgrade.RATE.ordinal(), 2);
         GameState back = reread(game.state());
         assertTrue(back.voidOpen());
-        GameState fresh = reread(new GameState());
+        assertEquals(2, back.voidLevel(VoidUpgrade.RATE.ordinal()));
+        // Une sauvegarde d'avant la 0.129 : aucune clé du vide.
+        String text = SaveCodec.write(game.state(), 0).replaceAll("(?m)^void[A-Za-z0-9.]*=.*\\R", "");
+        assertFalse(text.contains("voidOpen="), "les clés du vide sont retirées");
+        GameState fresh = SaveCodec.read(text).state();
         assertFalse(fresh.voidOpen());
         assertFalse(fresh.voidHoleOpen());
         assertEquals(0.25, fresh.voidShare(), 1e-12);
@@ -341,7 +341,7 @@ class VideTest {
         assertEquals(860, game.maturationLeft("black_hole"), 1e-6);
         // Relue, la partie garde le niveau ; à la formation de l'univers, il repart de zéro.
         assertEquals(2, reread(game.state()).voidLevel(VoidUpgrade.MATURE.ordinal()));
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertEquals(1, game.maturationShare(), 1e-12);
     }
 
@@ -392,7 +392,7 @@ class VideTest {
         game.state().setVoidHoleOpen(true);
         assertTrue(game.universeTransition(false).lost().stream().anyMatch(line -> line.contains("234")),
                 "le guide le dit : la réserve rejoint le cumul");
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertEquals(1234.5, game.voidAccumulated(), 1e-9);
         assertEquals(Map.of("3", 1234.5), game.state().voidHistory(), "noté pour l'univers 3");
         assertEquals(0, game.voidEnergy().sign(), "le vide repart de zéro");
@@ -413,7 +413,7 @@ class VideTest {
     void unVideJamaisOuvertNAjouteRienAuCumul() {
         Game game = third();
         game.state().setVoidEnergy(BigNum.of(50));
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertTrue(game.state().voidHistory().isEmpty());
         assertEquals(0, game.voidEnergy().sign());
     }
@@ -467,7 +467,7 @@ class VideTest {
         Game game = open();
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 2);
         assertEquals(2, reread(game.state()).voidLevel(VoidUpgrade.SETTLE.ordinal()));
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE));
         assertEquals(1, game.settleShare(), 1e-12);
     }

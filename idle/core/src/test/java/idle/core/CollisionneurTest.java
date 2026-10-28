@@ -4,22 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
 import idle.core.collider.ColliderAchievement;
 import idle.core.collider.ColliderGenerator;
 import idle.core.collider.ColliderUpgrade;
 import idle.core.collider.Collision;
 import idle.core.collider.CollisionTier;
 import idle.core.collider.Quark;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -27,10 +22,7 @@ import org.junit.jupiter.api.Test;
 class CollisionneurTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     /** Après une première explosion, avec de l'énergie à volonté, et l'amélioration « Collisions » prise. */
@@ -190,21 +182,8 @@ class CollisionneurTest {
         }
     }
 
-    /** Tout ce qu'il faut pour que le Big Bang soit possible. */
     private static void readyForBigBang(Game game) {
-        game.state().setExplosions(Math.max(1, game.state().explosions()));
-        game.state().setParticles(Game.BIG_BANG_PARTICLES);
-        game.state().setAtoms(Game.BIG_BANG_ATOMS);
-        game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-        int given = 0;
-        for (idle.core.achievements.Achievement achievement : game.achievements()) {
-            if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
-        }
-        for (idle.core.darkmatter.Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
-        for (Body body : game.bodies()) {
-            if (game.bodiesMature() >= game.bigBangSkyRequirement()) break;
-            game.state().addBody(body.id());
-        }
+        GameTestSupport.readyForBigBang(game);
     }
 
     @Nested
@@ -240,6 +219,31 @@ class CollisionneurTest {
         }
 
         @Test
+        void leDeclencheurCapteUnCroisementSurCinqPuisUnSurTroisPuisTous() {
+            // Sans « Collisions », les croisements laissés passer ne donnent rien : l'énergie dit combien ont été captés
+            // (trois secondes de production chacun), en plus des trente secondes de production des quinze croisements.
+            Game none = bare(0);
+            for (int i = 0; i < 15; i++) none.tick(Game.RESONANCE_PERIOD);
+            assertEquals(30, none.colliderEnergy(), 1e-6, "sans le déclencheur, rien ne se capte seul");
+            assertEquals(-1, none.state().colliderCaught(), "aucun croisement capté");
+            Game first = bare(0);
+            first.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 1);
+            for (int i = 0; i < 15; i++) first.tick(Game.RESONANCE_PERIOD);
+            assertEquals(15, first.state().colliderCrossings());
+            assertEquals(30 + 3 * Game.CROSSING_SECONDS, first.colliderEnergy(), 1e-6, "niveau 1 : un croisement sur cinq, trois captés");
+            assertEquals(15, first.state().colliderCaught(), "le dernier capté : le quinzième");
+            Game second = bare(0);
+            second.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 2);
+            for (int i = 0; i < 15; i++) second.tick(Game.RESONANCE_PERIOD);
+            assertEquals(30 + 5 * Game.CROSSING_SECONDS, second.colliderEnergy(), 1e-6, "niveau 2 : un sur trois, cinq captés");
+            assertEquals(15, second.state().colliderCaught());
+            Game third = bare(0);
+            third.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 50);
+            for (int i = 0; i < 15; i++) third.tick(Game.RESONANCE_PERIOD);
+            assertEquals(30 + 15 * Game.CROSSING_SECONDS, third.colliderEnergy(), 1e-6, "du niveau 3 au-delà : tous");
+        }
+
+        @Test
         void lesFaisceauxRapidesEtLeDetecteurElargi() {
             Game game = opened(0);
             game.state().setColliderUpgradeLevel(ColliderUpgrade.SPEED, 5);
@@ -254,12 +258,18 @@ class CollisionneurTest {
     @Nested
     class QuarkTop {
 
+        /**
+         * Le hasard du collisionneur est un hachage du numéro du croisement : avec toutes les saveurs ouvertes, le
+         * 3 883e croisement est le premier à donner un top (17 % de collision × 0,13 % de top). On part juste avant,
+         * plutôt que de rejouer les 3 882 d'avant.
+         */
         private Game withTop() {
             Game game = opened(0);
             for (Quark quark : Quark.values()) game.state().setColliderUpgradeLevel(ColliderUpgrade.flavorOf(quark), 1);
             assertTrue(game.isQuarkOpen(Quark.TOP));
-            long crossings = 0;
-            while (!game.hasTop() && crossings++ < 100_000) game.tick(Game.RESONANCE_PERIOD);
+            game.state().setColliderCrossings(3_870);
+            for (int crossing = 0; crossing < 30 && !game.hasTop(); crossing++) game.tick(Game.RESONANCE_PERIOD);
+            assertEquals(3_883, game.state().colliderCrossings(), "le top arrive par une collision, au croisement attendu");
             return game;
         }
 
@@ -331,8 +341,7 @@ class CollisionneurTest {
 
     @Test
     void lesHuitGenerateursSeProduisentLUnLAutre() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setExplosions(1);
         assertTrue(game.isColliderGeneratorOpen(ColliderGenerator.BEAM));
         assertFalse(game.isColliderGeneratorOpen(ColliderGenerator.MAGNET), "l'aimant attend un premier faisceau");
@@ -503,6 +512,58 @@ class CollisionneurTest {
             game.state().setColliderUpgradeLevel(ColliderUpgrade.GENERATOR_POWER, 2);
             assertEquals(before * 4, game.colliderGeneratorOutput(ColliderGenerator.CAVITY), 1e-12);
             assertEquals(energy, game.colliderEnergyPerSecond(), 1e-12, "l'énergie a ses propres améliorations");
+        }
+
+        @Test
+        void centGenerateursRenforcentLEnergieEtDeuxCentCinquanteToutLeMonde() {
+            Game game = bare(0);
+            game.state().setColliderGenerators(ColliderGenerator.CAVITY, 1);
+            double energy = game.colliderEnergyPerSecond(), cavity = game.colliderGeneratorOutput(ColliderGenerator.CAVITY);
+            assertEquals(1, energy, 1e-12, "un faisceau : une énergie par seconde");
+            // Cent générateurs achetés (ici des cavités, qui gagnent aussi leur succès de production ×2 à dix).
+            game.state().setColliderGeneratorsBought(ColliderGenerator.CAVITY, 100);
+            assertTrue(game.hasColliderAchievement(ColliderAchievement.HUNDRED));
+            assertFalse(game.hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND));
+            assertEquals(energy * 1.5, game.colliderEnergyPerSecond(), 1e-12, "cent générateurs : énergie ×1,5");
+            assertEquals(cavity * 2, game.colliderGeneratorOutput(ColliderGenerator.CAVITY), 1e-12, "les cavités : leur succès de production, et rien de plus");
+            // Deux cent cinquante : chaque générateur produit ×1,5, les faisceaux compris.
+            game.state().setColliderGeneratorsBought(ColliderGenerator.CAVITY, 250);
+            assertTrue(game.hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND));
+            assertEquals(energy * 1.5 * 1.5, game.colliderEnergyPerSecond(), 1e-12, "×1,5 des cent, ×1,5 des deux cent cinquante");
+            assertEquals(cavity * 2 * 1.5, game.colliderGeneratorOutput(ColliderGenerator.CAVITY), 1e-12);
+            // Les générateurs renforcés : ×2 par niveau, sauf pour les faisceaux ; l'amélioration d'énergie : ×2 par niveau.
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.GENERATOR_POWER, 2);
+            assertEquals(cavity * 12, game.colliderGeneratorOutput(ColliderGenerator.CAVITY), 1e-12);
+            assertEquals(energy * 2.25, game.colliderEnergyPerSecond(), 1e-12, "les faisceaux ne sont pas renforcés");
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 3);
+            assertEquals(energy * 2.25 * 8, game.colliderEnergyPerSecond(), 1e-12, "2³ de l'amélioration d'énergie");
+        }
+
+        @Test
+        void lesPrixDesAmeliorationsDuCollisionneur() {
+            Game game = bare(0);
+            for (ColliderGenerator generator : ColliderGenerator.values()) game.state().setColliderGeneratorsBought(generator, 1);
+            assertTrue(game.isColliderUpgradesUnlocked(), "les huit générateurs achetés ouvrent les améliorations");
+            assertEquals(1e10, game.colliderUpgradeCost(ColliderUpgrade.COLLISIONS), 1, "Collisions : dix milliards d'énergie");
+            assertEquals(5e10, game.colliderUpgradeCost(ColliderUpgrade.LUCK), 1);
+            assertEquals(2e10, game.colliderUpgradeCost(ColliderUpgrade.ENERGY), 1);
+            assertEquals(1e12, game.colliderUpgradeCost(ColliderUpgrade.AUTO_CATCH), 1);
+            assertEquals(1e10, game.colliderUpgradeCost(ColliderUpgrade.AUTO_BEAM), 1, "l'automate des faisceaux");
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.LUCK, 1);
+            assertEquals(2.5e11, game.colliderUpgradeCost(ColliderUpgrade.LUCK), 1, "faisceaux focalisés : ×5 par niveau");
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.ENERGY, 2);
+            assertEquals(7.2e11, game.colliderUpgradeCost(ColliderUpgrade.ENERGY), 1, "énergie : ×6 par niveau");
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.SPEED, 3);
+            assertEquals(2e13, game.colliderUpgradeCost(ColliderUpgrade.SPEED), 1, "faisceaux rapides : ×10 par niveau");
+            game.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 2);
+            assertEquals(2.5e15, game.colliderUpgradeCost(ColliderUpgrade.AUTO_CATCH), 1, "déclencheur : ×50 par niveau");
+            // Le prix se paie : à un près, l'achat est refusé ; à l'exact, il est pris.
+            game.state().setColliderEnergy(1e10 - 1);
+            assertFalse(game.canBuyColliderUpgrade(ColliderUpgrade.COLLISIONS));
+            game.state().setColliderEnergy(1e10);
+            assertTrue(game.buyColliderUpgrade(ColliderUpgrade.COLLISIONS));
+            assertEquals(0, game.colliderEnergy(), 1e-6);
+            assertEquals(1, game.colliderUpgradeLevel(ColliderUpgrade.COLLISIONS));
         }
 
         @Test

@@ -8,11 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.achievements.Achievement;
 import idle.core.achievements.Achievements;
 import idle.core.bigbang.BangChallenge;
-import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
+import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.KindCollection;
 import idle.core.molecules.Molecule;
@@ -20,13 +17,10 @@ import idle.core.molecules.Molecules;
 import idle.core.molecules.ShoppingList;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -38,10 +32,7 @@ import org.junit.jupiter.api.Test;
 class TroisiemeActeTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     private static Game afterBigBangs(int bigBangs, double space) {
@@ -52,25 +43,11 @@ class TroisiemeActeTest {
     }
 
     private static void fillTable(Game game) {
-        for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
+        GameTestSupport.fillTable(game, 1);
     }
 
-    /** Tout ce qu'il faut pour que le Big Bang soit possible. */
     private static void readyForBigBang(Game game) {
-        game.state().setExplosions(Math.max(1, game.state().explosions()));
-        game.state().setParticles(Game.BIG_BANG_PARTICLES);
-        game.state().setAtoms(Game.BIG_BANG_ATOMS);
-        game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-        int given = 0;
-        for (Achievement achievement : game.achievements()) {
-            if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());
-        }
-        for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
-        // Du sixième au huitième Big Bang, il faut aussi des astres mûrs.
-        for (Body body : game.bodies()) {
-            if (game.bodiesMature() >= game.bigBangSkyRequirement()) break;
-            game.state().addBody(body.id());
-        }
+        GameTestSupport.readyForBigBang(game);
     }
 
     @Nested
@@ -398,17 +375,16 @@ class TroisiemeActeTest {
             Game without = newGame();
             with.tick(3600);
             without.tick(3600);
-            Random a = new Random(42);
-            Random b = new Random(42);
-            assertEquals(a.nextLong(), b.nextLong());                   // le témoin
             with.state().setAtoms(BigNum.of(1, 6));
             without.state().setAtoms(BigNum.of(1, 6));
             with.state().setTotalAtoms(BigNum.of(1, 6));
             without.state().setTotalAtoms(BigNum.of(1, 6));
+            assertTrue(with.isPeriodicTableUnlocked() && without.isPeriodicTableUnlocked());
             for (int i = 0; i < 20; i++) {
-                with.synthesize();
+                assertFalse(with.synthesize().isEmpty(), "chaque synthèse tire bien un élément");
                 without.synthesize();
             }
+            assertFalse(with.state().elements().isEmpty());
             assertEquals(without.state().elements(), with.state().elements());
         }
     }
@@ -452,7 +428,7 @@ class TroisiemeActeTest {
             // Version 0.118 : ×2 molécules par création et par défi réussi, même prix en éléments ; chacune prend sa place.
             Game game = afterBigBangs(1, 1e9);
             game.state().setUniverseFormed(true);
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
             game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FROZEN.name());
             int hydrogen = game.elementCount(1), oxygen = game.elementCount(8);
@@ -473,7 +449,7 @@ class TroisiemeActeTest {
             // Sans place, il en vient moins.
             Game tight = afterBigBangs(1, 0);
             tight.state().setUniverseFormed(true);
-            for (Element element : PeriodicTable.ELEMENTS) tight.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(tight, 9);
             tight.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.RAISED.name());
             tight.state().setSpace(BigNum.of(tight.volumeOf(tight.molecule("H2O")) * 1.5));
             assertTrue(tight.createMolecule("H2O"));
@@ -484,7 +460,7 @@ class TroisiemeActeTest {
         void laPremiereFoisPoseLeRecordSansLAnnoncer() {
             Game game = afterBigBangs(1, 1e9);
             fillTable(game);
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             assertTrue(Double.isNaN(game.recordOf(GameStats.Step.FIRST_MOLECULE)));
             game.state().setTimePlayed(5000);
             assertTrue(game.createMolecule("H2O"));
@@ -499,7 +475,7 @@ class TroisiemeActeTest {
         @Test
         void laRemiseAZeroGardeLesRecordsEtLaPartieSuivantePeutLesBattre() {
             Game game = afterBigBangs(1, 1e9);
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             game.state().setTimePlayed(5000);
             assertTrue(game.createMolecule("H2O"));
             game.reset();
@@ -510,7 +486,7 @@ class TroisiemeActeTest {
             game.start();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             game.state().setTimePlayed(7000);
             assertTrue(game.createMolecule("H2O"));
             assertEquals(5000, game.recordOf(GameStats.Step.FIRST_MOLECULE), 1e-9);
@@ -521,7 +497,7 @@ class TroisiemeActeTest {
             game.start();
             GameTestSupport.bangs(game, 1);
             game.state().setSpace(BigNum.of(1, 9));
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             game.state().setTimePlayed(4000);
             assertTrue(game.createMolecule("H2O"));
             assertEquals(4000, game.recordOf(GameStats.Step.FIRST_MOLECULE), 1e-9);
@@ -595,14 +571,12 @@ class TroisiemeActeTest {
         @Test
         void ilsTombentAuFilDuTroisiemeActe() {
             Game game = afterBigBangs(1, 1e12);
-            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             game.state().setAutoGather(false);
             game.state().setAutoForm(false);
             game.tick(1.1);
             assertFalse(game.hasAchievement("step_first_molecule"));
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            GameTestSupport.fillTable(game, 9);
             assertTrue(game.createMolecule("H2O"));
             game.state().setMoleculeCount("H2O", 3);
             assertTrue(game.formSubstance("H2O"));
@@ -746,9 +720,7 @@ class TroisiemeActeTest {
         @Test
         void aLaMainAucunAutomatismeDeMatiereNoireNiDuBigBang() {
             Game game = ready(5);
-            for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-            }
+            GameTestSupport.openSpace(game);
             game.state().setDarkMatter(BigNum.of(100));
             assertTrue(game.setDarkAutomationEnabled("dark_auto_tree", true));
             game.state().setMoleculeCount("H2O", 3);
@@ -798,6 +770,34 @@ class TroisiemeActeTest {
             game.reset();
             assertNull(game.activeBangChallenge());
             assertEquals(0, game.completedBangChallenges());
+        }
+
+        @Test
+        void barreHauteEtCielFigeNeRemettentRienAZero() {
+            // Version 0.117 : « Barre haute » et « Ciel figé » ne remettent rien à zéro au départ ; le ciel figé attend le 8e Big Bang.
+            Game game = DeuxiemeUniversTest.second();
+            GameTestSupport.bangs(game, Game.BANG_CHALLENGES_BIG_BANGS);
+            game.state().setParticles(BigNum.of(1, 50));
+            game.state().setAtoms(BigNum.of(1, 6));
+            BigNum particlesNeed = game.bigBangParticles();
+            assertTrue(game.startBangChallenge(BangChallenge.RAISED));
+            assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro");
+            assertEquals(1e6, game.state().atoms().toDouble(), 1e-6);
+            assertEquals(particlesNeed.log10() * 1.5, game.bigBangParticles().log10(), 1e-6, "une fois et demie plus d'ordres de grandeur");
+            assertEquals(Game.BIG_BANG_ATOMS.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
+            assertEquals(Game.BIG_BANG_DARK_MATTER.toDouble() * 2, game.bigBangDarkMatter().toDouble(), 1e-9);
+            assertTrue(game.abandonBangChallenge());
+            GameTestSupport.bangs(game, 6);
+            assertFalse(game.startBangChallenge(BangChallenge.FROZEN), "le Big Bang 7 demande un ciel qui n'est pas là");
+            GameTestSupport.bangs(game, 9);
+            assertTrue(game.startBangChallenge(BangChallenge.FROZEN), "au-delà du huitième, pas de ciel demandé");
+            assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro non plus");
+            for (Molecule molecule : game.molecules()) assertFalse(game.canCreateMolecule(molecule.id()), "le troisième acte s'arrête");
+            game.abandonBangChallenge();
+            Body rubble = game.bodies().get(0);
+            double slow = game.maturationSeconds(rubble);
+            game.state().addCompletedBangChallenge(BangChallenge.RAISED.name());
+            assertEquals(slow / 8, game.maturationSeconds(rubble), 1e-9, "sa récompense ×2, et le bonus du deuxième univers ×4");
         }
     }
 }

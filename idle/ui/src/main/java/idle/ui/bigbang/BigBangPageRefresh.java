@@ -5,6 +5,7 @@ import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
+import idle.core.probes.ProbeTrip;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
@@ -230,7 +231,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
             case BigBangMilestone.ExoticMatter exotic -> "Les matières exotiques s'ouvrent dans les astres : pulsar, magnétar, "
                     + "nébuleuses, quasar. Ils ne demandent aucun assemblage, seulement des astres déjà formés et beaucoup de "
                     + "matière rassemblée, et la galaxie les demande aussi.";
-            case BigBangMilestone.Probes probes -> "Une sous-page « Sondes » s'ouvre : une sonde part de 15 minutes à 8 heures "
+            case BigBangMilestone.Probes probes -> "Une sous-page « Sondes » s'ouvre : une sonde part de " + (int) (ProbeTrip.SHORT.seconds() / 60) + " minutes à " + (int) (ProbeTrip.NIGHT.seconds() / 3600) + " heures "
                     + "et rapporte des éléments d'un rayon, de l'espace, des sursauts d'expansion et des échantillons. Chaque "
                     + "récompense se réclame d'un clic. Les échantillons paient les améliorations des sondes ; tout traverse le Big Bang.";
             case BigBangMilestone.KeepChallenges keep -> "Dès ce Big Bang-là, et à tous les suivants, les défis réussis "

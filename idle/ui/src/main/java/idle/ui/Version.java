@@ -23,10 +23,22 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
-            new Note("0.144", "Les racines de l'arbre-monde", List.of(
-                    "À l'arbre-monde, les deux bulles du bas, celle de la graine et celle des racines, remontent un peu et "
-                            + "s'écartent l'une de l'autre : elles étaient serrées au bas de la vue.",
-                    "La bulle des racines, tout en bas, a une aura dorée qui respire.")),
+            new Note("0.144", "Grand ménage : moins de code, mêmes règles", List.of(
+                    "Statistiques : nouvelle sous-page « Univers » (univers formés, graine et arrosoir, les quatre dimensions et "
+                            + "leurs seuils, le vide et ses paires, les bulles de l'arbre, les règles du deuxième univers), avec "
+                            + "ses courbes ; l'énergie du vide entre dans le graphique de toutes les ressources ; les lignes du "
+                            + "vide quittent la sous-page Big Bang.",
+                    "Multiplicateurs : trois grandeurs de plus se décomposent, l'énergie du collisionneur par seconde, l'énergie "
+                            + "du vide par seconde (la part laissée au vide y apparaît en frein) et les segments de la ligne par seconde.",
+                    "Le moteur, l'interface et les bots perdent environ 900 lignes sans changer une règle ni un pixel : niveaux "
+                            + "d'améliorations en tableaux, boucles sur les paliers et barres de sous-onglets partagées, méthodes "
+                            + "et outils que plus rien n'appelait ; les textes de l'aide et des popups lisent les constantes du jeu.",
+                    "Profil de test : les bots gardent leur choix de cycle pendant un défi de Big Bang, jouent la « Barre haute » "
+                            + "avec ses vrais seuils, retentent les défis abandonnés au bon moment, écrivent leurs CSV avec le point "
+                            + "décimal ; onze outils d'essai obsolètes retirés, README et PROFILS_24 remis d'accord avec le code.",
+                    "Tests : doublons retirés, cinq tests qui ne pouvaient pas échouer rendus effectifs, suite du moteur plus rapide, "
+                            + "et une centaine de vérifications ajoutées (prix des améliorations des dimensions, bulles, planètes "
+                            + "en double, épreuves, collisionneur, sondes, fenêtres de la ligne et du plan).")),
             new Note("0.143", "Le réseau des bulles, jusqu'à l'arbre-monde", List.of(
                     "Les bulles de l'arbre continuent jusqu'au dernier palier de la graine : deux de plus au jeune arbre, deux "
                             + "à l'arbre mûr, deux à l'arbre ancien, quatre à l'arbre géant, et trois à l'arbre-monde, dont une "

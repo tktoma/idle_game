@@ -41,11 +41,6 @@ public final class SystemView extends Canvas {
         draw();
     }
 
-    void setSystem(SolarSystem system) {
-        this.system = system;
-        draw();
-    }
-
     /** Fait tourner les planètes et leurs lunes. */
     public void frame(double elapsed) {
         if (BigBangPage.moving()) time += elapsed;

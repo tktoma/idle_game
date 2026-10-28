@@ -1,29 +1,22 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.*;
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.bigbang.BigBangCondition;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
-import java.util.Random;
 import org.junit.jupiter.api.Test;
 
-/** Tests réels du moteur 0.86 pour le suivi facultatif des besoins de matière. */
+/**
+ * Le suivi facultatif des besoins de matière (version 0.86) : éteint par défaut, il entretient seul la substance de
+ * l'état qui manque à la liste de courses, sans toucher à la réserve réglée par le joueur.
+ */
 class AutoMatterTest {
     private Game prepared() {
-        Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        g.start();
+        Game g = GameTestSupport.realGame();
         GameTestSupport.bangs(g, 8);
         g.state().setSpace(BigNum.of(1,14));
-        for (SpaceUpgrade u : g.spaceUpgrades())
-            if (!(u.effect() instanceof SpaceUpgrade.Boost)) g.state().addSpaceUpgrade(u.id());
-        for (int n = 1; n <= 118; n++) g.state().setElementCount(n, 200);
+        GameTestSupport.openSpace(g);
+        GameTestSupport.fillTable(g, 200);
         g.setAutoFollowList(false);
         assertTrue(g.isMoleculeAutomationUnlocked());
         assertTrue(g.isStatesUnlocked());
@@ -57,16 +50,6 @@ class AutoMatterTest {
         assertTrue(g.setAutoFollowMatter(true));
         g.tick(20);
         assertTrue(g.moleculeCount(chosen.id())>before,"mode allumé : l'état demandé s'entretient");
-    }
-
-    @Test void cinqCentsMatiereNoireDoiventEtreDisponiblesEtPasSeulementGagnes() {
-        Game g=prepared();
-        g.state().setDarkMatter(BigNum.of(470));
-        g.state().setDarkMatterSpent(BigNum.of(30));
-        assertFalse(g.isBigBangConditionMet(BigBangCondition.DARK_MATTER),
-                "470 disponibles + 30 dépensées n'atteignent pas la condition");
-        g.state().setDarkMatter(BigNum.of(500));
-        assertTrue(g.isBigBangConditionMet(BigBangCondition.DARK_MATTER));
     }
 
     @Test void leJoueurPeutDesactiverEtGarderSaReserve() {

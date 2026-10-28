@@ -9,6 +9,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,7 +17,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Sous-page « Défis » de l'onglet Matière noire : une {@link Card} par défi d'explosion.
@@ -46,10 +46,7 @@ public final class ChallengesPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 10, 0));
 
-        intro.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        intro.setWrapText(true);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        intro.setMaxWidth(760);
+        Labels.note(intro, 760);
         getChildren().add(intro);
 
         // La fuite (version 0.115) prend place au milieu de la grille, au centre de sa deuxième rangée : elle n'y
@@ -207,7 +204,7 @@ public final class ChallengesPane extends VBox {
                 card.show(Card.State.ON, "", challenge == Challenges.LEAK ? "fuite " + ElementText.percent(game.leakLossPerSecond()) + "/s" : "en cours",
                         challenge.name(), line, detail,
                         "Depuis " + Format.duration(game.stats().runTime()) + (challenge == Challenges.LEAK
-                                && game.stats().runTime() < Game.LEAK_MIN_SECONDS ? " (explosion possible à 2 min)" : ""), "abandonner");
+                                && game.stats().runTime() < Game.LEAK_MIN_SECONDS ? " (explosion possible à " + (int) (Game.LEAK_MIN_SECONDS / 60) + " min)" : ""), "abandonner");
             } else if (!unlocked) {
                 card.show(Card.State.LOCKED, "", "verrouillé", challenge.name(), line, detail,
                         "À " + challenge.darkMatter() + " matières noires gagnées", "");
@@ -291,7 +288,7 @@ public final class ChallengesPane extends VBox {
             case LEAK -> "les particules fuient d'une part qui grandit de " + ElementText.percent(Game.LEAK_STEP)
                     + " par seconde à chaque seconde sans amélioration achetée (jusqu'à " + ElementText.percent(Game.LEAK_MAX)
                     + " par seconde). Chaque amélioration achetée soi-même l'arrête et la fait repartir de zéro ; celles des "
-                    + "automatismes, non. Le tableau ne peut pas exploser avant 2 minutes de défi.";
+                    + "automatismes, non. Le tableau ne peut pas exploser avant " + (int) (Game.LEAK_MIN_SECONDS / 60) + " minutes de défi.";
         };
     }
 

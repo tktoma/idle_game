@@ -45,11 +45,6 @@ public final class LaunchView extends Canvas {
         return age >= 0;
     }
 
-    /** Vrai une fois l'éclat passé : pour les vérifications. */
-    public boolean hasLaunched() {
-        return launched;
-    }
-
     /** Fait avancer l'animation (au plus un dixième de seconde à la fois, pour ne pas sauter l'éclat). */
     public void frame(double elapsed) {
         if (age < 0) return;

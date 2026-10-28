@@ -1,7 +1,9 @@
 package idle.ui.common;
 
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 
 /**
  * Zone qui donne à un dessin ({@link Canvas}) la place disponible dans la fenêtre.
@@ -55,5 +57,20 @@ public final class CanvasPane extends Pane {
             canvas.setHeight(height);
             canvas.relocate(0, 0);
         }
+    }
+
+    /**
+     * Commence une image des vues de l'univers : rend l'opacité, efface le canevas et le peint de ce fond.
+     * Rien (null) tant que le canevas n'a pas de taille : il n'y a alors rien à dessiner.
+     */
+    public static GraphicsContext begin(Canvas canvas, Color back) {
+        double w = canvas.getWidth(), h = canvas.getHeight();
+        if (w <= 0 || h <= 0) return null;
+        GraphicsContext g = canvas.getGraphicsContext2D();
+        g.setGlobalAlpha(1);
+        g.clearRect(0, 0, w, h);
+        g.setFill(back);
+        g.fillRect(0, 0, w, h);
+        return g;
     }
 }

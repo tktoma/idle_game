@@ -59,15 +59,17 @@ def main():
     sub=par.add_subparsers(dest='command',required=True)
     sub.add_parser('build')
     z=sub.add_parser('verify');z.add_argument('--save',required=True)
-    for name in ['v2','profils','fresh','coach']:
-        z=sub.add_parser(name)
-        z.add_argument('--bot',default='DEPENDANCES',choices=MODES) if name=='v2' else z.add_argument('--id',type=int,choices=range(1,25),required=True) if name in ('profils','fresh') else z.add_argument('--checkpoint',required=True)
+    for name in ['v2','profils','fresh']:
+        z=sub.add_parser(name,help={'v2':"le bot V2 (AdvancedLab) depuis une sauvegarde",'profils':"un des 24 profils depuis une sauvegarde (IdleProfiles24)",
+            'fresh':"un profil depuis une partie neuve, les deux premiers actes seulement (FreshPhaseProfiles)"}[name])
+        z.add_argument('--bot',default='DEPENDANCES',choices=MODES) if name=='v2' else z.add_argument('--id',type=int,choices=range(1,25),required=True)
         z.add_argument('--hours',type=float,default=12 if name!='fresh' else 4)
         z.add_argument('--step',type=float,default=20)
         z.add_argument('--seed',type=int,default=42)
         z.add_argument('--checkpoint',default=str(CP)) if name in ('v2','profils') else None
         # Version 0.130 : combien d'univers former ; au-delà du premier, l'univers suivant se lance dès l'univers formé.
-        z.add_argument('--univers',type=int,choices=[1,2,3],default=1) if name!='coach' else None
+        # Pas pour « fresh » : sans le cosmos, l'univers ne se forme pas (l'audit depuis zéro joue le chemin complet).
+        z.add_argument('--univers',type=int,choices=[1,2,3],default=1) if name!='fresh' else None
         z.add_argument('--out',default=None)
     z=sub.add_parser('audit',help="parties neuves des profils jusqu'à l'univers visé (FreshUniverseAudit)")
     z.add_argument('--de',type=int,choices=range(1,25),default=1);z.add_argument('--a',type=int,choices=range(1,25),default=1)
@@ -79,7 +81,6 @@ def main():
     z.add_argument('--minutes',type=float,default=60)
     z=sub.add_parser('empreinte',help="joue les 4 parties de l'empreinte du moteur");z.add_argument('--out',required=True);z.add_argument('parties',nargs='*')
     z=sub.add_parser('comparer',help="compare deux dossiers d'empreintes (ou deux sauvegardes)");z.add_argument('a');z.add_argument('b')
-    z=sub.add_parser('phase3');z.add_argument('--explosions',type=int,default=1);z.add_argument('--hours',type=int,default=8);z.add_argument('--seed',type=int,default=42)
     z=sub.add_parser('batch');z.add_argument('--tier',choices=['rapide','standard','approfondi'],required=True);z.add_argument('--workers',type=int,default=2);z.add_argument('--hours',type=float,default=None);z.add_argument('--step',type=float,default=20);z.add_argument('--seed-start',type=int,default=None);z.add_argument('--replay',action='store_true')
     a=par.parse_args()
     if a.command=='build':compile_bots();return
@@ -93,7 +94,6 @@ def main():
         os.chdir(R);sys.exit(execute(['FreshUniverseAudit',a.de,a.a,a.hours,a.step,folder,str(a.strict).lower(),a.univers]))
     if a.command=='dimensions':
         os.chdir(R);sys.exit(execute(['DimensionBots',a.dimension,a.minutes]))
-    if a.command=='phase3':sys.exit(execute(['RobotPhase3',a.explosions,a.hours,a.seed]))
     if a.command=='batch':
         if not (1<=a.workers<=8):sys.exit('--workers must be 1..8')
         hrs=a.hours or (6 if a.tier=='rapide' else 12)
@@ -117,11 +117,10 @@ def main():
                     if n%5==0 or st=='ECHEC':print(n,'/',len(jobs),k,sd,st,flush=True)
         return
     if a.out:folder=pathlib.Path(a.out)
-    else:folder=R/'sorties'/f'{a.command}_{getattr(a,"id",getattr(a,"bot","coach"))}_seed{a.seed}_{a.hours}h'
+    else:folder=R/'sorties'/f'{a.command}_{getattr(a,"id",getattr(a,"bot",""))}_seed{a.seed}_{a.hours}h'
     folder.mkdir(parents=True,exist_ok=True)
     if a.command=='v2':cmd=['AdvancedLab',a.bot,a.checkpoint,a.hours,a.step,a.seed,folder,a.univers]
     elif a.command=='profils':cmd=['IdleProfiles24',a.id,a.checkpoint,a.hours,a.step,folder,a.seed,'late',a.univers]
-    elif a.command=='fresh':cmd=['FreshPhaseProfiles',a.id,a.hours,a.step,folder,a.seed,a.univers]
-    elif a.command=='coach':cmd=['CorrectedCoach',a.checkpoint,a.hours,a.step,a.seed,folder]
+    elif a.command=='fresh':cmd=['FreshPhaseProfiles',a.id,a.hours,a.step,folder,a.seed]
     code=execute(cmd,folder);print('Résultats:',folder);sys.exit(code)
 if __name__=='__main__':main()

@@ -15,9 +15,7 @@ class ArrosoirTest {
 
     /** Le premier univers formé, l'objectif de la dimension 1 atteint : la graine peut être arrosée. */
     private static Game ready() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.universe(1);
         game.state().setDimensionShardsEarned(Game.LINE_THRESHOLD);
         assertTrue(game.canTendSeed());
         return game;
@@ -25,8 +23,7 @@ class ArrosoirTest {
 
     @Test
     void lArrosoirSeDebloqueUneFoisLUniversForme() {
-        Game fresh = new Game();
-        fresh.start();
+        Game fresh = GameTestSupport.realGame();
         assertFalse(fresh.canUnlockWateringCan(), "pas d'univers, pas de graine, pas d'arrosoir");
         assertFalse(fresh.unlockWateringCan());
         Game game = ready();
@@ -97,9 +94,10 @@ class ArrosoirTest {
         assertTrue(game.unlockWateringCan());
         GameState copy = SaveCodec.read(SaveCodec.write(game.state(), 1)).state();
         assertTrue(copy.wateringCan());
-        GameState old = SaveCodec.read(SaveCodec.write(new GameState(), 1)).state();
-        assertFalse(old.wateringCan(), "une partie sans arrosoir le garde verrouillé");
-        DeuxiemeUniversTest.formUniverse(game);
+        String old = SaveCodec.write(game.state(), 1).replaceAll("(?m)^wateringCan=.*\\R", "");
+        assertFalse(old.contains("wateringCan="), "la clé de l'arrosoir est retirée, comme dans une sauvegarde d'avant la 0.137");
+        assertFalse(SaveCodec.read(old).state().wateringCan(), "une sauvegarde d'avant l'arrosoir le garde verrouillé");
+        game.testFormUniverse();
         assertTrue(game.isWateringCanUnlocked(), "former l'univers suivant ne le reprend pas");
         game.testResetUniverses();
         assertFalse(game.isWateringCanUnlocked(), "l'outil d'essai qui remet la partie secondaire à zéro le reprend");

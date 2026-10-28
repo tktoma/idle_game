@@ -30,7 +30,11 @@ class ProfileProgressGuardTest {
     }
     @Test void couverture24Profils() {
         assertEquals(24,IdleProfiles24.PROFILES.length);
-        for(IdleProfiles24.Profile p:IdleProfiles24.PROFILES)
-            assertNotNull(new ProfileProgressGuard(p));
+        for(IdleProfiles24.Profile p:IdleProfiles24.PROFILES){
+            var g=new ProfileProgressGuard(p);
+            assertEquals(p.id(),g.id);
+            assertEquals(ProfileProgressGuard.Verdict.PROGRESS,g.assess(sample(0,0,0,0,100,0,true)).verdict(),
+                    p.name()+" : le premier relevé est un progrès");
+        }
     }
 }

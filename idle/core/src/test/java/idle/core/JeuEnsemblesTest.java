@@ -485,6 +485,7 @@ class JeuEnsemblesTest extends GameTestSupport {
         @Test
         void sansLaCaseDeLArbreRienNeSeVerrouille() {
             Game game = darkGame();
+            assertFalse(game.isHoldLockUnlocked(), "le verrou se débloque dans l'arbre, par « dark_lock »");
             assertFalse(game.setHoldLocked(true));
             assertFalse(game.isHoldLocked());
             game.tick(60);
@@ -495,6 +496,7 @@ class JeuEnsemblesTest extends GameTestSupport {
         void verrouilleeElleGrossitAChaqueTick() {
             Game locked = darkGame();
             locked.state().setDarkLevel("dark_lock", 1);
+            assertTrue(locked.isHoldLockUnlocked());
             assertTrue(locked.setHoldLocked(true));
             assertTrue(locked.isHoldLocked());
             locked.tick(30);

@@ -21,8 +21,7 @@ class TransitionTest {
 
     /** Une partie avancée, au seuil de l'univers. */
     private static Game advanced() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 8);
         game.state().setParticles(BigNum.of(1, 500));
         game.state().setAtoms(BigNum.of(1, 20));
@@ -52,7 +51,7 @@ class TransitionTest {
         assertFalse(mentions(guide.kept(), "skins"), "pas de skins à garder avant le premier univers");
         int achievements = game.achievementCount();
 
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
 
         // Perdu.
         assertEquals(0, game.bigBangs());
@@ -73,9 +72,8 @@ class TransitionTest {
 
     @Test
     void leLancementDeLUniversSuivantGardeLaPartieSecondaire() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.realGame();
+        game.testFormUniverse();
         // La partie secondaire : graines, énergie du vide, ligne, graine, skins, épreuves.
         game.state().setUniverseSeeds(BigNum.of(3));
         game.state().noteVoidHistory("1", 1250);

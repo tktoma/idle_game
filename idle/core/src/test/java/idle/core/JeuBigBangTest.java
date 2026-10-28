@@ -6,17 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.achievements.Achievement;
-import idle.core.achievements.Achievements;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.Challenge;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.elements.Element;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.List;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -31,21 +26,14 @@ class JeuBigBangTest extends GameTestSupport {
 
         /** Le vrai jeu, démarré, avec ses catalogues complets. */
         private Game fullGame() {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             return game;
         }
 
         /** Réunit exactement ce que le Big Bang demande, pas davantage. */
         private Game readyGame() {
             Game game = fullGame();
-            game.state().setExplosions(1);
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            giveAchievements(game, Game.BIG_BANG_ACHIEVEMENTS);
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             return game;
         }
 
@@ -230,11 +218,7 @@ class JeuBigBangTest extends GameTestSupport {
             Game game = readyGame();
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
-            game.state().setExplosions(1);
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertEquals(2, game.bigBangs());
@@ -287,10 +271,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.tick(40);
             assertEquals(40, stats.bigBangTime(), 1e-6);
             game.state().setExplosions(7);
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertEquals(2, stats.timedBigBangs());
@@ -452,9 +433,7 @@ class JeuBigBangTest extends GameTestSupport {
     class ExpansionDeLaMatiere {
 
         private Game game(int bigBangs) {
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                    Achievements.DEFAULT, new Random(42));
-            game.start();
+            Game game = GameTestSupport.realGame();
             GameTestSupport.bangs(game, bigBangs);
             return game;
         }
@@ -530,11 +509,7 @@ class JeuBigBangTest extends GameTestSupport {
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertValue(50, game.state().space());
-            game.state().setParticles(Game.BIG_BANG_PARTICLES);
-            game.state().setAtoms(Game.BIG_BANG_ATOMS);
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
-            for (Achievement achievement : game.achievements()) game.state().addAchievement(achievement.id());
-            for (Challenge challenge : game.challenges()) game.state().addCompletedChallenge(challenge.id());
+            GameTestSupport.readyForBigBang(game);
             assertTrue(game.bigBang());
             GameTestSupport.payMilestones(game);
             assertValue(50, game.state().space());

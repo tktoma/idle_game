@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.ui.common.CanvasPane;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.canvas.Canvas;
@@ -781,12 +782,8 @@ public final class DimensionView extends Canvas {
 
     private void draw() {
         double w = getWidth(), h = getHeight();
-        if (w <= 0 || h <= 0) return;
-        GraphicsContext g = getGraphicsContext2D();
-        g.setGlobalAlpha(1);
-        g.clearRect(0, 0, w, h);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
+        GraphicsContext g = CanvasPane.begin(this, BACK);
+        if (g == null) return;
         double cx = w / 2, cy = h / 2, u = Math.min(w, h);
         switch (dimension) {
             case LINE -> line(g, w, cx, cy, u);

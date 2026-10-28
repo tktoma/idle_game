@@ -9,7 +9,6 @@ import idle.core.elements.Element;
 import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
-import idle.core.molecules.Molecule;
 import idle.core.upgrades.Automation;
 import idle.core.upgrades.Upgrade;
 import java.util.ArrayList;
@@ -150,30 +149,24 @@ public abstract class GameDarkTree extends GameSystems {
         return (T) value;
     }
 
+    /** La somme, sur les cases de l'arbre dont l'effet est de cette sorte, de {@code perLevel(effet) × niveau effectif}. */
+    private <E extends DarkEffect> double darkSum(Class<E> type, java.util.function.ToDoubleFunction<E> perLevel) {
+        double sum = 0;
+        for (DarkUpgrade dark : darkUpgrades.values()) {
+            if (type.isInstance(dark.effect())) sum += perLevel.applyAsDouble(type.cast(dark.effect())) * effectLevel(dark);
+        }
+        return sum;
+    }
+
     /** Atomes de base ajoutés à chaque fusion par l'arbre. */
     public double darkAtomsPerFusion() {
-        return darkMemo("atomsPerFusion", () -> {
-            double added = 0;
-            for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.AddAtomsPerFusion add) {
-                    added += add.perLevel() * effectLevel(dark);
-                }
-            }
-            return added;
-        });
+        return darkMemo("atomsPerFusion", () -> darkSum(DarkEffect.AddAtomsPerFusion.class, DarkEffect.AddAtomsPerFusion::perLevel));
     }
 
     /** Nombre d'éléments tirés à chaque synthèse, avant le tirage double : un, plus ceux de l'arbre. */
     public int elementsPerSynthesis() {
-        int count = 1 + this.<Integer>darkMemo("elementsPerSynthesis", () -> {
-            int added = 0;
-            for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.AddElementsPerSynthesis add) {
-                    added += add.perLevel() * effectLevel(dark);
-                }
-            }
-            return added;
-        });
+        int count = 1 + this.<Integer>darkMemo("elementsPerSynthesis",
+                () -> (int) darkSum(DarkEffect.AddElementsPerSynthesis.class, DarkEffect.AddElementsPerSynthesis::perLevel));
         if (rewarded(Challenge.Reward.EXTRA_ELEMENT)) count += REWARD_EXTRA_ELEMENTS;
         return count;
     }
@@ -235,29 +228,14 @@ public abstract class GameDarkTree extends GameSystems {
 
     /** Secondes d'appui que vaut chaque fusion pour la matière noire (0 sans l'amélioration). */
     public double darkFusionPulse() {
-        return darkMemo("fusionPulse", () -> {
-            double seconds = 0;
-            for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.FusionPulse pulse) {
-                    seconds += pulse.seconds() * effectLevel(dark);
-                }
-            }
-            return seconds;
-        });
+        return darkMemo("fusionPulse", () -> darkSum(DarkEffect.FusionPulse.class, DarkEffect.FusionPulse::seconds));
     }
 
     /** Niveaux de vitesse offerts par l'arbre : ils s'ajoutent à ceux achetés et ne se perdent jamais. */
     public int startingSpeedLevels() {
         if (inChallenge()) return 0;
-        return this.<Integer>darkMemo("startingSpeedLevels", () -> {
-            int levels = 0;
-            for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.StartingSpeedLevels start) {
-                    levels += start.perLevel() * effectLevel(dark);
-                }
-            }
-            return levels;
-        });
+        return this.<Integer>darkMemo("startingSpeedLevels",
+                () -> (int) darkSum(DarkEffect.StartingSpeedLevels.class, DarkEffect.StartingSpeedLevels::perLevel));
     }
 
     /** Rang de la synthèse qui donne un élément unique à coup sûr, tant qu'aucun n'est sorti. */
@@ -280,15 +258,8 @@ public abstract class GameDarkTree extends GameSystems {
      */
     public int maxCopiesOf(ElementCategory category) {
         if (category.unique()) return 1;
-        int steps = this.<Integer>darkMemo("copySteps", () -> {
-            int sum = 0;
-            for (DarkUpgrade dark : darkUpgrades.values()) {
-                if (dark.effect() instanceof DarkEffect.IncreaseMaxCopies more) {
-                    sum += more.perLevel() * effectLevel(dark);
-                }
-            }
-            return sum;
-        });
+        int steps = this.<Integer>darkMemo("copySteps",
+                () -> (int) darkSum(DarkEffect.IncreaseMaxCopies.class, DarkEffect.IncreaseMaxCopies::perLevel));
         if (steps == 0) return category.maxCopies();
         int strength = (int) Math.round(Math.sqrt(category.maxCopies())) + steps;
         return strength * strength;
@@ -304,7 +275,7 @@ public abstract class GameDarkTree extends GameSystems {
     /**
      * Nombre maximal d'exemplaires de cet élément : celui de sa famille
      * ({@link #maxCopiesOf(ElementCategory)}), plus un par molécule créée qui relève son plafond
-     * ({@link Molecule.Uncap}). Un élément unique reste unique.
+     * ({@link idle.core.molecules.Molecule.Uncap}). Un élément unique reste unique.
      */
     public int maxCopiesOf(Element element) {
         if (element.category().unique()) return 1;

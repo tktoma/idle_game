@@ -10,8 +10,10 @@ avec 24 parties **neuves et independantes**, sur le moteur actuel.
 - Les états incohérents ou les exceptions sont **ERROR**.
 - Une simulation qui continue sans victoire s'arrête au plafond de sécurité
   (par défaut **168 heures simulées**, soit sept jours) avec **LIMIT**, pas **WIN**.
-  Ce plafond peut être augmenté lors d'une relance manuelle, mais GitHub limite
-  aussi chaque job à 300 minutes d'exécution réelle.
+  Ce plafond peut être augmenté lors d'une relance manuelle, mais le workflow limite
+  aussi chaque job à 300 minutes d'exécution réelle (360, le maximum de GitHub, quand
+  l'option `univers` vaut 2 ou 3). Le plafond en heures simulées est global à l'essai,
+  quel que soit le nombre d'univers visés.
 - Huit jobs indépendants de trois profils couvrent tous les IDs : 1–3, 4–6, 7–9,
   10–12, 13–15, 16–18, 19–21 et 22–24 (les segments de six dépassaient 5 h en CI).
   Les tests ordinaires restent séparés de cette campagne lourde.

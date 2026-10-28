@@ -1,4 +1,5 @@
 import idle.core.Game;
+import idle.core.bigbang.BangChallenge;
 import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.universe.CycleChoice;
@@ -159,9 +160,12 @@ final class NextUniversePolicy {
         int done = 0;
         // Le régime rapide se relance à la main : à chaque décision où il est prêt, si le joueur y pense.
         if (game.canStartRegime() && chance(style.regime()) && game.startRegime()) { regimes++; done++; }
-        // Un choix par cycle, rendu au Big Bang.
-        // Une seule fois par cycle : celui qui n'y pense pas laisse passer le cycle entier.
-        long cycleNow = game.universes() * 1000L + game.bigBangs();
+        // Un choix par cycle, rendu au Big Bang. Une seule fois par cycle : celui qui n'y pense pas laisse passer le
+        // cycle entier. Un défi de Big Bang qui remet à zéro (vide, sans mémoire, à la main) rend aussi le choix sans
+        // compter de Big Bang : c'est une occasion de plus (avant la 0.141, elle passait inaperçue, et toute la partie
+        // du défi se jouait sans bonus de cycle).
+        BangChallenge active = game.activeBangChallenge();
+        long cycleNow = (game.universes() * 1000L + game.bigBangs()) * 10L + (active == null ? 0 : 1 + active.ordinal());
         if (game.isCycleChoiceUnlocked() && game.cycleChoice() == null && cycleNow != cycleOccasion) {
             cycleOccasion = cycleNow;
             if (chance(style.cycleCare())) {

@@ -7,6 +7,7 @@ import idle.ui.GameApp;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
+import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
@@ -17,7 +18,6 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Les systèmes solaires, sous-page du Big Bang (version 0.054, redessinée en 0.059). En haut, les trois
@@ -61,14 +61,9 @@ public final class SystemsPane extends VBox {
                 + "géante, et deux pour une planète océan dans la zone habitable d'un Soleil ou d'une naine rouge (orbites 2 et 3). "
                 + "Chaque point d'un système complet ajoute " + ElementText.percent(Game.SYSTEM_GAIN) + " à toutes les grandeurs. "
                 + "Tout se range et se défait librement : rien ne se perd.");
-        intro.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        intro.setWrapText(true);
-        intro.setMaxWidth(760);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        summary.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
-        summary.setWrapText(true);
+        Labels.note(intro, 760);
+        Labels.centered(summary, "-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         summary.setMaxWidth(760);
-        summary.setTextAlignment(TextAlignment.CENTER);
         HBox stepRow = new HBox(8, steps);
         stepRow.setAlignment(Pos.CENTER);
         stepRow.setMaxWidth(780);
@@ -78,10 +73,8 @@ public final class SystemsPane extends VBox {
             step.setMinHeight(44);
             HBox.setHgrow(step, Priority.ALWAYS);
         }
-        foundTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfd8e3;");
-        foundTitle.setWrapText(true);
+        Labels.centered(foundTitle, "-fx-font-size: 13px; -fx-text-fill: #cfd8e3;");
         foundTitle.setMaxWidth(760);
-        foundTitle.setTextAlignment(TextAlignment.CENTER);
         stars.setAlignment(Pos.CENTER);
         stars.setMaxWidth(780);
         systems.setAlignment(Pos.TOP_CENTER);
@@ -288,10 +281,8 @@ public final class SystemsPane extends VBox {
         }
         if (text.length() > 0) {
             Label why = new Label("Harmonie : " + text);
-            why.setStyle("-fx-font-size: 12px; -fx-text-fill: #a8b8c8;");
-            why.setWrapText(true);
+            Labels.centered(why, "-fx-font-size: 12px; -fx-text-fill: #a8b8c8;");
             why.setMaxWidth(740);
-            why.setTextAlignment(TextAlignment.CENTER);
             box.getChildren().add(why);
         }
         box.getChildren().add(button("Défaire ce système", () -> game.dissolveSystem(index)));

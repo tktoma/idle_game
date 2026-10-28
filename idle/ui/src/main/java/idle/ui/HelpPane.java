@@ -4,18 +4,18 @@ import idle.core.Absence;
 import idle.core.Game;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
+import idle.core.probes.ProbeTrip;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 /**
@@ -23,18 +23,18 @@ import javafx.scene.layout.VBox;
  * des raccourcis avec leurs touches du moment.
  *
  * <p>Seules les étapes que le joueur a atteintes sont expliquées : la suite se découvre en
- * jouant, et l'aide grandit avec la partie. Les nombres cités viennent des règles ({@link Game}),
- * pour ne jamais dire autre chose que le jeu.
+ * jouant, et l'aide grandit avec la partie. Les nombres cités viennent des règles ({@link Game}) quand elles
+ * les exposent ; les autres (en lettres : « dix minutes », « trois secondes », « cinquième Big Bang »…) sont
+ * recopiés et à relire si la règle change.
  *
  * <p>Elle s'ouvre et se ferme par son raccourci ({@link Shortcuts.Action#HELP}), par le bouton
  * « Aide » sous les onglets, et se ferme aussi par Échap ou son bouton.
  */
-final class HelpPane extends StackPane {
+final class HelpPane extends Overlay {
 
     private static final String TITLE_STYLE = "-fx-font-size: 15px; -fx-font-weight: bold; -fx-padding: 10 0 0 0; -fx-text-fill: #d6dde6;";
     private static final String TEXT_STYLE = "-fx-font-size: 13px; -fx-text-fill: #b7c4d2;";
-    private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 18; -fx-cursor: hand; -fx-background-radius: 6;"
-            + " -fx-border-radius: 6; -fx-text-fill: #0b0e14; -fx-background-color: #d6dde6; -fx-border-color: #ffffff;";
+    private static final String BUTTON_STYLE = buttonStyle("8 18", "#d6dde6");
 
     /**
      * Un paragraphe de l'aide.
@@ -52,6 +52,7 @@ final class HelpPane extends StackPane {
     private boolean open = false;
 
     HelpPane(Game game, Settings settings) {
+        super(VEIL);
         this.game = game;
         this.settings = settings;
         Label title = new Label("Comment jouer");
@@ -61,18 +62,12 @@ final class HelpPane extends StackPane {
         close.setOnAction(event -> close());
         content.setAlignment(Pos.TOP_LEFT);
         ScrollPane scroll = new ScrollPane(content);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(scroll);
         VBox card = new VBox(10, title, scroll, close);
         card.setAlignment(Pos.TOP_CENTER);
-        card.setStyle("-fx-background-color: #16202e; -fx-background-radius: 10; -fx-border-radius: 10;"
-                + " -fx-border-color: #3a4a5e; -fx-padding: 20 26;");
+        card.setStyle(cardStyle("#3a4a5e", false, "20 26"));
         card.setMaxWidth(640);
-        setStyle("-fx-background-color: #0b0e14cc;");
-        setPadding(new Insets(24));
-        getChildren().add(card);
-        setVisible(false);
+        mount(card);
     }
 
     /** Vrai tant que l'aide est affichée. */
@@ -205,7 +200,7 @@ final class HelpPane extends StackPane {
                 + "huit générateurs se produisent l'un l'autre, de l'aimant supraconducteur au collisionneur de Planck : comptez "
                 + "trois heures environ pour les avoir tous. Un clic quand les faisceaux se croisent capte trois secondes de production. "
                 + "Avec le huitième s'ouvrent les améliorations, payées en énergie : d'abord « Collisions », qui donne à chaque "
-                + "croisement 15 % de chances de sortir un quark, puis les saveurs une à une (étrange, charmée, belle, top), les "
+                + "croisement " + Math.round(Game.COLLISION_CHANCE * 100) + " % de chances de sortir un quark, puis les saveurs une à une (étrange, charmée, belle, top), les "
                 + "automates des générateurs, la vitesse des faisceaux, la production d'énergie et des générateurs, et la chaîne qui "
                 + "renforce le reste du jeu, dans son sous-onglet « Chaîne », payée en énergie et en quarks : particules, atomes, "
                 + "matière noire, vitesse de l'espace, dédoublement des molécules. L'énergie produite depuis le début ouvre les deux "
@@ -213,7 +208,7 @@ final class HelpPane extends StackPane {
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
-        // Les dimensions (version 0.128) : une par univers, et ce que font les trois qui se jouent.
+        // Les dimensions (version 0.128) : une par univers, et ce que font les quatre qui se jouent.
         if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
                 + "s'ouvre à chaque univers. Chacune a ses éclats, propres à elle, et un seuil d'éclats gagnés, un quart d'heure "
                 + "de jeu environ, qui marque la dimension d'un rond vert. Ces éclats ont leur nom : les segments de la ligne, les facettes du plan, "
@@ -237,7 +232,7 @@ final class HelpPane extends StackPane {
                 + (game.isDurationOpen() ? " Dans la durée, on tient le bouton au milieu du rond (clic tenu, ou la barre "
                         + "d'espace) : les spirales avancent du bord vers le centre, qu'elles atteignent en "
                         + idle.ui.common.ElementText.number(game.durationMaxSeconds()) + " secondes. Au relâchement, chaque "
-                        + "tour fait vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
+                        + "tour vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
                         + "courts, et tenir au-delà du centre ne rapporte plus rien, sans rien faire perdre. Ses améliorations "
                         + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")));
         // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
@@ -246,9 +241,9 @@ final class HelpPane extends StackPane {
                 + "Collisionneur : il s'ouvre contre dix minutes de production du collisionneur, comptées à son arrivée, et au moins "
                 + Format.count(BigNum.of(Game.VOID_UNLOCK_COST)) + " énergie. Ouvert, le collisionneur y fait naître des paires de "
                 + "particules, une par seconde au départ. Chacune coûte une demi-seconde de production du collisionneur, tient un "
-                + "cinquième de seconde d'expansion d'espace libre pendant ses 6 secondes de vie, et donne 1 énergie du vide à sa "
+                + "cinquième de seconde d'expansion d'espace libre pendant ses " + (int) Game.VOID_PAIR_LIFE + " secondes de vie, et donne 1 énergie du vide à sa "
                 + "naissance. Un réglage dit quelle part du collisionneur et de l'espace libre le vide peut prendre (un quart au "
-                + "départ). L'énergie du vide fond de 0,2 % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
+                + "départ). L'énergie du vide fond de " + String.format(java.util.Locale.FRANCE, "%.1f", Game.VOID_DECAY * 100) + " % par seconde : elle monte vers l'équilibre affiché, le gain par seconde "
                 + "divisé par la fonte. Elle paie huit améliorations, dans le sous-onglet « Améliorations » : gain par paire, rythme, "
                 + "coût en énergie, espace par paire, fonte plus lente, et trois qui raccourcissent le troisième acte : allègement "
                 + "du ciel (−" + Math.round(Game.VOID_LIGHTEN_STEP * 100) + " % par niveau des molécules et de la matière que "
@@ -273,7 +268,7 @@ final class HelpPane extends StackPane {
                 + " à toutes les grandeurs. Au septième Big Bang, deux places de maturation et une sonde de plus ; au huitième, "
                 + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."));
         if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
-                + "destination, puis un voyage de 15 minutes à 8 heures ; plus il est long, plus le butin est riche par heure. À l'"
+                + "destination, puis un voyage de " + (int) (ProbeTrip.SHORT.seconds() / 60) + " minutes à " + (int) (ProbeTrip.NIGHT.seconds() / 3600) + " heures ; plus il est long, plus le butin est riche par heure. À l'"
                 + "arrivée, la sonde attend à destination : un clic sur elle" + claimKey(settings) + " ouvre son butin, une carte par clic, ou tout d'un coup : des éléments "
                 + "du rayon visé, de l'espace d'un coup, un sursaut qui double l'espace par seconde un moment, des échantillons. "
                 + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "

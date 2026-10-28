@@ -11,11 +11,10 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.StableHeight;
 import idle.ui.common.TileGrid;
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javafx.geometry.Insets;
@@ -25,7 +24,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Le collisionneur de quarks (version 0.059) : trois parties, une par sous-onglet. L'énergie : l'anneau
@@ -193,10 +191,8 @@ public final class ColliderPane extends VBox {
     }
 
     private static void note(Label label, String color) {
-        label.setStyle("-fx-font-size: 12px; -fx-text-fill: " + color + ";");
-        label.setWrapText(true);
+        Labels.centered(label, "-fx-font-size: 12px; -fx-text-fill: " + color + ";");
         label.setMaxWidth(760);
-        label.setTextAlignment(TextAlignment.CENTER);
     }
 
     /** La couleur d'une saveur de quark. */
@@ -422,10 +418,5 @@ public final class ColliderPane extends VBox {
 
     public EnergyView energyView() {
         return energyView;
-    }
-
-    /** La carte d'une amélioration : pour les vérifications. */
-    public Card upgradeCard(ColliderUpgrade upgrade) {
-        return upgradeCards.get(upgrade);
     }
 }

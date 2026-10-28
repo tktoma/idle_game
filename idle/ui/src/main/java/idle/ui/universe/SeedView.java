@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.ui.common.CanvasPane;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -60,7 +61,6 @@ public final class SeedView extends Canvas {
     /** L'éclat qui salue la brindille, de 1 à 0. */
     private double flash;
     private static final Color WOOD = Color.web("#a07a4c");
-    private static final Color BARK = Color.web("#6e5236");
     private static final Color CRACK = Color.web("#4a3412");
 
     /**
@@ -302,10 +302,6 @@ public final class SeedView extends Canvas {
         return tilt;
     }
 
-    public boolean isDragging() {
-        return dragging;
-    }
-
     private boolean overCan(double x, double y) {
         double s = canSize();
         return Math.abs(x - canX()) <= s * 0.75 && Math.abs(y - canY()) <= s * 0.6;
@@ -460,13 +456,6 @@ public final class SeedView extends Canvas {
         if (!sprouted) shownSprout = 0;
     }
 
-    /** Le germe est-il devenu brindille. */
-    public void setTwig(boolean twig) {
-        this.twig = twig;
-        if (twig && stage < 2) stage = 2;
-        if (!twig && stage >= 2) stage = 1;
-    }
-
     /**
      * Le palier de la graine, de 1 à 11. Un palier de plus qu'avant joue le passage ({@link #evolve()}) ; un palier de
      * moins (une nouvelle partie) se pose sans animation.
@@ -511,10 +500,6 @@ public final class SeedView extends Canvas {
     /** La croissance de ce que le palier ajoute : de 0,55 à 1 pendant le passage, 1 ensuite. */
     private double growth() {
         return evolveAge < 0 ? 1 : 0.55 + 0.45 * ease((evolveAge - 0.6) / 2.0);
-    }
-
-    public boolean isTwig() {
-        return twig;
     }
 
     /** Salue la brindille d'un éclat de lumière. */
@@ -567,12 +552,8 @@ public final class SeedView extends Canvas {
 
     private void draw() {
         double w = getWidth(), h = getHeight();
-        if (w <= 0 || h <= 0) return;
-        GraphicsContext g = getGraphicsContext2D();
-        g.setGlobalAlpha(1);
-        g.clearRect(0, 0, w, h);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
+        GraphicsContext g = CanvasPane.begin(this, BACK);
+        if (g == null) return;
         double zoom = zoom();
         // Le passage secoue un instant la graine, quand elle craque.
         double shake = evolveAge >= 0 && evolveAge < 0.6 ? Math.sin(evolveAge * 70) * 3 * (1 - evolveAge / 0.6) : 0;
@@ -755,7 +736,7 @@ public final class SeedView extends Canvas {
                 g.setGlobalAlpha(1);
             }
             if (flash > 0) UniverseView.glow(g, cx, cy - size, size * (2 + 4 * (1 - flash)), SEAM, 0.8 * flash);
-            if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge, EVOLVE_SECONDS);
+            if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge);
             return;
         }
         g.setFill(SHELL);
@@ -788,7 +769,7 @@ public final class SeedView extends Canvas {
         g.strokeLine(cx - ax * s * 0.75, cy - ay * s * 0.75, cx + ax * s * 0.85, cy + ay * s * 0.85);
         g.setGlobalAlpha(1);
         UniverseView.glow(g, cx - s * 0.25, cy - s * 0.15, s * 0.45, SEAM, 0.45);
-        if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge, EVOLVE_SECONDS);
+        if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge);
     }
 
     /**
@@ -922,28 +903,6 @@ public final class SeedView extends Canvas {
             bubbleX[i] = baseX + at[0] * kx;
             bubbleY[i] = Math.min(getHeight() - bubbleR * 1.2, baseY - at[1] * k);
         }
-        // Les deux bulles du bas à l'arbre-monde (version 0.144) : la graine et les racines remontent un peu et
-        // s'écartent, au lieu d'être serrées au bas de la vue.
-        int seed = -1, roots = -1;
-        for (int i = 0; i < n; i++) {
-            if (bubbles.get(i).place() == 0) seed = i;
-            if (bubbles.get(i).place() == ROOTS_PLACE) roots = i;
-        }
-        if (seed >= 0 && roots >= 0) {
-            double gap = bubbleR * 3.6;
-            double rootsY = Math.min(baseY + gap - bubbleR, getHeight() - bubbleR * 2.0);
-            bubbleY[roots] = rootsY;
-            bubbleY[seed] = rootsY - gap;
-        }
-    }
-
-    /** La place des racines dans le schéma : la bulle tout en bas, sous la graine, à l'aura dorée. */
-    static final int ROOTS_PLACE = 16;
-    private static final Color ROOTS_GOLD = Color.web("#ffd27f");
-
-    /** Le rayon des bulles au dernier dessin : pour les vérifications. */
-    public double bubbleRadius() {
-        return bubbleR;
     }
 
     /**
@@ -986,16 +945,6 @@ public final class SeedView extends Canvas {
             double x = bubbleX[i], y = bubbleY[i];
             double r = bubbleR * (i == hovered ? 1.08 : 1);
             double pulse = 0.5 + 0.5 * Math.sin(time * 3 + i);
-            // Les racines (version 0.144) : une aura dorée qui respire, achetées ou non.
-            if (bubble.place() == ROOTS_PLACE) {
-                double breath = 0.5 + 0.5 * Math.sin(time * 1.6);
-                UniverseView.glow(g, x, y, r * (2.8 + 0.6 * breath), ROOTS_GOLD, 0.65 + 0.25 * breath);
-                UniverseView.glow(g, x, y, r * 1.6, Color.web("#fff1b8"), 0.5);
-                g.setStroke(ROOTS_GOLD);
-                g.setLineWidth(2.2);
-                g.setGlobalAlpha(0.55 + 0.35 * breath);
-                g.strokeOval(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6);
-            }
             // Un fond sombre derrière la bulle : elle se détache du feuillage.
             g.setFill(Color.web("#06121a"));
             g.setGlobalAlpha(0.6);

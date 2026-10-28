@@ -6,18 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.elements.Element;
-import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.ShoppingList;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
-import java.util.Random;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +21,7 @@ import org.junit.jupiter.api.Test;
 class LisibiliteTest {
 
     private static Game newGame() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
-        return game;
+        return GameTestSupport.realGame();
     }
 
     /** Après un premier Big Bang, tout ouvert jusqu'aux astres, sans les automatismes de rassemblement et de formation. */
@@ -40,16 +29,14 @@ class LisibiliteTest {
         Game game = newGame();
         GameTestSupport.bangs(game, 1);
         game.state().setSpace(BigNum.of(space));
-        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-            if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-        }
+        GameTestSupport.openSpace(game);
         game.state().setAutoGather(false);
         game.state().setAutoForm(false);
         return game;
     }
 
     private static void fillTable(Game game, int copies) {
-        for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), copies);
+        GameTestSupport.fillTable(game, copies);
     }
 
     @Nested
@@ -113,28 +100,20 @@ class LisibiliteTest {
 
         @Test
         void cEstLeVolumeDeCeQuiManqueEtDesLieuxAOuvrir() {
+            // La liste vise l'amas rocheux : la roche sableuse (250 quartz, 30 calcites, 10 hématites, 5 zircons, chacun
+            // à rassembler), et 400 cristaux de matière.
             Game game = openGame(1e12);
             ShoppingList list = game.shoppingList();
-            assertFalse(list.items().isEmpty());
-            double expected = 0;
-            java.util.Map<Molecule.State, Integer> covered = new java.util.EnumMap<>(Molecule.State.class);
-            for (ShoppingList.Item item : list.items()) {
-                double volume = game.moleculeVolume(item.molecule().id()).toDouble();
-                expected += item.missing() * volume;
-                if (item.gather()) {
-                    expected += game.substanceSpace(item.molecule().id()).toDouble();
-                    covered.merge(item.molecule().state(), item.missing(), Integer::sum);
-                }
-            }
-            // La matière qui manque dans un état, au-delà de ce que ces molécules apporteront, compte au moins pour quelque chose.
-            double space = game.shoppingSpace().toDouble();
-            assertTrue(space >= expected - 1e-6, space + " < " + expected);
-            boolean matterLeft = false;
-            for (java.util.Map.Entry<Molecule.State, Integer> lacking : list.matter().entrySet()) {
-                matterLeft |= lacking.getValue() > covered.getOrDefault(lacking.getKey(), 0);
-            }
-            if (!matterLeft) assertEquals(expected, space, 1e-6);
-            else assertTrue(space > expected);
+            assertEquals("Amas rocheux", list.target());
+            assertEquals(4, list.items().size());
+            assertEquals(java.util.Map.of(Molecule.State.CRYSTAL, 400), list.matter());
+            // Les molécules : 250 × 300 + 30 × 500 + 10 × 760 + 5 × 860 = 101 900 ; leurs quatre lieux : 900 + 1 500 + 2 280 + 2 580 = 7 260 ;
+            // la matière au-delà de ces 295 cristaux : 105 fois le plus petit cristal (40) = 4 200.
+            assertEquals(113_360, game.shoppingSpace().toDouble(), 1e-6);
+            // Les 250 quartz créés (pas encore rassemblés) : leurs 75 000 ne manquent plus, leur lieu (900) si ; et comme ils
+            // n'apporteront plus de cristaux en les rassemblant, la matière qui manque remonte de 105 à 355 (+10 000).
+            game.state().setMoleculeCount("SiO2", 250);
+            assertEquals(48_360, game.shoppingSpace().toDouble(), 1e-6);
         }
 
         @Test
@@ -143,12 +122,10 @@ class LisibiliteTest {
             // L'espace libre suffit largement.
             assertEquals(0, game.secondsUntilShopping(), 0);
             // Presque plus de place : il faut attendre l'expansion.
-            double needed = game.shoppingSpace().toDouble();
-            game.state().setSpace(game.usedSpace().add(BigNum.of(needed / 2)));
-            double wait = game.secondsUntilShopping();
-            double rate = game.spacePerSecond().toDouble();
-            assertEquals((needed - needed / 2) / rate, wait, wait * 1e-6);
-            assertTrue(wait > 0);
+            assertEquals(113_360, game.shoppingSpace().toDouble(), 1e-6);
+            game.state().setSpace(game.usedSpace().add(BigNum.of(56_680)));
+            assertEquals(1, game.spacePerSecond().toDouble(), 1e-9, "après un Big Bang, une unité d'espace par seconde");
+            assertEquals(56_680, game.secondsUntilShopping(), 1e-6, "la moitié qui manque, à une unité par seconde");
         }
 
         @Test
@@ -168,32 +145,18 @@ class LisibiliteTest {
             game.state().setCosmosLevel(1);                           // la galaxie est formée
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
-            assertFalse(list.matter().isEmpty());
-            double expected = 0;
-            for (java.util.Map.Entry<Molecule.State, Integer> lacking : list.matter().entrySet()) {
-                double smallest = Double.POSITIVE_INFINITY;
-                for (Molecule molecule : game.molecules()) {
-                    if (molecule.hasState() && molecule.state() == lacking.getKey() && game.isMoleculeKindUnlocked(molecule.kind())) {
-                        smallest = Math.min(smallest, game.moleculeVolume(molecule.id()).toDouble());
-                    }
-                }
-                expected += lacking.getValue() * smallest;
-            }
-            // Et la variété : chaque sorte qui manque compte pour ses premières molécules et pour son lieu.
-            assertFalse(list.sorts().isEmpty());
-            for (java.util.Map.Entry<Molecule.State, Integer> lacking : list.sorts().entrySet()) {
-                double smallest = Double.POSITIVE_INFINITY;
-                for (Molecule molecule : game.molecules()) {
-                    if (molecule.hasState() && molecule.state() == lacking.getKey() && game.isMoleculeKindUnlocked(molecule.kind())) {
-                        smallest = Math.min(smallest, game.moleculeVolume(molecule.id()).toDouble());
-                    }
-                }
-                expected += lacking.getValue() * 2.0 * Game.SUBSTANCE_MOLECULES * smallest;
-            }
-            assertEquals(expected, game.shoppingSpace().toDouble(), expected * 1e-9);
-            // Sans espace libre, il faut attendre toute cette place.
+            // L'amas de galaxies demande sa matière dans les cinq états, et de la variété dans chacun.
+            assertEquals(java.util.Map.of(Molecule.State.GAS, 100_000_000, Molecule.State.LIQUID, 10_000_000, Molecule.State.SOLID, 2_000_000,
+                    Molecule.State.CRYSTAL, 20_000_000, Molecule.State.METAL, 1_000_000), list.matter());
+            assertEquals(java.util.Map.of(Molecule.State.GAS, 25, Molecule.State.LIQUID, 35, Molecule.State.SOLID, 30,
+                    Molecule.State.CRYSTAL, 120, Molecule.State.METAL, 4), list.sorts());
+            // Chaque unité de matière compte pour la plus petite molécule de son état, chaque sorte pour ses trois premières
+            // molécules et son lieu (six fois la plus petite) : 43 605 192 360 en tout.
+            assertEquals(4.360519236e10, game.shoppingSpace().toDouble(), 1);
+            // Sans espace libre, il faut attendre toute cette place : 7 160,4 unités par seconde, soit 70 jours et demi.
             game.state().setSpace(game.usedSpace());
-            assertEquals(expected / game.spacePerSecond().toDouble(), game.secondsUntilShopping(), expected * 1e-9);
+            assertEquals(7_160.4, game.spacePerSecond().toDouble(), 1e-6);
+            assertEquals(6_089_770.45, game.secondsUntilShopping(), 0.01);
         }
     }
 
@@ -234,24 +197,28 @@ class LisibiliteTest {
         @Test
         void leRendementEstLeGainParUniteDEspace() {
             Game game = openGame(1e9);
-            assertEquals(game.moleculeGain("H2O") / game.moleculeNextSpace("H2O").toDouble(), game.moleculeYield("H2O"), 1e-15);
-            assertEquals(game.moleculeVolume("H2O").toDouble(), game.moleculeNextSpace("H2O").toDouble(), 1e-9);
+            assertEquals(0.05, game.moleculeGain("H2O"), 1e-12, "la première eau : +5 %");
+            assertEquals(200, game.moleculeVolume("H2O").toDouble(), 1e-9);
+            assertEquals(200, game.moleculeNextSpace("H2O").toDouble(), 1e-9, "non rassemblée, une création prend une molécule de place");
+            assertEquals(2.5e-4, game.moleculeYield("H2O"), 1e-15, "0,05 pour 200 unités d'espace");
             // Rassemblée, une création ajoute plusieurs molécules : elle prend la place de toutes.
             game.state().setMoleculeCount("H2O", 9);
             game.state().addSubstance("H2O");
-            assertEquals(game.moleculeVolume("H2O").toDouble() * game.moleculesPerCreation("H2O"),
-                    game.moleculeNextSpace("H2O").toDouble(), 1e-9);
+            assertEquals(4, game.moleculesPerCreation("H2O"), "neuf eaux rassemblées : quatre par création");
+            assertEquals(800, game.moleculeNextSpace("H2O").toDouble(), 1e-9);
         }
 
         @Test
         void uneMoleculeQuiReleveUnPlafondNeRapporteRienIci() {
             Game game = openGame(1e9);
+            int uncaps = 0;
             for (Molecule molecule : game.molecules()) {
-                if (molecule.bonus() instanceof Molecule.Uncap) {
-                    assertEquals(0, game.moleculeGain(molecule.id()), 0, molecule.id());
-                    return;
-                }
+                if (!(molecule.bonus() instanceof Molecule.Uncap)) continue;
+                uncaps++;
+                assertEquals(0, game.moleculeGain(molecule.id()), 0, molecule.id());
             }
+            assertEquals(153, uncaps, "le dihydrogène, le quartz… : 153 molécules relèvent un plafond");
+            assertTrue(game.molecule("H2").bonus() instanceof Molecule.Uncap);
         }
 
         @Test

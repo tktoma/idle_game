@@ -23,8 +23,7 @@ class SondesTest {
 
     /** Une partie au troisième Big Bang, l'hydrogène et le fer découverts. */
     private static Game third() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 3);
         game.state().setElementCount(1, 5);
         game.state().setElementCount(26, 2);
@@ -33,8 +32,7 @@ class SondesTest {
 
     @Test
     void lesSondesSOuvrentAuTroisiemeBigBang() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 2);
         assertFalse(game.isProbesUnlocked());
         assertFalse(game.launchProbe(ProbeDestination.VOID, ProbeTrip.SHORT));
@@ -84,6 +82,42 @@ class SondesTest {
         Game game = third();
         for (int element : game.probeElements(ProbeDestination.GAS_CLOUD)) assertTrue(game.state().elementCount(element) > 0);
         assertTrue(game.probeElements(ProbeDestination.VOID).isEmpty());
+    }
+
+    @Test
+    void leButinSeChiffreSelonLaValeurDeLaRecompense() {
+        Game game = third();
+        BigNum perSecond = game.steadySpacePerSecond();
+        assertTrue(perSecond.sign() > 0);
+        // L'espace : deux minutes d'expansion, fois la valeur.
+        ProbeReward space = new ProbeReward(ProbeReward.Type.SPACE, "", 1, ProbeDestination.VOID);
+        assertEquals(perSecond.toDouble() * 120, game.probeSpaceOf(space).toDouble(), perSecond.toDouble() * 1e-9);
+        ProbeReward triple = new ProbeReward(ProbeReward.Type.SPACE, "", 3, ProbeDestination.VOID);
+        assertEquals(perSecond.toDouble() * 360, game.probeSpaceOf(triple).toDouble(), perSecond.toDouble() * 1e-9);
+        BigNum before = game.state().space();
+        game.state().setProbeRewards(List.of(triple));
+        assertEquals(triple, game.claimProbeReward());
+        assertEquals(before.toDouble() + perSecond.toDouble() * 360, game.state().space().toDouble(), perSecond.toDouble() * 1e-6, "réclamée, elle s'ajoute à l'espace");
+        // Les échantillons : 2 × valeur^0,8, arrondi, un au moins.
+        assertEquals(2, game.probeSamplesOf(new ProbeReward(ProbeReward.Type.SAMPLES, "", 1, ProbeDestination.VOID)));
+        assertEquals(1, game.probeSamplesOf(new ProbeReward(ProbeReward.Type.SAMPLES, "", 0.1, ProbeDestination.VOID)), "jamais moins d'un");
+        assertEquals(13, game.probeSamplesOf(new ProbeReward(ProbeReward.Type.SAMPLES, "", 10, ProbeDestination.VOID)), "2 × 10^0,8 = 12,6");
+        assertEquals(80, game.probeSamplesOf(new ProbeReward(ProbeReward.Type.SAMPLES, "", 100, ProbeDestination.VOID)), "2 × 100^0,8 = 79,6");
+        // Les quarks charmés : la racine de la valeur, arrondie, un au moins ; les beaux, la moitié arrondie au-dessous.
+        assertEquals(1, game.probeCharmOf(new ProbeReward(ProbeReward.Type.QUARKS, "", 1, ProbeDestination.VOID)));
+        assertEquals(1, game.probeCharmOf(new ProbeReward(ProbeReward.Type.QUARKS, "", 0.01, ProbeDestination.VOID)), "jamais moins d'un");
+        assertEquals(3, game.probeCharmOf(new ProbeReward(ProbeReward.Type.QUARKS, "", 9, ProbeDestination.VOID)));
+        assertEquals(5, game.probeCharmOf(new ProbeReward(ProbeReward.Type.QUARKS, "", 27, ProbeDestination.VOID)), "√27 = 5,2");
+        ProbeReward quarks = new ProbeReward(ProbeReward.Type.QUARKS, "", 27, ProbeDestination.VOID);
+        game.state().setProbeRewards(List.of(quarks));
+        assertEquals(quarks, game.claimProbeReward());
+        assertEquals(5, game.quarks(idle.core.collider.Quark.CHARM));
+        assertEquals(2, game.quarks(idle.core.collider.Quark.BOTTOM), "la moitié de cinq, arrondie au-dessous");
+        // Les échantillons réclamés s'ajoutent à la réserve.
+        long samples = game.state().probeSamples();
+        game.state().setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.SAMPLES, "", 10, ProbeDestination.VOID)));
+        game.claimProbeReward();
+        assertEquals(samples + 13, game.state().probeSamples());
     }
 
     @Test

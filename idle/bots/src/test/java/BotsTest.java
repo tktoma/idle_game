@@ -3,16 +3,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
+import idle.core.bigbang.BangChallenge;
+import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,9 +27,11 @@ class BotsTest {
     }
 
     private static Game load(Path save) throws Exception {
-        GameState state = SaveCodec.read(Files.readString(save)).state();
-        return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
+        return Bots.load(save, 42);
     }
+
+    /** Partie neuve du profil 1 (graine 201) au 5e Big Bang : les dix défis et les quarante succès sont là. */
+    static final Path FIFTH_BANG = Path.of("sauvegardes", "reference", "checkpoint_fresh_fifth_bang.save");
 
     @Test
     void persistanceAttendLesAutomatismesPrioritaires() {
@@ -143,7 +141,6 @@ class BotsTest {
         assertEquals(18, g.bigBangSkyRequirement());
         assertFalse(FirstUniversePolicy.skyReady(g));
         assertFalse(FirstUniversePolicy.finalBangPreparation(g));
-        assertFalse(RobotCosmosPlanner.skyReadyForNextBigBang(g));
     }
 
     @Test
@@ -192,16 +189,6 @@ class BotsTest {
     }
 
     @Test
-    void toutesLesPolitiquesV2SontDisponiblesDansLePremierUnivers() {
-        Game g = new Game();
-        g.start();
-        for (String mode : AdvancedLab.MODES) {
-            AdvancedLab bot = new AdvancedLab(g, 20, mode, 42);
-            assertEquals(mode, bot.mode);
-        }
-    }
-
-    @Test
     void toutesLesVariantesJouentLePremierUniversSansPlanter(@TempDir Path out) throws Exception {
         for (String mode : AdvancedLab.MODES) {
             Game g = load(Path.of("sauvegardes", "reference", "checkpoint_before_eighth.save"));
@@ -213,7 +200,6 @@ class BotsTest {
             assertTrue(bot.acts > 0, mode + " : le bot doit agir");
             assertTrue(Files.exists(folder.resolve("timeline.csv")), mode);
             assertTrue(Files.exists(folder.resolve("result.csv")), mode);
-            assertTrue(g.bigBangs() >= 0, mode);
         }
     }
 
@@ -238,22 +224,11 @@ class BotsTest {
     }
 
     @Test
-    void lesSondesNePeuventPasEtreUtiliseesAvantLeurDeblocage() {
-        Game g = new Game();
-        g.start();
-        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
-        assertFalse(g.isProbesUnlocked());
-        bot.probes();
-        assertEquals(0, g.state().probeLaunches());
-    }
-
-    @Test
     void expertPeutDemarrerDepuisUnePartieNeuve(@TempDir Path out) throws Exception {
         Game g = new Game();
         g.start();
         AdvancedLab bot = new AdvancedLab(g, 20, "EXPERT_COMPLET", 42);
         bot.runLab(0.1, out);
-        assertTrue(g.state().started());
         assertTrue(g.state().timePlayed() >= 360);
         assertTrue(Files.exists(out.resolve("timeline.csv")));
         assertTrue(bot.acts > 0);
@@ -344,15 +319,13 @@ class BotsTest {
     @Test
     void uneVictoireEcriteParLeMoteurActuelEstUneVictoire(@TempDir Path out) throws Exception {
         // Version 0.126 : l'univers formé remet tout à zéro ; la victoire reste celle du jeu, l'univers formé.
-        Game won = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
-        won.start();
+        Game won = Bots.fresh(42);
         won.testFormUniverse();
         assertEquals(0, won.bigBangs(), "la remise à zéro de l'univers a eu lieu");
         Path winner = out.resolve("winner.save");
         Files.writeString(winner, SaveCodec.write(won.state(), 0));
         VerifyVictory.main(new String[] {winner.toString()});
-        Game lost = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(42));
-        lost.start();
+        Game lost = Bots.fresh(42);
         Path loser = out.resolve("loser.save");
         Files.writeString(loser, SaveCodec.write(lost.state(), 0));
         org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class, () -> VerifyVictory.main(new String[] {loser.toString()}));
@@ -372,5 +345,147 @@ class BotsTest {
         try (Stream<Path> files = Files.list(out)) {
             assertTrue(files.anyMatch(path -> path.getFileName().toString().endsWith(".csv")));
         }
+    }
+
+    /** Le texte écrit sur la sortie standard pendant cette action. */
+    private static String stdout(Runnable action) {
+        java.io.PrintStream before = System.out;
+        java.io.ByteArrayOutputStream captured = new java.io.ByteArrayOutputStream();
+        System.setOut(new java.io.PrintStream(captured, true, java.nio.charset.StandardCharsets.UTF_8));
+        try {
+            action.run();
+        } finally {
+            System.setOut(before);
+        }
+        return captured.toString(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void leBilanDUnePartieNeuveCompteLAbsenceEnHeures(@TempDir Path out) {
+        // Correctif 0.141 (B3) : offlineCredited s'imprimait en secondes à côté de wall/game/online en heures.
+        String log = stdout(() -> {
+            try {
+                FreshPhaseProfiles.main(new String[] {"19", "1", "20", out.toString(), "42"});
+            } catch (Exception failure) {
+                throw new IllegalStateException(failure);
+            }
+        });
+        String fresh = log.lines().filter(line -> line.startsWith("FRESH,")).findFirst().orElseThrow();
+        double wall = Double.parseDouble(fresh.replaceAll(".*,wall=([0-9.]+),.*", "$1"));
+        double online = Double.parseDouble(fresh.replaceAll(".*,online=([0-9.]+),.*", "$1"));
+        double credited = Double.parseDouble(fresh.replaceAll(".*,offlineCredited=([0-9.]+),.*", "$1"));
+        assertEquals(1, wall, 1e-6);
+        assertTrue(online < 0.1, "cinq minutes par heure en ligne : " + online);
+        assertTrue(credited > 0 && credited <= wall - online + 1e-6,
+                "l'absence créditée se compte en heures, au taux hors ligne : " + credited);
+    }
+
+    @Test
+    void lesSortiesCsvSEcriventSansVirguleDecimale() throws Exception {
+        // Correctif 0.141 (B6) : tout printf de sortie passe par Locale.ROOT, sinon la locale française met une virgule
+        // décimale dans les CSV lus par les scripts.
+        try (Stream<Path> files = Files.list(Path.of("src", "main", "java"))) {
+            for (Path source : files.filter(path -> path.toString().endsWith(".java")).toList()) {
+                String text = Files.readString(source);
+                assertFalse(java.util.regex.Pattern.compile("printf\\(\\s*\"").matcher(text).find(),
+                        source + " : printf sans Locale.ROOT");
+                assertFalse(java.util.regex.Pattern.compile("String\\.format\\(\\s*\"").matcher(text).find(),
+                        source + " : String.format sans Locale.ROOT");
+            }
+        }
+    }
+
+    @Test
+    void laBarreHauteDoubleLaMatiereNoireGardeePourLeBigBang() throws Exception {
+        // Correctif 0.141 (B2) : pendant la barre haute, le moteur exige 1000 matières noires (et 1e14 atomes) ; les
+        // bots gardaient les constantes (500, 1e12) et dépensaient la réserve du Big Bang.
+        Game g = load(FIFTH_BANG);
+        assertTrue(g.baseChallengesDone() && g.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS);
+        g.state().setDarkMatter(BigNum.of(700));
+        assertTrue(FirstUniversePolicy.holdExplosions(g), "700 matières noires : le Big Bang ordinaire est assuré");
+        assertTrue(g.startBangChallenge(BangChallenge.RAISED));
+        assertEquals(BigNum.of(1000), g.bigBangDarkMatter());
+        assertFalse(FirstUniversePolicy.holdExplosions(g), "il en faut 1000 pendant la barre haute : on explose encore");
+        g.state().setDarkMatter(BigNum.of(1050));
+        FirstUniversePolicy.dark(g, 50);
+        assertTrue(g.state().darkMatter().gte(BigNum.of(1000)), "l'expert garde les 1000 du défi : " + g.state().darkMatter());
+        Game cheap = load(FIFTH_BANG);
+        assertTrue(cheap.startBangChallenge(BangChallenge.RAISED));
+        cheap.state().setDarkMatter(BigNum.of(1050));
+        FirstUniversePolicy.cheapestDark(cheap, 50);
+        assertTrue(cheap.state().darkMatter().gte(BigNum.of(1000)), "le moins cher aussi : " + cheap.state().darkMatter());
+    }
+
+    /** Tout est prêt pour un Big Bang sans ciel exigé (quatre Big Bangs), avec 1e13 atomes et la fusion automatique. */
+    private static void ready(Game g) {
+        g.state().setBigBangs(Game.BANG_CHALLENGES_BIG_BANGS - 1);
+        g.state().setDarkMatter(BigNum.of(5000));
+        g.state().setParticles(BigNum.of(1, 500_000));
+        g.state().setAtoms(BigNum.of(1, 13));
+        g.state().addAutomation("auto_fusion");
+        g.setAutomationEnabled("auto_fusion", true);
+    }
+
+    @Test
+    void laBarreHauteCentupleLesAtomesAvantDeCouperLaFusion() throws Exception {
+        // Correctif 0.141 (B2) : la fusion et la synthèse se coupaient à 1e12 atomes quand la barre haute en demande 1e14.
+        Game g = load(FIFTH_BANG);
+        ready(g);
+        assertTrue(FirstUniversePolicy.finalBangPreparation(g));
+        RobotCosmosPlanner before = new RobotCosmosPlanner(g, 20);
+        before.resourceLoop();   // 1e13 atomes dépassent les 1e12 du Big Bang ordinaire : la fusion attend (et le Big Bang part)
+        assertTrue(before.fusionPausedByRobot);
+        Game raised = load(FIFTH_BANG);
+        assertTrue(raised.startBangChallenge(BangChallenge.RAISED));
+        ready(raised);
+        assertEquals(BigNum.of(1, 14), raised.bigBangAtoms());
+        assertTrue(FirstUniversePolicy.finalBangPreparation(raised));
+        RobotCosmosPlanner during = new RobotCosmosPlanner(raised, 20);
+        during.resourceLoop();
+        assertFalse(during.fusionPausedByRobot, "1e13 atomes ne suffisent pas à la barre haute : la fusion continue");
+        assertTrue(raised.isAutomationEnabled("auto_fusion"));
+        assertEquals(BangChallenge.RAISED, raised.activeBangChallenge(), "pas de Big Bang : le défi continue");
+    }
+
+    @Test
+    void unDefiAbandonneSeRetenteApresUnBigBangOuUnDefiDeBigBang() {
+        // Correctif 0.141 (B5) : l'attente d'un défi abandonné se comptait en explosions d'une partie remise à zéro par
+        // le Big Bang (ou par un défi de Big Bang) : 55 explosions au lieu de 25.
+        Game g = new Game(42L);
+        g.start();
+        g.state().setBigBangs(2);
+        g.state().setExplosions(30);
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
+        bot.failedChallenges.put("challenge_x", 55);
+        bot.challenges();
+        assertEquals(55, bot.failedChallenges.get("challenge_x"), "même partie : l'attente tient");
+        g.state().setBigBangs(3);
+        g.state().setExplosions(0);
+        bot.challenges();
+        assertTrue(bot.failedChallenges.isEmpty(), "un Big Bang de plus : les explosions repartent de zéro, l'attente aussi");
+        bot.failedChallenges.put("challenge_x", 55);
+        g.state().setExplosions(12);
+        bot.challenges();
+        g.state().setExplosions(0);   // un défi de Big Bang qui remet à zéro ne compte pas de Big Bang
+        bot.challenges();
+        assertTrue(bot.failedChallenges.isEmpty(), "les explosions retombent : l'attente aussi");
+    }
+
+    @Test
+    void lesProprietesDesDefisDeBigBangSontValidees() {
+        // Correctif 0.141 (B10) : une valeur inconnue de idle.defisBB jouait « gele » en silence.
+        RobotCosmosPlanner bot = new RobotCosmosPlanner(new Game(42L), 20);
+        System.setProperty("idle.defisBB", "nimporte");
+        try {
+            IllegalArgumentException refused = org.junit.jupiter.api.Assertions.assertThrows(
+                    IllegalArgumentException.class, () -> bot.bangChallengeOrder(true));
+            assertTrue(refused.getMessage().contains("idle.defisBB=nimporte"), refused.getMessage());
+            System.setProperty("idle.defisBB", "gele");
+            assertEquals(BangChallenge.FROZEN, bot.bangChallengeOrder(true).get(0));
+            assertFalse(bot.bangChallengeOrder(true).get(1) == BangChallenge.RAISED, "« gele » : la barre haute reste dans l'ordre du catalogue");
+        } finally {
+            System.clearProperty("idle.defisBB");
+        }
+        assertEquals(BangChallenge.RAISED, bot.bangChallengeOrder(true).get(1), "par défaut : « maturation »");
     }
 }

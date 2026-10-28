@@ -2,16 +2,14 @@ package idle.ui;
 
 import idle.core.Game;
 import idle.core.universe.UniverseTransition;
+import idle.ui.common.Labels;
 import java.util.List;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Le guide de transition entre univers (version 0.127), par-dessus la fenêtre : avant de former l'univers ou de
@@ -19,12 +17,10 @@ import javafx.scene.text.TextAlignment;
  * la liste ({@link Game#universeTransition(boolean)}) ; ici, on la montre, puis on attend la réponse du joueur.
  * « Plus tard » ne change rien.
  */
-final class TransitionPane extends StackPane {
+final class TransitionPane extends Overlay {
 
-    private static final String CARD_STYLE = "-fx-background-color: #16202e; -fx-background-radius: 10; -fx-border-radius: 10;"
-            + " -fx-border-width: 2; -fx-border-color: #c8a2ff; -fx-padding: 22 28;";
-    private static final String GO_STYLE = "-fx-font-size: 13px; -fx-padding: 8 20; -fx-cursor: hand; -fx-background-radius: 6;"
-            + " -fx-border-radius: 6; -fx-text-fill: #0b0e14; -fx-background-color: #c8a2ff; -fx-border-color: #ffffff;";
+    private static final String CARD_STYLE = cardStyle("#c8a2ff", true, "22 28");
+    private static final String GO_STYLE = buttonStyle("8 20", "#c8a2ff");
     private static final String LATER_STYLE = "-fx-font-size: 13px; -fx-padding: 8 20; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: #c9d1d9; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;";
 
@@ -39,14 +35,11 @@ final class TransitionPane extends StackPane {
     private Runnable onGo = () -> { };
 
     TransitionPane(Game game) {
+        super(VEIL);
         this.game = game;
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #c8a2ff;");
-        intro.setStyle("-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
-        intro.setWrapText(true);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        gainedLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #ffd27f;");
-        gainedLabel.setWrapText(true);
-        gainedLabel.setTextAlignment(TextAlignment.CENTER);
+        Labels.centered(intro, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
+        Labels.centered(gainedLabel, "-fx-font-size: 13px; -fx-text-fill: #ffd27f;");
         HBox columns = new HBox(18, column("Repart de zéro", "#ff8a75", lostColumn), column("Reste", "#9be7a8", keptColumn));
         columns.setAlignment(Pos.TOP_CENTER);
         go.setStyle(GO_STYLE);
@@ -62,10 +55,7 @@ final class TransitionPane extends StackPane {
         card.setStyle(CARD_STYLE);
         card.setMaxWidth(760);
         card.setMaxHeight(USE_PREF_SIZE);
-        setStyle("-fx-background-color: #0b0e14cc;");
-        setPadding(new Insets(24));
-        getChildren().add(card);
-        setVisible(false);
+        mount(card);
     }
 
     private static VBox column(String heading, String color, VBox lines) {
@@ -80,15 +70,6 @@ final class TransitionPane extends StackPane {
     /** Vrai tant que le guide est affiché. */
     boolean isOpen() {
         return isVisible();
-    }
-
-    /** Les lignes montrées : pour les vérifications. */
-    List<String> shownLines() {
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        for (VBox box : List.of(lostColumn, keptColumn)) {
-            box.getChildren().forEach(node -> lines.add(((Label) node).getText()));
-        }
-        return lines;
     }
 
     /**

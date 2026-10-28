@@ -60,6 +60,11 @@ public final class Card extends VBox {
         signs = shown;
     }
 
+    /** Vrai si les cartes écrivent le signe de leur état : pour qui mémorise ce qu'il leur a donné à montrer. */
+    public static boolean signsShown() {
+        return signs;
+    }
+
     /**
      * Le signe d'un état, pour le reconnaître sans la couleur : un rond plein pour ce qui est à
      * portée, un rond vide pour ce qui attend, un demi-rond pour ce qui est entamé, une flèche

@@ -205,10 +205,20 @@ public final class Format {
         return String.format(java.util.Locale.ROOT, "%.1f", tenths);
     }
 
+    /** La même quantité, donnée en double : les éclats des dimensions et de la graine. */
+    public static String darkMatter(double value) {
+        return darkMatter(BigNum.of(value));
+    }
+
     /** Multiplicateur : « ×2 », « ×1.25 », puis en notation scientifique. */
     public static String multiplier(BigNum value) {
         if (!value.lt(THOUSAND)) return "×" + big(value);
         return "×" + ElementText.number(value.toDouble());
+    }
+
+    /** Le même multiplicateur, donné en double. */
+    public static String multiplier(double value) {
+        return multiplier(BigNum.of(value));
     }
 
     /** Quantité qui peut être fractionnaire : « 1 », « 2.35 », puis en notation scientifique. */

@@ -10,7 +10,6 @@ import idle.core.probes.Probe;
 import idle.core.probes.ProbeReward;
 import idle.core.probes.ProbeUpgrade;
 import idle.core.save.SaveData;
-import idle.core.sky.Cosmos;
 import idle.core.sky.SolarSystem;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,7 +95,7 @@ public abstract class GameStateBase {
     final List<SolarSystem> solarSystems = new ArrayList<>();
     /** Les astres formés qui mûrissent encore (version 0.053), avec les secondes qu'il leur reste. */
     final Map<String, Double> maturing = new java.util.LinkedHashMap<>();
-    /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link Cosmos} : 0 = aucune, 1 = la galaxie, 2 = l'amas de galaxies, 3 = l'univers. */
+    /** Nombre d'échelles du cosmos formées, dans l'ordre de {@link idle.core.sky.Cosmos} : 0 = aucune, 1 = la galaxie, 2 = l'amas de galaxies, 3 = l'univers. */
     int cosmos;
     /** Vrai tant que l'appui automatique sur la matière noire est en marche, une fois acquis ({@link Game#isAutoHolding()}). */
     boolean autoHold = true;
@@ -210,23 +209,20 @@ public abstract class GameStateBase {
     /** Le prix d'ouverture du vide, fixé quand il se propose (0 tant qu'il ne s'est pas proposé dans cet univers). */
     double voidPrice = 0;
     BigNum voidSacrificed = BigNum.ZERO;
-    int voidGainLevel = 0, voidRateLevel = 0, voidEnergyLevel = 0, voidSpaceLevel = 0, voidDecayLevel = 0, voidLightenLevel = 0, voidMatureLevel = 0, voidSettleLevel = 0;
-    /** Le nombre d'améliorations du vide, celles de la sauvegarde. */
+    /** Le nombre d'améliorations du vide, celles de la sauvegarde, et leurs niveaux dans l'ordre de {@code Game.VoidUpgrade}. */
     static final int VOID_UPGRADES = 8;
+    final int[] voidLevels = new int[VOID_UPGRADES];
     /** L'énergie du vide qu'il restait à la formation de chaque univers où le vide était ouvert : numéro de l'univers → stock. */
     final Map<String, Double> voidHistory = new java.util.LinkedHashMap<>();
     /**
      * La ligne, première dimension (version 0.101) : ses éclats, où en est la boule (0 au début de la
-     * ligne, 1 au bout, 2 de retour au début) et le niveau de ses deux améliorations.
+     * ligne, 1 au bout, 2 de retour au début), le niveau de ses cinq améliorations dans l'ordre de
+     * {@code Game.LineUpgrade} (éclats, traits, vitesse, boules, lignes) et tous les éclats gagnés, dépensés ou non.
      */
     double dimensionShards = 0;
     double linePhase = 0;
-    int lineYieldLevel = 0;
-    int lineTicksLevel = 0;
-    /** La ligne (version 0.102) : vitesse, boules et lignes en plus, et tous les éclats gagnés, dépensés ou non. */
-    int lineSpeedLevel = 0;
-    int lineBallsLevel = 0;
-    int lineCountLevel = 0;
+    static final int LINE_UPGRADES = 5;
+    final int[] lineLevels = new int[LINE_UPGRADES];
     double dimensionShardsEarned = 0;
     /** La graine d'univers (version 0.103) : germée ou non, et combien de fois son germe a été arrosé. */
     boolean seedSprouted = false;
@@ -243,24 +239,24 @@ public abstract class GameStateBase {
      */
     double planeShards = 0;
     double planeShardsEarned = 0;
-    int planeValueLevel = 0, planeSpawnLevel = 0, planeCountLevel = 0, planeSpeedLevel = 0, planeSizeLevel = 0;
+    static final int PLANE_UPGRADES = 5;
+    final int[] planeLevels = new int[PLANE_UPGRADES];
     /**
      * Le volume, troisième dimension (version 0.128) : ses éclats, tous ceux gagnés, et le niveau de ses cinq
      * améliorations (durée, valeur, réapparition, nombre, taille), dans cet ordre.
      */
     double volumeShards = 0;
     double volumeShardsEarned = 0;
-    int volumeTimeLevel = 0, volumeValueLevel = 0, volumeSpawnLevel = 0, volumeCountLevel = 0, volumeSizeLevel = 0;
-    /** Le nombre d'améliorations du volume, celles de la sauvegarde. */
     static final int VOLUME_UPGRADES = 5;
+    final int[] volumeLevels = new int[VOLUME_UPGRADES];
     /**
      * La durée, quatrième dimension (version 0.134) : ses éclats, tous ceux gagnés, et le niveau de ses quatre
      * améliorations (vitesse, nombre de spirales, valeur, temps au plus), dans cet ordre.
      */
     double durationShards = 0;
     double durationShardsEarned = 0;
-    int durationSpeedLevel = 0, durationCountLevel = 0, durationValueLevel = 0, durationTimeLevel = 0;
     static final int DURATION_UPGRADES = 4;
+    final int[] durationLevels = new int[DURATION_UPGRADES];
     /**
      * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
@@ -352,8 +348,7 @@ public abstract class GameStateBase {
     }
 
     public void setParticles(BigNum particles) {
-        if (particles.sign() < 0) throw new IllegalArgumentException("Le nombre de particules ne peut pas être négatif");
-        this.particles = particles;
+        this.particles = nonNegative(particles, "Le nombre de particules ne peut pas être négatif");
     }
 
     /** Atomes disponibles : la deuxième ressource, gagnée par fusion et dépensée en améliorations. */
@@ -362,8 +357,7 @@ public abstract class GameStateBase {
     }
 
     public void setAtoms(BigNum atoms) {
-        if (atoms.sign() < 0) throw new IllegalArgumentException("Le nombre d'atomes ne peut pas être négatif");
-        this.atoms = atoms;
+        this.atoms = nonNegative(atoms, "Le nombre d'atomes ne peut pas être négatif");
     }
 
     /**
@@ -375,8 +369,7 @@ public abstract class GameStateBase {
     }
 
     public void setTotalAtoms(BigNum totalAtoms) {
-        if (totalAtoms.sign() < 0) throw new IllegalArgumentException("Le nombre d'atomes ne peut pas être négatif");
-        this.totalAtoms = totalAtoms;
+        this.totalAtoms = nonNegative(totalAtoms, "Le nombre d'atomes ne peut pas être négatif");
     }
 
     /** Temps écoulé depuis la dernière fusion (ou depuis le démarrage), en secondes. */
@@ -567,8 +560,7 @@ public abstract class GameStateBase {
     }
 
     public void setDarkMatter(BigNum darkMatter) {
-        if (darkMatter.sign() < 0) throw new IllegalArgumentException("La quantité de matière noire ne peut pas être négative");
-        this.darkMatter = darkMatter;
+        this.darkMatter = nonNegative(darkMatter, "La quantité de matière noire ne peut pas être négative");
     }
 
     /**
@@ -580,8 +572,7 @@ public abstract class GameStateBase {
     }
 
     public void setDarkMatterSpent(BigNum darkMatterSpent) {
-        if (darkMatterSpent.sign() < 0) throw new IllegalArgumentException("La matière noire dépensée ne peut pas être négative");
-        this.darkMatterSpent = darkMatterSpent;
+        this.darkMatterSpent = nonNegative(darkMatterSpent, "La matière noire dépensée ne peut pas être négative");
     }
 
     /** Taille de la matière noire, en mètres : elle grossit tant que le joueur la maintient appuyée. */
@@ -885,4 +876,11 @@ public abstract class GameStateBase {
         plannedBodies.clear();
         for (String id : ids) if (id != null && !id.isBlank() && !plannedBodies.contains(id)) plannedBodies.add(id);
     }
+
+    /** La valeur telle quelle si elle n'est pas négative ; {@link IllegalArgumentException} avec {@code message} sinon. */
+    static BigNum nonNegative(BigNum value, String message) {
+        if (value.sign() < 0) throw new IllegalArgumentException(message);
+        return value;
+    }
+
 }

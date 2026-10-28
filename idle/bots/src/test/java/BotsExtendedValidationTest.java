@@ -1,53 +1,24 @@
 import static org.junit.jupiter.api.Assertions.*;
 
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.save.SaveCodec;
-import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Random;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Validations de diversité des bots du PREMIER univers.
- * Les tests de durée sont déterministes et utilisent les vraies méthodes du moteur.
+ * Les tests de durée sont déterministes et utilisent les vraies méthodes du moteur. La victoire de l'expert en 25 h
+ * se vérifie une fois, graine 42, dans {@code BotsTest} : après le septième Big Bang, la graine ne change rien.
  */
 class BotsExtendedValidationTest {
     private static Game fromCheckpoint(long seed) throws Exception {
-        GameState state = SaveCodec.read(Files.readString(
-                Path.of("sauvegardes/reference/checkpoint_before_eighth.save"))).state();
-        return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT,
-                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
+        return Bots.load(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"), seed);
     }
 
     private static Game fresh(long seed) {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT,
-                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
-        game.start();
-        return game;
-    }
-
-    @Test
-    void expertGagneAvecPlusieursGraines(@TempDir Path out) throws Exception {
-        // La graine 42 figure deja dans BotsTest. Verifier des parties independantes.
-        for (long seed : new long[]{43, 44}) {
-            Game game = fromCheckpoint(seed);
-            Path folder = out.resolve("seed-" + seed);
-            new AdvancedLab(game, 20, "EXPERT_COMPLET", seed).runLab(25, folder);
-            assertTrue(game.hasCosmos(Cosmos.UNIVERSE),
-                    () -> "Graine " + seed + " : BB=" + game.bigBangs()
-                            + " cosmos=" + game.cosmosFormed()
-                            + " but=" + game.shoppingList().target()
-                            + " matiere=" + game.shoppingList().matter());
-            assertTrue(Files.exists(folder.resolve("winner.save")),
-                    "La victoire doit etre sauvegardee pour la graine " + seed);
-        }
+        return Bots.fresh(seed);
     }
 
     @Test
@@ -72,11 +43,10 @@ class BotsExtendedValidationTest {
             IdleProfiles24 bot = new IdleProfiles24(game, profile, profile.id() + 100, 20);
             Path folder = out.resolve("profil-" + profile.id());
             bot.execute(0.15, folder);
-            assertTrue(game.state().started(), profile.name());
             assertTrue(bot.wallSeconds >= 540, profile.name());
-            assertTrue(Files.exists(folder.resolve(
-                    String.format("%02d_%s_late.csv", profile.id(), profile.name()))),
-                    profile.name());
+            // Le nom du CSV porte l'étape (propriété idle.stage, « late » par défaut), comme le bot l'écrit.
+            assertTrue(Files.exists(folder.resolve(String.format(Locale.ROOT, "%02d_%s_%s.csv",
+                    profile.id(), profile.name(), System.getProperty("idle.stage", "late")))), profile.name());
         }
     }
 

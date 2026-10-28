@@ -6,6 +6,8 @@ import idle.core.universe.UniverseUpgrade;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Card;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Map;
@@ -49,8 +51,6 @@ public final class UniversePage extends VBox {
     /** La couleur de la graine d'univers : un or de paille. */
     static final String SEED_COLOR = "#e6d27a";
 
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
     private static final String TOOL_STYLE = "-fx-font-size: 12px; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: #ffd27f; -fx-background-color: #1f1a10; -fx-border-color: #6b5a2e;";
 
@@ -122,15 +122,7 @@ public final class UniversePage extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(0, 16, 10, 16));
 
-        Button[] tabs = {mainTab, dimensionsTab, seedTab};
-        for (int i = 0; i < tabs.length; i++) {
-            int index = i;
-            tabs[i].setFocusTraversable(false);
-            tabs[i].setOnAction(event -> {
-                select(index);
-                refresh();
-            });
-        }
+        SubTabs.wire(true, this::select, this::refresh, mainTab, dimensionsTab, seedTab);
         subTabs.setAlignment(Pos.CENTER);
 
         // « Univers » : les bulles, les ressources, les améliorations, les outils.
@@ -202,10 +194,8 @@ public final class UniversePage extends VBox {
                 refresh();
             });
         });
-        nextLine.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
-        nextLine.setWrapText(true);
+        Labels.centered(nextLine, "-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
         nextLine.setMaxWidth(640);
-        nextLine.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         VBox nextBox = new VBox(4, nextLine);
         nextBox.setAlignment(Pos.CENTER);
         mainPane = new VBox(8, resources, nextBox, holder, upgrades, toolsBox);
@@ -327,9 +317,9 @@ public final class UniversePage extends VBox {
         mainPane.setVisible(index == MAIN);
         dimensionsPane.setVisible(index == DIMENSIONS);
         seedPane.setVisible(index == SEED);
-        mainTab.setStyle(style(index == MAIN, COLOR));
-        seedTab.setStyle(style(index == SEED, SEED_COLOR));
-        dimensionsTab.setStyle(style(index == DIMENSIONS, COLOR));
+        mainTab.setStyle(SubTabs.style(index == MAIN, COLOR));
+        seedTab.setStyle(SubTabs.style(index == SEED, SEED_COLOR));
+        dimensionsTab.setStyle(SubTabs.style(index == DIMENSIONS, COLOR));
     }
 
     public int selected() {
@@ -343,12 +333,6 @@ public final class UniversePage extends VBox {
         int at = Math.max(0, shown.indexOf(selected));
         select(shown.get(Math.floorMod(at + direction, shown.size())));
         refresh();
-    }
-
-    private static String style(boolean selected, String color) {
-        return SUB_TAB_STYLE + (selected
-                ? " -fx-text-fill: " + color + "; -fx-border-color: transparent transparent " + color + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
     /** Recopie l'état de la partie secondaire. */

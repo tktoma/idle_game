@@ -40,9 +40,7 @@ class JeuDefisTest extends GameTestSupport {
         }
 
         private void fillTable(Game game) {
-            for (Element element : PeriodicTable.ELEMENTS) {
-                game.state().setElementCount(element.number(), element.category().maxCopies());
-            }
+            GameTestSupport.fillTableToMax(game);
         }
 
         @Test
@@ -386,14 +384,12 @@ class JeuDefisTest extends GameTestSupport {
 
         @Test
         void particulesVolatilesRenforceLesPaliersDeVitesse() {
-            Game plain = new Game();
-            plain.start();
+            Game plain = GameTestSupport.realGame();
             plain.state().setLevel("speed", 50);
             assertValue(4, plain.speedMilestoneMultiplier());   // deux paliers à ×2
             assertEquals(2, plain.speedMilestoneFactor("speed"), 0);
 
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             game.state().addCompletedChallenge("challenge_volatile");
             game.state().setLevel("speed", 50);
             assertEquals(3, game.speedMilestoneFactor("speed"), 0);
@@ -735,7 +731,7 @@ class JeuDefisTest extends GameTestSupport {
 
         @Test
         void leJeuCompletASesSucces() {
-            Game game = new Game();
+            Game game = new Game(42L);
             assertEquals(67, game.achievements().size());
         }
     }
@@ -766,7 +762,7 @@ class JeuDefisTest extends GameTestSupport {
          */
         @Test
         void laPremierePartieDureEnvironQuaranteMinutes() {
-            Game game = new Game();
+            Game game = new Game(42L);
             game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
             double minutes = minutesUntilFusion(game);
@@ -793,7 +789,7 @@ class JeuDefisTest extends GameTestSupport {
          */
         @Test
         void automatisationEtTableauArriventVers1h45() {
-            Game game = new Game();
+            Game game = new Game(42L);
             game.setFirstRunPace(Game.FIRST_RUN_PACE);
             game.start();
             double minutes = 0;
@@ -824,8 +820,7 @@ class JeuDefisTest extends GameTestSupport {
          */
         @Test
         void lesAtomesRaccourcissentLesPartiesSansLesRendreInstantanees() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             double first = minutesUntilFusion(game);
             double previous = first;
             for (int fusion = 1; fusion <= 9; fusion++) {

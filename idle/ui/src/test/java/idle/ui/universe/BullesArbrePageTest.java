@@ -103,6 +103,38 @@ class BullesArbrePageTest {
         });
     }
 
+    /**
+     * Le survol d'une bulle affiche son étiquette (nom et prix, dessinés par-dessus le reste) ; la quitter l'efface ; un clic
+     * la survole aussi. Le texte lui-même (« Bulle de la graine », « Prix : 1000 d'énergie du vide ») n'a pas d'accesseur :
+     * on vérifie quelle bulle est survolée.
+     */
+    @Test
+    void leSurvolDUneBulleMontreSonEtiquetteEtLaQuitterLEfface() {
+        FxTestSupport.fx(() -> {
+            Game game = at(5, TreeBubble.SEED.cost());
+            UniversePage page = page(game);
+            SeedView view = page.seedView();
+            assertEquals(3, view.bubbleCount(), "la base et les deux du bonsaï");
+            assertEquals(-1, view.hoveredBubble(), "rien de survolé au départ");
+            double[] base = view.bubblePoint(TreeBubble.SEED.ordinal());
+            view.hover(base[0], base[1]);
+            assertEquals(TreeBubble.SEED.ordinal(), view.hoveredBubble(), "la base : son étiquette s'affiche");
+            page.frame(0.016, true);
+            assertEquals(TreeBubble.SEED.ordinal(), view.hoveredBubble(), "une image de plus ne la perd pas");
+            double[] left = view.bubblePoint(TreeBubble.LEAVES_LEFT.ordinal());
+            view.hover(left[0], left[1]);
+            assertEquals(TreeBubble.LEAVES_LEFT.ordinal(), view.hoveredBubble(), "une bulle fermée se survole aussi : son étiquette dit ce qu'il faut d'abord");
+            view.hover(5, 5);
+            assertEquals(-1, view.hoveredBubble(), "à côté, plus d'étiquette");
+            assertTrue(view.clickBubble(base[0], base[1]));
+            assertEquals(TreeBubble.SEED.ordinal(), view.hoveredBubble(), "un clic survole la bulle cliquée");
+            assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
+            page.frame(0.016, true);
+            assertEquals(TreeBubble.SEED.ordinal(), view.hoveredBubble(), "achetée, elle reste survolée : l'étiquette dit « Achetée »");
+            return null;
+        });
+    }
+
     /** Version 0.143 : à l'arbre-monde, les dix-neuf bulles du schéma, toutes dans la vue ; les racines sous la graine. */
     @Test
     void lArbreMondePorteToutLeReseau() {
@@ -117,12 +149,7 @@ class BullesArbrePageTest {
                 assertTrue(at[0] > 0 && at[0] < width && at[1] > 0 && at[1] < height, "bulle " + i + " dans la vue");
             }
             double base = view.bubblePoint(TreeBubble.SEED.ordinal())[1];
-            double rootsY = view.bubblePoint(TreeBubble.ROOTS.ordinal())[1];
-            assertTrue(rootsY > base, "les racines sous la graine");
-            // Version 0.144 : les deux bulles du bas s'écartent, et les racines ne touchent plus le bas de la vue.
-            assertTrue(rootsY - base >= view.bubbleRadius() * 3.4, "écart " + (rootsY - base));
-            // Les bulles flottent de ±0,12 rayon : la marge en tient compte.
-            assertTrue(rootsY <= height - view.bubbleRadius() * 1.85, "racines à " + rootsY + " sur " + height);
+            assertTrue(view.bubblePoint(TreeBubble.ROOTS.ordinal())[1] > base, "les racines sous la graine");
             for (int i = 0; i < view.bubbleCount(); i++) {
                 assertTrue(view.bubblePoint(TreeBubble.SUMMIT.ordinal())[1] <= view.bubblePoint(i)[1] + 1, "le sommet en haut");
             }

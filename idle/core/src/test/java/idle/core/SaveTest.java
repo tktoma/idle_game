@@ -217,7 +217,7 @@ class SaveTest {
         for (int i = 0; i < 8; i++) state.setSeedUpgradeLevel(i, i + 1);
         state.setChronoStored(123.5);
         state.setChronoSpeed(2.5);
-        state.setTreeBubbles(0b101);
+        state.setTreeBubbles(0b1000000000000000101);   // la base, la bulle de droite du bonsaï, et le sommet (la 19e, bit 18)
         state.setVoidSpent(456.25);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
@@ -810,8 +810,7 @@ class SaveTest {
     class RetourApresUneAbsence {
 
         private Game started() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             return game;
         }
 
@@ -899,7 +898,7 @@ class SaveTest {
 
         @Test
         void unePartiePasCommenceeNeRattrapeRien() {
-            Game game = new Game();
+            Game game = new Game(42L);
             Absence absence = new Absence(game, 7200);
             assertTrue(absence.isDone());
             assertEquals(0, game.state().timePlayed());

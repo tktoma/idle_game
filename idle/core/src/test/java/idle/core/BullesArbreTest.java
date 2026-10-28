@@ -18,9 +18,8 @@ class BullesArbreTest {
 
     /** L'univers formé, la graine à ce palier, et de l'énergie du vide accumulée. */
     private static Game at(int stage, double accumulated) {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.realGame();
+        game.testFormUniverse();
         game.state().setSeedSprouted(true);
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         if (accumulated > 0) game.state().noteVoidHistory("3", accumulated);
@@ -39,6 +38,46 @@ class BullesArbreTest {
         for (int stage = 4; stage <= 11; stage++) {
             assertEquals(counts[stage - 4], at(stage, 0).treeBubblesShown().size(), "palier " + stage);
         }
+    }
+
+    /** Version 0.143 : les prix des dix-neuf bulles, de 1 000 à 30 000, environ ×1,5 par palier, et leurs noms. */
+    @Test
+    void lesPrixEtLesNomsDesDixNeufBulles() {
+        assertEquals(19, TreeBubble.values().length);
+        double[] byStage = {1_000, 2_000, 4_000, 6_000, 9_000, 13_000, 20_000, 30_000};
+        for (TreeBubble bubble : TreeBubble.values()) {
+            assertEquals(byStage[bubble.stage() - 4], bubble.cost(), 0, bubble + " : le prix de son palier");
+        }
+        assertEquals("Bulle de la graine", TreeBubble.SEED.label());
+        assertEquals("Bulle du bonsaï, à gauche", TreeBubble.LEAVES_LEFT.label());
+        assertEquals("Bulle de l'arbuste, au milieu", TreeBubble.CROWN_MIDDLE.label());
+        assertEquals("Bulle du jeune arbre, à droite", TreeBubble.YOUNG_RIGHT.label());
+        assertEquals("Bulle de l'arbre mûr, à gauche", TreeBubble.MATURE_LEFT.label());
+        assertEquals("Bulle de l'arbre ancien, à droite", TreeBubble.ANCIENT_RIGHT.label());
+        assertEquals("Bulle de l'arbre géant, à gauche, en bas", TreeBubble.GIANT_LEFT_LOW.label());
+        assertEquals("Bulle des racines", TreeBubble.ROOTS.label());
+        assertEquals("Bulle de l'arbre-monde, au cœur", TreeBubble.HEART.label());
+        assertEquals("Bulle de l'arbre-monde, au sommet", TreeBubble.SUMMIT.label());
+        // Chaque nom dit son palier ; d'un palier au suivant, le prix monte d'un tiers à deux fois.
+        for (TreeBubble bubble : TreeBubble.values()) {
+            assertTrue(bubble.label().startsWith("Bulle "), bubble.label());
+            if (bubble.stage() > 4) {
+                double previous = byStage[bubble.stage() - 5];
+                assertTrue(bubble.cost() >= previous * 1.33 && bubble.cost() <= previous * 2, bubble + " : " + bubble.cost() + " après " + previous);
+            }
+        }
+        // Le prix se paie en énergie du vide accumulée : à 999, la base attend ; à 1 000, elle s'achète et tout est dépensé.
+        Game game = at(4, 999);
+        assertFalse(game.canBuyTreeBubble(TreeBubble.SEED));
+        game = at(4, 1_000);
+        assertTrue(game.buyTreeBubble(TreeBubble.SEED));
+        assertEquals(0, game.voidAvailable(), 1e-9);
+        assertEquals(1_000, game.state().voidSpent(), 1e-9);
+        // La dix-neuvième bulle (le sommet, bit 18) se sauvegarde comme les autres.
+        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        GameState back = GameTestSupport.reread(game.state());
+        assertTrue(back.treeBubbleBought(TreeBubble.SEED.ordinal()) && back.treeBubbleBought(TreeBubble.SUMMIT.ordinal()));
+        assertFalse(back.treeBubbleBought(TreeBubble.HEART.ordinal()));
     }
 
     /** Les liens des schémas 7 à 11, tels que dessinés. */
@@ -123,7 +162,7 @@ class BullesArbreTest {
         assertTrue(game.startNextUniverse());
         game.state().setVoidOpen(true);
         game.state().setVoidEnergy(BigNum.of(base * 3));
-        DeuxiemeUniversTest.formUniverse(game);
+        game.testFormUniverse();
         assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
         assertEquals(base * 8, game.voidAccumulated(), 1e-6, "ce qui restait s'ajoute au cumul d'avant");
         assertEquals(base * 7, game.voidAvailable(), 1e-6, "moins le prix de la bulle");

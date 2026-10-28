@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class DimensionBotsTest {
 
     private static void quarterOfAnHour(String dimension) throws Exception {
-        DimensionBots.Result result = DimensionBots.bot(dimension).run(60 * 60);
+        DimensionBots.Result result = DimensionBots.measure(dimension, 60 * 60);
         assertTrue(result.reached(), dimension + " : seuil pas atteint en une heure");
         double minutes = result.seconds() / 60;
         assertTrue(minutes >= 12 && minutes <= 18, dimension + " : " + result.minutes() + " au lieu d'environ 15");

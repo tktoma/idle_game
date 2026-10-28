@@ -3,6 +3,8 @@ package idle.ui.collider;
 import idle.core.Game;
 import idle.core.collider.ColliderUpgrade;
 import idle.ui.Readiness;
+import idle.ui.common.Labels;
+import idle.ui.common.SubTabs;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -18,9 +20,6 @@ import javafx.scene.layout.VBox;
  * qu'avec le huitième générateur. Les hadrons ont disparu en 0.062.
  */
 public final class ColliderPage extends VBox {
-
-    private static final String SUB_TAB_STYLE = "-fx-font-size: 13px; -fx-padding: 6 20; -fx-cursor: hand;"
-            + " -fx-background-radius: 0; -fx-border-width: 0 0 2 0; -fx-background-color: transparent;";
 
     private final Game game;
     private final ColliderPane pane;
@@ -38,20 +37,10 @@ public final class ColliderPage extends VBox {
         this.game = game;
         this.pane = new ColliderPane(game, this::refresh);
         setAlignment(Pos.TOP_CENTER);
-        Button[] tabs = {energyTab, chainTab, upgradesTab};
-        for (int i = 0; i < tabs.length; i++) {
-            int index = i;
-            tabs[i].setFocusTraversable(false);
-            tabs[i].setOnAction(event -> {
-                select(index);
-                refresh();
-            });
-        }
+        SubTabs.wire(true, this::select, this::refresh, energyTab, chainTab, upgradesTab);
         subTabs.setAlignment(Pos.CENTER);
         ScrollPane scroll = new ScrollPane(pane);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        Labels.transparent(scroll);
         VBox.setVgrow(scroll, Priority.ALWAYS);
         voidOffer.setWrapText(true);
         voidOffer.setMaxWidth(760);
@@ -94,9 +83,9 @@ public final class ColliderPage extends VBox {
     public void select(int index) {
         if (index == ColliderPane.UPGRADES && !game.isColliderUpgradesUnlocked()) index = ColliderPane.ENERGY;
         pane.select(index);
-        energyTab.setStyle(style(index == ColliderPane.ENERGY));
-        chainTab.setStyle(style(index == ColliderPane.CHAIN));
-        upgradesTab.setStyle(style(index == ColliderPane.UPGRADES));
+        energyTab.setStyle(SubTabs.style(index == ColliderPane.ENERGY, ColliderPane.COLOR));
+        chainTab.setStyle(SubTabs.style(index == ColliderPane.CHAIN, ColliderPane.COLOR));
+        upgradesTab.setStyle(SubTabs.style(index == ColliderPane.UPGRADES, ColliderPane.COLOR));
     }
 
     public int selected() {
@@ -113,12 +102,6 @@ public final class ColliderPage extends VBox {
         for (int i = 0; i < shown.length; i++) if (shown[i] == pane.section()) at = i;
         select(shown[Math.floorMod(at + direction, shown.length)]);
         refresh();
-    }
-
-    private static String style(boolean selected) {
-        return SUB_TAB_STYLE + (selected
-                ? " -fx-text-fill: " + ColliderPane.COLOR + "; -fx-border-color: transparent transparent " + ColliderPane.COLOR + " transparent;"
-                : " -fx-text-fill: #8fa3b8; -fx-border-color: transparent;");
     }
 
     /** Vrai s'il y a quelque chose à faire : un quark top, une amélioration à prendre. */

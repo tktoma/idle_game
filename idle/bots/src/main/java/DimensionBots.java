@@ -1,23 +1,19 @@
 import idle.core.Game;
-import idle.core.GameState;
 import idle.core.GameUniverse.DurationUpgrade;
 import idle.core.GameUniverse.LineUpgrade;
 import idle.core.GameUniverse.PlaneUpgrade;
 import idle.core.GameUniverse.VolumeUpgrade;
 import idle.core.GameUniverse.PlaneShard;
 import idle.core.GameUniverse.VolumeBall;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
-import idle.core.save.SaveCodec;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
-import java.util.function.DoubleSupplier;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
 
 /**
  * Un bot par dimension (version 0.136) : la ligne, le plan, le volume et la durée se jouent chacun à part, sans le
@@ -65,9 +61,7 @@ final class DimensionBots {
 
     /** Une partie où la dimension {@code number} vient de s'ouvrir, avec tout ce qui la concerne à zéro. */
     static Game open(int number) throws Exception {
-        GameState state = SaveCodec.read(Files.readString(START)).state();
-        Game game = new Game(state, Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT, Achievements.DEFAULT,
-                new Random(7));
+        Game game = Bots.load(START, 7);
         game.testResetUniverses();
         while (game.universes() < number) {
             if (!game.testAddUniverse()) throw new IllegalStateException("univers non formé dans " + START);
@@ -91,22 +85,31 @@ final class DimensionBots {
         return lineRate(l[0], l[1], l[2], l[3], l[4]);
     }
 
-    static Result line(double maxSeconds) throws Exception {
-        return measure("ligne", maxSeconds);
-    }
-
-    /** Le niveau de la ligne au meilleur rapport, s'il se paie maintenant ; sinon on attend le meilleur. */
-    static LineUpgrade bestLine(Game g) {
-        double now = lineRateWith(g, null);
-        LineUpgrade best = null;
+    /**
+     * Le niveau au meilleur rapport d'une dimension, s'il se paie maintenant ; sinon {@code null} : on attend le
+     * meilleur. Le rapport : le gain d'éclats par seconde du modèle divisé par le prix (ou l'inverse du prix seul avec
+     * {@link #CHEAPEST}) ; un prix infini est un niveau fermé.
+     *
+     * @param all      les améliorations de la dimension
+     * @param cost     le prix du niveau suivant de chacune
+     * @param rateWith les éclats par seconde avec un niveau de plus de celle-ci ({@code null} : avec les niveaux actuels)
+     * @param canBuy   vrai si le niveau se paie maintenant
+     */
+    static <U> U best(U[] all, ToDoubleFunction<U> cost, ToDoubleFunction<U> rateWith, Predicate<U> canBuy) {
+        double now = rateWith.applyAsDouble(null);
+        U best = null;
         double bestScore = 0;
-        for (LineUpgrade u : LineUpgrade.values()) {
-            double cost = g.lineCost(u);
-            if (!Double.isFinite(cost)) continue;
-            double score = CHEAPEST ? 1 / cost : (lineRateWith(g, u) - now) / cost;
+        for (U u : all) {
+            double c = cost.applyAsDouble(u);
+            if (!Double.isFinite(c)) continue;
+            double score = CHEAPEST ? 1 / c : (rateWith.applyAsDouble(u) - now) / c;
             if (score > bestScore) { bestScore = score; best = u; }
         }
-        return best != null && g.canBuyLine(best) ? best : null;
+        return best != null && canBuy.test(best) ? best : null;
+    }
+
+    static LineUpgrade bestLine(Game g) {
+        return best(LineUpgrade.values(), g::lineCost, u -> lineRateWith(g, u), g::canBuyLine);
     }
 
     // ------------------------------------------------------------------
@@ -137,20 +140,7 @@ final class DimensionBots {
     }
 
     static PlaneUpgrade bestPlane(Game g) {
-        double now = planeRateWith(g, null);
-        PlaneUpgrade best = null;
-        double bestScore = 0;
-        for (PlaneUpgrade u : PlaneUpgrade.values()) {
-            double cost = g.planeCost(u);
-            if (!Double.isFinite(cost)) continue;
-            double score = CHEAPEST ? 1 / cost : (planeRateWith(g, u) - now) / cost;
-            if (score > bestScore) { bestScore = score; best = u; }
-        }
-        return best != null && g.canBuyPlane(best) ? best : null;
-    }
-
-    static Result plane(double maxSeconds) throws Exception {
-        return measure("plan", maxSeconds);
+        return best(PlaneUpgrade.values(), g::planeCost, u -> planeRateWith(g, u), g::canBuyPlane);
     }
 
     // ------------------------------------------------------------------
@@ -182,20 +172,7 @@ final class DimensionBots {
     }
 
     static VolumeUpgrade bestVolume(Game g) {
-        double now = volumeRateWith(g, null);
-        VolumeUpgrade best = null;
-        double bestScore = 0;
-        for (VolumeUpgrade u : VolumeUpgrade.values()) {
-            double cost = g.volumeCost(u);
-            if (!Double.isFinite(cost)) continue;
-            double score = CHEAPEST ? 1 / cost : (volumeRateWith(g, u) - now) / cost;
-            if (score > bestScore) { bestScore = score; best = u; }
-        }
-        return best != null && g.canBuyVolume(best) ? best : null;
-    }
-
-    static Result volume(double maxSeconds) throws Exception {
-        return measure("volume", maxSeconds);
+        return best(VolumeUpgrade.values(), g::volumeCost, u -> volumeRateWith(g, u), g::canBuyVolume);
     }
 
     // ------------------------------------------------------------------
@@ -216,20 +193,7 @@ final class DimensionBots {
     }
 
     static DurationUpgrade bestDuration(Game g) {
-        double now = durationRateWith(g, null);
-        DurationUpgrade best = null;
-        double bestScore = 0;
-        for (DurationUpgrade u : DurationUpgrade.values()) {
-            double cost = g.durationCost(u);
-            if (!Double.isFinite(cost)) continue;
-            double score = CHEAPEST ? 1 / cost : (durationRateWith(g, u) - now) / cost;
-            if (score > bestScore) { bestScore = score; best = u; }
-        }
-        return best != null && g.canBuyDuration(best) ? best : null;
-    }
-
-    static Result duration(double maxSeconds) throws Exception {
-        return measure("duree", maxSeconds);
+        return best(DurationUpgrade.values(), g::durationCost, u -> durationRateWith(g, u), g::canBuyDuration);
     }
 
     // ------------------------------------------------------------------
@@ -321,18 +285,22 @@ final class DimensionBots {
             return true;
         }
 
+        /** Achète, tant qu'il y en a un, le niveau au meilleur rapport, et le note avec son instant et son niveau. */
+        private <U> void shop(Supplier<U> best, Predicate<U> buy, ToIntFunction<U> level) {
+            for (U choice; (choice = best.get()) != null && buy.test(choice); )
+                purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, choice, level.applyAsInt(choice)));
+        }
+
         /** La ligne tourne seule : un passage toutes les quelques secondes pour acheter. */
         private void line() {
             if (t < nextCheck) return;
             nextCheck += LINE_CHECK_SECONDS;
-            for (LineUpgrade best; (best = bestLine(g)) != null && g.buyLine(best); )
-                purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.lineLevel(best)));
+            shop(() -> bestLine(g), g::buyLine, g::lineLevel);
         }
 
         /** Le plan : droit vers l'éclat le plus proche, une courte pause après chaque éclat ramassé. */
         private void plane(double dt) {
-            for (PlaneUpgrade best; (best = bestPlane(g)) != null && g.buyPlane(best); )
-                purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.planeLevel(best)));
+            shop(() -> bestPlane(g), g::buyPlane, g::planeLevel);
             if (g.planeCollected() > collected) { collected = g.planeCollected(); pause = PLANE_REACTION_SECONDS; }
             PlaneShard target = null;
             double nearest = Double.POSITIVE_INFINITY;
@@ -354,8 +322,7 @@ final class DimensionBots {
         /** Le volume : achats entre deux plongées, puis chaque boule visée le temps qu'il faut. */
         private void volume(double dt) {
             if (!g.isInVolume()) {
-                for (VolumeUpgrade best; (best = bestVolume(g)) != null && g.buyVolume(best); )
-                    purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.volumeLevel(best)));
+                shop(() -> bestVolume(g), g::buyVolume, g::volumeLevel);
                 outside += dt;
                 if (outside >= VOLUME_REENTRY_SECONDS && g.enterVolume()) { outside = 0; aiming = 0; }
             } else if (!g.volumeBalls().isEmpty()) {
@@ -372,8 +339,7 @@ final class DimensionBots {
             if (g.isDurationHeld()) {
                 if (g.durationProgress() >= 1) { g.releaseDuration(); released = 0; }
             } else {
-                for (DurationUpgrade best; (best = bestDuration(g)) != null && g.buyDuration(best); )
-                    purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, best, g.durationLevel(best)));
+                shop(() -> bestDuration(g), g::buyDuration, g::durationLevel);
                 released += dt;
                 if (released >= DURATION_REACTION_SECONDS) g.holdDuration();
             }
@@ -406,27 +372,13 @@ final class DimensionBots {
         return wanted.equals("infini") ? Double.POSITIVE_INFINITY : Double.parseDouble(wanted);
     }
 
-    interface Bot {
-        Result run(double maxSeconds) throws Exception;
-    }
-
-    static Bot bot(String name) {
-        return switch (name) {
-            case "ligne" -> DimensionBots::line;
-            case "plan" -> DimensionBots::plane;
-            case "volume" -> DimensionBots::volume;
-            case "duree" -> DimensionBots::duration;
-            default -> throw new IllegalArgumentException("ligne, plan, volume, duree ou toutes : " + name);
-        };
-    }
-
     public static void main(String[] args) throws Exception {
         String which = args.length > 0 ? args[0] : "toutes";
         double maxSeconds = (args.length > 1 ? Double.parseDouble(args[1]) : 120) * 60;
         List<String> names = which.equals("toutes") ? List.of("ligne", "plan", "volume", "duree") : List.of(which);
         StringBuilder csv = new StringBuilder("dimension,atteint,minutes,achats\n");
         for (String name : names) {
-            Result r = bot(name).run(maxSeconds);
+            Result r = measure(name, maxSeconds);
             System.out.printf(Locale.ROOT, "DIMENSION,%s,atteint=%b,minutes=%.2f,achats=%d%n", r.dimension(), r.reached(),
                     r.seconds() / 60, r.purchases().size());
             for (double[] p : r.curve()) System.out.printf(Locale.ROOT, "  %4.0f min : %.1f éclats%n", p[0] / 60, p[1]);

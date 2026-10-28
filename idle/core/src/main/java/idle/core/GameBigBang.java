@@ -361,11 +361,8 @@ public abstract class GameBigBang extends GameDarkMatter {
     public double bigBangMilestoneBoost(Molecule.Stat stat) {
         if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double factor = 1;
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.Boost boost && boost.stat() == stat) factor *= boost.factor();
-            }
+        for (BigBangMilestone.Boost boost : reachedEffects(BigBangMilestone.Boost.class)) {
+            if (boost.stat() == stat) factor *= boost.factor();
         }
         return factor;
     }
@@ -379,12 +376,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     public double darkMatterSpaceBoost() {
         if (bangRuled(BangChallenge.FORGOTTEN)) return 1;
         double perRoot = 0;
-        for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone)) continue;
-            for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (effect instanceof BigBangMilestone.DarkMatterSpace dark) perRoot += dark.perRoot();
-            }
-        }
+        for (BigBangMilestone.DarkMatterSpace dark : reachedEffects(BigBangMilestone.DarkMatterSpace.class)) perRoot += dark.perRoot();
         if (perRoot == 0) return 1;
         return 1 + perRoot * Math.sqrt(Math.max(0, state.darkMatter().toDouble()));
     }

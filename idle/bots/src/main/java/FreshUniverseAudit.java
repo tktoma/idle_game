@@ -1,22 +1,17 @@
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.Random;
 
 /**
  * Audit de bout en bout : une vraie partie neuve independante par profil.
  * Ne jamais confondre "pas de plantage" et "univers termine".
  *
  * Fin d'un essai : univers forme, garde-fou BLOCKED/INVALID, erreur, ou limite
- * de securite en heures simulees. Cette derniere n'est PAS une victoire.
+ * de securite en heures simulees. Cette derniere n'est PAS une victoire. L'horizon est global a l'essai, quel que
+ * soit le nombre d'univers vises : rien ne repart d'une sauvegarde de reference si un univers manque.
  *
  * <p>Version 0.126 : par defaut, la campagne n'echoue que sur un vrai probleme (BLOCKED ou ERROR) ; un
  * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
@@ -115,9 +110,7 @@ public final class FreshUniverseAudit {
         for (int id = first; id <= last; id++) {
             IdleProfiles24.Profile profile = IdleProfiles24.PROFILES[id - 1];
             long seed = 200L + id;
-            Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT,
-                    DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
-            game.start();
+            Game game = Bots.fresh(seed);
             IdleProfiles24 bot = new IdleProfiles24(game, profile, seed, dt);
             bot.targetUniverses = universes;
             Path dir = root.resolve(String.format(Locale.ROOT, "%02d_%s", id, profile.name()));

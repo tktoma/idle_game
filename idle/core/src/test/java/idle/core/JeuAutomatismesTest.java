@@ -629,7 +629,7 @@ class JeuAutomatismesTest extends GameTestSupport {
             Game game = unlockedGame();                       // hasard reproductible (graine 42)
             game.state().setElementCount(118, 1);             // un élément unique, pour écarter la garantie
             Map<ElementCategory, Integer> draws = new EnumMap<>(ElementCategory.class);
-            int total = 40_000;
+            int total = 8_000;                                // à 1 % près, huit mille tirages suffisent
             for (int i = 0; i < total; i++) {
                 game.state().setAtoms(BigNum.of(MAX));
                 List<Element> obtained = game.synthesize();

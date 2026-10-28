@@ -5,23 +5,29 @@
 
 name: Tests
 
-# Toujours valider chaque commit, y compris ceux pousses par les outils GitHub.
-# Une push et une pull request eventuellement simultanees partagent le meme
-# groupe de concurrence ci-dessous : une seule campagne lourde reste active.
+# Toujours valider chaque commit, y compris ceux pousses par les outils GitHub, sauf ceux qui ne
+# touchent qu'a la documentation (fichiers .md) : ils ne changent rien au code teste.
 on:
   push:
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
   # Lancement manuel de secours si GitHub ne declenche pas les jobs apres un commit API.
   workflow_dispatch:
 
-# Sur une meme PR, ne conserver que les tests du dernier commit.
-concurrency:
-  group: tests-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+# Les groupes de concurrence sont poses job par job : le job general ne garde que les tests du
+# dernier commit de la branche ; la campagne des profils (quatre runners, jusqu'a 3 h chacun) finit
+# toujours, sinon une branche active ne livrait presque jamais ses resultats.
 
 jobs:
   tests:
     runs-on: ubuntu-latest
+    # Sur une meme branche ou PR, ne conserver que les tests du dernier commit.
+    concurrency:
+      group: tests-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+      cancel-in-progress: true
     defaults:
       run:
         working-directory: idle
@@ -58,6 +64,10 @@ jobs:
     name: Campagne bots profils ${{ matrix.first }}-${{ matrix.last }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # Son propre groupe, sans annulation : une campagne commencee va au bout, la suivante attend son tour.
+    concurrency:
+      group: profils-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}-${{ matrix.first }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:

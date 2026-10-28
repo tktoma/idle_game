@@ -2,7 +2,6 @@ package idle.ui.universe;
 
 import idle.core.Game;
 import idle.core.GameUniverse.SeedUpgrade;
-import idle.core.math.BigNum;
 import idle.ui.common.Format;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -208,10 +207,6 @@ public final class SeedUpgradesPane extends VBox {
         return branch;
     }
 
-    private static String amount(double value) {
-        return Format.darkMatter(BigNum.of(value));
-    }
-
     private static String percent(double share) {
         return String.format(Locale.ROOT, "%.0f %%", share * 100).replace('.', ',');
     }
@@ -220,8 +215,8 @@ public final class SeedUpgradesPane extends VBox {
     private String describe(SeedUpgrade upgrade) {
         int level = game.seedUpgradeLevel(upgrade);
         return switch (upgrade) {
-            case WATERING -> "Débit de l'arrosoir (niveau " + level + ") : " + amount(game.wateringCanRate()) + " → "
-                    + amount(game.wateringCanRate() + Game.WATERING_CAN_PER_SECOND) + " arrosages par seconde, arrosoir tenu";
+            case WATERING -> "Débit de l'arrosoir (niveau " + level + ") : " + Format.darkMatter(game.wateringCanRate()) + " → "
+                    + Format.darkMatter(game.wateringCanRate() + Game.WATERING_CAN_PER_SECOND) + " arrosages par seconde, arrosoir tenu";
             case HOSE -> level == 0 ? "Tuyau d'arrosage : il arrose seul, sans qu'on le tienne, 10 % de ce que verse l'arrosoir"
                     : "Tuyau d'arrosage (niveau " + level + ") : " + percent(game.hoseShare()) + " → " + percent(game.hoseShare() + 0.1)
                             + " de l'arrosoir, versés seul";
@@ -229,12 +224,12 @@ public final class SeedUpgradesPane extends VBox {
                     + game.seedSoilFactor() * 2;
             case CHRONO -> "Étage du chrono : un étage de plus à l'étagère, et un chrono qui se remplit de temps tout seul ;"
                     + " ce temps fait passer tout le jeu plus vite";
-            case CHRONO_FILL -> "Remplissage du chrono (niveau " + level + ") : " + amount(game.chronoFillRate()) + " → "
-                    + amount(game.chronoFillRate() + Game.CHRONO_FILL) + " s gardée par seconde";
+            case CHRONO_FILL -> "Remplissage du chrono (niveau " + level + ") : " + Format.darkMatter(game.chronoFillRate()) + " → "
+                    + Format.darkMatter(game.chronoFillRate() + Game.CHRONO_FILL) + " s gardée par seconde";
             case CHRONO_CAPACITY -> "Réserve du chrono (niveau " + level + ") : " + Format.duration(game.chronoCapacity()) + " → "
                     + Format.duration(game.chronoCapacity() + Game.CHRONO_CAPACITY) + " au plus";
-            case CHRONO_SPEED -> "Accélération du chrono (niveau " + level + ") : jusqu'à ×" + amount(game.chronoMaxSpeed())
-                    + " → ×" + amount(game.chronoMaxSpeed() + 1);
+            case CHRONO_SPEED -> "Accélération du chrono (niveau " + level + ") : jusqu'à ×" + Format.darkMatter(game.chronoMaxSpeed())
+                    + " → ×" + Format.darkMatter(game.chronoMaxSpeed() + 1);
             case CHRONO_LOSS -> "Pertes du chrono (niveau " + level + ") : à ×2, " + percent(game.chronoLoss(2)) + " → "
                     + percent(Math.min(Game.CHRONO_LOSS_MAX, Game.CHRONO_LOSS_STEP * Math.pow(Game.CHRONO_LOSS_CUT, level + 1)))
                     + " du temps pris se perd";
@@ -249,8 +244,8 @@ public final class SeedUpgradesPane extends VBox {
         if (upgrade.chrono() && !game.isChronoUnlocked()) return "Il faut d'abord l'étage du chrono (branche Durée)";
         double cost = game.seedUpgradeCost(upgrade), owned = game.dimensionResource(upgrade.dimension());
         String resource = Game.dimensionResourceName(upgrade.dimension());
-        String line = "Prix : " + amount(cost) + " " + resource;
-        return owned + 1e-9 >= cost ? line : line + " (il en manque " + amount(Math.ceil(cost - owned)) + ")";
+        String line = "Prix : " + Format.darkMatter(cost) + " " + resource;
+        return owned + 1e-9 >= cost ? line : line + " (il en manque " + Format.darkMatter(Math.ceil(cost - owned)) + ")";
     }
 
     /** L'état d'une carte d'amélioration. */
@@ -285,7 +280,7 @@ public final class SeedUpgradesPane extends VBox {
         List<Button> shown = new ArrayList<>();
         if (branch <= BRANCH_NAMES.length) {
             resource.setText(capitalize(Game.dimensionResourceName(branch)) + " " + dimensionName(branch) + " : "
-                    + (game.dimensionsUnlocked() >= branch ? amount(game.dimensionResource(branch)) : "pas encore ouverte"));
+                    + (game.dimensionsUnlocked() >= branch ? Format.darkMatter(game.dimensionResource(branch)) : "pas encore ouverte"));
             for (SeedUpgrade upgrade : SeedUpgrade.values()) {
                 if (upgrade.dimension() != branch) continue;
                 Button button = buttons.get(upgrade);
@@ -330,10 +325,10 @@ public final class SeedUpgradesPane extends VBox {
             syncing = false;
         }
         chronoLine.setText("Gardé : " + Format.duration(game.chronoStored()) + " sur " + Format.duration(game.chronoCapacity())
-                + " (+" + amount(game.chronoFillRate()) + " s par seconde, même en absence)");
+                + " (+" + Format.darkMatter(game.chronoFillRate()) + " s par seconde, même en absence)");
         double speed = game.chronoSpeed();
         chronoSpeedLine.setText(speed <= 1 + 1e-9 ? "Accélération ×1 : le chrono se remplit sans rien accélérer."
-                : "Accélération ×" + amount(speed) + " : tout le jeu va " + amount(speed) + " fois plus vite, "
+                : "Accélération ×" + Format.darkMatter(speed) + " : tout le jeu va " + Format.darkMatter(speed) + " fois plus vite, "
                 + percent(game.chronoLoss(speed)) + " du temps pris se perd"
                 + (game.isChronoRunning() ? "." : ". Le chrono est vide : il attend de se remplir."));
     }

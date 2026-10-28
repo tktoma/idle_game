@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.bigbang.BigBangMilestones;
 import idle.core.molecules.Molecule;
@@ -17,14 +18,7 @@ import org.junit.jupiter.api.Test;
 class SystemesTest {
 
     private static Game game(int bigBangs) {
-        Game game = new Game();
-        game.start();
-        GameTestSupport.bangs(game, bigBangs);
-        for (String id : List.of("yellow_sun", "blue_giant", "rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet",
-                "icy_moon", "rocky_moon")) {
-            game.state().addBody(id);
-        }
-        return game;
+        return Systemes.huitAstres(bigBangs);
     }
 
     @Test
@@ -60,6 +54,40 @@ class SystemesTest {
         assertTrue(game.dissolveSystem(0));
         assertTrue(game.state().solarSystems().isEmpty());
         assertFalse(game.isInSystem("rocky_planet"));
+    }
+
+    @Test
+    void lesTroisDefisDeBigBangLaissentPlacerChaquePlaneteDansDeuxSystemes() {
+        // Version 0.116 : une planète n'entre que dans un système, deux une fois « Univers vide », « Sans mémoire » et
+        // « À la main » réussis dans un univers formé ; jamais deux fois dans le même système.
+        Game game = GameTestSupport.universe(1);
+        GameTestSupport.bangs(game, 6);
+        for (String id : List.of("yellow_sun", "blue_giant", "rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet")) game.state().addBody(id);
+        assertTrue(game.foundSystem("yellow_sun") && game.foundSystem("blue_giant"));
+        assertEquals(List.of("rocky_planet", "ocean_planet", "ice_planet", "gas_giant_planet"), game.freeForSystems(Body.Tier.PLANET));
+        assertTrue(game.addPlanet(0, "rocky_planet"));
+        assertFalse(game.planetsTwice());
+        assertFalse(game.addPlanet(1, "rocky_planet"), "une seule fois sans les trois défis");
+        assertEquals(List.of("ocean_planet", "ice_planet", "gas_giant_planet"), game.freeForSystems(Body.Tier.PLANET), "placée, elle n'est plus libre");
+        for (BangChallenge challenge : List.of(BangChallenge.VOID, BangChallenge.FORGOTTEN)) game.state().addCompletedBangChallenge(challenge.name());
+        assertFalse(game.planetsTwice(), "deux défis : pas encore");
+        assertFalse(game.addPlanet(1, "rocky_planet"));
+        game.state().addCompletedBangChallenge(BangChallenge.BY_HAND.name());
+        assertTrue(game.planetsTwice());
+        assertTrue(game.freeForSystems(Body.Tier.PLANET).contains("rocky_planet"), "placée une fois, elle redevient libre");
+        assertFalse(game.addPlanet(0, "rocky_planet"), "jamais deux fois dans le même système");
+        assertTrue(game.addPlanet(1, "rocky_planet"), "mais une fois dans chacun des deux");
+        assertEquals(List.of("rocky_planet"), game.state().solarSystems().get(0).planets());
+        assertEquals(List.of("rocky_planet"), game.state().solarSystems().get(1).planets());
+        assertFalse(game.freeForSystems(Body.Tier.PLANET).contains("rocky_planet"), "deux fois : plus libre");
+        assertTrue(game.isInSystem("rocky_planet"));
+        // Les deux systèmes complétés comptent chacun.
+        assertTrue(game.addPlanet(0, "ocean_planet") && game.addPlanet(1, "ocean_planet"));
+        assertEquals(2, game.solarSystemsComplete());
+        // Dans le premier univers, les mêmes défis ne donnent rien.
+        Game first = Systemes.huitAstres(6);
+        for (BangChallenge challenge : List.of(BangChallenge.VOID, BangChallenge.FORGOTTEN, BangChallenge.BY_HAND)) first.state().addCompletedBangChallenge(challenge.name());
+        assertFalse(first.planetsTwice(), "il faut un univers formé");
     }
 
     @Test
@@ -130,8 +158,7 @@ class SystemesTest {
 
     @Test
     void lesBigBangsSixAHuitDemandentDesAstresMurs() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 4);
         assertEquals(0, game.bigBangSkyRequirement());
         assertFalse(game.bigBangConditions().contains(BigBangCondition.SKY));

@@ -4,33 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import idle.core.achievements.Achievements;
-import idle.core.bigbang.SpaceUpgrade;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 /** Version 0.085 : planifier plusieurs astres, plafonner la création par état, réserver par recette, cibler le prochain astre. */
 class PlanifierTest {
 
     private static Game game() {
-        Game game = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
-                Achievements.DEFAULT, new Random(42));
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
         game.state().setSpace(BigNum.of(1, 12));
-        for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-            if (!(upgrade.effect() instanceof SpaceUpgrade.Boost)) game.state().addSpaceUpgrade(upgrade.id());
-        }
+        GameTestSupport.openSpace(game);
         return game;
     }
 
@@ -207,8 +197,7 @@ class PlanifierTest {
         for (var item : game.shoppingList().items()) {
             if (game.isMoleculeKindUnlocked(item.molecule().kind())) assertTrue(numbers.containsAll(item.molecule().recipe().keySet()), item.molecule().id());
         }
-        Game before = new Game();
-        before.start();
+        Game before = GameTestSupport.realGame();
         assertFalse(before.isNextBodyFilterUnlocked());
         assertTrue(before.elementsForNextStep().isEmpty());
     }

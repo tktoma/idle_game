@@ -16,6 +16,7 @@ import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.random.RandomGenerator;
 
 /**
@@ -183,8 +184,8 @@ public abstract class GameParticles extends GameMatterAutomation {
     // ------------------------------------------------------------------
 
     /** Attente entre deux anomalies du ciel, en secondes de jeu : de dix à vingt-cinq minutes. */
-    public static final double SKY_EVENT_MIN_WAIT = 10 * 60;
-    public static final double SKY_EVENT_MAX_WAIT = 25 * 60;
+    private static final double SKY_EVENT_MIN_WAIT = 10 * 60;
+    private static final double SKY_EVENT_MAX_WAIT = 25 * 60;
     /** Temps pendant lequel une anomalie reste à saisir : trois minutes, de quoi la voir sans la guetter. */
     public static final double SKY_EVENT_VISIBLE_SECONDS = 3 * 60;
     /** Le vent de particules : ce par quoi il multiplie les particules, et combien de temps. */
@@ -364,7 +365,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     /** Vrai avant la toute première fusion de la partie : la création n'a pas encore son élan (version 0.095). */
-    public boolean isFirstRun() {
+    private boolean isFirstRun() {
         return state.stats().fusions() == 0;
     }
 
@@ -586,7 +587,7 @@ public abstract class GameParticles extends GameMatterAutomation {
     public static final double POWER_TABLE = 2.0, POWER_SKY = 4.5,
             POWER_COLLIDER = 0.35, POWER_ACHIEVEMENTS = 0.1;
     /** Ce qui reste de la puissance du ciel dans l'univers vide (version 0.124). */
-    public static final double VOID_SKY_POWER = 0.5;
+    private static final double VOID_SKY_POWER = 0.5;
 
     /** Les repères de la puissance du ciel et du collisionneur. */
     public static final double SKY_POWER_FULL = 12, COLLIDER_POWER_DECADES = 20;
@@ -615,14 +616,14 @@ public abstract class GameParticles extends GameMatterAutomation {
      * exemplaires : un joueur qui explose dès que les 118 sont là, ou dont les molécules consomment les exemplaires,
      * garde ainsi l'essentiel de la puissance du tableau.
      */
-    public static final double TABLE_DISTINCT_WEIGHT = 0.8;
+    private static final double TABLE_DISTINCT_WEIGHT = 0.8;
     /** Explosions (dans l'univers en cours) qu'il faut pour que la puissance du tableau soit entière ; 0 : tout de suite. */
-    public static final double TABLE_POWER_EXPLOSIONS = 300;
+    private static final double TABLE_POWER_EXPLOSIONS = 300;
     /**
      * Les mêmes, dans les univers suivants : le tableau y mûrit plus vite. À 300, le deuxième acte du deuxième univers
      * durait deux heures de plus que dans la version 0.123 ; mûr d'emblée, il ne durait plus que dix minutes.
      */
-    public static final double TABLE_POWER_EXPLOSIONS_LATER = 200;
+    private static final double TABLE_POWER_EXPLOSIONS_LATER = 200;
 
     /** La maturité du tableau : sa puissance grandit avec les explosions faites dans cet univers, de 0 à 1. */
     public double tableMaturity() {
@@ -1182,26 +1183,25 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     Automation automation(String automationId) {
-        Automation automation = automations.get(automationId);
-        if (automation == null) throw new IllegalArgumentException("Automatisme inconnu : " + automationId);
-        return automation;
+        return require(automations, automationId, "Automatisme inconnu : ");
     }
 
     DarkAutomation darkAutomation(String darkAutomationId) {
-        DarkAutomation automation = darkAutomations.get(darkAutomationId);
-        if (automation == null) throw new IllegalArgumentException("Automatisme de matière noire inconnu : " + darkAutomationId);
-        return automation;
+        return require(darkAutomations, darkAutomationId, "Automatisme de matière noire inconnu : ");
     }
 
     DarkUpgrade darkUpgrade(String darkUpgradeId) {
-        DarkUpgrade dark = darkUpgrades.get(darkUpgradeId);
-        if (dark == null) throw new IllegalArgumentException("Amélioration de matière noire inconnue : " + darkUpgradeId);
-        return dark;
+        return require(darkUpgrades, darkUpgradeId, "Amélioration de matière noire inconnue : ");
     }
 
     Upgrade upgrade(String upgradeId) {
-        Upgrade upgrade = upgrades.get(upgradeId);
-        if (upgrade == null) throw new IllegalArgumentException("Amélioration inconnue : " + upgradeId);
-        return upgrade;
+        return require(upgrades, upgradeId, "Amélioration inconnue : ");
+    }
+
+    /** L'entrée du catalogue sous cet identifiant ; {@link IllegalArgumentException} s'il n'y en a pas, avec {@code message} suivi de l'identifiant. */
+    private static <T> T require(Map<String, T> catalog, String id, String message) {
+        T found = catalog.get(id);
+        if (found == null) throw new IllegalArgumentException(message + id);
+        return found;
     }
 }

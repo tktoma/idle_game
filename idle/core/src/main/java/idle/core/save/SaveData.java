@@ -6,13 +6,15 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
+import java.util.function.Function;
 
 /**
  * Le contenu d'une sauvegarde, avant d'être écrit ou après avoir été relu : des lignes
  * {@code clé=valeur}, dans l'ordre où elles ont été posées.
  *
- * <p>Chaque classe qui porte une part de la partie ({@link GameState}, {@link GameStats},
- * {@link StatsHistory}) y range ses propres champs et les y relit : les champs restent privés,
+ * <p>Chaque classe qui porte une part de la partie ({@link idle.core.GameState}, {@link idle.core.GameStats},
+ * {@link idle.core.StatsHistory}) y range ses propres champs et les y relit : les champs restent privés,
  * et un champ ajouté plus tard s'écrit à côté de sa déclaration.
  *
  * <p>Deux règles rendent une sauvegarde lisible d'une version du jeu à l'autre :
@@ -57,49 +59,28 @@ public final class SaveData {
 
     /** Une liste d'identifiants, dans son ordre. */
     public void putList(String key, Collection<String> items) {
-        StringBuilder text = new StringBuilder();
-        boolean first = true;
-        for (String item : items) {
-            if (!first) text.append(',');
-            first = false;
-            text.append(escape(item));
-        }
-        values.put(key, text.toString());
+        putJoined(key, ",", items, SaveData::escape);
     }
 
     /** Une table identifiant → nombre entier. */
     public void putInts(String key, Map<String, Integer> map) {
-        StringBuilder text = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            if (!first) text.append(',');
-            first = false;
-            text.append(escape(entry.getKey())).append(':').append(entry.getValue());
-        }
-        values.put(key, text.toString());
+        putJoined(key, ",", map.entrySet(), entry -> escape(entry.getKey()) + ":" + entry.getValue());
     }
 
     /** Une table identifiant → nombre à virgule. */
     public void putDoubles(String key, Map<String, Double> map) {
-        StringBuilder text = new StringBuilder();
-        boolean first = true;
-        for (Map.Entry<String, Double> entry : map.entrySet()) {
-            if (!first) text.append(',');
-            first = false;
-            text.append(escape(entry.getKey())).append(':').append(number(entry.getValue()));
-        }
-        values.put(key, text.toString());
+        putJoined(key, ",", map.entrySet(), entry -> escape(entry.getKey()) + ":" + number(entry.getValue()));
     }
 
     /** Une suite de nombres à virgule, dans son ordre. */
     public void putDoubleList(String key, List<Double> list) {
-        StringBuilder text = new StringBuilder();
-        boolean first = true;
-        for (double value : list) {
-            if (!first) text.append(';');
-            first = false;
-            text.append(number(value));
-        }
+        putJoined(key, ";", list, SaveData::number);
+    }
+
+    /** Pose les éléments écrits par {@code toText}, séparés par {@code separator}. */
+    private <T> void putJoined(String key, String separator, Iterable<T> items, Function<T, String> toText) {
+        StringJoiner text = new StringJoiner(separator);
+        for (T item : items) text.add(toText.apply(item));
         values.put(key, text.toString());
     }
 
@@ -149,23 +130,21 @@ public final class SaveData {
     }
 
     public Map<String, Integer> ints(String key) {
-        Map<String, Integer> map = new LinkedHashMap<>();
-        String value = values.get(key);
-        if (value == null || value.isEmpty()) return map;
-        for (String entry : value.split(",", -1)) {
-            int colon = entry.lastIndexOf(':');
-            map.put(unescape(entry.substring(0, colon)), Integer.parseInt(entry.substring(colon + 1)));
-        }
-        return map;
+        return table(key, Integer::parseInt);
     }
 
     public Map<String, Double> doubles(String key) {
-        Map<String, Double> map = new LinkedHashMap<>();
+        return table(key, SaveData::parse);
+    }
+
+    /** Relit une table {@code clé:valeur} dont {@code parseValue} lit les valeurs ; vide si la clé est absente. */
+    private <V> Map<String, V> table(String key, Function<String, V> parseValue) {
+        Map<String, V> map = new LinkedHashMap<>();
         String value = values.get(key);
         if (value == null || value.isEmpty()) return map;
         for (String entry : value.split(",", -1)) {
             int colon = entry.lastIndexOf(':');
-            map.put(unescape(entry.substring(0, colon)), parse(entry.substring(colon + 1)));
+            map.put(unescape(entry.substring(0, colon)), parseValue.apply(entry.substring(colon + 1)));
         }
         return map;
     }

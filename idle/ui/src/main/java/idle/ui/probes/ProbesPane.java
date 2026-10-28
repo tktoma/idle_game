@@ -14,6 +14,7 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -25,7 +26,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Les sondes, sous-page du Big Bang : le butin rapporté, à réclamer d'un clic, récompense par
@@ -84,7 +84,7 @@ public final class ProbesPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(10, 0, 10, 0));
 
-        intro.setText("Une sonde part 15 minutes à 8 heures. Plus le voyage est long, plus son butin est riche par heure, "
+        intro.setText("Une sonde part " + (int) (ProbeTrip.SHORT.seconds() / 60) + " minutes à " + (int) (ProbeTrip.NIGHT.seconds() / 3600) + " heures. Plus le voyage est long, plus son butin est riche par heure, "
                 + "et rien ne se perd si vous revenez tard : la sonde attend à destination. Un clic sur elle ouvre son "
                 + "butin, carte par carte, ou tout d'un coup ; elle rentre alors au hangar. Les sondes et leurs améliorations traversent le Big Bang. "
                 + "Pendant votre absence, une sonde arrivée vide son butin et repart pour le même voyage : rien à faire au retour.");
@@ -153,10 +153,8 @@ public final class ProbesPane extends VBox {
     }
 
     private static void note(Label label, String color) {
-        label.setStyle("-fx-font-size: 12px; -fx-text-fill: " + color + ";");
-        label.setWrapText(true);
+        Labels.centered(label, "-fx-font-size: 12px; -fx-text-fill: " + color + ";");
         label.setMaxWidth(760);
-        label.setTextAlignment(TextAlignment.CENTER);
     }
 
     /** Le panneau qui ouvre le butin d'une sonde, par son numéro. */

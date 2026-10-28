@@ -73,7 +73,7 @@ public final class GameApp extends GameAppTabs {
     /** Recopie l'état du jeu dans les composants. */
     void refresh() {
         // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
-        // Avec l'onglet « Big Bang » ils sont huit : la fenêtre de 800 px ne suffit plus aux noms entiers.
+        // Avec l'onglet « Big Bang » ils sont au moins huit (douze au plus) : la fenêtre de 800 px ne suffit plus aux noms entiers.
         boolean bigBang = game.isBigBangUnlocked();
         // En colonne, les onglets ont toute leur largeur : pas de noms courts.
         boolean nowNarrow = !tabsLeftApplied && root.getWidth() > 0 && root.getWidth() < (bigBang ? NARROW_WINDOW_WITH_BIG_BANG : NARROW_WINDOW);
@@ -100,12 +100,10 @@ public final class GameApp extends GameAppTabs {
             refreshSecondUniverse();
 
             upgradeCards.forEach(this::show);
-            amountButtons.forEach((amount, button) -> button.setStyle(AMOUNT_STYLE + (amount == settings.buyAmount()
-                    ? " -fx-text-fill: #0b0e14; -fx-background-color: " + PARTICLES_COLOR + "; -fx-border-color: #ffffff;"
-                    : " -fx-text-fill: " + PARTICLES_COLOR + "; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;")));
+            amountRow.paint(settings.buyAmount(), PARTICLES_COLOR);
             // Les autres raccourcis, ceux qui ne sont écrits sur aucune carte : en mode détails seulement.
             boolean keys = settings.shortcuts() && Detail.shown();
-            shortcutsLabel.setText(shortcutsHint());
+            if (keys) shortcutsLabel.setText(shortcutsHint());   // caché, son texte n'a pas à suivre les touches
             shortcutsLabel.setVisible(keys);
             shortcutsLabel.setManaged(keys);
 

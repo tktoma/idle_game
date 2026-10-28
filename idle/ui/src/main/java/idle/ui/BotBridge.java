@@ -36,11 +36,16 @@ final class BotBridge {
 
     /** La classe du bot, ou {@code null} si le module des bots n'est pas là. */
     private static Class<?> botClass() {
+        return botClass(BOT_CLASS);
+    }
+
+    /** Cette classe des bots, cherchée d'abord par le chargeur du fil, ou {@code null} si le module n'est pas là. */
+    static Class<?> botClass(String name) {
         try {
-            return Class.forName(BOT_CLASS, true, Thread.currentThread().getContextClassLoader());
+            return Class.forName(name, true, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException | LinkageError absent) {
             try {
-                return Class.forName(BOT_CLASS);
+                return Class.forName(name);
             } catch (ClassNotFoundException | LinkageError stillAbsent) {
                 return null;
             }

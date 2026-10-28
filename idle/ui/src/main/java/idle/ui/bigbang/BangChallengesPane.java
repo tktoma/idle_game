@@ -8,13 +8,13 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
 import java.util.EnumMap;
 import java.util.Map;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Les défis de Big Bang, sous les paliers : refaire le chemin jusqu'au Big Bang suivant sous une
@@ -47,10 +47,7 @@ public final class BangChallengesPane extends VBox {
         setAlignment(Pos.TOP_CENTER);
         setMaxWidth(820);
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 14 0 0 0; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        intro.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-        intro.setWrapText(true);
-        intro.setTextAlignment(TextAlignment.CENTER);
-        intro.setMaxWidth(760);
+        Labels.note(intro, 760);
         for (BangChallenge challenge : game.bangChallenges()) {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
             card.setDoneClickable(true);      // un défi réussi se rejoue pour son temps

@@ -157,6 +157,24 @@ public final class StatsHistory {
         /** Quarks en réserve, toutes saveurs ensemble. */
         QUARKS,
 
+        // ----- Univers (version 0.144) -----
+        /** Univers formés depuis le début du jeu. */
+        UNIVERSES,
+        /** Énergie du vide en réserve, en puissance de dix. */
+        VOID_ENERGY,
+        /** Énergie du vide gagnée par seconde par les paires, en puissance de dix. */
+        VOID_ENERGY_RATE,
+        /** Segments de la ligne gagnés en tout, en puissance de dix. */
+        LINE_SHARDS,
+        /** Facettes du plan gagnées en tout, en puissance de dix. */
+        PLANE_SHARDS,
+        /** Sphères du volume gagnées en tout, en puissance de dix. */
+        VOLUME_SHARDS,
+        /** Instants de la durée gagnés en tout, en puissance de dix. */
+        DURATION_SHARDS,
+        /** Arrosages reçus par la graine d'univers. */
+        SEED_WATERINGS,
+
         // ----- Ce que le joueur a en main -----
         /**
          * Particules en main, en puissance de dix : le plus qu'il y en a eu depuis le relevé

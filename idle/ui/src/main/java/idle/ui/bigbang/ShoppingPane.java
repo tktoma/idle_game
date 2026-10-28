@@ -76,6 +76,8 @@ public final class ShoppingPane extends VBox {
     private final Label more = new Label();
     private final Label matter = new Label();
     private final HBox ready = new HBox(6);
+    /** Les assemblages dont les boutons « Prêts à former » sont bâtis : la rangée ne se refait que s'ils changent. */
+    private String readyKey = "";
     private final List<Row> rows = new ArrayList<>();
     private boolean open = true;
 
@@ -214,23 +216,28 @@ public final class ShoppingPane extends VBox {
             show(matter, true);
         }
 
-        ready.getChildren().clear();
-        if (!shopping.assemblies().isEmpty()) {
-            Label label = new Label("Prêts à former :");
-            label.setStyle(TEXT_STYLE);
-            ready.getChildren().add(label);
-            for (Assembly assembly : shopping.assemblies()) {
-                Button form = new Button(assembly.name());
-                form.setStyle(BUTTON_STYLE);
-                form.setFocusTraversable(false);
-                form.setOnAction(event -> {
-                    game.formAssembly(assembly.id());
-                    changed.run();
-                });
-                ready.getChildren().add(form);
+        StringBuilder key = new StringBuilder();
+        for (Assembly assembly : shopping.assemblies()) key.append(assembly.id()).append('\n').append(assembly.name()).append('\n');
+        if (!key.toString().equals(readyKey)) {
+            readyKey = key.toString();
+            ready.getChildren().clear();
+            if (!shopping.assemblies().isEmpty()) {
+                Label label = new Label("Prêts à former :");
+                label.setStyle(TEXT_STYLE);
+                ready.getChildren().add(label);
+                for (Assembly assembly : shopping.assemblies()) {
+                    Button form = new Button(assembly.name());
+                    form.setStyle(BUTTON_STYLE);
+                    form.setFocusTraversable(false);
+                    form.setOnAction(event -> {
+                        game.formAssembly(assembly.id());
+                        changed.run();
+                    });
+                    ready.getChildren().add(form);
+                }
             }
-            show(ready, true);
         }
+        show(ready, !shopping.assemblies().isEmpty());
     }
 
     /** « la comète glacée », « l'amas de galaxies », « Roche granitique » : ce que vise la liste. */

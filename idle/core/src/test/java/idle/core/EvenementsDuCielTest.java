@@ -1,6 +1,7 @@
 package idle.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,8 +18,7 @@ import org.junit.jupiter.api.Test;
 class EvenementsDuCielTest {
 
     private static Game afterBigBang() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         GameTestSupport.bangs(game, 1);
         return game;
     }
@@ -31,8 +31,7 @@ class EvenementsDuCielTest {
 
     @Test
     void rienAvantLePremierBigBang() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.tick(3 * 3600);
         assertNull(game.skyEvent());
         assertNull(game.catchSkyEvent());
@@ -121,8 +120,9 @@ class EvenementsDuCielTest {
 
     @Test
     void lesAnomaliesNeTouchentPasAuHasardDuJeu() {
-        // Deux parties identiques, l'une où l'on saisit tout ce qui passe : la synthèse tire les mêmes éléments.
+        // Deux parties au même hasard (graine 42), l'une où l'on saisit tout ce qui passe : la synthèse tire les mêmes éléments.
         Game catching = afterBigBang(), ignoring = afterBigBang();
+        for (Game game : List.of(catching, ignoring)) GameTestSupport.createEnoughAtoms(game);
         for (int i = 0; i < 300; i++) {
             catching.tick(10);
             ignoring.tick(10);
@@ -130,9 +130,11 @@ class EvenementsDuCielTest {
         }
         assertTrue(catching.state().skyEventsCaught() > 0, "il en est passé au moins une");
         for (Game game : List.of(catching, ignoring)) {
+            assertTrue(game.isPeriodicTableUnlocked());
             game.state().setAtoms(BigNum.of(1, 9));
-            for (int i = 0; i < 20; i++) game.synthesize();
+            for (int i = 0; i < 20; i++) assertFalse(game.synthesize().isEmpty(), "chaque synthèse tire bien un élément");
         }
+        assertTrue(catching.discoveredElements() > 0, "le tableau s'est rempli");
         for (int number = 1; number <= 118; number++) {
             assertEquals(ignoring.elementCount(number), catching.elementCount(number), "élément " + number);
         }

@@ -1,17 +1,12 @@
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameState;
-import idle.core.achievements.Achievements;
-import idle.core.darkmatter.DarkUpgrades;
 import idle.core.molecules.Molecule;
 import idle.core.save.SaveCodec;
 import idle.core.sky.Cosmos;
-import idle.core.upgrades.Automations;
-import idle.core.upgrades.Upgrades;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Random;
+import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,10 +24,7 @@ class Profiles24LongCampaignTest {
     private static final int LAST = Integer.getInteger("idle.testProfilesEnd", 24);
 
     private static Game checkpoint(long seed) throws Exception {
-        GameState state = SaveCodec.read(Files.readString(Path.of(
-                "sauvegardes/reference/checkpoint_before_eighth.save"))).state();
-        return new Game(state, Upgrades.DEFAULT, Automations.DEFAULT,
-                DarkUpgrades.DEFAULT, Achievements.DEFAULT, new Random(seed));
+        return Bots.load(Path.of("sauvegardes/reference/checkpoint_before_eighth.save"), seed);
     }
 
     @Test
@@ -65,7 +57,8 @@ class Profiles24LongCampaignTest {
             assertTrue(bot.actions > 0, "Le bot doit prendre des decisions : " + p.name());
             assertTrue(win || game.bigBangs() >= startBangs,
                     "Aucun Big Bang ne doit etre perdu sans victoire : " + p.name());
-            Path history = dir.resolve(String.format("%02d_%s_late.csv", id, p.name()));
+            // Le nom du CSV porte l'étape (propriété idle.stage, « late » par défaut), comme le bot l'écrit.
+            Path history = dir.resolve(String.format(Locale.ROOT, "%02d_%s_%s.csv", id, p.name(), System.getProperty("idle.stage", "late")));
             assertTrue(Files.exists(history), "Historique manquant : " + p.name());
             assertTrue(Files.size(history) > 100, "Historique tronque : " + p.name());
             Files.writeString(dir.resolve("end.save"), SaveCodec.write(game.state(), 0));

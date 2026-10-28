@@ -195,9 +195,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
     class HistoriqueEtDeblocages {
 
         private void fillTable(Game game) {
-            for (Element element : PeriodicTable.ELEMENTS) {
-                game.state().setElementCount(element.number(), element.category().maxCopies());
-            }
+            GameTestSupport.fillTableToMax(game);
         }
 
         @Test
@@ -541,8 +539,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
 
         @Test
         void rouagesSombresAccelerentLesAutomatismes() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(5));
             assertEquals(Automation.DEFAULT_INTERVAL, game.automationInterval("auto_fusion"));

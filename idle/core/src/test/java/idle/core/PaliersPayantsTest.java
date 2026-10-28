@@ -30,8 +30,7 @@ class PaliersPayantsTest {
 
     @Test
     void unPalierOuvertNAgitQuUneFoisPaye() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         BigBangMilestone first = named("Matière noire primordiale");
         assertFalse(game.isBigBangMilestoneOpen(first));
         game.state().setBigBangs(1);
@@ -54,8 +53,7 @@ class PaliersPayantsTest {
 
     @Test
     void lesSondesSePaientEnAtomes() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         BigBangMilestone probes = named("Sondes spatiales");
         assertEquals(Resource.ATOMS, probes.resource());
         game.state().setBigBangs(3);
@@ -68,14 +66,13 @@ class PaliersPayantsTest {
 
     @Test
     void lesPaliersPayesTraversentLeBigBangMaisPasLUnivers() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setBigBangs(2);
         game.state().setParticles(BigNum.of(1, 1000));
         assertEquals(3, game.buyAllBigBangMilestones());
         assertTrue(game.isBigBangMilestoneReached(named("Création automatique")));
         try {
-            Game copy = new Game();
+            Game copy = new Game(42L);
             idle.core.save.SaveCodec.readInto(copy.state(), idle.core.save.SaveCodec.write(game.state(), 0));
             copy.restored();
             assertTrue(copy.isBigBangMilestoneReached(named("Expansion accélérée")), "la sauvegarde garde les paliers payés");
@@ -88,26 +85,30 @@ class PaliersPayantsTest {
 
     @Test
     void laVitesseSEssouffleAuDelaDuSeuil() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         game.state().setLevel("speed", 50);
         double early = game.costOf("speed").log10();
         game.state().setLevel("speed", 51);
         double earlyStep = game.costOf("speed").log10() - early;
-        int late = Game.SPEED_SCALING_FROM + 200;
-        game.state().setLevel("speed", late);
+        assertEquals(300, Game.SPEED_SCALING_FROM, "l'essoufflement commence au-delà du 300e niveau");
+        game.state().setLevel("speed", 300);
+        double atThreshold = game.costOf("speed").log10();
+        game.state().setLevel("speed", 301);
+        assertEquals(earlyStep + 0.001, game.costOf("speed").log10() - atThreshold, 1e-6, "le 301e niveau coûte 10^0,001 de plus que d'habitude");
+        game.state().setLevel("speed", 500);
         double lateCost = game.costOf("speed").log10();
-        game.state().setLevel("speed", late + 1);
+        game.state().setLevel("speed", 501);
         double lateStep = game.costOf("speed").log10() - lateCost;
-        // Au-delà du seuil, un niveau de plus coûte en plus 10^(SPEED_SCALING × (201² − 200²)).
-        double extra = Game.SPEED_SCALING * (201 * 201 - 200 * 200);
-        assertEquals(earlyStep + extra, lateStep, 1e-6);
+        // Deux cents niveaux au-delà du seuil, un niveau de plus coûte en plus 0,401 ordre de grandeur : (201² − 200²) millièmes.
+        assertEquals(earlyStep + 0.401, lateStep, 1e-6);
+        game.state().setLevel("speed", 400);
+        assertEquals(atThreshold + 100 * earlyStep + 10, game.costOf("speed").log10(), 1e-4,
+                "cent niveaux au-delà du seuil : dix ordres de grandeur d'essoufflement en plus de la croissance ordinaire");
     }
 
     @Test
     void laMaturiteDuTableauSeRefaitAChaqueUnivers() {
-        Game game = new Game();
-        game.start();
+        Game game = GameTestSupport.realGame();
         for (int i = 0; i < 150; i++) game.state().stats().endRun();
         assertEquals(0.5, game.tableMaturity(), 1e-12);
         game.state().setExplosionsAtUniverse(150);
@@ -121,7 +122,7 @@ class PaliersPayantsTest {
         boolean was = GameParticles.powersOff;
         GameParticles.powersOff = false;
         try {
-            Game game = new Game();
+            Game game = new Game(42L);
             idle.core.save.SaveCodec.readInto(game.state(), idle.core.save.SaveCodec.write(SaveTest.richState(), 0));
             game.restored();
             double power = game.systemsPower();

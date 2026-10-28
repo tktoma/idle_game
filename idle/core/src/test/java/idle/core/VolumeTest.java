@@ -18,9 +18,8 @@ class VolumeTest {
 
     /** Une partie au troisième univers : la troisième dimension est ouverte. */
     private static Game third() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.realGame();
+        game.testFormUniverse();
         assertTrue(game.testAddUniverse());
         assertTrue(game.testAddUniverse());
         assertEquals(3, game.universes());
@@ -28,9 +27,8 @@ class VolumeTest {
     }
 
     private static Game second() {
-        Game game = new Game();
-        game.start();
-        DeuxiemeUniversTest.formUniverse(game);
+        Game game = GameTestSupport.realGame();
+        game.testFormUniverse();
         assertTrue(game.testAddUniverse());
         return game;
     }

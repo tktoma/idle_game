@@ -521,8 +521,7 @@ class JeuElementsTest extends GameTestSupport {
 
         @Test
         void leRendementDuJeuDemarreAQuatreCentsMillionsDeParticulesParSeconde() {
-            Game game = new Game();
-            game.start();
+            Game game = GameTestSupport.realGame();
             Upgrade upgrade = game.upgrades().stream().filter(u -> u.id().equals("atom_yield")).findFirst().orElseThrow();
             assertEquals(Resource.ATOMS, upgrade.resource());
             assertEquals(new Effect.MultiplyAtomsByProduction(50_000_000 * Game.TEMPO, 0.09), upgrade.effect());

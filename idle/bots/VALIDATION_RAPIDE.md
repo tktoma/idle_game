@@ -8,11 +8,11 @@
 - `python run.py coach --checkpoint sauvegardes/profils_bloques/profil_12_72h.save --hours 0.016667 --seed 42` : exécution OK.
 - `python run.py batch --tier rapide --workers 2 --hours 0.016667 --seed-start 901` : 30 sous-tests ont terminé sans code d'erreur Java.
 
-Ces tests ne reproduisent **pas** les 12/72/336 heures complètes : ils vérifient le **fonctionnement du kit portable et des points d'entrée**. Les résultats longs se trouvent dans `donnees/` et proviennent des campagnes antérieures.
+Ces tests ne reproduisent **pas** les 12/72/336 heures complètes : ils vérifient le **fonctionnement du kit portable et des points d'entrée**. Les résultats longs se trouvaient dans `donnees/` (retiré du dépôt le 20 octobre 2026, voir plus bas) et provenaient des campagnes antérieures. (`run.py coach`, cité ci-dessus, a été retiré en 0.141 avec `CorrectedCoach`.)
 
 ## Vérification historique supplémentaire
 
-Les **21 sauvegardes victorieuses historiques** du dossier `sauvegardes/victoires_historiques` ont été rechargées avec `VerifyVictory` : **21/21 vérifiées**, Java 21. Résultats individuels sous `docs/VALIDATION_21_SAUVEGARDES.csv`.
+Les **21 sauvegardes victorieuses historiques** du dossier `sauvegardes/victoires_historiques` ont été rechargées avec `VerifyVictory` : **21/21 vérifiées**, Java 21. Les résultats individuels étaient sous `docs/VALIDATION_21_SAUVEGARDES.csv` (dossier retiré du dépôt le 20 octobre 2026 ; `BotsTest` refait cette vérification à chaque envoi).
 
 # Contrôles après la fusion dans le projet (19 octobre 2026)
 

@@ -30,13 +30,16 @@ final class FirstUniversePolicy {
         return needed == 0 || game.isBigBangConditionMet(BigBangCondition.SKY);
     }
 
-    /** Une partie encore en train de construire son ciel doit continuer à synthétiser. */
+    /**
+     * Une partie encore en train de construire son ciel doit continuer à synthétiser. La matière noire exigée est celle
+     * du moteur ({@link Game#bigBangDarkMatter()}) : le double pendant la barre haute (avant la 0.141, la constante).
+     */
     static boolean finalBangPreparation(Game game) {
         // Les dix défis que demande le Big Bang : la fuite, onzième défi du deuxième univers, n'y entre pas (0.130).
-        return game.bigBangs() < 8
+        return game.bigBangs() < Bots.LAST_BIG_BANG
                 && game.baseChallengesDone()
                 && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS
-                && game.state().darkMatter().gte(Game.BIG_BANG_DARK_MATTER)
+                && game.state().darkMatter().gte(game.bigBangDarkMatter())
                 && game.isBigBangConditionMet(BigBangCondition.PARTICLES)
                 && skyReady(game);
     }
@@ -50,7 +53,7 @@ final class FirstUniversePolicy {
      */
     static boolean holdExplosions(Game game) {
         if (game.bigBangs() == 0 || game.inChallenge()) return false;
-        if (game.state().darkMatter().lt(Game.BIG_BANG_DARK_MATTER)) return false;
+        if (game.state().darkMatter().lt(game.bigBangDarkMatter())) return false;
         var list = game.shoppingList();
         for (var item : list.items())
             if (item.missing() > 0 || item.gather()) return true;
@@ -240,11 +243,9 @@ final class FirstUniversePolicy {
      * enfin améliorations répétables, en plafonnant chaque dépense.
      */
     static int dark(Game game, int limit) {
-        // Réserver les 500 matières noires dès que les autres prérequis
-        // sont assurés, et non seulement après avoir déjà atteint 500.
-        boolean bank = game.bigBangs() < 8
-                && game.baseChallengesDone()
-                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
+        // Réserver la matière noire du Big Bang (500, le double pendant la barre haute) dès que les autres prérequis
+        // sont assurés, et non seulement après l'avoir déjà atteinte.
+        boolean bank = savingForBigBang(game);
         int count = 0;
         for (int n = 0; n < limit; n++) {
             DarkUpgrade chosen = null;
@@ -264,7 +265,7 @@ final class FirstUniversePolicy {
             if (chosen == null) for (DarkUpgrade upgrade : game.darkUpgrades()) {
                 if (upgrade.inTree() || upgrade.hasLimit() || game.darkLevelOf(upgrade.id()) == 0
                         || !affordableDark(game, upgrade, bank)
-                        || game.darkCostOf(upgrade.id()).gt(game.state().darkMatter().multiply(0.05)))
+                        || game.darkCostOf(upgrade.id()).gt(game.state().darkMatter().multiply(SHOP_REPEAT_SHARE)))
                     continue;
                 if (chosen == null || game.darkLevelOf(upgrade.id()) < game.darkLevelOf(chosen.id()))
                     chosen = upgrade;
@@ -352,8 +353,7 @@ final class FirstUniversePolicy {
      * de l'arbre. Pendant la préparation du dernier Big Bang, les cases payées en atomes ou en particules attendent.
      */
     static int cheapestDark(Game game, int limit) {
-        boolean bank = game.bigBangs() < 8 && game.baseChallengesDone()
-                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
+        boolean bank = savingForBigBang(game);
         boolean finalMode = finalBangPreparation(game);
         int count = 0;
         for (int n = 0; n < limit; n++) {
@@ -363,11 +363,11 @@ final class FirstUniversePolicy {
                 if (!game.canBuyDark(upgrade.id())) continue;
                 boolean darkPaid = upgrade.branch() == DarkUpgrade.Branch.DARK_MATTER || upgrade.isLink();
                 if (finalMode && !darkPaid) continue;
-                if (!affordableDark(game, upgrade, bank, game.bigBangDarkMatter())) continue;
+                if (!affordableDark(game, upgrade, bank)) continue;
                 BigNum cost = game.darkCostOf(upgrade.id());
                 BigNum balance = upgrade.isLink() ? game.state().darkMatter() : game.darkBalance(upgrade.branch());
                 boolean repeat = !upgrade.hasLimit() && game.darkLevelOf(upgrade.id()) > 0;
-                if (repeat && cost.gt(balance.multiply(upgrade.inTree() ? Game.TREE_REPEAT_SHARE : 0.05))) continue;
+                if (repeat && cost.gt(balance.multiply(upgrade.inTree() ? Game.TREE_REPEAT_SHARE : SHOP_REPEAT_SHARE))) continue;
                 double share = balance.sign() <= 0 ? Double.POSITIVE_INFINITY : cost.divide(balance).toDouble();
                 if (choice == null || share < choiceShare) { choice = upgrade; choiceShare = share; }
             }
@@ -377,16 +377,23 @@ final class FirstUniversePolicy {
         return count;
     }
 
-    private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank) {
-        return affordableDark(game, upgrade, bank, Game.BIG_BANG_DARK_MATTER);
+    /** Part de la matière noire en main qu'un niveau répétable de la boutique peut coûter. */
+    static final double SHOP_REPEAT_SHARE = 0.05;
+
+    /** Vrai quand la matière noire du Big Bang se garde : tous ses autres prérequis en matière noire sont réunis. */
+    static boolean savingForBigBang(Game game) {
+        return game.bigBangs() < Bots.LAST_BIG_BANG && game.baseChallengesDone()
+                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
     }
 
-    private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank, BigNum bigBangDarkMatter) {
+    /**
+     * Vrai si cette case se paie sans entamer la réserve du Big Bang quand elle se garde : la matière noire exigée est
+     * celle du moteur, le double pendant la barre haute (avant la 0.141, {@code dark} gardait la constante).
+     */
+    private static boolean affordableDark(Game game, DarkUpgrade upgrade, boolean bank) {
         if (!game.canBuyDark(upgrade.id())) return false;
         if (upgrade.branch() != DarkUpgrade.Branch.DARK_MATTER && !upgrade.isLink()) return true;
-        return DarkMatterReservePolicy.allowPurchase(
-                bank, game.state().darkMatter(), game.darkCostOf(upgrade.id()),
-                bigBangDarkMatter);
+        return game.state().darkMatter().subtract(game.darkCostOf(upgrade.id())).gte(game.bigBangDarkMatter()) || !bank;
     }
 
     /**
@@ -459,23 +466,12 @@ final class FirstUniversePolicy {
 
     /** La sélection pour les amas suit les mêmes contrôles de fabricabilité que le moteur. */
     static Molecule matterTarget(Game game, Molecule.State state) {
-        Molecule best = null;
-        double smallestVolume = Double.POSITIVE_INFINITY;
         // La synthèse regarnit les éléments temporairement absents. Changer
         // d'amas à chaque manque brise l'accrétion en racine du nombre déjà créé.
         // Filtrer ici seulement les obstacles structurels (rayon, espace, plafond).
-        for (Molecule molecule : game.molecules()) {
-            if (!molecule.hasState() || molecule.state() != state
-                    || !game.hasSubstance(molecule.id())
-                    || !game.isMoleculeKindUnlocked(molecule.kind())
-                    || !game.isMoleculeWithinReach(molecule.id())
-                    || game.isMoleculeKindFull(molecule.id())) continue;
-            double volume = game.moleculeVolume(molecule.id()).toDouble();
-            if (volume < smallestVolume) {
-                best = molecule;
-                smallestVolume = volume;
-            }
-        }
-        return best;
+        return Bots.cheapestInState(game, state, molecule -> game.hasSubstance(molecule.id())
+                && game.isMoleculeKindUnlocked(molecule.kind())
+                && game.isMoleculeWithinReach(molecule.id())
+                && !game.isMoleculeKindFull(molecule.id()));
     }
 }
