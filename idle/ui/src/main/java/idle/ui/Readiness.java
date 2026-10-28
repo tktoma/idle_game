@@ -32,13 +32,14 @@ public final class Readiness {
     public enum Kind {
         TREE("Arbre de matière noire", "Une case de l'arbre payable, ou le Big Bang possible."),
         CHALLENGES("Défis de matière noire", "Un défi ouvert, jamais réussi, quand aucun n'est en cours."),
-        COLLIDER("Collisionneur", "Le quark top, une amélioration payable, le vide à ouvrir."),
+        COLLIDER("Collisionneur", "Le quark top, une amélioration payable, le vide ou les hadrons à ouvrir."),
         MILESTONES("Paliers du Big Bang", "Un palier ouvert qui peut se payer."),
         SKY("Ciel à former", "Une sorte à rassembler, un assemblage, un astre ou une échelle du cosmos à former."),
         COMET("Comète", "Une comète dans l'expansion : la seule pastille qui s'éteint seule."),
         PROBES("Sondes", "Un butin à prendre, ou une place libre pour une sonde."),
         SYSTEMS("Systèmes solaires", "Une planète et une étoile libres pour un système."),
-        VOID("Le vide", "Une amélioration du vide payable.");
+        VOID("Le vide", "Une amélioration du vide payable."),
+        HADRONS("Hadrons", "Assez de quarks pour lier un hadron.");
 
         private final String label;
         private final String detail;

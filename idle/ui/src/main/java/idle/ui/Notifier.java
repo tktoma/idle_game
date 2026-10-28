@@ -58,6 +58,8 @@ final class Notifier {
     /** Version 0.132 : le vide qui se propose, son trou noir, et les améliorations du troisième acte au plus haut, annoncés une fois. */
     private boolean voidOfferedSeen = false, voidHoleSeen = false;
     private final java.util.EnumSet<Game.VoidUpgrade> voidMaxedSeen = java.util.EnumSet.noneOf(Game.VoidUpgrade.class);
+    /** Version 0.149 : les hadrons qui se proposent dans le collisionneur, annoncés une fois par univers, comme le vide. */
+    private boolean hadronsOfferedSeen = false;
     /** Les succès du collisionneur déjà gagnés au dernier relevé. */
     private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
     private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
@@ -152,6 +154,9 @@ final class Notifier {
         boolean voidOffered = game.isVoidOffered();
         if (voidOffered && !voidOfferedSeen) add(news, Notice.VOID, "Le vide se propose dans l'onglet du collisionneur : il s'ouvre contre de l'énergie du collisionneur.");
         voidOfferedSeen = voidOffered;
+        boolean hadronsOffered = game.isHadronsOffered();
+        if (hadronsOffered && !hadronsOfferedSeen) add(news, Notice.COLLIDER, "Collisionneur : les hadrons se proposent. Leur onglet s'ouvre contre de l'énergie du collisionneur.");
+        hadronsOfferedSeen = hadronsOffered;
         boolean voidHole = game.isVoidHoleOpen();
         if (voidHole && !voidHoleSeen) add(news, Notice.VOID, "Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
         voidHoleSeen = voidHole;
@@ -406,6 +411,7 @@ final class Notifier {
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
         voidOfferedSeen = game.isVoidOffered();
+        hadronsOfferedSeen = game.isHadronsOffered();
         voidHoleSeen = game.isVoidHoleOpen();
         voidMaxedSeen.clear();
         for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) if (game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max()) voidMaxedSeen.add(upgrade);

@@ -6,6 +6,7 @@ import idle.core.StatsHistory;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
+import idle.core.collider.Hadron;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
@@ -360,8 +361,8 @@ public abstract class StatsPageLines extends StatsPageBase {
 
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
-     * univers formés et la graine, les dimensions et leurs éclats, le vide, les bulles de l'arbre, et les règles du
-     * deuxième univers (régime, cycle, épreuves, skins, recherches).
+     * univers formés et la graine, les dimensions et leurs éclats, le vide, les bulles de l'arbre, les hadrons (version
+     * 0.149), et les règles du deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
         page("Univers", UniversePage.COLOR, () -> game.universes() > 0, "au premier univers formé");
@@ -428,6 +429,17 @@ public abstract class StatsPageLines extends StatsPageBase {
                 () -> game.isTreeBubbleBought(Game.TreeBubble.CROWN_RIGHT));
         row("Matière noire par seconde, sans explosion", () -> Format.count(game.bubbleDarkMatterPerSecond()),
                 () -> game.isTreeBubbleBought(Game.TreeBubble.GIANT_RIGHT_HIGH));
+
+        // Les hadrons (version 0.149) : ce que les gluons ont lié, tant que leur onglet est ouvert.
+        section("Les hadrons");
+        row("Hadrons assemblés", () -> Format.whole(game.hadronsMade()), game::isHadronsUnlocked);
+        row("Protons", () -> Format.whole(game.hadrons(Hadron.PROTON)), game::isHadronsUnlocked);
+        row("Neutrons", () -> Format.whole(game.hadrons(Hadron.NEUTRON)), game::isHadronsUnlocked);
+        row("Particules exotiques", () -> {
+            long exotic = 0;
+            for (Hadron hadron : Hadron.values()) if (hadron.isExotic()) exotic += game.hadrons(hadron);
+            return game.isExoticHadronsUnlocked() || exotic > 0 ? Format.whole(exotic) : "pas encore ouvertes";
+        }, game::isHadronsUnlocked);
 
         section("Les règles du deuxième univers");
         row("Régime rapide", () -> game.regimeMultiplier() > 1 ? "en cours, ×" + ElementText.number(game.regimeMultiplier())

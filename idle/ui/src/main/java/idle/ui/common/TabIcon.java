@@ -8,13 +8,14 @@ import javafx.scene.shape.StrokeLineCap;
 /**
  * La petite icône animée d'un onglet (version 0.059), dans la couleur de l'onglet : des particules
  * qui tournent, un engrenage, une spirale de matière noire, deux faisceaux qui se croisent, un
- * éclair de Big Bang, un buste et l'étoile de son titre, une étoile qui scintille, des barres qui montent, des curseurs qui glissent.
+ * éclair de Big Bang, trois quarks liés qui tournent, un buste et l'étoile de son titre, une étoile qui scintille, des barres qui
+ * montent, des curseurs qui glissent.
  * Elle ne bouge que si les effets sont permis ; immobile, elle reste lisible.
  */
 public final class TabIcon extends Canvas {
 
     /** Ce que montre l'icône : un dessin par onglet. */
-    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, HADRONS, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     private final Kind kind;
     private final Color color;
@@ -159,6 +160,26 @@ public final class TabIcon extends Canvas {
                     g.setGlobalAlpha((1 - (cycle - 0.85) / 0.15) * 0.9);
                     double r = 2 + 6 * (cycle - 0.85) / 0.15;
                     g.fillOval(c - r, c - r, r * 2, r * 2);
+                }
+            }
+            case HADRONS -> {
+                // Les hadrons (version 0.149) : trois quarks reliés par leurs gluons, qui tournent ensemble ; leurs
+                // couleurs, rouge, vert et bleu, passent de l'un à l'autre.
+                double[] xs = new double[3], ys = new double[3];
+                for (int k = 0; k < 3; k++) {
+                    double a = time * 1.1 + k * 2 * Math.PI / 3 - Math.PI / 2;
+                    xs[k] = c + s * 0.3 * Math.cos(a);
+                    ys[k] = c + s * 0.3 * Math.sin(a);
+                }
+                g.setLineWidth(1.2);
+                g.setGlobalAlpha((bright ? 1 : 0.7) * 0.6);
+                for (int k = 0; k < 3; k++) g.strokeLine(xs[k], ys[k], xs[(k + 1) % 3], ys[(k + 1) % 3]);
+                g.setGlobalAlpha(bright ? 1 : 0.7);
+                Color[] charges = {Color.web("#ff8a7a"), Color.web("#9be7a8"), Color.web("#9fb8ff")};
+                int shift = (int) Math.floor(time * 0.8) % 3;
+                for (int k = 0; k < 3; k++) {
+                    g.setFill(charges[(k + shift) % 3]);
+                    g.fillOval(xs[k] - 2.6, ys[k] - 2.6, 5.2, 5.2);
                 }
             }
             case PROFILE -> {

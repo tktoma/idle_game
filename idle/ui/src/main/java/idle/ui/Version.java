@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.149", "Les hadrons", List.of(
+                    "Nouvel onglet « Hadrons » : avec la bulle de l'arbuste, au milieu, il se propose dans le collisionneur "
+                            + "et s'ouvre contre dix minutes de sa production, comme le vide. La bulle du jeune arbre, à gauche, "
+                            + "l'ouvre dès le début de l'univers.",
+                    "Sous-onglet « Gluons » : les quarks en main se lient en protons (u u d) et en neutrons (u d d), un à un "
+                            + "ou tous d'un coup ; chaque hadron a sa carte, avec sa formule, sa recette et le nombre possédé.",
+                    "La bulle du cœur de l'arbre-monde ouvre huit particules exotiques, du pion à l'upsilon ; un antiquark "
+                            + "coûte un quark de sa saveur. La bulle de l'arbre ancien, à gauche, garde les hadrons d'un univers "
+                            + "à l'autre.",
+                    "Les hadrons n'ont pas encore d'effet : on les assemble, on les compte.",
+                    "Deux titres de plus au profil : « Tisseur de gluons », au premier hadron, et « Chasseur d'exotiques », "
+                            + "à la première particule exotique.",
+                    "L'offre s'annonce dans la catégorie « Collisionneur » ; une pastille « Hadrons », qui se coupe dans "
+                            + "« Notifications et signes », dit quand des quarks attendent d'être liés. L'aide a sa section, "
+                            + "et les statistiques de l'univers comptent les hadrons assemblés.")),
             new Note("0.148", "Les bulles de l'arbre prennent effet", List.of(
                     "Chaque bulle de l'arbre a maintenant son effet, qui vaut pour tous les univers suivants ; au survol, elle "
                             + "dit ce qu'elle fait.",

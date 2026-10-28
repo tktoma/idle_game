@@ -272,6 +272,13 @@ public abstract class GameStateBase {
      * la formation de chaque univers) déjà dépensée pour elles. Et ce que la bulle du géant de gauche verse au cumul,
      * seconde après seconde (version 0.148).
      */
+    /**
+     * Les hadrons (version 0.149) : l'onglet ouvert dans cet univers, son prix fixé quand il s'est proposé, et ce
+     * qu'on en a assemblé, par sorte.
+     */
+    boolean hadronsOpen = false;
+    double hadronsPrice = 0;
+    final java.util.EnumMap<idle.core.collider.Hadron, Long> hadrons = new java.util.EnumMap<>(idle.core.collider.Hadron.class);
     static final int TREE_BUBBLES = 31;
     final int[] treeBubbleLevels = new int[TREE_BUBBLES];
     double voidSpent = 0;

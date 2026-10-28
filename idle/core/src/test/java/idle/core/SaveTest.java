@@ -222,6 +222,11 @@ class SaveTest {
         // Version 0.148 : une bulle au niveau 4, et ce que le géant de gauche a versé au cumul.
         state.setTreeBubbleLevel(1, 4);
         state.setVoidTrickled(78.5);
+        // Version 0.149 : les hadrons.
+        state.setHadronsOpen(true);
+        state.setHadronsPrice(2.5e9);
+        state.setHadrons(idle.core.collider.Hadron.PROTON, 12);
+        state.setHadrons(idle.core.collider.Hadron.J_PSI, 3);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);

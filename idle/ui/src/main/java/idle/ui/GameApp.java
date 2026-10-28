@@ -220,6 +220,14 @@ public final class GameApp extends GameAppTabs {
         voidTab.setText("Le vide" + Readiness.dot(Readiness.Kind.VOID, idle.ui.vacuum.VoidPage.ready(game)));
         if (selectedTab == Tab.VOID) voidPage.refresh();
 
+        // Les hadrons (version 0.149) : ils se proposent dans le collisionneur avec la bulle de l'arbuste, au milieu, et
+        // leur onglet s'ouvre une fois payé, ou dès le début de l'univers avec la bulle du jeune arbre, à gauche.
+        boolean hadrons = game.isHadronsUnlocked() && !phase;
+        hadronsTab.setVisible(hadrons);
+        hadronsTab.setManaged(hadrons);
+        hadronsTab.setText("Hadrons" + Readiness.dot(Readiness.Kind.HADRONS, idle.ui.hadrons.HadronsPage.ready(game)));
+        if (selectedTab == Tab.HADRONS) hadronsPage.refresh();
+
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
         // n'existe que si le jeu en a.
         boolean achievements = !game.achievements().isEmpty();
@@ -246,7 +254,7 @@ public final class GameApp extends GameAppTabs {
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
                 || (selectedTab == Tab.UNIVERSE && game.universes() == 0) || (selectedTab == Tab.PARTICLES && phase)
                 || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)
-                || (selectedTab == Tab.PROFILE && !profile)) {
+                || (selectedTab == Tab.HADRONS && !hadrons) || (selectedTab == Tab.PROFILE && !profile)) {
             selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();

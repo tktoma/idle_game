@@ -132,7 +132,7 @@ public abstract class GameAppBase extends Application {
     static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, HADRONS, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     /** Le nom d'un onglet, sans compteur : sur les fenêtres d'explication, et dans le rapport de bug (version 0.127). */
     static String tabName(Tab tab) {
@@ -145,6 +145,7 @@ public abstract class GameAppBase extends Application {
             case BIG_BANG -> "Big Bang";
             case UNIVERSE -> "Univers";
             case VOID -> "Le vide";
+            case HADRONS -> "Hadrons";
             case PROFILE -> "Profil";
             case ACHIEVEMENTS -> "Succès";
             case STATS -> "Statistiques";
@@ -183,6 +184,8 @@ public abstract class GameAppBase extends Application {
     final Button universeTab = new Button("Univers");
     /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du troisième univers (version 0.116). */
     final Button voidTab = new Button("Le vide");
+    /** L'onglet des hadrons (version 0.149) : il se propose dans le collisionneur avec la bulle de l'arbuste, au milieu. */
+    final Button hadronsTab = new Button("Hadrons");
     /** L'onglet du profil (version 0.147) : le joueur, ses titres, ses albums et le journal ; là dès le premier générateur. */
     final Button profileTab = new Button("Profil");
     final Button achievementsTab = new Button("Succès");
@@ -203,13 +206,14 @@ public abstract class GameAppBase extends Application {
     final TabIcon bigBangIcon = new TabIcon(TabIcon.Kind.BIG_BANG, BIG_BANG_COLOR, 20);
     final TabIcon universeIcon = new TabIcon(TabIcon.Kind.UNIVERSE, UniversePage.COLOR, 20);
     final TabIcon voidIcon = new TabIcon(TabIcon.Kind.VOID, idle.ui.vacuum.VoidPage.COLOR, 20);
+    final TabIcon hadronsIcon = new TabIcon(TabIcon.Kind.HADRONS, idle.ui.hadrons.HadronsPage.COLOR, 20);
     final TabIcon profileIcon = new TabIcon(TabIcon.Kind.PROFILE, ProfilePage.COLOR, 20);
     final TabIcon achievementsIcon = new TabIcon(TabIcon.Kind.ACHIEVEMENTS, ACHIEVEMENTS_COLOR, 20);
     final TabIcon statsIcon = new TabIcon(TabIcon.Kind.STATS, STATS_COLOR, 20);
     final TabIcon settingsIcon = new TabIcon(TabIcon.Kind.SETTINGS, SETTINGS_COLOR, 20);
     final TabIcon skinsIcon = new TabIcon(TabIcon.Kind.SKINS, idle.ui.pages.SkinsPage.COLOR, 20);
     final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon,
-            profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
+            hadronsIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
     /**
      * Le rôle d'un onglet, qui décide de son allure : les actes du jeu (cadre plein), ce qui tourne
      * à côté (cadre en pointillés), et les pages pour s'y retrouver (sans cadre, rangées à part).
@@ -217,7 +221,7 @@ public abstract class GameAppBase extends Application {
     enum TabRole { ACT, SIDE, META }
     /** Les onglets, dans l'ordre, et l'écart qui sépare les pages pour s'y retrouver des autres. */
     final Button[] tabButtons = {particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, voidTab, profileTab, achievementsTab, statsTab, settingsTab, skinsTab};
+            universeTab, voidTab, hadronsTab, profileTab, achievementsTab, statsTab, settingsTab, skinsTab};
     final javafx.scene.layout.Region tabGap = new javafx.scene.layout.Region();
     /** À gauche, l'espace qui pousse les pages pour s'y retrouver en bas de la colonne. */
     final javafx.scene.layout.Region sideSpacer = new javafx.scene.layout.Region();
@@ -228,7 +232,7 @@ public abstract class GameAppBase extends Application {
     long pressedAt;
     boolean justDragged;
     final HBox tabBar = new HBox(4, particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, voidTab, tabGap, profileTab, achievementsTab, statsTab, settingsTab, skinsTab);
+            universeTab, voidTab, hadronsTab, tabGap, profileTab, achievementsTab, statsTab, settingsTab, skinsTab);
     /** À gauche, le nom de l'onglet affiché quand il n'a pas de sous-onglets : la barre du haut garde sa hauteur. */
     final Label tabTitle = new Label();
     /** À gauche : la colonne de droite, avec le haut de la fenêtre et les pages ; la colonne des onglets descend jusqu'en bas. */
@@ -242,6 +246,7 @@ public abstract class GameAppBase extends Application {
     final BigBangPage bigBangPage = new BigBangPage(game);
     final UniversePage universePage = new UniversePage(game);
     final idle.ui.vacuum.VoidPage voidPage = new idle.ui.vacuum.VoidPage(game);
+    final idle.ui.hadrons.HadronsPage hadronsPage = new idle.ui.hadrons.HadronsPage(game);
     /** La fenêtre d'une dimension (version 0.081), par-dessus tout le jeu, avec son bouton de retour. */
     final DimensionWindow dimensionWindow = new DimensionWindow(game, settings::freeCamera, settings::setFreeCamera);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
@@ -421,7 +426,7 @@ public abstract class GameAppBase extends Application {
         Labels.transparent(settingsScroll);
         Labels.transparent(achievementsScroll);
         pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
-                universePage, voidPage, profilePage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
+                universePage, voidPage, hadronsPage, profilePage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
         Labels.transparent(skinsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
         atomsTab.setOnAction(event -> open(Tab.ATOMS));
@@ -431,6 +436,7 @@ public abstract class GameAppBase extends Application {
         bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
         universeTab.setOnAction(event -> open(Tab.UNIVERSE));
         voidTab.setOnAction(event -> open(Tab.VOID));
+        hadronsTab.setOnAction(event -> open(Tab.HADRONS));
         profileTab.setOnAction(event -> open(Tab.PROFILE));
         achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> open(Tab.STATS));
@@ -444,6 +450,7 @@ public abstract class GameAppBase extends Application {
         bigBangTab.setGraphic(bigBangIcon);
         universeTab.setGraphic(universeIcon);
         voidTab.setGraphic(voidIcon);
+        hadronsTab.setGraphic(hadronsIcon);
         profileTab.setGraphic(profileIcon);
         achievementsTab.setGraphic(achievementsIcon);
         statsTab.setGraphic(statsIcon);
@@ -511,6 +518,8 @@ public abstract class GameAppBase extends Application {
         dock(Tab.UNIVERSE, universePage, universePage.subTabs());
         // Le vide (version 0.129) : ses paires, et ses améliorations à part.
         dock(Tab.VOID, voidPage, voidPage.subTabs());
+        // Les hadrons (version 0.149) : les gluons, seuls pour l'instant.
+        dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());
         // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.

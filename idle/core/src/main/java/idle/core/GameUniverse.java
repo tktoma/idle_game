@@ -1195,11 +1195,11 @@ public abstract class GameUniverse extends GameAtoms {
         CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 4_000, 1,
                 "Le collisionneur est ouvert dès le début de l'univers", 1),
         CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 4_000, 1,
-                "Ouvrira l'onglet des hadrons (à venir)", 1, 2),
+                "L'onglet des hadrons se propose dans le collisionneur, comme le vide", 1, 2),
         CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 4_000, 1,
                 "Persistance dès le début, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
         YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 6_000, 1,
-                "Ouvrira les hadrons dès le début de l'univers (à venir)", 3, 4),
+                "Les hadrons sont ouverts dès le début de l'univers, sans les payer", 3, 4),
         YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 6_000, 1,
                 "Plus de plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite", 4, 5),
         MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 9_000, 1,
@@ -1207,7 +1207,7 @@ public abstract class GameUniverse extends GameAtoms {
         MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 9_000, 1,
                 "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
         ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 13_000, 1,
-                "Les hadrons ne seront plus remis à zéro (à venir)", 6, 8),
+                "Les hadrons traversent les univers : jamais remis à zéro", 6, 8),
         ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 13_000, 1,
                 "Les astres n'ont plus besoin de mûrir", 7, 9),
         GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 20_000, 5,
@@ -1221,7 +1221,7 @@ public abstract class GameUniverse extends GameAtoms {
         ROOTS(11, "Bulle des racines", 30_000, 1,
                 "Le défi final (à venir)", 0, 13, 15),
         HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 1,
-                "Ouvrira les particules exotiques des hadrons (à venir)", 4, 6, 7),
+                "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 1,
                 "Ouvrira l'automatisation des dimensions (à venir)", 10, 11, 17);
 
@@ -1632,6 +1632,9 @@ public abstract class GameUniverse extends GameAtoms {
         state.clearTreeBubbles();
         state.setVoidSpent(0);
         state.setVoidTrickled(0);
+        state.setHadronsOpen(false);
+        state.setHadronsPrice(0);
+        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) state.setHadrons(hadron, 0);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
@@ -2273,6 +2276,10 @@ public abstract class GameUniverse extends GameAtoms {
             lost.add(hasBubble(TreeBubble.MATURE_LEFT) ? "Les sondes."
                     : "Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
             lost.add("Les plans suivis de l'arbre et des systèmes (leurs codes sauvegardés, eux, restent).");
+            // Les hadrons (version 0.149) : repris, sauf avec la bulle de l'arbre ancien, à gauche.
+            if (state.hadronsOpen() && !hasBubble(TreeBubble.ANCIENT_LEFT)) {
+                lost.add("Les hadrons (" + hadronCount() + " assemblés) et leur onglet, à rouvrir dans le collisionneur.");
+            }
             // Le vide (version 0.129) : sa réserve repart de zéro, ce qu'il en reste rejoint le cumul.
             if (state.voidOpen() && !hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
                 lost.add("Le vide, son trou noir et ses améliorations : les " + wholeText(state.voidEnergy())
@@ -2319,6 +2326,9 @@ public abstract class GameUniverse extends GameAtoms {
             kept.add("La matière noire, son arbre, les explosions et les défis réussis (" + state.completedChallenges().size()
                     + "), grâce à la bulle de l'arbre mûr, à droite.");
         }
+        if (hasBubble(TreeBubble.ANCIENT_LEFT) && (state.hadronsOpen() || hadronCount() > 0)) {
+            kept.add("Les hadrons (" + hadronCount() + " assemblés), grâce à la bulle de l'arbre ancien, à gauche.");
+        }
         if (hasBubble(TreeBubble.GIANT_RIGHT_LOW)) {
             kept.add("Les défis du Big Bang réussis (" + state.completedBangChallenges().size() + "), grâce à la bulle du géant de droite.");
         }
@@ -2333,6 +2343,13 @@ public abstract class GameUniverse extends GameAtoms {
                     + (int) idle.core.GameDarkMatter.UNIVERSE_DARK_MATTER_FACTOR + " pour la suite.");
         }
         return new idle.core.universe.UniverseTransition(launching, lost, kept, gained);
+    }
+
+    /** Les hadrons assemblés, toutes sortes (version 0.149), pour le guide. */
+    private long hadronCount() {
+        long total = 0;
+        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) total += state.hadrons(hadron);
+        return total;
     }
 
     /** Un nombre entier lisible pour le guide : « 3 », « 1 250 », puis en notation scientifique. */

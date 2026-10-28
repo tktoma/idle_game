@@ -174,6 +174,10 @@ final class PopupPane extends Overlay {
                     + "s'annulent au bout de quelques secondes. Chacune coûte de son énergie et tient de l'espace libre, et donne de "
                     + "l'énergie du vide à sa naissance. Celle-ci fond doucement : elle monte vers un équilibre, affiché. Elle paie "
                     + "les améliorations du vide ; ce qu'il en reste à la formation de l'univers rejoint le cumul.";
+            // Version 0.149.
+            case "HADRONS" -> "Les quarks du collisionneur ne restent pas seuls : les gluons les lient. Deux quarks haut et un "
+                    + "bas font un proton, un haut et deux bas un neutron ; plus tard viennent les particules exotiques, pions, "
+                    + "kaons, mésons charmés. Chaque liaison consomme ses quarks. Les hadrons n'ont pas encore d'effet.";
             case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
                     + "des améliorations qui restent, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
             case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute " + Math.round(Skin.BONUS * 100) + "\u00a0% à toutes les "

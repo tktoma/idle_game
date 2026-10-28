@@ -203,6 +203,12 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 1) data.put("treeBubbleLevel" + i, treeBubbleLevels[i]);
         data.put("voidSpent", voidSpent);
         data.put("voidTrickled", voidTrickled);
+        // Les hadrons (version 0.149).
+        data.put("hadronsOpen", hadronsOpen);
+        data.put("hadronsPrice", hadronsPrice);
+        Map<String, Double> hadronCounts = new TreeMap<>();
+        hadrons.forEach((hadron, count) -> hadronCounts.put(hadron.name(), (double) count));
+        data.putDoubles("hadrons", hadronCounts);
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -476,6 +482,11 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (data.has("treeBubbleLevel" + i)) setTreeBubbleLevel(i, data.whole("treeBubbleLevel" + i, 1));
         setVoidSpent(data.real("voidSpent", 0));
         setVoidTrickled(data.real("voidTrickled", 0));
+        // Les hadrons (version 0.149) : absents d'avant, l'onglet fermé et rien d'assemblé.
+        setHadronsOpen(data.flag("hadronsOpen", false));
+        setHadronsPrice(data.real("hadronsPrice", 0));
+        hadrons.clear();
+        known(data.doubles("hadrons"), idle.core.collider.Hadron.class, (hadron, count) -> setHadrons(hadron, (long) (double) count));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

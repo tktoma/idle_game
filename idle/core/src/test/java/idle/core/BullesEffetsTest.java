@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.148 : les effets des bulles de l'arbre. Chaque bulle achetée change une règle, pour tous les univers
- * suivants ; deux se rachètent cinq fois. Les bulles des hadrons, de l'automatisation des dimensions et du défi final
- * s'achètent déjà, leur effet est à venir.
+ * suivants ; deux se rachètent cinq fois. Celles de l'automatisation des dimensions et du défi final s'achètent déjà,
+ * leur effet est à venir ; celles des hadrons (version 0.149) ont leur test, HadronsTest.
  */
 class BullesEffetsTest {
 
@@ -75,8 +75,8 @@ class BullesEffetsTest {
 
     @Test
     void lesBullesDontLEffetEstAVenirLeDisent() {
-        List<TreeBubble> soon = List.of(TreeBubble.CROWN_MIDDLE, TreeBubble.YOUNG_LEFT, TreeBubble.ANCIENT_LEFT, TreeBubble.HEART,
-                TreeBubble.SUMMIT, TreeBubble.ROOTS);
+        // Version 0.149 : les hadrons sont là ; restent l'automatisation des dimensions et le défi final.
+        List<TreeBubble> soon = List.of(TreeBubble.SUMMIT, TreeBubble.ROOTS);
         for (TreeBubble bubble : TreeBubble.values()) assertEquals(soon.contains(bubble), bubble.isComingSoon(), bubble.toString());
     }
 

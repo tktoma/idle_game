@@ -2,6 +2,7 @@ package idle.ui;
 
 import idle.core.Absence;
 import idle.core.Game;
+import idle.core.collider.Hadron;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.probes.ProbeTrip;
@@ -237,8 +238,8 @@ final class HelpPane extends Overlay {
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée, une fois achetée une bulle reliée à elle "
                 + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants. Deux "
-                + "se rachètent cinq fois, deux fois plus cher à chaque niveau ; celles des hadrons, de l'automatisation des "
-                + "dimensions et des racines s'achètent déjà, leur effet viendra avec leur onglet. La ligne avance seule : chaque trait "
+                + "se rachètent cinq fois, deux fois plus cher à chaque niveau ; celles de l'automatisation des dimensions et "
+                + "des racines s'achètent déjà, leur effet viendra plus tard. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
                 + (game.isVolumeOpen() ? " Dans le volume, on clique le cube pour y plonger, puis on regarde autour de soi, "
@@ -272,6 +273,17 @@ final class HelpPane extends Overlay {
                 + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
                 + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers, où il paie les bulles de l'arbre ; "
                 + "le vide, son trou noir et ses améliorations repartent de zéro dans l'univers suivant."));
+        // Les hadrons (version 0.149) : dès qu'ils se proposent, et tant que leur onglet est ouvert.
+        if (game.isHadronsOffered() || game.isHadronsUnlocked()) sections.add(new Section("Hadrons",
+                "Avec la bulle de l'arbuste, au milieu, les hadrons se proposent dans l'onglet Collisionneur : leur onglet "
+                + "s'ouvre contre dix minutes de production du collisionneur, comptées à leur arrivée, et au moins "
+                + Format.count(BigNum.of(Game.HADRONS_UNLOCK_COST)) + " énergie, une fois par univers ; la bulle du jeune arbre, "
+                + "à gauche, l'ouvre dès le début de chaque univers. Dans le sous-onglet « Gluons », les quarks des collisions "
+                + "se lient en hadrons : le proton (deux quarks haut, un bas) et le neutron (un haut, deux bas), puis, avec la "
+                + "bulle du cœur de l'arbre-monde, " + (Hadron.values().length - 2) + " particules exotiques, mésons et baryons "
+                + "étranges, charmés ou beaux. Un antiquark coûte un quark de sa saveur. « Lier 1 » en assemble un, « Lier "
+                + "tout » autant que les quarks en main le permettent. Les hadrons n'ont pas encore d'effet : on les assemble, "
+                + "on les compte. Un nouvel univers les reprend, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
                 + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")

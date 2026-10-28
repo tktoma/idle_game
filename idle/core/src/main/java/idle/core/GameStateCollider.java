@@ -475,7 +475,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Les bulles qui gardent quelque chose d'un univers à l'autre (version 0.148). */
     private static final List<GameUniverse.TreeBubble> KEEPING_BUBBLES = List.of(GameUniverse.TreeBubble.MATURE_LEFT,
-            GameUniverse.TreeBubble.GIANT_LEFT_LOW, GameUniverse.TreeBubble.MATURE_RIGHT, GameUniverse.TreeBubble.GIANT_RIGHT_LOW);
+            GameUniverse.TreeBubble.GIANT_LEFT_LOW, GameUniverse.TreeBubble.MATURE_RIGHT, GameUniverse.TreeBubble.GIANT_RIGHT_LOW,
+            GameUniverse.TreeBubble.ANCIENT_LEFT);
 
     private void restoreForBubbles(GameStateCollider kept) {
         if (kept != null) restoreForBubbles(kept, false);
@@ -534,6 +535,13 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             challengesVersion++;
             enabledDarkAutomations.clear();
             enabledDarkAutomations.addAll(from.enabledDarkAutomations);
+        }
+        if (all || treeBubbleBought(GameUniverse.TreeBubble.ANCIENT_LEFT.ordinal())) {
+            // L'arbre ancien, à gauche (version 0.149) : les hadrons, et l'onglet ouvert.
+            hadronsOpen = from.hadronsOpen;
+            hadronsPrice = from.hadronsPrice;
+            hadrons.clear();
+            hadrons.putAll(from.hadrons);
         }
         if (all || treeBubbleBought(GameUniverse.TreeBubble.GIANT_RIGHT_LOW.ordinal())) {
             // Le géant de droite, en bas : les défis du Big Bang réussis.
@@ -870,6 +878,35 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void clearTreeBubbles() {
         java.util.Arrays.fill(treeBubbleLevels, 0);
+    }
+
+    /** Vrai une fois l'onglet des hadrons payé dans cet univers (version 0.149). */
+    public boolean hadronsOpen() {
+        return hadronsOpen;
+    }
+
+    public void setHadronsOpen(boolean open) {
+        hadronsOpen = open;
+    }
+
+    /** Le prix d'ouverture des hadrons, fixé quand l'onglet s'est proposé ; 0 avant. */
+    public double hadronsPrice() {
+        return hadronsPrice;
+    }
+
+    public void setHadronsPrice(double price) {
+        hadronsPrice = Double.isFinite(price) && price > 0 ? price : 0;
+    }
+
+    /** Les hadrons de cette sorte assemblés (version 0.149). */
+    public long hadrons(idle.core.collider.Hadron hadron) {
+        return hadrons.getOrDefault(hadron, 0L);
+    }
+
+    public void setHadrons(idle.core.collider.Hadron hadron, long count) {
+        if (hadron == null) return;
+        if (count > 0) hadrons.put(hadron, count);
+        else hadrons.remove(hadron);
     }
 
     /** L'énergie du vide que la bulle du géant de gauche a versée au cumul (version 0.148). */

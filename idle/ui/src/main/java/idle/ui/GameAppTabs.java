@@ -164,6 +164,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> bigBangPage.step(direction);
             case UNIVERSE -> universePage.step(direction);
             case VOID -> voidPage.step(direction);
+            case HADRONS -> hadronsPage.step(direction);
             case PROFILE -> profilePage.step(direction);
             case STATS -> statsPage.step(direction);
             default -> { }
@@ -396,6 +397,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> BIG_BANG_COLOR;
             case UNIVERSE -> UniversePage.COLOR;
             case VOID -> idle.ui.vacuum.VoidPage.COLOR;
+            case HADRONS -> idle.ui.hadrons.HadronsPage.COLOR;
             case PROFILE -> idle.ui.pages.ProfilePage.COLOR;
             case ACHIEVEMENTS -> ACHIEVEMENTS_COLOR;
             case STATS -> STATS_COLOR;
@@ -487,6 +489,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         bigBangPage.setVisible(tab == Tab.BIG_BANG);
         universePage.setVisible(tab == Tab.UNIVERSE);
         voidPage.setVisible(tab == Tab.VOID);
+        hadronsPage.setVisible(tab == Tab.HADRONS);
         profilePage.setVisible(tab == Tab.PROFILE);
         achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
@@ -509,7 +512,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
         boolean icons = tabsLeftApplied || !narrow;
-        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
+        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, hadronsIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
         for (int i = 0; i < tabButtons.length; i++) tabButtons[i].setGraphic(icons ? graphics[i] : null);
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
@@ -517,7 +520,7 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     private static TabRole roleOf(Tab tab) {
         return switch (tab) {
-            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE, VOID -> TabRole.ACT;
+            case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE, VOID, HADRONS -> TabRole.ACT;
             case AUTOMATION, COLLIDER -> TabRole.SIDE;
             case PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS -> TabRole.META;
         };
@@ -533,6 +536,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> bigBangIcon;
             case UNIVERSE -> universeIcon;
             case VOID -> voidIcon;
+            case HADRONS -> hadronsIcon;
             case PROFILE -> profileIcon;
             case ACHIEVEMENTS -> achievementsIcon;
             case STATS -> statsIcon;

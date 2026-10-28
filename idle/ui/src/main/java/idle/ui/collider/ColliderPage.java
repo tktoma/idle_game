@@ -17,7 +17,8 @@ import javafx.scene.layout.VBox;
  * L'onglet du collisionneur (version 0.057, refait en 0.059), ouvert à la première explosion : trois
  * sous-onglets : l'énergie (les faisceaux, leurs collisions et les huit générateurs), la chaîne
  * (énergie → molécules, payée en énergie et en quarks) et les améliorations, qui n'apparaissent
- * qu'avec le huitième générateur. Les hadrons ont disparu en 0.062.
+ * qu'avec le huitième générateur. Les hadrons ont disparu en 0.062 ; ils reviennent en 0.149 dans leur propre onglet,
+ * qui se propose ici, comme le vide.
  */
 public final class ColliderPage extends VBox {
 
@@ -31,6 +32,10 @@ public final class ColliderPage extends VBox {
     private final Label voidOffer = new Label();
     private final Button openVoid = new Button();
     private final VBox voidBox = new VBox(6, voidOffer, openVoid);
+    /** L'offre des hadrons (version 0.149) : avec la bulle de l'arbuste, au milieu, leur onglet s'ouvre ici, contre de l'énergie. */
+    private final Label hadronsOffer = new Label();
+    private final Button openHadrons = new Button();
+    private final VBox hadronsBox = new VBox(6, hadronsOffer, openHadrons);
 
     public ColliderPage(Game game) {
         super(6);
@@ -42,23 +47,17 @@ public final class ColliderPage extends VBox {
         ScrollPane scroll = new ScrollPane(pane);
         Labels.transparent(scroll);
         VBox.setVgrow(scroll, Priority.ALWAYS);
-        voidOffer.setWrapText(true);
-        voidOffer.setMaxWidth(760);
-        voidOffer.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-        voidOffer.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
-        openVoid.setFocusTraversable(false);
-        openVoid.setStyle("-fx-font-size: 13px; -fx-padding: 6 18; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
-                + " -fx-background-color: #0d1a24; -fx-text-fill: " + idle.ui.vacuum.VoidPage.COLOR + "; -fx-border-color: "
-                + idle.ui.vacuum.VoidPage.COLOR + ";");
+        offerBox(voidBox, voidOffer, openVoid, idle.ui.vacuum.VoidPage.COLOR, "#0d1a24");
         openVoid.setOnAction(event -> {
             game.openVoid();
             refresh();
         });
-        voidBox.setAlignment(Pos.CENTER);
-        voidBox.setStyle("-fx-padding: 8 12; -fx-border-color: " + idle.ui.vacuum.VoidPage.COLOR + "; -fx-border-radius: 8;"
-                + " -fx-background-color: #0b141c; -fx-background-radius: 8;");
-        voidBox.setMaxWidth(820);
-        getChildren().addAll(subTabs, voidBox, scroll);
+        offerBox(hadronsBox, hadronsOffer, openHadrons, idle.ui.hadrons.HadronsPage.COLOR, "#1c0f0d");
+        openHadrons.setOnAction(event -> {
+            game.openHadrons();
+            refresh();
+        });
+        getChildren().addAll(subTabs, voidBox, hadronsBox, scroll);
         select(0);
     }
 
@@ -74,6 +73,30 @@ public final class ColliderPage extends VBox {
 
     public VBox voidBox() {
         return voidBox;
+    }
+
+    /** Le bouton qui ouvre l'onglet des hadrons : pour les vérifications. */
+    public Button openHadronsButton() {
+        return openHadrons;
+    }
+
+    public VBox hadronsBox() {
+        return hadronsBox;
+    }
+
+    /** Habille une offre : sa phrase centrée, son bouton et son cadre, dans la couleur de ce qu'elle ouvre. */
+    private static void offerBox(VBox box, Label offer, Button open, String color, String background) {
+        offer.setWrapText(true);
+        offer.setMaxWidth(760);
+        offer.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        offer.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d3e0;");
+        open.setFocusTraversable(false);
+        open.setStyle("-fx-font-size: 13px; -fx-padding: 6 18; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
+                + " -fx-background-color: " + background + "; -fx-text-fill: " + color + "; -fx-border-color: " + color + ";");
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-padding: 8 12; -fx-border-color: " + color + "; -fx-border-radius: 8;"
+                + " -fx-background-color: #0b141c; -fx-background-radius: 8;");
+        box.setMaxWidth(820);
     }
 
     public ColliderPane pane() {
@@ -104,10 +127,10 @@ public final class ColliderPage extends VBox {
         refresh();
     }
 
-    /** Vrai s'il y a quelque chose à faire : un quark top, une amélioration à prendre. */
+    /** Vrai s'il y a quelque chose à faire : un quark top, une amélioration à prendre, le vide ou les hadrons à ouvrir. */
     public static boolean ready(Game game) {
         if (!game.isColliderUnlocked()) return false;
-        return game.hasTop() || upgradeReady(game, true) || upgradeReady(game, false) || game.canOpenVoid();
+        return game.hasTop() || upgradeReady(game, true) || upgradeReady(game, false) || game.canOpenVoid() || game.canOpenHadrons();
     }
 
     /** Vrai si une amélioration payable attend : celles de la chaîne (son sous-onglet), ou les autres. */
@@ -130,6 +153,19 @@ public final class ColliderPage extends VBox {
                     + (energy < price ? " Encore " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price - energy)) + " énergie." : ""));
             openVoid.setText("Ouvrir le vide : " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price)) + " énergie");
             openVoid.setDisable(!game.canOpenVoid());
+        }
+        boolean hadrons = game.isHadronsOffered();
+        hadronsBox.setVisible(hadrons);
+        hadronsBox.setManaged(hadrons);
+        if (hadrons) {
+            double price = game.hadronsPrice(), energy = game.colliderEnergy();
+            hadronsOffer.setText("Les hadrons se proposent. Dans leur onglet, les gluons lient les quarks des collisions en "
+                    + "protons et en neutrons, puis, avec la bulle du cœur de l'arbre-monde, en particules exotiques. Ils n'ont "
+                    + "pas encore d'effet. L'onglet s'ouvre contre dix minutes de production du collisionneur, comptées à son "
+                    + "arrivée, une fois par univers."
+                    + (energy < price ? " Encore " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price - energy)) + " énergie." : ""));
+            openHadrons.setText("Ouvrir les hadrons : " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price)) + " énergie");
+            openHadrons.setDisable(!game.canOpenHadrons());
         }
         boolean upgrades = game.isColliderUpgradesUnlocked();
         upgradesTab.setVisible(upgrades);

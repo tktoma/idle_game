@@ -76,7 +76,7 @@ import java.util.random.RandomGenerator;
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameVoid {
+public final class Game extends GameHadrons {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -365,6 +365,7 @@ public final class Game extends GameVoid {
         runCollider(dt);
         // Le vide (version 0.129) : ses paires prennent leur part du collisionneur qui vient de produire.
         runVoid(dt);
+        runHadrons();
         runProbes(dt);
         runMaturation(dt);
         runMoleculeAutomation(dt);
