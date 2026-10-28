@@ -8,13 +8,13 @@ import javafx.scene.shape.StrokeLineCap;
 /**
  * La petite icône animée d'un onglet (version 0.059), dans la couleur de l'onglet : des particules
  * qui tournent, un engrenage, une spirale de matière noire, deux faisceaux qui se croisent, un
- * éclair de Big Bang, une étoile qui scintille, des barres qui montent, des curseurs qui glissent.
+ * éclair de Big Bang, un buste et l'étoile de son titre, une étoile qui scintille, des barres qui montent, des curseurs qui glissent.
  * Elle ne bouge que si les effets sont permis ; immobile, elle reste lisible.
  */
 public final class TabIcon extends Canvas {
 
     /** Ce que montre l'icône : un dessin par onglet. */
-    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    public enum Kind { PARTICLES, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     private final Kind kind;
     private final Color color;
@@ -160,6 +160,15 @@ public final class TabIcon extends Canvas {
                     double r = 2 + 6 * (cycle - 0.85) / 0.15;
                     g.fillOval(c - r, c - r, r * 2, r * 2);
                 }
+            }
+            case PROFILE -> {
+                // Le profil (version 0.147) : un buste, la tête et les épaules, et l'étoile du titre qui en fait le tour.
+                g.fillOval(c - s * 0.16, s * 0.14, s * 0.32, s * 0.32);
+                g.fillArc(c - s * 0.32, s * 0.54, s * 0.64, s * 0.62, 0, 180, javafx.scene.shape.ArcType.ROUND);
+                double a = time * 1.3;
+                g.setFill(Color.WHITE);
+                g.setGlobalAlpha((bright ? 1 : 0.7) * 0.9);
+                g.fillOval(c + s * 0.36 * Math.cos(a) - 1.4, s * 0.32 + s * 0.16 * Math.sin(a) - 1.4, 2.8, 2.8);
             }
             case ACHIEVEMENTS -> {
                 double twinkle = 0.85 + 0.15 * Math.sin(time * 3);

@@ -15,8 +15,8 @@ import java.util.WeakHashMap;
  * que les notifications soient affichées ou coupées.
  *
  * <p>Il vit le temps d'un lancement : il n'est pas écrit dans la sauvegarde. Toutes les pages
- * lisent le même ({@link #of(Game)}) ; c'est {@link GameApp} qui l'alimente, la sous-page
- * « Journal » des statistiques qui le montre.
+ * lisent le même ({@link #of(Game)}) ; c'est {@link GameApp} qui l'alimente, le sous-onglet
+ * « Journal » du profil qui le montre (version 0.147 ; avant, une sous-page des statistiques).
  */
 public final class EventLog {
 
@@ -53,8 +53,8 @@ public final class EventLog {
         add(String.format("%02d:%02d", now.getHour(), now.getMinute()), game.state().timePlayed(), text);
     }
 
-    /** Note une annonce à une heure donnée : pour les vérifications. */
-    void add(String clock, double played, String text) {
+    /** Note une annonce à une heure donnée : pour les vérifications (publique depuis la 0.147, pour celles du profil). */
+    public void add(String clock, double played, String text) {
         if (text == null || text.isBlank()) return;
         entries.addFirst(new Entry(clock, played, text));
         while (entries.size() > CAPACITY) entries.removeLast();
@@ -76,7 +76,7 @@ public final class EventLog {
     }
 
     /** Vide le journal : la partie vient d'être remplacée ou remise à zéro. */
-    void clear() {
+    public void clear() {
         entries.clear();
         version++;
     }

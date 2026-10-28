@@ -19,6 +19,56 @@ import idle.ui.common.Format;
  */
 public final class Goals {
 
+    /**
+     * Les morceaux de la ligne d'objectif (version 0.146), que les réglages montrent ou cachent un par un. Le chrono garde
+     * son propre réglage, d'avant ({@code Settings.chrono}).
+     */
+    public enum Part {
+        GOAL("L'objectif de la partie", "Le prochain grand pas : la première fusion, l'explosion, le Big Bang…"),
+        ESTIMATE("Le temps qu'il demande", "Ce qui sépare de l'objectif, quand le jeu peut l'estimer : fusions, synthèse, générateur."),
+        BIG_BANG("Le prochain Big Bang", "Les conditions du prochain Big Bang, sans ouvrir l'arbre."),
+        ACT("Le troisième acte", "Le prochain pas du ciel, après le premier Big Bang."),
+        CHRONO("Le chrono", "L'avance ou le retard sur le record de la prochaine étape, quand il y en a un.");
+
+        private final String label;
+        private final String detail;
+
+        Part(String label, String detail) {
+            this.label = label;
+            this.detail = detail;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public String detail() {
+            return detail;
+        }
+    }
+
+    /**
+     * La ligne d'objectif, morceau par morceau (version 0.146) : l'objectif et son temps estimé, le prochain Big Bang, le
+     * troisième acte, le chrono ; seuls ceux que {@code shown} garde. Ce qui reste se suit, séparé par des barres ; vide
+     * si rien ne reste.
+     */
+    public static String line(Game game, java.util.function.Predicate<Part> shown) {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (shown.test(Part.GOAL)) parts.add("Objectif : " + (shown.test(Part.ESTIMATE) ? withEstimate(game, game.stats()) : next(game)));
+        // Entre les deux, l'avancée du prochain Big Bang : ses conditions, sans ouvrir l'arbre.
+        String bang = shown.test(Part.BIG_BANG) ? NextReset.bigBangProgress(game) : "";
+        if (!bang.isEmpty()) parts.add("Prochain Big Bang : " + bang);
+        // Après un premier Big Bang, deux objectifs se suivent de front : celui de la partie, et celui du troisième acte.
+        String act = shown.test(Part.ACT) ? act(game) : "";
+        if (!act.isEmpty()) {
+            parts.add(game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE) ? "Quatrième acte : la suite viendra" : "Troisième acte : " + act);
+        }
+        // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
+        String chrono = shown.test(Part.CHRONO) ? chrono(game) : "";
+        if (!chrono.isEmpty()) parts.add(chrono);
+        return String.join("   |   ", parts);
+    }
+
     /** Le prochain grand pas de la partie en cours, sans estimation de temps. */
     public static String next(Game game) {
         if (!game.isStarted()) return "créer le premier générateur";

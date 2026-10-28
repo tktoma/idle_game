@@ -164,6 +164,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> bigBangPage.step(direction);
             case UNIVERSE -> universePage.step(direction);
             case VOID -> voidPage.step(direction);
+            case PROFILE -> profilePage.step(direction);
             case STATS -> statsPage.step(direction);
             default -> { }
         }
@@ -395,6 +396,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> BIG_BANG_COLOR;
             case UNIVERSE -> UniversePage.COLOR;
             case VOID -> idle.ui.vacuum.VoidPage.COLOR;
+            case PROFILE -> idle.ui.pages.ProfilePage.COLOR;
             case ACHIEVEMENTS -> ACHIEVEMENTS_COLOR;
             case STATS -> STATS_COLOR;
             case SETTINGS -> SETTINGS_COLOR;
@@ -418,18 +420,18 @@ public abstract class GameAppTabs extends GameAppWindow {
      * tomber d'un coup le jour où on les rallume.
      */
     void announce(double dt) {
-        List<String> news = notifier.poll();
-        // Dans la partie secondaire, ce qui se passe dans les anciens onglets, cachés, n'est plus annoncé :
-        // seuls les succès le sont encore. Le journal, lui, garde tout.
-        if (universePhase()) {
-            for (String text : news) if (!text.startsWith("Succès")) EventLog.of(game).add(game, text);
-            news = news.stream().filter(text -> text.startsWith("Succès")).toList();
-        }
-        sound.announce(news, settings.sound(), settings.volume());
-        // Le journal garde tout, que les notifications soient affichées ou non.
-        for (String text : news) EventLog.of(game).add(game, text);
+        List<Notifier.News> news = notifier.poll();
+        // Le journal garde tout, que les notifications soient affichées ou non, catégorie coupée comprise.
+        for (Notifier.News item : news) EventLog.of(game).add(game, item.text());
+        // Dans la partie secondaire, ce qui se passe dans les anciens onglets, cachés, n'est plus annoncé : seuls les
+        // succès et les titres du profil (version 0.147) le sont encore. Version 0.146 : une catégorie coupée dans les réglages ne s'affiche pas et ne sonne pas.
+        boolean phase = universePhase();
+        List<String> shown = Notifier.summarize(news.stream()
+                .filter(item -> (!phase || item.kind() == Notice.ACHIEVEMENTS || item.kind() == Notice.TITLES) && settings.notice(item.kind()))
+                .map(Notifier.News::text).toList());
+        sound.announce(shown, settings.sound(), settings.volume());
         if (settings.notifications()) {
-            for (String text : news) toasts.show(text, noticeColor(text));
+            for (String text : shown) toasts.show(text, noticeColor(text));
         } else if (toasts.count() > 0) {
             toasts.clear();
         }
@@ -438,6 +440,7 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     /** La couleur du liseré d'une notification : celle de l'onglet dont elle parle. */
     private static String noticeColor(String text) {
+        if (text.startsWith(Notifier.NEW_TITLE)) return idle.ui.pages.ProfilePage.COLOR;
         if (text.startsWith("Big Bang") || text.startsWith("Molécules") || text.startsWith("Espace") || text.startsWith("Astre mûr") || text.contains("astres mûrs")
                 || text.startsWith("Rassemblement automatique") || text.startsWith("Formation automatique")) return BIG_BANG_COLOR;
         if (text.startsWith("Succès du Big Bang")) return BIG_BANG_COLOR;
@@ -484,6 +487,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         bigBangPage.setVisible(tab == Tab.BIG_BANG);
         universePage.setVisible(tab == Tab.UNIVERSE);
         voidPage.setVisible(tab == Tab.VOID);
+        profilePage.setVisible(tab == Tab.PROFILE);
         achievementsScroll.setVisible(tab == Tab.ACHIEVEMENTS);
         statsPage.setVisible(tab == Tab.STATS);
         settingsScroll.setVisible(tab == Tab.SETTINGS);
@@ -505,7 +509,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
         boolean icons = tabsLeftApplied || !narrow;
-        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
+        javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
         for (int i = 0; i < tabButtons.length; i++) tabButtons[i].setGraphic(icons ? graphics[i] : null);
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
@@ -515,7 +519,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         return switch (tab) {
             case PARTICLES, ATOMS, DARK_MATTER, BIG_BANG, UNIVERSE, VOID -> TabRole.ACT;
             case AUTOMATION, COLLIDER -> TabRole.SIDE;
-            case ACHIEVEMENTS, STATS, SETTINGS, SKINS -> TabRole.META;
+            case PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS -> TabRole.META;
         };
     }
 
@@ -529,6 +533,7 @@ public abstract class GameAppTabs extends GameAppWindow {
             case BIG_BANG -> bigBangIcon;
             case UNIVERSE -> universeIcon;
             case VOID -> voidIcon;
+            case PROFILE -> profileIcon;
             case ACHIEVEMENTS -> achievementsIcon;
             case STATS -> statsIcon;
             case SETTINGS -> settingsIcon;

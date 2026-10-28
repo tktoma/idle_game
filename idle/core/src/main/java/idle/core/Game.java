@@ -388,6 +388,7 @@ public final class Game extends GameVoid {
         if (achievementTimer >= ACHIEVEMENT_CHECK_SECONDS) {
             achievementTimer = 0;
             checkAchievements();
+            checkProfile();
         }
         noteUnlocks();
         recordHistory();
@@ -682,4 +683,82 @@ public final class Game extends GameVoid {
         }
         return false;
     }
+
+    // ------------------------------------------------------------------
+    // Le profil du joueur (version 0.147) : nom, avatar, titres et albums
+    // ------------------------------------------------------------------
+
+    private final List<idle.core.profile.Title> newTitles = new java.util.ArrayList<>();
+
+    /**
+     * Note les titres que la partie vient de mériter et ce que les albums n'avaient pas encore : les molécules créées,
+     * les sortes rassemblées, les assemblages et les astres formés en ce moment. Appelé avec les succès, une fois par
+     * seconde de jeu : après la relecture d'une sauvegarde, les titres déjà mérités tombent à la première seconde.
+     */
+    void checkProfile() {
+        double now = state.timePlayed();
+        for (idle.core.profile.Title title : idle.core.profile.Title.values()) {
+            if (state.earnedTitles().containsKey(title.name()) || !title.isReachedBy(this)) continue;
+            state.earnTitle(title.name(), now);
+            newTitles.add(title);
+        }
+        if (!isBigBangUnlocked() && state.foundMolecules().isEmpty()) return;
+        for (idle.core.molecules.Molecule molecule : molecules()) {
+            if (moleculeCount(molecule.id()) > 0) state.noteFound("molecules", molecule.id(), now);
+            if (hasSubstance(molecule.id())) state.noteFound("substances", molecule.id(), now);
+        }
+        for (idle.core.sky.Assembly assembly : assemblies()) {
+            if (hasAssembly(assembly.id())) state.noteFound("assemblies", assembly.id(), now);
+        }
+        for (idle.core.sky.Body body : bodies()) {
+            if (hasBody(body.id())) state.noteFound("bodies", body.id(), now);
+        }
+    }
+
+    /** Les titres obtenus depuis la dernière lecture, dans l'ordre : pour les annoncer. */
+    public List<idle.core.profile.Title> takeNewTitles() {
+        List<idle.core.profile.Title> taken = List.copyOf(newTitles);
+        newTitles.clear();
+        return taken;
+    }
+
+    /** Vrai si le joueur a ce titre. */
+    public boolean hasTitle(idle.core.profile.Title title) {
+        return state.earnedTitles().containsKey(title.name());
+    }
+
+    /** Les titres obtenus, dans l'ordre du catalogue. */
+    public List<idle.core.profile.Title> titles() {
+        List<idle.core.profile.Title> earned = new java.util.ArrayList<>();
+        for (idle.core.profile.Title title : idle.core.profile.Title.values()) if (hasTitle(title)) earned.add(title);
+        return earned;
+    }
+
+    /** Le temps de jeu auquel ce titre a été obtenu, ou {@code NaN}. */
+    public double titleEarnedAt(idle.core.profile.Title title) {
+        return state.earnedTitles().getOrDefault(title.name(), Double.NaN);
+    }
+
+    /** Le titre porté : celui choisi s'il est obtenu, sinon le plus avancé obtenu ; {@code null} sans titre. */
+    public idle.core.profile.Title currentTitle() {
+        idle.core.profile.Title chosen = idle.core.profile.Title.named(state.chosenTitle());
+        if (chosen != null && hasTitle(chosen)) return chosen;
+        List<idle.core.profile.Title> earned = titles();
+        return earned.isEmpty() ? null : earned.get(earned.size() - 1);
+    }
+
+    /** Porte ce titre ; faux s'il n'est pas obtenu. {@code null} revient au plus avancé. */
+    public boolean chooseTitle(idle.core.profile.Title title) {
+        if (title != null && !hasTitle(title)) return false;
+        state.setChosenTitle(title == null ? "" : title.name());
+        return true;
+    }
+
+    /** Le nom du joueur, ou « Joueur » tant qu'il n'en a pas choisi. */
+    public String playerName() {
+        return state.playerName().isEmpty() ? DEFAULT_PLAYER_NAME : state.playerName();
+    }
+
+    /** Le nom affiché tant que le joueur n'en a pas choisi. */
+    public static final String DEFAULT_PLAYER_NAME = "Joueur";
 }

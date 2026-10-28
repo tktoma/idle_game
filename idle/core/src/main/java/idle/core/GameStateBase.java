@@ -309,6 +309,23 @@ public abstract class GameStateBase {
     long pulses = 0;
     /** Les records du joueur, étape par étape : le temps de jeu le plus court auquel chacune a été atteinte. La remise à zéro les garde. */
     final Map<String, Double> records = new HashMap<>();
+    // Le profil du joueur (version 0.147) : comme les records, rien ne le reprend, pas même « Recommencer de zéro ».
+    /** Le nom du joueur ; vide tant qu'il n'en a pas choisi. */
+    String playerName = "";
+    /** L'avatar choisi : l'identifiant d'un avatar de la galerie, ou {@code custom} pour une image importée. */
+    String avatar = "";
+    /** Le titre porté, par son nom ; vide pour le dernier obtenu. */
+    String chosenTitle = "";
+    /** Les titres obtenus, par leur nom, avec le temps de jeu auquel chacun l'a été. */
+    final Map<String, Double> earnedTitles = new HashMap<>();
+    /**
+     * Les albums (version 0.147) : ce que le joueur a déjà obtenu au moins une fois, dans n'importe quel univers, avec le
+     * temps de jeu de la première fois. Les molécules créées, les sortes rassemblées, les assemblages et les astres formés.
+     */
+    final Map<String, Double> foundMolecules = new HashMap<>();
+    final Map<String, Double> foundSubstances = new HashMap<>();
+    final Map<String, Double> foundAssemblies = new HashMap<>();
+    final Map<String, Double> foundBodies = new HashMap<>();
     // Les défis de Big Bang : celui en cours, ceux qui sont réussis, et leur meilleur temps.
     String activeBangChallenge = null;
     final Set<String> completedBangChallenges = new HashSet<>();

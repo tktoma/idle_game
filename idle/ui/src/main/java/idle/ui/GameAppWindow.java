@@ -197,6 +197,7 @@ public abstract class GameAppWindow extends GameAppBase {
         darkMatterPage.reset();
         bigBangPage.reset();
         notifier.forget();
+        profilePage.forget();
         EventLog.of(game).clear();
         if (game.isStarted()) {
             if (startButton != null) center.getChildren().remove(startButton);
@@ -272,6 +273,7 @@ public abstract class GameAppWindow extends GameAppBase {
         popupPane.forget();
         toasts.clear();
         forgetOldPages();
+        profilePage.forget();
         hadUniverse = 0;
         universePage.forgetOldTabs();
         dimensionWindow.close();

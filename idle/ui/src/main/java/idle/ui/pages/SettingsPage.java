@@ -23,14 +23,15 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
 /**
- * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.063 en cinq
+ * Contenu de l'onglet « Réglages » : un bloc par réglage, rangés depuis la version 0.063 en six
  * sous-onglets ({@link Section}).
  * <ul>
  *   <li><b>Affichage</b> : la notation des grands nombres (dont trois à débloquer), le thème (dont
- *       cinq à débloquer), la taille de l'interface, la disposition des onglets, les notifications,
- *       l'objectif du moment, les signes d'état ;</li>
+ *       cinq à débloquer), la taille de l'interface et de la fenêtre, la disposition des onglets ;</li>
+ *   <li><b>Notifications et signes</b> (version 0.146) : les notifications par catégorie, les morceaux de la ligne
+ *       d'objectif (chrono compris), les signes d'état des cartes et les pastilles des onglets par sorte ;</li>
  *   <li><b>Effets et sons</b> : les effets visuels, ensemble ou un par un, les images par seconde, les sons ;</li>
- *   <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, le chrono et les records ;</li>
+ *   <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, les records ;</li>
  *   <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail ;</li>
  *   <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le
  *       rapport de bug, la version du jeu et ses notes.</li>
@@ -48,6 +49,8 @@ public final class SettingsPage extends VBox {
     /** Les sous-onglets des réglages (version 0.063). */
     public enum Section {
         DISPLAY("Affichage"),
+        /** Version 0.146 : les notifications, l'objectif et les signes d'état, réunis et réglés par catégorie. */
+        NOTICES("Notifications et signes"),
         EFFECTS("Effets et sons"),
         GAME("Jeu"),
         KEYS("Clavier"),
@@ -190,7 +193,12 @@ public final class SettingsPage extends VBox {
     private final Button notificationsButton = new Button();
     private final Button goalButton = new Button();
     private final Button signsButton = new Button();
-    private final Button chronoButton = new Button();
+    /** Les catégories de la section « Notifications et signes » (version 0.146) : un bouton par catégorie. */
+    private final Map<idle.ui.Notice, Button> noticeButtons = new EnumMap<>(idle.ui.Notice.class);
+    private final Map<idle.ui.Goals.Part, Button> goalPartButtons = new EnumMap<>(idle.ui.Goals.Part.class);
+    private final Map<idle.ui.Readiness.Kind, Button> dotButtons = new EnumMap<>(idle.ui.Readiness.Kind.class);
+    private final Button allNoticesButton = new Button("Toutes affichées");
+    private final Button noNoticesButton = new Button("Toutes coupées");
     private final Button skyEventsButton = new Button();
     private final Button clearRecordsButton = new Button("Effacer les records");
     private final Label recordsLabel = new Label();
@@ -320,30 +328,61 @@ public final class SettingsPage extends VBox {
                 + "mais pas en dessous d'une taille où tout reste utilisable ; cette limite grandit avec la taille de l'interface.");
         target.getChildren().add(sizes);
 
-        block("Notifications", "Un message de quelques secondes, en bas à droite, quand il se passe quelque chose : "
-                + "nouvel élément, ensemble réuni, succès, déblocage, explosion possible.");
+        // Version 0.146 : les notifications, l'objectif et les signes d'état ont leur sous-onglet, et chacun se règle par
+        // catégorie sous son grand interrupteur, comme les effets visuels.
+        use(Section.NOTICES);
+        block("Notifications", "Un message de quelques secondes, en bas à droite, quand il se passe quelque chose. Le grand "
+                + "interrupteur les coupe toutes ; sinon, chaque catégorie se coupe à part (survolez-la pour voir ce qu'elle "
+                + "annonce). Une catégorie coupée ne s'affiche pas et ne joue pas de son ; le journal des statistiques, lui, "
+                + "garde tout.");
         notificationsButton.setOnAction(event -> {
             settings.setNotifications(!settings.notifications());
             refresh();
         });
         target.getChildren().add(notificationsButton);
+        target.getChildren().add(categoryRow(idle.ui.Notice.values(), idle.ui.Notice::label,
+                kind -> settings.setNotice(kind, !settings.noticeChosen(kind)), noticeButtons));
+        for (Button all : new Button[] {allNoticesButton, noNoticesButton}) {
+            all.setFocusTraversable(false);
+            all.setStyle(OFF_STYLE);
+        }
+        allNoticesButton.setOnAction(event -> {
+            for (idle.ui.Notice kind : idle.ui.Notice.values()) settings.setNotice(kind, true);
+            refresh();
+        });
+        noNoticesButton.setOnAction(event -> {
+            for (idle.ui.Notice kind : idle.ui.Notice.values()) settings.setNotice(kind, false);
+            refresh();
+        });
+        HBox allRow = new HBox(8, allNoticesButton, noNoticesButton);
+        allRow.setAlignment(Pos.CENTER);
+        target.getChildren().add(allRow);
 
-        block("Objectif du moment", "Une ligne sous les onglets rappelle le prochain grand pas de la partie, et "
-                + "le temps qu'il demande quand le jeu peut l'estimer.");
+        block("Objectif du moment", "Une ligne sous les onglets rappelle le prochain grand pas de la partie. Chacun de ses "
+                + "morceaux se cache à part : l'objectif, le temps qu'il demande, le prochain Big Bang, le troisième acte, et "
+                + "le chrono, l'avance ou le retard sur le record de la prochaine étape.");
         goalButton.setOnAction(event -> {
             settings.setShowGoal(!settings.showGoal());
             refresh();
         });
         target.getChildren().add(goalButton);
+        target.getChildren().add(categoryRow(idle.ui.Goals.Part.values(), idle.ui.Goals.Part::label,
+                part -> settings.setGoalPart(part, !settings.goalPartChosen(part)), goalPartButtons));
 
         block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
                 + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée. Les "
-                + "états de la matière ont aussi le leur : ∴ gaz, ≈ liquides, ■ solides, ◆ cristaux, ▲ métaux.");
+                + "états de la matière ont aussi le leur, toujours écrits : ∴ gaz, ≈ liquides, ■ solides, ◆ cristaux, ▲ métaux.");
         signsButton.setOnAction(event -> {
             settings.setStateSigns(!settings.stateSigns());
             refresh();
         });
         target.getChildren().add(signsButton);
+
+        block("Pastilles des onglets", "Un ● au bout du nom d'un onglet ou d'un sous-onglet dit que quelque chose y attend : "
+                + "une case de l'arbre, un défi, un astre à former, une comète… Chaque sorte se cache à part ; cachée, elle "
+                + "ne s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.");
+        target.getChildren().add(categoryRow(idle.ui.Readiness.Kind.values(), idle.ui.Readiness.Kind::label,
+                kind -> settings.setDot(kind, !settings.dot(kind)), dotButtons));
 
         use(Section.DISPLAY);
 
@@ -601,21 +640,17 @@ public final class SettingsPage extends VBox {
         note(checkpointNote);
 
         use(Section.GAME);
-        block("Chrono et records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
-                + "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte. Avec le chrono, "
-                + "la ligne d'objectif dit l'avance ou le retard sur le record de la prochaine étape. Les records "
-                + "traversent la remise à zéro du jeu : c'est à la partie suivante qu'ils servent.");
-        chronoButton.setOnAction(event -> {
-            settings.setChrono(!settings.chrono());
-            refresh();
-        });
+        block("Records", "Le jeu retient le temps de jeu le plus court auquel chaque étape a été atteinte : "
+                + "première fusion, première explosion, premier Big Bang, puis les étapes du troisième acte. Le chrono de la "
+                + "ligne d'objectif (il se règle dans « Notifications et signes ») dit l'avance ou le retard sur le record de "
+                + "la prochaine étape. Les records traversent la remise à zéro du jeu : c'est à la partie suivante qu'ils servent.");
         clearRecordsButton.setStyle(OFF_STYLE);
         clearRecordsButton.setFocusTraversable(false);
         clearRecordsButton.setOnAction(event -> {
             saves.clearRecords();
             refresh();
         });
-        HBox recordsRow = new HBox(8, chronoButton, clearRecordsButton);
+        HBox recordsRow = new HBox(8, clearRecordsButton);
         recordsRow.setAlignment(Pos.CENTER);
         target.getChildren().add(recordsRow);
         note(recordsLabel);
@@ -792,6 +827,27 @@ public final class SettingsPage extends VBox {
         (target == null ? getChildren() : target.getChildren()).add(label);
     }
 
+    /**
+     * Une rangée de catégories (version 0.146) : un bouton par catégorie, qui la montre ou la coupe, puis recopie la page.
+     * Comme les effets visuels : « ✓ » ou « ✗ » devant son nom.
+     */
+    private <E> javafx.scene.layout.FlowPane categoryRow(E[] values, java.util.function.Function<E, String> label,
+            java.util.function.Consumer<E> flip, Map<E, Button> buttons) {
+        javafx.scene.layout.FlowPane row = new javafx.scene.layout.FlowPane(8, 8);
+        row.setAlignment(Pos.CENTER);
+        row.setMaxWidth(720);
+        choiceRow(row, values, label, flip, buttons, true);
+        return row;
+    }
+
+    /** Une catégorie : « ✓ » si elle est montrée, éclairée seulement si son grand interrupteur est en marche. */
+    private static void category(Button button, String label, String detail, boolean on, boolean master) {
+        button.setText((on ? "✓ " : "✗ ") + label);
+        button.setStyle(on && master ? ON_STYLE : OFF_STYLE);
+        button.setDisable(!master);
+        tip(button, detail);
+    }
+
     /** Un bouton à deux états : son texte selon l'état, éclairé quand il est actif. */
     private static void toggle(Button button, boolean on, String onText, String offText) {
         button.setText(on ? onText : offText);
@@ -895,7 +951,14 @@ public final class SettingsPage extends VBox {
         toggle(notificationsButton, settings.notifications(), "Notifications : affichées", "Notifications : coupées");
         toggle(goalButton, settings.showGoal(), "Objectif : affiché", "Objectif : caché");
         toggle(signsButton, settings.stateSigns(), "Signes d'état : affichés", "Signes d'état : cachés");
-        toggle(chronoButton, settings.chrono(), "Chrono : affiché", "Chrono : caché");
+        // Les catégories (version 0.146) : éclairées si elles s'affichent, grisées sous un grand interrupteur coupé.
+        noticeButtons.forEach((kind, button) -> category(button, kind.label(), kind.detail(), settings.noticeChosen(kind),
+                settings.notifications()));
+        allNoticesButton.setDisable(!settings.notifications());
+        noNoticesButton.setDisable(!settings.notifications());
+        goalPartButtons.forEach((part, button) -> category(button, part.label(), part.detail(), settings.goalPartChosen(part),
+                settings.showGoal()));
+        dotButtons.forEach((kind, button) -> category(button, kind.label(), kind.detail(), settings.dot(kind), true));
         toggle(skyEventsButton, settings.skyEvents(), "Événements du ciel : montrés", "Événements du ciel : masqués");
         recordsLabel.setText(saves.records());
         toggle(effectsButton, settings.effects(), "Effets visuels : affichés", "Effets visuels : coupés");

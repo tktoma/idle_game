@@ -18,6 +18,7 @@ import idle.core.elements.PeriodicTable;
 import idle.core.molecules.KindCollection;
 import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeReward;
+import idle.core.profile.Title;
 import idle.core.upgrades.Automation;
 import idle.ui.bigbang.BigBangPage;
 import idle.ui.common.AchievementText;
@@ -39,6 +40,9 @@ import java.util.Set;
  * à celui qu'il avait vu la fois d'avant. Un automatisme qui agit dix fois par seconde et un clic
  * du joueur sont donc annoncés de la même façon. Ce qui recule (un tableau vidé par une
  * explosion, une partie remise à zéro) n'est jamais annoncé : il se contente de reprendre ses repères.
+ *
+ * <p>Les titres du profil (version 0.147) s'annoncent un par un, « Nouveau titre : … ». Ceux qu'une partie relue
+ * méritait déjà ne s'annoncent pas : ils tombent ensemble à la première seconde de jeu, et la file est vidée sans bruit.
  */
 final class Notifier {
 
@@ -85,6 +89,14 @@ final class Notifier {
     private double slowSeen = 1;
     private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
 
+    /** Le début de l'annonce d'un titre (version 0.147) : « Nouveau titre : Étincelle ». */
+    static final String NEW_TITLE = "Nouveau titre : ";
+    /**
+     * Les titres que la partie remplissait déjà au premier relevé, sans les avoir encore notés : une sauvegarde d'avant
+     * les titres les reçoit tous à la première seconde de jeu. Ils arrivent sans être annoncés.
+     */
+    private final java.util.EnumSet<Title> quietTitles = java.util.EnumSet.noneOf(Title.class);
+
     /** Vrai si le joueur veut voir les anomalies du ciel (version 0.127, un réglage). */
     private java.util.function.BooleanSupplier skyEventsShown = () -> true;
 
@@ -103,8 +115,8 @@ final class Notifier {
     }
 
     /** Ce qui s'est passé depuis le dernier appel, du plus ancien au plus récent. Vide la plupart du temps. */
-    List<String> poll() {
-        List<String> news = new ArrayList<>();
+    List<News> poll() {
+        List<News> news = new ArrayList<>();
         List<Achievement> achievements = game.takeNewAchievements();
         List<SpaceUpgrade> spaceUpgrades = game.takeNewSpaceUpgrades();
         int gathered = game.takeAutoGathered();
@@ -114,45 +126,55 @@ final class Notifier {
         boolean prime = game.takeSpeedPrime();
         List<GameStats.Step> records = game.takeNewRecords();
         List<Game.CollisionResult> collisions = game.takeFinishedCollisions();
-        // Premier relevé, ou partie remise à zéro : on prend ses repères sans rien annoncer.
+        List<Title> titles = game.takeNewTitles();
+        // Premier relevé, ou partie remise à zéro : on prend ses repères sans rien annoncer. Les titres déjà mérités
+        // (une partie relue) tomberont à la prochaine seconde de jeu : ils seront tus aussi.
         if (!primed || (started && !game.isStarted())) {
             snapshot();
+            quietTitles.clear();
+            // Une partie pas encore commencée n'a rien mérité : son premier générateur, lui, s'annoncera.
+            if (game.isStarted()) for (Title title : Title.values()) if (!game.hasTitle(title) && title.isReachedBy(game)) quietTitles.add(title);
             primed = true;
             return news;
         }
+        for (Title title : titles) {
+            if (!quietTitles.remove(title)) add(news, Notice.TITLES, NEW_TITLE + title.label());
+        }
+        // Ils tombent tous au même relevé : ensuite, plus rien n'est tu.
+        if (!titles.isEmpty()) quietTitles.clear();
         // Les collisions sont trop nombreuses pour être toutes annoncées : seulement le quark top.
         boolean top = false;
         for (Game.CollisionResult result : collisions) if (result.quark() == Quark.TOP) top = true;
-        if (top) news.add("Collision : un quark top ! À utiliser dans " + Format.wait(game.topLeft()) + ", dans l'onglet du collisionneur.");
+        if (top) add(news, Notice.COLLIDER, "Collision : un quark top ! À utiliser dans " + Format.wait(game.topLeft()) + ", dans l'onglet du collisionneur.");
         boolean upgradesOpen = game.isColliderUpgradesUnlocked();
-        if (upgradesOpen && !colliderUpgradesSeen) news.add("Collisionneur : les huit générateurs sont là, les améliorations s'ouvrent.");
+        if (upgradesOpen && !colliderUpgradesSeen) add(news, Notice.COLLIDER, "Collisionneur : les huit générateurs sont là, les améliorations s'ouvrent.");
         colliderUpgradesSeen = upgradesOpen;
         boolean voidOffered = game.isVoidOffered();
-        if (voidOffered && !voidOfferedSeen) news.add("Le vide se propose dans l'onglet du collisionneur : il s'ouvre contre de l'énergie du collisionneur.");
+        if (voidOffered && !voidOfferedSeen) add(news, Notice.VOID, "Le vide se propose dans l'onglet du collisionneur : il s'ouvre contre de l'énergie du collisionneur.");
         voidOfferedSeen = voidOffered;
         boolean voidHole = game.isVoidHoleOpen();
-        if (voidHole && !voidHoleSeen) news.add("Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
+        if (voidHole && !voidHoleSeen) add(news, Notice.VOID, "Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
         voidHoleSeen = voidHole;
         for (Game.VoidUpgrade upgrade : new Game.VoidUpgrade[] {Game.VoidUpgrade.MATURE, Game.VoidUpgrade.SETTLE, Game.VoidUpgrade.LIGHTEN}) {
             boolean maxed = game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max();
-            if (maxed && voidMaxedSeen.add(upgrade)) news.add("Vide : « " + voidTitle(upgrade) + " » est au plus haut.");
+            if (maxed && voidMaxedSeen.add(upgrade)) add(news, Notice.VOID, "Vide : « " + voidTitle(upgrade) + " » est au plus haut.");
             if (!maxed) voidMaxedSeen.remove(upgrade);
         }
         for (ColliderAchievement achievement : ColliderAchievement.values()) {
             if (colliderAchievementsSeen.contains(achievement) || !game.hasColliderAchievement(achievement)) continue;
             colliderAchievementsSeen.add(achievement);
-            news.add("Succès du collisionneur : " + achievement.condition() + ", " + achievement.reward() + ".");
+            add(news, Notice.ACHIEVEMENTS, "Succès du collisionneur : " + achievement.condition() + ", " + achievement.reward() + ".");
         }
         for (BangAchievement achievement : BangAchievement.values()) {
             if (bangAchievementsSeen.contains(achievement) || !game.hasBangAchievement(achievement)) continue;
             bangAchievementsSeen.add(achievement);
-            news.add("Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
+            add(news, Notice.ACHIEVEMENTS, "Succès du Big Bang : " + achievement.title() + ", +" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label() + ".");
         }
 
         // Le premier élan (version 0.095, par paliers en 0.096) : chaque palier s'annonce.
         double slow = game.firstRunSlowdown();
         if (slow < slowSeen) {
-            news.add(slow <= 1 ? "La création a pris tout son élan : elle va à pleine vitesse."
+            add(news, Notice.START, slow <= 1 ? "La création a pris tout son élan : elle va à pleine vitesse."
                     : (game.stats().fusions() <= 1 ? "Premier atome" : Game.FIRST_ATOMS_UNTIL + " atomes")
                             + " : la création prend de l'élan, encore " + idle.ui.common.ElementText.number(slow) + " fois moins vite qu'à plein régime.");
         }
@@ -161,31 +183,31 @@ final class Notifier {
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
             if (skinsSeen.contains(skin) || !game.hasSkin(skin)) continue;
             skinsSeen.add(skin);
-            news.add("Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
+            add(news, Notice.COSMETICS, "Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
                     + ElementText.percent(idle.core.universe.Skin.BONUS) + " à toutes les ressources, soit +"
                     + ElementText.percent(game.skinBoost() - 1) + " au total, choisi ou non.");
         }
 
         List<String> matured = game.takeMaturedBodies();
         if (matured.size() == 1) {
-            news.add("Astre mûr : " + game.body(matured.get(0)).name() + ". Il compte désormais en entier.");
+            add(news, Notice.SKY, "Astre mûr : " + game.body(matured.get(0)).name() + ". Il compte désormais en entier.");
         } else if (matured.size() > 1) {
-            news.add(matured.size() + " astres mûrs. Ils comptent désormais en entier.");
+            add(news, Notice.SKY, matured.size() + " astres mûrs. Ils comptent désormais en entier.");
         }
         List<ProbeReward> probes = game.takeReturnedProbes();
         if (!probes.isEmpty()) {
             ProbeReward first = probes.get(0);
-            news.add(probes.size() == 1 && first != null
+            add(news, Notice.PROBES, probes.size() == 1 && first != null
                     ? "Sonde revenue : " + first.destination().label() + ". Son butin attend dans Big Bang, Sondes."
                     : probes.size() + " sondes revenues. Leur butin attend dans Big Bang, Sondes.");
         }
         // Les deux trous noirs (version 0.062) : l'énergie produite qu'ils demandent est atteinte.
         double produced = game.colliderEnergyProduced();
         if (blackHoleEnergySeen < Game.BLACK_HOLE_ENERGY && produced >= Game.BLACK_HOLE_ENERGY) {
-            news.add("Collisionneur : assez d'énergie produite pour le trou noir.");
+            add(news, Notice.COLLIDER, "Collisionneur : assez d'énergie produite pour le trou noir.");
         }
         if (blackHoleEnergySeen < Game.SUPERMASSIVE_ENERGY && produced >= Game.SUPERMASSIVE_ENERGY) {
-            news.add("Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
+            add(news, Notice.COLLIDER, "Collisionneur : assez d'énergie produite pour le trou noir supermassif.");
         }
         blackHoleEnergySeen = produced;
         // Les jalons de la fin de partie (version 0.068) : un état de la matière réuni pour l'amas ou l'univers.
@@ -193,7 +215,7 @@ final class Notifier {
             if (game.hasCosmos(scale)) continue;
             for (idle.core.molecules.Molecule.State matter : scale.matter().keySet()) {
                 if (game.isCosmosMilestoneMet(scale, matter) && cosmosMilestonesSeen.add(scale.name() + ":" + matter.name())) {
-                    news.add("Jalon : " + idle.ui.common.MatterText.plural(matter) + " réunis pour " + scale.phrase()
+                    add(news, Notice.SKY, "Jalon : " + idle.ui.common.MatterText.plural(matter) + " réunis pour " + scale.phrase()
                             + ". Toutes les grandeurs +" + Math.round(Game.COSMOS_MILESTONE_GAIN * 100) + " % (" + game.cosmosMilestones() + "/10).");
                 }
             }
@@ -203,11 +225,11 @@ final class Notifier {
             // Tout vient de repartir de zéro : on reprend ses repères, pour que la partie suivante s'annonce comme la première.
             int count = game.bigBangs();
             if (game.completedBangChallenges() > bangChallengesDone && bangChallenge != null) {
-                news.add("Défi de Big Bang « " + bangChallenge.label() + " » réussi : " + lower(bangChallenge.rewardText()));
+                add(news, Notice.BIG_BANG, "Défi de Big Bang « " + bangChallenge.label() + " » réussi : " + lower(bangChallenge.rewardText()));
             }
-            for (GameStats.Step step : records) news.add("Record battu : " + step.label());
+            for (GameStats.Step step : records) add(news, Notice.RECORDS, "Record battu : " + step.label());
             snapshot();
-            news.add(game.isDarkMatterUnlocked()
+            add(news, Notice.BIG_BANG, game.isDarkMatterUnlocked()
                     ? "Big Bang n° " + count + " : tout repart du premier générateur, mais l'arbre de matière noire est resté."
                     : count > 1 ? "Big Bang n° " + count + " : tout repart du premier générateur. Vos succès restent."
                     : "Big Bang : tout repart du premier générateur. Vos succès restent, et l'onglet Big Bang s'ouvre.");
@@ -218,7 +240,7 @@ final class Notifier {
         if (game.moleculeKindsUnlocked() > moleculeKinds) {
             for (Molecule.Kind kind : Molecule.Kind.values()) {
                 if (kind.ordinal() >= moleculeKinds && game.isMoleculeKindUnlocked(kind)) {
-                    news.add("Molécules : le rayon « " + kind.label() + " » s'ouvre");
+                    add(news, Notice.MOLECULES, "Molécules : le rayon « " + kind.label() + " » s'ouvre");
                 }
             }
         }
@@ -226,30 +248,30 @@ final class Notifier {
         // Les améliorations d'espace que le temps vient d'apporter ; l'ouverture d'un rayon s'annonce déjà ci-dessus.
         for (SpaceUpgrade upgrade : spaceUpgrades) {
             if (upgrade.effect() instanceof SpaceUpgrade.OpenKind) continue;
-            news.add("Espace : « " + upgrade.name() + " » est acquise");
+            add(news, Notice.MOLECULES, "Espace : « " + upgrade.name() + " » est acquise");
         }
 
         // Un défi de Big Bang vient de commencer : tout est reparti, comme après un Big Bang.
         if (game.activeBangChallenge() != null && game.activeBangChallenge() != bangChallenge) {
             BangChallenge started = game.activeBangChallenge();
             snapshot();
-            news.add("Défi de Big Bang « " + started.label() + " » : tout repart du premier générateur.");
+            add(news, Notice.BIG_BANG, "Défi de Big Bang « " + started.label() + " » : tout repart du premier générateur.");
             return news;
         }
         bangChallenge = game.activeBangChallenge();
         if (comet) {
-            news.add("Une comète traverse l'expansion : " + (int) Game.COMET_VISIBLE_SECONDS + " secondes pour la saisir (Big Bang, Expansion de la matière)");
+            add(news, Notice.COMETS, "Une comète traverse l'expansion : " + (int) Game.COMET_VISIBLE_SECONDS + " secondes pour la saisir (Big Bang, Expansion de la matière)");
         }
         if (sky && skyEventsShown.getAsBoolean() && game.skyEvent() != null) {
-            news.add(game.skyEvent().label() + " dans l'expansion : " + Format.wait(Game.SKY_EVENT_VISIBLE_SECONDS)
+            add(news, Notice.SKY_EVENTS, game.skyEvent().label() + " dans l'expansion : " + Format.wait(Game.SKY_EVENT_VISIBLE_SECONDS)
                     + " pour en profiter, si vous voulez (Big Bang, Expansion de la matière)");
         }
-        for (GameStats.Step step : records) news.add("Record battu : " + step.label());
+        for (GameStats.Step step : records) add(news, Notice.RECORDS, "Record battu : " + step.label());
         // Une collection vient de passer la moitié de son rayon, ou d'être complétée.
         for (KindCollection collection : game.collections()) {
             int level = game.collectionLevel(collection.kind());
             if (level > collections.getOrDefault(collection.kind(), 0)) {
-                news.add("Collection " + collection.kind().label() + (level >= 2 ? " complète : " : " à moitié réunie : ")
+                add(news, Notice.MOLECULES, "Collection " + collection.kind().label() + (level >= 2 ? " complète : " : " à moitié réunie : ")
                         + lower(BigBangPage.what(collection.stat())) + " ×" + ElementText.number(collection.factor(level)));
             }
             collections.put(collection.kind(), level);
@@ -257,17 +279,17 @@ final class Notifier {
 
         // Ce que le rassemblement et la formation automatiques viennent de faire sans le joueur.
         if (gathered > 0) {
-            news.add("Rassemblement automatique : " + gathered + (gathered > 1 ? " sortes rassemblées" : " sorte rassemblée"));
+            add(news, Notice.AUTO_SKY, "Rassemblement automatique : " + gathered + (gathered > 1 ? " sortes rassemblées" : " sorte rassemblée"));
         }
         if (formed.size() > 3) {
-            news.add("Formation automatique : " + formed.size() + " formés, dont « " + formed.get(formed.size() - 1) + " »");
+            add(news, Notice.AUTO_SKY, "Formation automatique : " + formed.size() + " formés, dont « " + formed.get(formed.size() - 1) + " »");
         } else {
-            for (String name : formed) news.add("Formation automatique : « " + name + " »");
+            for (String name : formed) add(news, Notice.AUTO_SKY, "Formation automatique : « " + name + " »");
         }
 
         if (game.state().explosions() > explosions) {
             // Une explosion qui compte alourdit le tableau ; celle d'un défi rejoué ne change rien.
-            news.add(game.state().tableWeightLevel() > weightLevel
+            add(news, Notice.EXPLOSION, game.state().tableWeightLevel() > weightLevel
                     ? "Explosion : +" + Format.darkMatter(prime ? game.darkMatterPerExplosion().add(game.speedPrime())
                                     : game.darkMatterPerExplosion()) + " matière noire"
                             + (prime ? ", prime de vitesse comprise" : "")
@@ -277,23 +299,23 @@ final class Notifier {
         }
         for (Challenge challenge : game.challenges()) {
             if (game.isChallengeCompleted(challenge.id()) && !challengesDone.contains(challenge.id())) {
-                news.add("Défi réussi : " + challenge.name() + "  (" + ChallengesPane.reward(challenge) + ")");
+                add(news, Notice.CHALLENGES, "Défi réussi : " + challenge.name() + "  (" + ChallengesPane.reward(challenge) + ")");
             }
             if (game.isChallengeUnlocked(challenge.id()) && !challengesOpen.contains(challenge.id())) {
-                news.add("Nouveau défi : " + challenge.name());
+                add(news, Notice.CHALLENGES, "Nouveau défi : " + challenge.name());
             }
         }
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id()) && !darkAutomations.contains(automation.id())) {
-                news.add("Nouvel automatisme de matière noire : " + automation.name());
+                add(news, Notice.AUTOMATION, "Nouvel automatisme de matière noire : " + automation.name());
             }
         }
 
         if (game.isPeriodicTableUnlocked() && !tableUnlocked) {
-            news.add("Automatisation et tableau périodique débloqués");
+            add(news, Notice.AUTOMATION, "Automatisation et tableau périodique débloqués");
         }
         if (game.isSynthesisAutomationUnlocked() && !synthesisUnlocked) {
-            news.add("Élément unique ★ : la synthèse automatique est débloquée");
+            add(news, Notice.AUTOMATION, "Élément unique ★ : la synthèse automatique est débloquée");
         }
 
         // Les éléments nouveaux : un seul se nomme, plusieurs se comptent.
@@ -303,15 +325,15 @@ final class Notifier {
         }
         if (fresh.size() == 1) {
             Element element = fresh.get(0);
-            news.add("Nouvel élément : " + element.name() + " (" + element.symbol() + ")  —  " + ElementText.describe(element.effect()));
+            add(news, Notice.ELEMENTS, "Nouvel élément : " + element.name() + " (" + element.symbol() + ")  —  " + ElementText.describe(element.effect()));
         } else if (fresh.size() > 1 && game.state().explosions() == explosions) {
-            news.add(fresh.size() + " nouveaux éléments");
+            add(news, Notice.ELEMENTS, fresh.size() + " nouveaux éléments");
         }
         for (ElementSet set : game.elementSets()) {
             double before = setStrengths.getOrDefault(set.id(), 0.0);
             double now = game.setStrength(set);
             if (now > before && game.state().explosions() == explosions) {
-                news.add((now >= 1 ? "Ensemble complet : " : "Ensemble à moitié réuni : ") + set.name()
+                add(news, Notice.ELEMENTS, (now >= 1 ? "Ensemble complet : " : "Ensemble à moitié réuni : ") + set.name()
                         + "  —  " + ElementText.describe(set.effect()) + (now >= 1 ? "" : " (" + ElementText.percent(now) + " du bonus)"));
             }
         }
@@ -321,35 +343,50 @@ final class Notifier {
             for (Automation automation : game.automations()) {
                 if (game.ownsAutomation(automation.id()) && !automations.contains(automation.id())
                         && game.state().explosions() == explosions) {
-                    news.add("Automatisme offert : " + automation.name());
+                    add(news, Notice.AUTOMATION, "Automatisme offert : " + automation.name());
                 }
             }
         }
 
         int milestones = game.speedMilestones();
         if (milestones > speedMilestones && milestones <= ANNOUNCED_SPEED_MILESTONES) {
-            news.add("Palier de vitesse n° " + milestones + " : particules multipliées");
+            add(news, Notice.MILESTONES, "Palier de vitesse n° " + milestones + " : particules multipliées");
         }
         int reached = game.landmarksReached();
         if (reached > landmarks) {
             Landmark landmark = SizeScale.MILESTONES.get(reached - 1);
-            news.add(reached - landmarks == 1 ? "Palier de taille : " + landmark.name()
+            add(news, Notice.MILESTONES, reached - landmarks == 1 ? "Palier de taille : " + landmark.name()
                     : (reached - landmarks) + " paliers de taille, jusqu'à : " + landmark.name());
         }
         if (game.canExplode() && !canExplode) {
-            news.add("Le tableau périodique peut exploser");
+            add(news, Notice.EXPLOSION, "Le tableau périodique peut exploser");
         }
         for (Achievement achievement : achievements) {
-            news.add(AchievementText.announce(achievement));
+            add(news, Notice.ACHIEVEMENTS, AchievementText.announce(achievement));
         }
 
         snapshot();
-        if (news.size() > MAX_PER_POLL) {
-            int more = news.size() - (MAX_PER_POLL - 1);
-            news = new ArrayList<>(news.subList(0, MAX_PER_POLL - 1));
-            news.add("… et " + more + " autres nouvelles");
-        }
         return news;
+    }
+
+    /** Une nouvelle : sa catégorie (version 0.146), qui se coupe dans les réglages, et sa phrase. */
+    record News(Notice kind, String text) { }
+
+    private static void add(List<News> news, Notice kind, String text) {
+        news.add(new News(kind, text));
+    }
+
+    /**
+     * Les phrases à afficher, au plus {@link #MAX_PER_POLL} : au-delà, les dernières se résument (« … et 3 autres
+     * nouvelles »). Version 0.146 : le résumé se fait après le tri des catégories coupées, pour ne compter que ce qui
+     * s'affiche.
+     */
+    static List<String> summarize(List<String> texts) {
+        if (texts.size() <= MAX_PER_POLL) return texts;
+        int more = texts.size() - (MAX_PER_POLL - 1);
+        List<String> shown = new ArrayList<>(texts.subList(0, MAX_PER_POLL - 1));
+        shown.add("… et " + more + " autres nouvelles");
+        return shown;
     }
 
     private boolean isGranting() {

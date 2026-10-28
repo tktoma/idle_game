@@ -134,9 +134,9 @@ public final class ColliderPage extends VBox {
         boolean upgrades = game.isColliderUpgradesUnlocked();
         upgradesTab.setVisible(upgrades);
         upgradesTab.setManaged(upgrades);
-        energyTab.setText("Énergie" + Readiness.dot(game.hasTop()));
-        chainTab.setText("Chaîne" + Readiness.dot(upgradeReady(game, true)));
-        upgradesTab.setText("Améliorations" + Readiness.dot(upgradeReady(game, false)));
+        energyTab.setText("Énergie" + Readiness.dot(Readiness.Kind.COLLIDER, game.hasTop()));
+        chainTab.setText("Chaîne" + Readiness.dot(Readiness.Kind.COLLIDER, upgradeReady(game, true)));
+        upgradesTab.setText("Améliorations" + Readiness.dot(Readiness.Kind.COLLIDER, upgradeReady(game, false)));
         pane.refresh();
     }
 

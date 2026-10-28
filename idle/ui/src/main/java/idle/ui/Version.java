@@ -23,6 +23,34 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.147", "Le profil du joueur, et tous les automatismes au même endroit", List.of(
+                    "Nouvel onglet « Profil », dès le premier générateur : le nom du joueur, son avatar, le titre qu'il porte, "
+                            + "son temps de jeu, ses univers et ses Big Bang. Le journal y déménage, dans son propre sous-onglet.",
+                    "Trente-deux titres, de « Étincelle » à « Éternel », en passant par « Apprenti alchimiste », « Forgeron "
+                            + "d'étoiles », « Architecte de galaxies » et « Tisseur de multivers » : chacun tombe quand sa condition "
+                            + "est vraie, s'annonce dans le journal et reste acquis pour toujours. On porte celui qu'on veut.",
+                    "Avatar : une galerie de douze dessins, débloqués par les titres, ou une image à soi, choisie sur l'ordinateur.",
+                    "Après le premier Big Bang, quatre albums dans le profil : les molécules, les états de la matière, les "
+                            + "assemblages et les astres, avec ce qui a déjà été découvert. Les pages du Big Bang ne changent pas.",
+                    "Le profil, les titres et les albums traversent le Big Bang, l'univers suivant et « Recommencer de zéro », "
+                            + "comme les records. Ils ne donnent aucun bonus. Leurs annonces ont leur catégorie dans « Notifications "
+                            + "et signes », « Titres du profil ».",
+                    "Onglet Automatisation : les huit automates du collisionneur (achat, marche et pause), son "
+                            + "déclencheur automatique et le tuyau d'arrosage de la graine y sont aussi. « Tout couper » ne les arrête pas : ils gardent "
+                            + "chacun leur propre interrupteur, comme avant.")),
+            new Note("0.146", "Notifications et signes, réglés par catégorie", List.of(
+                    "Réglages : un sous-onglet « Notifications et signes » réunit les notifications, l'objectif du moment et "
+                            + "les signes d'état, qui étaient dans « Affichage ».",
+                    "Les notifications se coupent par catégorie, sous leur grand interrupteur : dix-neuf catégories, du premier "
+                            + "élan aux succès, aux records et aux skins, avec « Toutes affichées » et « Toutes coupées ». Une "
+                            + "catégorie coupée ne s'affiche pas et ne sonne pas ; le journal garde tout.",
+                    "L'objectif se règle morceau par morceau : l'objectif, le temps qu'il demande, le prochain Big Bang, le "
+                            + "troisième acte et le chrono, qui quitte le sous-onglet « Jeu ».",
+                    "Les pastilles ● des onglets se cachent par sorte (arbre, défis, collisionneur, paliers, ciel, comète, "
+                            + "sondes, systèmes solaires, vide) ; cachée, une pastille ne s'allume ni sur son sous-onglet ni sur "
+                            + "l'onglet qui le porte.",
+                    "Quand beaucoup de nouvelles arrivent d'un coup, le résumé « … et N autres » ne compte plus que celles qui "
+                            + "s'affichent, et le journal les garde une par une.")),
             new Note("0.145", "Les racines de l'arbre-monde, de retour", List.of(
                     "À l'arbre-monde, les deux bulles du bas, celle de la graine et celle des racines, remontent un peu et "
                             + "s'écartent à nouveau, et la bulle des racines retrouve son aura dorée : le grand ménage de la 0.144 "

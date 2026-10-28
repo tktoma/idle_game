@@ -249,6 +249,14 @@ public final class GameState extends GameStateResets {
         data.put("probeSamples", probeSamples);
         data.put("probeBoostLeft", probeBoostLeft);
         data.putDoubles("records", new TreeMap<>(records));
+        data.put("playerName", SaveData.escape(playerName));
+        data.put("avatar", SaveData.escape(avatar));
+        data.put("chosenTitle", SaveData.escape(chosenTitle));
+        data.putDoubles("titles", new TreeMap<>(earnedTitles));
+        data.putDoubles("found.molecules", new TreeMap<>(foundMolecules));
+        data.putDoubles("found.substances", new TreeMap<>(foundSubstances));
+        data.putDoubles("found.assemblies", new TreeMap<>(foundAssemblies));
+        data.putDoubles("found.bodies", new TreeMap<>(foundBodies));
         data.put("activeBangChallenge", activeBangChallenge == null ? null : SaveData.escape(activeBangChallenge));
         data.putList("completedBangChallenges", new java.util.TreeSet<>(completedBangChallenges));
         data.putList("boughtMilestones", new java.util.TreeSet<>(boughtMilestones));
@@ -524,6 +532,20 @@ public final class GameState extends GameStateResets {
         setProbeBoostLeft(data.real("probeBoostLeft", 0));
         records.clear();
         data.doubles("records").forEach(this::setRecord);
+        // Le profil et les albums (version 0.147) : une sauvegarde d'avant n'en a pas, tout part vide.
+        setPlayerName(SaveData.unescape(data.text("playerName", "")));
+        setAvatar(SaveData.unescape(data.text("avatar", "")));
+        setChosenTitle(SaveData.unescape(data.text("chosenTitle", "")));
+        earnedTitles.clear();
+        data.doubles("titles").forEach(this::earnTitle);
+        foundMolecules.clear();
+        foundSubstances.clear();
+        foundAssemblies.clear();
+        foundBodies.clear();
+        data.doubles("found.molecules").forEach((id, seconds) -> noteFound("molecules", id, seconds));
+        data.doubles("found.substances").forEach((id, seconds) -> noteFound("substances", id, seconds));
+        data.doubles("found.assemblies").forEach((id, seconds) -> noteFound("assemblies", id, seconds));
+        data.doubles("found.bodies").forEach((id, seconds) -> noteFound("bodies", id, seconds));
         String bangChallenge = data.text("activeBangChallenge", null);
         setActiveBangChallenge(bangChallenge == null ? null : SaveData.unescape(bangChallenge));
         data.list("completedBangChallenges").forEach(this::addCompletedBangChallenge);

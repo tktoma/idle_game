@@ -5,6 +5,7 @@ import idle.core.Game;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.probes.ProbeTrip;
+import idle.core.profile.Title;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
@@ -130,7 +131,11 @@ final class HelpPane extends Overlay {
                     + " Vos réglages (la coupure générale, les ordres d'achat, le seuil de fusion, le verrou de l'appui, la "
                     + "part d'espace laissée libre, les molécules favorites, les automatismes de matière noire allumés, les "
                     + "pauses du collisionneur) tiennent d'une remise à zéro à l'autre (explosion, "
-                    + "Big Bang et au-delà) : seul « Recommencer de zéro », dans les réglages, les remet comme au début."));
+                    + "Big Bang et au-delà) : seul « Recommencer de zéro », dans les réglages, les remet comme au début."
+                    // Version 0.147 : ce que la coupure générale laisse tourner.
+                    + (game.isColliderUpgradesUnlocked() ? " L'onglet montre aussi les automates du collisionneur, qui se "
+                            + "mettent en pause un par un, et son déclencheur automatique" + (game.hasHose() ? ", et le tuyau "
+                            + "d'arrosage de la graine" : "") + " : la coupure générale ne les arrête pas." : "")));
             sections.add(new Section("Tableau périodique", "Une synthèse coûte des atomes et donne un élément. Chaque "
                     + "élément apporte un bonus, ses exemplaires le renforcent, et une famille réunie forme un ensemble. "
                     + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."));
@@ -194,7 +199,19 @@ final class HelpPane extends Overlay {
                 + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne. Sous "
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
-                + ". Les annonces qui passent en haut de l'écran restent dans le journal, dernière sous-page des statistiques."));
+                + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
+                + "sous-onglet « Notifications et signes », coupent les annonces par catégorie, cachent les morceaux de "
+                + "l'objectif un par un et les pastilles ● des onglets par sorte."));
+        // Le profil (version 0.147) : là dès le premier générateur.
+        if (game.isStarted()) sections.add(new Section("Profil", "L'onglet Profil dit qui joue : un nom, à écrire dans le "
+                + "champ du haut (Entrée le valide), un avatar à choisir dans la galerie, ou une image à vous (PNG, JPG, GIF, BMP), "
+                + "copiée dans le dossier du jeu et recadrée en rond. Chaque étape de la partie donne un titre, "
+                + Title.values().length + " en tout : un clic sur un titre obtenu le porte, et certains avatars s'ouvrent avec "
+                + "eux ; ils ne donnent aucun bonus. Le journal des annonces est le deuxième sous-onglet."
+                + (game.isBigBangUnlocked() ? " Depuis le premier Big Bang, quatre albums gardent tout ce que vous avez obtenu au "
+                        + "moins une fois, molécules, sortes rassemblées, assemblages et astres, avec le temps de jeu de la "
+                        + "première fois ; ce qui manque reste un « ??? »." : "")
+                + " Nom, avatar, titres et albums restent pour de bon, même après « Recommencer de zéro »."));
         if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
                 + "explosion, que ni l'explosion ni le Big Bang ne remettent à zéro. Les faisceaux croisés donnent de l'énergie, et "
                 + "huit générateurs se produisent l'un l'autre, de l'aimant supraconducteur au collisionneur de Planck : comptez "

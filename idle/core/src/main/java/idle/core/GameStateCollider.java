@@ -959,6 +959,78 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         return Collections.unmodifiableMap(records);
     }
 
+    // Le profil et les albums (version 0.147).
+
+    /** Le plus long nom de joueur accepté, en caractères. */
+    public static final int PLAYER_NAME_MAX = 24;
+
+    public String playerName() {
+        return playerName;
+    }
+
+    /** Le nom du joueur, sans espaces autour et coupé à {@link #PLAYER_NAME_MAX} caractères ; {@code null} le vide. */
+    public void setPlayerName(String name) {
+        String clean = name == null ? "" : name.strip().replaceAll("\\s+", " ");
+        playerName = clean.length() > PLAYER_NAME_MAX ? clean.substring(0, PLAYER_NAME_MAX).strip() : clean;
+    }
+
+    public String avatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String id) {
+        avatar = id == null ? "" : id.strip();
+    }
+
+    public String chosenTitle() {
+        return chosenTitle;
+    }
+
+    public void setChosenTitle(String name) {
+        chosenTitle = name == null ? "" : name;
+    }
+
+    /** Les titres obtenus et le temps de jeu de chacun. */
+    public Map<String, Double> earnedTitles() {
+        return Collections.unmodifiableMap(earnedTitles);
+    }
+
+    /** Note un titre obtenu ; le premier temps reste. */
+    public void earnTitle(String name, double seconds) {
+        if (name == null || name.isBlank() || Double.isNaN(seconds) || seconds < 0) return;
+        earnedTitles.putIfAbsent(name, seconds);
+    }
+
+    public Map<String, Double> foundMolecules() {
+        return Collections.unmodifiableMap(foundMolecules);
+    }
+
+    public Map<String, Double> foundSubstances() {
+        return Collections.unmodifiableMap(foundSubstances);
+    }
+
+    public Map<String, Double> foundAssemblies() {
+        return Collections.unmodifiableMap(foundAssemblies);
+    }
+
+    public Map<String, Double> foundBodies() {
+        return Collections.unmodifiableMap(foundBodies);
+    }
+
+    /** Note une découverte d'un album ({@code molecules}, {@code substances}, {@code assemblies} ou {@code bodies}) ; vrai si elle est nouvelle. */
+    public boolean noteFound(String album, String id, double seconds) {
+        Map<String, Double> map = switch (album) {
+            case "molecules" -> foundMolecules;
+            case "substances" -> foundSubstances;
+            case "assemblies" -> foundAssemblies;
+            case "bodies" -> foundBodies;
+            default -> throw new IllegalArgumentException("Album inconnu : " + album);
+        };
+        if (id == null || id.isBlank() || map.containsKey(id)) return false;
+        map.put(id, Double.isNaN(seconds) || seconds < 0 ? 0 : seconds);
+        return true;
+    }
+
     /** Note un record ; un temps négatif ou qui n'est pas un nombre est refusé. */
     public void setRecord(String step, double seconds) {
         if (step == null || step.isBlank() || Double.isNaN(seconds) || seconds < 0) return;

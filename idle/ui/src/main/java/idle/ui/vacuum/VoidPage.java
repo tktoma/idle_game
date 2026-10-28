@@ -192,7 +192,7 @@ public final class VoidPage extends VBox {
     public void refresh() {
         energy.setText("Énergie du vide : " + Format.count(game.voidEnergy()) + "   |   équilibre : "
                 + Format.count(BigNum.of(game.voidEquilibrium())));
-        upgradesTab.setText("Améliorations" + idle.ui.Readiness.dot(ready(game)));
+        upgradesTab.setText("Améliorations" + idle.ui.Readiness.dot(idle.ui.Readiness.Kind.VOID, ready(game)));
         double rate = game.voidRate();
         pairsLine.setText(decimal(rate) + " paire" + (rate >= 2 ? "s" : "") + " par seconde (" + limitText(game.voidLimit()) + "), "
                 + Format.count(BigNum.of(game.voidPairs())) + " vivantes, " + decimal(game.voidPairLife()) + " s chacune. "

@@ -78,7 +78,6 @@ public abstract class StatsPageBase extends VBox {
         universe();
         collider();
         records();
-        journal();
 
         VBox.setVgrow(stack, Priority.ALWAYS);
         getChildren().add(title);
@@ -111,7 +110,6 @@ public abstract class StatsPageBase extends VBox {
     abstract void collider();
     abstract void multipliers();
     abstract void records();
-    abstract void journal();
     abstract void page(String name, String color, BooleanSupplier unlocked, String howToUnlock);
     abstract void section(String title);
     abstract void curves();
@@ -588,8 +586,4 @@ public abstract class StatsPageBase extends VBox {
     List<StatsHistory.Sample> liveSamples;
     boolean liveRun;
     double liveAt;
-
-    final VBox journalList = new VBox(3);
-    final Label journalNote = new Label();
-    int journalVersion = -1;
 }

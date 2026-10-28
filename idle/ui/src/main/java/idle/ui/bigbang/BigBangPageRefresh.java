@@ -51,51 +51,51 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                 + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
         long created = game.moleculesCreated();
         moleculesTab.setText(created > 0 ? "Molécules (" + Format.count(BigNum.of(created)) + ")" : "Molécules");
-        expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.of(game).comet()));
+        expansionTab.setText("Expansion de la matière" + Readiness.dot(Readiness.Kind.COMET, Readiness.of(game).comet()));
         // Version 0.124 : le point dit qu'un palier ouvert peut se payer.
         boolean canPay = false;
         for (BigBangMilestone milestone : game.bigBangMilestones()) canPay |= game.canBuyBigBangMilestone(milestone);
         milestonesTab.setText("Paliers (" + game.bigBangMilestonesReached() + "/" + game.bigBangMilestones().size() + ")"
-                + Readiness.dot(canPay));
+                + Readiness.dot(Readiness.Kind.MILESTONES, canPay));
         // Le rassemblement n'a son onglet qu'une fois ouvert ; si on le regardait et qu'il se referme (remise à zéro), retour au début.
         boolean states = game.isStatesUnlocked();
         statesTab.setVisible(states);
         statesTab.setManaged(states);
         int formed = game.substancesFormed();
         Readiness ready = Readiness.of(game);
-        statesTab.setText((formed > 0 ? "États de la matière (" + formed + ")" : "États de la matière") + Readiness.dot(ready.states()));
+        statesTab.setText((formed > 0 ? "États de la matière (" + formed + ")" : "États de la matière") + Readiness.dot(Readiness.Kind.SKY, ready.states()));
         if (selected == 3 && !states) select(0);
         boolean assemblies = game.isAssembliesUnlocked();
         assembliesTab.setVisible(assemblies);
         assembliesTab.setManaged(assemblies);
         int assembled = game.assembliesFormed();
-        assembliesTab.setText((assembled > 0 ? "Assemblages (" + assembled + ")" : "Assemblages") + Readiness.dot(ready.assemblies()));
+        assembliesTab.setText((assembled > 0 ? "Assemblages (" + assembled + ")" : "Assemblages") + Readiness.dot(Readiness.Kind.SKY, ready.assemblies()));
         if (selected == 4 && !assemblies) select(0);
         boolean bodies = game.isBodiesUnlocked();
         bodiesTab.setVisible(bodies);
         bodiesTab.setManaged(bodies);
         int sky = game.bodiesFormed();
-        bodiesTab.setText((sky > 0 ? "Astres (" + sky + ")" : "Astres") + Readiness.dot(ready.bodies()));
+        bodiesTab.setText((sky > 0 ? "Astres (" + sky + ")" : "Astres") + Readiness.dot(Readiness.Kind.SKY, ready.bodies()));
         if (selected == 5 && !bodies) select(0);
         // La galaxie n'a son onglet qu'à la première étoile.
         boolean galaxy = game.isGalaxyUnlocked();
         galaxyTab.setVisible(galaxy);
         galaxyTab.setManaged(galaxy);
         galaxyTab.setText((game.cosmosFormed() == 0 ? "Univers" : game.nextCosmos() == null ? "Univers (formé)"
-                : "Univers (" + game.cosmosFormed() + "/" + Cosmos.values().length + ")") + Readiness.dot(ready.cosmos()));
+                : "Univers (" + game.cosmosFormed() + "/" + Cosmos.values().length + ")") + Readiness.dot(Readiness.Kind.SKY, ready.cosmos()));
         if (selected == 6 && !galaxy) select(0);
         boolean probes = game.isProbesUnlocked();
         probesTab.setVisible(probes);
         probesTab.setManaged(probes);
         int waiting = game.state().probeRewards().size();
-        probesTab.setText((waiting > 0 ? "Sondes (" + waiting + ")" : "Sondes") + Readiness.dot(ProbesPane.ready(game)));
+        probesTab.setText((waiting > 0 ? "Sondes (" + waiting + ")" : "Sondes") + Readiness.dot(Readiness.Kind.PROBES, ProbesPane.ready(game)));
         if (selected == 8 && !probes) select(0);
         boolean systems = game.isSolarSystemsUnlocked();
         systemsTab.setVisible(systems);
         systemsTab.setManaged(systems);
         int complete = game.solarSystemsComplete();
         systemsTab.setText("Systèmes solaires (" + complete + "/" + Game.SYSTEMS_FOR_GALAXY + ")"
-                + Readiness.dot(systems && complete < Game.SYSTEMS_FOR_GALAXY && !game.freeForSystems(Body.Tier.PLANET).isEmpty()
+                + Readiness.dot(Readiness.Kind.SYSTEMS, systems && complete < Game.SYSTEMS_FOR_GALAXY && !game.freeForSystems(Body.Tier.PLANET).isEmpty()
                         && (!game.state().solarSystems().isEmpty() || !game.freeForSystems(Body.Tier.STAR).isEmpty())));
         if (selected == 9 && !systems) select(0);
         // La liste de courses accompagne les trois sous-pages où l'on forme quelque chose.

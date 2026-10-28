@@ -8,7 +8,6 @@ import idle.core.collider.ColliderAchievement;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.math.BigNum;
-import idle.ui.EventLog;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
@@ -39,9 +38,10 @@ import javafx.scene.text.TextAlignment;
  *   <li>« Matière noire » : dès la première explosion ;</li>
  *   <li>« Big Bang » : dès le premier Big Bang ;</li>
  *   <li>« Collisionneur » : dès la première explosion, avec lui (version 0.063) ;</li>
- *   <li>« Records » : toujours là, acte par acte (version 0.063) ;</li>
- *   <li>« Journal » : toujours là.</li>
+ *   <li>« Records » : toujours là, acte par acte (version 0.063).</li>
  * </ul>
+ * Le journal des annonces, longtemps la dernière sous-page, est passé dans l'onglet Profil (version 0.147,
+ * {@link ProfilePage}).
  * Une sous-page débloquée le reste, même si une explosion fait disparaître la ressource. À
  * l'intérieur d'une sous-page, certaines lignes n'apparaissent elles aussi qu'en avançant : le
  * multiplicateur des éléments n'a pas de sens avant le tableau périodique.
@@ -77,23 +77,6 @@ public final class StatsPage extends StatsPageLines {
     // ------------------------------------------------------------------
     // Construction et affichage
     // ------------------------------------------------------------------
-
-    /** Nombre d'annonces du journal affichées : pour les vérifications. */
-    public int journalRows() {
-        return journalList.getChildren().size();
-    }
-
-    /** Le texte d'une ligne du journal, la plus récente d'abord : pour les vérifications. */
-    public String journalRow(int index) {
-        HBox box = (HBox) journalList.getChildren().get(index);
-        return ((Label) box.getChildren().get(0)).getText() + " | " + ((Label) box.getChildren().get(1)).getText();
-    }
-
-    /** Ouvre la sous-page du journal : pour les vérifications. */
-    public void openJournal() {
-        select(pages.get(pages.size() - 1));
-        refresh();
-    }
 
     /** Le collisionneur (version 0.063) : son énergie, ses croisements et ses collisions, ses quarks, ses générateurs. */
     void collider() {
@@ -230,44 +213,6 @@ public final class StatsPage extends StatsPageLines {
     /** Le record d'une étape, toutes parties confondues, ou « pas encore ». */
     private void stepRecord(GameStats.Step step) {
         row(step.label(), () -> Double.isNaN(game.recordOf(step)) ? NOT_YET : Format.duration(game.recordOf(step)));
-    }
-
-    /**
-     * Le journal des événements : les dernières annonces du jeu ({@link EventLog}), la plus récente
-     * en haut, avec l'heure et le temps de jeu. Il n'est recomposé que lorsqu'une annonce arrive.
-     */
-    void journal() {
-        page("Journal", STATS_COLOR, () -> true, "");
-        section("Les " + EventLog.CAPACITY + " dernières annonces");
-        journalNote.setStyle(NAME_STYLE);
-        journalNote.setWrapText(true);
-        journalNote.setMaxWidth(MAX_WIDTH);
-        journalList.setMaxWidth(MAX_WIDTH);
-        building.content.getChildren().add(journalNote);
-        building.content.getChildren().add(journalList);
-        building.updaters.add(() -> {
-            EventLog log = EventLog.of(game);
-            if (log.version() == journalVersion) return;
-            journalVersion = log.version();
-            journalNote.setText(log.size() == 0
-                    ? "Rien pour l'instant. Tout ce que le jeu annonce (palier, succès, explosion, amélioration acquise) "
-                            + "viendra se noter ici, même si les notifications sont coupées."
-                    : "La plus récente en haut. Le journal dure le temps d'un lancement : il n'est pas sauvegardé.");
-            journalList.getChildren().clear();
-            for (EventLog.Entry entry : log.entries()) {
-                Label when = new Label(entry.clock() + "  ·  " + Format.duration(entry.played()) + " de jeu");
-                when.setStyle("-fx-font-size: 12px; -fx-text-fill: #8fa3b8;");
-                when.setMinWidth(170);
-                Label text = new Label(entry.text());
-                text.setStyle(NAME_STYLE);
-                text.setWrapText(true);
-                HBox.setHgrow(text, Priority.ALWAYS);
-                HBox line = new HBox(10, when, text);
-                line.setStyle(ROW_STYLE);
-                line.setMaxWidth(MAX_WIDTH);
-                journalList.getChildren().add(line);
-            }
-        });
     }
 
     void page(String name, String color, BooleanSupplier unlocked, String howToUnlock) {

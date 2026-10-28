@@ -25,6 +25,7 @@ import idle.ui.universe.Dimension;
 import idle.ui.universe.DimensionWindow;
 import idle.ui.universe.UniversePage;
 import idle.ui.pages.AchievementsPage;
+import idle.ui.pages.ProfilePage;
 import idle.ui.pages.SettingsPage;
 import idle.ui.pages.StatsPage;
 import idle.ui.particles.GeneratorPane;
@@ -131,7 +132,7 @@ public abstract class GameAppBase extends Application {
     static final double EXPLOSION_CONFIRM_SECONDS = 5;
 
     /** Les onglets du jeu. */
-    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
+    enum Tab { PARTICLES, ATOMS, AUTOMATION, DARK_MATTER, COLLIDER, BIG_BANG, UNIVERSE, VOID, PROFILE, ACHIEVEMENTS, STATS, SETTINGS, SKINS }
 
     /** Le nom d'un onglet, sans compteur : sur les fenêtres d'explication, et dans le rapport de bug (version 0.127). */
     static String tabName(Tab tab) {
@@ -144,6 +145,7 @@ public abstract class GameAppBase extends Application {
             case BIG_BANG -> "Big Bang";
             case UNIVERSE -> "Univers";
             case VOID -> "Le vide";
+            case PROFILE -> "Profil";
             case ACHIEVEMENTS -> "Succès";
             case STATS -> "Statistiques";
             case SETTINGS -> "Réglages";
@@ -181,6 +183,8 @@ public abstract class GameAppBase extends Application {
     final Button universeTab = new Button("Univers");
     /** L'onglet du vide (version 0.099), deuxième acte de la partie secondaire : au premier Big Bang du troisième univers (version 0.116). */
     final Button voidTab = new Button("Le vide");
+    /** L'onglet du profil (version 0.147) : le joueur, ses titres, ses albums et le journal ; là dès le premier générateur. */
+    final Button profileTab = new Button("Profil");
     final Button achievementsTab = new Button("Succès");
     final Button statsTab = new Button("Statistiques");
     final Button settingsTab = new Button("Réglages");
@@ -199,12 +203,13 @@ public abstract class GameAppBase extends Application {
     final TabIcon bigBangIcon = new TabIcon(TabIcon.Kind.BIG_BANG, BIG_BANG_COLOR, 20);
     final TabIcon universeIcon = new TabIcon(TabIcon.Kind.UNIVERSE, UniversePage.COLOR, 20);
     final TabIcon voidIcon = new TabIcon(TabIcon.Kind.VOID, idle.ui.vacuum.VoidPage.COLOR, 20);
+    final TabIcon profileIcon = new TabIcon(TabIcon.Kind.PROFILE, ProfilePage.COLOR, 20);
     final TabIcon achievementsIcon = new TabIcon(TabIcon.Kind.ACHIEVEMENTS, ACHIEVEMENTS_COLOR, 20);
     final TabIcon statsIcon = new TabIcon(TabIcon.Kind.STATS, STATS_COLOR, 20);
     final TabIcon settingsIcon = new TabIcon(TabIcon.Kind.SETTINGS, SETTINGS_COLOR, 20);
     final TabIcon skinsIcon = new TabIcon(TabIcon.Kind.SKINS, idle.ui.pages.SkinsPage.COLOR, 20);
     final TabIcon[] tabIcons = {particlesIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon,
-            achievementsIcon, statsIcon, settingsIcon, skinsIcon};
+            profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
     /**
      * Le rôle d'un onglet, qui décide de son allure : les actes du jeu (cadre plein), ce qui tourne
      * à côté (cadre en pointillés), et les pages pour s'y retrouver (sans cadre, rangées à part).
@@ -212,7 +217,7 @@ public abstract class GameAppBase extends Application {
     enum TabRole { ACT, SIDE, META }
     /** Les onglets, dans l'ordre, et l'écart qui sépare les pages pour s'y retrouver des autres. */
     final Button[] tabButtons = {particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, voidTab, achievementsTab, statsTab, settingsTab, skinsTab};
+            universeTab, voidTab, profileTab, achievementsTab, statsTab, settingsTab, skinsTab};
     final javafx.scene.layout.Region tabGap = new javafx.scene.layout.Region();
     /** À gauche, l'espace qui pousse les pages pour s'y retrouver en bas de la colonne. */
     final javafx.scene.layout.Region sideSpacer = new javafx.scene.layout.Region();
@@ -223,7 +228,7 @@ public abstract class GameAppBase extends Application {
     long pressedAt;
     boolean justDragged;
     final HBox tabBar = new HBox(4, particlesTab, atomsTab, automationTab, darkMatterTab, colliderTab, bigBangTab,
-            universeTab, voidTab, tabGap, achievementsTab, statsTab, settingsTab, skinsTab);
+            universeTab, voidTab, tabGap, profileTab, achievementsTab, statsTab, settingsTab, skinsTab);
     /** À gauche, le nom de l'onglet affiché quand il n'a pas de sous-onglets : la barre du haut garde sa hauteur. */
     final Label tabTitle = new Label();
     /** À gauche : la colonne de droite, avec le haut de la fenêtre et les pages ; la colonne des onglets descend jusqu'en bas. */
@@ -241,6 +246,8 @@ public abstract class GameAppBase extends Application {
     final DimensionWindow dimensionWindow = new DimensionWindow(game, settings::freeCamera, settings::setFreeCamera);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
     final StatsPage statsPage = new StatsPage(game);
+    /** Le profil : l'image importée se copie dans le dossier des données, connu seulement au lancement. */
+    final ProfilePage profilePage = new ProfilePage(game, () -> store.enabled() ? store.folder() : null);
     final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
     final idle.ui.pages.SkinsPage skinsPage = new idle.ui.pages.SkinsPage(game);
     final ScrollPane skinsScroll = new ScrollPane(skinsPage);
@@ -414,7 +421,7 @@ public abstract class GameAppBase extends Application {
         Labels.transparent(settingsScroll);
         Labels.transparent(achievementsScroll);
         pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
-                universePage, voidPage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
+                universePage, voidPage, profilePage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
         Labels.transparent(skinsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
         atomsTab.setOnAction(event -> open(Tab.ATOMS));
@@ -424,6 +431,7 @@ public abstract class GameAppBase extends Application {
         bigBangTab.setOnAction(event -> open(Tab.BIG_BANG));
         universeTab.setOnAction(event -> open(Tab.UNIVERSE));
         voidTab.setOnAction(event -> open(Tab.VOID));
+        profileTab.setOnAction(event -> open(Tab.PROFILE));
         achievementsTab.setOnAction(event -> open(Tab.ACHIEVEMENTS));
         statsTab.setOnAction(event -> open(Tab.STATS));
         settingsTab.setOnAction(event -> open(Tab.SETTINGS));
@@ -436,6 +444,7 @@ public abstract class GameAppBase extends Application {
         bigBangTab.setGraphic(bigBangIcon);
         universeTab.setGraphic(universeIcon);
         voidTab.setGraphic(voidIcon);
+        profileTab.setGraphic(profileIcon);
         achievementsTab.setGraphic(achievementsIcon);
         statsTab.setGraphic(statsIcon);
         settingsTab.setGraphic(settingsIcon);
@@ -514,6 +523,7 @@ public abstract class GameAppBase extends Application {
             particlesTab.setScaleX(0.2);
             particlesTab.setScaleY(0.2);
         });
+        dock(Tab.PROFILE, profilePage, profilePage.subTabs());
         dock(Tab.STATS, statsPage, statsPage.subTabs());
         dock(Tab.SETTINGS, settingsPage, settingsPage.subTabs());
         testProfile = arguments.contains("--test");
@@ -601,8 +611,9 @@ public abstract class GameAppBase extends Application {
                 if (!bornNow && !(selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying())) endPane.check();
                 checkPopups();
                 // Les thèmes et notations à débloquer : annoncés après le reste, pour ne pas être chassés par lui.
+                // Version 0.146 : leur catégorie se coupe dans les réglages, comme les autres notifications.
                 for (Cosmetic opened : cosmetics.frame(dt, settings.paused())) {
-                    toasts.show(Cosmetics.announcement(opened), SETTINGS_COLOR);
+                    if (settings.notice(Notice.COSMETICS)) toasts.show(Cosmetics.announcement(opened), SETTINGS_COLOR);
                 }
                 refresh();
             }
@@ -616,7 +627,7 @@ public abstract class GameAppBase extends Application {
         }
         animate(0);
         refresh();
-        if (!loaded.notice().isEmpty()) toasts.show(loaded.notice(), SETTINGS_COLOR);
+        if (!loaded.notice().isEmpty() && settings.notice(Notice.GAME)) toasts.show(loaded.notice(), SETTINGS_COLOR);
         // Le temps passé jeu fermé n'est rejoué que si le joueur le veut (réglage « Hors ligne »).
         if (loaded.found() && settings.offline()) {
             Absence absence = new Absence(game, (System.currentTimeMillis() - loaded.savedAt()) / 1000.0);

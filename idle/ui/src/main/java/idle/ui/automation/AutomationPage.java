@@ -1,11 +1,13 @@
 package idle.ui.automation;
 
 import idle.core.Game;
+import idle.core.collider.ColliderUpgrade;
 import idle.core.darkmatter.DarkAutomation;
 import idle.core.math.BigNum;
 import idle.core.upgrades.Automation;
 import idle.core.upgrades.Upgrade;
 import idle.ui.GameApp;
+import idle.ui.collider.ColliderPane;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
@@ -13,6 +15,7 @@ import idle.ui.common.Format;
 import idle.ui.common.OrderPane;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +47,18 @@ import javafx.scene.text.TextAlignment;
  * ou se coupe d'un clic. Ils ne coûtent rien, et aucun ne refait le travail d'un automatisme
  * ordinaire : le premier se contente de les offrir au début de chaque partie.
  *
+ * <p>Puis ceux du Big Bang (l'appui, la création, le rassemblement et la formation automatiques), avec leurs
+ * réglages : réserve d'espace, liste de courses, besoins de matière, plafonds par état.
+ *
+ * <p>Depuis la version 0.147, tout ce qui agit seul s'y retrouve. Les huit automates du collisionneur, une carte
+ * chacun, dès que ses améliorations s'ouvrent : pas encore acheté, la carte dit son prix et l'achète si le
+ * collisionneur le propose déjà, sinon elle renvoie au collisionneur ; acheté, elle le met en pause ou le relance.
+ * Une ligne dit où en est le déclencheur automatique (un croisement sur cinq, sur trois, puis tous), une autre ce que
+ * verse le tuyau d'arrosage de la graine. Ces trois-là ne relèvent pas de la coupure générale : le moteur ne les
+ * arrête pas quand « Couper tous les automatismes » est actif, et la note de la coupure le dit.
+ *
  * <p>Sous chaque groupe, une ligne dit ce qui reste à découvrir, pour que le joueur sache qu'il
- * y a une suite.
+ * y a une suite. Chaque section n'apparaît qu'une fois son système ouvert.
  *
  * <p>L'onglet apparaît dès qu'un automatisme est débloqué, et reste là pour de bon une fois la
  * première matière noire obtenue.
@@ -93,6 +106,19 @@ public final class AutomationPage extends VBox {
     private final HBox reserveRow = new HBox(8, lessReserve, reserveLabel, moreReserve);
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     private static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
+
+    /** Ajouté à la note de la coupure quand elle laisse tourner quelque chose (version 0.147). */
+    private static final String UNCUT_NOTE = " Attention : la coupure n'arrête ni les automates du collisionneur, ni son "
+            + "déclencheur automatique, ni le tuyau d'arrosage de la graine. Les automates se mettent en pause un par un, ici "
+            + "ou dans le collisionneur.";
+
+    // Les automates du collisionneur (version 0.147), son déclencheur automatique, et le tuyau d'arrosage de la graine.
+    private final Label colliderTitle = new Label("Automates du collisionneur");
+    private final Label colliderHint = new Label();
+    private final Map<ColliderUpgrade, Card> colliderCards = new EnumMap<>(ColliderUpgrade.class);
+    private final TileGrid colliderGrid = new TileGrid(230, 4, 8);
+    private final Label catchLine = new Label();
+    private final Label hoseLine = new Label();
 
     // Les automatismes de matière noire.
     private final Label darkTitle = new Label("Automatismes de matière noire");
@@ -345,6 +371,29 @@ public final class AutomationPage extends VBox {
         caps.setAlignment(Pos.CENTER);
         capsBox = caps;
         getChildren().add(caps);
+
+        // Les automates du collisionneur : une carte chacun, qui l'achète puis le met en pause ou le relance.
+        colliderTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
+                + ColliderPane.COLOR + ";");
+        wrapped(colliderHint, HINT_STYLE);
+        colliderHint.setMaxWidth(760);
+        for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
+            if (!upgrade.isPausable()) continue;
+            Card card = new Card(ColliderPane.COLOR);
+            card.setOnAction(() -> {
+                if (game.colliderUpgradeLevel(upgrade) > 0) game.toggleColliderAutomation(upgrade);
+                else game.buyColliderUpgrade(upgrade);
+                refresh();
+            });
+            colliderCards.put(upgrade, card);
+            colliderGrid.add(card);
+        }
+        colliderGrid.setMaxWidth(778);
+        wrapped(catchLine, "-fx-font-size: 13px; -fx-text-fill: " + ColliderPane.COLOR + ";");
+        catchLine.setMaxWidth(760);
+        wrapped(hoseLine, "-fx-font-size: 13px; -fx-text-fill: #e6d27a;");
+        hoseLine.setMaxWidth(760);
+        getChildren().addAll(colliderTitle, colliderHint, colliderGrid, catchLine, hoseLine);
     }
 
     /** Les choix d'un plafond : sans plafond, puis de 90 % à 5 %. */
@@ -488,14 +537,24 @@ public final class AutomationPage extends VBox {
     }
 
     /**
-     * Vrai si l'onglet doit être affiché : un automatisme ordinaire ou de matière noire est
-     * débloqué, ou la première matière noire a été obtenue (l'onglet ne disparaît alors plus).
+     * Vrai si l'onglet doit être affiché : un automatisme ordinaire, de matière noire ou du Big Bang est
+     * débloqué, ou la première matière noire a été obtenue (l'onglet ne disparaît alors plus), ou un automate du
+     * collisionneur est acheté, ou la graine a son tuyau.
      */
     public static boolean hasContent(Game game) {
         if (game.isAutomationUnlocked() || game.isDarkMatterUnlocked() || game.isAutoHoldUnlocked()
-                || game.isMoleculeAutomationUnlocked() || game.isAutoGatherUnlocked() || game.isAutoFormUnlocked()) return true;
+                || game.isMoleculeAutomationUnlocked() || game.isAutoGatherUnlocked() || game.isAutoFormUnlocked()
+                || ownsColliderAutomate(game) || game.hasHose()) return true;
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id())) return true;
+        }
+        return false;
+    }
+
+    /** Vrai si au moins un automate du collisionneur est acheté. */
+    private static boolean ownsColliderAutomate(Game game) {
+        for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
+            if (upgrade.isPausable() && game.colliderUpgradeLevel(upgrade) > 0) return true;
         }
         return false;
     }
@@ -514,10 +573,12 @@ public final class AutomationPage extends VBox {
                 : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
         boolean handOnly = game.isHandOnly();
         show(pauseNote, (paused || handOnly) && game.hasAnyAutomation());
+        // Ce que la coupure générale laisse tourner : le moteur n'arrête ni le collisionneur ni le tuyau.
+        boolean uncut = ownsColliderAutomate(game) || game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH) > 0 || game.hasHose();
         pauseNote.setText(handOnly
                 ? "Défi de Big Bang « À la main » : les automatismes de matière noire et ceux du Big Bang ne font rien jusqu'au "
                         + "prochain Big Bang. Leurs réglages restent."
-                : PAUSE_NOTE);
+                : PAUSE_NOTE + (uncut ? UNCUT_NOTE : ""));
         // Coupés, les automatismes s'estompent : leurs cartes disent toujours leur réglage, pas ce qu'ils font.
         double shade = paused ? 0.45 : 1;
         rows.values().forEach(row -> row.setOpacity(shade));
@@ -721,6 +782,7 @@ public final class AutomationPage extends VBox {
                             + " Un clic " + (on ? "le coupe." : "le remet en marche."),
                     "", waiting ? "après la première explosion" : "");
         }
+        refreshCollider();
         // La suite n'est annoncée qu'à qui connaît déjà la matière noire.
         boolean announce = next != null && game.isDarkMatterUnlocked();
         show(darkNext, announce);
@@ -730,6 +792,98 @@ public final class AutomationPage extends VBox {
                     + Format.count(next.darkMatter()) + " matières noires gagnées (vous : "
                     + Format.darkMatter(game.darkMatterEarned()) + ").");
         }
+    }
+
+    /**
+     * Les automates du collisionneur, son déclencheur automatique et le tuyau d'arrosage : chacun n'apparaît qu'une fois
+     * son système ouvert. La coupure générale ne les estompe pas : elle ne les arrête pas.
+     */
+    private void refreshCollider() {
+        boolean open = game.isColliderUpgradesUnlocked();
+        show(colliderTitle, open);
+        show(colliderHint, open);
+        show(colliderGrid, open);
+        if (open) {
+            colliderHint.setText("Énergie du collisionneur : " + energy(game.colliderEnergy()) + ". Chaque automate achète tout "
+                    + "seul les exemplaires de son générateur ; la coupure générale ne les arrête pas : un clic sur la carte "
+                    + "met en pause ou relance."
+                    + Detail.only(" Ils s'achètent une fois, ici ou dans le collisionneur, chacun après le précédent. Comme tout "
+                            + "le collisionneur, ils traversent l'explosion et le Big Bang, et leurs pauses aussi."));
+            for (Map.Entry<ColliderUpgrade, Card> entry : colliderCards.entrySet()) {
+                ColliderUpgrade upgrade = entry.getKey();
+                Card card = entry.getValue();
+                if (game.colliderUpgradeLevel(upgrade) > 0) {
+                    boolean running = game.isColliderAutomationRunning(upgrade);
+                    card.show(running ? Card.State.ON : Card.State.OFF, "", running ? "en marche" : "en pause", upgrade.label(),
+                            upgrade.brief(), upgrade.effect() + ". Un clic " + (running ? "le met en pause." : "le relance."), "", "");
+                } else if (game.isColliderUpgradeOpen(upgrade)) {
+                    card.show(game.canBuyColliderUpgrade(upgrade) ? Card.State.READY : Card.State.WAITING, "", "", upgrade.label(),
+                            upgrade.brief(), upgrade.effect() + ". S'achète une fois, ici ou dans le collisionneur.",
+                            energy(game.colliderUpgradeCost(upgrade)) + " énergie", "");
+                } else {
+                    card.show(Card.State.LOCKED, "", "", upgrade.label(), upgrade.brief(),
+                            upgrade.effect() + ". S'ouvre avec « " + upgrade.requires().label() + " ».",
+                            "à acheter dans le collisionneur", "");
+                }
+            }
+        }
+        int catchLevel = game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH);
+        boolean catching = open && (catchLevel > 0 || game.isColliderUpgradeOpen(ColliderUpgrade.AUTO_CATCH));
+        show(catchLine, catching);
+        if (catching) {
+            int max = ColliderUpgrade.AUTO_CATCH.maxLevel();
+            String next = energy(game.colliderUpgradeCost(ColliderUpgrade.AUTO_CATCH)) + " énergie";
+            catchLine.setText(catchLevel == 0
+                    ? "Déclencheur automatique : pas encore acheté. Il s'achète dans le collisionneur, avec les faisceaux : " + next + "."
+                    : "Déclencheur automatique, niveau " + catchLevel + "/" + max + " : il capte " + catchShare(catchLevel)
+                            + (catchLevel < max ? ". Niveau suivant dans le collisionneur : " + next : "") + "."
+                            + Detail.only(" Il capte comme un clic au bon moment. Il ne se met pas en pause, et la coupure "
+                                    + "générale ne l'arrête pas."));
+        }
+        boolean hose = game.hasHose();
+        show(hoseLine, hose);
+        if (hose) {
+            double rate = game.hoseRate();
+            hoseLine.setText("Tuyau d'arrosage de la graine : il verse seul " + ElementText.number(rate)
+                    + (rate >= 2 ? " arrosages" : " arrosage") + " par seconde, " + ElementText.percent(game.hoseShare())
+                    + " de ce que verse l'arrosoir."
+                    + Detail.only(" Il arrose tant que la graine peut l'être, sans pause : la coupure générale ne l'arrête pas. "
+                            + "Ses niveaux s'achètent avec les améliorations de la graine, dans l'onglet Univers."));
+        }
+    }
+
+    /** Ce que capte le déclencheur automatique à ce niveau. */
+    private static String catchShare(int level) {
+        return switch (level) {
+            case 1 -> "un croisement sur cinq";
+            case 2 -> "un croisement sur trois";
+            default -> "tous les croisements";
+        };
+    }
+
+    /** Une quantité d'énergie du collisionneur, comme dans son onglet. */
+    private static String energy(double value) {
+        return Format.big(BigNum.of(value));
+    }
+
+    /** La carte d'un automate du collisionneur : pour les vérifications. */
+    public Card colliderCard(ColliderUpgrade upgrade) {
+        return colliderCards.get(upgrade);
+    }
+
+    /** La ligne du déclencheur automatique, vide si elle est cachée : pour les vérifications. */
+    public String catchText() {
+        return catchLine.isVisible() ? catchLine.getText() : "";
+    }
+
+    /** La ligne du tuyau d'arrosage, vide si elle est cachée : pour les vérifications. */
+    public String hoseText() {
+        return hoseLine.isVisible() ? hoseLine.getText() : "";
+    }
+
+    /** La note de la coupure, vide si elle est cachée : pour les vérifications. */
+    public String pauseNoteText() {
+        return pauseNote.isVisible() ? pauseNote.getText() : "";
     }
 
     /** Ce que fait un automatisme ordinaire, en quelques mots : la ligne de sa carte. */

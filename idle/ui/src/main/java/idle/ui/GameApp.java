@@ -27,7 +27,8 @@ import javafx.scene.input.KeyCode;
  *
  * <p>En haut de la fenêtre, des onglets. Quatre sont là dès le début : « Particules » (les
  * générateurs et leurs améliorations), « Succès » ({@link AchievementsPage}), « Statistiques »
- * ({@link StatsPage}) et « Réglages » ({@link SettingsPage}). Les autres apparaissent avec la partie : « Atomes » ({@link AtomsPage})
+ * ({@link StatsPage}) et « Réglages » ({@link SettingsPage}) ; « Profil » ({@link idle.ui.pages.ProfilePage}, version 0.147)
+ * les rejoint au premier générateur. Les autres apparaissent avec la partie : « Atomes » ({@link AtomsPage})
  * au premier atome, « Automatisation » ({@link AutomationPage}) dès qu'un automatisme est
  * débloqué. Le jeu continue de tourner quel que soit l'onglet affiché, sauf en pause.
  *
@@ -168,7 +169,7 @@ public final class GameApp extends GameAppTabs {
         boolean collider = game.isColliderUnlocked() && !phase;
         colliderTab.setVisible(collider);
         colliderTab.setManaged(collider);
-        colliderTab.setText((narrow ? "Collis." : "Collisionneur") + Readiness.dot(ColliderPage.ready(game)));
+        colliderTab.setText((narrow ? "Collis." : "Collisionneur") + Readiness.dot(Readiness.Kind.COLLIDER, ColliderPage.ready(game)));
         if (selectedTab == Tab.COLLIDER) colliderPage.refresh();
 
         // L'onglet « Big Bang » n'existe qu'après le premier Big Bang. Il vient d'y en avoir un : on y va,
@@ -216,7 +217,7 @@ public final class GameApp extends GameAppTabs {
         boolean vacuum = game.isVoidUnlocked() && !phase;
         voidTab.setVisible(vacuum);
         voidTab.setManaged(vacuum);
-        voidTab.setText("Le vide" + Readiness.dot(idle.ui.vacuum.VoidPage.ready(game)));
+        voidTab.setText("Le vide" + Readiness.dot(Readiness.Kind.VOID, idle.ui.vacuum.VoidPage.ready(game)));
         if (selectedTab == Tab.VOID) voidPage.refresh();
 
         // Les succès et les statistiques ne se recalculent que lorsqu'on les regarde. L'onglet des succès
@@ -226,6 +227,12 @@ public final class GameApp extends GameAppTabs {
         achievementsTab.setManaged(achievements);
         if (selectedTab == Tab.ACHIEVEMENTS) achievementsPage.refresh();
         if (selectedTab == Tab.STATS) statsPage.refresh();
+        // Le profil (version 0.147) : dès le premier générateur ; sa pastille dit qu'un titre attend d'être vu.
+        boolean profile = game.isStarted();
+        profileTab.setVisible(profile);
+        profileTab.setManaged(profile);
+        profileTab.setText("Profil" + Readiness.dot(selectedTab != Tab.PROFILE && profilePage.hasNews()));
+        if (selectedTab == Tab.PROFILE) profilePage.refresh();
         settingsTab.setText(!settings.paused() ? "Réglages" : narrow ? "En pause" : "Réglages (pause)");
         // Les skins (version 0.087) : l'onglet s'ouvre après cinq fusions du deuxième univers, et ne se referme plus.
         boolean skins = game.isSkinsUnlocked();
@@ -238,7 +245,8 @@ public final class GameApp extends GameAppTabs {
         if ((selectedTab == Tab.ATOMS && !hasAtoms) || (selectedTab == Tab.AUTOMATION && !automation)
                 || (selectedTab == Tab.DARK_MATTER && !darkMatter) || (selectedTab == Tab.BIG_BANG && (!bigBang || phase))
                 || (selectedTab == Tab.UNIVERSE && game.universes() == 0) || (selectedTab == Tab.PARTICLES && phase)
-                || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)) {
+                || (selectedTab == Tab.COLLIDER && !collider) || (selectedTab == Tab.VOID && !vacuum)
+                || (selectedTab == Tab.PROFILE && !profile)) {
             selectTab(phase ? Tab.UNIVERSE : Tab.PARTICLES);
             // L'onglet « Particules » n'était plus recopié tant qu'il était caché : il l'est maintenant, avec tout le reste.
             refresh();
@@ -279,20 +287,10 @@ public final class GameApp extends GameAppTabs {
         themeFilter.fit();
         // L'objectif du moment, sous les onglets. Caché, il laisse sa place vide : le rappel reste à droite.
         boolean goal = settings.showGoal() && game.isStarted();
-        // Après un premier Big Bang, deux objectifs se suivent de front : celui de la partie, et celui du troisième acte.
-        String act = goal ? Goals.act(game) : "";
-        // Entre les deux, l'avancée du prochain Big Bang : ses conditions, sans ouvrir l'arbre.
-        String bang = goal ? NextReset.bigBangProgress(game) : "";
-        // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
-        String chrono = goal && settings.chrono() ? Goals.chrono(game) : "";
-        goalLabel.setText(goal && phase ? "Quatrième acte : l'univers. " + game.universes() + (game.universes() > 1 ? " univers" : " univers")
-                + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked() + (game.dimensionsUnlocked() > 1 ? " dimensions sur " : " dimension sur ") + Game.MAX_DIMENSIONS : "")
-                + ". La suite viendra."
-                : goal ? "Objectif : " + Goals.withEstimate(game, game.stats())
-                + (bang.isEmpty() ? "" : "   |   Prochain Big Bang : " + bang)
-                + (act.isEmpty() ? "" : game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE)
-                        ? "   |   Quatrième acte : la suite viendra" : "   |   Troisième acte : " + act)
-                + (chrono.isEmpty() ? "" : "   |   " + chrono) : "");
+        goalLabel.setText(!goal ? "" : phase ? (settings.goalPart(Goals.Part.GOAL) ? "Quatrième acte : l'univers. " + game.universes()
+                + " univers" + (game.isDimensionsUnlocked() ? ", " + game.dimensionsUnlocked()
+                        + (game.dimensionsUnlocked() > 1 ? " dimensions sur " : " dimension sur ") + Game.MAX_DIMENSIONS : "")
+                + ". La suite viendra." : "") : goalLine());
         String detailKey = Detail.keyName(settings.detailKey());
         detailHint.setText(Detail.shown()
                 ? (settings.detailToggle() ? detailKey + " : cacher les détails" : "Détails affichés")
@@ -413,5 +411,10 @@ public final class GameApp extends GameAppTabs {
                 + (pause == null ? "" : Shortcuts.name(pause) + " met en pause, ")
                 + (help == null ? "" : Shortcuts.name(help) + " ouvre l'aide et la liste complète. ")
                 + "Les touches des cartes achètent la quantité choisie, depuis n'importe quel onglet.";
+    }
+
+    /** La ligne d'objectif, morceau par morceau (version 0.146) : ceux que les réglages montrent. */
+    String goalLine() {
+        return Goals.line(game, settings::goalPart);
     }
 }

@@ -343,6 +343,10 @@ public final class Settings {
     private static final String TABS_LEFT = "tabsLeft";
     private static final String TAB_ORDER = "tabOrder";
     private static final String EFFECTS_OFF = "effectsOff";
+    /** Les catégories coupées (version 0.146) : des notifications, des morceaux de l'objectif, des pastilles. */
+    private static final String NOTICES_OFF = "noticesOff";
+    private static final String GOAL_PARTS_OFF = "goalPartsOff";
+    private static final String DOTS_OFF = "dotsOff";
     private static final String SAVE_DELAY = "saveDelay";
     private static final String OFFLINE = "offline";
     private static final String COSMETICS = "cosmetics";
@@ -393,6 +397,10 @@ public final class Settings {
     private String tabOrder = "";
     /** Les effets coupés un par un (version 0.063). */
     private final java.util.EnumSet<Effect> effectsOff = java.util.EnumSet.noneOf(Effect.class);
+    /** Les notifications coupées par catégorie, les morceaux de l'objectif cachés et les pastilles cachées (version 0.146). */
+    private final java.util.EnumSet<Notice> noticesOff = java.util.EnumSet.noneOf(Notice.class);
+    private final java.util.EnumSet<Goals.Part> goalPartsOff = java.util.EnumSet.noneOf(Goals.Part.class);
+    private final java.util.EnumSet<Readiness.Kind> dotsOff = java.util.EnumSet.noneOf(Readiness.Kind.class);
     private SaveDelay saveDelay = SaveDelay.THIRTY;
     /** Vrai si le temps passé jeu fermé est rejoué au retour. */
     private boolean offline = true;
@@ -415,6 +423,11 @@ public final class Settings {
         } catch (RuntimeException unavailable) {
             store = null;
         }
+        return load(store);
+    }
+
+    /** Réglages relus dans ce stockage ({@code null} : ceux par défaut, pour le temps du lancement) ; les tests en donnent un en mémoire. */
+    static Settings load(Preferences store) {
         Settings settings = new Settings(store);
         if (store != null) {
             try {
@@ -459,6 +472,10 @@ public final class Settings {
             try {
                 settings.offline = store.getBoolean(OFFLINE, true);
                 settings.effectsOff.addAll(names(Effect.class, store.get(EFFECTS_OFF, "")));
+                // Version 0.146 : absentes d'avant, tout est affiché.
+                settings.noticesOff.addAll(names(Notice.class, store.get(NOTICES_OFF, "")));
+                settings.goalPartsOff.addAll(names(Goals.Part.class, store.get(GOAL_PARTS_OFF, "")));
+                settings.dotsOff.addAll(names(Readiness.Kind.class, store.get(DOTS_OFF, "")));
                 settings.cosmetics.addAll(names(Cosmetic.class, store.get(COSMETICS, "")));
             } catch (RuntimeException unreadable) {
                 // on garde les valeurs par défaut
@@ -503,6 +520,7 @@ public final class Settings {
         }
         Confirm.set(settings.confirmBigBang, settings.confirmChallenge);
         Card.setSigns(settings.stateSigns);
+        Readiness.setHidden(settings.dotsOff);
         Format.setNotation(settings.notation);
         settings.applyEffects();
         return settings;
@@ -768,6 +786,59 @@ public final class Settings {
     public void setNotifications(boolean notifications) {
         this.notifications = notifications;
         save(NOTIFICATIONS, String.valueOf(notifications));
+    }
+
+    /**
+     * Vrai si les notifications de cette catégorie s'affichent (version 0.146) : les notifications en marche, et elle
+     * pas coupée.
+     */
+    public boolean notice(Notice kind) {
+        return notifications && !noticesOff.contains(kind);
+    }
+
+    /** Vrai si cette catégorie est en marche dans son propre réglage, quel que soit le grand interrupteur. */
+    public boolean noticeChosen(Notice kind) {
+        return !noticesOff.contains(kind);
+    }
+
+    public void setNotice(Notice kind, boolean on) {
+        if (on) noticesOff.remove(kind);
+        else noticesOff.add(kind);
+        save(NOTICES_OFF, joined(noticesOff));
+    }
+
+    /**
+     * Vrai si ce morceau de la ligne d'objectif s'affiche (version 0.146) : l'objectif en marche, et lui pas caché. Le
+     * chrono garde son réglage d'avant.
+     */
+    public boolean goalPart(Goals.Part part) {
+        return showGoal && goalPartChosen(part);
+    }
+
+    public boolean goalPartChosen(Goals.Part part) {
+        return part == Goals.Part.CHRONO ? chrono : !goalPartsOff.contains(part);
+    }
+
+    public void setGoalPart(Goals.Part part, boolean on) {
+        if (part == Goals.Part.CHRONO) {
+            setChrono(on);
+            return;
+        }
+        if (on) goalPartsOff.remove(part);
+        else goalPartsOff.add(part);
+        save(GOAL_PARTS_OFF, joined(goalPartsOff));
+    }
+
+    /** Vrai si cette sorte de pastille s'allume sur les onglets (version 0.146). */
+    public boolean dot(Readiness.Kind kind) {
+        return !dotsOff.contains(kind);
+    }
+
+    public void setDot(Readiness.Kind kind, boolean on) {
+        if (on) dotsOff.remove(kind);
+        else dotsOff.add(kind);
+        Readiness.setHidden(dotsOff);
+        save(DOTS_OFF, joined(dotsOff));
     }
 
     /** Vrai si l'objectif du moment est rappelé sous les onglets. */

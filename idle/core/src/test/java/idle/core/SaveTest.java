@@ -243,6 +243,16 @@ class SaveTest {
         state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);
+        // Le profil et les albums (version 0.147), avec des caractères que la sauvegarde doit échapper.
+        state.setPlayerName("Zoé ; « la » 100 % = 1|2");
+        state.setAvatar("custom");
+        state.setChosenTitle("STAR_SMITH");
+        state.earnTitle("SPARK", 3.5);
+        state.earnTitle("STAR_SMITH", 98_765.25);
+        state.noteFound("molecules", "H2O", 41_000.5);
+        state.noteFound("substances", "H2O", 42_000);
+        state.noteFound("assemblies", "granitic_rock", 50_000);
+        state.noteFound("bodies", "rocky_rubble", 60_000.75);
         state.setActiveBangChallenge("FORGOTTEN");
         state.addCompletedBangChallenge("VOID");
         state.setBangChallengeTime("VOID", 3120.5);

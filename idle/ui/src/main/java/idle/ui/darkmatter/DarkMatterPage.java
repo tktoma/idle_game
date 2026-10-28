@@ -343,8 +343,8 @@ public final class DarkMatterPage extends VBox {
         mockNotice.setVisible(Detail.shown());
         mockNotice.setManaged(Detail.shown());
         Readiness ready = Readiness.of(game);
-        treeTab.setText("Arbre" + Readiness.dot(ready.tree()));
-        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")" + Readiness.dot(ready.challenges()));
+        treeTab.setText("Arbre" + Readiness.dot(Readiness.Kind.TREE, ready.tree()));
+        challengesTab.setText("Défis (" + game.completedChallenges() + "/" + game.challenges().size() + ")" + Readiness.dot(Readiness.Kind.CHALLENGES, ready.challenges()));
         if (selected == 1) {
             tree.refresh();
             refreshPlan();

@@ -109,6 +109,14 @@ public final class SaveStore {
         return enabled;
     }
 
+    /**
+     * Le dossier des données, où s'écrivent la sauvegarde et ses points de reprise : le profil y copie aussi l'image
+     * que le joueur choisit pour son avatar (version 0.147).
+     */
+    public Path folder() {
+        return folder;
+    }
+
     /** Le fichier où s'écrit la partie. */
     Path file() {
         return file;

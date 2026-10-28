@@ -24,6 +24,62 @@ public final class Readiness {
 
     /** Le signe ajouté au nom d'un onglet où quelque chose est prêt. */
     static final String DOT = " ●";
+
+    /**
+     * Les sortes de pastilles (version 0.146), que les réglages montrent ou cachent une par une. Une pastille cachée ne
+     * s'allume ni sur son sous-onglet ni sur l'onglet qui le porte.
+     */
+    public enum Kind {
+        TREE("Arbre de matière noire", "Une case de l'arbre payable, ou le Big Bang possible."),
+        CHALLENGES("Défis de matière noire", "Un défi ouvert, jamais réussi, quand aucun n'est en cours."),
+        COLLIDER("Collisionneur", "Le quark top, une amélioration payable, le vide à ouvrir."),
+        MILESTONES("Paliers du Big Bang", "Un palier ouvert qui peut se payer."),
+        SKY("Ciel à former", "Une sorte à rassembler, un assemblage, un astre ou une échelle du cosmos à former."),
+        COMET("Comète", "Une comète dans l'expansion : la seule pastille qui s'éteint seule."),
+        PROBES("Sondes", "Un butin à prendre, ou une place libre pour une sonde."),
+        SYSTEMS("Systèmes solaires", "Une planète et une étoile libres pour un système."),
+        VOID("Le vide", "Une amélioration du vide payable.");
+
+        private final String label;
+        private final String detail;
+
+        Kind(String label, String detail) {
+            this.label = label;
+            this.detail = detail;
+        }
+
+        public String label() {
+            return label;
+        }
+
+        public String detail() {
+            return detail;
+        }
+    }
+
+    /** Les pastilles cachées dans les réglages : un réglage commun à toutes les pages, comme les signes des cartes. */
+    private static final java.util.EnumSet<Kind> HIDDEN = java.util.EnumSet.noneOf(Kind.class);
+
+    /** Recopie les pastilles cachées des réglages. */
+    public static void setHidden(java.util.Set<Kind> hidden) {
+        synchronized (HIDDEN) {
+            HIDDEN.clear();
+            HIDDEN.addAll(hidden);
+        }
+    }
+
+    /** Vrai si cette pastille est allumée : quelque chose est prêt, et elle n'est pas cachée. */
+    public static boolean shown(Kind kind, boolean ready) {
+        if (!ready) return false;
+        synchronized (HIDDEN) {
+            return !HIDDEN.contains(kind);
+        }
+    }
+
+    /** {@link #DOT} si quelque chose de cette sorte est prêt et que sa pastille n'est pas cachée, rien sinon. */
+    public static String dot(Kind kind, boolean ready) {
+        return dot(shown(kind, ready));
+    }
     private static final long EVERY_NANOS = 500_000_000L;
     private static final Map<Game, Readiness> SHARED = new WeakHashMap<>();
 
@@ -112,9 +168,9 @@ public final class Readiness {
         return challenges;
     }
 
-    /** Quelque chose est prêt dans l'onglet Matière noire. */
+    /** Quelque chose est prêt dans l'onglet Matière noire, et sa pastille n'est pas cachée. */
     boolean darkMatter() {
-        return tree || bang || challenges;
+        return shown(Kind.TREE, tree || bang) || shown(Kind.CHALLENGES, challenges);
     }
 
     /** Une sorte de molécules peut être rassemblée. */
@@ -142,8 +198,8 @@ public final class Readiness {
         return comet;
     }
 
-    /** Quelque chose est prêt dans l'onglet Big Bang. */
+    /** Quelque chose est prêt dans l'onglet Big Bang, et sa pastille n'est pas cachée. */
     boolean bigBang() {
-        return states || assemblies || bodies || cosmos || comet;
+        return shown(Kind.SKY, states || assemblies || bodies || cosmos) || shown(Kind.COMET, comet);
     }
 }
