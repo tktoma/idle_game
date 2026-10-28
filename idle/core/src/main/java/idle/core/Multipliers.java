@@ -338,7 +338,10 @@ public final class Multipliers {
         add(factors, Aspect.BRAKE, "Part du collisionneur et de l'espace laissée au vide (" + game.voidLimit() + ")",
                 log(game.voidRate()) - log(game.voidBaseRate()));
         int gain = game.voidLevel(Game.VoidUpgrade.GAIN);
-        add(factors, Aspect.UPGRADES, "Gain par paire : " + gain + " niveaux", log(game.voidPairGain()));
+        add(factors, Aspect.UPGRADES, "Gain par paire : " + gain + " niveaux", log(1 + gain));
+        // Version 0.148 : la bulle du bonsaï, à gauche.
+        int bubble = game.treeBubbleLevel(Game.TreeBubble.LEAVES_LEFT);
+        add(factors, Aspect.UNIVERSE, "Bulle du bonsaï, à gauche : " + bubble + " niveau" + (bubble > 1 ? "x" : ""), log(game.voidBubbleFactor()));
     }
 
     /** Les segments de la ligne (version 0.144) : {@link Game#lineShardsPerSecond()}, facteur par facteur. */

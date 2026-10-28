@@ -382,6 +382,7 @@ public final class Game extends GameVoid {
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);
+        runBubbles(dt);
         advance(dt);
         decay(dt);
         achievementTimer += dt;
@@ -393,6 +394,59 @@ public final class Game extends GameVoid {
         noteUnlocks();
         recordHistory();
     }
+
+    // ------------------------------------------------------------------
+    // Les bulles de l'arbre qui produisent seules (version 0.148)
+    // ------------------------------------------------------------------
+
+    /** La bulle de l'arbuste, à droite : une fusion de ce qu'on a, en atomes, toutes les {@value} secondes, sans fusionner. */
+    public static final double BUBBLE_FUSION_SECONDS = 30;
+    /** La bulle du géant, tout à droite : une explosion de matière noire par ordre de grandeur d'atomes, toutes les {@value} secondes. */
+    public static final double BUBBLE_EXPLOSION_SECONDS = 600;
+
+    /**
+     * Les atomes par seconde que donne la bulle de l'arbuste, à droite : ce que rapporterait une fusion maintenant
+     * ({@link #atomsPerFusion()}, qui compte les groupes de générateurs), en part des générateurs qu'il y faut, toutes les
+     * {@link #BUBBLE_FUSION_SECONDS} secondes. 0 sans la bulle ou sans générateur.
+     */
+    public BigNum bubbleAtomsPerSecond() {
+        if (!hasBubble(TreeBubble.CROWN_RIGHT) || !state.started() || generatorCount() <= 0) return BigNum.ZERO;
+        double share = Math.min(1, generatorCount() / (double) generatorsPerAtom());
+        return atomsPerFusion().multiply(share / BUBBLE_FUSION_SECONDS);
+    }
+
+    /**
+     * La matière noire par seconde que donne la bulle du géant, tout à droite : ce que rapporterait une explosion
+     * ({@link #darkMatterPerExplosion()}), fois les ordres de grandeur des atomes en main, toutes les
+     * {@link #BUBBLE_EXPLOSION_SECONDS} secondes. 0 sans la bulle, sans atomes, ou pendant un défi rejoué (qui ne rapporte
+     * rien).
+     */
+    public BigNum bubbleDarkMatterPerSecond() {
+        if (!hasBubble(TreeBubble.GIANT_RIGHT_HIGH) || !state.started() || state.atoms().sign() <= 0 || isChallengeReplay()) {
+            return BigNum.ZERO;
+        }
+        double digits = state.atoms().compareTo(BigNum.of(1e300)) > 0 ? state.atoms().log10() : Math.log10(1 + state.atoms().toDouble());
+        return darkMatterPerExplosion().multiply(digits / BUBBLE_EXPLOSION_SECONDS);
+    }
+
+    private void runBubbles(double dt) {
+        if (dt <= 0 || !state.started()) return;
+        if (hasBubble(TreeBubble.CROWN_RIGHT)) {
+            // Persistance offerte dès le début ; pas pendant l'amnésie, le défi qui la reprend exprès.
+            if (state.levelOf(PERSISTENCE) == 0 && !ruled(Challenge.Rule.AMNESIA)) state.setLevel(PERSISTENCE, 1);
+            BigNum gained = bubbleAtomsPerSecond().multiply(dt);
+            if (gained.sign() > 0) {
+                BigNum atoms = state.atoms().add(gained);
+                state.setAtoms(isAtomCapLifted() ? atoms : atoms.min(atomCap()));
+                state.setTotalAtoms(state.totalAtoms().add(gained));
+            }
+        }
+        BigNum dark = bubbleDarkMatterPerSecond().multiply(dt);
+        if (dark.sign() > 0) state.setDarkMatter(state.darkMatter().add(dark));
+    }
+
+    /** L'amélioration « Persistance », que la bulle de l'arbuste, à droite, offre. */
+    private static final String PERSISTENCE = "atom_keep";
 
     /** Fait passer le temps : la production, puis les automatismes à leur rythme. */
     private void advance(double dt) {

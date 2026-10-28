@@ -43,6 +43,7 @@ public abstract class GameSystems extends GameBase {
     public abstract Body body(String bodyId);
     public abstract BigNum steadySpacePerSecond();
     public abstract int colliderUpgradeLevel(ColliderUpgrade upgrade);
+    public abstract int dimensionsUnlocked();
 
     // ------------------------------------------------------------------
     // Les sondes (version 0.052) : des voyages dont le butin se réclame d'un clic
@@ -438,6 +439,8 @@ public abstract class GameSystems extends GameBase {
             case EXOTIC -> 300;
             case CORE -> 360;
         };
+        // La bulle de l'arbre ancien, à droite (version 0.148) : plus de maturation du tout.
+        if (hasBubble(GameUniverse.TreeBubble.ANCIENT_RIGHT)) return 0;
         // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
         return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION)
                 * maturationShare();
@@ -477,6 +480,8 @@ public abstract class GameSystems extends GameBase {
     public int maturationPlaces() {
         int places = MATURATION_PLACES;
         for (BigBangMilestone.MorePlaces more : reachedMorePlaces()) places += more.maturation();
+        // La bulle de la graine (version 0.148) : une place de plus par dimension ouverte.
+        if (hasBubble(GameUniverse.TreeBubble.SEED)) places += dimensionsUnlocked();
         return places;
     }
 

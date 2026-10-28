@@ -149,10 +149,31 @@ public final class SeedView extends Canvas {
     }
 
     /**
-     * Une bulle à dessiner : sa place (son rang dans le jeu, qui donne sa position dans le schéma), son nom, son prix,
-     * son état, et les bulles d'avant auxquelles elle est reliée (leurs rangs dans la liste).
+     * Une bulle à dessiner : sa place (son rang dans le jeu, qui donne sa position dans le schéma), son nom, ce qu'elle
+     * fait (version 0.148), son prix, son état, et les bulles d'avant auxquelles elle est reliée (leurs rangs dans la liste).
      */
-    public record Bubble(int place, String name, String price, BubbleState state, java.util.List<Integer> below) { }
+    public record Bubble(int place, String name, String effect, String price, BubbleState state, java.util.List<Integer> below) { }
+
+    /** Au-delà, l'effet d'une bulle se coupe en deux lignes. */
+    private static final int EFFECT_LINE = 56;
+
+    /** L'effet d'une bulle en lignes : aucune s'il n'y en a pas, deux, coupées à un espace, s'il est long. */
+    static java.util.List<String> effectLines(String effect) {
+        if (effect == null || effect.isBlank()) return java.util.List.of();
+        if (effect.length() <= EFFECT_LINE) return java.util.List.of(effect);
+        int middle = effect.length() / 2, cut = -1;
+        for (int d = 0; d < middle && cut < 0; d++) {
+            if (effect.charAt(middle + d) == ' ') cut = middle + d;
+            else if (effect.charAt(middle - d) == ' ') cut = middle - d;
+        }
+        if (cut < 0) return java.util.List.of(effect);
+        return java.util.List.of(effect.substring(0, cut), effect.substring(cut + 1));
+    }
+
+    /** La bulle {@code index} telle que la vue la connaît : pour les vérifications. */
+    public Bubble bubble(int index) {
+        return bubbles.get(index);
+    }
 
     private static final Color BUBBLE = Color.web("#9fe6ff");
     private static final Color BUBBLE_DEEP = Color.web("#3a8fb8");
@@ -1032,10 +1053,16 @@ public final class SeedView extends Canvas {
         javafx.scene.text.Text measure = new javafx.scene.text.Text(bubble.name());
         measure.setFont(name);
         double width = measure.getLayoutBounds().getWidth();
-        measure.setText(bubble.price());
+        // Ce qu'elle fait (version 0.148), entre le nom et le prix : sur deux lignes quand elle est longue.
+        java.util.List<String> effect = effectLines(bubble.effect());
         measure.setFont(price);
-        width = Math.max(width, measure.getLayoutBounds().getWidth()) + 20;
-        double height = 42;
+        for (String line : effect) {
+            measure.setText(line);
+            width = Math.max(width, measure.getLayoutBounds().getWidth());
+        }
+        measure.setText(bubble.price());
+        width = Math.min(getWidth() - 8, Math.max(width, measure.getLayoutBounds().getWidth()) + 20);
+        double height = 42 + 17 * effect.size();
         double x = Math.max(4, Math.min(getWidth() - width - 4, bubbleX[hovered] - width / 2));
         double y = Math.max(4, bubbleY[hovered] - bubbleR - height - 8);
         g.setGlobalAlpha(0.92);
@@ -1051,12 +1078,14 @@ public final class SeedView extends Canvas {
         g.setFill(Color.web("#e8fbff"));
         g.fillText(bubble.name(), x + 10, y + 6);
         g.setFont(price);
+        g.setFill(Color.web("#c9dcff"));
+        for (int i = 0; i < effect.size(); i++) g.fillText(effect.get(i), x + 10, y + 23 + 17 * i);
         g.setFill(switch (bubble.state()) {
             case BUY, BOUGHT -> Color.web("#a8f0b0");
             case SHORT -> Color.web("#ffb48a");
             case CLOSED -> Color.web("#9aa3bd");
         });
-        g.fillText(bubble.price(), x + 10, y + 23);
+        g.fillText(bubble.price(), x + 10, y + 23 + 17 * effect.size());
         g.restore();
     }
 

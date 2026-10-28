@@ -332,7 +332,8 @@ public final class GameApp extends GameAppTabs {
         KeyCode key = settings.shortcuts() ? keyOf(upgrade) : null;
         boolean generator = upgrade.effect() instanceof Effect.AddGenerator;
         // Les générateurs se comptent : c'est leur nombre qui décide de la fusion.
-        String level = generator ? game.generatorCount() + "/" + game.maxGeneratorCount()
+        // Sans plafond (bulle du jeune arbre, version 0.148), le nombre seul : « 124/1000000 » ne dirait rien.
+        String level = generator ? game.generatorCount() + (game.maxGeneratorCount() > game.generatorCap() ? "" : "/" + game.maxGeneratorCount())
                 : game.levelOf(id) + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : "");
         String mark = key == null ? "" : Shortcuts.name(key);
         if (game.isMaxed(id)) {

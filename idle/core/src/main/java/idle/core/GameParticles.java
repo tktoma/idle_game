@@ -520,6 +520,21 @@ public abstract class GameParticles extends GameMatterAutomation {
      * l'arbre de matière noire.
      */
     public int maxGeneratorCount() {
+        // La bulle du jeune arbre, à droite (version 0.148) : plus de plafond, le prix s'en charge (bubbleGeneratorScaling).
+        if (hasBubble(GameUniverse.TreeBubble.YOUNG_RIGHT)) return BUBBLE_GENERATOR_LIMIT;
+        return generatorCap();
+    }
+
+    /** Le plafond « sans fin » de la bulle du jeune arbre : un garde-fou, que le prix rend hors d'atteinte. */
+    public static final int BUBBLE_GENERATOR_LIMIT = 1_000_000;
+    /**
+     * Au-delà de l'ancien plafond ({@link #generatorCap()}), le prix d'un générateur est multiplié par
+     * {@code 10^(BUBBLE_GENERATOR_SCALING × n²)}, n les générateurs au-delà : ×10 au dixième, ×10¹⁰⁰ au centième.
+     */
+    public static final double BUBBLE_GENERATOR_SCALING = 0.01;
+
+    /** Le plafond de générateurs sans la bulle du jeune arbre : celui du catalogue, ou celui de l'arbre de matière noire. */
+    public int generatorCap() {
         int uncapped = this.<Integer>darkMemo("maxGenerators", () -> {
             int limit = 0;
             for (DarkUpgrade dark : darkUpgrades.values()) {
@@ -965,6 +980,11 @@ public abstract class GameParticles extends GameMatterAutomation {
         if (upgrade.effect() instanceof Effect.MultiplySpeed && level > SPEED_SCALING_FROM) {
             double over = level - SPEED_SCALING_FROM;
             cost = cost.multiply(BigNum.pow10(SPEED_SCALING * over * over));
+        }
+        // La bulle du jeune arbre, à droite (version 0.148) : au-delà de l'ancien plafond, le prix grimpe très vite.
+        if (upgrade.effect() instanceof Effect.AddGenerator && hasBubble(GameUniverse.TreeBubble.YOUNG_RIGHT)) {
+            int over = 1 + level - (generatorCap() - 1);
+            if (over > 0) cost = cost.multiply(BigNum.pow10(BUBBLE_GENERATOR_SCALING * over * over));
         }
         ElementBonuses bonuses = bonuses();
         double factor = 1;

@@ -494,4 +494,17 @@ public abstract class GameBase {
     double elementBonusesStrength = 1;
     /** Les bonus d'une collection vide : ceux du défi où les éléments sont inertes. */
     static final ElementBonuses NO_BONUSES = ElementBonuses.of(Map.of());
+
+    /**
+     * Vrai si cette bulle de l'arbre est achetée (version 0.148) : ses effets touchent tous les étages du moteur, d'où
+     * ce raccourci ici, tout en bas.
+     */
+    final boolean hasBubble(GameUniverse.TreeBubble bubble) {
+        return state.treeBubbleBought(bubble.ordinal());
+    }
+
+    /** Le niveau de cette bulle de l'arbre : 0 si elle n'est pas achetée (version 0.148). */
+    final int bubbleLevel(GameUniverse.TreeBubble bubble) {
+        return Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
+    }
 }

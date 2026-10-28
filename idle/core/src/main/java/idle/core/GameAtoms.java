@@ -44,6 +44,7 @@ public abstract class GameAtoms extends GamePlans {
     public abstract boolean isDarkAutomationEnabled(String darkAutomationId);
     public abstract double generatorCostFactor();
     public abstract int generatorCount();
+    public abstract int generatorCap();
     public abstract int fusionGroups();
     public abstract boolean fuse();
     public abstract boolean buy(String upgradeId);
@@ -174,6 +175,14 @@ public abstract class GameAtoms extends GamePlans {
         return false;
     }
 
+    /**
+     * Vrai quand les automatismes agissent sans délai et achètent tout ce qu'ils peuvent (version 0.148, bulle du
+     * bonsaï, à droite) ; pas pendant le défi de la rouille, qui les ralentit exprès.
+     */
+    public boolean isAutomationInstant() {
+        return hasBubble(GameUniverse.TreeBubble.LEAVES_RIGHT) && !ruled(Challenge.Rule.RUSTY_AUTOMATIONS);
+    }
+
     /** Niveau de cadence acheté pour cet automatisme. */
     public int automationSpeedLevel(String automationId) {
         return state.automationSpeedLevel(automation(automationId).id());
@@ -260,8 +269,17 @@ public abstract class GameAtoms extends GamePlans {
      * reste prêt : il agira dès que ce sera possible, puis son délai repartira.
      */
     void runAutomation(double dt) {
+        boolean instant = isAutomationInstant();
         for (Automation automation : automations.values()) {
             if (!isAutomationEnabled(automation.id())) continue;
+            if (instant) {
+                // La bulle du bonsaï, à droite (version 0.148) : sans délai, autant d'actions qu'il y a à faire.
+                for (int actions = 0; actions < MAX_AUTO_ACTIONS_PER_STEP && act(automation); actions++) {
+                    state.stats().noteAutomationAction();
+                }
+                state.setAutomationTimer(automation.id(), 0);
+                continue;
+            }
             double interval = automationInterval(automation.id());
             double waited = state.automationTimer(automation.id()) + dt;
             int actions = 0;
@@ -319,7 +337,14 @@ public abstract class GameAtoms extends GamePlans {
         // Le même résultat qu'autant d'achats un à un, sans refaire chaque fois tous les calculs :
         // la réduction des générateurs ne dépend pas de leur nombre, elle se calcule une fois. En fin de
         // partie, une action achète des dizaines de générateurs, vingt fois par seconde de jeu.
-        int room = Math.min(MAX_GENERATORS_PER_ACTION, maxGeneratorCount() - generatorCount());
+        // Au-delà de l'ancien plafond (bulle du jeune arbre, version 0.148), le prix n'a plus la forme simple du calcul
+        // ci-dessous : ceux-là s'achètent un à un, avec leur vrai prix.
+        if (generatorCount() >= generatorCap()) {
+            boolean any = false;
+            for (int bought = 0; bought < MAX_GENERATORS_PER_ACTION && buy(upgrade.id()); bought++) any = true;
+            return any;
+        }
+        int room = Math.min(MAX_GENERATORS_PER_ACTION, Math.min(maxGeneratorCount(), generatorCap()) - generatorCount());
         double factor = generatorCostFactor();
         int level = state.levelOf(upgrade.id());
         BigNum particles = state.particles();

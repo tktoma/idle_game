@@ -198,8 +198,11 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
-        data.put("treeBubbles", treeBubbles);
+        data.put("treeBubbles", treeBubbles());
+        // Version 0.148 : le niveau des bulles qui se rachètent, au-delà du premier (le champ de bits dit les autres).
+        for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 1) data.put("treeBubbleLevel" + i, treeBubbleLevels[i]);
         data.put("voidSpent", voidSpent);
+        data.put("voidTrickled", voidTrickled);
         data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
@@ -469,7 +472,10 @@ public final class GameState extends GameStateResets {
         setChronoSpeed(data.real("chronoSpeed", 1));
         // Les bulles de l'arbre (version 0.142) : absentes d'avant, rien d'acheté ni de dépensé.
         setTreeBubbles(data.whole("treeBubbles", 0));
+        // Version 0.148 : les niveaux au-delà du premier ; absents d'avant, chaque bulle achetée est au niveau 1.
+        for (int i = 0; i < TREE_BUBBLES; i++) if (data.has("treeBubbleLevel" + i)) setTreeBubbleLevel(i, data.whole("treeBubbleLevel" + i, 1));
         setVoidSpent(data.real("voidSpent", 0));
+        setVoidTrickled(data.real("voidTrickled", 0));
         universeUpgrades.clear();
         data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));

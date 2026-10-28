@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Version 0.142 : les bulles de l'arbre. Au palier qui ouvre l'univers 4, une bulle à la base, sur la graine ; au palier
  * suivant, deux sur le feuillage, qui attendent celle de la base. Elles se paient avec l'énergie du vide accumulée (ce
- * qu'il restait à la formation de chaque univers) ; pour l'instant, sans autre effet.
+ * qu'il restait à la formation de chaque univers) ; leurs effets (version 0.148) ont leur test, BullesEffetsTest.
  */
 class BullesArbreTest {
 

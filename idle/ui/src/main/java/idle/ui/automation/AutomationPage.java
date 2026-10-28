@@ -960,7 +960,8 @@ public final class AutomationPage extends VBox {
         String id = automation.id();
         int speedLevel = game.automationSpeedLevel(id);
         String level = speedLevel + "/" + automation.maxSpeedLevel();
-        String delay = "Toutes les " + seconds(game.automationInterval(id));
+        // La bulle du bonsaï, à droite (version 0.148) : plus de délai du tout.
+        String delay = game.isAutomationInstant() ? "Sans délai (bulle du bonsaï)" : "Toutes les " + seconds(game.automationInterval(id));
         if (!game.ownsAutomation(id)) {
             // Pas encore acheté : sa cadence se lit, mais ne s'achète pas.
             cadence.show(Card.State.LOCKED, level, "", delay, "Après l'achat de l'automatisme", "", "", "");

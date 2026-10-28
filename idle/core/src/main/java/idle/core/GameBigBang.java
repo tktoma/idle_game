@@ -297,12 +297,14 @@ public abstract class GameBigBang extends GameDarkMatter {
 
     /** Vrai si ce palier agit : assez de Big Bangs ont été déclenchés, et il est payé s'il a un prix (version 0.124). */
     public boolean isBigBangMilestoneReached(BigBangMilestone milestone) {
+        // La bulle du géant de droite, en bas (version 0.148) : tous les paliers agissent, sans Big Bang ni prix.
+        if (hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_LOW)) return true;
         return isBigBangMilestoneOpen(milestone) && (!milestone.hasPrice() || state.boughtMilestones().contains(milestone.name()));
     }
 
     /** Vrai une fois le nombre de Big Bangs du palier atteint : il s'achète alors, s'il a un prix (version 0.124). */
     public boolean isBigBangMilestoneOpen(BigBangMilestone milestone) {
-        return state.bigBangs() >= milestone.bigBangs();
+        return state.bigBangs() >= milestone.bigBangs() || hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_LOW);
     }
 
     /** Ce que le joueur a pour payer un palier : les particules comme l'arbre les compte (en main ou une seconde de production), ou les atomes en main. */

@@ -243,7 +243,7 @@ public abstract class StatsPageBase extends VBox {
 
         section("Avancée");
         row("Prochain objectif", this::nextGoal);
-        row("Générateurs", () -> game.generatorCount() + " / " + game.maxGeneratorCount(), game::isStarted);
+        row("Générateurs", () -> generatorsText(game), game::isStarted);
         row("Fusions", () -> Format.whole(stats().fusions()), this::fused);
         charted("Avancement du tableau périodique", row("Éléments découverts",
                 () -> game.discoveredElements() + " / " + PeriodicTable.ELEMENTS.size(), this::tableSeen));
@@ -300,7 +300,7 @@ public abstract class StatsPageBase extends VBox {
         row("Record de production", () -> Format.amount(stats().bestProduction()) + " par seconde");
 
         section("D'où vient la production");
-        row("Générateurs en activité", () -> game.generatorCount() + " / " + game.maxGeneratorCount());
+        row("Générateurs en activité", () -> generatorsText(game));
         charted("Créations par seconde",
                 row("Créations par seconde et par générateur", () -> Format.amount(game.speed())));
         charted("Particules par création", row("Particules par création", () -> Format.amount(game.particlesPerCreation())));
@@ -415,6 +415,8 @@ public abstract class StatsPageBase extends VBox {
         for (Automation automation : game.automations()) {
             charted("Délai : " + automation.name(), row(automation.name(), () -> !game.ownsAutomation(automation.id())
                             ? "pas encore acheté"
+                            : game.isAutomationInstant() ? "sans délai, tout ce qu'il peut (bulle du bonsaï)"
+                                    + (game.isAutomationEnabled(automation.id()) ? "" : " (coupé)")
                             : "une action toutes les " + AutomationPage.seconds(game.automationInterval(automation.id()))
                                     + ", cadence " + game.automationSpeedLevel(automation.id()) + "/" + automation.maxSpeedLevel()
                                     + (game.isAutomationEnabled(automation.id()) ? "" : " (coupé)"),
@@ -586,4 +588,9 @@ public abstract class StatsPageBase extends VBox {
     List<StatsHistory.Sample> liveSamples;
     boolean liveRun;
     double liveAt;
+
+    /** Les générateurs et leur plafond ; sans plafond (bulle du jeune arbre, version 0.148), « sans plafond ». */
+    static String generatorsText(Game game) {
+        return game.generatorCount() + (game.maxGeneratorCount() > game.generatorCap() ? " (sans plafond)" : " / " + game.maxGeneratorCount());
+    }
 }

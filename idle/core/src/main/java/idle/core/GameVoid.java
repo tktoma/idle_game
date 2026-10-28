@@ -1,5 +1,6 @@
 package idle.core;
 
+import idle.core.GameUniverse.TreeBubble;
 import idle.core.GameUniverse.VoidUpgrade;
 import idle.core.achievements.Achievement;
 import idle.core.darkmatter.DarkUpgrade;
@@ -113,9 +114,22 @@ public abstract class GameVoid extends GameBigBang {
         return steadySpacePerSecond().multiply(VOID_PAIR_SPACE_SECONDS * Math.pow(VOID_COST_STEP, voidLevel(VoidUpgrade.SPACE)));
     }
 
-    /** L'énergie du vide que donne une paire à sa naissance : 1, plus 1 par niveau de gain. */
+    /** L'énergie du vide que donne une paire à sa naissance : 1, plus 1 par niveau de gain, ×2 par niveau de la bulle du bonsaï. */
     public double voidPairGain() {
-        return 1 + voidLevel(VoidUpgrade.GAIN);
+        return (1 + voidLevel(VoidUpgrade.GAIN)) * voidBubbleFactor();
+    }
+
+    /** Ce que la bulle du bonsaï, à gauche, fait au gain du vide (version 0.148) : ×2 par niveau, ×32 au plus. */
+    public double voidBubbleFactor() {
+        return Math.pow(2, bubbleLevel(TreeBubble.LEAVES_LEFT));
+    }
+
+    /** Ce que la bulle du géant, tout à gauche, verse au cumul (version 0.148) : 5 % du gain du vide par niveau. */
+    public static final double VOID_TRICKLE_STEP = 0.05;
+
+    /** La part du gain du vide versée au cumul des bulles, chaque seconde : 0 sans la bulle du géant, 25 % au plus. */
+    public double voidTrickleShare() {
+        return VOID_TRICKLE_STEP * bubbleLevel(TreeBubble.GIANT_LEFT_HIGH);
     }
 
     /** Ce que la part réglée laisse au vide de la production du collisionneur : en paires par seconde. */
@@ -227,6 +241,8 @@ public abstract class GameVoid extends GameBigBang {
         voidPairs = Math.max(0, Math.min(voidPairs, voidSpaceLimit()));
         voidBorn += rate * dt;
         double gain = rate * voidPairGain();
+        // La bulle du géant, tout à gauche (version 0.148) : une part du gain va aussi au cumul, sans rien ôter au vide.
+        if (voidTrickleShare() > 0) state.setVoidTrickled(state.voidTrickled() + voidTrickleShare() * gain * dt);
         double decay = voidDecay();
         double stock = state.voidEnergy().toDouble();
         double target = gain / decay;

@@ -99,12 +99,13 @@ public abstract class GameUniverse extends GameAtoms {
      * collisionneur ; vrai une fois ouvert dans cet univers.
      */
     public boolean isVoidUnlocked() {
-        return state.voidOpen();
+        // La bulle du géant de gauche, en bas (version 0.148) : le vide toujours ouvert, sans le payer.
+        return state.voidOpen() || hasBubble(TreeBubble.GIANT_LEFT_LOW);
     }
 
     /** Vrai quand le vide se propose dans le collisionneur : premier Big Bang du troisième univers passé, pas encore ouvert. */
     public boolean isVoidOffered() {
-        return universes() >= 2 && state.bigBangs() > 0 && !state.voidOpen();
+        return universes() >= 2 && state.bigBangs() > 0 && !isVoidUnlocked();
     }
 
     // ------------------------------------------------------------------
@@ -1184,37 +1185,79 @@ public abstract class GameUniverse extends GameAtoms {
     public enum TreeBubble {
         // Les prix : le Speedrunner garde environ 4 500 d'énergie du vide à la formation de l'univers 3 (mesuré à la
         // 0.142) ; de quoi payer la base et une bulle du bonsaï. Ensuite, environ ×1,5 par palier (choix arbitraire).
-        SEED(4, "Bulle de la graine", 1_000),
-        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 2_000, 0),
-        LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 2_000, 0),
-        CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 4_000, 1),
-        CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 4_000, 1, 2),
-        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 4_000, 2),
-        YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 6_000, 3, 4),
-        YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 6_000, 4, 5),
-        MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 9_000, 3, 6),
-        MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 9_000, 5, 7),
-        ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 13_000, 6, 8),
-        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 13_000, 7, 9),
-        GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 20_000, 10),
-        GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 20_000, 8, 12),
-        GIANT_RIGHT_HIGH(10, "Bulle de l'arbre géant, tout à droite", 20_000, 11),
-        GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 20_000, 9, 14),
-        ROOTS(11, "Bulle des racines", 30_000, 0, 13, 15),
-        HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 4, 6, 7),
-        SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 10, 11, 17);
+        // Les effets (version 0.148) ; les bulles qui se rachètent coûtent deux fois plus à chaque niveau.
+        SEED(4, "Bulle de la graine", 1_000, 1,
+                "+1 place de maturation des astres par dimension ouverte"),
+        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 2_000, 5,
+                "×2 sur l'énergie du vide gagnée, par niveau", 0),
+        LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 2_000, 1,
+                "Les automatismes agissent sans délai et achètent tout ce qu'ils peuvent", 0),
+        CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 4_000, 1,
+                "Le collisionneur est ouvert dès le début de l'univers", 1),
+        CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 4_000, 1,
+                "Ouvrira l'onglet des hadrons (à venir)", 1, 2),
+        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 4_000, 1,
+                "Persistance dès le début, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
+        YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 6_000, 1,
+                "Ouvrira les hadrons dès le début de l'univers (à venir)", 3, 4),
+        YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 6_000, 1,
+                "Plus de plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite", 4, 5),
+        MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 9_000, 1,
+                "Le collisionneur traverse les univers : toujours ouvert, jamais remis à zéro", 3, 6),
+        MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 9_000, 1,
+                "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
+        ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 13_000, 1,
+                "Les hadrons ne seront plus remis à zéro (à venir)", 6, 8),
+        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 13_000, 1,
+                "Les astres n'ont plus besoin de mûrir", 7, 9),
+        GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 20_000, 5,
+                "5 % de l'énergie du vide gagnée vont aussi, chaque seconde, au cumul des bulles, par niveau", 10),
+        GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 20_000, 1,
+                "Le vide traverse les univers : toujours ouvert, jamais remis à zéro", 8, 12),
+        GIANT_RIGHT_HIGH(10, "Bulle de l'arbre géant, tout à droite", 20_000, 1,
+                "De la matière noire chaque seconde selon les atomes, sans exploser", 11),
+        GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 20_000, 1,
+                "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
+        ROOTS(11, "Bulle des racines", 30_000, 1,
+                "Le défi final (à venir)", 0, 13, 15),
+        HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 1,
+                "Ouvrira les particules exotiques des hadrons (à venir)", 4, 6, 7),
+        SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 1,
+                "Ouvrira l'automatisation des dimensions (à venir)", 10, 11, 17);
+
+        /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2. */
+        public static final double LEVEL_GROWTH = 2;
 
         private final int stage;
         private final String label;
         private final double cost;
+        private final int maxLevel;
+        private final String effect;
         /** Les bulles d'avant auxquelles elle est reliée (leurs rangs) : chaque lien n'est noté qu'une fois, ici. */
         private final int[] below;
 
-        TreeBubble(int stage, String label, double cost, int... below) {
+        TreeBubble(int stage, String label, double cost, int maxLevel, String effect, int... below) {
             this.stage = stage;
             this.label = label;
             this.cost = cost;
+            this.maxLevel = maxLevel;
+            this.effect = effect;
             this.below = below;
+        }
+
+        /** Combien de fois elle s'achète : 1, ou 5 pour les deux qui se rachètent (version 0.148). */
+        public int maxLevel() {
+            return maxLevel;
+        }
+
+        /** Ce qu'elle fait, en une phrase (version 0.148) ; « à venir » pour celles qui attendent leur onglet. */
+        public String effect() {
+            return effect;
+        }
+
+        /** Vrai pour celles dont l'effet n'existe pas encore : les hadrons, l'automatisation des dimensions, le défi final. */
+        public boolean isComingSoon() {
+            return effect.contains("(à venir)");
         }
 
         /** Le palier de la graine où elle naît. */
@@ -1226,9 +1269,14 @@ public abstract class GameUniverse extends GameAtoms {
             return label;
         }
 
-        /** Son prix, en énergie du vide accumulée. */
+        /** Son prix, en énergie du vide accumulée : celui du premier niveau. */
         public double cost() {
             return cost;
+        }
+
+        /** Le prix du niveau suivant quand elle en a déjà {@code level} : ×{@link #LEVEL_GROWTH} par niveau. */
+        public double costAt(int level) {
+            return cost * Math.pow(LEVEL_GROWTH, Math.max(0, level));
         }
 
         /** Les bulles d'avant auxquelles elle est reliée ; aucune pour celle de la base. */
@@ -1263,6 +1311,21 @@ public abstract class GameUniverse extends GameAtoms {
         return state.treeBubbleBought(bubble.ordinal());
     }
 
+    /** Le niveau de la bulle (version 0.148) : 0 pas achetée ; jusqu'à {@link TreeBubble#maxLevel()}. */
+    public int treeBubbleLevel(TreeBubble bubble) {
+        return Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
+    }
+
+    /** Vrai quand la bulle est à son dernier niveau. */
+    public boolean isTreeBubbleMaxed(TreeBubble bubble) {
+        return treeBubbleLevel(bubble) >= bubble.maxLevel();
+    }
+
+    /** Le prix de son prochain niveau, en énergie du vide accumulée. */
+    public double treeBubbleCost(TreeBubble bubble) {
+        return bubble.costAt(treeBubbleLevel(bubble));
+    }
+
     /** Les bulles nées : pour l'affichage. */
     public java.util.List<TreeBubble> treeBubblesShown() {
         java.util.List<TreeBubble> shown = new java.util.ArrayList<>();
@@ -1282,15 +1345,29 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     public boolean canBuyTreeBubble(TreeBubble bubble) {
-        return isTreeBubbleOpen(bubble) && !isTreeBubbleBought(bubble) && voidAvailable() >= bubble.cost - 1e-9;
+        return isTreeBubbleOpen(bubble) && !isTreeBubbleMaxed(bubble) && voidAvailable() >= treeBubbleCost(bubble) - 1e-9;
     }
 
-    /** Achète la bulle avec l'énergie du vide accumulée ; vrai si c'est fait. */
+    /** Achète un niveau de la bulle avec l'énergie du vide accumulée ; vrai si c'est fait. */
     public boolean buyTreeBubble(TreeBubble bubble) {
         if (!canBuyTreeBubble(bubble)) return false;
-        state.setVoidSpent(state.voidSpent() + bubble.cost);
-        state.setTreeBubbleBought(bubble.ordinal(), true);
+        state.setVoidSpent(state.voidSpent() + treeBubbleCost(bubble));
+        state.setTreeBubbleLevel(bubble.ordinal(), treeBubbleLevel(bubble) + 1);
+        bubbleBought(bubble);
         return true;
+    }
+
+    /** Ce qu'une bulle change tout de suite, à son achat (version 0.148) : rien par défaut. */
+    void bubbleBought(TreeBubble bubble) {
+        switch (bubble) {
+            // Le vide s'ouvre pour de bon : la suite le garde (state.startUniverse).
+            case GIANT_LEFT_LOW -> state.setVoidOpen(true);
+            // Plus de maturation : les astres qui mûrissaient sont mûrs.
+            case ANCIENT_RIGHT -> {
+                for (String id : java.util.List.copyOf(state.maturing().keySet())) state.setMaturing(id, 0);
+            }
+            default -> { }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1554,6 +1631,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.setChronoSpeed(1);
         state.clearTreeBubbles();
         state.setVoidSpent(0);
+        state.setVoidTrickled(0);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
         for (int i = 0; i < PlaneUpgrade.values().length; i++) state.setPlaneLevel(i, 0);
@@ -2184,14 +2262,19 @@ public abstract class GameUniverse extends GameAtoms {
             lost.add("Ce qui s'est joué dans les trois actes depuis la formation de l'univers : tout repart du premier générateur.");
         } else {
             lost.add("Particules, atomes, éléments, améliorations et automatismes.");
-            lost.add("Matière noire, son arbre et ses défis (" + state.completedChallenges().size() + " réussis).");
-            lost.add(state.bigBangs() + " Big Bang" + (state.bigBangs() > 1 ? "s" : "") + ", leurs paliers et leurs défis.");
+            // Les bulles de l'arbre (version 0.148) en gardent une part : elle est dite gardée plus bas.
+            if (!hasBubble(TreeBubble.MATURE_RIGHT)) {
+                lost.add("Matière noire, son arbre et ses défis (" + state.completedChallenges().size() + " réussis).");
+            }
+            lost.add(state.bigBangs() + " Big Bang" + (state.bigBangs() > 1 ? "s" : "")
+                    + (hasBubble(TreeBubble.GIANT_RIGHT_LOW) ? " et leurs paliers." : ", leurs paliers et leurs défis."));
             lost.add("Molécules, assemblages, astres (" + bodiesFormed() + " formés), systèmes solaires, galaxie et amas.");
             lost.add("L'espace et ses améliorations, les comètes et les anomalies du ciel.");
-            lost.add("Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
+            lost.add(hasBubble(TreeBubble.MATURE_LEFT) ? "Les sondes."
+                    : "Le collisionneur (énergie, générateurs, quarks, améliorations) et les sondes.");
             lost.add("Les plans suivis de l'arbre et des systèmes (leurs codes sauvegardés, eux, restent).");
             // Le vide (version 0.129) : sa réserve repart de zéro, ce qu'il en reste rejoint le cumul.
-            if (state.voidOpen()) {
+            if (state.voidOpen() && !hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
                 lost.add("Le vide, son trou noir et ses améliorations : les " + wholeText(state.voidEnergy())
                         + " d'énergie du vide qui restent s'ajoutent au cumul.");
             }
@@ -2226,6 +2309,19 @@ public abstract class GameUniverse extends GameAtoms {
                     + ") et les recherches (" + state.researches().size() + ").");
         }
         kept.add("Vos réglages de jeu, les codes de plan sauvegardés et les fenêtres d'explication déjà vues.");
+        // Les bulles de l'arbre qui font traverser les univers (version 0.148), comme GameState#startUniverse.
+        if (hasBubble(TreeBubble.MATURE_LEFT)) kept.add("Le collisionneur, grâce à la bulle de l'arbre mûr, à gauche.");
+        if (hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
+            kept.add("Le vide, son énergie (" + wholeText(state.voidEnergy()) + "), son trou noir et ses améliorations, grâce à la "
+                    + "bulle du géant de gauche" + (launching ? "." : " ; son énergie rejoint aussi le cumul."));
+        }
+        if (hasBubble(TreeBubble.MATURE_RIGHT)) {
+            kept.add("La matière noire, son arbre, les explosions et les défis réussis (" + state.completedChallenges().size()
+                    + "), grâce à la bulle de l'arbre mûr, à droite.");
+        }
+        if (hasBubble(TreeBubble.GIANT_RIGHT_LOW)) {
+            kept.add("Les défis du Big Bang réussis (" + state.completedBangChallenges().size() + "), grâce à la bulle du géant de droite.");
+        }
         java.util.List<String> gained = new java.util.ArrayList<>();
         if (launching) {
             gained.add("Une partie neuve, celle de l'univers suivant : les trois actes reviennent.");

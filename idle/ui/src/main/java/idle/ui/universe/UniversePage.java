@@ -511,21 +511,26 @@ public final class UniversePage extends VBox {
         java.util.List<Game.TreeBubble> shown = game.treeBubblesShown();
         java.util.List<SeedView.Bubble> list = new java.util.ArrayList<>();
         for (Game.TreeBubble bubble : shown) {
-            boolean bought = game.isTreeBubbleBought(bubble);
-            SeedView.BubbleState state = bought ? SeedView.BubbleState.BOUGHT
+            // Version 0.148 : celles qui se rachètent restent à acheter jusqu'à leur dernier niveau.
+            int level = game.treeBubbleLevel(bubble);
+            boolean many = bubble.maxLevel() > 1;
+            SeedView.BubbleState state = game.isTreeBubbleMaxed(bubble) ? SeedView.BubbleState.BOUGHT
                     : !game.isTreeBubbleOpen(bubble) ? SeedView.BubbleState.CLOSED
                     : game.canBuyTreeBubble(bubble) ? SeedView.BubbleState.BUY : SeedView.BubbleState.SHORT;
+            double cost = game.treeBubbleCost(bubble);
+            String levels = many ? "Niveau " + level + " / " + bubble.maxLevel() + ". " : "";
             String price = switch (state) {
-                case BOUGHT -> "Achetée (pas encore d'effet)";
+                case BOUGHT -> many ? "Niveau " + level + " / " + bubble.maxLevel() + " : au plus haut"
+                        : bubble.isComingSoon() ? "Achetée : son effet arrive avec son onglet" : "Achetée";
                 case CLOSED -> shownLinks(bubble, shown).size() == 1 ? "Il faut d'abord : " + shownLinks(bubble, shown).get(0).label()
                         : "Il faut d'abord une bulle reliée à elle";
-                case BUY -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide";
-                case SHORT -> "Prix : " + Format.count(BigNum.of(bubble.cost())) + " d'énergie du vide (il en manque "
-                        + Format.count(BigNum.of(Math.ceil(bubble.cost() - game.voidAvailable()))) + ")";
+                case BUY -> levels + "Prix : " + Format.count(BigNum.of(cost)) + " d'énergie du vide";
+                case SHORT -> levels + "Prix : " + Format.count(BigNum.of(cost)) + " d'énergie du vide (il en manque "
+                        + Format.count(BigNum.of(Math.ceil(cost - game.voidAvailable()))) + ")";
             };
             java.util.List<Integer> below = new java.util.ArrayList<>();
             for (Game.TreeBubble under : bubble.below()) if (shown.contains(under)) below.add(shown.indexOf(under));
-            list.add(new SeedView.Bubble(bubble.ordinal(), bubble.label(), price, state, below));
+            list.add(new SeedView.Bubble(bubble.ordinal(), bubble.label(), bubble.effect(), price, state, below));
         }
         return list;
     }

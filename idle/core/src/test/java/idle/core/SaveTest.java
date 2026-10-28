@@ -219,6 +219,9 @@ class SaveTest {
         state.setChronoSpeed(2.5);
         state.setTreeBubbles(0b1000000000000000101);   // la base, la bulle de droite du bonsaï, et le sommet (la 19e, bit 18)
         state.setVoidSpent(456.25);
+        // Version 0.148 : une bulle au niveau 4, et ce que le géant de gauche a versé au cumul.
+        state.setTreeBubbleLevel(1, 4);
+        state.setVoidTrickled(78.5);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);

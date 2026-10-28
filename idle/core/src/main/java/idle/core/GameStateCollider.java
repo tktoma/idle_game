@@ -383,8 +383,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
         // Les bulles de l'arbre et l'énergie du vide dépensée (version 0.142) aussi, comme le cumul du vide.
-        int bubblesKept = treeBubbles;
-        double voidSpentKept = voidSpent;
+        int[] bubblesKept = treeBubbleLevels.clone();
+        double voidSpentKept = voidSpent, trickledKept = voidTrickled;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -398,6 +398,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double rebuild = rebuildRecord;
         long fusions = stats.fusions();
         long explosionsDone = stats.timedExplosions();
+        // Les bulles de l'arbre qui font traverser les univers (version 0.148) : le collisionneur, le vide, la matière
+        // noire et ses défis, les défis du Big Bang.
+        GameStateCollider kept = copyForBubbles();
         reset();
         // Les plans gardés par « Sauvegarder » (version 0.084) servent d'une partie à l'autre.
         for (int i = 0; i < PLAN_SLOTS; i++) {
@@ -452,10 +455,92 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
-        treeBubbles = bubblesKept;
+        System.arraycopy(bubblesKept, 0, treeBubbleLevels, 0, TREE_BUBBLES);
         voidSpent = voidSpentKept;
+        voidTrickled = trickledKept;
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
+        restoreForBubbles(kept);
+    }
+
+    /** Une copie de ce que les bulles achetées font traverser les univers ; {@code null} si aucune ne le fait. */
+    private GameStateCollider copyForBubbles() {
+        boolean any = false;
+        for (GameUniverse.TreeBubble bubble : KEEPING_BUBBLES) any |= treeBubbleBought(bubble.ordinal());
+        if (!any) return null;
+        GameStateCollider copy = new GameState();
+        copy.restoreForBubbles(this, true);
+        return copy;
+    }
+
+    /** Les bulles qui gardent quelque chose d'un univers à l'autre (version 0.148). */
+    private static final List<GameUniverse.TreeBubble> KEEPING_BUBBLES = List.of(GameUniverse.TreeBubble.MATURE_LEFT,
+            GameUniverse.TreeBubble.GIANT_LEFT_LOW, GameUniverse.TreeBubble.MATURE_RIGHT, GameUniverse.TreeBubble.GIANT_RIGHT_LOW);
+
+    private void restoreForBubbles(GameStateCollider kept) {
+        if (kept != null) restoreForBubbles(kept, false);
+    }
+
+    /**
+     * Recopie de {@code from} ce que les bulles achetées gardent : toutes si {@code all} (pour faire la copie), sinon
+     * celles que ce nouvel univers a encore achetées (les bulles traversent les univers : ce sont les mêmes).
+     */
+    private void restoreForBubbles(GameStateCollider from, boolean all) {
+        if (all || treeBubbleBought(GameUniverse.TreeBubble.MATURE_LEFT.ordinal())) {
+            // L'arbre mûr, à gauche : tout le collisionneur.
+            colliderEnergy = from.colliderEnergy;
+            colliderEnergyProduced = from.colliderEnergyProduced;
+            colliderGenerators.clear();
+            colliderGenerators.putAll(from.colliderGenerators);
+            colliderGeneratorsBought.clear();
+            colliderGeneratorsBought.putAll(from.colliderGeneratorsBought);
+            colliderPhase = from.colliderPhase;
+            colliderCrossings = from.colliderCrossings;
+            colliderCaught = from.colliderCaught;
+            colliderUpgrades.clear();
+            colliderUpgrades.putAll(from.colliderUpgrades);
+            colliderPaused.clear();
+            colliderPaused.addAll(from.colliderPaused);
+            quarks.clear();
+            quarks.putAll(from.quarks);
+            collisions.clear();
+            collisions.addAll(from.collisions);
+            collisionRuns = from.collisionRuns;
+            topLeft = from.topLeft;
+            overheatLeft = from.overheatLeft;
+        }
+        if (all || treeBubbleBought(GameUniverse.TreeBubble.GIANT_LEFT_LOW.ordinal())) {
+            // Le géant de gauche, en bas : le vide, ouvert, son énergie, son trou noir et ses améliorations.
+            voidEnergy = from.voidEnergy;
+            voidOpen = from.voidOpen;
+            voidHoleOpen = from.voidHoleOpen;
+            voidShare = from.voidShare;
+            voidPrice = from.voidPrice;
+            voidSacrificed = from.voidSacrificed;
+            System.arraycopy(from.voidLevels, 0, voidLevels, 0, voidLevels.length);
+        }
+        if (all || treeBubbleBought(GameUniverse.TreeBubble.MATURE_RIGHT.ordinal())) {
+            // L'arbre mûr, à droite : la matière noire, sa taille, son arbre, les explosions et les défis réussis.
+            darkMatter = from.darkMatter;
+            darkMatterSpent = from.darkMatterSpent;
+            darkMatterSize = from.darkMatterSize;
+            explosions = from.explosions;
+            tableWeightLevel = from.tableWeightLevel;
+            darkUpgradeLevels.clear();
+            darkUpgradeLevels.putAll(from.darkUpgradeLevels);
+            darkVersion++;
+            completedChallenges.clear();
+            completedChallenges.addAll(from.completedChallenges);
+            challengesVersion++;
+            enabledDarkAutomations.clear();
+            enabledDarkAutomations.addAll(from.enabledDarkAutomations);
+        }
+        if (all || treeBubbleBought(GameUniverse.TreeBubble.GIANT_RIGHT_LOW.ordinal())) {
+            // Le géant de droite, en bas : les défis du Big Bang réussis.
+            completedBangChallenges.clear();
+            completedBangChallenges.addAll(from.completedBangChallenges);
+            moleculesVersion++;
+        }
     }
 
     /**
@@ -754,25 +839,46 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     /** Vrai si la bulle de l'arbre {@code index} (version 0.142, ordre de {@code Game.TreeBubble}) est achetée. */
     public boolean treeBubbleBought(int index) {
-        return index >= 0 && index < 31 && (treeBubbles & (1 << index)) != 0;
+        return treeBubbleLevel(index) > 0;
     }
 
     public void setTreeBubbleBought(int index, boolean bought) {
-        if (index < 0 || index >= 31) return;
-        treeBubbles = bought ? treeBubbles | (1 << index) : treeBubbles & ~(1 << index);
+        if (index < 0 || index >= TREE_BUBBLES) return;
+        treeBubbleLevels[index] = bought ? Math.max(1, treeBubbleLevels[index]) : 0;
     }
 
-    /** Les bulles achetées, un bit par bulle : pour la sauvegarde. */
+    /** Le niveau de la bulle {@code index} (version 0.148) : 0 pas achetée, 1 achetée, plus pour celles qui se rachètent. */
+    public int treeBubbleLevel(int index) {
+        return index >= 0 && index < TREE_BUBBLES ? treeBubbleLevels[index] : 0;
+    }
+
+    public void setTreeBubbleLevel(int index, int level) {
+        if (index >= 0 && index < TREE_BUBBLES) treeBubbleLevels[index] = Math.max(0, level);
+    }
+
+    /** Les bulles achetées, un bit par bulle : la clé de la sauvegarde d'avant la 0.148, toujours écrite. */
     public int treeBubbles() {
-        return treeBubbles;
+        int bits = 0;
+        for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 0) bits |= 1 << i;
+        return bits;
     }
 
+    /** Relit les bulles achetées d'un champ de bits : chacune au niveau 1. */
     public void setTreeBubbles(int bits) {
-        treeBubbles = Math.max(0, bits);
+        for (int i = 0; i < TREE_BUBBLES; i++) treeBubbleLevels[i] = bits > 0 && (bits & (1 << i)) != 0 ? 1 : 0;
     }
 
     public void clearTreeBubbles() {
-        treeBubbles = 0;
+        java.util.Arrays.fill(treeBubbleLevels, 0);
+    }
+
+    /** L'énergie du vide que la bulle du géant de gauche a versée au cumul (version 0.148). */
+    public double voidTrickled() {
+        return voidTrickled;
+    }
+
+    public void setVoidTrickled(double trickled) {
+        voidTrickled = trickled >= 0 && Double.isFinite(trickled) ? trickled : 0;
     }
 
     /** L'énergie du vide accumulée déjà dépensée (version 0.142) : le cumul affiché reste celui des univers formés. */
@@ -889,8 +995,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         voidHistory.clear();
     }
 
+    /** Le cumul, plus ce que la bulle du géant de gauche y a versé (version 0.148). */
     public double voidAccumulated() {
-        double total = 0;
+        double total = voidTrickled;
         for (double stock : voidHistory.values()) total += stock;
         return total;
     }

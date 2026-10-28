@@ -267,11 +267,15 @@ public abstract class GameStateBase {
     double chronoStored = 0;
     double chronoSpeed = 1;
     /**
-     * Les bulles de l'arbre (version 0.142) : celles achetées, un bit par bulle dans l'ordre de {@code Game.TreeBubble},
-     * et l'énergie du vide accumulée (celle qui restait à la formation de chaque univers) déjà dépensée pour elles.
+     * Les bulles de l'arbre (version 0.142) : le niveau de chacune, dans l'ordre de {@code Game.TreeBubble} (0 : pas
+     * achetée ; version 0.148 : certaines s'achètent plusieurs fois), et l'énergie du vide accumulée (celle qui restait à
+     * la formation de chaque univers) déjà dépensée pour elles. Et ce que la bulle du géant de gauche verse au cumul,
+     * seconde après seconde (version 0.148).
      */
-    int treeBubbles = 0;
+    static final int TREE_BUBBLES = 31;
+    final int[] treeBubbleLevels = new int[TREE_BUBBLES];
     double voidSpent = 0;
+    double voidTrickled = 0;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

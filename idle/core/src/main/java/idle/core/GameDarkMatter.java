@@ -531,7 +531,9 @@ public abstract class GameDarkMatter extends GameParticles {
      * début d'une partie quand l'arbre a traversé le Big Bang ({@link #bigBangKeepsDarkTree()}).
      */
     public boolean isDarkMatterUnlocked() {
-        return state.explosions() > 0 || state.darkMatterSpent().sign() > 0;
+        // Version 0.148 : la bulle du géant, tout à droite, en donne sans explosion.
+        return state.explosions() > 0 || state.darkMatterSpent().sign() > 0
+                || (hasBubble(GameUniverse.TreeBubble.GIANT_RIGHT_HIGH) && state.darkMatter().sign() > 0);
     }
 
     /**
@@ -690,6 +692,14 @@ public abstract class GameDarkMatter extends GameParticles {
             if (!isDarkAutomationEnabled(automation.id())) continue;
             double waited = state.darkAutomationTimer(automation.id()) + dt;
             double interval = darkAutomationInterval(automation.id());
+            if (isAutomationInstant()) {
+                // La bulle du bonsaï, à droite (version 0.148) : sans délai ; ceux qui achètent prennent tout ce qu'ils
+                // peuvent, l'explosion se fait une fois.
+                int most = automation.kind() == DarkAutomation.Kind.EXPLOSION ? 1 : MAX_AUTO_ACTIONS_PER_STEP;
+                for (int actions = 0; actions < most && act(automation); actions++) state.stats().noteDarkAutomationAction();
+                state.setDarkAutomationTimer(automation.id(), 0);
+                continue;
+            }
             if (waited >= interval - 1e-9) {
                 // Rien à faire pour l'instant : il reste prêt, et agira dès que ce sera possible.
                 boolean acted = act(automation);

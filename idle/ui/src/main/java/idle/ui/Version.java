@@ -23,6 +23,26 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.148", "Les bulles de l'arbre prennent effet", List.of(
+                    "Chaque bulle de l'arbre a maintenant son effet, qui vaut pour tous les univers suivants ; au survol, elle "
+                            + "dit ce qu'elle fait.",
+                    "Graine : une place de maturation des astres de plus par dimension ouverte. Bonsaï : à gauche, ×2 sur "
+                            + "l'énergie du vide gagnée, cinq fois ; à droite, les automatismes agissent sans délai et achètent "
+                            + "tout ce qu'ils peuvent.",
+                    "Arbuste : à gauche, le collisionneur ouvert dès le début de l'univers ; à droite, Persistance offerte "
+                            + "et une part de fusion en atomes chaque seconde, sans fusionner. Jeune arbre, à droite : plus de "
+                            + "plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite.",
+                    "Arbre mûr : à gauche, le collisionneur traverse les univers ; à droite, la matière noire, son arbre, "
+                            + "les explosions et les défis réussis aussi. Arbre ancien, à droite : les astres n'ont plus "
+                            + "besoin de mûrir.",
+                    "Arbre géant : tout à gauche, 5 % du gain du vide vont aussi au cumul des bulles, cinq fois ; à gauche "
+                            + "en bas, le vide reste ouvert d'un univers à l'autre, avec son énergie et ses améliorations ; "
+                            + "tout à droite, de la matière noire chaque seconde selon les atomes, sans exploser ; à droite en "
+                            + "bas, tous les paliers du Big Bang ouverts et les défis du Big Bang gardés.",
+                    "Les bulles des hadrons, de l'automatisation des dimensions et des racines s'achètent déjà : leur "
+                            + "effet viendra avec leur onglet.",
+                    "Le guide de formation de l'univers dit ce que les bulles font garder ; les statistiques de l'univers "
+                            + "montrent ce qu'elles produisent seules.")),
             new Note("0.147", "Le profil du joueur, et tous les automatismes au même endroit", List.of(
                     "Nouvel onglet « Profil », dès le premier générateur : le nom du joueur, son avatar, le titre qu'il porte, "
                             + "son temps de jeu, ses univers et ses Big Bang. Le journal y déménage, dans son propre sous-onglet.",

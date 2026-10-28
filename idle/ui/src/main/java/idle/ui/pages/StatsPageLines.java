@@ -421,6 +421,13 @@ public abstract class StatsPageLines extends StatsPageBase {
             for (Game.TreeBubble bubble : Game.TreeBubble.values()) if (game.isTreeBubbleBought(bubble)) bought++;
             return bought + " / " + game.treeBubblesShown().size() + " achetées";
         }, () -> !game.treeBubblesShown().isEmpty());
+        // Ce que les bulles produisent seules (version 0.148).
+        row("Versé au cumul par le géant de gauche", () -> Format.count(BigNum.of(game.state().voidTrickled())) + " ("
+                + Math.round(100 * game.voidTrickleShare()) + " % du gain du vide)", () -> game.voidTrickleShare() > 0);
+        row("Atomes par seconde, sans fusion", () -> Format.count(game.bubbleAtomsPerSecond()),
+                () -> game.isTreeBubbleBought(Game.TreeBubble.CROWN_RIGHT));
+        row("Matière noire par seconde, sans explosion", () -> Format.count(game.bubbleDarkMatterPerSecond()),
+                () -> game.isTreeBubbleBought(Game.TreeBubble.GIANT_RIGHT_HIGH));
 
         section("Les règles du deuxième univers");
         row("Régime rapide", () -> game.regimeMultiplier() > 1 ? "en cours, ×" + ElementText.number(game.regimeMultiplier())

@@ -355,8 +355,9 @@ public abstract class GameStateResets extends GameStateCollider {
         java.util.Arrays.fill(seedUpgradeLevels, 0);
         chronoStored = 0;
         chronoSpeed = 1;
-        treeBubbles = 0;
+        java.util.Arrays.fill(treeBubbleLevels, 0);
         voidSpent = 0;
+        voidTrickled = 0;
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;

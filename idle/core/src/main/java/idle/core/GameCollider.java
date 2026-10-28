@@ -71,8 +71,10 @@ public abstract class GameCollider extends GameDarkTree {
 
     /** Le collisionneur s'ouvre à la première explosion et ne se referme plus. */
     public boolean isColliderUnlocked() {
+        // Les bulles de l'arbuste et de l'arbre mûr, à gauche (version 0.148) : ouvert dès le début de l'univers.
         return state.started() && (isDarkMatterUnlocked() || state.bigBangs() > 0 || state.collisionRuns() > 0
-                || state.colliderGeneratorsBought(ColliderGenerator.BEAM) > 0);
+                || state.colliderGeneratorsBought(ColliderGenerator.BEAM) > 0
+                || hasBubble(GameUniverse.TreeBubble.CROWN_LEFT) || hasBubble(GameUniverse.TreeBubble.MATURE_LEFT));
     }
 
     /**
