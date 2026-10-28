@@ -159,6 +159,7 @@ public abstract class GameAppTabs extends GameAppWindow {
     void stepSubTab(int direction) {
         switch (selectedTab) {
             case ATOMS -> atomsPage.step(direction);
+            case AUTOMATION -> automationPage.step(direction);
             case DARK_MATTER -> darkMatterPage.step(direction);
             case COLLIDER -> colliderPage.step(direction);
             case BIG_BANG -> bigBangPage.step(direction);
@@ -483,7 +484,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (tab != Tab.SETTINGS) settingsPage.release();
         particlesPage.setVisible(tab == Tab.PARTICLES);
         atomsPage.setVisible(tab == Tab.ATOMS);
-        automationScroll.setVisible(tab == Tab.AUTOMATION);
+        automationPage.setVisible(tab == Tab.AUTOMATION);
         darkMatterPage.setVisible(tab == Tab.DARK_MATTER);
         colliderPage.setVisible(tab == Tab.COLLIDER);
         bigBangPage.setVisible(tab == Tab.BIG_BANG);

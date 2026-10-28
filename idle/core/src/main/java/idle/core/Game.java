@@ -76,7 +76,7 @@ import java.util.random.RandomGenerator;
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameHadrons {
+public final class Game extends GameDimensionAutomation {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -372,13 +372,15 @@ public final class Game extends GameHadrons {
         runAutoForm(dt);
         runPlans(dt);
         runSecondUniverse(dt);
+        // L'automatisation des dimensions (version 0.150) achète d'abord, puis les dimensions se jouent.
+        runDimensionAutomation();
         runLine(dt);
         runPlane(dt);
         // Le volume (version 0.128) ne se joue qu'au premier plan : une absence met fin à la plongée.
-        if (away && isInVolume()) leaveVolume();
+        if (away && isInVolume() && !isVolumeAutomatic()) leaveVolume();
         runVolume(dt);
         // La durée (version 0.134) aussi : une absence relâche le bouton tenu, qui donne ce qu'il avait.
-        if (away && isDurationHeld()) releaseDuration();
+        if (away && isDurationHeld() && !isDurationAutomatic()) releaseDuration();
         runDuration(dt);
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);

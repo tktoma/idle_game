@@ -203,6 +203,9 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 1) data.put("treeBubbleLevel" + i, treeBubbleLevels[i]);
         data.put("voidSpent", voidSpent);
         data.put("voidTrickled", voidTrickled);
+        // L'automatisation des dimensions (version 0.150).
+        data.putList("dimensionAutomations", dimensionAutomations);
+        data.putList("dimensionAutomationsOff", dimensionAutomationsOff);
         // Les hadrons (version 0.149).
         data.put("hadronsOpen", hadronsOpen);
         data.put("hadronsPrice", hadronsPrice);
@@ -482,6 +485,12 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (data.has("treeBubbleLevel" + i)) setTreeBubbleLevel(i, data.whole("treeBubbleLevel" + i, 1));
         setVoidSpent(data.real("voidSpent", 0));
         setVoidTrickled(data.real("voidTrickled", 0));
+        // L'automatisation des dimensions (version 0.150) : absente d'avant, rien d'acheté. Les noms inconnus sont oubliés.
+        clearDimensionAutomations();
+        data.list("dimensionAutomations").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
+                automation -> addDimensionAutomation(automation.name())));
+        data.list("dimensionAutomationsOff").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
+                automation -> setDimensionAutomationOff(automation.name(), true)));
         // Les hadrons (version 0.149) : absents d'avant, l'onglet fermé et rien d'assemblé.
         setHadronsOpen(data.flag("hadronsOpen", false));
         setHadronsPrice(data.real("hadronsPrice", 0));

@@ -279,6 +279,9 @@ public abstract class GameStateBase {
     boolean hadronsOpen = false;
     double hadronsPrice = 0;
     final java.util.EnumMap<idle.core.collider.Hadron, Long> hadrons = new java.util.EnumMap<>(idle.core.collider.Hadron.class);
+    /** L'automatisation des dimensions (version 0.150) : les automatismes achetés, et ceux coupés à part. */
+    final Set<String> dimensionAutomations = new java.util.TreeSet<>();
+    final Set<String> dimensionAutomationsOff = new java.util.TreeSet<>();
     static final int TREE_BUBBLES = 31;
     final int[] treeBubbleLevels = new int[TREE_BUBBLES];
     double voidSpent = 0;

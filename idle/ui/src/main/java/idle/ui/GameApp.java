@@ -151,11 +151,13 @@ public final class GameApp extends GameAppTabs {
         atomsTab.setText("Atomes (" + Format.count(game.state().atoms()) + ")");
         atomsPage.refresh(selectedTab == Tab.ATOMS);
 
-        // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire.
-        boolean automation = AutomationPage.hasContent(game) && !phase;
+        // L'onglet « Automatisation » n'existe qu'une fois un automatisme débloqué, ordinaire ou de matière noire. Dans la
+        // partie secondaire, il ne revient qu'avec l'automatisation des dimensions (version 0.150), seule montrée alors.
+        boolean automation = phase ? game.isDimensionAutomationUnlocked() : AutomationPage.hasContent(game);
         automationTab.setVisible(automation);
         automationTab.setManaged(automation);
-        automationTab.setText((narrow ? "Auto." : "Automatisation") + (game.isAutomationPaused() && game.hasAnyAutomation() ? " (coupée)" : ""));
+        automationTab.setText((narrow ? "Auto." : "Automatisation") + (game.isAutomationPaused() && AutomationPage.anyToPause(game) ? " (coupée)" : ""));
+        automationPage.setOldTabsHidden(phase);
         if (selectedTab == Tab.AUTOMATION) automationPage.refresh();
 
         // L'onglet « Matière noire » n'existe qu'après la première explosion.

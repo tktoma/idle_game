@@ -12,6 +12,7 @@ import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Body;
 import idle.core.sky.Cosmos;
+import idle.core.universe.DimensionAutomation;
 import idle.ui.GameApp;
 import idle.ui.Goals;
 import idle.ui.automation.AutomationPage;
@@ -440,6 +441,11 @@ public abstract class StatsPageLines extends StatsPageBase {
             for (Hadron hadron : Hadron.values()) if (hadron.isExotic()) exotic += game.hadrons(hadron);
             return game.isExoticHadronsUnlocked() || exotic > 0 ? Format.whole(exotic) : "pas encore ouvertes";
         }, game::isHadronsUnlocked);
+
+        // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
+        section("L'automatisation des dimensions");
+        row("Automatismes des dimensions", () -> game.dimensionAutomationsOwned() + " / " + DimensionAutomation.values().length
+                + " achetés", game::isDimensionAutomationUnlocked);
 
         section("Les règles du deuxième univers");
         row("Régime rapide", () -> game.regimeMultiplier() > 1 ? "en cours, ×" + ElementText.number(game.regimeMultiplier())

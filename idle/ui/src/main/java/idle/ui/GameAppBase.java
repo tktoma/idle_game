@@ -256,8 +256,6 @@ public abstract class GameAppBase extends Application {
     final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
     final idle.ui.pages.SkinsPage skinsPage = new idle.ui.pages.SkinsPage(game);
     final ScrollPane skinsScroll = new ScrollPane(skinsPage);
-    /** La page des automatismes défile quand la fenêtre est trop basse pour toutes ses cartes. */
-    final ScrollPane automationScroll = new ScrollPane(automationPage);
     final ScrollPane settingsScroll = new ScrollPane(settingsPage);
     final ScrollPane achievementsScroll = new ScrollPane(achievementsPage);
     /** Le centre de l'onglet « Particules » : les générateurs, et le bouton de démarrage tant que la partie n'a pas commencé. */
@@ -422,10 +420,9 @@ public abstract class GameAppBase extends Application {
         particlesPage.setBottom(controls);
 
         // Les onglets sont empilés au même endroit ; un seul est visible à la fois.
-        Labels.transparent(automationScroll);
         Labels.transparent(settingsScroll);
         Labels.transparent(achievementsScroll);
-        pages = new StackPane(particlesPage, atomsPage, automationScroll, darkMatterPage, colliderPage, bigBangPage,
+        pages = new StackPane(particlesPage, atomsPage, automationPage, darkMatterPage, colliderPage, bigBangPage,
                 universePage, voidPage, hadronsPage, profilePage, achievementsScroll, statsPage, settingsScroll, skinsScroll);
         Labels.transparent(skinsScroll);
         particlesTab.setOnAction(event -> open(Tab.PARTICLES));
@@ -512,6 +509,8 @@ public abstract class GameAppBase extends Application {
         tabTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
         subTabHolder.getChildren().add(tabTitle);
         dock(Tab.ATOMS, atomsPage, atomsPage.subTabs());
+        // L'automatisation (version 0.150) : les automatismes de toujours, et ceux des dimensions.
+        dock(Tab.AUTOMATION, automationPage, automationPage.subTabs());
         dock(Tab.DARK_MATTER, darkMatterPage, darkMatterPage.subTabs());
         dock(Tab.COLLIDER, colliderPage, colliderPage.subTabs());
         dock(Tab.BIG_BANG, bigBangPage, bigBangPage.subTabs());

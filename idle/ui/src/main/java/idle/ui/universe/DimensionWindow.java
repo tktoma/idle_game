@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.core.universe.DimensionAutomation;
 import idle.ui.common.CanvasPane;
 import idle.ui.common.Format;
 import idle.core.math.BigNum;
@@ -24,6 +25,11 @@ import javafx.scene.layout.VBox;
  * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la
  * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. Les six autres
  * restent des visuels.
+ *
+ * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
+ * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
+ * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
+ * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -33,6 +39,16 @@ public final class DimensionWindow extends BorderPane {
     /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
     private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
+
+    /** La couleur de la dimension {@code number} (1 à 4), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    public static String color(int number) {
+        return switch (number) {
+            case 2 -> PLANE_COLOR;
+            case 3 -> VOLUME_COLOR;
+            case 4 -> DURATION_COLOR;
+            default -> UniversePage.COLOR;
+        };
+    }
 
     /**
      * Les couleurs d'un bouton d'amélioration (version 0.140 : plus visibles, même format). Achetable, il prend la couleur
@@ -61,6 +77,7 @@ public final class DimensionWindow extends BorderPane {
     /** Le plan (version 0.104) : ses éclats, la manière de jouer, et ses cinq améliorations. */
     private final Label planeShards = new Label();
     private final Label planeThreshold = new Label();
+    private final Label planeHint = new Label();
     private final java.util.Map<Game.PlaneUpgrade, Button> planeButtons = new java.util.EnumMap<>(Game.PlaneUpgrade.class);
     private final VBox planePane;
     /** Le volume (version 0.128) : ses éclats, son seuil, ce qu'on y fait, et ses cinq améliorations, dehors. */
@@ -87,6 +104,8 @@ public final class DimensionWindow extends BorderPane {
     /** Les touches de direction tenues : Z, Q, S, D et les flèches. */
     private final java.util.Set<javafx.scene.input.KeyCode> held = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     private final Label title = new Label();
+    /** La mention « automatique » (version 0.150), à droite du titre : l'automatisation joue la dimension. */
+    private final Label autoBadge = new Label("automatique");
     private final Label line = new Label();
     private final Button back = new Button("← Retour");
     /**
@@ -121,12 +140,14 @@ public final class DimensionWindow extends BorderPane {
         line.setWrapText(true);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        // Une marge à droite aussi large que le bouton, pour que le titre reste au milieu.
-        Region balance = new Region();
-        balance.setMinWidth(110);
+        // Une marge à droite aussi large que le bouton, pour que le titre reste au milieu ; la mention « automatique » s'y loge.
+        autoBadge.setMinWidth(110);
+        autoBadge.setAlignment(Pos.CENTER_RIGHT);
+        autoBadge.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
+        autoBadge.setVisible(false);
         Region after = new Region();
         HBox.setHgrow(after, Priority.ALWAYS);
-        HBox top = new HBox(12, back, spacer, title, after, balance);
+        HBox top = new HBox(12, back, spacer, title, after, autoBadge);
         top.setAlignment(Pos.CENTER_LEFT);
         VBox head = new VBox(6, top, line);
         head.setAlignment(Pos.CENTER);
@@ -149,7 +170,6 @@ public final class DimensionWindow extends BorderPane {
         linePane.setAlignment(Pos.CENTER);
         linePane.setPadding(new Insets(10, 0, 0, 0));
         planeShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffd27f;");
-        Label planeHint = new Label("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser.");
         planeHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         javafx.scene.layout.FlowPane planeRow = new javafx.scene.layout.FlowPane(12, 10);
         planeRow.setAlignment(Pos.CENTER);
@@ -222,8 +242,21 @@ public final class DimensionWindow extends BorderPane {
         return button;
     }
 
+    /**
+     * Vrai si l'automatisation joue la dimension montrée : son automatisme de jeu tourne (la visée, la plongée, l'appui) ;
+     * pour la ligne, qui n'en a pas, un de ses achats automatiques.
+     */
+    private boolean automatic() {
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
+            if (automation.dimension() != view.dimension().number() || !game.isDimensionAutomationRunning(automation)) continue;
+            if (automation.kind() == DimensionAutomation.Kind.PLAY || automation.dimension() == 1) return true;
+        }
+        return false;
+    }
+
     /** Recopie la dimension montrée (ligne, plan, volume ou durée) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
+        autoBadge.setVisible(automatic());
         boolean duration = view.dimension() == Dimension.DURATION && game.isDurationOpen();
         durationPane.setVisible(duration);
         durationPane.setManaged(duration);
@@ -286,6 +319,9 @@ public final class DimensionWindow extends BorderPane {
         planeShards.setText("Facettes du plan : " + shardText(game.state().planeShards()));
         // Le seuil du plan (version 0.120), comme celui de la ligne : son rond vert (version 0.139 : il n'ouvre plus de palier de la graine).
         threshold(planeThreshold, game.isPlaneThresholdReached(), game.state().planeShardsEarned(), Game.PLANE_THRESHOLD, "facettes gagnées", 2);
+        planeHint.setText("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser."
+                + (game.isDimensionAutomationRunning(DimensionAutomation.PLANE_AIM)
+                        ? " Visée automatique : touches lâchées, le point file seul vers l'éclat le plus proche." : ""));
         paintUpgrades(planeButtons, this::describe, game::planeLevel, Game.PlaneUpgrade::max, game::planeCost, game::canBuyPlane, " facette", PLANE_COLOR);
     }
 
@@ -297,8 +333,11 @@ public final class DimensionWindow extends BorderPane {
         volumeShards.setText("Sphères du volume : " + shardText(game.state().volumeShards()));
         threshold(volumeThreshold, game.isVolumeThresholdReached(), game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD, "sphères gagnées", 3);
         boolean outside = view.dive() == DimensionView.Dive.OUTSIDE;
-        volumeHint.setText(switch (view.dive()) {
-            case OUTSIDE -> "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
+        boolean diving = game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE);
+        volumeHint.setText((diving ? "Plongée automatique : elle replonge seule et cueille une boule toutes les "
+                + seconds(Game.VOLUME_AUTO_SHOT_SECONDS) + " s ; vous pouvez cueillir avec elle. " : "") + switch (view.dive()) {
+            case OUTSIDE -> diving ? "Les améliorations s'achètent ici, entre deux plongées."
+                    : "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
                     + "Les améliorations s'achètent ici, hors du cube.";
             case ENTERING -> "Vous plongez dans le cube…";
             case INSIDE -> (!view.freeCamera()
@@ -338,7 +377,11 @@ public final class DimensionWindow extends BorderPane {
         durationShards.setText("Instants de la durée : " + shardText(game.state().durationShards()));
         threshold(durationThreshold, game.isDurationThresholdReached(), game.state().durationShardsEarned(), Game.DURATION_THRESHOLD, "instants gagnés", 4);
         boolean held = game.isDurationHeld();
-        durationHint.setText(!held
+        durationHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.DURATION_HOLD)
+                ? "Appui automatique : tenu " + seconds(game.durationHeldSeconds()) + " s sur " + seconds(game.durationMaxSeconds())
+                        + " s, il relâche seul au centre (+" + shardText(game.durationRewardFor(game.durationMaxSeconds()))
+                        + ") et recommence. Les améliorations s'achètent quand même, et valent dès le cycle en cours."
+                : !held
                 ? "Tenez le bouton du milieu (clic tenu, ou la barre d'espace) : les spirales avancent vers le centre, qu'elles "
                         + "atteignent en " + seconds(game.durationMaxSeconds()) + " s. Relâchez pour gagner leurs instants : plus on tient, plus chaque tour rapporte."
                         + (game.durationReleases() > 0 ? " Dernier relâchement : +" + shardText(game.durationLastReward()) + "." : "")
@@ -492,14 +535,17 @@ public final class DimensionWindow extends BorderPane {
         refresh();
     }
 
-    /** Referme la fenêtre : retour au jeu. Une plongée en cours s'arrête là, le joueur ressort du cube. */
+    /**
+     * Referme la fenêtre : retour au jeu. Une plongée en cours s'arrête là, le joueur ressort du cube, sauf si la
+     * plongée automatique la mène (version 0.150) : elle continue sans la fenêtre.
+     */
     public void close() {
-        // La durée : fermer la fenêtre relâche le bouton, qui donne ce qu'il avait.
+        // La durée : fermer la fenêtre relâche le bouton, qui donne ce qu'il avait ; l'appui automatique, lui, continue.
         view.releaseHold();
         spaceHeld = false;
         held.clear();
         game.setPlaneInput(0, 0);
-        if (game.isInVolume()) game.leaveVolume();
+        if (game.isInVolume() && !game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE)) game.leaveVolume();
         view.resetDive();
         setVisible(false);
     }
@@ -592,6 +638,15 @@ public final class DimensionWindow extends BorderPane {
 
     public String shardsText() {
         return shards.getText();
+    }
+
+    /** La mention « automatique », vide quand elle est cachée : pour les vérifications. */
+    public String autoBadgeText() {
+        return autoBadge.isVisible() ? autoBadge.getText() : "";
+    }
+
+    public String planeHintText() {
+        return planeHint.getText();
     }
 
     /** Le bouton de retour : pour les vérifications. */

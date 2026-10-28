@@ -384,6 +384,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
         // Les bulles de l'arbre et l'énergie du vide dépensée (version 0.142) aussi, comme le cumul du vide.
         int[] bubblesKept = treeBubbleLevels.clone();
+        // L'automatisation des dimensions (version 0.150) traverse les univers, comme les dimensions.
+        Set<String> dimensionAutomationsKept = new java.util.TreeSet<>(dimensionAutomations);
+        Set<String> dimensionAutomationsOffKept = new java.util.TreeSet<>(dimensionAutomationsOff);
         double voidSpentKept = voidSpent, trickledKept = voidTrickled;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
@@ -456,6 +459,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
         System.arraycopy(bubblesKept, 0, treeBubbleLevels, 0, TREE_BUBBLES);
+        dimensionAutomations.addAll(dimensionAutomationsKept);
+        dimensionAutomationsOff.addAll(dimensionAutomationsOffKept);
         voidSpent = voidSpentKept;
         voidTrickled = trickledKept;
         universeUpgrades.putAll(upgrades);
@@ -878,6 +883,31 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void clearTreeBubbles() {
         java.util.Arrays.fill(treeBubbleLevels, 0);
+    }
+
+    /** Les automatismes des dimensions achetés (version 0.150), par nom. */
+    public Set<String> dimensionAutomations() {
+        return Collections.unmodifiableSet(dimensionAutomations);
+    }
+
+    public void addDimensionAutomation(String name) {
+        if (name != null && !name.isBlank()) dimensionAutomations.add(name);
+    }
+
+    /** Ceux qui sont coupés à part. */
+    public Set<String> dimensionAutomationsOff() {
+        return Collections.unmodifiableSet(dimensionAutomationsOff);
+    }
+
+    public void setDimensionAutomationOff(String name, boolean off) {
+        if (name == null) return;
+        if (off) dimensionAutomationsOff.add(name);
+        else dimensionAutomationsOff.remove(name);
+    }
+
+    public void clearDimensionAutomations() {
+        dimensionAutomations.clear();
+        dimensionAutomationsOff.clear();
     }
 
     /** Vrai une fois l'onglet des hadrons payé dans cet univers (version 0.149). */

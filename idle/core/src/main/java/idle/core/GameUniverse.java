@@ -554,10 +554,19 @@ public abstract class GameUniverse extends GameAtoms {
         }
         // Plein : le minuteur attend, il ne s'accumule pas.
         if (planeShardsOnBoard.size() >= planeMaxShards()) planeSpawnTimer = Math.min(planeSpawnTimer, every);
-        double length = Math.hypot(planeInputX, planeInputY);
+        // La visée automatique (version 0.150) ne prend la main que quand le joueur ne tient aucune direction.
+        double inputX = planeInputX, inputY = planeInputY;
+        if (inputX == 0 && inputY == 0) {
+            double[] auto = planeAutoDirection();
+            if (auto != null) {
+                inputX = auto[0];
+                inputY = auto[1];
+            }
+        }
+        double length = Math.hypot(inputX, inputY);
         if (length > 0) {
             double step = planeSpeed() * Math.min(dt, 0.25) / Math.max(1, length);
-            setPlanePosition(planeX + planeInputX * step, planeY + planeInputY * step);
+            setPlanePosition(planeX + inputX * step, planeY + inputY * step);
         }
         double reach = planePlayerRadius() + PLANE_SHARD_RADIUS;
         for (java.util.Iterator<PlaneShard> it = planeShardsOnBoard.iterator(); it.hasNext(); ) {
@@ -568,6 +577,11 @@ public abstract class GameUniverse extends GameAtoms {
             state.setPlaneShards(state.planeShards() + planeValue());
             state.setPlaneShardsEarned(state.planeShardsEarned() + planeValue());
         }
+    }
+
+    /** La direction que donne la visée automatique du plan (version 0.150) ; {@code null} sans elle. */
+    double[] planeAutoDirection() {
+        return null;
     }
 
     /** Prix du prochain niveau, en éclats du plan ; infini une fois au plus haut. */
@@ -727,6 +741,17 @@ public abstract class GameUniverse extends GameAtoms {
      * qu'il en manque, et le minuteur descend ; à zéro, le cube rejette le joueur.
      */
     void runVolume(double dt) {
+        // La plongée automatique (version 0.150) : elle replonge dès qu'elle sort, et vise une boule à son rythme.
+        if (isVolumeAutomatic() && isVolumeOpen() && dt > 0) {
+            if (!inVolume) enterVolume();
+            volumeShotTimer += dt;
+            while (volumeShotTimer >= VOLUME_AUTO_SHOT_SECONDS && !volumeBalls.isEmpty()) {
+                volumeShotTimer -= VOLUME_AUTO_SHOT_SECONDS;
+                VolumeBall ball = volumeBalls.get(0);
+                shootVolume(ball.x(), ball.y(), ball.z());
+            }
+            if (volumeBalls.isEmpty()) volumeShotTimer = Math.min(volumeShotTimer, VOLUME_AUTO_SHOT_SECONDS);
+        }
         if (!inVolume || dt <= 0) return;
         if (!isVolumeOpen()) {
             leaveVolume();
@@ -786,6 +811,15 @@ public abstract class GameUniverse extends GameAtoms {
         state.setVolumeShards(state.volumeShards() + volumeValue());
         state.setVolumeShardsEarned(state.volumeShardsEarned() + volumeValue());
         return hit;
+    }
+
+    /** La plongée automatique cueille une boule toutes les {@value} secondes. */
+    public static final double VOLUME_AUTO_SHOT_SECONDS = 0.4;
+    private double volumeShotTimer;
+
+    /** Vrai quand la plongée automatique joue le volume (version 0.150). */
+    boolean isVolumeAutomatic() {
+        return false;
     }
 
     /** Pose une boule dans le cube : pour les essais. */
@@ -969,6 +1003,25 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Le temps passe pour le bouton tenu, jusqu'au temps au plus. */
     void runDuration(double dt) {
+        // L'appui automatique (version 0.150) : tenu jusqu'au centre, relâché, repris, autant de fois que le temps le permet.
+        if (isDurationAutomatic() && isDurationOpen() && dt > 0) {
+            if (!durationHeld) {
+                durationHeld = true;
+                durationHeldSeconds = 0;
+            }
+            double max = durationMaxSeconds(), total = durationHeldSeconds + dt;
+            long cycles = (long) Math.floor(total / max + 1e-9);
+            if (cycles > 0) {
+                double each = durationRewardFor(max), reward = each * cycles;
+                state.setDurationShards(state.durationShards() + reward);
+                state.setDurationShardsEarned(state.durationShardsEarned() + reward);
+                durationReleases += cycles;
+                durationLastReward = each;
+                total = Math.max(0, total - cycles * max);
+            }
+            durationHeldSeconds = total;
+            return;
+        }
         if (!durationHeld || dt <= 0) return;
         if (!isDurationOpen()) {
             durationHeld = false;
@@ -976,6 +1029,11 @@ public abstract class GameUniverse extends GameAtoms {
             return;
         }
         durationHeldSeconds = Math.min(durationMaxSeconds(), durationHeldSeconds + dt);
+    }
+
+    /** Vrai quand l'appui automatique joue la durée (version 0.150). */
+    boolean isDurationAutomatic() {
+        return false;
     }
 
     /** Vrai une fois le seuil de la durée atteint : {@link #DURATION_THRESHOLD} éclats de la durée gagnés en tout. */
@@ -988,9 +1046,12 @@ public abstract class GameUniverse extends GameAtoms {
         return upgrade.cost(durationLevel(upgrade));
     }
 
-    /** Les améliorations de la durée s'achètent bouton relâché : les spirales ne changent pas en cours de route. */
+    /**
+     * Les améliorations de la durée s'achètent bouton relâché : les spirales ne changent pas en cours de route. Sauf
+     * pendant l'appui automatique (version 0.150), qui ne relâche jamais : elles valent alors dès le cycle en cours.
+     */
     public boolean canBuyDuration(DurationUpgrade upgrade) {
-        return isDurationOpen() && !durationHeld && durationLevel(upgrade) < upgrade.max()
+        return isDurationOpen() && (!durationHeld || isDurationAutomatic()) && durationLevel(upgrade) < upgrade.max()
                 && state.durationShards() >= durationCost(upgrade) - 1e-9;
     }
 
@@ -1223,7 +1284,7 @@ public abstract class GameUniverse extends GameAtoms {
         HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 1,
-                "Ouvrira l'automatisation des dimensions (à venir)", 10, 11, 17);
+                "L'automatisation des dimensions : des automatismes qui les jouent et achètent leurs améliorations", 10, 11, 17);
 
         /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2. */
         public static final double LEVEL_GROWTH = 2;
@@ -1634,6 +1695,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.setVoidTrickled(0);
         state.setHadronsOpen(false);
         state.setHadronsPrice(0);
+        state.clearDimensionAutomations();
         for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) state.setHadrons(hadron, 0);
         state.setPlaneShards(0);
         state.setPlaneShardsEarned(0);
@@ -2317,6 +2379,10 @@ public abstract class GameUniverse extends GameAtoms {
         }
         kept.add("Vos réglages de jeu, les codes de plan sauvegardés et les fenêtres d'explication déjà vues.");
         // Les bulles de l'arbre qui font traverser les univers (version 0.148), comme GameState#startUniverse.
+        // L'automatisation des dimensions (version 0.150) traverse toujours les univers.
+        if (!state.dimensionAutomations().isEmpty()) {
+            kept.add("Les automatismes des dimensions (" + state.dimensionAutomations().size() + " achetés).");
+        }
         if (hasBubble(TreeBubble.MATURE_LEFT)) kept.add("Le collisionneur, grâce à la bulle de l'arbre mûr, à gauche.");
         if (hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
             kept.add("Le vide, son énergie (" + wholeText(state.voidEnergy()) + "), son trou noir et ses améliorations, grâce à la "

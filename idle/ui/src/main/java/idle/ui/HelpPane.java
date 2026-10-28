@@ -7,6 +7,7 @@ import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
 import idle.core.probes.ProbeTrip;
 import idle.core.profile.Title;
+import idle.core.universe.DimensionAutomation;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
@@ -238,8 +239,8 @@ final class HelpPane extends Overlay {
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée, une fois achetée une bulle reliée à elle "
                 + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants. Deux "
-                + "se rachètent cinq fois, deux fois plus cher à chaque niveau ; celles de l'automatisation des dimensions et "
-                + "des racines s'achètent déjà, leur effet viendra plus tard. La ligne avance seule : chaque trait "
+                + "se rachètent cinq fois, deux fois plus cher à chaque niveau ; celle des racines s'achète déjà, son effet "
+                + "viendra plus tard. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."
                 + (game.isVolumeOpen() ? " Dans le volume, on clique le cube pour y plonger, puis on regarde autour de soi, "
@@ -255,6 +256,20 @@ final class HelpPane extends Overlay {
                         + "tour vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
                         + "courts, et tenir au-delà du centre ne rapporte plus rien, sans rien faire perdre. Ses améliorations "
                         + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")));
+        // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
+        if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "La bulle du "
+                + "sommet de l'arbre-monde ouvre le sous-onglet « Dimensions » de l'onglet Automatisation : "
+                + DimensionAutomation.values().length + " automatismes qui jouent les dimensions à votre place et achètent "
+                + "leurs améliorations. Dans chaque dimension, ils s'achètent l'un après l'autre : ceux de la ligne en graines "
+                + "d'univers, ceux du plan en " + Game.dimensionResourceName(1) + ", ceux du volume en "
+                + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ". La visée "
+                + "automatique fait filer le point du plan vers l'éclat le plus proche tant que vous ne tenez aucune touche ; "
+                + "la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
+                + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
+                + "bouton de la durée jusqu'au centre, relâche et recommence. Les autres achètent chacun une amélioration dès "
+                + "qu'elle est payable. Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
+                + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
+                + "tous. Achetés, ils traversent les univers."));
         // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
         if (game.isVoidOffered() || game.isVoidUnlocked() || !game.state().voidHistory().isEmpty()) sections.add(new Section("Le vide",
                 "Au premier Big Bang du troisième univers, puis de chaque univers suivant, le vide se propose dans l'onglet "

@@ -3,6 +3,7 @@ package idle.ui;
 import idle.core.Game;
 import idle.core.upgrades.Effect;
 import idle.core.upgrades.Upgrade;
+import idle.ui.automation.AutomationPage;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
@@ -532,7 +533,7 @@ public abstract class GameAppWindow extends GameAppBase {
                 }
             }
             case AUTOMATION -> {
-                if (game.hasAnyAutomation()) game.setAutomationPaused(!game.isAutomationPaused());
+                if (AutomationPage.anyToPause(game)) game.setAutomationPaused(!game.isAutomationPaused());
             }
             default -> {
                 Upgrade upgrade = upgradeActions.get(action);

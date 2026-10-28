@@ -12,7 +12,9 @@ import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
+import idle.ui.common.Labels;
 import idle.ui.common.OrderPane;
+import idle.ui.common.SubTabs;
 import idle.ui.common.TileGrid;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -24,8 +26,10 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 
@@ -63,6 +67,11 @@ import javafx.scene.text.TextAlignment;
  * <p>L'onglet apparaît dès qu'un automatisme est débloqué, et reste là pour de bon une fois la
  * première matière noire obtenue.
  *
+ * <p>Depuis la version 0.150, tout cela forme le sous-onglet « Automatismes » ; la bulle du sommet de l'arbre-monde
+ * ouvre le second, « Dimensions » ({@link DimensionAutomationPane}), où s'achètent et se coupent les automatismes qui
+ * jouent les dimensions et achètent leurs améliorations. Dans la partie secondaire, où les anciens onglets se cachent,
+ * l'onglet ne revient qu'avec eux, et ne montre qu'eux.
+ *
  * <p>Les cartes s'en tiennent à quelques mots ; les explications, sur les cartes comme entre
  * elles, n'apparaissent qu'en mode détails ({@link Detail}).
  */
@@ -71,6 +80,19 @@ public final class AutomationPage extends VBox {
     private static final String HINT_STYLE = "-fx-font-size: 13px; -fx-text-fill: #8fa3b8;";
 
     private final Game game;
+    /** Les sous-onglets (version 0.150) : les automatismes de toujours, et ceux des dimensions. */
+    public static final int ORDINARY = 0, DIMENSIONS = 1;
+    private final Button ordinaryTab = new Button("Automatismes");
+    private final Button dimensionsTab = new Button("Dimensions");
+    private final HBox subTabs = new HBox(ordinaryTab, dimensionsTab);
+    /** « Automatismes » : tout ce que la page montrait avant la version 0.150. */
+    private final VBox ordinary = new VBox(12);
+    private final ScrollPane ordinaryScroll = new ScrollPane(ordinary);
+    private final DimensionAutomationPane dimensions;
+    private final ScrollPane dimensionsScroll;
+    private int selected = ORDINARY;
+    /** Vrai dans la partie secondaire : les anciens onglets sont cachés, la page ne montre que les dimensions. */
+    private boolean oldTabsHidden;
     private final Label balanceLabel = new Label();
     /** Coupe ou relance tous les automatismes d'un geste, et le dit tant qu'ils sont coupés. */
     private final Button pauseButton = new Button();
@@ -146,10 +168,12 @@ public final class AutomationPage extends VBox {
     private final Label darkNext = new Label();
 
     public AutomationPage(Game game) {
-        super(12);
+        super(6);
         this.game = game;
         setAlignment(Pos.TOP_CENTER);
-        setPadding(new Insets(24));
+        setPadding(new Insets(10, 0, 0, 0));
+        ordinary.setAlignment(Pos.TOP_CENTER);
+        ordinary.setPadding(new Insets(24));
 
         Label title = new Label("Automatismes");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
@@ -164,11 +188,11 @@ public final class AutomationPage extends VBox {
             refresh();
         });
         wrapped(pauseNote, "-fx-font-size: 13px; -fx-text-fill: #ffb4a8;");
-        getChildren().add(title);
-        getChildren().add(pauseButton);
-        getChildren().add(pauseNote);
-        getChildren().add(ordinaryHint);
-        getChildren().add(balanceLabel);
+        ordinary.getChildren().add(title);
+        ordinary.getChildren().add(pauseButton);
+        ordinary.getChildren().add(pauseNote);
+        ordinary.getChildren().add(ordinaryHint);
+        ordinary.getChildren().add(balanceLabel);
 
         // Une ligne par automatisme du catalogue : en ajouter un dans core suffit à le faire apparaître.
         for (Automation automation : game.automations()) {
@@ -200,11 +224,11 @@ public final class AutomationPage extends VBox {
             row.setAlignment(Pos.CENTER);
             row.setFillHeight(true);     // les deux cartes ont la même hauteur, quelle qu'elle soit
             rows.put(automation, row);
-            getChildren().add(row);
+            ordinary.getChildren().add(row);
             // Le réglage du seuil vient juste sous l'automatisme de fusion.
-            if (automation.kind() == Automation.Kind.FUSION) getChildren().add(thresholdRow);
+            if (automation.kind() == Automation.Kind.FUSION) ordinary.getChildren().add(thresholdRow);
             // Et celui de la réserve, sous la synthèse automatique.
-            if (automation.kind() == Automation.Kind.SYNTHESIS) getChildren().add(reserveRow);
+            if (automation.kind() == Automation.Kind.SYNTHESIS) ordinary.getChildren().add(reserveRow);
         }
         reserveRow.setAlignment(Pos.CENTER);
         wrapped(reserveLabel, "-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
@@ -242,7 +266,7 @@ public final class AutomationPage extends VBox {
             refresh();
         });
         wrapped(ordinaryNext, "-fx-font-size: 13px; -fx-text-fill: #ffe9c2;");
-        getChildren().add(ordinaryNext);
+        ordinary.getChildren().add(ordinaryNext);
 
         // Les automatismes de matière noire : une carte chacun, qui sert d'interrupteur.
         darkTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
@@ -252,8 +276,8 @@ public final class AutomationPage extends VBox {
                 + "autres achètent ou font exploser. Attention : l'explosion automatique n'attend pas que vous ayez "
                 + "dépensé vos particules et vos atomes dans l'arbre.");
         wrapped(darkHint, HINT_STYLE);
-        getChildren().add(darkTitle);
-        getChildren().add(darkHint);
+        ordinary.getChildren().add(darkTitle);
+        ordinary.getChildren().add(darkHint);
         for (DarkAutomation automation : game.darkAutomations()) {
             Card card = new Card(GameApp.DARK_MATTER_COLOR);
             card.setOnAction(() -> {
@@ -265,17 +289,17 @@ public final class AutomationPage extends VBox {
             darkGrid.show(card, false);
         }
         darkGrid.setMaxWidth(778);       // la largeur d'une carte ordinaire et de sa cadence réunies
-        getChildren().add(darkGrid);
+        ordinary.getChildren().add(darkGrid);
         upgradeOrder = new OrderPane("Améliorations en atomes", "la moins chère d'abord",
                 game::isAtomUpgradeOrdered, game::setAtomUpgradeOrdered, this::upgradeEntries,
                 (id, direction) -> game.moveAtomUpgrade(id, direction), this::refresh);
         automationOrder = new OrderPane("Achat des automatismes", "le moins cher d'abord",
                 game::isAutomationOrdered, game::setAutomationOrdered, this::automationEntries,
                 (id, direction) -> game.moveAutomation(id, direction), this::refresh);
-        getChildren().add(upgradeOrder);
-        getChildren().add(automationOrder);
+        ordinary.getChildren().add(upgradeOrder);
+        ordinary.getChildren().add(automationOrder);
         wrapped(darkNext, "-fx-font-size: 13px; -fx-text-fill: #c9bfe0;");
-        getChildren().add(darkNext);
+        ordinary.getChildren().add(darkNext);
 
         // L'appui automatique : acquis dans les améliorations du Big Bang, réglé ici.
         spaceTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
@@ -303,8 +327,8 @@ public final class AutomationPage extends VBox {
         });
         spaceGrid.add(formCard);
         spaceGrid.setMaxWidth(778);
-        getChildren().add(spaceTitle);
-        getChildren().add(spaceGrid);
+        ordinary.getChildren().add(spaceTitle);
+        ordinary.getChildren().add(spaceGrid);
         spaceReserveRow.setAlignment(Pos.CENTER);
         wrapped(spaceReserveLabel, "-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         String spaceStyle = "-fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 2 12; -fx-cursor: hand;"
@@ -322,7 +346,7 @@ public final class AutomationPage extends VBox {
             game.setAutoMoleculeReserve(spaceReserveStep(game.autoMoleculeReserve(), true));
             refresh();
         });
-        getChildren().add(spaceReserveRow);
+        ordinary.getChildren().add(spaceReserveRow);
         followButton.setStyle(spaceStyle);
         followButton.setFocusTraversable(false);
         followButton.setOnAction(event -> {
@@ -332,7 +356,7 @@ public final class AutomationPage extends VBox {
         HBox followRow = new HBox(followButton);
         followRow.setAlignment(Pos.CENTER);
         this.followRow = followRow;
-        getChildren().add(followRow);
+        ordinary.getChildren().add(followRow);
         followMatterBox.setAlignment(Pos.CENTER);
         followMatterButton.setStyle(spaceStyle);
         followMatterButton.setFocusTraversable(false);
@@ -342,7 +366,7 @@ public final class AutomationPage extends VBox {
         });
         wrapped(followMatterHint, "-fx-font-size: 11px; -fx-text-fill: #93b4c8;");
         followMatterHint.setMaxWidth(690);
-        getChildren().add(followMatterBox);
+        ordinary.getChildren().add(followMatterBox);
         // Les plafonds par état (version 0.085) : une liste par état de la matière.
         capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         capsTitle.setWrapText(true);
@@ -370,7 +394,7 @@ public final class AutomationPage extends VBox {
         VBox caps = new VBox(6, capsTitle, capsRow);
         caps.setAlignment(Pos.CENTER);
         capsBox = caps;
-        getChildren().add(caps);
+        ordinary.getChildren().add(caps);
 
         // Les automates du collisionneur : une carte chacun, qui l'achète puis le met en pause ou le relance.
         colliderTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
@@ -393,7 +417,84 @@ public final class AutomationPage extends VBox {
         catchLine.setMaxWidth(760);
         wrapped(hoseLine, "-fx-font-size: 13px; -fx-text-fill: #e6d27a;");
         hoseLine.setMaxWidth(760);
-        getChildren().addAll(colliderTitle, colliderHint, colliderGrid, catchLine, hoseLine);
+        ordinary.getChildren().addAll(colliderTitle, colliderHint, colliderGrid, catchLine, hoseLine);
+
+        // Chaque sous-page défile quand la fenêtre est trop basse pour toutes ses cartes ; la barre reste en haut.
+        dimensions = new DimensionAutomationPane(game);
+        dimensionsScroll = new ScrollPane(dimensions);
+        Labels.transparent(ordinaryScroll);
+        Labels.transparent(dimensionsScroll);
+        StackPane pages = new StackPane(ordinaryScroll, dimensionsScroll);
+        pages.setAlignment(Pos.TOP_CENTER);
+        VBox.setVgrow(pages, Priority.ALWAYS);
+        SubTabs.wire(true, this::select, this::refresh, ordinaryTab, dimensionsTab);
+        subTabs.setAlignment(Pos.CENTER);
+        getChildren().addAll(subTabs, pages);
+        select(ORDINARY);
+    }
+
+    /** La barre des sous-onglets : la disposition à gauche la place en haut de la fenêtre. */
+    public HBox subTabs() {
+        return subTabs;
+    }
+
+    /** Choisit un sous-onglet : les automatismes de toujours, ou ceux des dimensions. */
+    public void select(int index) {
+        selected = index == DIMENSIONS ? DIMENSIONS : ORDINARY;
+        ordinaryScroll.setVisible(selected == ORDINARY);
+        dimensionsScroll.setVisible(selected == DIMENSIONS);
+        ordinaryTab.setStyle(SubTabs.style(selected == ORDINARY, GameApp.AUTOMATION_COLOR));
+        dimensionsTab.setStyle(SubTabs.style(selected == DIMENSIONS, GameApp.AUTOMATION_COLOR));
+    }
+
+    public int selected() {
+        return selected;
+    }
+
+    /** Les sous-onglets qui se montrent : « Automatismes » hors de la partie secondaire, « Dimensions » avec la bulle. */
+    private List<Integer> shownTabs() {
+        List<Integer> shown = new ArrayList<>();
+        if (!oldTabsHidden) shown.add(ORDINARY);
+        if (game.isDimensionAutomationUnlocked()) shown.add(DIMENSIONS);
+        return shown;
+    }
+
+    /** Passe au sous-onglet suivant ou précédent, en boucle, parmi ceux qui se montrent. */
+    public void step(int direction) {
+        List<Integer> shown = shownTabs();
+        if (shown.isEmpty()) return;
+        int at = Math.max(0, shown.indexOf(selected));
+        select(shown.get(Math.floorMod(at + direction, shown.size())));
+        refresh();
+    }
+
+    /**
+     * Dit si la partie secondaire cache les anciens onglets : la page ne montre alors que les automatismes des
+     * dimensions, qui servent dans l'onglet Univers.
+     */
+    public void setOldTabsHidden(boolean hidden) {
+        oldTabsHidden = hidden;
+    }
+
+    /** La sous-page des automatismes des dimensions : pour les vérifications. */
+    public DimensionAutomationPane dimensionsPane() {
+        return dimensions;
+    }
+
+    public Button ordinaryTab() {
+        return ordinaryTab;
+    }
+
+    public Button dimensionsTab() {
+        return dimensionsTab;
+    }
+
+    /**
+     * Vrai s'il y a quelque chose que « Couper tous les automatismes » arrête : un automatisme ordinaire, de matière
+     * noire ou du Big Bang, ou un automatisme des dimensions acheté (version 0.150).
+     */
+    public static boolean anyToPause(Game game) {
+        return game.hasAnyAutomation() || game.dimensionAutomationsOwned() > 0;
     }
 
     /** Les choix d'un plafond : sans plafond, puis de 90 % à 5 %. */
@@ -539,12 +640,12 @@ public final class AutomationPage extends VBox {
     /**
      * Vrai si l'onglet doit être affiché : un automatisme ordinaire, de matière noire ou du Big Bang est
      * débloqué, ou la première matière noire a été obtenue (l'onglet ne disparaît alors plus), ou un automate du
-     * collisionneur est acheté, ou la graine a son tuyau.
+     * collisionneur est acheté, ou la graine a son tuyau, ou la bulle du sommet a ouvert l'automatisation des dimensions.
      */
     public static boolean hasContent(Game game) {
         if (game.isAutomationUnlocked() || game.isDarkMatterUnlocked() || game.isAutoHoldUnlocked()
                 || game.isMoleculeAutomationUnlocked() || game.isAutoGatherUnlocked() || game.isAutoFormUnlocked()
-                || ownsColliderAutomate(game) || game.hasHose()) return true;
+                || ownsColliderAutomate(game) || game.hasHose() || game.isDimensionAutomationUnlocked()) return true;
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id())) return true;
         }
@@ -559,20 +660,33 @@ public final class AutomationPage extends VBox {
         return false;
     }
 
-    /** Recopie l'état des automatismes dans les cartes, et n'affiche que ceux qui sont débloqués. */
+    /**
+     * Recopie la partie dans le sous-onglet affiché, seul recopié ; montre « Dimensions » avec la bulle du sommet, et
+     * cache « Automatismes » dans la partie secondaire.
+     */
     public void refresh() {
+        List<Integer> shown = shownTabs();
+        show(ordinaryTab, shown.contains(ORDINARY));
+        show(dimensionsTab, shown.contains(DIMENSIONS));
+        if (!shown.isEmpty() && !shown.contains(selected)) select(shown.get(0));
+        if (selected == DIMENSIONS) dimensions.refresh();
+        else refreshOrdinary();
+    }
+
+    /** Recopie l'état des automatismes dans les cartes, et n'affiche que ceux qui sont débloqués. */
+    private void refreshOrdinary() {
         BigNum atoms = game.state().atoms();
         balanceLabel.setText(Format.count(atoms) + (atoms.gt(BigNum.ONE) ? " atomes disponibles" : " atome disponible"));
 
         // La coupure générale : le bouton n'existe que s'il y a quelque chose à couper.
         boolean paused = game.isAutomationPaused();
-        show(pauseButton, game.hasAnyAutomation());
+        show(pauseButton, anyToPause(game));
         pauseButton.setText(paused ? "Relancer tous les automatismes" : "Couper tous les automatismes");
         pauseButton.setStyle("-fx-font-size: 13px; -fx-padding: 6 16; -fx-cursor: hand; -fx-background-radius: 6; -fx-border-radius: 6;"
                 + (paused ? " -fx-text-fill: #1a0a08; -fx-background-color: #ff8a75; -fx-border-color: #ffffff;"
                 : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
         boolean handOnly = game.isHandOnly();
-        show(pauseNote, (paused || handOnly) && game.hasAnyAutomation());
+        show(pauseNote, (paused || handOnly) && anyToPause(game));
         // Ce que la coupure générale laisse tourner : le moteur n'arrête ni le collisionneur ni le tuyau.
         boolean uncut = ownsColliderAutomate(game) || game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH) > 0 || game.hasHose();
         pauseNote.setText(handOnly

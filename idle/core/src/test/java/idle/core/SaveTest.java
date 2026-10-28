@@ -227,6 +227,10 @@ class SaveTest {
         state.setHadronsPrice(2.5e9);
         state.setHadrons(idle.core.collider.Hadron.PROTON, 12);
         state.setHadrons(idle.core.collider.Hadron.J_PSI, 3);
+        // Version 0.150 : deux automatismes des dimensions, dont un coupé.
+        state.addDimensionAutomation("LINE_YIELD");
+        state.addDimensionAutomation("PLANE_AIM");
+        state.setDimensionAutomationOff("PLANE_AIM", true);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);
         state.setUpgradeCalm(123.5);

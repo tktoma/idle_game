@@ -357,6 +357,8 @@ public abstract class GameStateResets extends GameStateCollider {
         chronoSpeed = 1;
         java.util.Arrays.fill(treeBubbleLevels, 0);
         hadronsOpen = false;
+        dimensionAutomations.clear();
+        dimensionAutomationsOff.clear();
         hadronsPrice = 0;
         hadrons.clear();
         voidSpent = 0;

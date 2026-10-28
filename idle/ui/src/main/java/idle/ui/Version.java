@@ -23,6 +23,22 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.150", "L'automatisation des dimensions", List.of(
+                    "La bulle du sommet de l'arbre-monde prend effet : l'onglet Automatisation gagne deux sous-onglets, "
+                            + "« Automatismes », tout ce qu'il montrait déjà, et « Dimensions », avec la bulle.",
+                    "Vingt-deux automatismes, une carte chacun, rangés par dimension : ils s'achètent l'un après l'autre, "
+                            + "ceux de la ligne en graines d'univers, ceux du plan en segments, ceux du volume en facettes, "
+                            + "ceux de la durée en sphères. Un clic sur une carte achetée la met en pause ou la relance.",
+                    "La visée automatique fait filer le point du plan vers l'éclat le plus proche quand vous ne tenez aucune "
+                            + "touche ; la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
+                            + "0,4 s ; l'appui automatique tient le bouton de la durée jusqu'au centre, relâche et recommence. "
+                            + "Les autres achètent chacun une amélioration dès qu'elle est payable. Pendant l'appui "
+                            + "automatique, les améliorations de la durée s'achètent bouton tenu.",
+                    "Ils jouent même fenêtre fermée ; dans la fenêtre de la dimension, une mention « automatique » le dit, "
+                            + "la vue suit la plongée et les relâchements, et vos clics ne cassent pas l'appui automatique.",
+                    "« Couper tous les automatismes » les arrête aussi ; achetés, ils traversent les univers. Dans la partie "
+                            + "secondaire, l'onglet Automatisation revient pour eux seuls.",
+                    "L'aide a sa section, et les statistiques de l'univers comptent les automatismes des dimensions achetés.")),
             new Note("0.149", "Les hadrons", List.of(
                     "Nouvel onglet « Hadrons » : avec la bulle de l'arbuste, au milieu, il se propose dans le collisionneur "
                             + "et s'ouvre contre dix minutes de sa production, comme le vide. La bulle du jeune arbre, à gauche, "

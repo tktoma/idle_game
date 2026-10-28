@@ -26,6 +26,11 @@ import javafx.scene.text.TextAlignment;
  *
  * <p>La durée a la sienne depuis la version 0.134 : un rond, un bouton au milieu ; tant qu'on le tient, les spirales
  * avancent du bord vers le centre, et au relâchement leurs éclats montent du bouton.
+ *
+ * <p>Depuis la version 0.150, le jeu peut jouer seul le volume et la durée : la vue suit alors la partie. Une plongée
+ * commencée sans clic fait plonger la vue, les boules cueillies seules laissent monter leur gain, et chaque relâchement
+ * de l'appui automatique fait monter ses instants du bouton. Le joueur peut cueillir avec la plongée automatique ;
+ * ses clics sur le bouton de la durée, eux, ne font rien tant que l'appui automatique le tient.
  */
 public final class DimensionView extends Canvas {
 
@@ -89,6 +94,11 @@ public final class DimensionView extends Canvas {
     private boolean motion = true;
     /** La durée (version 0.134) : les éclats donnés au relâchement, qui montent du bouton. */
     private final List<Pickup> durationPickups = new ArrayList<>();
+    /**
+     * Les boules cueillies et les relâchements de la durée que la vue a déjà montrés (version 0.150) : ce que la partie
+     * compte de plus vient de l'automatisation des dimensions. −1 tant que la vue n'a rien vu.
+     */
+    private long lastVolumeCollected = -1, lastReleases = -1;
     /** Les tours qu'une spirale dessine au plus : au-delà, le rond serait plein ; elle en représente alors davantage. */
     public static final double DURATION_DRAWN_TURNS = 8;
     /** Le rond et le bouton, relatifs au plus petit côté de la vue. */
@@ -278,6 +288,8 @@ public final class DimensionView extends Canvas {
         trailCount = 0;
         lastPhase = Double.NaN;
         lastCollected = -1;
+        lastVolumeCollected = -1;
+        lastReleases = -1;
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -297,6 +309,10 @@ public final class DimensionView extends Canvas {
         if (dimension == Dimension.DURATION) {
             for (Pickup pickup : durationPickups) pickup.age += Math.min(elapsed, 0.1);
             durationPickups.removeIf(pickup -> pickup.age > 1.4);
+            // Les relâchements de l'appui automatique : leurs instants montent du bouton, comme à la main.
+            long releases = game.durationReleases();
+            if (lastReleases >= 0 && releases > lastReleases) durationPickup(game.durationLastReward());
+            lastReleases = releases;
         }
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
@@ -414,6 +430,9 @@ public final class DimensionView extends Canvas {
         Game.VolumeBall hit = game.shootVolume(ray[0], ray[1], ray[2]);
         Pickup mark = new Pickup();
         if (hit != null) {
+            // Cueillie à la main : elle a déjà son gain, la vue ne la compte pas parmi celles de la plongée automatique.
+            born.remove(hit);
+            lastVolumeCollected = game.volumeCollected();
             double[] at = camera.project(hit.x(), hit.y(), hit.z());
             mark.x = at == null ? x : at[0];
             mark.y = at == null ? y : at[1];
@@ -499,11 +518,38 @@ public final class DimensionView extends Canvas {
                     born.clear();
                 }
             }
-            case OUTSIDE -> { }
+            case OUTSIDE -> {
+                // La plongée automatique (version 0.150) a plongé sans clic : la vue plonge à son tour.
+                if (game.isInVolume()) {
+                    fromYaw = wrap(outsideYaw());
+                    fromPitch = wrap(outsidePitch());
+                    dive = Dive.ENTERING;
+                    diveProgress = 0;
+                }
+            }
         }
         // Les boules nées depuis l'image d'avant : on note l'instant pour les faire grossir.
         java.util.Set<Game.VolumeBall> present = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         present.addAll(game.volumeBalls());
+        // Celles que la plongée automatique a cueillies depuis : leur gain monte de là où elles étaient.
+        long collected = game.volumeCollected();
+        if (dive == Dive.INSIDE && lastVolumeCollected >= 0 && collected > lastVolumeCollected) {
+            long left = collected - lastVolumeCollected;
+            aimCamera();
+            for (Game.VolumeBall ball : born.keySet()) {
+                if (left <= 0) break;
+                if (present.contains(ball)) continue;
+                left--;
+                double[] at = camera.project(ball.x(), ball.y(), ball.z());
+                if (at == null || volumePickups.size() >= 30) continue;
+                Pickup mark = new Pickup();
+                mark.x = at[0];
+                mark.y = at[1];
+                mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.volumeValue()));
+                volumePickups.add(mark);
+            }
+        }
+        lastVolumeCollected = collected;
         born.keySet().retainAll(present);
         for (Game.VolumeBall ball : game.volumeBalls()) born.putIfAbsent(ball, time);
     }
@@ -1012,19 +1058,25 @@ public final class DimensionView extends Canvas {
 
     /**
      * Le bouton relâché (la souris, la barre d'espace, la fenêtre qui se ferme) : les spirales donnent leurs éclats,
-     * qui montent du bouton. Vrai s'il était tenu.
+     * qui montent du bouton. Vrai s'il était tenu. Tant que l'appui automatique le tient (version 0.150), le joueur ne
+     * le relâche pas : c'est l'automatisme qui relâche, au centre.
      */
     public boolean releaseHold() {
-        if (dimension != Dimension.DURATION || !game.isDurationHeld()) return false;
-        double reward = game.releaseDuration();
-        if (reward > 0 && durationPickups.size() < 12) {
-            Pickup mark = new Pickup();
-            mark.x = getWidth() / 2;
-            mark.y = getHeight() / 2;
-            mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(reward));
-            durationPickups.add(mark);
-        }
+        if (dimension != Dimension.DURATION || !game.isDurationHeld()
+                || game.isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.DURATION_HOLD)) return false;
+        durationPickup(game.releaseDuration());
+        lastReleases = game.durationReleases();
         return true;
+    }
+
+    /** Les éclats d'un relâchement montent du bouton ; rien pour un relâchement qui n'a rien donné. */
+    private void durationPickup(double reward) {
+        if (reward <= 0 || durationPickups.size() >= 12) return;
+        Pickup mark = new Pickup();
+        mark.x = getWidth() / 2;
+        mark.y = getHeight() / 2;
+        mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(reward));
+        durationPickups.add(mark);
     }
 
     /** Les gains de la durée qui montent encore : pour les vérifications. */
