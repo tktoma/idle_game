@@ -257,12 +257,17 @@ public abstract class GameStateBase {
     double durationShardsEarned = 0;
     static final int DURATION_UPGRADES = 4;
     final int[] durationLevels = new int[DURATION_UPGRADES];
+    /** La boucle, cinquième dimension (version 0.153) : ses nœuds, ceux gagnés en tout, et ses six améliorations. */
+    double loopShards = 0;
+    double loopShardsEarned = 0;
+    static final int LOOP_UPGRADES = 6;
+    final int[] loopLevels = new int[LOOP_UPGRADES];
     /**
      * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
      * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
      */
-    static final int SEED_UPGRADES = 8;
+    static final int SEED_UPGRADES = 10;
     final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
     double chronoStored = 0;
     double chronoSpeed = 1;

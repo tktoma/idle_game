@@ -21,6 +21,9 @@ import javax.sound.sampled.LineEvent;
  * moins de {@link #ANY_CUE_GAP} secondes, et d'une fournée d'annonces seul le son le plus
  * important est joué.
  *
+ * <p>Le métronome de la boucle (version 0.153) a son tic à part ({@link #beat(int)}) : il bat en rythme, plusieurs
+ * fois par seconde, sans attendre ni retarder les sons des annonces.
+ *
  * <p>Sans carte son, ou si le système refuse la sortie audio, le jeu reste muet sans erreur :
  * le premier échec coupe les sons jusqu'à la fermeture.
  */
@@ -28,11 +31,15 @@ final class Sound {
 
     /** Un son, du plus important au moins important : l'ordre décide lequel jouer d'une fournée. */
     enum Cue {
-        BIG_BANG, EXPLOSION, VICTORY, ACHIEVEMENT, COMET, ELEMENT, LEVEL;
+        BIG_BANG, EXPLOSION, VICTORY, ACHIEVEMENT, COMET, ELEMENT, LEVEL,
+        /** Le tic du métronome de la boucle (version 0.153) : aucune annonce ne le joue. */
+        BEAT;
     }
 
     static final double SAME_CUE_GAP = 0.8;
     static final double ANY_CUE_GAP = 0.12;
+    /** Deux tics du métronome ne se suivent pas à moins de ce temps, en secondes : deux zones collées n'en font qu'un. */
+    static final double BEAT_GAP = 0.05;
 
     private static final float RATE = 44_100f;
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
@@ -92,6 +99,27 @@ final class Sound {
         lastAny = now;
         lastPlayed.put(cue, now);
         byte[] pcm = pcm(samples.computeIfAbsent(cue, Sound::synthesize), Math.min(100, volume) / 100.0);
+        send(pcm);
+        return true;
+    }
+
+    /**
+     * Le tic du métronome de la boucle, au volume réglé : il ne compte pas dans le rythme des annonces, qui ne le retarde
+     * pas et qu'il ne retarde pas. Vrai s'il est parti.
+     */
+    boolean beat(int volume) {
+        if (broken || volume <= 0) return false;
+        long now = System.nanoTime();
+        Long last = lastPlayed.get(Cue.BEAT);
+        if (last != null && now - last < BEAT_GAP * 1e9) return false;
+        lastPlayed.put(Cue.BEAT, now);
+        byte[] pcm = pcm(samples.computeIfAbsent(Cue.BEAT, Sound::synthesize), Math.min(100, volume) / 100.0);
+        send(pcm);
+        return true;
+    }
+
+    /** Envoie des échantillons à la sortie, sur le fil des sons : la lecture ne bloque jamais le jeu. */
+    private void send(byte[] pcm) {
         if (player == null) {
             player = Executors.newSingleThreadExecutor(runnable -> {
                 Thread thread = new Thread(runnable, "sons");
@@ -100,7 +128,6 @@ final class Sound {
             });
         }
         player.execute(() -> sink.accept(pcm));
-        return true;
     }
 
     /** Le son d'essai du réglage du volume : joué même s'il vient de l'être. */
@@ -164,6 +191,8 @@ final class Sound {
             case ELEMENT -> render(0.6, t -> envelope(t, 0.004, 0.6) * (0.5 * sine(880, t) + 0.25 * sine(880 * 2.76, t) * Math.exp(-t * 5)));
             // Un petit bip doux.
             case LEVEL -> render(0.18, t -> envelope(t, 0.005, 0.18) * 0.45 * sine(1046.5, t));
+            // Un tic de bois, très court : une note aiguë qui s'éteint aussitôt, un souffle d'attaque.
+            case BEAT -> render(0.1, t -> envelope(t, 0.001, 0.1) * Math.exp(-t * 25) * (0.55 * sine(1568, t) + 0.2 * noise(t) * Math.exp(-t * 120)));
         };
     }
 

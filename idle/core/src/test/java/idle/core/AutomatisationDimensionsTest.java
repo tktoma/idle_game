@@ -38,12 +38,13 @@ class AutomatisationDimensionsTest {
 
     @Test
     void lesAutomatismesSuiventLesDimensionsEtLeursAmeliorations() {
-        int[] counts = new int[5];
+        int[] counts = new int[6];
         for (DimensionAutomation automation : DimensionAutomation.values()) counts[automation.dimension()]++;
         assertEquals(5, counts[1], "la ligne : ses cinq améliorations, rien à jouer");
         assertEquals(6, counts[2], "le plan : la visée, puis ses cinq améliorations");
         assertEquals(6, counts[3]);
         assertEquals(5, counts[4]);
+        assertEquals(7, counts[5], "la boucle (version 0.153) : le rythme, puis ses six améliorations");
         assertNull(DimensionAutomation.PLANE_AIM.previous(), "la visée vient d'abord");
         assertEquals(DimensionAutomation.PLANE_AIM, DimensionAutomation.PLANE_VALUE.previous());
         assertEquals(DimensionAutomation.Kind.PLAY, DimensionAutomation.VOLUME_DIVE.kind());

@@ -336,13 +336,14 @@ public abstract class GameUniverse extends GameAtoms {
         return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
     }
 
-    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
             case 2 -> isPlaneThresholdReached();
             case 3 -> isVolumeThresholdReached();
             case 4 -> isDurationThresholdReached();
+            case 5 -> isLoopThresholdReached();
             default -> false;
         };
     }
@@ -1441,7 +1442,7 @@ public abstract class GameUniverse extends GameAtoms {
      * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
      * pas encore.
      */
-    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants");
+    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds");
 
     /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
     public static String dimensionResourceName(int number) {
@@ -1449,13 +1450,14 @@ public abstract class GameUniverse extends GameAtoms {
                 : "éclats de la dimension " + number;
     }
 
-    /** La réserve de la ressource de la dimension {@code number} (1 à 4) ; 0 pour les autres. */
+    /** La réserve de la ressource de la dimension {@code number} (1 à 5) ; 0 pour les autres. */
     public double dimensionResource(int number) {
         return switch (number) {
             case 1 -> state.dimensionShards();
             case 2 -> state.planeShards();
             case 3 -> state.volumeShards();
             case 4 -> state.durationShards();
+            case 5 -> state.loopShards();
             default -> 0;
         };
     }
@@ -1466,6 +1468,7 @@ public abstract class GameUniverse extends GameAtoms {
             case 2 -> state.setPlaneShards(Math.max(0, state.planeShards() - amount));
             case 3 -> state.setVolumeShards(Math.max(0, state.volumeShards() - amount));
             case 4 -> state.setDurationShards(Math.max(0, state.durationShards() - amount));
+            case 5 -> state.setLoopShards(Math.max(0, state.loopShards() - amount));
             default -> throw new IllegalArgumentException("Pas de ressource pour la dimension " + number);
         }
     }
@@ -1490,7 +1493,11 @@ public abstract class GameUniverse extends GameAtoms {
         /** Sphères : il accélère davantage. */
         CHRONO_SPEED(3, "Accélération du chrono", 1_000, 3, 8, true),
         /** Instants : il perd moins à grande vitesse. */
-        CHRONO_LOSS(4, "Pertes du chrono", 2_000_000, 4, 15, true);
+        CHRONO_LOSS(4, "Pertes du chrono", 2_000_000, 4, 15, true),
+        /** Nœuds de la boucle (version 0.153) : le rond de croissance dure plus longtemps, +10 s par niveau. */
+        BLOOM_DURATION(5, "Durée du rond de croissance", 200, 2.5, 15, false),
+        /** Nœuds : le rond de croissance accélère davantage l'arrosage, +10 points par niveau. */
+        BLOOM_POWER(5, "Force du rond de croissance", 300, 2.7, 20, false);
 
         private final int dimension;
         private final String label;
@@ -1558,7 +1565,20 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Arrosages par seconde de l'arrosoir tenu : 1, et 1 de plus par niveau de débit. */
     public double wateringCanRate() {
-        return WATERING_CAN_PER_SECOND * (1 + seedUpgradeLevel(SeedUpgrade.WATERING));
+        return WATERING_CAN_PER_SECOND * (1 + seedUpgradeLevel(SeedUpgrade.WATERING)) * wateringBoost();
+    }
+
+    /** Ce qui accélère l'arrosage pour un temps (version 0.153) : le rond de croissance ; 1 sans lui. */
+    public double wateringBoost() {
+        return 1;
+    }
+
+    /** Nœuds de la boucle à gagner pour son seuil (version 0.153) : un quart d'heure de jeu appliqué environ. */
+    public static final double LOOP_THRESHOLD = 5_000;
+
+    /** Vrai une fois le seuil de la boucle atteint : {@link #LOOP_THRESHOLD} nœuds gagnés en tout. */
+    public boolean isLoopThresholdReached() {
+        return state.loopShardsEarned() >= LOOP_THRESHOLD - 1e-9;
     }
 
     /** Ce que verse le tuyau, en part de ce que verse l'arrosoir : 10 % par niveau, 0 sans tuyau. */
@@ -1708,6 +1728,9 @@ public abstract class GameUniverse extends GameAtoms {
         state.setDurationShards(0);
         state.setDurationShardsEarned(0);
         for (int i = 0; i < DurationUpgrade.values().length; i++) state.setDurationLevel(i, 0);
+        state.setLoopShards(0);
+        state.setLoopShardsEarned(0);
+        for (int i = 0; i < GameStateBase.LOOP_UPGRADES; i++) state.setLoopLevel(i, 0);
         dropDuration();
         leaveVolume();
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
@@ -2368,7 +2391,8 @@ public abstract class GameUniverse extends GameAtoms {
                     + ").");
             // Version 0.128 : le volume traverse les univers lui aussi.
             // Version 0.134 : la durée traverse les univers elle aussi.
-            kept.add(isDurationOpen() ? "Les dimensions : éclats de la ligne, du plan, du volume et de la durée, et leurs améliorations."
+            kept.add(dimensionsUnlocked() >= 5 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée et de la boucle, et leurs améliorations."
+                    : isDurationOpen() ? "Les dimensions : éclats de la ligne, du plan, du volume et de la durée, et leurs améliorations."
                     : isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."
                     : "Les dimensions : éclats de la ligne et du plan, et leurs améliorations.");
             kept.add("La graine : palier " + seedStage() + ", et ses arrosages."

@@ -99,6 +99,34 @@ class DebugBarDimensionsTest {
     }
 
     @Test
+    void laBoucleASaRangeeEtLeRondDeCroissanceSonOutil() {
+        FxTestSupport.fx(() -> {
+            Game game = new Game();
+            game.start();
+            DebugBar bar = bar(game);
+            button(bar, "Dimensions").fire();
+            tool(bar, "Graine et chrono", "Rond de croissance").fire();
+            assertFalse(game.isBloomVisible(), "sans la boucle, pas de rond");
+            assertTrue(bar.botNote().contains("vient avec la boucle"), bar.botNote());
+            tool(bar, "Boucle (nœuds)", "Ouvrir").fire();
+            assertEquals(5, game.dimensionsUnlocked(), "ouvrir la boucle forme l'univers et en ajoute quatre");
+            tool(bar, "Boucle (nœuds)", "+10 % du seuil").fire();
+            assertEquals(Game.LOOP_THRESHOLD / 10, game.state().loopShards(), 1e-9);
+            assertEquals(Game.LOOP_THRESHOLD / 10, game.state().loopShardsEarned(), 1e-9);
+            tool(bar, "Boucle (nœuds)", "Seuil atteint").fire();
+            assertTrue(game.isLoopThresholdReached());
+            tool(bar, "Boucle (nœuds)", "Améliorations au maximum").fire();
+            assertEquals(Game.MAX_RINGS, game.loopRings());
+            assertEquals(10, game.loopLevel(Game.LoopUpgrade.GAIN), "le gain n'a pas de plafond : dix niveaux");
+            tool(bar, "Boucle (nœuds)", "Améliorations à zéro").fire();
+            for (Game.LoopUpgrade u : Game.LoopUpgrade.values()) assertEquals(0, game.loopLevel(u));
+            tool(bar, "Graine et chrono", "Rond de croissance").fire();
+            assertTrue(game.isBloomVisible(), "avec la boucle, il pousse tout de suite");
+            return null;
+        });
+    }
+
+    @Test
     void lesBotsDesDimensionsSontACoteEtDisentSIlsManquent() {
         FxTestSupport.fx(() -> {
             Game game = new Game();

@@ -227,12 +227,13 @@ final class HelpPane extends Overlay {
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
-        // Les dimensions (version 0.128) : une par univers, et ce que font les quatre qui se jouent.
+        // Les dimensions (version 0.128) : une par univers, et ce que font les cinq qui se jouent (la boucle, version 0.153).
         if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
                 + "s'ouvre à chaque univers. Chacune a ses éclats, propres à elle, et un seuil d'éclats gagnés, un quart d'heure "
                 + "de jeu environ, qui marque la dimension d'un rond vert. Ces éclats ont leur nom : les segments de la ligne, les facettes du plan, "
-                + "les sphères du volume, les instants de la durée ; ils paient aussi les améliorations de la graine (débit de "
-                + "l'arrosoir, tuyau d'arrosage, terre fertile, étage du chrono et ses réglages). La graine s'arrose à l'arrosoir : "
+                + "les sphères du volume, les instants de la durée, les nœuds de la boucle ; ils paient aussi les améliorations de "
+                + "la graine (débit de l'arrosoir, tuyau d'arrosage, terre fertile, étage du chrono et ses réglages, durée et "
+                + "force du rond de croissance). La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
                 + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
@@ -255,18 +256,34 @@ final class HelpPane extends Overlay {
                         + idle.ui.common.ElementText.number(game.durationMaxSeconds()) + " secondes. Au relâchement, chaque "
                         + "tour vaut un de plus que le précédent : tenir longtemps rapporte bien plus que plusieurs appuis "
                         + "courts, et tenir au-delà du centre ne rapporte plus rien, sans rien faire perdre. Ses améliorations "
-                        + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")));
+                        + "(vitesse, nombre de spirales, valeur, temps au plus) s'achètent bouton relâché." : "")
+                // La boucle (version 0.153), et le rond de croissance qui vient avec elle.
+                + (game.isLoopOpen() ? " Dans la boucle, un point tourne sur chaque cercle, lentement au début, et des zones "
+                        + "y attendent, chacune en trois parts : le bord « mauvais », puis « bien », le centre « excellent ». "
+                        + "Un clic sur le cercle, ou sa touche (" + loopKeys(settings) + ", à changer dans les réglages, "
+                        + "sous-onglet Clavier), quand le point est dans une zone donne des nœuds, d'autant plus que "
+                        + "le clic est juste ; la zone touchée se pose ailleurs. Après chaque clic, juste ou non, le cercle "
+                        + "attend " + ElementText.number(Game.LOOP_COOLDOWN) + " seconde : cliquer sans arrêt ne rapporte "
+                        + "rien. Ses améliorations : rapidité du point, nombre de zones (jusqu'à " + Game.MAX_ZONES + "), "
+                        + "gain par zone, précision, taille des zones, et des cercles de plus, jusqu'à " + Game.MAX_RINGS
+                        + ", chacun sur sa touche. Un métronome, à brancher dans la fenêtre, fait un tic à chaque passage du "
+                        + "point du premier cercle sur le centre d'une zone. Avec la boucle, un rond de croissance pousse de "
+                        + "temps en temps près de la graine : cueilli d'un clic avant qu'il s'en aille, il accélère "
+                        + "l'arrosage de " + Math.round(game.bloomGain() * 100) + " % pendant "
+                        + ElementText.number(game.bloomSeconds()) + " secondes." : "")));
         // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
         if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "La bulle du "
                 + "sommet de l'arbre-monde ouvre le sous-onglet « Dimensions » de l'onglet Automatisation : "
                 + DimensionAutomation.values().length + " automatismes qui jouent les dimensions à votre place et achètent "
                 + "leurs améliorations. Dans chaque dimension, ils s'achètent l'un après l'autre : ceux de la ligne en graines "
                 + "d'univers, ceux du plan en " + Game.dimensionResourceName(1) + ", ceux du volume en "
-                + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ". La visée "
+                + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ", ceux de la "
+                + "boucle en " + Game.dimensionResourceName(4) + ". La visée "
                 + "automatique fait filer le point du plan vers l'éclat le plus proche tant que vous ne tenez aucune touche ; "
                 + "la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
                 + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
-                + "bouton de la durée jusqu'au centre, relâche et recommence. Les autres achètent chacun une amélioration dès "
+                + "bouton de la durée jusqu'au centre, relâche et recommence ; le rythme automatique clique « bien » à chaque "
+                + "passage d'un point de la boucle dans une zone. Les autres achètent chacun une amélioration dès "
                 + "qu'elle est payable. Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
                 + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
                 + "tous. Achetés, ils traversent les univers."));
@@ -379,5 +396,15 @@ final class HelpPane extends Overlay {
                     + Character.toLowerCase(effect.charAt(0)) + effect.substring(1, effect.length() - 1));
         }
         return String.join(" ; ", parts);
+    }
+
+    /** Les touches des sept cercles de la boucle, dans l'ordre : « S, D, F, Espace, J, K, L ». */
+    private static String loopKeys(Settings settings) {
+        StringBuilder keys = new StringBuilder();
+        for (int ring = 0; ring < Game.MAX_RINGS; ring++) {
+            KeyCode key = settings.loopKey(ring);
+            keys.append(ring == 0 ? "" : ", ").append(key == null ? "aucune" : Shortcuts.name(key));
+        }
+        return keys.toString();
     }
 }

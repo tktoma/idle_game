@@ -365,6 +365,9 @@ public final class Settings {
     private static final String CONFIRM_CHALLENGE = "confirmChallenge";
     /** Préfixe des touches choisies par le joueur : une préférence par raccourci. */
     private static final String KEY_PREFIX = "key.";
+    /** Les touches des cercles de la boucle (version 0.153) : une préférence par cercle, de 0 à 6, et le métronome. */
+    private static final String LOOP_KEY_PREFIX = "loopKey.";
+    private static final String LOOP_METRONOME = "loopMetronome";
     private static final String WINDOW = "window";
     private static final String LAST_TAB = "lastTab";
     /**
@@ -414,6 +417,14 @@ public final class Settings {
     private boolean confirmBigBang = true;
     private boolean confirmChallenge = true;
     private final java.util.Map<Shortcuts.Action, KeyCode> keys = new java.util.EnumMap<>(Shortcuts.Action.class);
+    /**
+     * La touche de chaque cercle de la boucle (version 0.153), {@code null} s'il n'en a pas. Elles ne servent que dans la
+     * fenêtre de la boucle : elles peuvent reprendre la touche d'un raccourci, pas celle d'un autre cercle ni la touche
+     * de détail.
+     */
+    private final KeyCode[] loopKeys = new KeyCode[idle.core.Game.MAX_RINGS];
+    /** Le métronome de la boucle : coupé au départ. */
+    private boolean loopMetronome = false;
 
     /** Réglages relus dans les préférences de l'utilisateur, ou ceux par défaut si elles sont illisibles. */
     static Settings load() {
@@ -518,12 +529,99 @@ public final class Settings {
             KeyCode key = action.defaultKey();
             if (!settings.keys.containsKey(action) && key != settings.detailKey && !settings.keys.containsValue(key)) settings.keys.put(action, key);
         }
+        settings.loadLoopKeys();
         Confirm.set(settings.confirmBigBang, settings.confirmChallenge);
         Card.setSigns(settings.stateSigns);
         Readiness.setHidden(settings.dotsOff);
         Format.setNotation(settings.notation);
         settings.applyEffects();
         return settings;
+    }
+
+    /**
+     * Relit les touches des cercles et le métronome : une touche illisible, déjà prise par un cercle d'avant ou par la
+     * touche de détail (préférences touchées à la main) laisse la place à celle d'origine si elle est libre, sinon à aucune.
+     */
+    private void loadLoopKeys() {
+        java.util.Arrays.fill(loopKeys, null);
+        for (int ring = 0; ring < loopKeys.length; ring++) {
+            if (store == null) break;
+            try {
+                KeyCode key = KeyCode.valueOf(store.get(LOOP_KEY_PREFIX + ring, defaultLoopKey(ring).name()));
+                if (Shortcuts.bindable(key) && key != detailKey && loopRingOf(key) < 0) loopKeys[ring] = key;
+            } catch (RuntimeException unknown) {
+                // touche inconnue : celle d'origine sera reprise ci-dessous si elle est libre
+            }
+        }
+        for (int ring = 0; ring < loopKeys.length; ring++) {
+            KeyCode key = defaultLoopKey(ring);
+            if (loopKeys[ring] == null && key != detailKey && loopRingOf(key) < 0) loopKeys[ring] = key;
+        }
+        try {
+            if (store != null) loopMetronome = store.getBoolean(LOOP_METRONOME, false);
+        } catch (RuntimeException unreadable) {
+            loopMetronome = false;
+        }
+    }
+
+    /** La touche d'origine du cercle {@code ring} : S D F Espace J K L. */
+    static KeyCode defaultLoopKey(int ring) {
+        return idle.ui.universe.DimensionWindow.DEFAULT_LOOP_KEYS.get(ring);
+    }
+
+    /** La touche du cercle {@code ring} de la boucle (0 à 6), ou {@code null} s'il n'en a pas. */
+    public KeyCode loopKey(int ring) {
+        return ring >= 0 && ring < loopKeys.length ? loopKeys[ring] : null;
+    }
+
+    /** Le cercle de la boucle qui porte cette touche, ou −1. */
+    public int loopRingOf(KeyCode key) {
+        for (int ring = 0; ring < loopKeys.length; ring++) if (key != null && loopKeys[ring] == key) return ring;
+        return -1;
+    }
+
+    /**
+     * Donne une touche à un cercle de la boucle.
+     *
+     * @return faux, sans rien changer, si la touche ne peut pas porter de raccourci, si c'est la touche de détail, ou si
+     *         un autre cercle l'a déjà
+     */
+    public boolean setLoopKey(int ring, KeyCode key) {
+        if (ring < 0 || ring >= loopKeys.length || !Shortcuts.bindable(key) || key == detailKey) return false;
+        int holder = loopRingOf(key);
+        if (holder >= 0 && holder != ring) return false;
+        loopKeys[ring] = key;
+        save(LOOP_KEY_PREFIX + ring, key.name());
+        return true;
+    }
+
+    /** Vrai si au moins un cercle n'a plus sa touche d'origine. */
+    public boolean hasCustomLoopKeys() {
+        for (int ring = 0; ring < loopKeys.length; ring++) if (loopKeys[ring] != defaultLoopKey(ring)) return true;
+        return false;
+    }
+
+    /** Rend à chaque cercle sa touche d'origine, sauf à celui dont la touche sert de touche de détail. */
+    public void resetLoopKeys() {
+        for (int ring = 0; ring < loopKeys.length; ring++) {
+            loopKeys[ring] = defaultLoopKey(ring) == detailKey ? null : defaultLoopKey(ring);
+            if (store == null) continue;
+            try {
+                store.remove(LOOP_KEY_PREFIX + ring);
+            } catch (RuntimeException unwritable) {
+                // tant pis : la touche d'origine vaut au moins jusqu'à la fermeture du jeu
+            }
+        }
+    }
+
+    /** Vrai si le métronome de la boucle bat : un tic à chaque passage du point du premier cercle sur le centre d'une zone. */
+    public boolean loopMetronome() {
+        return loopMetronome;
+    }
+
+    public void setLoopMetronome(boolean on) {
+        loopMetronome = on;
+        save(LOOP_METRONOME, String.valueOf(on));
     }
 
     /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus sont ignorés. */

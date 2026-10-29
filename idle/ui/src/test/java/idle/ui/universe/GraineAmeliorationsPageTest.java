@@ -13,7 +13,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; les branches 5 à 10 verrouillées ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ * sa ressource ; les branches 6 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * 0.153) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
 
@@ -145,7 +146,14 @@ class GraineAmeliorationsPageTest {
         FxTestSupport.fx(() -> {
             Game game = rich();
             SeedUpgradesPane pane = page(game).seedUpgrades();
-            for (int d = 5; d <= SeedUpgradesPane.BRANCHES; d++) {
+            // La boucle (version 0.153) : sa branche a ses vraies cartes, fermées tant que la dimension 5 ne l'est pas.
+            assertFalse(pane.isBranchOpen(5));
+            assertEquals("Boucle", SeedUpgradesPane.branchName(5));
+            pane.select(5);
+            assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).isDisabled());
+            assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).getText().endsWith("S'ouvre avec la dimension 5"),
+                    pane.button(SeedUpgrade.BLOOM_DURATION).getText());
+            for (int d = 6; d <= SeedUpgradesPane.BRANCHES; d++) {
                 assertFalse(pane.isBranchOpen(d));
                 pane.select(d);
                 assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));

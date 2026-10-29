@@ -72,7 +72,7 @@ public enum Hadron {
             case PION -> "énergie du collisionneur";
             case KAON -> "espace par seconde";
             case LAMBDA -> "particules par création";
-            case OMEGA -> "éclats des quatre dimensions";
+            case OMEGA -> "éclats des dimensions";
             case D_MESON -> "énergie du vide";
             case J_PSI -> "prix des améliorations du collisionneur";
             case B_MESON -> "prix des générateurs";

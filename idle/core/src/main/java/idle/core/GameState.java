@@ -195,6 +195,9 @@ public final class GameState extends GameStateResets {
         data.put("durationShards", durationShards);
         data.put("durationShardsEarned", durationShardsEarned);
         for (int i = 0; i < DURATION_UPGRADES; i++) data.put("durationLevel" + i, durationLevel(i));
+        data.put("loopShards", loopShards);
+        data.put("loopShardsEarned", loopShardsEarned);
+        for (int i = 0; i < LOOP_UPGRADES; i++) data.put("loopLevel" + i, loopLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -476,6 +479,10 @@ public final class GameState extends GameStateResets {
         setDurationShards(data.real("durationShards", 0));
         setDurationShardsEarned(data.real("durationShardsEarned", 0));
         for (int i = 0; i < DURATION_UPGRADES; i++) setDurationLevel(i, data.whole("durationLevel" + i, 0));
+        // La boucle (version 0.153) : absente d'avant, elle part de zéro.
+        setLoopShards(data.real("loopShards", 0));
+        setLoopShardsEarned(data.real("loopShardsEarned", 0));
+        for (int i = 0; i < LOOP_UPGRADES; i++) setLoopLevel(i, data.whole("loopLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));

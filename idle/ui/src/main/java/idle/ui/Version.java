@@ -23,6 +23,29 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.153", "La boucle", List.of(
+                    "La cinquième dimension s'ouvre au cinquième univers : la boucle, à la place des embranchements, qui "
+                            + "n'étaient qu'un visuel. Sur un cercle, un point tourne, très lentement au début ; une zone y "
+                            + "attend, en trois parts : le bord « mauvais », puis « bien », le centre « excellent ».",
+                    "Un clic sur le cercle (ou sa touche) quand le point est dans la zone donne des nœuds, d'autant plus "
+                            + "que le clic est juste, et la zone se pose ailleurs. Après chaque clic, juste ou non, le cercle "
+                            + "attend un court instant, qu'un anneau autour du point montre : cliquer sans arrêt ne rapporte rien. "
+                            + "Le mot du clic monte du point : « Excellent », « Bien », « Mauvais » ou « Raté ».",
+                    "Six améliorations, payées en nœuds : rapidité du point, nombre de zones (jusqu'à quatre par cercle), "
+                            + "gain par zone, précision, taille des zones, et des cercles de plus, jusqu'à sept. Chaque cercle "
+                            + "a sa touche, S D F Espace J K L d'origine, à changer dans les réglages, sous-onglet Clavier.",
+                    "Un métronome, à brancher dans la fenêtre de la boucle, fait un tic à chaque passage du point du premier "
+                            + "cercle sur le centre d'une zone ; il suit le réglage des sons et leur volume.",
+                    "Le rond de croissance : avec la boucle, un rond vert pousse de temps en temps près de la graine, avec son "
+                            + "compte à rebours. Cueilli d'un clic, il accélère l'arrosage de 25 % pendant 30 s ; la ligne "
+                            + "« Croissance +25 % : 30 s » le dit au-dessus de l'étagère. La branche « Boucle » des "
+                            + "améliorations de la graine allonge sa durée et renforce son effet.",
+                    "L'automatisation des dimensions gagne la section de la boucle, payée en instants de la durée : le rythme "
+                            + "automatique clique « bien » à chaque passage d'un point dans une zone, puis un automatisme par "
+                            + "amélioration ; il y en a maintenant vingt-neuf. Le seuil de la boucle (5 000 nœuds) marque la "
+                            + "dimension d'un rond vert et donne le titre « Danseur de la boucle » ; l'oméga renforce aussi ses nœuds.",
+                    "Les statistiques de l'univers ont la boucle, sa courbe et le rond de croissance ; l'aide les décrit ; le "
+                            + "profil de test a la rangée de la boucle et un outil qui fait pousser le rond de croissance.")),
             new Note("0.152", "Onze univers à l'essai", List.of(
                     "Profil de test : les bots jouent maintenant depuis zéro jusqu'au onzième univers. Ils arrosent la graine, "
                             + "achètent les bulles, lient des hadrons et prennent les automatismes des dimensions ; le Speedrunner "

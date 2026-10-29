@@ -2,20 +2,26 @@ package idle.ui.universe;
 
 /**
  * Les dix dimensions de la sous-page du même nom (version 0.081) : un nom et une phrase chacune,
- * de la ligne au point qui contient tout. Sans logique pour l'instant : chacune ouvre sa fenêtre,
- * une tentative de visuel ({@link DimensionView}).
+ * de la ligne au point qui contient tout. Chacune ouvre sa fenêtre ({@link DimensionWindow}) ; les cinq
+ * premières se jouent ({@link #PLAYABLE}), les autres restent une tentative de visuel ({@link DimensionView}).
+ *
+ * <p>Version 0.153 : la cinquième devient la boucle, que le jeu a créée ; les embranchements, qui n'étaient qu'un
+ * visuel, lui laissent la place.
  */
 public enum Dimension {
     LINE("La ligne", "Un point qui avance : une seule direction, en avant ou en arrière."),
     PLANE("Le plan", "La ligne prend de la largeur : on peut tourner."),
     VOLUME("Le volume", "Le plan prend de l'épaisseur : l'espace où tout se tient."),
     DURATION("La durée", "Le volume à chaque instant, de sa naissance à sa fin, mis bout à bout : le temps."),
-    BRANCHES("Les embranchements", "À chaque choix, le temps se sépare en plusieurs suites possibles."),
+    LOOP("La boucle", "La durée se referme sur elle-même : ce qui passe repasse, au même endroit, en rythme."),
     POSSIBLES("Tous les possibles", "Toutes les suites d'un même début, côte à côte, et les passages de l'une à l'autre."),
     BEGINNINGS("Tous les débuts", "D'autres commencements, chacun avec tous ses possibles."),
     WEAVE("La toile des débuts", "Tous les débuts et tous leurs possibles, reliés en une seule toile."),
     LAWS("Toutes les lois", "D'autres règles : des univers où la lumière, la masse ou le temps ne vont pas pareil."),
     POINT("Le point", "Tout cela à la fois, en un seul point.");
+
+    /** Les dimensions qui existent dans le jeu, avec leur logique et leur ressource : de la ligne à la boucle. */
+    public static final int PLAYABLE = 5;
 
     private final String label;
     private final String line;

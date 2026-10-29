@@ -32,7 +32,8 @@ import javafx.scene.text.TextAlignment;
  *       d'objectif (chrono compris), les signes d'état des cartes et les pastilles des onglets par sorte ;</li>
  *   <li><b>Effets et sons</b> : les effets visuels, ensemble ou un par un, les images par seconde, les sons ;</li>
  *   <li><b>Jeu</b> : la pause, les confirmations, le temps hors ligne, les records ;</li>
- *   <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail ;</li>
+ *   <li><b>Clavier</b> : les raccourcis et leurs touches, la touche de détail, les touches des cercles de la boucle
+ *       (version 0.153) ;</li>
  *   <li><b>Partie</b> : la sauvegarde et son rythme, l'export et l'import, recommencer de zéro, le
  *       rapport de bug, la version du jeu et ses notes.</li>
  * </ul>
@@ -227,8 +228,17 @@ public final class SettingsPage extends VBox {
     private final VBox keyList = new VBox(4);
     private final Button resetKeysButton = new Button("Remettre les touches d'origine");
     private final Label keyNote = new Label();
-    /** Le raccourci dont la page attend la nouvelle touche ; {@code null} quand c'est la touche de détail qu'elle attend. */
+    /**
+     * Le raccourci dont la page attend la nouvelle touche ; {@code null} quand c'est la touche de détail ou celle d'un
+     * cercle de la boucle qu'elle attend.
+     */
     private Shortcuts.Action capturingAction = null;
+    /** Le cercle de la boucle dont la page attend la nouvelle touche (version 0.153), ou −1. */
+    private int capturingRing = -1;
+    /** Une ligne par cercle de la boucle : le bouton qui porte sa touche. */
+    private final List<Button> loopKeyButtons = new ArrayList<>();
+    private final Button resetLoopKeysButton = new Button("Remettre les touches d'origine des cercles");
+    private final Label loopKeyNote = new Label();
     private final Button detailKeyButton = new Button();
     private final Button detailModeButton = new Button();
     /** Vrai tant que la page attend la touche qui deviendra la touche de détail. */
@@ -428,7 +438,8 @@ public final class SettingsPage extends VBox {
         block("Sons",
                 "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, comète, défi "
                         + "réussi. Tous sont fabriqués par le jeu, sans fichier. Un même son ne revient pas avant une "
-                        + "seconde, même quand les automatismes enchaînent tout. Changer le volume fait entendre un essai.");
+                        + "seconde, même quand les automatismes enchaînent tout. Changer le volume fait entendre un essai. "
+                        + "Le métronome de la boucle, qui se branche dans sa fenêtre, suit ce réglage et ce volume.");
         soundButton.setOnAction(event -> {
             settings.setSound(!settings.sound());
             if (settings.sound()) soundTest.run();
@@ -521,6 +532,7 @@ public final class SettingsPage extends VBox {
                 boolean same = capturing && capturingAction == action;
                 capturing = !same;
                 capturingAction = same ? null : action;
+                capturingRing = -1;
                 captureProblem = "";
                 refresh();
             });
@@ -536,6 +548,7 @@ public final class SettingsPage extends VBox {
             settings.resetKeys();
             capturing = false;
             capturingAction = null;
+            capturingRing = -1;
             captureProblem = "";
             refresh();
         });
@@ -545,8 +558,9 @@ public final class SettingsPage extends VBox {
                 + "leurs explications complètes : ce que fait chaque amélioration, d'où vient chaque nombre. "
                 + "On peut la tenir enfoncée, ou la faire basculer d'un appui.");
         detailKeyButton.setOnAction(event -> {
-            capturing = !(capturing && capturingAction == null);
+            capturing = !(capturing && capturingAction == null && capturingRing < 0);
             capturingAction = null;
+            capturingRing = -1;
             captureProblem = "";
             refresh();
         });
@@ -559,6 +573,48 @@ public final class SettingsPage extends VBox {
         detailRow.setAlignment(Pos.CENTER);
         target.getChildren().add(detailRow);
         note(detailKeyNote);
+
+        // Version 0.153 : une touche par cercle de la boucle, la cinquième dimension.
+        block("Touches de la boucle", "Dans la fenêtre de la boucle, la cinquième dimension, chaque cercle se joue d'un clic "
+                + "ou de sa touche, jusqu'à sept. Elles ne servent que fenêtre de la boucle ouverte : une touche peut être "
+                + "à la fois celle d'un cercle et celle d'un raccourci, qui attend que la fenêtre se ferme. Deux cercles ne "
+                + "peuvent pas partager une touche, ni prendre la touche de détail.");
+        VBox loopKeyList = new VBox(4);
+        loopKeyList.setAlignment(Pos.CENTER);
+        for (int ring = 0; ring < idle.core.Game.MAX_RINGS; ring++) {
+            int number = ring;
+            Label name = new Label("Cercle " + (ring + 1) + (ring == 0 ? " (le premier, dehors)" : ""));
+            name.setStyle("-fx-font-size: 13px; -fx-text-fill: #b7c4d2;");
+            name.setMinWidth(300);
+            name.setPrefWidth(300);
+            Button key = new Button();
+            key.setMinWidth(150);
+            key.setFocusTraversable(false);
+            key.setOnAction(event -> {
+                boolean same = capturing && capturingRing == number;
+                capturing = !same;
+                capturingAction = null;
+                capturingRing = same ? -1 : number;
+                captureProblem = "";
+                refresh();
+            });
+            loopKeyButtons.add(key);
+            HBox row = new HBox(10, name, key);
+            row.setAlignment(Pos.CENTER);
+            loopKeyList.getChildren().add(row);
+        }
+        target.getChildren().add(loopKeyList);
+        note(loopKeyNote);
+        resetLoopKeysButton.setStyle(OFF_STYLE);
+        resetLoopKeysButton.setFocusTraversable(false);
+        resetLoopKeysButton.setOnAction(event -> {
+            settings.resetLoopKeys();
+            capturing = false;
+            capturingRing = -1;
+            captureProblem = "";
+            refresh();
+        });
+        target.getChildren().add(resetLoopKeysButton);
 
         use(Section.SAVE);
         block("Sauvegarde", "La partie s'écrit toute seule au rythme choisi ci-dessous (toutes les trente secondes "
@@ -788,19 +844,25 @@ public final class SettingsPage extends VBox {
     }
 
     /**
-     * La touche pressée pendant que la page en attendait une, pour la touche de détail ou pour un
-     * raccourci. Échap annule ; une touche déjà prise est refusée, et la page continue d'attendre.
+     * La touche pressée pendant que la page en attendait une, pour la touche de détail, pour un raccourci ou pour un
+     * cercle de la boucle. Échap annule ; une touche déjà prise est refusée, et la page continue d'attendre.
      */
     public void capture(KeyCode key) {
         if (!capturing) return;
         Shortcuts.Action holder = settings.actionOf(key);
+        int ring = settings.loopRingOf(key);
         if (key == KeyCode.ESCAPE) {
             capturing = false;
+            capturingRing = -1;
             captureProblem = "";
+        } else if (capturingRing >= 0) {
+            captureLoopKey(key, ring);
         } else if (capturingAction == null) {
-            // La touche de détail : n'importe laquelle, sauf celle d'un raccourci.
+            // La touche de détail : n'importe laquelle, sauf celle d'un raccourci ou d'un cercle de la boucle.
             if (holder != null) {
                 captureProblem = "« " + Shortcuts.name(key) + " » sert déjà à : " + holder.label().toLowerCase() + ". Choisissez une autre touche.";
+            } else if (ring >= 0) {
+                captureProblem = "« " + Shortcuts.name(key) + " » est la touche du cercle " + (ring + 1) + " de la boucle. Choisissez une autre touche.";
             } else {
                 settings.setDetailKey(key);
                 Detail.set(false);
@@ -820,6 +882,25 @@ public final class SettingsPage extends VBox {
             captureProblem = "";
         }
         refresh();
+    }
+
+    /**
+     * La nouvelle touche d'un cercle de la boucle : refusée si c'est la touche de détail, une touche qui ne peut rien
+     * porter, ou celle d'un autre cercle ; celle d'un raccourci est acceptée, les deux ne servent pas au même moment.
+     */
+    private void captureLoopKey(KeyCode key, int holder) {
+        if (key == settings.detailKey()) {
+            captureProblem = "« " + Shortcuts.name(key) + " » est la touche de détail. Choisissez une autre touche.";
+        } else if (!Shortcuts.bindable(key)) {
+            captureProblem = "« " + Shortcuts.name(key) + " » ne peut pas porter un cercle. Choisissez une autre touche.";
+        } else if (holder >= 0 && holder != capturingRing) {
+            captureProblem = "« " + Shortcuts.name(key) + " » est déjà la touche du cercle " + (holder + 1) + ". Choisissez une autre touche.";
+        } else {
+            settings.setLoopKey(capturingRing, key);
+            capturing = false;
+            capturingRing = -1;
+            captureProblem = "";
+        }
     }
 
     private void note(Label label) {
@@ -898,6 +979,7 @@ public final class SettingsPage extends VBox {
         bugMessage = "";
         capturing = false;
         capturingAction = null;
+        capturingRing = -1;
         captureProblem = "";
         themeHint = "";
         notationHint = "";
@@ -990,13 +1072,21 @@ public final class SettingsPage extends VBox {
         resetKeysButton.setVisible(custom);
         resetKeysButton.setManaged(custom);
         show(keyNote, capturingAction != null ? captureProblem : "");
+        for (int ring = 0; ring < loopKeyButtons.size(); ring++) {
+            KeyCode bound = settings.loopKey(ring);
+            toggle(loopKeyButtons.get(ring), capturing && capturingRing == ring, "Appuyez sur une touche…",
+                    bound == null ? "(aucune)" : Shortcuts.name(bound));
+        }
+        resetLoopKeysButton.setVisible(settings.hasCustomLoopKeys());
+        resetLoopKeysButton.setManaged(settings.hasCustomLoopKeys());
+        show(loopKeyNote, capturingRing >= 0 ? captureProblem : "");
         toggle(shortcutsButton, settings.shortcuts(), "Raccourcis clavier : actifs", "Raccourcis clavier : coupés");
         String key = Detail.keyName(settings.detailKey());
-        boolean detailWaiting = capturing && capturingAction == null;
+        boolean detailWaiting = capturing && capturingAction == null && capturingRing < 0;
         toggle(detailKeyButton, detailWaiting, "Appuyez sur une touche… (Échap annule)", "Touche : " + key + " (changer)");
         detailModeButton.setText(settings.detailToggle() ? "Un appui bascule" : "À tenir enfoncée");
         detailModeButton.setStyle(OFF_STYLE);
-        show(detailKeyNote, capturingAction == null ? captureProblem : "");
+        show(detailKeyNote, capturingAction == null && capturingRing < 0 ? captureProblem : "");
         // Les explications, comme partout : seulement en mode détails.
         for (Label explanation : explanations) {
             explanation.setVisible(Detail.shown());
@@ -1065,6 +1155,16 @@ public final class SettingsPage extends VBox {
         sizeFits = fits;
         sizeNow = current;
         refresh();
+    }
+
+    /** Le bouton de la touche du cercle {@code ring} de la boucle : pour les vérifications. */
+    public Button loopKeyButton(int ring) {
+        return loopKeyButtons.get(ring);
+    }
+
+    /** Ce que la page dit sous les touches de la boucle (vide sans souci) : pour les vérifications. */
+    public String loopKeyNoteText() {
+        return loopKeyNote.getText();
     }
 
     /** Le bouton d'un format de fenêtre : pour les vérifications. */

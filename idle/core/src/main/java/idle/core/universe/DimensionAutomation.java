@@ -7,7 +7,8 @@ package idle.core.universe;
  * par amélioration, qui l'achète dès qu'elle est payable. La ligne avance seule : elle n'a que ses améliorations.
  *
  * <p>Ceux de la dimension 1 se paient en graines d'univers ; ceux de la dimension n, avec la ressource de la dimension
- * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée.
+ * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée,
+ * les instants de la durée pour la boucle (version 0.153).
  */
 public enum DimensionAutomation {
     LINE_YIELD(1, Kind.UPGRADE, 0, "Densité"),
@@ -31,13 +32,21 @@ public enum DimensionAutomation {
     DURATION_SPEED(4, Kind.UPGRADE, 0, "Vitesse des spirales"),
     DURATION_COUNT(4, Kind.UPGRADE, 1, "Spirales"),
     DURATION_VALUE(4, Kind.UPGRADE, 2, "Valeur"),
-    DURATION_TIME(4, Kind.UPGRADE, 3, "Temps au plus");
+    DURATION_TIME(4, Kind.UPGRADE, 3, "Temps au plus"),
+    // Version 0.153 : la boucle, payée en instants de la durée.
+    LOOP_PLAY(5, Kind.PLAY, -1, "Rythme automatique"),
+    LOOP_SPEED(5, Kind.UPGRADE, 0, "Rapidité"),
+    LOOP_ZONES(5, Kind.UPGRADE, 1, "Zones"),
+    LOOP_GAIN(5, Kind.UPGRADE, 2, "Gain par zone"),
+    LOOP_PRECISION(5, Kind.UPGRADE, 3, "Précision"),
+    LOOP_SIZE(5, Kind.UPGRADE, 4, "Taille des zones"),
+    LOOP_RINGS(5, Kind.UPGRADE, 5, "Cercles");
 
     /** Ce que fait l'automatisme : jouer la dimension, ou acheter une de ses améliorations. */
     public enum Kind { PLAY, UPGRADE }
 
     /** Le prix du premier automatisme de chaque dimension, dans la ressource qui le paie (graines, segments, facettes, sphères). */
-    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000};
+    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000};
     /** Ce que chaque automatisme suivant de la même dimension coûte de plus : ×2 (les graines : +1 tous les deux). */
     public static final double COST_GROWTH = 2;
 
@@ -53,7 +62,7 @@ public enum DimensionAutomation {
         this.label = label;
     }
 
-    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée. */
+    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle. */
     public int dimension() {
         return dimension;
     }

@@ -25,7 +25,8 @@ import javafx.scene.layout.VBox;
  *
  * <p>En tête, ce qui paie chaque dimension, et le rappel que « Couper tous les automatismes » les arrête et qu'ils
  * traversent les univers ; le même bouton de coupure que le sous-onglet « Automatismes », pour s'en servir d'ici. Puis
- * une section par dimension ouverte (la ligne, le plan, le volume, la durée), qui dit ce que le joueur a pour payer, et
+ * une section par dimension ouverte (la ligne, le plan, le volume, la durée, la boucle depuis la version 0.153), qui dit
+ * ce que le joueur a pour payer, et
  * une carte par automatisme : son nom, ce qu'il fait, son prix et ce qui le paie. Pas encore achetable, la carte dit
  * celui qu'il faut avoir acheté avant (« Après : … ») ; à acheter, un clic l'achète ; acheté, elle sert d'interrupteur,
  * en marche ou en pause.
@@ -42,10 +43,10 @@ public final class DimensionAutomationPane extends VBox {
     private final Button pauseButton = new Button();
     private final Label intro = new Label();
     private final Map<DimensionAutomation, Card> cards = new EnumMap<>(DimensionAutomation.class);
-    /** Par dimension (1 à 4) : son titre, la ligne de ce qui la paie, ses cartes, et la boîte qui les tient. */
-    private final Label[] headings = new Label[5];
-    private final Label[] balances = new Label[5];
-    private final VBox[] sections = new VBox[5];
+    /** Par dimension (1 à 5) : son titre, la ligne de ce qui la paie, ses cartes, et la boîte qui les tient. */
+    private final Label[] headings = new Label[Dimension.PLAYABLE + 1];
+    private final Label[] balances = new Label[Dimension.PLAYABLE + 1];
+    private final VBox[] sections = new VBox[Dimension.PLAYABLE + 1];
     /** Ce que les cartes ont montré en dernier : elles ne se refont que si cela change. */
     private String shownKey = "";
 
@@ -66,11 +67,12 @@ public final class DimensionAutomationPane extends VBox {
         intro.setText("Ils jouent les dimensions à votre place et achètent leurs améliorations, l'un après l'autre dans "
                 + "chaque dimension. Ceux de la ligne se paient en graines d'univers, ceux du plan en "
                 + Game.dimensionResourceName(1) + " de la ligne, ceux du volume en " + Game.dimensionResourceName(2)
-                + " du plan, ceux de la durée en " + Game.dimensionResourceName(3) + " du volume. « Couper tous les "
+                + " du plan, ceux de la durée en " + Game.dimensionResourceName(3) + " du volume, ceux de la boucle en "
+                + Game.dimensionResourceName(4) + " de la durée. « Couper tous les "
                 + "automatismes » les arrête tous ; chacun se met aussi en pause d'un clic. Achetés, ils traversent les univers.");
         getChildren().addAll(title, pauseButton, intro);
 
-        for (int number = 1; number <= 4; number++) {
+        for (int number = 1; number <= Dimension.PLAYABLE; number++) {
             String color = DimensionWindow.color(number);
             Label heading = new Label("Dimension " + number + " : " + Dimension.of(number).label());
             heading.setStyle(HEADING_STYLE + color + ";");
@@ -109,6 +111,7 @@ public final class DimensionAutomationPane extends VBox {
             case VOLUME_DIVE -> "Plonge seul et cueille une boule toutes les "
                     + String.format(java.util.Locale.FRANCE, "%.1f", Game.VOLUME_AUTO_SHOT_SECONDS) + " s";
             case DURATION_HOLD -> "Tient le bouton jusqu'au centre, relâche, recommence";
+            case LOOP_PLAY -> "Clique « bien » à chaque passage d'un point dans une zone";
             default -> "Achète « " + automation.label() + " » dès qu'il est payable";
         };
     }
@@ -120,8 +123,10 @@ public final class DimensionAutomationPane extends VBox {
                 case PLANE_AIM -> "Dès que vous lâchez les touches, il reprend la main, fenêtre ouverte ou non.";
                 case VOLUME_DIVE -> "Il replonge dès que le cube le rejette ; les améliorations du volume s'achètent entre "
                         + "deux plongées. Vous pouvez cueillir avec lui, fenêtre ouverte.";
-                default -> "Chaque fois que les spirales atteignent le centre, il relâche et en donne les instants. Les "
+                case DURATION_HOLD -> "Chaque fois que les spirales atteignent le centre, il relâche et en donne les instants. Les "
                         + "améliorations de la durée s'achètent quand même, à la main ou par leurs automatismes.";
+                default -> "Il joue tous les cercles de la boucle, fenêtre ouverte ou non, sans jamais rater ni viser le "
+                        + "centre ; vos clics comptent en plus. Les améliorations de la boucle s'achètent quand même.";
             };
             case UPGRADE -> "Il achète tant que la ressource suffit, jusqu'au plus haut niveau s'il y en a un.";
         };
@@ -143,7 +148,7 @@ public final class DimensionAutomationPane extends VBox {
                 + (paused ? " -fx-text-fill: #1a0a08; -fx-background-color: #ff8a75; -fx-border-color: #ffffff;"
                 : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
         int open = game.dimensionsUnlocked();
-        for (int number = 1; number <= 4; number++) {
+        for (int number = 1; number <= Dimension.PLAYABLE; number++) {
             boolean shown = number <= open;
             sections[number].setVisible(shown);
             sections[number].setManaged(shown);
@@ -195,7 +200,7 @@ public final class DimensionAutomationPane extends VBox {
         return cards.get(automation);
     }
 
-    /** Vrai si la section de cette dimension (1 à 4) se montre. */
+    /** Vrai si la section de cette dimension (1 à 5) se montre. */
     public boolean sectionShown(int number) {
         return sections[number].isVisible();
     }

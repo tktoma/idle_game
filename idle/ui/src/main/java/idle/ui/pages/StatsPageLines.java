@@ -363,8 +363,9 @@ public abstract class StatsPageLines extends StatsPageBase {
 
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
-     * univers formés et la graine, les dimensions et leurs éclats, le vide, les bulles de l'arbre, les hadrons (version
-     * 0.149) et leurs gluons (version 0.151), et les règles du deuxième univers (régime, cycle, épreuves, skins, recherches).
+     * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
+     * 0.153), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
         page("Univers", UniversePage.COLOR, () -> game.universes() > 0, "au premier univers formé");
@@ -376,6 +377,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Facettes du plan", "gagnées en tout", ChartPane.MAGENTA, StatsHistory.Stat.PLANE_SHARDS, game::isPlaneOpen);
         log("Sphères du volume", "gagnées en tout", ChartPane.AQUA, StatsHistory.Stat.VOLUME_SHARDS, game::isVolumeOpen);
         log("Instants de la durée", "gagnés en tout", ChartPane.ORANGE, StatsHistory.Stat.DURATION_SHARDS, game::isDurationOpen);
+        log("Nœuds de la boucle", "gagnés en tout", ChartPane.VIOLET, StatsHistory.Stat.LOOP_SHARDS, game::isLoopOpen);
         log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
         log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
 
@@ -406,6 +408,17 @@ public abstract class StatsPageLines extends StatsPageBase {
                 game::isVolumeOpen);
         dimension(4, "Durée", Game.DURATION_THRESHOLD, game::isDurationOpen, () -> game.state().durationShardsEarned(), "Instants de la durée");
         row("Lâchers de la durée", () -> Format.whole(game.durationReleases()), game::isDurationOpen);
+        dimension(5, "Boucle", Game.LOOP_THRESHOLD, game::isLoopOpen, () -> game.state().loopShardsEarned(), "Nœuds de la boucle");
+        row("Cercles de la boucle", () -> game.loopRings() + " / " + Game.MAX_RINGS + ", " + game.loopZoneCount()
+                + (game.loopZoneCount() > 1 ? " zones" : " zone") + " chacun, un tour en "
+                + ElementText.number(1 / game.loopTurnsPerSecond()) + " s", game::isLoopOpen);
+        row("Clics justes de la boucle", () -> Format.whole(game.loopHits()) + " depuis le lancement", game::isLoopOpen);
+        row("Rond de croissance", () -> (game.bloomActiveLeft() > 0
+                ? "en cours, arrosage +" + Math.round(game.bloomGain() * 100) + " %, encore " + Format.wait(game.bloomActiveLeft())
+                : game.isBloomVisible() ? "à cueillir, encore " + Format.wait(game.bloomVisibleLeft())
+                : "+" + Math.round(game.bloomGain() * 100) + " % pendant " + ElementText.number(game.bloomSeconds()) + " s")
+                + ", " + Format.whole(game.bloomsCaught()) + " cueilli" + (game.bloomsCaught() > 1 ? "s" : "") + " depuis le lancement",
+                game::isBloomUnlocked);
 
         section("Le vide");
         charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "

@@ -13,8 +13,7 @@ import javafx.scene.text.TextAlignment;
 /**
  * Le visuel d'une dimension, dans sa fenêtre (version 0.081) : une tentative, sans logique, pour
  * chacune des dix. De la ligne (un point qui va et vient) au point qui contient tout, en passant
- * par le plan, le cube qui tourne, ses instants mis bout à bout, les embranchements du temps,
- * tous les débuts, et d'autres lois.
+ * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, tous les débuts, et d'autres lois.
  *
  * <p>La ligne a sa logique depuis la version 0.101 : la boule est celle du jeu ({@link Game#linePosition()}),
  * un trait à chaque bout et, avec l'amélioration, d'autres à égale distance entre les deux. Chaque trait
@@ -31,6 +30,13 @@ import javafx.scene.text.TextAlignment;
  * commencée sans clic fait plonger la vue, les boules cueillies seules laissent monter leur gain, et chaque relâchement
  * de l'appui automatique fait monter ses instants du bouton. Le joueur peut cueillir avec la plongée automatique ;
  * ses clics sur le bouton de la durée, eux, ne font rien tant que l'appui automatique le tient.
+ *
+ * <p>La boucle a la sienne depuis la version 0.153 : des cercles concentriques, jusqu'à sept, le premier dehors. Sur
+ * chacun, un point tourne et des zones attendent, chacune en trois parts (le bord « mauvais », puis « bien », le centre
+ * « excellent »). Un clic sur un cercle (ou sa touche, que la fenêtre transmet) le joue : le mot de ce qu'il a valu
+ * monte du point, et un anneau autour du point se remplit tant que le cercle attend. Les clics du rythme automatique
+ * font monter leurs nœuds du centre. Le métronome, s'il est branché ({@link #setOnBeat}), bat à chaque passage du point
+ * du premier cercle sur le centre d'une zone.
  */
 public final class DimensionView extends Canvas {
 
@@ -290,6 +296,10 @@ public final class DimensionView extends Canvas {
         lastCollected = -1;
         lastVolumeCollected = -1;
         lastReleases = -1;
+        loopMarks.clear();
+        lastLoopHits = -1;
+        lastBeatPhase = Double.NaN;
+        java.util.Arrays.fill(ringFlash, 0);
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -314,6 +324,7 @@ public final class DimensionView extends Canvas {
             if (lastReleases >= 0 && releases > lastReleases) durationPickup(game.durationLastReward());
             lastReleases = releases;
         }
+        if (dimension == Dimension.LOOP) runLoop(Math.min(elapsed, 0.1));
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
             edgeTurn(Math.min(elapsed, 0.1));
@@ -382,6 +393,7 @@ public final class DimensionView extends Canvas {
 
     private javafx.scene.Cursor cursorAt(double x, double y) {
         if (dimension == Dimension.DURATION && game.isDurationOpen() && overDurationButton(x, y)) return javafx.scene.Cursor.HAND;
+        if (dimension == Dimension.LOOP && game.isLoopOpen() && loopRingAt(x, y) >= 0) return javafx.scene.Cursor.HAND;
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
         // La caméra libre cache la souris : la croix au centre de la vue la remplace.
         if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
@@ -396,6 +408,7 @@ public final class DimensionView extends Canvas {
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension == Dimension.DURATION) return pressDuration(x, y);
+        if (dimension == Dimension.LOOP) return pressLoop(x, y);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
             if (secondary || !overCube(x, y)) return false;
@@ -839,7 +852,7 @@ public final class DimensionView extends Canvas {
                 if (game.isDurationOpen()) durationScene(g, cx, cy, u);
                 else duration(g, w, cx, cy, u);
             }
-            case BRANCHES -> branches(g, w * 0.1, cy, w * 0.8, u * 0.32, 6, 1);
+            case LOOP -> loopScene(g, cx, cy);
             case POSSIBLES -> possibles(g, w, cx, cy, u);
             case BEGINNINGS -> beginnings(g, w, h, u);
             case WEAVE -> weave(g, cx, cy, u);
@@ -1166,28 +1179,251 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    // 5. Un arbre qui pousse de gauche à droite : à chaque nœud, le temps se sépare.
-    private void branches(GraphicsContext g, double x0, double y0, double length, double spread, int depth, double alpha) {
-        double grow = Math.min(1, (time % 9) / 3.5);
-        branch(g, x0, y0, length / depth, spread, depth, 0, grow, alpha, 1);
+    // ------------------------------------------------------------------
+    // La boucle (version 0.153) : les cercles, leurs points, leurs zones
+    // ------------------------------------------------------------------
+
+    /** Le premier cercle (dehors) et le dernier possible (dedans), relatifs au plus petit côté de la vue. */
+    private static final double LOOP_OUTER = 0.42, LOOP_INNER = 0.1;
+    /** Les couleurs des trois parts d'une zone : le bord « mauvais », le « bien », le centre « excellent ». */
+    public static final Color LOOP_BAD = Color.web("#b0566e"), LOOP_GOOD = Color.web("#ff9eb5"), LOOP_EXCELLENT = Color.web("#fff1c9");
+    private static final Color LOOP_MISS = Color.web("#8a93b0");
+    /** Durée de vie du mot d'un clic, qui monte du point et s'efface, en secondes. */
+    private static final double LOOP_MARK_SECONDS = 0.9;
+
+    /** Le mot d'un clic sur un cercle (ou le gain du rythme automatique, au centre) : où il est né, et son âge. */
+    private static final class LoopMark {
+        double x, y, age;
+        String text, gain;
+        Game.LoopHit hit;
     }
 
-    private void branch(GraphicsContext g, double x, double y, double step, double spread, int left, int level, double grow, double alpha, int seed) {
-        if (left == 0) return;
-        double shown = Math.max(0, Math.min(1, grow * 6 - level));
-        if (shown <= 0) return;
-        for (int side = -1; side <= 1; side += 2) {
-            double dy = side * spread * (0.4 + 0.3 * UniverseView.noise(seed * 7 + side + 3));
-            double tx = x + step * shown, ty = y + dy * shown;
-            g.setStroke(PALETTE[(level + seed) % PALETTE.length]);
-            g.setLineWidth(Math.max(0.6, 2.5 - level * 0.35));
-            g.setGlobalAlpha(alpha * (0.9 - level * 0.08));
-            g.strokeLine(x, y, tx, ty);
-            if (shown >= 1) branch(g, tx, ty, step, spread * 0.55, left - 1, level + 1, grow, alpha, seed * 2 + (side > 0 ? 1 : 0));
+    private final List<LoopMark> loopMarks = new ArrayList<>();
+    /** Les clics qui ont rapporté, que la vue a déjà montrés : ce que la partie compte de plus vient du rythme automatique. */
+    private long lastLoopHits = -1;
+    /** Où était le point du premier cercle à l'image d'avant : pour entendre ses passages sur le centre d'une zone. */
+    private double lastBeatPhase = Double.NaN;
+    /** Le métronome : ce qu'il joue à chaque battement ; {@code null} quand il est coupé. */
+    private Runnable onBeat;
+    private long beats;
+    /** L'éclat de chaque cercle juste joué, de 1 à 0, et ce que le clic a valu. */
+    private final double[] ringFlash = new double[Game.MAX_RINGS];
+    private final Game.LoopHit[] ringFlashHit = new Game.LoopHit[Game.MAX_RINGS];
+
+    /** Le métronome de la boucle : ce qu'il joue à chaque battement, ou {@code null} pour le couper. */
+    public void setOnBeat(Runnable beat) {
+        onBeat = beat;
+    }
+
+    /** Les battements du métronome depuis l'ouverture du jeu : pour les vérifications. */
+    public long beats() {
+        return beats;
+    }
+
+    /** Les mots de clics qui montent encore : pour les vérifications. */
+    public int loopMarksShown() {
+        return loopMarks.size();
+    }
+
+    /** Le texte du dernier mot de clic, ou rien : pour les vérifications. */
+    public String lastLoopMark() {
+        return loopMarks.isEmpty() ? "" : loopMarks.get(loopMarks.size() - 1).text;
+    }
+
+    /** L'écart entre deux cercles voisins : sept tiennent entre le premier et le dernier rayon. */
+    private double loopGap() {
+        return Math.min(getWidth(), getHeight()) * (LOOP_OUTER - LOOP_INNER) / (Game.MAX_RINGS - 1);
+    }
+
+    /** Le rayon du cercle {@code ring} : le premier dehors, les suivants vers le centre. */
+    public double loopRadius(int ring) {
+        return Math.min(getWidth(), getHeight()) * LOOP_OUTER - ring * loopGap();
+    }
+
+    /** Le cercle sous ce point de la vue (à une demi-largeur d'écart près), ou −1. */
+    public int loopRingAt(double x, double y) {
+        double d = Math.hypot(x - getWidth() / 2, y - getHeight() / 2), reach = Math.max(10, loopGap() / 2);
+        int best = -1;
+        for (int ring = 0; ring < game.loopRings(); ring++) {
+            double off = Math.abs(d - loopRadius(ring));
+            if (off <= reach && (best < 0 || off < Math.abs(d - loopRadius(best)))) best = ring;
         }
-        g.setFill(Color.WHITE);
+        return best;
+    }
+
+    /** Où est le point du cercle {@code ring} à l'écran. */
+    public double[] loopPoint(int ring) {
+        double a = -Math.PI / 2 + game.loopPhase(ring) * Math.PI * 2, r = loopRadius(ring);
+        return new double[] {getWidth() / 2 + Math.cos(a) * r, getHeight() / 2 + Math.sin(a) * r};
+    }
+
+    /** Un clic dans la vue de la boucle : il joue le cercle sous la souris. Vrai s'il en a touché un. */
+    private boolean pressLoop(double x, double y) {
+        if (!game.isLoopOpen()) return false;
+        int ring = loopRingAt(x, y);
+        if (ring < 0) return false;
+        clickRing(ring);
+        return true;
+    }
+
+    /**
+     * Joue le cercle {@code ring}, à la souris ou par sa touche : ce que le clic vaut monte du point (« Excellent »,
+     * « Bien », « Mauvais » ou « Raté », et le gain), et le cercle s'éclaire de sa couleur. Un clic pendant l'attente du
+     * cercle ne compte pas : rien ne monte.
+     */
+    public Game.LoopHit clickRing(int ring) {
+        Game.LoopHit hit = game.clickLoop(ring);
+        lastLoopHits = game.loopHits();
+        if (hit == Game.LoopHit.WAIT || ring < 0 || ring >= Game.MAX_RINGS) return hit;
+        double[] at = loopPoint(ring);
+        LoopMark mark = new LoopMark();
+        mark.x = at[0];
+        mark.y = at[1];
+        mark.hit = hit;
+        mark.text = hitWord(hit);
+        mark.gain = hit == Game.LoopHit.MISS ? "" : "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(hit)));
+        if (loopMarks.size() >= 20) loopMarks.remove(0);
+        loopMarks.add(mark);
+        ringFlash[ring] = 1;
+        ringFlashHit[ring] = hit;
+        return hit;
+    }
+
+    /** Le mot d'un clic : « Excellent », « Bien », « Mauvais », « Raté » ; rien pour un clic qui attendait. */
+    public static String hitWord(Game.LoopHit hit) {
+        return switch (hit) {
+            case EXCELLENT -> "Excellent";
+            case GOOD -> "Bien";
+            case BAD -> "Mauvais";
+            case MISS -> "Raté";
+            case WAIT -> "";
+        };
+    }
+
+    private static Color hitColor(Game.LoopHit hit) {
+        return switch (hit) {
+            case EXCELLENT -> LOOP_EXCELLENT;
+            case GOOD -> LOOP_GOOD;
+            case BAD -> LOOP_BAD;
+            case MISS, WAIT -> LOOP_MISS;
+        };
+    }
+
+    /**
+     * La boucle avance d'une image : les mots montent, les éclats des cercles s'éteignent, les clics du rythme
+     * automatique font monter leurs nœuds du centre, et le métronome bat si le point du premier cercle a passé le centre
+     * d'une zone depuis l'image d'avant.
+     */
+    private void runLoop(double elapsed) {
+        for (LoopMark mark : loopMarks) mark.age += elapsed;
+        loopMarks.removeIf(mark -> mark.age > LOOP_MARK_SECONDS);
+        for (int ring = 0; ring < ringFlash.length; ring++) ringFlash[ring] = Math.max(0, ringFlash[ring] - elapsed / 0.4);
+        if (!game.isLoopOpen()) return;
+        long hits = game.loopHits();
+        if (lastLoopHits >= 0 && hits > lastLoopHits && loopMarks.size() < 20) {
+            LoopMark mark = new LoopMark();
+            mark.x = getWidth() / 2;
+            mark.y = getHeight() / 2;
+            mark.hit = Game.LoopHit.GOOD;
+            mark.text = "";
+            mark.gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(Game.LoopHit.GOOD) * (hits - lastLoopHits)));
+            loopMarks.add(mark);
+        }
+        lastLoopHits = hits;
+        double phase = game.loopPhase(0);
+        if (!Double.isNaN(lastBeatPhase) && onBeat != null) {
+            double move = phase - lastBeatPhase;
+            if (move < 0) move += 1;
+            // Plus d'un demi-tour depuis l'image d'avant (la fenêtre était fermée) : rien à rattraper.
+            if (move > 0 && move < 0.5) {
+                for (double center : game.loopZones(0)) {
+                    double ahead = center - lastBeatPhase;
+                    ahead -= Math.floor(ahead);
+                    if (ahead > 0 && ahead <= move) {
+                        beats++;
+                        onBeat.run();
+                        break;
+                    }
+                }
+            }
+        }
+        lastBeatPhase = phase;
+    }
+
+    /**
+     * Les cercles, leurs zones et leurs points. Chaque zone se dessine en trois arcs l'un sur l'autre, du bord au centre ;
+     * le point brille davantage quand il est dans une zone, et pendant l'attente du cercle il pâlit, entouré d'un anneau
+     * qui se remplit. Fermée, la boucle montre un seul cercle, sans zone, dont le point tourne au rythme du départ.
+     */
+    private void loopScene(GraphicsContext g, double cx, double cy) {
+        Color c = color();
+        boolean open = game.isLoopOpen();
+        int rings = open ? game.loopRings() : 1;
+        double band = Math.max(6, Math.min(16, loopGap() * 0.42)), half = game.loopZoneHalfWidth();
+        UniverseView.glow(g, cx, cy, loopRadius(rings - 1) * 0.6, c, 0.15);
+        for (int ring = 0; ring < rings; ring++) {
+            double r = loopRadius(ring), flash = ringFlash[ring];
+            // Le cercle, qui s'éclaire un instant de la couleur du dernier clic.
+            g.setStroke(flash > 0 && ringFlashHit[ring] != null ? hitColor(ringFlashHit[ring]) : c);
+            g.setLineWidth(2 + 2 * flash);
+            g.setGlobalAlpha(Math.min(1, 0.35 + 0.5 * flash));
+            g.strokeOval(cx - r, cy - r, r * 2, r * 2);
+            if (open) {
+                for (double center : game.loopZones(ring)) {
+                    zoneArc(g, cx, cy, r, center, half, band, LOOP_BAD, 0.75);
+                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_GOOD, band, LOOP_GOOD, 0.9);
+                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_EXCELLENT, band, LOOP_EXCELLENT, 1);
+                }
+            }
+            double phase = open ? game.loopPhase(ring) : (time * Game.LOOP_TURNS) % 1;
+            double a = -Math.PI / 2 + phase * Math.PI * 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+            double wait = open ? game.loopWait(ring) : 0;
+            boolean inside = open && wait <= 0 && game.loopAim(ring) != Game.LoopHit.MISS;
+            UniverseView.glow(g, x, y, band * (inside ? 2.4 : 1.6), inside ? Color.WHITE : c, wait > 0 ? 0.35 : 0.9);
+            g.setGlobalAlpha(wait > 0 ? 0.5 : 1);
+            g.setFill(Color.WHITE);
+            double dot = Math.max(3, band * 0.38);
+            g.fillOval(x - dot, y - dot, dot * 2, dot * 2);
+            if (wait > 0) {
+                // L'attente du cercle : un anneau autour du point, qui se remplit jusqu'au prochain clic compté.
+                double done = 1 - Math.min(1, wait / Game.LOOP_COOLDOWN), ring2 = dot + 5;
+                g.setGlobalAlpha(0.3);
+                g.setStroke(Color.WHITE);
+                g.setLineWidth(2);
+                g.strokeOval(x - ring2, y - ring2, ring2 * 2, ring2 * 2);
+                g.setGlobalAlpha(0.95);
+                g.setStroke(c);
+                g.strokeArc(x - ring2, y - ring2, ring2 * 2, ring2 * 2, 90, -360 * done, javafx.scene.shape.ArcType.OPEN);
+            }
+        }
+        // Ce qu'ont valu les derniers clics : le mot et le gain montent du point, et s'effacent.
+        g.setTextAlign(TextAlignment.CENTER);
+        for (LoopMark mark : loopMarks) {
+            double t = mark.age / LOOP_MARK_SECONDS;
+            Color tint = hitColor(mark.hit);
+            if (!mark.text.isEmpty()) UniverseView.glow(g, mark.x, mark.y, 8 + 22 * t, tint, 0.6 * (1 - t));
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.setFill(tint);
+            g.setFont(Font.font(15));
+            if (!mark.text.isEmpty()) g.fillText(mark.text, mark.x, mark.y - 16 - 26 * t);
+            g.setFill(Color.WHITE);
+            g.setFont(Font.font(12));
+            if (!mark.gain.isEmpty()) g.fillText(mark.gain, mark.x, mark.y - (mark.text.isEmpty() ? 6 : 32) - 26 * t);
+        }
+        g.setGlobalAlpha(1);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+    }
+
+    /** Un arc de zone : de {@code center − half} à {@code center + half} tours, dans le sens du point. */
+    private static void zoneArc(GraphicsContext g, double cx, double cy, double r, double center, double half, double band,
+            Color color, double alpha) {
+        // Le point part du haut et tourne dans le sens des aiguilles d'une montre ; l'arc de JavaFX compte à l'envers.
+        double start = 90 - (center - half) * 360, extent = -half * 2 * 360;
+        g.setStroke(color);
+        g.setLineWidth(band);
         g.setGlobalAlpha(alpha);
-        g.fillOval(x - 2, y - 2, 4, 4);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.BUTT);
+        g.strokeArc(cx - r, cy - r, r * 2, r * 2, start, extent, javafx.scene.shape.ArcType.OPEN);
     }
 
     // 6. Toutes les suites d'un même début, en éventail, et des passages qui sautent de l'une à l'autre.

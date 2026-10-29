@@ -23,13 +23,15 @@ import javafx.scene.layout.VBox;
  * <p>La première, la ligne, a sa logique depuis la version 0.101 : ses éclats de dimension, son seuil et ses
  * cinq améliorations (version 0.102) sous le visuel. Le plan a la sienne depuis la version 0.104, et le volume depuis
  * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la
- * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. Les six autres
- * restent des visuels.
+ * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. La boucle a la
+ * sienne depuis la version 0.153 : on clique chaque cercle (ou sa touche) quand son point passe dans une zone ; ses
+ * six améliorations, son métronome et le rappel des touches sont sous la vue. Les cinq autres restent des visuels.
  *
  * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
  * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
  * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
- * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière.
+ * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière. Le rythme automatique de la
+ * boucle (version 0.153) joue de même, fenêtre ouverte ou non.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -37,15 +39,16 @@ public final class DimensionWindow extends BorderPane {
             + " -fx-border-radius: 6; -fx-text-fill: " + UniversePage.COLOR + "; -fx-background-color: #141a2c; -fx-border-color: #3b4670;";
 
     /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
-    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8";
+    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
-    /** La couleur de la dimension {@code number} (1 à 4), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    /** La couleur de la dimension {@code number} (1 à 5), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
     public static String color(int number) {
         return switch (number) {
             case 2 -> PLANE_COLOR;
             case 3 -> VOLUME_COLOR;
             case 4 -> DURATION_COLOR;
+            case 5 -> LOOP_COLOR;
             default -> UniversePage.COLOR;
         };
     }
@@ -65,6 +68,52 @@ public final class DimensionWindow extends BorderPane {
                         + " -fx-effect: dropshadow(gaussian, " + accent + "66, 10, 0.25, 0, 0);"
                 : " -fx-padding: 8 16; -fx-border-width: 1; -fx-text-fill: #9aa3bd; -fx-background-color: #10141f; -fx-border-color: #2c3450;";
         button.setStyle(UPGRADE_STYLE + look);
+    }
+
+    /** Les touches des sept cercles de la boucle tant que le joueur n'en a pas choisi d'autres (version 0.153). */
+    public static final java.util.List<javafx.scene.input.KeyCode> DEFAULT_LOOP_KEYS = java.util.List.of(
+            javafx.scene.input.KeyCode.S, javafx.scene.input.KeyCode.D, javafx.scene.input.KeyCode.F,
+            javafx.scene.input.KeyCode.SPACE, javafx.scene.input.KeyCode.J, javafx.scene.input.KeyCode.K,
+            javafx.scene.input.KeyCode.L);
+
+    /**
+     * Ce que la boucle demande au jeu (version 0.153) : la touche de chaque cercle et le choix du métronome, rangés dans
+     * les réglages, et le tic qu'il joue, au volume et selon le réglage des sons.
+     */
+    public interface LoopSettings {
+        /** La touche du cercle {@code ring} (0 à 6), ou {@code null} s'il n'en a pas. */
+        javafx.scene.input.KeyCode loopKey(int ring);
+
+        boolean metronome();
+
+        void setMetronome(boolean on);
+
+        /** Un battement du métronome : le tic, si les sons sont actifs. */
+        void beat();
+    }
+
+    /** Les réglages de la boucle d'une fenêtre seule (pour les vérifications) : les touches d'origine, un métronome muet. */
+    private static final class LocalLoopSettings implements LoopSettings {
+        private boolean metronome;
+
+        @Override
+        public javafx.scene.input.KeyCode loopKey(int ring) {
+            return ring >= 0 && ring < DEFAULT_LOOP_KEYS.size() ? DEFAULT_LOOP_KEYS.get(ring) : null;
+        }
+
+        @Override
+        public boolean metronome() {
+            return metronome;
+        }
+
+        @Override
+        public void setMetronome(boolean on) {
+            metronome = on;
+        }
+
+        @Override
+        public void beat() {
+        }
     }
 
     private final Game game;
@@ -95,6 +144,17 @@ public final class DimensionWindow extends BorderPane {
     private final Label durationDetail = new Label();
     private final java.util.Map<Game.DurationUpgrade, Button> durationButtons = new java.util.EnumMap<>(Game.DurationUpgrade.class);
     private final VBox durationPane;
+    /** La boucle (version 0.153) : ses nœuds, son seuil, ce qu'on y fait, son métronome, et ses six améliorations. */
+    private final Label loopShards = new Label();
+    private final Label loopThreshold = new Label();
+    private final Label loopHint = new Label();
+    private final Label loopDetail = new Label();
+    private final Button metronomeButton = new Button();
+    private final java.util.Map<Game.LoopUpgrade, Button> loopButtons = new java.util.EnumMap<>(Game.LoopUpgrade.class);
+    private final VBox loopPane;
+    private LoopSettings loopSettings = new LocalLoopSettings();
+    /** Les touches de cercles tenues : une touche tenue se répète, mais ne rejoue pas son cercle. */
+    private final java.util.Set<javafx.scene.input.KeyCode> loopKeysHeld = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     /** La barre d'espace tient le bouton de la durée, comme la souris. */
     private boolean spaceHeld;
     /** La caméra libre (version 0.128) : le bouton, et où se range le choix (les réglages du jeu, ou la fenêtre seule). */
@@ -222,8 +282,38 @@ public final class DimensionWindow extends BorderPane {
         durationPane = new VBox(10, durationShards, durationThreshold, durationHint, durationDetail, durationRow);
         durationPane.setAlignment(Pos.CENTER);
         durationPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane, durationPane));
+        loopShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + LOOP_COLOR + ";");
+        loopThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        Labels.centered(loopHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        loopHint.setMaxWidth(820);
+        loopHint.setAlignment(Pos.CENTER);
+        // Deux lignes toujours, comme pour la durée : les cercles ne bougent pas quand le texte change.
+        loopHint.setMinHeight(38);
+        loopHint.setPrefHeight(38);
+        Labels.note(loopDetail, 820);
+        metronomeButton.setStyle(BUTTON_STYLE);
+        metronomeButton.setFocusTraversable(false);
+        metronomeButton.setOnAction(event -> {
+            loopSettings.setMetronome(!loopSettings.metronome());
+            refresh();
+        });
+        javafx.scene.layout.FlowPane loopRow = new javafx.scene.layout.FlowPane(12, 10);
+        loopRow.setAlignment(Pos.CENTER);
+        for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values()) {
+            Button button = upgradeButton(250, () -> game.buyLoop(upgrade));
+            loopButtons.put(upgrade, button);
+            loopRow.getChildren().add(button);
+        }
+        loopPane = new VBox(10, loopShards, loopThreshold, loopHint, metronomeButton, loopDetail, loopRow);
+        loopPane.setAlignment(Pos.CENTER);
+        loopPane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane));
         setVisible(false);
+    }
+
+    /** Les réglages de la boucle : où se lisent les touches des cercles et le métronome, et ce qui joue son tic. */
+    public void setLoopSettings(LoopSettings settings) {
+        loopSettings = settings == null ? new LocalLoopSettings() : settings;
     }
 
     /** Un bouton d'amélioration : large de {@code width}, haut de deux lignes, qui achète puis rafraîchit. */
@@ -254,9 +344,14 @@ public final class DimensionWindow extends BorderPane {
         return false;
     }
 
-    /** Recopie la dimension montrée (ligne, plan, volume ou durée) : ses éclats, et ce que coûtent ses améliorations. */
+    /** Recopie la dimension montrée (ligne, plan, volume, durée ou boucle) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
         autoBadge.setVisible(automatic());
+        boolean loop = view.dimension() == Dimension.LOOP && game.isLoopOpen();
+        loopPane.setVisible(loop);
+        loopPane.setManaged(loop);
+        view.setOnBeat(loop && loopSettings.metronome() ? loopSettings::beat : null);
+        if (loop) refreshLoop();
         boolean duration = view.dimension() == Dimension.DURATION && game.isDurationOpen();
         durationPane.setVisible(duration);
         durationPane.setManaged(duration);
@@ -407,6 +502,76 @@ public final class DimensionWindow extends BorderPane {
                 u -> !held && game.canBuyDuration(u), " instant", DURATION_COLOR);
     }
 
+    /**
+     * La boucle : ses nœuds, son seuil, comment on y joue (les touches des cercles en jeu) ou ce que fait le rythme
+     * automatique, le métronome, le détail des parts d'une zone, et ses améliorations, qui s'achètent toujours.
+     */
+    private void refreshLoop() {
+        loopShards.setText("Nœuds de la boucle : " + shardText(game.state().loopShards()));
+        threshold(loopThreshold, game.isLoopThresholdReached(), game.state().loopShardsEarned(), Game.LOOP_THRESHOLD, "nœuds gagnés", 5);
+        Game.LoopHit last = game.lastLoopHit();
+        String lastText = game.loopHits() == 0 && last == Game.LoopHit.MISS ? "" : " Dernier clic : " + DimensionView.hitWord(last).toLowerCase(java.util.Locale.ROOT) + ".";
+        loopHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.LOOP_PLAY)
+                ? "Rythme automatique : il clique « bien » à chaque passage d'un point dans une zone, sur chaque cercle. "
+                        + "Vos clics comptent en plus ; les améliorations s'achètent quand même."
+                : "Cliquez un cercle, ou sa touche (" + loopKeysText() + "), quand son point passe dans une zone : au centre "
+                        + "« excellent », puis « bien », au bord « mauvais ». Après chaque clic, le cercle attend "
+                        + seconds(Game.LOOP_COOLDOWN) + " s." + lastText);
+        metronomeButton.setText(loopSettings.metronome() ? "Métronome : activé (un tic à chaque centre de zone du premier cercle)"
+                : "Métronome : coupé");
+        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values()) levels.append('/').append(game.loopLevel(upgrade));
+        if (changed(loopDetail, levels.toString())) {
+            loopDetail.setText(idle.ui.common.Detail.only("Chaque point fait un tour en " + seconds(1 / game.loopTurnsPerSecond())
+                + " s. Une zone couvre " + Math.round(game.loopZoneHalfWidth() * 200) + " % de son cercle : au centre, "
+                + Math.round(Game.LOOP_EXCELLENT * 100) + " % de sa largeur, « excellent » donne "
+                + shardText(game.loopReward(Game.LoopHit.EXCELLENT)) + " nœuds ; jusqu'à " + Math.round(Game.LOOP_GOOD * 100)
+                + " %, « bien » en donne " + shardText(game.loopReward(Game.LoopHit.GOOD)) + " ; au bord, « mauvais », "
+                + shardText(game.loopReward(Game.LoopHit.BAD)) + ". Un clic à côté ne donne rien. La zone touchée se pose "
+                + "ailleurs sur son cercle. Après chaque clic, juste ou non, le cercle attend " + seconds(Game.LOOP_COOLDOWN)
+                + " s : cliquer sans arrêt ne rapporte rien. Chaque cercle a sa touche, qui se change dans les réglages "
+                + "(Clavier). Les nœuds, le seuil et les améliorations de la boucle traversent les univers ; le seuil marque "
+                + "la dimension d'un rond vert, et les nœuds paient aussi le rond de croissance de la graine."));
+            loopDetail.setVisible(!loopDetail.getText().isEmpty());
+            loopDetail.setManaged(loopDetail.isVisible());
+        }
+        paintUpgrades(loopButtons, this::describe, game::loopLevel, Game.LoopUpgrade::max, game::loopCost, game::canBuyLoop,
+                " nœud", LOOP_COLOR);
+    }
+
+    /** Les touches des cercles en jeu, dans l'ordre : « S, D, F ». */
+    private String loopKeysText() {
+        StringBuilder keys = new StringBuilder();
+        for (int ring = 0; ring < game.loopRings(); ring++) {
+            javafx.scene.input.KeyCode key = loopSettings.loopKey(ring);
+            keys.append(ring == 0 ? "" : ", ").append(key == null ? "aucune" : idle.ui.common.Detail.keyName(key));
+        }
+        return keys.toString();
+    }
+
+    /** Une amélioration de la boucle : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.LoopUpgrade upgrade) {
+        double value = game.loopValue(), next = value + game.hadronBoost(idle.core.collider.Hadron.OMEGA);
+        int precision = game.loopLevel(Game.LoopUpgrade.PRECISION);
+        return switch (upgrade) {
+            case SPEED -> "Rapidité : un tour en " + seconds(1 / game.loopTurnsPerSecond()) + " s → "
+                    + seconds(1 / (game.loopTurnsPerSecond() * Game.LOOP_SPEED_STEP)) + " s";
+            case ZONES -> "Zones : " + game.loopZoneCount() + " par cercle, une de plus";
+            case GAIN -> "Gain par zone : chaque zone vaut " + shardText(value) + " → " + shardText(next) + " nœuds";
+            case PRECISION -> "Précision : le centre donne " + shardText(game.loopReward(Game.LoopHit.EXCELLENT)) + " → "
+                    + shardText(value * Game.LOOP_EXCELLENT_SHARE * (1 + Game.LOOP_PRECISION_EXCELLENT * (precision + 1)))
+                    + ", « bien » " + shardText(game.loopReward(Game.LoopHit.GOOD)) + " → "
+                    + shardText(value * (1 + Game.LOOP_PRECISION_GOOD * (precision + 1)));
+            case SIZE -> "Taille des zones (×" + shardText(game.loopZoneHalfWidth() / Game.LOOP_ZONE_HALF) + ") : "
+                    + percent(Game.LOOP_SIZE_STEP) + " plus larges";
+            case RINGS -> {
+                javafx.scene.input.KeyCode key = loopSettings.loopKey(Math.min(Game.MAX_RINGS - 1, game.loopRings()));
+                yield "Cercles : " + game.loopRings() + ", un de plus"
+                        + (game.loopRings() < Game.MAX_RINGS && key != null ? ", sur la touche " + idle.ui.common.Detail.keyName(key) : "");
+            }
+        };
+    }
+
     /** Une amélioration de la durée : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.DurationUpgrade upgrade) {
         return switch (upgrade) {
@@ -452,10 +617,21 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /**
-     * Une touche, quand la fenêtre du plan est ouverte : Z Q S D et les flèches déplacent le point.
-     * Vrai si la touche a servi (le reste du jeu ne la voit pas).
+     * Une touche, quand la fenêtre d'une dimension est ouverte : dans le plan, Z Q S D et les flèches déplacent le point ;
+     * dans la durée, la barre d'espace tient le bouton ; dans la boucle, la touche de chaque cercle le joue. Vrai si la
+     * touche a servi (le reste du jeu ne la voit pas).
      */
     public boolean key(javafx.scene.input.KeyCode code, boolean down) {
+        // La boucle (version 0.153) : la touche d'un cercle le joue à l'appui ; tenue, elle ne le rejoue pas. Les touches
+        // des cercles pas encore achetés ne servent à rien, mais ne vont pas aux raccourcis : la fenêtre les garde.
+        if (isVisible() && view.dimension() == Dimension.LOOP && game.isLoopOpen()) {
+            int ring = loopRingOf(code);
+            if (ring >= 0) {
+                if (!down) loopKeysHeld.remove(code);
+                else if (loopKeysHeld.add(code) && ring < game.loopRings()) view.clickRing(ring);
+                return true;
+            }
+        }
         // Le volume (version 0.128) : en caméra libre, Échap rend la souris retenue ; la plongée continue.
         if (isVisible() && code == javafx.scene.input.KeyCode.ESCAPE && view.mouseHeld()) {
             if (down) view.releaseMouse();
@@ -483,6 +659,12 @@ public final class DimensionWindow extends BorderPane {
         else held.remove(code);
         steer();
         return true;
+    }
+
+    /** Le cercle qui porte cette touche, ou −1. */
+    private int loopRingOf(javafx.scene.input.KeyCode code) {
+        for (int ring = 0; ring < Game.MAX_RINGS; ring++) if (code != null && code == loopSettings.loopKey(ring)) return ring;
+        return -1;
     }
 
     private void steer() {
@@ -522,11 +704,15 @@ public final class DimensionWindow extends BorderPane {
         view.setFreeCamera(freeCamera.getAsBoolean());
         title.setText("Dimension " + dimension.number() + " : " + dimension.label());
         held.clear();
+        loopKeysHeld.clear();
         game.setPlaneInput(0, 0);
         line.setText(switch (dimension) {
             case LINE -> dimension.line() + " Chaque trait que touche la boule donne des segments.";
             case PLANE -> dimension.line() + " Chaque éclat ramassé donne des facettes, propres à cette dimension.";
             case VOLUME -> dimension.line() + " Plongez dans le cube : chaque boule cueillie de son centre donne des sphères.";
+            case LOOP -> dimension.line() + (game.isLoopOpen()
+                    ? " Cliquez chaque cercle quand son point passe dans une zone : plus le clic est juste, plus il donne de nœuds."
+                    : " Il n'y a rien à y faire pour l'instant.");
             default -> dimension.line() + (dimension == Dimension.DURATION && game.isDurationOpen()
                     ? " Tenez le bouton du milieu : plus les spirales vont loin vers le centre, plus elles donnent d'instants."
                     : " Il n'y a rien à y faire pour l'instant.");
@@ -544,6 +730,7 @@ public final class DimensionWindow extends BorderPane {
         view.releaseHold();
         spaceHeld = false;
         held.clear();
+        loopKeysHeld.clear();
         game.setPlaneInput(0, 0);
         if (game.isInVolume() && !game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE)) game.leaveVolume();
         view.resetDive();
@@ -612,6 +799,28 @@ public final class DimensionWindow extends BorderPane {
 
     public String durationHintText() {
         return durationHint.getText();
+    }
+
+    /** Le bouton d'une amélioration de la boucle : pour les vérifications. */
+    public Button loopButton(Game.LoopUpgrade upgrade) {
+        return loopButtons.get(upgrade);
+    }
+
+    public String loopShardsText() {
+        return loopShards.getText();
+    }
+
+    public String loopThresholdText() {
+        return loopThreshold.getText();
+    }
+
+    public String loopHintText() {
+        return loopHint.getText();
+    }
+
+    /** Le bouton du métronome : pour les vérifications. */
+    public Button metronomeButton() {
+        return metronomeButton;
     }
 
     /** Le bouton de la caméra libre : pour les vérifications. */

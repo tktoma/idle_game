@@ -172,6 +172,8 @@ public final class StatsHistory {
         VOLUME_SHARDS,
         /** Instants de la durée gagnés en tout, en puissance de dix. */
         DURATION_SHARDS,
+        /** Nœuds de la boucle gagnés en tout, en puissance de dix (version 0.153). */
+        LOOP_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
 

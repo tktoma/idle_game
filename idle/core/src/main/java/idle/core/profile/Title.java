@@ -40,6 +40,7 @@ public enum Title {
     PLANE_WANDERER("Voyageur du plan", "Atteindre le seuil du plan", game -> game.isDimensionThresholdReached(2)),
     VOLUME_DIVER("Plongeur du volume", "Atteindre le seuil du volume", game -> game.isDimensionThresholdReached(3)),
     TIME_KEEPER("Gardien de la durée", "Atteindre le seuil de la durée", game -> game.isDimensionThresholdReached(4)),
+    LOOP_DANCER("Danseur de la boucle", "Atteindre le seuil de la boucle", game -> game.isDimensionThresholdReached(5)),
     VOID_TAMER("Dompteur du vide", "Ouvrir le vide", game -> game.isVoidUnlocked()),
     STAR_EATER("Mangeur d'étoiles", "Ouvrir le trou noir du vide", game -> game.isVoidUnlocked() && game.isVoidHoleOpen()),
     GLUON_WEAVER("Tisseur de gluons", "Assembler un premier hadron", game -> game.hadronsMade() > 0),

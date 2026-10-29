@@ -235,6 +235,10 @@ public final class UniversePage extends VBox {
         StackPane seedStage = new StackPane(seedHolder, canLayer);
         // Les bulles de l'arbre (version 0.142) : un clic sur l'une l'achète, avec l'énergie du vide accumulée.
         seedView.setOnBubble(this::clickBubble);
+        // Le rond de croissance (version 0.153) : un clic le cueille, et l'arrosage accélère.
+        seedView.setOnBloom(() -> {
+            if (game.catchBloom()) refresh();
+        });
         VBox.setVgrow(seedStage, Priority.ALWAYS);
         // Le cumul du vide (version 0.129) : ce qu'il restait d'énergie du vide à la formation de chaque univers.
         voidCumul.setStyle("-fx-font-size: 13px; -fx-text-fill: " + VOID_COLOR + "; -fx-text-alignment: center;");
@@ -373,6 +377,7 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(2, game.isPlaneThresholdReached());
         dimensions.setMarked(3, game.isVolumeThresholdReached());
         dimensions.setMarked(4, game.isDurationThresholdReached());
+        dimensions.setMarked(5, game.isLoopThresholdReached());
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         java.util.Map<String, Double> history = game.state().voidHistory();
@@ -427,7 +432,7 @@ public final class UniversePage extends VBox {
         long need = Game.seedStageWaterings(stage);
         return "L'univers " + number + " s'ouvre quand la graine atteint son palier " + stage + ", " + name + " : "
                 + (!threshold ? "il faut d'abord le seuil de la dimension " + dimension
-                        + (dimension <= 3 ? "" : ", qui n'existe pas encore") + ", puis "
+                        + (dimension <= Dimension.PLAYABLE ? "" : ", qui n'existe pas encore") + ", puis "
                         : "")
                 + Math.min(game.state().seedWaterings(), need) + " / " + need + " arrosages"
                 + (game.state().seedSprouted() ? "." : ", une fois la graine germée.");
@@ -471,6 +476,9 @@ public final class UniversePage extends VBox {
                 seedView.setChrono(game.isChronoUnlocked(), game.chronoCapacity() > 0 ? game.chronoStored() / game.chronoCapacity() : 0,
                         game.isChronoRunning());
                 seedView.setBubbles(bubbles());
+                // Le rond de croissance (version 0.153) : là où le jeu le fait pousser, et son effet en cours.
+                seedView.setBloom(game.isBloomVisible(), game.bloomX(), game.bloomY(), game.bloomVisibleLeft(), Game.BLOOM_VISIBLE);
+                seedView.setBloomEffect(game.bloomActiveLeft(), game.bloomGain());
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;

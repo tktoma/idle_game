@@ -64,6 +64,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
             case 1 -> state.setDimensionShards(Math.max(0, state.dimensionShards() - cost));
             case 2 -> state.setPlaneShards(Math.max(0, state.planeShards() - cost));
             case 3 -> state.setVolumeShards(Math.max(0, state.volumeShards() - cost));
+            case 4 -> state.setDurationShards(Math.max(0, state.durationShards() - cost));
             default -> throw new IllegalStateException("Pas de ressource pour la dimension " + automation.paidWith());
         }
         state.addDimensionAutomation(automation.name());
@@ -108,9 +109,13 @@ public abstract class GameDimensionAutomation extends GameHadrons {
             case 2 -> buyPlane(PlaneUpgrade.values()[index]);
             case 3 -> buyVolume(VolumeUpgrade.values()[index]);
             case 4 -> buyDuration(DurationUpgrade.values()[index]);
+            case 5 -> buyLoopUpgrade(index);
             default -> false;
         };
     }
+
+    /** Achète l'amélioration de la boucle de ce rang (version 0.153, la boucle est un étage plus haut). */
+    abstract boolean buyLoopUpgrade(int index);
 
     /** La visée du plan : le point file vers l'éclat le plus proche quand le joueur ne tient aucune direction. */
     @Override

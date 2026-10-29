@@ -19,9 +19,10 @@ import javafx.scene.text.Text;
 
 /**
  * Les améliorations de la graine (version 0.139), à gauche de sa vue : une branche par dimension, payée avec sa
- * ressource (les segments de la ligne, les facettes du plan, les sphères du volume, les instants de la durée). Chaque
- * branche a une amélioration de l'arrosage ou de l'étagère, et une du chrono. Les branches des dimensions 5 à 10 sont
- * déjà là, verrouillées, avec des améliorations à venir : ces dimensions n'existent pas encore.
+ * ressource (les segments de la ligne, les facettes du plan, les sphères du volume, les instants de la durée, les nœuds
+ * de la boucle). Les quatre premières branches ont une amélioration de l'arrosage ou de l'étagère, et une du chrono ;
+ * celle de la boucle (version 0.153), deux du rond de croissance : sa durée et sa force. Les branches des dimensions 6
+ * à 10 sont déjà là, verrouillées, avec des améliorations à venir : ces dimensions n'existent pas encore.
  *
  * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération.
  */
@@ -29,7 +30,7 @@ public final class SeedUpgradesPane extends VBox {
 
     /** Les branches : une par dimension, de la ligne à la dixième. */
     public static final int BRANCHES = Game.MAX_DIMENSIONS;
-    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée"};
+    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle"};
     private static final String COLOR = "#e6d27a";
     /** La largeur du texte d'une carte, dans le panneau de 320 pixels. */
     private static final double CARD_TEXT_WIDTH = 285;
@@ -233,6 +234,10 @@ public final class SeedUpgradesPane extends VBox {
             case CHRONO_LOSS -> "Pertes du chrono (niveau " + level + ") : à ×2, " + percent(game.chronoLoss(2)) + " → "
                     + percent(Math.min(Game.CHRONO_LOSS_MAX, Game.CHRONO_LOSS_STEP * Math.pow(Game.CHRONO_LOSS_CUT, level + 1)))
                     + " du temps pris se perd";
+            case BLOOM_DURATION -> "Durée du rond de croissance (niveau " + level + ") : " + Format.darkMatter(game.bloomSeconds())
+                    + " → " + Format.darkMatter(game.bloomSeconds() + Game.BLOOM_SECONDS_STEP) + " s d'arrosage accéléré";
+            case BLOOM_POWER -> "Force du rond de croissance (niveau " + level + ") : arrosage +" + percent(game.bloomGain())
+                    + " → +" + percent(game.bloomGain() + Game.BLOOM_GAIN_STEP) + " pendant son effet";
         };
     }
 
@@ -288,7 +293,7 @@ public final class SeedUpgradesPane extends VBox {
                 shown.add(button);
             }
         } else {
-            // Les dimensions 5 à 10 : leurs branches existent déjà, sans rien à acheter.
+            // Les dimensions 6 à 10 : leurs branches existent déjà, sans rien à acheter.
             resource.setText("Dimension " + branch + " : pas encore créée. Sa ressource paiera une branche de la graine "
                     + "et une du chrono.");
             fill(placeholders.get(0), "??? (branche de la graine)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
@@ -304,7 +309,8 @@ public final class SeedUpgradesPane extends VBox {
             case 1 -> "de la ligne";
             case 2 -> "du plan";
             case 3 -> "du volume";
-            default -> "de la durée";
+            case 4 -> "de la durée";
+            default -> "de la boucle";
         };
     }
 

@@ -17,6 +17,10 @@ import javafx.scene.paint.Color;
  * <p>Version 0.137 : plus de bouton, un arrosoir. Il attend sur une étagère de bois, en bas à droite ; un bouton posé sur
  * l'étagère le débloque. On le prend à la souris et on le glisse sur la graine : il se penche, l'eau coule du bec, et
  * le jeu compte un arrosage par seconde ({@code Game#setWatering}). Relâché, il revient tout seul sur l'étagère.
+ *
+ * <p>Version 0.153 : avec la boucle, le rond de croissance. De temps en temps, un rond vert pousse quelque part dans la
+ * vue et bat doucement, son anneau et ses secondes comptant ce qu'il reste à le cueillir ; un clic le cueille. Pendant
+ * son effet, l'arrosage va plus vite, et une ligne au-dessus de l'étagère le dit : « Croissance +45 % : 23 s ».
  */
 public final class SeedView extends Canvas {
 
@@ -232,6 +236,94 @@ public final class SeedView extends Canvas {
         return true;
     }
 
+    // Le rond de croissance (version 0.153).
+    private static final Color BLOOM = Color.web("#9fe08a");
+    private static final Color BLOOM_LIGHT = Color.web("#e4ffd6");
+    private boolean bloomShown;
+    /** Où il est, de 0 à 1 sur chaque axe de la vue ; ce qu'il lui reste à attendre, sur ce qu'il attend en tout. */
+    private double bloomX, bloomY, bloomLeft, bloomTotal = 1;
+    /** Son effet : ce qu'il lui reste, en secondes, et ce qu'il ajoute à l'arrosage (0,45 pour +45 %). */
+    private double bloomActive, bloomGain;
+    private Runnable onBloom = () -> { };
+
+    /** Le rond de croissance à cueillir : là ou non, où (0 à 1 sur chaque axe), et ce qu'il lui reste sur {@code total} secondes. */
+    public void setBloom(boolean shown, double x, double y, double left, double total) {
+        bloomShown = shown;
+        bloomX = Math.max(0, Math.min(1, x));
+        bloomY = Math.max(0, Math.min(1, y));
+        bloomLeft = Math.max(0, left);
+        bloomTotal = Math.max(1e-9, total);
+    }
+
+    /** L'effet du rond cueilli : ce qu'il lui reste en secondes (0 sans effet), et ce qu'il ajoute à l'arrosage. */
+    public void setBloomEffect(double left, double gain) {
+        bloomActive = Math.max(0, left);
+        bloomGain = Math.max(0, gain);
+    }
+
+    /** Ce que fait un clic sur le rond de croissance : le cueillir. */
+    public void setOnBloom(Runnable action) {
+        onBloom = action == null ? () -> { } : action;
+    }
+
+    public boolean isBloomShown() {
+        return bloomShown;
+    }
+
+    /** Le rayon du rond, sans son battement : à la mesure de la vue. */
+    public double bloomRadius() {
+        return Math.max(14, Math.min(getWidth(), getHeight()) * 0.05);
+    }
+
+    /** Où est le rond dans la vue, en points : pour les vérifications. */
+    public double[] bloomPoint() {
+        return new double[] {bloomX * getWidth(), bloomY * getHeight()};
+    }
+
+    /** Vrai si ce point est sur le rond de croissance (un peu plus large que lui : il bat). */
+    public boolean overBloom(double x, double y) {
+        double[] at = bloomPoint();
+        return bloomShown && Math.hypot(x - at[0], y - at[1]) <= bloomRadius() * 1.25;
+    }
+
+    /** Un clic à ce point : vrai s'il tombe sur le rond de croissance, qui est alors cueilli. */
+    public boolean clickBloom(double x, double y) {
+        if (!overBloom(x, y)) return false;
+        onBloom.run();
+        return true;
+    }
+
+    /** La ligne de l'effet, au-dessus de l'étagère : « Croissance +45 % : 23 s » ; rien sans effet. */
+    public String bloomText() {
+        return bloomActive <= 0 ? "" : "Croissance +" + Math.round(bloomGain * 100) + " % : " + (long) Math.ceil(bloomActive - 1e-9) + " s";
+    }
+
+    /** Le rond à cueillir : un halo qui bat, le rond vert, l'anneau qui se vide avec le temps, et ses secondes. */
+    private void drawBloom() {
+        if (!bloomShown || getWidth() <= 0 || getHeight() <= 0) return;
+        GraphicsContext g = getGraphicsContext2D();
+        double[] at = bloomPoint();
+        double beat = 0.5 + 0.5 * Math.sin(time * 5), r = bloomRadius() * (1 + 0.12 * beat);
+        UniverseView.glow(g, at[0], at[1], r * (2.2 + 0.6 * beat), BLOOM, 0.5 + 0.3 * beat);
+        g.setGlobalAlpha(1);
+        g.setFill(new javafx.scene.paint.RadialGradient(0, 0, at[0] - r * 0.3, at[1] - r * 0.3, r * 1.3, false,
+                javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, BLOOM_LIGHT), new javafx.scene.paint.Stop(1, BLOOM)));
+        g.fillOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
+        double ring = r + 6, share = Math.min(1, bloomLeft / bloomTotal);
+        g.setStroke(BLOOM);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.3);
+        g.strokeOval(at[0] - ring, at[1] - ring, ring * 2, ring * 2);
+        g.setGlobalAlpha(0.95);
+        g.setLineWidth(3);
+        g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
+        g.setFill(Color.WHITE);
+        g.setFont(javafx.scene.text.Font.font(12));
+        g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+        g.fillText((long) Math.ceil(bloomLeft - 1e-9) + " s", at[0], at[1] + ring + 14);
+        g.setGlobalAlpha(1);
+    }
+
     private boolean canUnlocked;
     /** Où est l'arrosoir (son centre, en points de la vue) ; NaN : sur l'étagère, avant le premier dessin. */
     private double canX = Double.NaN, canY = Double.NaN;
@@ -248,8 +340,8 @@ public final class SeedView extends Canvas {
     public SeedView() {
         super(800, 400);
         setOnMousePressed(event -> {
-            // Une bulle d'abord (version 0.142) : sinon, l'arrosoir.
-            if (clickBubble(event.getX(), event.getY()) || grab(event.getX(), event.getY())) event.consume();
+            // Le rond de croissance d'abord (version 0.153), puis une bulle (version 0.142) : sinon, l'arrosoir.
+            if (clickBloom(event.getX(), event.getY()) || clickBubble(event.getX(), event.getY()) || grab(event.getX(), event.getY())) event.consume();
         });
         setOnMouseDragged(event -> {
             if (dragging) {
@@ -261,7 +353,7 @@ public final class SeedView extends Canvas {
         setOnMouseMoved(event -> {
             hover(event.getX(), event.getY());
             boolean buy = hovered >= 0 && bubbles.get(hovered).state() == BubbleState.BUY;
-            setCursor(buy ? javafx.scene.Cursor.HAND : canUnlocked && overCan(event.getX(), event.getY())
+            setCursor(buy || overBloom(event.getX(), event.getY()) ? javafx.scene.Cursor.HAND : canUnlocked && overCan(event.getX(), event.getY())
                     ? javafx.scene.Cursor.OPEN_HAND : javafx.scene.Cursor.DEFAULT);
         });
         setOnMouseExited(event -> hovered = -1);
@@ -568,6 +660,7 @@ public final class SeedView extends Canvas {
         draw();
         drawBubbles();
         drawShelfAndCan();
+        drawBloom();
         drawBubbleLabel();
     }
 
@@ -822,6 +915,16 @@ public final class SeedView extends Canvas {
             g.fillRect(left - thick * 0.4, board + thick * 0.65, plank + thick * 0.8, thick * 0.35);
         }
         if (chronoShown) drawChrono(g, x, mid - level / 2, s * 0.45);
+        // L'effet du rond de croissance (version 0.153), au-dessus de l'étagère : l'arrosage va plus vite.
+        String boost = bloomText();
+        if (!boost.isEmpty()) {
+            g.setFont(javafx.scene.text.Font.font(13));
+            g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            g.setGlobalAlpha(0.85 + 0.15 * Math.sin(time * 4));
+            g.setFill(BLOOM);
+            g.fillText(boost, Math.min(w - plank * 0.6, x), high - thick - 10);
+            g.setGlobalAlpha(1);
+        }
         // Le fil du bois.
         g.setStroke(SHELF_EDGE);
         g.setGlobalAlpha(0.35);

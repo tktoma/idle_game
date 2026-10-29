@@ -76,7 +76,7 @@ import java.util.random.RandomGenerator;
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameDimensionAutomation {
+public final class Game extends GameLoop {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -382,6 +382,9 @@ public final class Game extends GameDimensionAutomation {
         // La durée (version 0.134) aussi : une absence relâche le bouton tenu, qui donne ce qu'il avait.
         if (away && isDurationHeld() && !isDurationAutomatic()) releaseDuration();
         runDuration(dt);
+        // La boucle et le rond de croissance (version 0.153).
+        runLoop(dt);
+        runBloom(dt);
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);
@@ -713,6 +716,7 @@ public final class Game extends GameDimensionAutomation {
                 case PLANE_SHARDS -> isPlaneOpen() ? power(BigNum.of(state.planeShardsEarned())) : Double.NaN;
                 case VOLUME_SHARDS -> isVolumeOpen() ? power(BigNum.of(state.volumeShardsEarned())) : Double.NaN;
                 case DURATION_SHARDS -> isDurationOpen() ? power(BigNum.of(state.durationShardsEarned())) : Double.NaN;
+                case LOOP_SHARDS -> isLoopOpen() ? power(BigNum.of(state.loopShardsEarned())) : Double.NaN;
                 case SEED_WATERINGS -> isUniverseFormed() || state.seedWaterings() > 0 ? state.seedWaterings() : Double.NaN;
                 case PARTICLES -> power(state.particles());
                 case ATOMS -> power(state.atoms());

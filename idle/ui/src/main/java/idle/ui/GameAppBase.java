@@ -362,6 +362,28 @@ public abstract class GameAppBase extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         settingsPage.setSoundTest(() -> sound.test(settings.volume()));
+        // La boucle (version 0.153) : les touches de ses cercles et son métronome se rangent dans les réglages.
+        dimensionWindow.setLoopSettings(new DimensionWindow.LoopSettings() {
+            @Override
+            public javafx.scene.input.KeyCode loopKey(int ring) {
+                return settings.loopKey(ring);
+            }
+
+            @Override
+            public boolean metronome() {
+                return settings.loopMetronome();
+            }
+
+            @Override
+            public void setMetronome(boolean on) {
+                settings.setLoopMetronome(on);
+            }
+
+            @Override
+            public void beat() {
+                if (settings.sound()) sound.beat(settings.volume());
+            }
+        });
         // Une erreur imprévue ne ferme pas le jeu : elle est gardée pour le rapport de bug, et écrite dans la console.
         Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> {
             Crash.note(error);
