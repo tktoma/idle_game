@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.core.Game;
 import idle.ui.common.CanvasPane;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -21,6 +22,11 @@ import javafx.scene.paint.Color;
  * <p>Version 0.153 : avec la boucle, le rond de croissance. De temps en temps, un rond vert pousse quelque part dans la
  * vue et bat doucement, son anneau et ses secondes comptant ce qu'il reste à le cueillir ; un clic le cueille. Pendant
  * son effet, l'arrosage va plus vite, et une ligne au-dessus de l'étagère le dit : « Croissance +45 % : 23 s ».
+ *
+ * <p>Version 0.155 : avec le clicker, la météo. En haut à gauche, le ciel de la graine : un soleil qui rayonne par beau
+ * temps, un soleil voilé d'un nuage par temps variable, un nuage sombre qui pleut et s'éclaire d'un éclair par orage ;
+ * dessous, son effet sur l'arrosage et le temps qu'il lui reste (« Beau temps +30 % : 32 s »). Par beau temps, une
+ * lumière chaude tombe sur la vue ; par orage, la pluie la traverse.
  */
 public final class SeedView extends Canvas {
 
@@ -321,6 +327,108 @@ public final class SeedView extends Canvas {
         g.setFont(javafx.scene.text.Font.font(12));
         g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
         g.fillText((long) Math.ceil(bloomLeft - 1e-9) + " s", at[0], at[1] + ring + 14);
+        g.setGlobalAlpha(1);
+    }
+
+    // La météo (version 0.155).
+    private static final Color SUN = Color.web("#ffd27f");
+    private static final Color CLOUD = Color.web("#c8d0e0");
+    private static final Color STORM_CLOUD = Color.web("#59607a");
+    private static final Color RAIN = Color.web("#8fc9ff");
+    /** Le temps qu'il fait, {@code null} tant que la météo n'est pas là ; ce qu'il lui reste ; son effet sur l'arrosage (1,3 pour +30 %). */
+    private Game.Weather weather;
+    private double weatherLeft, weatherFactor = 1;
+
+    /** La météo de la graine : le temps qu'il fait ({@code null} sans météo), ce qu'il lui reste en secondes, et son effet. */
+    public void setWeather(Game.Weather weather, double left, double factor) {
+        this.weather = weather;
+        weatherLeft = Math.max(0, left);
+        weatherFactor = factor;
+    }
+
+    /** La ligne de la météo, sous le ciel : « Beau temps +30 % : 32 s », « Orage −10 % : 12 s », « Variable : 45 s » ; rien sans météo. */
+    public String weatherText() {
+        if (weather == null) return "";
+        long percent = Math.round((weatherFactor - 1) * 100);
+        String effect = percent > 0 ? " +" + percent + " %" : percent < 0 ? " −" + (-percent) + " %" : "";
+        return weather.label() + effect + " : " + (long) Math.ceil(weatherLeft - 1e-9) + " s";
+    }
+
+    /**
+     * Le ciel, en haut à gauche : le soleil, voilé ou non, ou le nuage d'orage et sa pluie, avec sa ligne dessous ; et ce
+     * qu'il fait sur toute la vue, la lumière chaude du beau temps ou la pluie de l'orage.
+     */
+    private void drawWeather() {
+        if (weather == null || getWidth() <= 0 || getHeight() <= 0) return;
+        GraphicsContext g = getGraphicsContext2D();
+        double w = getWidth(), h = getHeight(), r = Math.max(12, Math.min(w, h) * 0.04), x = r * 2.4, y = r * 2.4;
+        switch (weather) {
+            case SUN -> {
+                UniverseView.glow(g, x, y, Math.min(w, h) * 0.5, SUN, 0.12);
+                sun(g, x, y, r);
+            }
+            case VARIABLE -> {
+                sun(g, x - r * 0.4, y - r * 0.3, r * 0.85);
+                cloud(g, x + r * 0.3, y + r * 0.35, r, CLOUD, 0.9);
+            }
+            case STORM -> {
+                // La pluie sur toute la vue, qui tombe en biais.
+                g.setStroke(RAIN);
+                g.setLineWidth(1);
+                g.setGlobalAlpha(0.28);
+                for (int k = 0; k < 60; k++) {
+                    double fall = (time * 0.9 + UniverseView.noise(k * 3 + 1)) % 1;
+                    double rx = UniverseView.noise(k * 3 + 2) * (w + h * 0.2) - h * 0.1 * fall, ry = fall * h;
+                    g.strokeLine(rx, ry, rx - 4, ry + 14);
+                }
+                cloud(g, x, y, r * 1.1, STORM_CLOUD, 1);
+                g.setStroke(RAIN);
+                g.setLineWidth(1.5);
+                g.setGlobalAlpha(0.8);
+                for (int k = 0; k < 5; k++) {
+                    double fall = (time * 1.6 + k / 5.0) % 1, rx = x - r + k * r * 0.5;
+                    g.strokeLine(rx, y + r * 0.8 + fall * r * 1.4, rx - 2, y + r * 1.2 + fall * r * 1.4);
+                }
+                // Un éclair, de temps en temps.
+                if ((time * 0.7) % 1 < 0.05) {
+                    g.setStroke(Color.WHITE);
+                    g.setLineWidth(2);
+                    g.setGlobalAlpha(0.95);
+                    g.strokePolyline(new double[] {x + r * 0.2, x - r * 0.2, x + r * 0.15, x - r * 0.3},
+                            new double[] {y + r * 0.6, y + r * 1.2, y + r * 1.3, y + r * 2}, 4);
+                }
+            }
+        }
+        g.setGlobalAlpha(1);
+        g.setFill(weather == Game.Weather.SUN ? SUN : weather == Game.Weather.STORM ? RAIN : CLOUD);
+        g.setFont(javafx.scene.text.Font.font(12));
+        g.setTextAlign(javafx.scene.text.TextAlignment.LEFT);
+        g.fillText(weatherText(), x - r * 1.6, y + r * 2.6);
+    }
+
+    /** Un soleil : un disque et ses rayons, qui tournent doucement. */
+    private void sun(GraphicsContext g, double x, double y, double r) {
+        UniverseView.glow(g, x, y, r * 2.4, SUN, 0.6);
+        g.setStroke(SUN);
+        g.setLineWidth(2);
+        g.setGlobalAlpha(0.85);
+        for (int k = 0; k < 8; k++) {
+            double a = time * 0.3 + Math.PI * k / 4;
+            g.strokeLine(x + Math.cos(a) * r * 1.25, y + Math.sin(a) * r * 1.25, x + Math.cos(a) * r * 1.7, y + Math.sin(a) * r * 1.7);
+        }
+        g.setGlobalAlpha(1);
+        g.setFill(SUN);
+        g.fillOval(x - r, y - r, r * 2, r * 2);
+    }
+
+    /** Un nuage : trois bosses et une base, de cette couleur. */
+    private static void cloud(GraphicsContext g, double x, double y, double r, Color color, double alpha) {
+        g.setGlobalAlpha(alpha);
+        g.setFill(color);
+        g.fillOval(x - r * 1.3, y - r * 0.3, r * 1.3, r);
+        g.fillOval(x - r * 0.7, y - r * 0.8, r * 1.4, r * 1.4);
+        g.fillOval(x + r * 0.1, y - r * 0.4, r * 1.2, r * 1.05);
+        g.fillRoundRect(x - r * 1.3, y, r * 2.6, r * 0.6, r * 0.6, r * 0.6);
         g.setGlobalAlpha(1);
     }
 
@@ -661,6 +769,7 @@ public final class SeedView extends Canvas {
         drawBubbles();
         drawShelfAndCan();
         drawBloom();
+        drawWeather();
         drawBubbleLabel();
     }
 

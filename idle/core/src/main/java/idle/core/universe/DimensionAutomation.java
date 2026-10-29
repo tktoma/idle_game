@@ -8,7 +8,7 @@ package idle.core.universe;
  *
  * <p>Ceux de la dimension 1 se paient en graines d'univers ; ceux de la dimension n, avec la ressource de la dimension
  * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée,
- * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154).
+ * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154), les ondes de la brane pour le clicker (version 0.155).
  */
 public enum DimensionAutomation {
     LINE_YIELD(1, Kind.UPGRADE, 0, "Densité"),
@@ -47,13 +47,23 @@ public enum DimensionAutomation {
     BRANE_ELASTICITY(6, Kind.UPGRADE, 1, "Élasticité"),
     BRANE_SIZE(6, Kind.UPGRADE, 2, "Grandeur des ondes"),
     BRANE_BOUNCE(6, Kind.UPGRADE, 3, "Rebond"),
-    BRANE_COMBO(6, Kind.UPGRADE, 4, "Points en une onde");
+    BRANE_COMBO(6, Kind.UPGRADE, 4, "Points en une onde"),
+    // Version 0.155 : le clicker, payé en ondes de la brane.
+    CLICKER_PLAY(7, Kind.PLAY, -1, "Clics automatiques"),
+    CLICKER_GAIN(7, Kind.UPGRADE, 0, "Gain"),
+    CLICKER_SPEED(7, Kind.UPGRADE, 1, "Multiplicateur de cadence"),
+    CLICKER_ZONES(7, Kind.UPGRADE, 2, "Zones ×2"),
+    CLICKER_ZONE_MULT(7, Kind.UPGRADE, 3, "Multiplicateur des zones"),
+    CLICKER_ZONE_TIME(7, Kind.UPGRADE, 4, "Durée des zones"),
+    CLICKER_ZONE_COUNT(7, Kind.UPGRADE, 5, "Nombre de zones"),
+    CLICKER_ZONE_SIZE(7, Kind.UPGRADE, 6, "Taille des zones"),
+    CLICKER_STACK(7, Kind.UPGRADE, 7, "Zones superposées");
 
     /** Ce que fait l'automatisme : jouer la dimension, ou acheter une de ses améliorations. */
     public enum Kind { PLAY, UPGRADE }
 
     /** Le prix du premier automatisme de chaque dimension, dans la ressource qui le paie (graines, segments, facettes, sphères). */
-    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000};
+    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000, 2_000};
     /** Ce que chaque automatisme suivant de la même dimension coûte de plus : ×2 (les graines : +1 tous les deux). */
     public static final double COST_GROWTH = 2;
 
@@ -69,7 +79,7 @@ public enum DimensionAutomation {
         this.label = label;
     }
 
-    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane. */
+    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker. */
     public int dimension() {
         return dimension;
     }

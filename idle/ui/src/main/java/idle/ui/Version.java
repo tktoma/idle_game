@@ -23,6 +23,33 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.155", "Le clicker", List.of(
+                    "La septième dimension s'ouvre au septième univers : le clicker, à la place de « tous les débuts », qui "
+                            + "n'était qu'un visuel. Chaque clic sur sa surface donne des étincelles, et d'autant plus que vous "
+                            + "cliquez vite : la cadence, comptée sur les deux dernières secondes jusqu'à vingt clics par seconde, "
+                            + "multiplie chaque clic ; elle s'écrit au-dessus de la surface. Chaque clic fait une onde, et son "
+                            + "gain monte du point.",
+                    "Huit améliorations, payées en étincelles : gain, multiplicateur de cadence, et les zones ×2, qui en "
+                            + "débloquent cinq autres (multiplicateur, durée, nombre et taille des zones, zones superposées). "
+                            + "Les zones apparaissent une toutes les trois secondes et s'éteignent au bout d'un temps, que leur "
+                            + "anneau montre en se vidant ; elles peuvent se superposer, et chaque endroit prend la couleur du "
+                            + "nombre de zones qui le couvrent. Sous la souris s'écrit le multiplicateur (×N).",
+                    "Le seuil du clicker (5 000 étincelles) marque la dimension d'un rond vert et donne le titre « Virtuose du "
+                            + "clic ». L'automatisation des dimensions gagne la section du clicker, payée en ondes de la brane : "
+                            + "les clics automatiques cliquent six fois par seconde au meilleur endroit, de vrais clics qui se "
+                            + "voient sur la surface, puis un automatisme par amélioration ; il y en a maintenant quarante-quatre.",
+                    "La météo de la graine : avec le clicker, le ciel est variable, parfois beau (+30 % sur tout l'arrosage "
+                            + "par seconde), parfois orageux (−10 %). Il se voit en haut de la vue de la graine (soleil, nuage, "
+                            + "pluie et éclairs), avec son effet et le temps qu'il lui reste. La branche « Clicker » des "
+                            + "améliorations de la graine allonge le beau temps, raccourcit les orages et renforce le soleil.",
+                    "La brane : une seule onde à la fois, mais elle rebondit plusieurs fois, et la grandeur des ondes va "
+                            + "maintenant jusqu'à vingt-cinq niveaux, +30 % chacun. Les rebonds se voient mieux : chaque front "
+                            + "prend une couleur et une épaisseur selon ses rebonds, un éclat marque le bord où il rebondit, et "
+                            + "le gain dit ses rebonds, plus gros (« +9, 2 rebonds »). Le point touché reste doré et affiche ses "
+                            + "passages jusqu'à partir avec l'onde ; les statistiques ont le record de rebonds en un passage.",
+                    "Les statistiques de l'univers ont le clicker, sa courbe, ses clics, sa cadence, le record de zones "
+                            + "superposées et la météo ; l'aide les décrit ; le profil de test a la rangée du clicker et deux "
+                            + "outils de météo.")),
             new Note("0.154", "La brane", List.of(
                     "La sixième dimension s'ouvre au sixième univers : la brane, à la place de « tous les possibles », qui "
                             + "n'était qu'un visuel. Une membrane carrée : on l'appuie en un point, on glisse pour la tendre, "

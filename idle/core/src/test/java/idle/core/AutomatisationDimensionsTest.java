@@ -38,7 +38,7 @@ class AutomatisationDimensionsTest {
 
     @Test
     void lesAutomatismesSuiventLesDimensionsEtLeursAmeliorations() {
-        int[] counts = new int[7];
+        int[] counts = new int[8];
         for (DimensionAutomation automation : DimensionAutomation.values()) counts[automation.dimension()]++;
         assertEquals(5, counts[1], "la ligne : ses cinq améliorations, rien à jouer");
         assertEquals(6, counts[2], "le plan : la visée, puis ses cinq améliorations");
@@ -46,6 +46,7 @@ class AutomatisationDimensionsTest {
         assertEquals(5, counts[4]);
         assertEquals(7, counts[5], "la boucle (version 0.153) : le rythme, puis ses six améliorations");
         assertEquals(6, counts[6], "la brane (version 0.154) : la tirée, puis ses cinq améliorations");
+        assertEquals(9, counts[7], "le clicker (version 0.155) : les clics, puis ses huit améliorations");
         assertNull(DimensionAutomation.PLANE_AIM.previous(), "la visée vient d'abord");
         assertEquals(DimensionAutomation.PLANE_AIM, DimensionAutomation.PLANE_VALUE.previous());
         assertEquals(DimensionAutomation.Kind.PLAY, DimensionAutomation.VOLUME_DIVE.kind());
@@ -173,5 +174,25 @@ class AutomatisationDimensionsTest {
         assertTrue(SaveCodec.read(old.toString()).state().dimensionAutomations().isEmpty(), "une sauvegarde d'avant n'en a pas");
         game.reset();
         assertTrue(game.state().dimensionAutomations().isEmpty(), "« Recommencer de zéro » les reprend");
+    }
+
+    /** Version 0.155 : chaque automatisme s'achète, payé avec la ressource de la dimension d'avant (la brane paie le clicker). */
+    @Test
+    void tousLesAutomatismesSAchetentAvecLaBonneRessource() {
+        Game game = GameTestSupport.universe(7);
+        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        game.state().setUniverseSeeds(BigNum.of(1_000));
+        game.state().setDimensionShards(1e30);
+        game.state().setPlaneShards(1e30);
+        game.state().setVolumeShards(1e30);
+        game.state().setDurationShards(1e30);
+        game.state().setLoopShards(1e30);
+        game.state().setBraneShards(1e30);
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
+            double before = game.dimensionAutomationBalance(automation);
+            assertTrue(game.buyDimensionAutomation(automation), automation.toString());
+            assertEquals(before - automation.cost(), game.dimensionAutomationBalance(automation), before * 1e-12 + 1e-9, automation.toString());
+        }
+        assertEquals(DimensionAutomation.values().length, game.dimensionAutomationsOwned());
     }
 }

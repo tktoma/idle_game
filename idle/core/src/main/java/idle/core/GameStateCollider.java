@@ -385,6 +385,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // La brane (version 0.154) aussi.
         double braneKept = braneShards, braneEarned = braneShardsEarned;
         int[] braneKeptLevels = braneLevels.clone();
+        // Le clicker (version 0.155) aussi.
+        double clickerKept = clickerShards, clickerEarned = clickerShardsEarned;
+        int[] clickerKeptLevels = clickerLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -467,6 +470,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         braneShards = braneKept;
         braneShardsEarned = braneEarned;
         System.arraycopy(braneKeptLevels, 0, braneLevels, 0, BRANE_UPGRADES);
+        clickerShards = clickerKept;
+        clickerShardsEarned = clickerEarned;
+        System.arraycopy(clickerKeptLevels, 0, clickerLevels, 0, CLICKER_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -819,6 +825,33 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    /** Les étincelles du clicker (version 0.155). */
+    public double clickerShards() {
+        return clickerShards;
+    }
+
+    public void setClickerShards(double shards) {
+        clickerShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Les étincelles gagnées en tout : ce qui compte pour le seuil du clicker. */
+    public double clickerShardsEarned() {
+        return clickerShardsEarned;
+    }
+
+    public void setClickerShardsEarned(double earned) {
+        clickerShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration du clicker, dans l'ordre de {@code Game.ClickerUpgrade}. */
+    public int clickerLevel(int index) {
+        return level(clickerLevels, index);
+    }
+
+    public void setClickerLevel(int index, int level) {
+        setLevel(clickerLevels, index, level);
+    }
+
     /** Les ondes de la brane (version 0.154). */
     public double braneShards() {
         return braneShards;

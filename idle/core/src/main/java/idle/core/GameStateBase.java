@@ -267,12 +267,17 @@ public abstract class GameStateBase {
     double braneShardsEarned = 0;
     static final int BRANE_UPGRADES = 5;
     final int[] braneLevels = new int[BRANE_UPGRADES];
+    /** Le clicker, septième dimension (version 0.155) : ses étincelles, celles gagnées en tout, et ses huit améliorations. */
+    double clickerShards = 0;
+    double clickerShardsEarned = 0;
+    static final int CLICKER_UPGRADES = 8;
+    final int[] clickerLevels = new int[CLICKER_UPGRADES];
     /**
      * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
      * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
      */
-    static final int SEED_UPGRADES = 11;
+    static final int SEED_UPGRADES = 14;
     final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
     double chronoStored = 0;
     double chronoSpeed = 1;

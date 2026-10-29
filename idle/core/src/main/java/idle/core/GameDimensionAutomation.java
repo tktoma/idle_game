@@ -61,12 +61,8 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         double cost = automation.cost();
         switch (automation.paidWith()) {
             case 0 -> state.setUniverseSeeds(state.universeSeeds().subtract(BigNum.of(cost)).max(BigNum.ZERO));
-            case 1 -> state.setDimensionShards(Math.max(0, state.dimensionShards() - cost));
-            case 2 -> state.setPlaneShards(Math.max(0, state.planeShards() - cost));
-            case 3 -> state.setVolumeShards(Math.max(0, state.volumeShards() - cost));
-            case 4 -> state.setDurationShards(Math.max(0, state.durationShards() - cost));
-            case 5 -> state.setLoopShards(Math.max(0, state.loopShards() - cost));
-            default -> throw new IllegalStateException("Pas de ressource pour la dimension " + automation.paidWith());
+            // Les autres, avec la ressource de la dimension d'avant (version 0.155 : un seul endroit, pour n'en oublier aucune).
+            default -> spendDimensionResource(automation.paidWith(), cost);
         }
         state.addDimensionAutomation(automation.name());
         return true;
@@ -112,6 +108,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
             case 4 -> buyDuration(DurationUpgrade.values()[index]);
             case 5 -> buyLoopUpgrade(index);
             case 6 -> buyBraneUpgrade(index);
+            case 7 -> buyClickerUpgrade(index);
             default -> false;
         };
     }
@@ -121,6 +118,9 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     /** Achète l'amélioration de la brane de ce rang (version 0.154). */
     abstract boolean buyBraneUpgrade(int index);
+
+    /** Achète l'amélioration du clicker de ce rang (version 0.155). */
+    abstract boolean buyClickerUpgrade(int index);
 
     /** La visée du plan : le point file vers l'éclat le plus proche quand le joueur ne tient aucune direction. */
     @Override

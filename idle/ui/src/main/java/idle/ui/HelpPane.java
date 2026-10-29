@@ -227,14 +227,14 @@ final class HelpPane extends Overlay {
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
-        // Les dimensions (version 0.128) : une par univers, et ce que font les six qui se jouent (la boucle, version 0.153 ;
-        // la brane, version 0.154).
+        // Les dimensions (version 0.128) : une par univers, et ce que font les sept qui se jouent (la boucle, version 0.153 ;
+        // la brane, version 0.154 ; le clicker, version 0.155).
         if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
                 + "s'ouvre à chaque univers. Chacune a ses éclats, propres à elle, et un seuil d'éclats gagnés, un quart d'heure "
                 + "de jeu environ, qui marque la dimension d'un rond vert. Ces éclats ont leur nom : les segments de la ligne, les facettes du plan, "
-                + "les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes de la brane ; ils paient "
-                + "aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre fertile, étage du chrono et "
-                + "ses réglages, durée et force du rond de croissance, lumière astrale). La graine s'arrose à l'arrosoir : "
+                + "les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes de la brane, les étincelles "
+                + "du clicker ; ils paient aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre "
+                + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo). La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
                 + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
@@ -279,10 +279,26 @@ final class HelpPane extends Overlay {
                         + "sur la membrane, un toutes les " + ElementText.number(Game.BRANE_SPAWN_SECONDS) + " secondes, "
                         + Game.BRANE_MAX_POINTS + " au plus ; chaque passage du front sur un point, en direct puis après chaque "
                         + "rebond, donne des ondes, davantage après un rebond et pour chaque passage de plus de la même onde. "
-                        + "Les points touchés restent tant que l'onde court, puis partent avec elle ; " + Game.BRANE_MAX_WAVES
-                        + " ondes courent au plus à la fois. Ses améliorations : gain, élasticité (une tirée plus courte porte "
+                        + "Une onde qui porte loin rebondit plusieurs fois, et chaque rebond la colore autrement. Les points "
+                        + "touchés restent et comptent tant que l'onde court, puis partent avec elle ; une seule onde court à "
+                        + "la fois. Ses améliorations : gain, élasticité (une tirée plus courte porte "
                         + "déjà à fond), grandeur des ondes, rebond, et points en une onde. Avec la brane, la lumière astrale "
-                        + "de la graine, payée en ondes, multiplie l'arrosage par seconde de l'arrosoir et du tuyau." : "")));
+                        + "de la graine, payée en ondes, multiplie l'arrosage par seconde de l'arrosoir et du tuyau." : "")
+                // Le clicker (version 0.155), et la météo qui vient avec lui.
+                + (game.isClickerOpen() ? " Dans le clicker, chaque clic sur la surface donne des étincelles, d'autant plus "
+                        + "que vous cliquez vite : la cadence se compte sur les " + ElementText.number(Game.CLICKER_WINDOW)
+                        + " dernières secondes, jusqu'à " + Math.round(Game.CLICKER_MAX_RATE) + " clics par seconde. "
+                        + "L'amélioration « Zones ×2 » fait apparaître des zones, une toutes les "
+                        + ElementText.number(Game.CLICKER_ZONE_EVERY) + " secondes, qui s'éteignent au bout d'un temps (leur "
+                        + "anneau se vide) ; elles peuvent se superposer, et chaque endroit prend la couleur du nombre de zones "
+                        + "qui le couvrent : un clic là où plusieurs se chevauchent rapporte d'autant plus, le multiplicateur "
+                        + "s'écrit sous la souris. Ses autres améliorations : gain, multiplicateur de cadence, multiplicateur, "
+                        + "durée, nombre et taille des zones, et zones superposées. Avec le clicker, la météo tombe sur la "
+                        + "graine : un ciel variable, parfois du beau temps (arrosage +" + Math.round(game.weatherSunGain() * 100)
+                        + " % pendant " + ElementText.number(game.weatherSunSeconds()) + " secondes), parfois un orage "
+                        + "(arrosage −" + Math.round(Game.WEATHER_STORM_LOSS * 100) + " % pendant "
+                        + ElementText.number(game.weatherStormSeconds()) + " secondes) ; la branche « Clicker » de la graine "
+                        + "allonge le beau temps, raccourcit les orages et renforce le soleil." : "")));
         // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
         if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "La bulle du "
                 + "sommet de l'arbre-monde ouvre le sous-onglet « Dimensions » de l'onglet Automatisation : "
@@ -291,14 +307,15 @@ final class HelpPane extends Overlay {
                 + "d'univers, ceux du plan en " + Game.dimensionResourceName(1) + ", ceux du volume en "
                 + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ", ceux de la "
                 + "boucle en " + Game.dimensionResourceName(4) + ", ceux de la brane en " + Game.dimensionResourceName(5)
-                + ". La visée "
+                + ", ceux du clicker en " + Game.dimensionResourceName(6) + ". La visée "
                 + "automatique fait filer le point du plan vers l'éclat le plus proche tant que vous ne tenez aucune touche ; "
                 + "la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
                 + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
                 + "bouton de la durée jusqu'au centre, relâche et recommence ; le rythme automatique clique « bien » à chaque "
                 + "passage d'un point de la boucle dans une zone, clic par clic ; la tirée automatique tire la membrane de "
                 + "la brane à fond, au milieu des points, toutes les " + ElementText.number(Game.BRANE_AUTO_SECONDS)
-                + " secondes. Les autres achètent chacun une amélioration dès "
+                + " secondes ; les clics automatiques cliquent " + ElementText.number(Game.CLICKER_AUTO_RATE) + " fois par "
+                + "seconde là où se superposent le plus de zones du clicker. Les autres achètent chacun une amélioration dès "
                 + "qu'elle est payable. Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
                 + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
                 + "tous. Achetés, ils traversent les univers."));

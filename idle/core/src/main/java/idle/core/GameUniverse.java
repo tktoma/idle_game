@@ -336,7 +336,7 @@ public abstract class GameUniverse extends GameAtoms {
         return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
     }
 
-    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
@@ -345,6 +345,7 @@ public abstract class GameUniverse extends GameAtoms {
             case 4 -> isDurationThresholdReached();
             case 5 -> isLoopThresholdReached();
             case 6 -> state.braneShardsEarned() >= BRANE_THRESHOLD - 1e-9;
+            case 7 -> state.clickerShardsEarned() >= CLICKER_THRESHOLD - 1e-9;
             default -> false;
         };
     }
@@ -1443,7 +1444,7 @@ public abstract class GameUniverse extends GameAtoms {
      * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
      * pas encore.
      */
-    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes");
+    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes", "étincelles");
 
     /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
     public static String dimensionResourceName(int number) {
@@ -1451,7 +1452,7 @@ public abstract class GameUniverse extends GameAtoms {
                 : "éclats de la dimension " + number;
     }
 
-    /** La réserve de la ressource de la dimension {@code number} (1 à 6) ; 0 pour les autres. */
+    /** La réserve de la ressource de la dimension {@code number} (1 à 7) ; 0 pour les autres. */
     public double dimensionResource(int number) {
         return switch (number) {
             case 1 -> state.dimensionShards();
@@ -1460,11 +1461,13 @@ public abstract class GameUniverse extends GameAtoms {
             case 4 -> state.durationShards();
             case 5 -> state.loopShards();
             case 6 -> state.braneShards();
+            case 7 -> state.clickerShards();
             default -> 0;
         };
     }
 
-    private void spendDimensionResource(int number, double amount) {
+    /** Retire {@code amount} de la ressource de la dimension {@code number} (1 à 7), sans descendre sous zéro. */
+    void spendDimensionResource(int number, double amount) {
         switch (number) {
             case 1 -> state.setDimensionShards(Math.max(0, state.dimensionShards() - amount));
             case 2 -> state.setPlaneShards(Math.max(0, state.planeShards() - amount));
@@ -1472,6 +1475,7 @@ public abstract class GameUniverse extends GameAtoms {
             case 4 -> state.setDurationShards(Math.max(0, state.durationShards() - amount));
             case 5 -> state.setLoopShards(Math.max(0, state.loopShards() - amount));
             case 6 -> state.setBraneShards(Math.max(0, state.braneShards() - amount));
+            case 7 -> state.setClickerShards(Math.max(0, state.clickerShards() - amount));
             default -> throw new IllegalArgumentException("Pas de ressource pour la dimension " + number);
         }
     }
@@ -1502,7 +1506,13 @@ public abstract class GameUniverse extends GameAtoms {
         /** Nœuds : le rond de croissance accélère davantage l'arrosage, +10 points par niveau. */
         BLOOM_POWER(5, "Force du rond de croissance", 300, 2.7, 20, false),
         /** Ondes de la brane (version 0.154) : la lumière astrale, +20 % d'arrosage par seconde de l'arrosoir et du tuyau, par niveau. */
-        ASTRAL_LIGHT(6, "Lumière astrale", 400, 2.8, 20, false);
+        ASTRAL_LIGHT(6, "Lumière astrale", 400, 2.8, 20, false),
+        /** Étincelles du clicker (version 0.155) : le beau temps dure plus longtemps, +10 s par niveau. */
+        WEATHER_SUN(7, "Beau temps plus long", 500, 2.6, 15, false),
+        /** Étincelles : les orages passent plus vite, −3 s par niveau. */
+        WEATHER_STORM(7, "Orages plus courts", 400, 2.5, 8, false),
+        /** Étincelles : le beau temps arrose davantage, +10 points par niveau. */
+        WEATHER_POWER(7, "Soleil plus fort", 600, 2.8, 20, false);
 
         private final int dimension;
         private final String label;
@@ -1580,6 +1590,9 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Ondes de la brane à gagner pour son seuil (version 0.154). */
     public static final double BRANE_THRESHOLD = 5_000;
+
+    /** Étincelles du clicker à gagner pour son seuil (version 0.155). */
+    public static final double CLICKER_THRESHOLD = 5_000;
 
     /** Nœuds de la boucle à gagner pour son seuil (version 0.153) : un quart d'heure de jeu appliqué environ. */
     public static final double LOOP_THRESHOLD = 5_000;
@@ -1742,6 +1755,9 @@ public abstract class GameUniverse extends GameAtoms {
         state.setBraneShards(0);
         state.setBraneShardsEarned(0);
         for (int i = 0; i < GameStateBase.BRANE_UPGRADES; i++) state.setBraneLevel(i, 0);
+        state.setClickerShards(0);
+        state.setClickerShardsEarned(0);
+        for (int i = 0; i < GameStateBase.CLICKER_UPGRADES; i++) state.setClickerLevel(i, 0);
         dropDuration();
         leaveVolume();
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
@@ -2402,7 +2418,8 @@ public abstract class GameUniverse extends GameAtoms {
                     + ").");
             // Version 0.128 : le volume traverse les univers lui aussi.
             // Version 0.134 : la durée traverse les univers elle aussi.
-            kept.add(dimensionsUnlocked() >= 6 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle et de la brane, et leurs améliorations."
+            kept.add(dimensionsUnlocked() >= 7 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane et du clicker, et leurs améliorations."
+                    : dimensionsUnlocked() >= 6 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle et de la brane, et leurs améliorations."
                     : dimensionsUnlocked() >= 5 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée et de la boucle, et leurs améliorations."
                     : isDurationOpen() ? "Les dimensions : éclats de la ligne, du plan, du volume et de la durée, et leurs améliorations."
                     : isVolumeOpen() ? "Les dimensions : éclats de la ligne, du plan et du volume, et leurs améliorations."

@@ -54,8 +54,8 @@ import javafx.scene.layout.VBox;
  *   <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
  *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
  *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la
- *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, puis la graine, son chrono et le
- *       rond de croissance ;</li>
+ *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, le clicker depuis la version 0.155,
+ *       puis la graine, son chrono, le rond de croissance et la météo ;</li>
  *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension (de la ligne à la durée) joue la
  *       partie en cours.</li>
  * </ul>
@@ -118,7 +118,7 @@ final class DebugBar extends VBox {
     // Les bots des dimensions (version 0.140)
     /** Les rangées des outils des dimensions : leur nom et leur ressource. */
     private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)",
-            "Boucle (nœuds)", "Brane (ondes)"};
+            "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)"};
     /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
     static final int DIMENSION_BATCH = 400;
     private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
@@ -336,7 +336,8 @@ final class DebugBar extends VBox {
         // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.
         VBox dimensionRows = new VBox(4);
-        // La boucle (version 0.153) et la brane (version 0.154) ont leur rangée ; elles n'ont pas encore de bot.
+        // La boucle (version 0.153), la brane (version 0.154) et le clicker (version 0.155) ont leur rangée ; ils n'ont pas
+        // encore de bot.
         for (int d = 1; d <= DIMENSION_ROWS.length; d++) {
             int number = d;
             dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
@@ -358,7 +359,10 @@ final class DebugBar extends VBox {
                 tool("Rond de croissance", () -> {
                     if (game.isBloomUnlocked()) game.testShowBloom();
                     else note("Le rond de croissance vient avec la boucle : « Ouvrir » dans sa rangée.");
-                })));
+                }),
+                // Version 0.155 : la météo de la graine, tout de suite, si elle est là (le clicker ouvert).
+                tool("Beau temps", () -> weather(Game.Weather.SUN)),
+                tool("Orage", () -> weather(Game.Weather.STORM))));
         group("Dimensions", dimensionRows);
         // Version 0.140 : à côté des dimensions, leurs bots (DimensionBots, le joueur appliqué qui règle les seuils), qui
         // jouent la dimension choisie de la partie en cours, en direct ou en avance rapide.
@@ -622,6 +626,12 @@ final class DebugBar extends VBox {
         return row;
     }
 
+    /** Impose le temps qu'il fait sur la graine, pour sa durée entière ; sans la météo, le dit. */
+    private void weather(Game.Weather weather) {
+        if (game.isWeatherUnlocked()) game.testSetWeather(weather);
+        else note("La météo vient avec le clicker : « Ouvrir » dans sa rangée.");
+    }
+
     /** Ouvre la dimension {@code number} : l'univers formé, puis autant d'univers qu'il en faut. */
     private void openDimension(int number) {
         if (!game.isUniverseFormed()) game.testFormUniverse();
@@ -637,7 +647,8 @@ final class DebugBar extends VBox {
             case 3 -> Game.VOLUME_THRESHOLD;
             case 4 -> Game.DURATION_THRESHOLD;
             case 5 -> Game.LOOP_THRESHOLD;
-            default -> Game.BRANE_THRESHOLD;
+            case 6 -> Game.BRANE_THRESHOLD;
+            default -> Game.CLICKER_THRESHOLD;
         };
     }
 
@@ -665,9 +676,13 @@ final class DebugBar extends VBox {
                 state.setLoopShards(state.loopShards() + amount);
                 state.setLoopShardsEarned(state.loopShardsEarned() + amount);
             }
-            default -> {
+            case 6 -> {
                 state.setBraneShards(state.braneShards() + amount);
                 state.setBraneShardsEarned(state.braneShardsEarned() + amount);
+            }
+            default -> {
+                state.setClickerShards(state.clickerShards() + amount);
+                state.setClickerShardsEarned(state.clickerShardsEarned() + amount);
             }
         }
     }
@@ -682,13 +697,14 @@ final class DebugBar extends VBox {
             case 3 -> state.setVolumeShardsEarned(Math.max(state.volumeShardsEarned(), threshold));
             case 4 -> state.setDurationShardsEarned(Math.max(state.durationShardsEarned(), threshold));
             case 5 -> state.setLoopShardsEarned(Math.max(state.loopShardsEarned(), threshold));
-            default -> state.setBraneShardsEarned(Math.max(state.braneShardsEarned(), threshold));
+            case 6 -> state.setBraneShardsEarned(Math.max(state.braneShardsEarned(), threshold));
+            default -> state.setClickerShardsEarned(Math.max(state.clickerShardsEarned(), threshold));
         }
     }
 
     /**
      * Les améliorations de la dimension au plus haut, ou à zéro. La valeur du volume et de la durée, et le gain de la
-     * boucle et de la brane, n'ont pas de plafond : dix niveaux.
+     * boucle, de la brane et du clicker, n'ont pas de plafond : dix niveaux.
      */
     private void setDimensionLevels(int number, boolean max) {
         GameState state = game.state();
@@ -716,9 +732,13 @@ final class DebugBar extends VBox {
                 for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values())
                     state.setLoopLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.LoopUpgrade.GAIN ? 10 : upgrade.max());
             }
-            default -> {
+            case 6 -> {
                 for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values())
                     state.setBraneLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.BraneUpgrade.GAIN ? 10 : upgrade.max());
+            }
+            default -> {
+                for (Game.ClickerUpgrade upgrade : Game.ClickerUpgrade.values())
+                    state.setClickerLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.ClickerUpgrade.GAIN ? 10 : upgrade.max());
             }
         }
     }

@@ -176,6 +176,8 @@ public final class StatsHistory {
         LOOP_SHARDS,
         /** Ondes de la brane gagnées en tout, en puissance de dix (version 0.154). */
         BRANE_SHARDS,
+        /** Étincelles du clicker gagnées en tout, en puissance de dix (version 0.155). */
+        CLICKER_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
 

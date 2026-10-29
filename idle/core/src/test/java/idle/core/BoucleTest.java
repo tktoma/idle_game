@@ -90,7 +90,7 @@ class BoucleTest {
         game.tick(200);
         // 200 s, un tour en 20 s, une zone : dix passages, dix « bien ».
         assertEquals(10 * game.loopReward(LoopHit.GOOD), game.state().loopShardsEarned(), 1e-6);
-        assertEquals(29 + 6, DimensionAutomation.values().length, "sept de plus pour la boucle, puis six pour la brane");
+        assertEquals(29 + 6 + 9, DimensionAutomation.values().length, "sept de plus pour la boucle, six pour la brane, neuf pour le clicker");
         assertEquals(4, DimensionAutomation.LOOP_PLAY.paidWith(), "payés en instants de la durée");
     }
 

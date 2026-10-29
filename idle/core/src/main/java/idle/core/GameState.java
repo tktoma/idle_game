@@ -201,6 +201,9 @@ public final class GameState extends GameStateResets {
         data.put("braneShards", braneShards);
         data.put("braneShardsEarned", braneShardsEarned);
         for (int i = 0; i < BRANE_UPGRADES; i++) data.put("braneLevel" + i, braneLevel(i));
+        data.put("clickerShards", clickerShards);
+        data.put("clickerShardsEarned", clickerShardsEarned);
+        for (int i = 0; i < CLICKER_UPGRADES; i++) data.put("clickerLevel" + i, clickerLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -490,6 +493,10 @@ public final class GameState extends GameStateResets {
         setBraneShards(data.real("braneShards", 0));
         setBraneShardsEarned(data.real("braneShardsEarned", 0));
         for (int i = 0; i < BRANE_UPGRADES; i++) setBraneLevel(i, data.whole("braneLevel" + i, 0));
+        // Le clicker (version 0.155) : absent d'avant, il part de zéro.
+        setClickerShards(data.real("clickerShards", 0));
+        setClickerShardsEarned(data.real("clickerShardsEarned", 0));
+        for (int i = 0; i < CLICKER_UPGRADES; i++) setClickerLevel(i, data.whole("clickerLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));

@@ -18,10 +18,11 @@ import java.util.random.RandomGenerator;
  * multiplicateur de points touchés en une onde.
  *
  * <p>Les rebonds se calculent par les images : une onde partie de (x, y) et renvoyée par un bord est la même que celle
- * partie du symétrique de (x, y) par rapport à ce bord. Chacune des neuf sources (le point de départ, ses quatre
- * symétriques par les bords, et les quatre par les coins) touche un point quand son front passe sur lui : une fois en
- * direct, puis une fois par rebond qui le retrouve ; le nombre de bords traversés est celui des rebonds. Exact quel que
- * soit le pas. Les points touchés restent tant que l'onde court, puis partent avec elle.
+ * partie du symétrique de (x, y) par rapport à ce bord ; renvoyée plusieurs fois, c'est celle partie d'une image plus
+ * lointaine ({@link #images}). Chaque source touche un point quand son front passe sur lui : une fois en direct, puis
+ * une fois par rebond qui le retrouve, aussi souvent que l'onde rebondit (version 0.155) ; le nombre de bords traversés
+ * est celui des rebonds. Exact quel que soit le pas. Les points touchés restent, et comptent encore, tant que l'onde
+ * court, puis partent avec elle. Une seule onde à la fois.
  *
  * <p>Avec la brane vient la lumière astrale : une amélioration de la graine, payée en ondes, qui multiplie l'arrosage
  * par seconde de l'arrosoir et du tuyau.
@@ -39,8 +40,8 @@ public abstract class GameBrane extends GameLoop {
         GAIN(5, 3, Integer.MAX_VALUE),
         /** Une tirée plus courte donne déjà une onde entière : +20 % par niveau. */
         ELASTICITY(6, 2.6, 15),
-        /** La portée des ondes : +20 % par niveau. */
-        SIZE(8, 2.8, 20),
+        /** La portée des ondes : +30 % par niveau (version 0.155 : assez loin, au plus haut, pour plusieurs rebonds). */
+        SIZE(8, 2.8, 25),
         /** Un point touché après un rebond : ×1,5, et 0,25 de plus par niveau. */
         BOUNCE(10, 3, 15),
         /** Chaque point de plus touché par la même onde : +10 %, et 5 points de plus par niveau. */
@@ -66,7 +67,7 @@ public abstract class GameBrane extends GameLoop {
     public static final class BraneWave {
         private final double x, y, reach;
         private double radius;
-        private int touched;
+        private int touched, lastBounces;
         private final java.util.Set<Strike> hit = new java.util.HashSet<>();
         private final List<BranePoint> struck = new ArrayList<>();
 
@@ -97,6 +98,11 @@ public abstract class GameBrane extends GameLoop {
             return touched;
         }
 
+        /** Les rebonds de son dernier passage sur un point : 0 en direct. */
+        public int lastBounces() {
+            return lastBounces;
+        }
+
         /** Vrai si elle a touché ce point : il s'en ira avec elle. */
         public boolean hasStruck(BranePoint point) {
             return struck.contains(point);
@@ -106,13 +112,13 @@ public abstract class GameBrane extends GameLoop {
     /** La membrane va de −{@value} à {@value} sur chaque axe. */
     public static final double BRANE_EDGE = 1;
     /** La portée d'une onde tirée à fond, au départ : 0,35 (petite, sur une membrane de côté 2). */
-    public static final double BRANE_REACH = 0.35, BRANE_SIZE_STEP = 0.2, BRANE_ELASTIC_STEP = 0.2;
+    public static final double BRANE_REACH = 0.35, BRANE_SIZE_STEP = 0.3, BRANE_ELASTIC_STEP = 0.2;
     /** Le moins qu'une onde porte, même tirée à peine : 30 % de sa portée. */
     public static final double BRANE_MIN_PULL = 0.3;
     /** La vitesse du front, en unités par seconde. */
     public static final double BRANE_WAVE_SPEED = 0.6;
-    /** Trois ondes au plus à la fois. */
-    public static final int BRANE_MAX_WAVES = 3;
+    /** Une seule onde à la fois (version 0.155) : on ne lance pas la suivante avant que la précédente s'éteigne. */
+    public static final int BRANE_MAX_WAVES = 1;
     /** Les points : six au plus, un nouveau toutes les deux secondes. */
     public static final int BRANE_MAX_POINTS = 6;
     public static final double BRANE_SPAWN_SECONDS = 2;
@@ -126,6 +132,7 @@ public abstract class GameBrane extends GameLoop {
     private final List<BraneWave> braneWaves = new ArrayList<>();
     private double braneSpawnTimer, braneAutoTimer;
     private long braneTouches, braneBounces, braneWavesSent;
+    private int braneMostBounces;
     private double braneLastGain;
 
     /** Vrai dès que la sixième dimension est ouverte : au sixième univers. */
@@ -164,8 +171,8 @@ public abstract class GameBrane extends GameLoop {
     }
 
     /**
-     * Ce que donne le {@code rank}-ième passage (1 le premier) d'une onde, après {@code bounces} rebonds (0, 1, ou 2 par
-     * un coin) : le multiplicateur de rebond s'applique une fois par bord.
+     * Ce que donne le {@code rank}-ième passage (1 le premier) d'une onde, après {@code bounces} rebonds (un par bord
+     * touché, coins compris) : le multiplicateur de rebond s'applique une fois par rebond.
      */
     public double braneReward(int rank, int bounces) {
         return braneValue() * Math.pow(braneBounceFactor(), bounces) * (1 + braneComboStep() * Math.max(0, rank - 1));
@@ -189,6 +196,11 @@ public abstract class GameBrane extends GameLoop {
         return braneBounces;
     }
 
+    /** Le plus de rebonds d'un passage depuis le lancement. */
+    public int braneMostBounces() {
+        return braneMostBounces;
+    }
+
     public long braneWavesSent() {
         return braneWavesSent;
     }
@@ -205,7 +217,7 @@ public abstract class GameBrane extends GameLoop {
 
     /**
      * La membrane, tirée en ({@code x}, {@code y}) de {@code pull} (0 à 1), est relâchée : une onde en part. Faux si
-     * la dimension est fermée ou que trois ondes courent déjà.
+     * la dimension est fermée ou qu'une onde court déjà.
      */
     public boolean pullBrane(double x, double y, double pull) {
         if (!canPullBrane()) return false;
@@ -275,14 +287,14 @@ public abstract class GameBrane extends GameLoop {
         record Hit(BranePoint point, int image, double distance, int bounces) {
         }
         List<Hit> hits = new ArrayList<>();
-        double[] xs = images(wave.x), ys = images(wave.y);
+        double[][] xs = images(wave.x), ys = images(wave.y);
         for (BranePoint point : branePoints) {
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    int image = 3 * i + j;
+            for (int i = 0; i < xs.length; i++) {
+                for (int j = 0; j < ys.length; j++) {
+                    int image = xs.length * i + j;
                     if (wave.hit.contains(new Strike(point, image))) continue;
-                    double d = Math.hypot(point.x() - xs[i], point.y() - ys[j]);
-                    if (d > from - 1e-12 && d <= to + 1e-12) hits.add(new Hit(point, image, d, (i > 0 ? 1 : 0) + (j > 0 ? 1 : 0)));
+                    double d = Math.hypot(point.x() - xs[i][0], point.y() - ys[j][0]);
+                    if (d > from - 1e-12 && d <= to + 1e-12) hits.add(new Hit(point, image, d, (int) (xs[i][1] + ys[j][1])));
                 }
             }
         }
@@ -296,6 +308,8 @@ public abstract class GameBrane extends GameLoop {
             state.setBraneShardsEarned(state.braneShardsEarned() + gain);
             braneTouches++;
             if (hit.bounces() > 0) braneBounces++;
+            braneMostBounces = Math.max(braneMostBounces, hit.bounces());
+            wave.lastBounces = hit.bounces();
             braneLastGain = gain;
         }
     }
@@ -304,9 +318,23 @@ public abstract class GameBrane extends GameLoop {
     private record Strike(BranePoint point, int image) {
     }
 
-    /** Une coordonnée et ses deux symétriques par les bords : les sources de l'onde et de ses rebonds. */
-    private static double[] images(double c) {
-        return new double[] {c, 2 * BRANE_EDGE - c, -2 * BRANE_EDGE - c};
+    /** Combien de fois, au plus, une onde peut repasser par le même bord de chaque côté : assez pour la plus grande portée. */
+    static final int BRANE_IMAGE_RANGE = 2;
+
+    /**
+     * Une coordonnée et ses images par les bords, chacune avec son nombre de rebonds : c + 4m après 2|m| rebonds, et
+     * 2 − c + 4m après |2m + 1| rebonds, pour m de −{@value #BRANE_IMAGE_RANGE} à {@value #BRANE_IMAGE_RANGE}. Une onde
+     * renvoyée plusieurs fois entre deux bords opposés est la même que celle partie de ces images.
+     */
+    public static double[][] images(double c) {
+        int n = 2 * BRANE_IMAGE_RANGE + 1;
+        double[][] out = new double[2 * n][];
+        int k = 0;
+        for (int m = -BRANE_IMAGE_RANGE; m <= BRANE_IMAGE_RANGE; m++) {
+            out[k++] = new double[] {c + 4 * BRANE_EDGE * m, 2 * Math.abs(m)};
+            out[k++] = new double[] {2 * BRANE_EDGE - c + 4 * BRANE_EDGE * m, Math.abs(2 * m + 1)};
+        }
+        return out;
     }
 
     /** Vrai quand l'automatisme de la brane joue (automatisation des dimensions, version 0.154). */

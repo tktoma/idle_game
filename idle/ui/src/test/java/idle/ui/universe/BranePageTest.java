@@ -23,7 +23,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Version 0.154 : la brane, sixième dimension, et la lumière astrale de la graine, sous Xvfb. La membrane se tire à la
  * souris (appui, glissé, relâché) : une onde part du point appuyé, touche les points en direct puis par ses rebonds sur
- * les bords, et chaque passage donne des ondes ; trois ondes au plus à la fois ; les améliorations s'achètent dans la
+ * les bords, et chaque passage donne des ondes ; une seule onde à la fois (version 0.155), qui rebondit plusieurs fois
+ * si elle porte loin, ses rebonds marqués d'un éclat et comptés dans le gain ; les améliorations s'achètent dans la
  * fenêtre ; la tirée automatique joue seule. La lumière astrale est dans la branche « Brane » de la graine ; la brane a
  * sa section dans l'automatisation, ses lignes dans les statistiques et son rond vert ; la version suit.
  */
@@ -115,7 +116,7 @@ class BranePageTest {
     }
 
     @Test
-    void lesRebondsComptentEtTroisOndesAuPlus() {
+    void lesRebondsComptentEtUneSeuleOndeALaFois() {
         FxTestSupport.fx(() -> {
             Game game = sixth();
             DimensionWindow window = window(game);
@@ -131,13 +132,43 @@ class BranePageTest {
             assertEquals(1 + 1.5 * 1.1, game.state().braneShards(), 1e-9);
             assertTrue(view.lastBraneMark().endsWith(", rebond"), view.lastBraneMark());
             game.testClearBrane();
-            for (int k = 0; k < Game.BRANE_MAX_WAVES; k++) pull(view, 0, 0, 0, 0.6);
-            assertEquals(Game.BRANE_MAX_WAVES, game.braneWaves().size());
+            assertEquals(1, Game.BRANE_MAX_WAVES);
+            pull(view, 0, 0, 0, 0.6);
+            assertEquals(1, game.braneWaves().size());
             double[] at = view.braneScreen(0.5, 0.5);
-            assertFalse(view.press(at[0], at[1], false), "trois ondes courent : la membrane ne se tient pas");
+            assertFalse(view.press(at[0], at[1], false), "une onde court : la membrane ne se tient pas");
             window.frame(0.016, true);
-            assertTrue(window.braneHintText().startsWith("Trois ondes courent déjà"), window.braneHintText());
+            assertTrue(window.braneHintText().startsWith("Une onde court déjà"), window.braneHintText());
             assertFalse(view.press(view.getWidth() - 2, 2, false), "hors de la membrane : rien");
+            return null;
+        });
+    }
+
+    @Test
+    void uneOndeQuiPorteLoinRebonditPlusieursFoisEtLePointComptePassages() {
+        FxTestSupport.fx(() -> {
+            Game game = sixth();
+            game.state().setBraneLevel(Game.BraneUpgrade.SIZE.ordinal(), Game.BraneUpgrade.SIZE.max());
+            assertEquals(2.975, game.braneMaxReach(), 1e-9);
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            game.testClearBrane();
+            game.addBranePoint(0.5, 0);
+            Game.BranePoint point = game.branePoints().get(0);
+            pull(view, 0.9, 0, 0.9, 0.6);
+            run(game, window, 3.6);
+            // En direct, par le bord de droite, par ceux du haut et du bas, puis par les deux coins : six passages.
+            assertEquals(1, game.braneWaves().size(), "l'onde court encore");
+            assertTrue(game.branePoints().contains(point), "le point touché reste tant qu'elle court");
+            assertTrue(view.branePasses(point) >= 6, "et compte ses passages : " + view.branePasses(point));
+            assertTrue(game.braneMostBounces() >= 2, "deux rebonds en un passage");
+            assertTrue(view.braneEdgeFlashes() > 0, "un éclat marque chaque bord où elle rebondit");
+            assertTrue(view.braneFrontsDrawn() > 1, "ses rebonds se dessinent");
+            assertEquals("+9, 2 rebonds", DimensionView.passText(9, 2));
+            run(game, window, 2);
+            assertTrue(game.braneWaves().isEmpty());
+            assertFalse(game.branePoints().contains(point), "le point part avec l'onde");
+            assertEquals(0, view.branePasses(point));
             return null;
         });
     }
@@ -154,7 +185,7 @@ class BranePageTest {
                     window.braneButton(Game.BraneUpgrade.GAIN).getText());
             assertTrue(window.braneButton(Game.BraneUpgrade.ELASTICITY).getText()
                     .startsWith("Élasticité : l'onde porte à fond dès 100 % de tirée → 83 %"), window.braneButton(Game.BraneUpgrade.ELASTICITY).getText());
-            assertTrue(window.braneButton(Game.BraneUpgrade.SIZE).getText().startsWith("Grandeur des ondes : portée à fond 0.35 → 0.42"),
+            assertTrue(window.braneButton(Game.BraneUpgrade.SIZE).getText().startsWith("Grandeur des ondes : portée à fond 0.35 → 0.45"),
                     window.braneButton(Game.BraneUpgrade.SIZE).getText());
             assertTrue(window.braneButton(Game.BraneUpgrade.BOUNCE).getText().startsWith("Rebond : un passage après un bord vaut ×1.5 → ×1.75"),
                     window.braneButton(Game.BraneUpgrade.BOUNCE).getText());
@@ -163,7 +194,7 @@ class BranePageTest {
             for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values()) window.braneButton(upgrade).fire();
             assertEquals(2, game.braneValue(), 1e-9);
             assertEquals(1.75, game.braneBounceFactor(), 1e-9);
-            assertEquals(0.42, game.braneMaxReach(), 1e-9);
+            assertEquals(0.35 * 1.3, game.braneMaxReach(), 1e-9);
             assertTrue(window.braneButton(Game.BraneUpgrade.GAIN).getText().startsWith("Gain : chaque passage vaut 2 → 3 ondes"));
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             game.state().setLoopShards(1e9);
@@ -241,8 +272,8 @@ class BranePageTest {
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Ondes tirées sur la brane : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Points touchés de la brane : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : " + game.dimensionAutomationsOwned()
-                    + " / 35 achetés")), rows.toString());
-            assertEquals("0.154", Version.CURRENT);
+                    + " / 44 achetés")), rows.toString());
+            assertEquals("0.155", Version.CURRENT);
             return null;
         });
     }

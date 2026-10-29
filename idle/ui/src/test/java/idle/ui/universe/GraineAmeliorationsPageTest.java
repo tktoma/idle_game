@@ -13,8 +13,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; les branches 7 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
- * 0.153, celle de la brane, la sixième, depuis la version 0.154) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ * sa ressource ; les branches 8 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155) ;
+ * le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
 
@@ -160,7 +161,15 @@ class GraineAmeliorationsPageTest {
             assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).isDisabled());
             assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).getText().endsWith("S'ouvre avec la dimension 6"),
                     pane.button(SeedUpgrade.ASTRAL_LIGHT).getText());
-            for (int d = 7; d <= SeedUpgradesPane.BRANCHES; d++) {
+            // Le clicker (version 0.155) : sa branche a les trois améliorations de la météo, fermées sans la dimension 7.
+            assertFalse(pane.isBranchOpen(7));
+            assertEquals("Clicker", SeedUpgradesPane.branchName(7));
+            pane.select(7);
+            for (SeedUpgrade weather : new SeedUpgrade[] {SeedUpgrade.WEATHER_SUN, SeedUpgrade.WEATHER_STORM, SeedUpgrade.WEATHER_POWER}) {
+                assertTrue(pane.button(weather).isDisabled());
+                assertTrue(pane.button(weather).getText().endsWith("S'ouvre avec la dimension 7"), pane.button(weather).getText());
+            }
+            for (int d = 8; d <= SeedUpgradesPane.BRANCHES; d++) {
                 assertFalse(pane.isBranchOpen(d));
                 pane.select(d);
                 assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));

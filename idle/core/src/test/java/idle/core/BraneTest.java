@@ -55,8 +55,8 @@ class BraneTest {
     @Test
     void lesRebondsRetrouventLesPointsEtLaSuiteRapportePlus() {
         Game game = six();
-        game.state().setBraneLevel(BraneUpgrade.SIZE.ordinal(), 5);
-        assertEquals(0.7, game.braneMaxReach(), 1e-12);
+        game.state().setBraneLevel(BraneUpgrade.SIZE.ordinal(), 3);
+        assertEquals(0.665, game.braneMaxReach(), 1e-12);
         // Près du bord droit : l'onde touche le premier point en direct (0,10), puis renvoyée par le bord (0,40) ;
         // le second en direct (0,51), puis renvoyé (0,54).
         game.addBranePoint(0.75, 0);
@@ -77,11 +77,10 @@ class BraneTest {
         assertEquals(GameBrane.BRANE_BOUNCE, game.braneReward(1, 1) / game.braneReward(1, 0), 1e-12);
         assertEquals(GameBrane.BRANE_BOUNCE * GameBrane.BRANE_BOUNCE, game.braneReward(1, 2) / game.braneReward(1, 0), 1e-12);
         game.state().setBraneLevel(BraneUpgrade.SIZE.ordinal(), 5);
-        // Dans le coin : la source (0,9 ; 0,9) a pour symétrique par le coin (1,1 ; 1,1), à 0,28 du point (0,9 ; 0,9)…
-        // on pose le point sur la source : direct à 0, par chaque bord à 0,2, par le coin à 0,28.
+        // Dans le coin, le point posé sur la source : direct à 0, par chaque bord à 0,2, par le coin à 0,28.
         game.addBranePoint(0.9, 0.9);
         assertTrue(game.pullBrane(0.9, 0.9, 1));
-        run(game, 1.5);
+        run(game, 1.9);
         assertEquals(4, game.braneTouches(), "direct, deux bords, le coin");
         double expected = game.braneReward(1, 0) + game.braneReward(2, 1) + game.braneReward(3, 1) + game.braneReward(4, 2);
         assertEquals(expected, game.state().braneShards(), 1e-9);
@@ -99,13 +98,36 @@ class BraneTest {
         assertEquals(1, game.state().braneShards(), 1e-9);
     }
 
+    /** Version 0.155 : une seule onde à la fois. */
     @Test
-    void troisOndesAuPlus() {
+    void uneSeuleOndeALaFois() {
         Game game = six();
         assertTrue(game.pullBrane(0, 0, 1));
-        assertTrue(game.pullBrane(0, 0, 1));
-        assertTrue(game.pullBrane(0, 0, 1));
-        assertFalse(game.pullBrane(0, 0, 1));
+        assertFalse(game.pullBrane(0.5, 0.5, 1), "la précédente court encore");
+        run(game, 1);
+        assertTrue(game.braneWaves().isEmpty());
+        assertTrue(game.pullBrane(0, 0, 1), "éteinte, la suivante peut partir");
+    }
+
+    /** Version 0.155 : l'onde rebondit plusieurs fois, et le point touché compte à chaque passage tant qu'elle court. */
+    @Test
+    void lOndeRebonditPlusieursFois() {
+        Game game = six();
+        game.state().setBraneLevel(BraneUpgrade.SIZE.ordinal(), BraneUpgrade.SIZE.max());
+        assertEquals(0.35 * 8.5, game.braneMaxReach(), 1e-12);
+        // D'un bord à l'autre : direct à 1,8 ; renvoyée par l'un des deux bords à 2,0 ; par les deux à 2,2.
+        game.addBranePoint(0.9, 0);
+        assertTrue(game.pullBrane(-0.9, 0, 1));
+        run(game, 5.2);
+        assertTrue(game.braneMostBounces() >= 2, "deux rebonds au moins : " + game.braneMostBounces());
+        assertTrue(game.braneTouches() >= 4, "le point compte à chaque passage : " + game.braneTouches());
+        assertFalse(game.branePoints().contains(new GameBrane.BranePoint(0.9, 0)), "il part avec l'onde");
+        double[][] xs = GameBrane.images(0.25);
+        assertEquals(10, xs.length);
+        for (double[] image : xs) {
+            double d = Math.abs(image[0] - 0.25);
+            assertEquals(image[1] == 0, d < 1e-12, "seule l'onde même est sans rebond");
+        }
     }
 
     @Test
@@ -114,7 +136,7 @@ class BraneTest {
         game.state().setBraneShards(1e12);
         for (BraneUpgrade upgrade : BraneUpgrade.values()) assertTrue(game.buyBrane(upgrade), upgrade.toString());
         assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.braneValue(), 1e-9);
-        assertEquals(GameBrane.BRANE_REACH * 1.2, game.braneMaxReach(), 1e-12);
+        assertEquals(GameBrane.BRANE_REACH * 1.3, game.braneMaxReach(), 1e-12);
         assertEquals(game.braneMaxReach() * 0.6, game.braneReach(0.5), 1e-12, "élasticité : une demi-tirée vaut 60 %");
         assertEquals(1.75, game.braneBounceFactor(), 1e-12);
         assertEquals(0.15, game.braneComboStep(), 1e-12);
@@ -128,7 +150,7 @@ class BraneTest {
         run(game, 60);
         assertTrue(game.braneWavesSent() >= 15, "une onde toutes les trois secondes : " + game.braneWavesSent());
         assertTrue(game.braneTouches() > 0 && game.state().braneShardsEarned() > 0);
-        assertEquals(35, DimensionAutomation.values().length, "six de plus pour la brane");
+        assertEquals(44, DimensionAutomation.values().length, "six de plus pour la brane, puis neuf pour le clicker");
         assertEquals(5, DimensionAutomation.BRANE_PULL.paidWith(), "payés en nœuds de la boucle");
     }
 

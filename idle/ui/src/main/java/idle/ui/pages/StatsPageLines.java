@@ -364,7 +364,8 @@ public abstract class StatsPageLines extends StatsPageBase {
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
-     * 0.153, la brane et la lumière astrale depuis la version 0.154), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * 0.153, la brane et la lumière astrale depuis la version 0.154, le clicker et la météo depuis la version 0.155), le
+     * vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
      * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
@@ -379,6 +380,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Instants de la durée", "gagnés en tout", ChartPane.ORANGE, StatsHistory.Stat.DURATION_SHARDS, game::isDurationOpen);
         log("Nœuds de la boucle", "gagnés en tout", ChartPane.VIOLET, StatsHistory.Stat.LOOP_SHARDS, game::isLoopOpen);
         log("Ondes de la brane", "gagnées en tout", ChartPane.TEAL, StatsHistory.Stat.BRANE_SHARDS, game::isBraneOpen);
+        log("Étincelles du clicker", "gagnées en tout", ChartPane.ORANGE, StatsHistory.Stat.CLICKER_SHARDS, game::isClickerOpen);
         log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
         log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
 
@@ -425,8 +427,20 @@ public abstract class StatsPageLines extends StatsPageBase {
                 + game.braneWaves().size() + " en cours", game::isBraneOpen);
         row("Points touchés de la brane", () -> Format.whole(game.braneTouches()) + " passages, dont "
                 + Format.whole(game.braneBounces()) + " après un rebond", game::isBraneOpen);
+        row("Rebonds en un passage", () -> "au plus " + game.braneMostBounces() + " depuis le lancement", game::isBraneOpen);
         row("Lumière astrale", () -> "arrosage par seconde " + Format.multiplier(game.astralLight()),
                 () -> game.seedUpgradeLevel(Game.SeedUpgrade.ASTRAL_LIGHT) > 0);
+        dimension(7, "Clicker", Game.CLICKER_THRESHOLD, game::isClickerOpen, () -> game.state().clickerShardsEarned(), "Étincelles du clicker");
+        row("Clics du clicker", () -> Format.whole(game.clickerClicks()) + " depuis le lancement, dont "
+                + Format.whole(game.clickerAutoClicks()) + " automatiques", game::isClickerOpen);
+        row("Cadence du clicker", () -> ElementText.number(game.clickerRate()) + " clics par seconde, "
+                + Format.multiplier(game.clickerSpeedFactor(game.clickerRate())), game::isClickerOpen);
+        row("Zones superposées", () -> "au plus " + game.clickerBestStack() + " sous un clic depuis le lancement",
+                game::areClickerZonesUnlocked);
+        row("Météo de la graine", () -> game.weather().label() + " encore " + Format.wait(game.weatherLeft()) + ", arrosage "
+                + Format.multiplier(game.weatherFactor()) + " ; " + Format.whole(game.sunnySpells()) + " beau"
+                + (game.sunnySpells() > 1 ? "x" : "") + " temps et " + Format.whole(game.storms()) + " orage"
+                + (game.storms() > 1 ? "s" : "") + " depuis le lancement", game::isWeatherUnlocked);
 
         section("Le vide");
         charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "
