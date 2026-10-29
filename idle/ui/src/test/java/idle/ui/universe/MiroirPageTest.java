@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Test;
  * Version 0.157 : le miroir, neuvième dimension, et les saisons de la graine, sous Xvfb. Le motif ne se montre que
  * pendant qu'il s'allume, une case à la fois ; on le refait à la souris, en miroir, et seules les cases reproduites se
  * voient ; un motif réussi donne des reflets et s'allonge, un motif manqué raccourcit ; la seconde chance permet une
- * erreur ; les améliorations s'achètent dans la fenêtre ; le miroir automatique joue seul. Les saisons se lisent dans
- * la vue de la graine et remplissent le chrono ; le miroir a sa section dans l'automatisation et ses lignes dans les
- * statistiques.
+ * erreur ; le plateau s'agrandit seul toutes les trois réussites (version 0.158) ; les améliorations s'achètent dans la
+ * fenêtre ; le miroir automatique joue seul. Les saisons se lisent dans la vue de la graine et remplissent le chrono ; le
+ * miroir a sa section dans l'automatisation et ses lignes dans les statistiques.
  */
 class MiroirPageTest {
 
@@ -140,6 +140,30 @@ class MiroirPageTest {
     }
 
     @Test
+    void lePlateauSAgranditSeulToutesLesTroisReussites() {
+        FxTestSupport.fx(() -> {
+            Game game = ninth();
+            DimensionWindow window = window(game);
+            DimensionView view = window.view();
+            assertEquals("Plateau 4 × 4 — encore 3 réussites avant de l'agrandir", window.mirrorBoardText());
+            for (int win = 0; win < Game.MIRROR_GROW_EVERY; win++) {
+                game.testSetMirrorPattern(PATTERN);
+                for (Game.MirrorCell cell : PATTERN) reflect(game, view, cell);
+                window.frame(0.016, true);
+            }
+            assertEquals(1, game.mirrorGrowth());
+            assertEquals(6, game.mirrorColumns());
+            assertEquals(5, game.mirrorRows());
+            assertEquals(1, view.mirrorGrowths(), "un éclat salue l'agrandissement");
+            assertEquals("Plateau 6 × 5 — encore 3 réussites avant de l'agrandir", window.mirrorBoardText());
+            game.state().setMirrorWins(Game.MIRROR_GROW_EVERY * Game.MIRROR_GROWTHS);
+            window.frame(0.016, true);
+            assertEquals("Plateau 10 × 7 — au plus grand", window.mirrorBoardText());
+            return null;
+        });
+    }
+
+    @Test
     void lesAmeliorationsSAchetentEtLeMiroirAutomatiqueJoueSeul() {
         FxTestSupport.fx(() -> {
             Game game = ninth();
@@ -155,10 +179,11 @@ class MiroirPageTest {
                     window.mirrorButton(Game.MirrorUpgrade.MEMORY).getText());
             assertTrue(window.mirrorButton(Game.MirrorUpgrade.MISTAKES).getText().startsWith("Seconde chance : 0 erreur permise → 1"),
                     window.mirrorButton(Game.MirrorUpgrade.MISTAKES).getText());
-            assertTrue(window.mirrorButton(Game.MirrorUpgrade.BOARD).getText().startsWith("Plateau plus grand : 4 × 4 → 6 × 5 cases"),
+            assertTrue(window.mirrorButton(Game.MirrorUpgrade.BOARD).getText().startsWith("Plateau plus vaste : 3 agrandissements permis → 4, jusqu'à 12 × 8 cases"),
                     window.mirrorButton(Game.MirrorUpgrade.BOARD).getText());
             for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values()) window.mirrorButton(upgrade).fire();
-            assertEquals(6, game.mirrorColumns());
+            assertEquals(4, game.mirrorColumns(), "version 0.158 : le plateau plus vaste n'agrandit pas tout de suite");
+            assertEquals(4, game.mirrorMaxGrowth());
             assertEquals(1, game.mirrorAllowedMistakes());
             // La seconde chance : une erreur est permise.
             game.testSetMirrorPattern(PATTERN);

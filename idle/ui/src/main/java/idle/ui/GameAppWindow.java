@@ -182,6 +182,8 @@ public abstract class GameAppWindow extends GameAppBase {
         popupPane.forget();
         absencePane.close();
         endPane.close();
+        finalePane.close();
+        universePage.forgetFinale();
         transitionPane.close();
         exploding = false;
         explosionArmed = 0;
@@ -269,6 +271,8 @@ public abstract class GameAppWindow extends GameAppBase {
         save();
         absencePane.close();
         endPane.close();
+        finalePane.close();
+        universePage.forgetFinale();
         transitionPane.close();
         helpPane.close();
         popupPane.forget();

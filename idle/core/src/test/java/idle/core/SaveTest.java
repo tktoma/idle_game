@@ -214,7 +214,7 @@ class SaveTest {
         state.setSeedSprouted(true);
         state.setSeedWaterings(17);
         state.setWateringCan(true);
-        for (int i = 0; i < 16; i++) state.setSeedUpgradeLevel(i, i + 1);
+        for (int i = 0; i < 17; i++) state.setSeedUpgradeLevel(i, i == 16 ? 1 : i + 1);
         state.setChronoStored(123.5);
         state.setChronoSpeed(2.5);
         state.setTreeBubbles(0b1000000000000000101);   // la base, la bulle de droite du bonsaï, et le sommet (la 19e, bit 18)
@@ -243,6 +243,16 @@ class SaveTest {
         state.setMirrorShards(99.5);
         state.setMirrorShardsEarned(8765.25);
         for (int i = 0; i < 5; i++) state.setMirrorLevel(i, i + 1);
+        // Version 0.158 : les réussites du miroir et le mélange.
+        state.setMirrorWins(12);
+        state.setMixShards(111.5);
+        state.setMixShardsEarned(9876.25);
+        for (int i = 0; i < 11; i++) state.setMixLevel(i, i + 1);
+        // Version 0.159 : le mélange par étapes.
+        state.setMixStage(5);
+        state.setMixStageEarned(321.5);
+        // Version 0.160 : la fin de la partie.
+        state.setGameFinished(true);
         // Version 0.149 : les hadrons.
         state.setHadronsOpen(true);
         state.setHadronsPrice(2.5e9);

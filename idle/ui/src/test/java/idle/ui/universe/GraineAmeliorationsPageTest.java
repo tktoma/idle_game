@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; la branche 10 verrouillée (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * sa ressource, fermée tant que sa dimension l'est (celle de la boucle, la cinquième, a ses cartes depuis la version
  * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155,
- * celle de la grille, la huitième, depuis la version 0.156, celle du miroir, la neuvième, depuis la version 0.157) ;
+ * celle de la grille, la huitième, depuis la version 0.156, celle du miroir, la neuvième, depuis la version 0.157, celle du mélange, la dixième, depuis la version 0.158) ;
  * le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
@@ -182,14 +182,12 @@ class GraineAmeliorationsPageTest {
             pane.select(9);
             assertTrue(pane.button(SeedUpgrade.SEASONS).isDisabled());
             assertTrue(pane.button(SeedUpgrade.SEASONS).getText().endsWith("S'ouvre avec la dimension 9"), pane.button(SeedUpgrade.SEASONS).getText());
-            for (int d = 10; d <= SeedUpgradesPane.BRANCHES; d++) {
-                assertFalse(pane.isBranchOpen(d));
-                pane.select(d);
-                assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));
-                assertEquals(2, pane.placeholders().size());
-                assertTrue(pane.placeholders().stream().allMatch(b -> b.isDisabled() && b.getText().startsWith("???")));
-                assertTrue(pane.placeholders().get(0).getText().contains("dimension " + d));
-            }
+            // Le mélange (version 0.158) : sa branche a la bulle des racines, fermée sans la dimension 10.
+            assertFalse(pane.isBranchOpen(10));
+            assertEquals("Mélange", SeedUpgradesPane.branchName(10));
+            pane.select(10);
+            assertTrue(pane.button(SeedUpgrade.ROOT_BUBBLE).isDisabled());
+            assertTrue(pane.button(SeedUpgrade.ROOT_BUBBLE).getText().endsWith("S'ouvre avec la dimension 10"), pane.button(SeedUpgrade.ROOT_BUBBLE).getText());
             for (int d = 1; d <= 4; d++) assertTrue(pane.isBranchOpen(d));
             return null;
         });

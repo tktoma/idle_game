@@ -210,6 +210,13 @@ public final class GameState extends GameStateResets {
         data.put("mirrorShards", mirrorShards);
         data.put("mirrorShardsEarned", mirrorShardsEarned);
         for (int i = 0; i < MIRROR_UPGRADES; i++) data.put("mirrorLevel" + i, mirrorLevel(i));
+        data.put("mirrorWins", mirrorWins);
+        data.put("mixShards", mixShards);
+        data.put("mixShardsEarned", mixShardsEarned);
+        data.put("mixStage", mixStage);
+        data.put("gameFinished", gameFinished);
+        data.put("mixStageEarned", mixStageEarned);
+        for (int i = 0; i < MIX_UPGRADES; i++) data.put("mixStageLevel" + i, mixLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -511,6 +518,18 @@ public final class GameState extends GameStateResets {
         setMirrorShards(data.real("mirrorShards", 0));
         setMirrorShardsEarned(data.real("mirrorShardsEarned", 0));
         for (int i = 0; i < MIRROR_UPGRADES; i++) setMirrorLevel(i, data.whole("mirrorLevel" + i, 0));
+        // Version 0.158 : les réussites, qui agrandissent le plateau ; absentes d'avant, elles partent de zéro.
+        setMirrorWins(data.real("mirrorWins", 0));
+        // Le mélange (version 0.158) : absent d'avant, il part de zéro.
+        setMixShards(data.real("mixShards", 0));
+        setMixShardsEarned(data.real("mixShardsEarned", 0));
+        // Version 0.159 : le mélange refait, par étapes ; ses améliorations ont d'autres clés (celles de la 0.158 ne
+        // veulent plus rien dire et sont laissées de côté).
+        setMixStage(data.whole("mixStage", 1));
+        // Version 0.160 : la fin de la partie ; absente d'avant, elle n'est pas encore venue.
+        setGameFinished(data.flag("gameFinished", false));
+        setMixStageEarned(data.real("mixStageEarned", 0));
+        for (int i = 0; i < MIX_UPGRADES; i++) setMixLevel(i, data.whole("mixStageLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));

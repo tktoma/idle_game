@@ -8,7 +8,7 @@ package idle.core.universe;
  *
  * <p>Ceux de la dimension 1 se paient en graines d'univers ; ceux de la dimension n, avec la ressource de la dimension
  * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée,
- * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154), les ondes de la brane pour le clicker (version 0.155), les étincelles du clicker pour la grille (version 0.156), les repères de la grille pour le miroir (version 0.157).
+ * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154), les ondes de la brane pour le clicker (version 0.155), les étincelles du clicker pour la grille (version 0.156), les repères de la grille pour le miroir (version 0.157), les reflets du miroir pour le mélange (version 0.158).
  */
 public enum DimensionAutomation {
     LINE_YIELD(1, Kind.UPGRADE, 0, "Densité"),
@@ -72,13 +72,27 @@ public enum DimensionAutomation {
     MIRROR_LENGTH(9, Kind.UPGRADE, 1, "Multiplicateur de longueur"),
     MIRROR_MEMORY(9, Kind.UPGRADE, 2, "Temps de mémorisation"),
     MIRROR_MISTAKES(9, Kind.UPGRADE, 3, "Seconde chance"),
-    MIRROR_BOARD(9, Kind.UPGRADE, 4, "Plateau plus grand");
+    MIRROR_BOARD(9, Kind.UPGRADE, 4, "Plateau plus vaste"),
+    // Version 0.158 : le mélange, payé en reflets du miroir.
+    MIX_AUTO(10, Kind.PLAY, -1, "Mélange automatique"),
+    // Version 0.159 : le mélange refait, une amélioration par mécanique mêlée.
+    MIX_GAIN(10, Kind.UPGRADE, 0, "Gain"),
+    MIX_MALUS(10, Kind.UPGRADE, 1, "Réduction du malus"),
+    MIX_TICKS(10, Kind.UPGRADE, 2, "Graduations"),
+    MIX_SPEED(10, Kind.UPGRADE, 3, "Vitesse du point"),
+    MIX_DEPTH(10, Kind.UPGRADE, 4, "Profondeur"),
+    MIX_CHARGE(10, Kind.UPGRADE, 5, "Charge"),
+    MIX_RHYTHM(10, Kind.UPGRADE, 6, "Zone du rythme"),
+    MIX_REACH(10, Kind.UPGRADE, 7, "Portée de l'onde"),
+    MIX_ZONES(10, Kind.UPGRADE, 8, "Zones ×2"),
+    MIX_TREASURE(10, Kind.UPGRADE, 9, "Trésor"),
+    MIX_PAIRS(10, Kind.UPGRADE, 10, "Paires");
 
     /** Ce que fait l'automatisme : jouer la dimension, ou acheter une de ses améliorations. */
     public enum Kind { PLAY, UPGRADE }
 
     /** Le prix du premier automatisme de chaque dimension, dans la ressource qui le paie (graines, segments, facettes, sphères). */
-    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000, 2_000, 2_000, 2_000};
+    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000, 2_000, 2_000, 2_000, 2_000};
     /** Ce que chaque automatisme suivant de la même dimension coûte de plus : ×2 (les graines : +1 tous les deux). */
     public static final double COST_GROWTH = 2;
 
@@ -94,7 +108,7 @@ public enum DimensionAutomation {
         this.label = label;
     }
 
-    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir. */
+    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir, 10 le mélange. */
     public int dimension() {
         return dimension;
     }

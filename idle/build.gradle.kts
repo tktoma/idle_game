@@ -7,7 +7,7 @@
 
 // Le numéro de version du jeu, le même que Version.CURRENT dans l'interface (version 0.126 : avant, chaque module
 // déclarait « 1.0-SNAPSHOT »). Le test VersionTest de l'interface vérifie que les deux disent la même chose.
-version = "0.157"
+version = "0.160"
 
 val toutTester = tasks.register("toutTester") {
     group = "verification"

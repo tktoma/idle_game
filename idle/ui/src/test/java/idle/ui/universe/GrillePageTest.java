@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
@@ -29,9 +30,9 @@ import org.junit.jupiter.api.Test;
  * Version 0.156, refaite en 0.157 : la grille, huitième dimension, et la graine profonde, sous Xvfb. La grande grille
  * (mille cases par côté) se vise d'un clic sur la carte ou par les champs x, y, z, et « Essayer » essaie la case ; un seul
  * essai par point ; le zoom resserre la carte ; réduite, la grille se montre case par case et un clic essaie. L'attente
- * suit chaque essai ; la case du point le trouve (×5). Ce que la grille montre suit strictement l'affichage du point : le
- * gain seul, puis la distance (et les couleurs du froid au chaud), la couche, la colonne. Les améliorations s'achètent
- * dans la fenêtre ; les essais automatiques jouent seuls. La graine profonde est dans la branche « Grille » ; la grille a
+ * suit chaque essai ; la case du point le trouve (×5). Depuis la version 0.158, les cases essayées contre un point parti
+ * s'effacent. Ce que la grille montre suit strictement l'affichage du point : le gain seul, puis la distance (et les
+ * couleurs du froid au chaud), la couche, la colonne. Les améliorations s'achètent dans la fenêtre ; les essais automatiques jouent seuls. La graine profonde est dans la branche « Grille » ; la grille a
  * sa section dans l'automatisation, ses lignes dans les statistiques.
  */
 class GrillePageTest {
@@ -120,7 +121,7 @@ class GrillePageTest {
             assertTrue(last.found(), "en plein sur le point");
             assertEquals(500, view.gridLayer(), "la couche suit le champ z");
             assertTrue(view.lastGridMark().startsWith("Trouvé ! ×5"), view.lastGridMark());
-            assertEquals(last, view.gridProbedAt(500, 500, 500));
+            assertNull(view.gridProbedAt(500, 500, 500), "le point trouvé s'est caché ailleurs : sa case ne se colore plus");
             window.frame(0.016, true);
             assertTrue(window.gridTryButton().isDisable(), "pendant l'attente, on n'essaie pas");
             assertTrue(window.gridHintText().contains("Dernier essai : trouvé ! +"), window.gridHintText());
@@ -192,7 +193,7 @@ class GrillePageTest {
             assertFalse(hint.contains("cases du point visé") || hint.contains("couche z =") || hint.contains("colonne x ="),
                     "niveau 0 : rien que le gain : " + hint);
             assertArrayEquals(new int[] {-1, -1}, view.gridRevealed());
-            Game.GridProbe near = new Game.GridProbe(0, 0, 0, 1, false, 1, 0), far = new Game.GridProbe(0, 0, 0, 1500, false, 1, 0);
+            Game.GridProbe near = new Game.GridProbe(0, 0, 0, 1, false, 1, 0, 0), far = new Game.GridProbe(0, 0, 0, 1500, false, 1, 0, 0);
             assertEquals(view.gridProbeColor(near), view.gridProbeColor(far), "niveau 0 : la couleur ne dit pas la distance");
             game.state().setGridShards(1e12);
             window.frame(0.016, true);
@@ -215,6 +216,14 @@ class GrillePageTest {
             }
             assertNotEquals(view.gridProbeColor(near), view.gridProbeColor(far), "du froid au chaud");
             assertTrue(window.gridButton(Game.GridUpgrade.REVEAL).getText().endsWith("Au maximum"));
+            // Version 0.158 : tant que le point est là, sa case essayée garde sa couleur ; parti, elle s'efface.
+            assertNotNull(view.gridProbedAt(101, 900, 600));
+            run(game, window, Game.GRID_COOLDOWN + 0.1);
+            aim(window, 102, 900, 600);
+            assertEquals(0, game.gridLastProbe().triesLeft());
+            assertNull(view.gridProbedAt(101, 900, 600), "le point parti, les couleurs des essais contre lui s'effacent");
+            assertNull(view.gridProbedAt(102, 900, 600));
+            assertArrayEquals(new int[] {-1, -1}, view.gridRevealed());
             return null;
         });
     }

@@ -365,7 +365,8 @@ public abstract class StatsPageLines extends StatsPageBase {
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
      * 0.153, la brane et la lumière astrale depuis la version 0.154, le clicker et la météo depuis la version 0.155, la grille
-     * et la graine profonde depuis la version 0.156, le miroir et les saisons depuis la version 0.157), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * et la graine profonde depuis la version 0.156, le miroir et les saisons depuis la version 0.157, le mélange depuis la version
+     * 0.158, le défi final et la fin de la partie depuis la version 0.160), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
      * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
@@ -383,6 +384,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Étincelles du clicker", "gagnées en tout", ChartPane.ORANGE, StatsHistory.Stat.CLICKER_SHARDS, game::isClickerOpen);
         log("Repères de la grille", "gagnés en tout", ChartPane.BLUE, StatsHistory.Stat.GRID_SHARDS, game::isGridOpen);
         log("Reflets du miroir", "gagnés en tout", ChartPane.MAGENTA, StatsHistory.Stat.MIRROR_SHARDS, game::isMirrorOpen);
+        log("Fragments du mélange", "gagnés en tout", ChartPane.YELLOW, StatsHistory.Stat.MIX_SHARDS, game::isMixOpen);
         log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
         log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
 
@@ -456,9 +458,29 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Motifs du miroir", () -> Format.whole(game.mirrorSuccesses()) + " réussis, " + Format.whole(game.mirrorFails())
                 + " manqués depuis le lancement", game::isMirrorOpen);
         row("Plus long motif réussi", () -> game.mirrorBest() + " cases (le motif en cours : " + game.mirrorLength() + ")", game::isMirrorOpen);
+        row("Plateau du miroir", () -> game.mirrorColumns() + " × " + game.mirrorRows() + ", agrandi " + game.mirrorGrowth() + " fois sur "
+                + game.mirrorMaxGrowth(), game::isMirrorOpen);
         row("Saison de la graine", () -> game.season().label() + " " + Format.multiplier(game.season().fill()) + ", encore "
                 + Format.wait(game.seasonLeft()) + " ; " + ElementText.number(game.seasonFilled()) + " s versées au chrono depuis le lancement",
                 game::areSeasonsUnlocked);
+
+        dimension(10, "Mélange", Game.MIX_THRESHOLD, game::isMixOpen, () -> game.state().mixShardsEarned(), "Fragments du mélange");
+        row("Étape du mélange", () -> game.mixStage() + " sur " + Game.MIX_STAGES + (game.mixStage() < Game.MIX_STAGES
+                ? ", " + Format.darkMatter(BigNum.of(game.state().mixStageEarned())) + " / " + Format.darkMatter(BigNum.of(game.mixStageGoal()))
+                        + " fragments gagnés pour la suivante" : ", tout est mêlé"), game::isMixOpen);
+        row("Charges versées", () -> Format.whole(game.mixReleases()), () -> game.isMixOpen() && game.isMixing(4));
+        row("Trésors du mélange", () -> Format.whole(game.mixTreasures()) + " trouvés", () -> game.isMixOpen() && game.isMixing(8));
+        row("Paires du mélange", () -> Format.whole(game.mixPairStreak()) + " de suite", () -> game.isMixOpen() && game.isMixing(9));
+        // Le défi final (version 0.160) : les paliers, l'avancée de chaque dimension, et la fin de la partie.
+        row("Paliers du défi final", () -> game.finalTiersReached() + " / " + Game.MAX_DIMENSIONS + " atteints", game::isFinalChallengeOpen);
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
+            int number = d;
+            row("Défi final, " + idle.ui.universe.Dimension.of(number).label().toLowerCase(java.util.Locale.ROOT),
+                    () -> Math.round(game.finalProgress(number) * 100) + " % (" + Format.darkMatter(BigNum.of(game.dimensionEarned(number)))
+                            + " / " + Format.darkMatter(BigNum.of(Game.finalGoal(number))) + ")"
+                            + (game.isFinalTierReached(number) ? ", palier atteint" : ""), game::isFinalChallengeOpen);
+        }
+        row("Fin de la partie", () -> "atteinte : les dix paliers du défi final", game::isGameFinished);
 
         section("Le vide");
         charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "

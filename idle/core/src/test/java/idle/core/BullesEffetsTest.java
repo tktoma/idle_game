@@ -9,7 +9,6 @@ import idle.core.bigbang.BigBangMilestone;
 import idle.core.collider.ColliderGenerator;
 import idle.core.math.BigNum;
 import idle.core.save.SaveCodec;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -75,10 +74,9 @@ class BullesEffetsTest {
     }
 
     @Test
-    void lesBullesDontLEffetEstAVenirLeDisent() {
-        // Version 0.150 : les hadrons et l'automatisation des dimensions sont là ; reste le défi final.
-        List<TreeBubble> soon = List.of(TreeBubble.ROOTS);
-        for (TreeBubble bubble : TreeBubble.values()) assertEquals(soon.contains(bubble), bubble.isComingSoon(), bubble.toString());
+    void toutesLesBullesOntLeurEffet() {
+        // Version 0.160 : le défi final est là ; plus aucune bulle « à venir ».
+        for (TreeBubble bubble : TreeBubble.values()) assertFalse(bubble.effect().contains("à venir"), bubble.toString());
     }
 
     @Test

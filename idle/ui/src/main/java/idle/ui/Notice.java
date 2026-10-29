@@ -26,6 +26,7 @@ public enum Notice {
     TITLES("Titres du profil", "Un titre obtenu, à porter dans l'onglet Profil."),
     RECORDS("Records", "Un record de temps battu sur une étape."),
     COSMETICS("Skins, thèmes et notations", "Un skin, un thème ou une notation débloqué."),
+    FINAL("Défi final", "Un palier du défi final atteint, et la fin de la partie."),
     GAME("Partie et sauvegarde", "Ce que dit une partie chargée ou réparée.");
 
     private final String label;

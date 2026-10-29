@@ -45,6 +45,8 @@ public enum Title {
     CLICK_VIRTUOSO("Virtuose du clic", "Atteindre le seuil du clicker", game -> game.isDimensionThresholdReached(7)),
     GRID_SEEKER("Arpenteur de la grille", "Atteindre le seuil de la grille", game -> game.isDimensionThresholdReached(8)),
     MIRROR_KEEPER("Gardien du miroir", "Atteindre le seuil du miroir", game -> game.isDimensionThresholdReached(9)),
+    MIX_MASTER("Maître du mélange", "Atteindre le seuil du mélange", game -> game.isDimensionThresholdReached(10)),
+    WORLD_ROOTS("Racines du monde", "Atteindre les dix paliers du défi final", game -> game.isGameFinished()),
     VOID_TAMER("Dompteur du vide", "Ouvrir le vide", game -> game.isVoidUnlocked()),
     STAR_EATER("Mangeur d'étoiles", "Ouvrir le trou noir du vide", game -> game.isVoidUnlocked() && game.isVoidHoleOpen()),
     GLUON_WEAVER("Tisseur de gluons", "Assembler un premier hadron", game -> game.hadronsMade() > 0),

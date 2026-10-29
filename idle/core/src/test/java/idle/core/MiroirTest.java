@@ -103,13 +103,38 @@ class MiroirTest {
         Game game = nine();
         game.state().setMirrorShards(1e15);
         for (MirrorUpgrade upgrade : MirrorUpgrade.values()) assertTrue(game.buyMirror(upgrade), upgrade.toString());
-        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA) * 1.5, game.mirrorValue(), 1e-9);
+        assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.mirrorValue(), 1e-9);
         assertEquals(1.15, game.mirrorLengthFactor(), 1e-12);
         assertEquals(0.95, game.mirrorShowSeconds(), 1e-12);
         assertEquals(1, game.mirrorAllowedMistakes());
+        assertEquals(4, game.mirrorMaxGrowth(), "plateau plus vaste : il peut s'agrandir une fois de plus");
+        assertEquals(4, game.mirrorColumns(), "l'achat seul n'agrandit pas le plateau");
+    }
+
+    /** Version 0.158 : le plateau s'agrandit seul, toutes les trois réussites. */
+    @Test
+    void lePlateauSAgranditToutesLesTroisReussites() {
+        Game game = nine();
+        double value = game.mirrorValue();
+        for (int win = 1; win <= 3; win++) {
+            assertEquals(4 - win, game.mirrorWinsToGrow());
+            game.testSetMirrorPattern(THREE);
+            game.clickMirror(3, 0);
+            game.clickMirror(2, 2);
+            assertEquals(MirrorAnswer.SUCCESS, game.clickMirror(3, 3));
+        }
+        assertEquals(1, game.mirrorGrowth());
         assertEquals(6, game.mirrorColumns());
         assertEquals(5, game.mirrorRows());
-        assertEquals(MirrorPhase.PAUSE, game.mirrorPhase(), "un plateau plus grand recommence le motif");
+        assertEquals(value * 1.5, game.mirrorValue(), 1e-9, "chaque agrandissement : le gain ×1,5 de plus");
+        game.state().setMirrorWins(100);
+        assertEquals(GameMirror.MIRROR_GROWTHS, game.mirrorGrowth(), "trois fois au plus");
+        assertEquals(0, game.mirrorWinsToGrow());
+        game.state().setMirrorLevel(MirrorUpgrade.BOARD.ordinal(), 3);
+        assertEquals(6, game.mirrorGrowth());
+        assertEquals(16, game.mirrorColumns());
+        // Les réussites traversent les univers et se sauvent.
+        assertEquals(100, GameTestSupport.reread(game.state()).mirrorWins(), 0);
     }
 
     @Test

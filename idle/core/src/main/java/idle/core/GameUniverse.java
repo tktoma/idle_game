@@ -336,7 +336,7 @@ public abstract class GameUniverse extends GameAtoms {
         return state.planeShardsEarned() >= PLANE_THRESHOLD - 1e-9;
     }
 
-    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir, 10 le mélange) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
@@ -348,6 +348,7 @@ public abstract class GameUniverse extends GameAtoms {
             case 7 -> state.clickerShardsEarned() >= CLICKER_THRESHOLD - 1e-9;
             case 8 -> state.gridShardsEarned() >= GRID_THRESHOLD - 1e-9;
             case 9 -> state.mirrorShardsEarned() >= MIRROR_THRESHOLD - 1e-9;
+            case 10 -> state.mixShardsEarned() >= MIX_THRESHOLD - 1e-9;
             default -> false;
         };
     }
@@ -1286,7 +1287,7 @@ public abstract class GameUniverse extends GameAtoms {
         GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 20_000, 1,
                 "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
         ROOTS(11, "Bulle des racines", 30_000, 1,
-                "Le défi final (à venir)", 0, 13, 15),
+                "Le défi final : un palier à atteindre dans chaque dimension ; les dix atteints, la partie est finie", 0, 13, 15),
         HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 1,
@@ -1320,11 +1321,6 @@ public abstract class GameUniverse extends GameAtoms {
         /** Ce qu'elle fait, en une phrase (version 0.148) ; « à venir » pour celles qui attendent leur onglet. */
         public String effect() {
             return effect;
-        }
-
-        /** Vrai pour celles dont l'effet n'existe pas encore : les hadrons, l'automatisation des dimensions, le défi final. */
-        public boolean isComingSoon() {
-            return effect.contains("(à venir)");
         }
 
         /** Le palier de la graine où elle naît. */
@@ -1446,7 +1442,7 @@ public abstract class GameUniverse extends GameAtoms {
      * du plan, les sphères du volume, les instants de la durée. De 5 à 10, pas encore de nom : ces dimensions n'existent
      * pas encore.
      */
-    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes", "étincelles", "repères", "reflets");
+    private static final java.util.List<String> DIMENSION_RESOURCES = java.util.List.of("segments", "facettes", "sphères", "instants", "nœuds", "ondes", "étincelles", "repères", "reflets", "fragments");
 
     /** Le nom de la ressource de la dimension {@code number}, ou « éclats de la dimension N » pour celles qui n'existent pas. */
     public static String dimensionResourceName(int number) {
@@ -1454,7 +1450,7 @@ public abstract class GameUniverse extends GameAtoms {
                 : "éclats de la dimension " + number;
     }
 
-    /** La réserve de la ressource de la dimension {@code number} (1 à 9) ; 0 pour les autres. */
+    /** La réserve de la ressource de la dimension {@code number} (1 à 10) ; 0 pour les autres. */
     public double dimensionResource(int number) {
         return switch (number) {
             case 1 -> state.dimensionShards();
@@ -1466,11 +1462,12 @@ public abstract class GameUniverse extends GameAtoms {
             case 7 -> state.clickerShards();
             case 8 -> state.gridShards();
             case 9 -> state.mirrorShards();
+            case 10 -> state.mixShards();
             default -> 0;
         };
     }
 
-    /** Retire {@code amount} de la ressource de la dimension {@code number} (1 à 9), sans descendre sous zéro. */
+    /** Retire {@code amount} de la ressource de la dimension {@code number} (1 à 10), sans descendre sous zéro. */
     void spendDimensionResource(int number, double amount) {
         switch (number) {
             case 1 -> state.setDimensionShards(Math.max(0, state.dimensionShards() - amount));
@@ -1482,6 +1479,7 @@ public abstract class GameUniverse extends GameAtoms {
             case 7 -> state.setClickerShards(Math.max(0, state.clickerShards() - amount));
             case 8 -> state.setGridShards(Math.max(0, state.gridShards() - amount));
             case 9 -> state.setMirrorShards(Math.max(0, state.mirrorShards() - amount));
+            case 10 -> state.setMixShards(Math.max(0, state.mixShards() - amount));
             default -> throw new IllegalArgumentException("Pas de ressource pour la dimension " + number);
         }
     }
@@ -1525,7 +1523,9 @@ public abstract class GameUniverse extends GameAtoms {
          */
         DEEP_SEED(8, "Graine profonde", 300, 3, 10, false),
         /** Reflets du miroir (version 0.157) : les saisons, chaque arrosage remplit le chrono de 0,2 s par niveau, selon la saison. */
-        SEASONS(9, "Saisons", 300, 2.8, 15, true);
+        SEASONS(9, "Saisons", 300, 2.8, 15, true),
+        /** Fragments du mélange (version 0.158) : ouvre la bulle des racines, sous la graine. Une fois. */
+        ROOT_BUBBLE(10, "Bulle des racines", 1_000, 1, 1, false);
 
         private final int dimension;
         private final String label;
@@ -1612,6 +1612,9 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Reflets du miroir à gagner pour son seuil (version 0.157). */
     public static final double MIRROR_THRESHOLD = 5_000;
+
+    /** Fragments du mélange à gagner pour son seuil (version 0.158). */
+    public static final double MIX_THRESHOLD = 5_000;
 
     /** Nœuds de la boucle à gagner pour son seuil (version 0.153) : un quart d'heure de jeu appliqué environ. */
     public static final double LOOP_THRESHOLD = 5_000;
@@ -1783,6 +1786,12 @@ public abstract class GameUniverse extends GameAtoms {
         state.setMirrorShards(0);
         state.setMirrorShardsEarned(0);
         for (int i = 0; i < GameStateBase.MIRROR_UPGRADES; i++) state.setMirrorLevel(i, 0);
+        state.setMirrorWins(0);
+        state.setMixShards(0);
+        state.setMixShardsEarned(0);
+        for (int i = 0; i < GameStateBase.MIX_UPGRADES; i++) state.setMixLevel(i, 0);
+        state.setMixStage(1);
+        state.setMixStageEarned(0);
         dropDuration();
         leaveVolume();
         for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
@@ -2443,7 +2452,8 @@ public abstract class GameUniverse extends GameAtoms {
                     + ").");
             // Version 0.128 : le volume traverse les univers lui aussi.
             // Version 0.134 : la durée traverse les univers elle aussi.
-            kept.add(dimensionsUnlocked() >= 9 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker, de la grille et du miroir, et leurs améliorations."
+            kept.add(dimensionsUnlocked() >= 10 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker, de la grille, du miroir et du mélange, et leurs améliorations."
+                    : dimensionsUnlocked() >= 9 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker, de la grille et du miroir, et leurs améliorations."
                     : dimensionsUnlocked() >= 8 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane, du clicker et de la grille, et leurs améliorations."
                     : dimensionsUnlocked() >= 7 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle, de la brane et du clicker, et leurs améliorations."
                     : dimensionsUnlocked() >= 6 ? "Les dimensions : éclats de la ligne, du plan, du volume, de la durée, de la boucle et de la brane, et leurs améliorations."

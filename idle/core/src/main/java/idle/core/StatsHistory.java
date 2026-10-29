@@ -182,6 +182,8 @@ public final class StatsHistory {
         GRID_SHARDS,
         /** Reflets du miroir gagnés en tout, en puissance de dix (version 0.157). */
         MIRROR_SHARDS,
+        /** Fragments du mélange gagnés en tout, en puissance de dix (version 0.158). */
+        MIX_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
 

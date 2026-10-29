@@ -79,9 +79,12 @@ final class UniverseTreePolicy {
      */
     static final boolean INSTANT_BUBBLE = Boolean.getBoolean("idle.bulleSansDelai");
 
-    /** Vrai pour une bulle que les bots n'achètent pas : celle « à venir », et celle du bonsaï à droite (sauf demande). */
+    /**
+     * Vrai pour une bulle que les bots n'achètent pas : celle des racines (le défi final, version 0.160 : les bots ne
+     * jouent pas les dimensions qui y mènent), et celle du bonsaï à droite (sauf demande).
+     */
     static boolean skipped(TreeBubble bubble) {
-        return bubble.isComingSoon() || bubble == TreeBubble.LEAVES_RIGHT && !INSTANT_BUBBLE;
+        return bubble == TreeBubble.ROOTS || bubble == TreeBubble.LEAVES_RIGHT && !INSTANT_BUBBLE;
     }
 
     /**

@@ -61,6 +61,9 @@ final class Notifier {
     private final java.util.EnumSet<Game.VoidUpgrade> voidMaxedSeen = java.util.EnumSet.noneOf(Game.VoidUpgrade.class);
     /** Version 0.149 : les hadrons qui se proposent dans le collisionneur, annoncés une fois par univers, comme le vide. */
     private boolean hadronsOfferedSeen = false;
+    /** Version 0.160 : les paliers du défi final atteints, et la fin de la partie, au dernier relevé. */
+    private final boolean[] finalTiersSeen = new boolean[Game.MAX_DIMENSIONS + 1];
+    private boolean finishedSeen;
     /**
      * Version 0.151 : les paliers de gluons atteints au dernier relevé. Chacun s'annonce une fois, quand il est atteint ;
      * ceux qu'une partie relue avait déjà sont pris au premier relevé, sans bruit. Un univers qui reprend les hadrons
@@ -155,6 +158,17 @@ final class Notifier {
         boolean top = false;
         for (Game.CollisionResult result : collisions) if (result.quark() == Quark.TOP) top = true;
         if (top) add(news, Notice.COLLIDER, "Collision : un quark top ! À utiliser dans " + Format.wait(game.topLeft()) + ", dans l'onglet du collisionneur.");
+        // Le défi final (version 0.160) : chaque palier atteint, puis la fin de la partie.
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
+            boolean tier = game.isFinalChallengeOpen() && game.isFinalTierReached(d);
+            if (tier && !finalTiersSeen[d]) {
+                add(news, Notice.FINAL, "Défi final : " + idle.ui.universe.Dimension.of(d).label() + " atteint son palier ("
+                        + game.finalTiersReached() + " / " + Game.MAX_DIMENSIONS + ").");
+            }
+            finalTiersSeen[d] = tier;
+        }
+        if (game.isGameFinished() && !finishedSeen) add(news, Notice.FINAL, "Les dix paliers sont atteints : la partie est finie. Merci d'avoir joué !");
+        finishedSeen = game.isGameFinished();
         boolean upgradesOpen = game.isColliderUpgradesUnlocked();
         if (upgradesOpen && !colliderUpgradesSeen) add(news, Notice.COLLIDER, "Collisionneur : les huit générateurs sont là, les améliorations s'ouvrent.");
         colliderUpgradesSeen = upgradesOpen;
@@ -418,6 +432,8 @@ final class Notifier {
     /** Retient l'état du jeu, pour le comparer au prochain relevé. */
     private void snapshot() {
         started = game.isStarted();
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) finalTiersSeen[d] = game.isFinalChallengeOpen() && game.isFinalTierReached(d);
+        finishedSeen = game.isGameFinished();
         slowSeen = game.firstRunSlowdown();
         skinsSeen.clear();
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);

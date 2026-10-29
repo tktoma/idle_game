@@ -80,6 +80,10 @@ class GrilleTest {
         assertEquals(0, game.probeGrid(10, 10, 10).triesLeft());
         assertFalse(game.gridPoints().get(0).equals(new GridPoint(500.5, 500.5, 500.5)));
         assertEquals(3, game.gridTriesLeft(0), "le suivant a ses trois essais");
+        // Version 0.158 : chaque point a son numéro ; l'interface oublie les essais des points partis.
+        long first = game.gridLastProbe().pointId();
+        assertFalse(game.isGridPointAlive(first), "parti ailleurs, il a un autre numéro");
+        assertTrue(game.isGridPointAlive(game.gridPointId(0)));
     }
 
     @Test

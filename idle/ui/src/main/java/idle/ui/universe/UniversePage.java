@@ -32,7 +32,9 @@ import javafx.scene.layout.VBox;
  *       Bulk, Paysage, Omnivers) et les outils d'essai ;</li>
  *   <li>« Graine d'univers » (version 0.083) : la ressource principale, en grand, et son visuel ;</li>
  *   <li>« Dimensions », dès le premier univers (version 0.100) : dix points autour d'un onzième, une dimension
- *       de plus par univers ; chacune ouvre sa fenêtre ;</li>
+ *       de plus par univers ; chacune ouvre sa fenêtre. Depuis la version 0.160, le défi final y montre l'avancée de
+ *       chaque dimension vers son palier ; les dix atteints pendant qu'on joue, la fin s'y joue seule, puis l'écran de
+ *       fin ; « Revoir la fin » la rejoue ;</li>
  * </ul>
  * Le sous-onglet « Vide » est parti à la version 0.142 : le vide se joue dans son onglet, et son cumul, dans la graine,
  * paie les bulles de l'arbre.
@@ -92,6 +94,10 @@ public final class UniversePage extends VBox {
     private final DimensionsView dimensions = new DimensionsView();
     private final Label dimensionsLine = new Label();
     private final VBox dimensionsPane;
+    /** Le défi final (version 0.160) : rejouer la fin, une fois la partie finie. */
+    private final Button replayFinale = tool("Revoir la fin");
+    /** La partie était-elle finie au dernier relevé ; {@code null} tant qu'aucun relevé n'a été fait (un chargement). */
+    private Boolean finishedSeen;
 
     // Sous-onglet « Graine d'univers »
     private final SeedView seedView = new SeedView();
@@ -204,9 +210,12 @@ public final class UniversePage extends VBox {
         // « Dimensions » : la carte, et une ligne.
         dimensionsLine.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         dimensions.setOnOpen(number -> onOpenDimension.accept(number));
+        replayFinale.setOnAction(event -> playFinale());
         CanvasPane dimensionsHolder = CanvasPane.filling(dimensions);
         VBox.setVgrow(dimensionsHolder, Priority.ALWAYS);
-        dimensionsPane = new VBox(8, dimensionsLine, dimensionsHolder);
+        HBox dimensionsHead = new HBox(12, dimensionsLine, replayFinale);
+        dimensionsHead.setAlignment(Pos.CENTER);
+        dimensionsPane = new VBox(8, dimensionsHead, dimensionsHolder);
         dimensionsPane.setAlignment(Pos.TOP_CENTER);
 
         // « Graine d'univers » : le nombre, en grand, et la graine.
@@ -382,8 +391,24 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(7, game.isDimensionThresholdReached(7));
         dimensions.setMarked(8, game.isDimensionThresholdReached(8));
         dimensions.setMarked(9, game.isDimensionThresholdReached(9));
-        dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
-                + " Cliquez une dimension ouverte pour y entrer.");
+        dimensions.setMarked(10, game.isDimensionThresholdReached(10));
+        boolean challenge = game.isFinalChallengeOpen();
+        dimensions.setFinalOpen(challenge);
+        dimensions.setFinished(game.isGameFinished());
+        dimensions.setFinalTiers(game.finalTiersReached());
+        for (int number = 1; number <= Game.MAX_DIMENSIONS; number++) {
+            dimensions.setFinalProgress(number, game.finalProgress(number), game.isFinalTierReached(number),
+                    finalText(number));
+        }
+        replayFinale.setVisible(game.isGameFinished());
+        replayFinale.setManaged(replayFinale.isVisible());
+        dimensionsLine.setText(game.isGameFinished()
+                ? "Le défi final est réussi : les dix paliers sont atteints, la partie est finie. Le jeu, lui, continue."
+                : challenge
+                ? "Le défi final : " + game.finalTiersReached() + " / " + Game.MAX_DIMENSIONS + " paliers atteints. Chaque "
+                        + "dimension se remplit de vert vers son palier, en puissances de dix ; les dix atteints, la partie est finie."
+                : open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
+                        + " Cliquez une dimension ouverte pour y entrer.");
         java.util.Map<String, Double> history = game.state().voidHistory();
         boolean bubbles = !game.treeBubblesShown().isEmpty();
         voidCumul.setVisible(!history.isEmpty() || bubbles);
@@ -427,6 +452,59 @@ public final class UniversePage extends VBox {
         seedTab.setText("Graine d'univers");
         mainTab.setText("Univers (" + universes + ")");
         dimensionsTab.setText("Dimensions (" + open + "/" + Game.MAX_DIMENSIONS + ")");
+    }
+
+    /** « 3.2e6 / 2.5e7 », ou « Palier atteint : 2.5e7 » : l'avancée d'une dimension vers son palier. */
+    private String finalText(int number) {
+        String goal = Format.darkMatter(Game.finalGoal(number));
+        return game.isFinalTierReached(number) ? "Palier atteint : " + goal
+                : Format.darkMatter(game.dimensionEarned(number)) + " / " + goal;
+    }
+
+    /**
+     * Le défi final, à chaque image : quand la partie vient d'être finie pendant qu'on joue, la carte des dimensions se
+     * montre et la fin s'y joue. Une partie déjà finie au chargement (le premier relevé, ou après {@link #forgetFinale})
+     * ne la rejoue pas. Vrai quand la fin vient de commencer : l'application montre alors l'onglet Univers.
+     */
+    public boolean checkFinale() {
+        boolean done = game.isGameFinished();
+        boolean start = finishedSeen != null && !finishedSeen && done;
+        finishedSeen = done;
+        if (start) playFinale();
+        return start;
+    }
+
+    /** Une partie chargée ou remise à zéro : le prochain relevé reprend la fin telle qu'elle est, sans la jouer. */
+    public void forgetFinale() {
+        finishedSeen = null;
+    }
+
+    /** Joue la fin sur la carte des dimensions, qui se montre. */
+    public void playFinale() {
+        if (!game.isDimensionsUnlocked()) return;
+        select(DIMENSIONS);
+        refresh();
+        dimensions.playFinale();
+    }
+
+    /** Vrai tant que la fin se joue sur la carte. */
+    public boolean isFinalePlaying() {
+        return dimensions.isFinalePlaying();
+    }
+
+    /** Ce qui suit la fin : l'écran de fin. */
+    public void setOnFinale(Runnable action) {
+        dimensions.setOnFinale(action);
+    }
+
+    /** Le bouton « Revoir la fin » : pour les vérifications. */
+    public Button replayFinaleButton() {
+        return replayFinale;
+    }
+
+    /** La ligne au-dessus de la carte des dimensions : pour les vérifications. */
+    public String dimensionsLineText() {
+        return dimensionsLine.getText();
     }
 
     /** Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120). */
@@ -474,6 +552,8 @@ public final class UniversePage extends VBox {
             refresh();
         }
         lastWaterings = waterings;
+        // La fin (version 0.160) avance même si le joueur change de sous-onglet : l'écran de fin vient quand même.
+        if (selected != DIMENSIONS && dimensions.isFinalePlaying()) dimensions.frame(elapsed, moving);
         switch (selected) {
             case DIMENSIONS -> dimensions.frame(elapsed, moving);
             case SEED -> {
@@ -539,8 +619,11 @@ public final class UniversePage extends VBox {
             String levels = many ? "Niveau " + level + " / " + bubble.maxLevel() + ". " : "";
             String price = switch (state) {
                 case BOUGHT -> many ? "Niveau " + level + " / " + bubble.maxLevel() + " : au plus haut"
-                        : bubble.isComingSoon() ? "Achetée : son effet arrive avec son onglet" : "Achetée";
-                case CLOSED -> shownLinks(bubble, shown).size() == 1 ? "Il faut d'abord : " + shownLinks(bubble, shown).get(0).label()
+                        : "Achetée";
+                // Version 0.158 : la bulle des racines s'ouvre par la dernière amélioration de la graine.
+                case CLOSED -> bubble == Game.TreeBubble.ROOTS && game.seedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE) == 0
+                        ? "Ouverte par l'amélioration de graine " + Game.SeedUpgrade.ROOT_BUBBLE.label()
+                        : shownLinks(bubble, shown).size() == 1 ? "Il faut d'abord : " + shownLinks(bubble, shown).get(0).label()
                         : "Il faut d'abord une bulle reliée à elle";
                 case BUY -> levels + "Prix : " + Format.count(BigNum.of(cost)) + " d'énergie du vide";
                 case SHORT -> levels + "Prix : " + Format.count(BigNum.of(cost)) + " d'énergie du vide (il en manque "

@@ -13,8 +13,9 @@ import java.util.random.RandomGenerator;
  * Le miroir, neuvième dimension (version 0.157) : un plateau coupé en deux par un miroir vertical. Un motif s'allume,
  * case après case, sur la moitié gauche ; puis il s'éteint, et le joueur doit le reproduire de mémoire, en miroir, sur
  * la moitié droite, dans le même ordre. Réussi, il donne des reflets (la ressource), et le motif suivant est plus long
- * d'une case ; manqué, le motif raccourcit d'une case. Améliorations ({@link MirrorUpgrade}) : gain, multiplicateur de
- * longueur, temps de mémorisation, seconde chance (des erreurs permises), plateau plus grand.
+ * d'une case ; manqué, le motif raccourcit d'une case. Le plateau s'agrandit seul toutes les trois réussites (version
+ * 0.158). Améliorations ({@link MirrorUpgrade}) : gain, multiplicateur de longueur, temps de mémorisation, seconde chance
+ * (des erreurs permises), plateau plus vaste (il peut s'agrandir davantage).
  *
  * <p>Avec le miroir viennent les saisons de la graine : une amélioration payée en reflets, qui fait remplir le chrono
  * à chaque arrosage, plus ou moins selon la saison.
@@ -36,7 +37,7 @@ public abstract class GameMirror extends GameGrid {
         MEMORY(6, 2.5, 15),
         /** Une erreur permise de plus par motif : 3 au plus. */
         MISTAKES(30, 6, 3),
-        /** Une colonne de plus de chaque côté et une ligne de plus : le gain ×1,5 par niveau. */
+        /** Le plateau peut s'agrandir d'une fois de plus (version 0.158 : il s'agrandit seul, toutes les trois réussites). */
         BOARD(20, 4, 3);
 
         private final Price price;
@@ -71,8 +72,10 @@ public abstract class GameMirror extends GameGrid {
     public static final double MIRROR_PAUSE = 1;
     /** Le multiplicateur de longueur : ×1,1 par case au-delà de trois, +0,05 par niveau. */
     public static final double MIRROR_LENGTH = 1.1, MIRROR_LENGTH_STEP = 0.05;
-    /** Un plateau plus grand : le gain ×1,5 par niveau. */
+    /** Chaque agrandissement du plateau : une colonne de plus de chaque côté, une ligne de plus, et le gain ×1,5 de plus. */
     public static final double MIRROR_BOARD = 0.5;
+    /** Le plateau s'agrandit toutes les {@value} réussites, trois fois au plus, et une de plus par niveau de plateau plus vaste. */
+    public static final int MIRROR_GROW_EVERY = 3, MIRROR_GROWTHS = 3;
     /** Un motif manqué donne un quart de reflet par case juste. */
     public static final double MIRROR_FAIL_SHARE = 0.25;
     /** L'automatisme clique une case toutes les {@value} secondes, sans faute jusqu'à six cases. */
@@ -98,7 +101,23 @@ public abstract class GameMirror extends GameGrid {
 
     /** Les colonnes de chaque côté du miroir. */
     public int mirrorHalf() {
-        return MIRROR_HALF + mirrorLevel(MirrorUpgrade.BOARD);
+        return MIRROR_HALF + mirrorGrowth();
+    }
+
+    /** Les agrandissements au plus : trois, et un de plus par niveau de plateau plus vaste. */
+    public int mirrorMaxGrowth() {
+        return MIRROR_GROWTHS + mirrorLevel(MirrorUpgrade.BOARD);
+    }
+
+    /** Les agrandissements du plateau : un toutes les trois réussites, jusqu'au plus permis. */
+    public int mirrorGrowth() {
+        return (int) Math.min(mirrorMaxGrowth(), Math.floor(state.mirrorWins() / MIRROR_GROW_EVERY));
+    }
+
+    /** Les réussites qu'il manque avant le prochain agrandissement ; 0 au plus grand. */
+    public int mirrorWinsToGrow() {
+        if (mirrorGrowth() >= mirrorMaxGrowth()) return 0;
+        return (int) (MIRROR_GROW_EVERY * (mirrorGrowth() + 1) - state.mirrorWins());
     }
 
     /** Toutes les colonnes du plateau : les deux moitiés. */
@@ -107,7 +126,7 @@ public abstract class GameMirror extends GameGrid {
     }
 
     public int mirrorRows() {
-        return MIRROR_ROWS + mirrorLevel(MirrorUpgrade.BOARD);
+        return MIRROR_ROWS + mirrorGrowth();
     }
 
     /** Le temps où chaque case du motif reste allumée. */
@@ -122,7 +141,7 @@ public abstract class GameMirror extends GameGrid {
 
     /** Ce que donne chaque case d'un motif réussi, avant la longueur : 1, plus 1 par niveau de gain, et les omégas. */
     public double mirrorValue() {
-        return (1 + mirrorLevel(MirrorUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA) * (1 + MIRROR_BOARD * mirrorLevel(MirrorUpgrade.BOARD));
+        return (1 + mirrorLevel(MirrorUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA) * (1 + MIRROR_BOARD * mirrorGrowth());
     }
 
     public double mirrorLengthFactor() {
@@ -204,6 +223,7 @@ public abstract class GameMirror extends GameGrid {
             double gain = mirrorReward(mirrorLength);
             earnMirror(gain);
             mirrorSuccesses++;
+            state.setMirrorWins(state.mirrorWins() + 1);
             mirrorBest = Math.max(mirrorBest, mirrorLength);
             mirrorLength = Math.min(MIRROR_MAX, mirrorLength + 1);
             return endMirror(MirrorAnswer.SUCCESS);
@@ -321,12 +341,10 @@ public abstract class GameMirror extends GameGrid {
         return isMirrorOpen() && mirrorLevel(upgrade) < upgrade.max() && state.mirrorShards() >= mirrorCost(upgrade) - 1e-9;
     }
 
-    /** Achète ; un plateau plus grand recommence le motif en cours, qui n'y tiendrait plus. */
     public boolean buyMirror(MirrorUpgrade upgrade) {
         if (!canBuyMirror(upgrade)) return false;
         state.setMirrorShards(Math.max(0, state.mirrorShards() - mirrorCost(upgrade)));
         state.setMirrorLevel(upgrade.ordinal(), mirrorLevel(upgrade) + 1);
-        if (upgrade == MirrorUpgrade.BOARD) endMirror(mirrorLastResult);
         return true;
     }
 

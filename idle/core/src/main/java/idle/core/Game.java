@@ -76,7 +76,7 @@ import java.util.random.RandomGenerator;
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameMirror {
+public final class Game extends GameFinale {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -395,6 +395,10 @@ public final class Game extends GameMirror {
         // Le miroir et les saisons (version 0.157).
         runMirror(dt);
         runSeasons(dt);
+        // Le mélange (version 0.158), après les autres : il compte ce qu'elles ont donné à ce pas.
+        runMix(dt);
+        // Le défi final (version 0.160).
+        runFinale();
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);
@@ -731,6 +735,7 @@ public final class Game extends GameMirror {
                 case CLICKER_SHARDS -> isClickerOpen() ? power(BigNum.of(state.clickerShardsEarned())) : Double.NaN;
                 case GRID_SHARDS -> isGridOpen() ? power(BigNum.of(state.gridShardsEarned())) : Double.NaN;
                 case MIRROR_SHARDS -> isMirrorOpen() ? power(BigNum.of(state.mirrorShardsEarned())) : Double.NaN;
+                case MIX_SHARDS -> isMixOpen() ? power(BigNum.of(state.mixShardsEarned())) : Double.NaN;
                 case SEED_WATERINGS -> isUniverseFormed() || state.seedWaterings() > 0 ? state.seedWaterings() : Double.NaN;
                 case PARTICLES -> power(state.particles());
                 case ATOMS -> power(state.atoms());

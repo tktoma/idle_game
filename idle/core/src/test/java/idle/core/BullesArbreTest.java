@@ -104,6 +104,8 @@ class BullesArbreTest {
         assertFalse(game.isTreeBubbleOpen(TreeBubble.ROOTS), "rien d'acheté : seule la base s'ouvre");
         assertTrue(game.isTreeBubbleOpen(TreeBubble.SEED));
         assertTrue(game.buyTreeBubble(TreeBubble.SEED));
+        assertFalse(game.isTreeBubbleOpen(TreeBubble.ROOTS), "version 0.158 : les racines attendent leur amélioration de graine");
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), 1);
         assertTrue(game.buyTreeBubble(TreeBubble.ROOTS), "les racines, reliées à la base");
         assertTrue(game.buyTreeBubble(TreeBubble.GIANT_LEFT_LOW), "puis l'arbre géant, par les racines");
         assertTrue(game.buyTreeBubble(TreeBubble.MATURE_LEFT), "puis l'arbre mûr, par le lien d'en haut");

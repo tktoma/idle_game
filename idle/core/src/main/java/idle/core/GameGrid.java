@@ -66,9 +66,10 @@ public abstract class GameGrid extends GameClicker {
 
     /**
      * Ce qu'a donné un essai : la case, la distance au point visé (en cases), s'il l'a trouvé, le gain, et les essais
-     * qu'il reste sur ce point (0 : il s'est caché ailleurs).
+     * qu'il reste sur ce point (0 : il s'est caché ailleurs), et le numéro du point visé (version 0.158) : l'interface
+     * n'y garde que les essais des points encore cachés là, et efface les couleurs des anciens.
      */
-    public record GridProbe(int i, int j, int k, double distance, boolean found, double gain, int triesLeft) {
+    public record GridProbe(int i, int j, int k, double distance, boolean found, double gain, int triesLeft, long pointId) {
     }
 
     /** Le côté du cube, en coordonnées : les cases le découpent, mille par côté au départ. */
@@ -91,6 +92,9 @@ public abstract class GameGrid extends GameClicker {
     private final List<GridPoint> gridPoints = new ArrayList<>();
     /** Les essais qu'il reste sur chaque point, dans l'ordre de {@link #gridPoints}. */
     private final List<Integer> gridTries = new ArrayList<>();
+    /** Le numéro de chaque point, dans l'ordre de {@link #gridPoints} : un nouveau à chaque fois qu'un point se cache. */
+    private final List<Long> gridIds = new ArrayList<>();
+    private long gridNextId = 1;
     private double gridWait, gridAutoTimer;
     private GridProbe gridLast;
     private long gridProbes, gridFound, gridAutoProbes;
@@ -117,6 +121,18 @@ public abstract class GameGrid extends GameClicker {
     /** Les essais par point caché : 1, et un de plus par niveau. */
     public int gridAttempts() {
         return 1 + gridLevel(GridUpgrade.ATTEMPTS);
+    }
+
+    /** Le numéro du point {@code index} : il change quand le point se cache ailleurs. */
+    public long gridPointId(int index) {
+        ensureGridPoints();
+        return index >= 0 && index < gridIds.size() ? gridIds.get(index) : 0;
+    }
+
+    /** Vrai si le point de ce numéro est encore caché là (ni trouvé, ni parti après ses essais). */
+    public boolean isGridPointAlive(long id) {
+        ensureGridPoints();
+        return gridIds.contains(id);
     }
 
     /** Les essais qu'il reste sur le point {@code index}. */
@@ -239,16 +255,18 @@ public abstract class GameGrid extends GameClicker {
         state.setGridShards(state.gridShards() + gain);
         state.setGridShardsEarned(state.gridShardsEarned() + gain);
         int left = found ? 0 : gridTries.get(index) - 1;
+        long id = gridIds.get(index);
         if (left <= 0) {
             gridPoints.set(index, randomGridPoint());
             gridTries.set(index, gridAttempts());
+            gridIds.set(index, gridNextId++);
         } else {
             gridTries.set(index, left);
         }
         if (found) gridFound++;
         gridProbes++;
         gridWait = GRID_COOLDOWN;
-        gridLast = new GridProbe(i, j, k, distance, found, gain, Math.max(0, left));
+        gridLast = new GridProbe(i, j, k, distance, found, gain, Math.max(0, left), id);
         return gridLast;
     }
 
@@ -257,7 +275,11 @@ public abstract class GameGrid extends GameClicker {
         gridPoints.clear();
         gridPoints.addAll(points);
         gridTries.clear();
-        for (int n = 0; n < points.size(); n++) gridTries.add(gridAttempts());
+        gridIds.clear();
+        for (int n = 0; n < points.size(); n++) {
+            gridTries.add(gridAttempts());
+            gridIds.add(gridNextId++);
+        }
         gridWait = 0;
     }
 
@@ -292,10 +314,12 @@ public abstract class GameGrid extends GameClicker {
         while (gridPoints.size() < gridPointCount()) {
             gridPoints.add(randomGridPoint());
             gridTries.add(gridAttempts());
+            gridIds.add(gridNextId++);
         }
         while (gridPoints.size() > gridPointCount()) {
             gridPoints.remove(gridPoints.size() - 1);
             gridTries.remove(gridTries.size() - 1);
+            gridIds.remove(gridIds.size() - 1);
         }
         for (int n = 0; n < gridTries.size(); n++) gridTries.set(n, Math.min(gridTries.get(n), gridAttempts()));
     }

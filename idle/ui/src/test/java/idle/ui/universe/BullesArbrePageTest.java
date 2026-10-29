@@ -163,6 +163,13 @@ class BullesArbrePageTest {
             view.clickBubble(seed[0], seed[1]);
             page.frame(0.016, true);
             double[] roots = view.bubblePoint(TreeBubble.ROOTS.ordinal());
+            // Version 0.158 : les racines attendent l'amélioration de graine qui les ouvre.
+            assertEquals("Ouverte par l'amélioration de graine Bulle des racines", view.bubble(TreeBubble.ROOTS.ordinal()).price());
+            view.clickBubble(roots[0], roots[1]);
+            assertFalse(game.isTreeBubbleBought(TreeBubble.ROOTS));
+            game.state().setSeedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), 1);
+            page.refresh();
+            page.frame(0.016, true);
             view.clickBubble(roots[0], roots[1]);
             assertTrue(game.isTreeBubbleBought(TreeBubble.ROOTS));
             return null;

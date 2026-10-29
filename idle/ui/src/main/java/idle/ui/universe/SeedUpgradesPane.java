@@ -20,14 +20,15 @@ import javafx.scene.text.Text;
 /**
  * Les améliorations de la graine (version 0.139), à gauche de sa vue : une branche par dimension, payée avec sa
  * ressource (les segments de la ligne, les facettes du plan, les sphères du volume, les instants de la durée, les nœuds
- * de la boucle, les ondes de la brane, les étincelles du clicker, les repères de la grille, les reflets du miroir). Les quatre premières branches ont une amélioration de l'arrosage ou de
- * l'étagère, et une du chrono ; celle de la boucle (version 0.153), deux du rond de croissance : sa durée et sa force ;
+ * de la boucle, les ondes de la brane, les étincelles du clicker, les repères de la grille, les reflets du miroir, les
+ * fragments du mélange). Les quatre premières branches ont une amélioration de l'arrosage ou de l'étagère, et une du
+ * chrono ; celle de la boucle (version 0.153), deux du rond de croissance : sa durée et sa force ;
  * celle de la brane (version 0.154), la lumière astrale, qui multiplie l'arrosage par seconde de l'arrosoir et du tuyau ;
  * celle du clicker (version 0.155), trois de la météo : un beau temps plus long, des orages plus courts, un soleil plus
  * fort ; celle de la grille (version 0.156), la graine profonde, qui multiplie tout l'arrosage selon l'énergie du vide
  * récupérée ; celle du miroir (version 0.157), les saisons, qui font remplir le chrono à chaque arrosage (elles attendent
- * son étage). La branche de la dimension 10 sont déjà là, verrouillées, avec des améliorations à venir : ces dimensions
- * n'existent pas encore.
+ * son étage) ; celle du mélange (version 0.158), la bulle des racines, qui ouvre la bulle sous la graine. Une branche se
+ * montre fermée, ses cartes verrouillées, tant que sa dimension ne l'est pas.
  *
  * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération.
  */
@@ -35,7 +36,7 @@ public final class SeedUpgradesPane extends VBox {
 
     /** Les branches : une par dimension, de la ligne à la dixième. */
     public static final int BRANCHES = Game.MAX_DIMENSIONS;
-    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle", "Brane", "Clicker", "Grille", "Miroir"};
+    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle", "Brane", "Clicker", "Grille", "Miroir", "Mélange"};
     private static final String COLOR = "#e6d27a";
     /** La largeur du texte d'une carte, dans le panneau de 320 pixels. */
     private static final double CARD_TEXT_WIDTH = 285;
@@ -45,7 +46,6 @@ public final class SeedUpgradesPane extends VBox {
     private final Label resource = new Label();
     private final VBox cards = new VBox(6);
     private final Map<SeedUpgrade, Button> buttons = new EnumMap<>(SeedUpgrade.class);
-    private final List<Button> placeholders = new ArrayList<>();
     private final VBox chronoBox = new VBox(4);
     private final Label chronoLine = new Label();
     private final Label chronoSpeedLine = new Label();
@@ -80,7 +80,6 @@ public final class SeedUpgradesPane extends VBox {
             });
             buttons.put(upgrade, button);
         }
-        for (int k = 0; k < 2; k++) placeholders.add(card());
         chronoLine.setWrapText(true);
         chronoLine.setStyle("-fx-font-size: 13px; -fx-text-fill: #8fd3ff;");
         chronoSpeedLine.setWrapText(true);
@@ -193,14 +192,14 @@ public final class SeedUpgradesPane extends VBox {
         return state instanceof CardState known ? known : CardState.LOCKED;
     }
 
-    /** Le nom d'une branche : celui de sa dimension, ou « Dim. N » pour celles qui n'existent pas encore. */
+    /** Le nom d'une branche : celui de sa dimension (1 à 10). */
     public static String branchName(int dimension) {
-        return dimension <= BRANCH_NAMES.length ? BRANCH_NAMES[dimension - 1] : "Dim. " + dimension;
+        return BRANCH_NAMES[Math.max(1, Math.min(BRANCHES, dimension)) - 1];
     }
 
-    /** Vrai si la branche a ses vraies améliorations : sa dimension existe dans le jeu et elle est ouverte. */
+    /** Vrai si la branche s'ouvre : sa dimension est ouverte. */
     public boolean isBranchOpen(int dimension) {
-        return dimension <= BRANCH_NAMES.length && game.dimensionsUnlocked() >= dimension;
+        return game.dimensionsUnlocked() >= dimension;
     }
 
     /** Montre la branche de cette dimension. */
@@ -258,6 +257,8 @@ public final class SeedUpgradesPane extends VBox {
                     + idle.ui.common.ElementText.number(Game.SEASON_FILL * level) + " → "
                     + idle.ui.common.ElementText.number(Game.SEASON_FILL * (level + 1)) + " s, selon la saison (×"
                     + idle.ui.common.ElementText.number(game.season().fill()) + " " + seasonIn(game.season()) + ")";
+            case ROOT_BUBBLE -> level > 0 ? "Bulle des racines : ouverte, sous la graine"
+                    : "Bulle des racines : ouvre la bulle des racines, sous la graine, et avec elle le défi final";
         };
     }
 
@@ -313,22 +314,13 @@ public final class SeedUpgradesPane extends VBox {
         // par seconde) les retirait puis les remettait : un clic dont l'appui et le relâché tombaient de part et d'autre
         // était perdu, et beaucoup de cartes semblaient ne pas s'acheter.
         List<Button> shown = new ArrayList<>();
-        if (branch <= BRANCH_NAMES.length) {
-            resource.setText(capitalize(Game.dimensionResourceName(branch)) + " " + dimensionName(branch) + " : "
-                    + (game.dimensionsUnlocked() >= branch ? Format.darkMatter(game.dimensionResource(branch)) : "pas encore ouverte"));
-            for (SeedUpgrade upgrade : SeedUpgrade.values()) {
-                if (upgrade.dimension() != branch) continue;
-                Button button = buttons.get(upgrade);
-                fill(button, describe(upgrade), price(upgrade), state(upgrade));
-                shown.add(button);
-            }
-        } else {
-            // La dimension 10 : sa branche existent déjà, sans rien à acheter.
-            resource.setText("Dimension " + branch + " : pas encore créée. Sa ressource paiera une branche de la graine "
-                    + "et une du chrono.");
-            fill(placeholders.get(0), "??? (branche de la graine)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
-            fill(placeholders.get(1), "??? (branche du chrono)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
-            shown.addAll(placeholders);
+        resource.setText(capitalize(Game.dimensionResourceName(branch)) + " " + dimensionName(branch) + " : "
+                + (game.dimensionsUnlocked() >= branch ? Format.darkMatter(game.dimensionResource(branch)) : "pas encore ouverte"));
+        for (SeedUpgrade upgrade : SeedUpgrade.values()) {
+            if (upgrade.dimension() != branch) continue;
+            Button button = buttons.get(upgrade);
+            fill(button, describe(upgrade), price(upgrade), state(upgrade));
+            shown.add(button);
         }
         if (!cards.getChildren().equals(shown)) cards.getChildren().setAll(shown);
         refreshChrono();
@@ -344,7 +336,8 @@ public final class SeedUpgradesPane extends VBox {
             case 6 -> "de la brane";
             case 7 -> "du clicker";
             case 8 -> "de la grille";
-            default -> "du miroir";
+            case 9 -> "du miroir";
+            default -> "du mélange";
         };
     }
 
@@ -376,10 +369,6 @@ public final class SeedUpgradesPane extends VBox {
     /** Pour les vérifications. */
     public Button button(SeedUpgrade upgrade) {
         return buttons.get(upgrade);
-    }
-
-    public List<Button> placeholders() {
-        return placeholders;
     }
 
     public Slider chronoSlider() {

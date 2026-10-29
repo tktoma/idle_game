@@ -361,6 +361,8 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double played = timePlayed;
         GameStats keptStats = stats;
         boolean seen = endSeen;
+        // La fin de la partie (version 0.160) reste notée.
+        boolean finished = gameFinished;
         int extra = extraUniverses;
         BigNum seeds = universeSeeds;
         // Le vide (version 0.129) repart de zéro à chaque univers : seul son historique reste.
@@ -394,6 +396,11 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // Le miroir (version 0.157) aussi.
         double mirrorKept = mirrorShards, mirrorEarned = mirrorShardsEarned;
         int[] mirrorKeptLevels = mirrorLevels.clone();
+        double mirrorWinsKept = mirrorWins;
+        // Le mélange (version 0.158) aussi.
+        double mixKept = mixShards, mixEarned = mixShardsEarned, mixStageEarnedKept = mixStageEarned;
+        int mixStageKept = mixStage;
+        int[] mixKeptLevels = mixLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -443,6 +450,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // Une nouvelle partie commence (version 0.126) : ses étapes, ses délais et ses records se comptent d'ici.
         stats.startUniverseSteps(played);
         endSeen = seen;
+        gameFinished = finished;
         achievements.addAll(keptAchievements);
         achievementsVersion++;
         universeFormed = true;
@@ -485,6 +493,12 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         mirrorShards = mirrorKept;
         mirrorShardsEarned = mirrorEarned;
         System.arraycopy(mirrorKeptLevels, 0, mirrorLevels, 0, MIRROR_UPGRADES);
+        mirrorWins = mirrorWinsKept;
+        mixShards = mixKept;
+        mixShardsEarned = mixEarned;
+        mixStage = mixStageKept;
+        mixStageEarned = mixStageEarnedKept;
+        System.arraycopy(mixKeptLevels, 0, mixLevels, 0, MIX_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -837,6 +851,60 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    /** Les fragments du mélange (version 0.158). */
+    public double mixShards() {
+        return mixShards;
+    }
+
+    public void setMixShards(double shards) {
+        mixShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Les fragments gagnés en tout : ce qui compte pour le seuil du mélange. */
+    public double mixShardsEarned() {
+        return mixShardsEarned;
+    }
+
+    public void setMixShardsEarned(double earned) {
+        mixShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Vrai une fois la partie finie (version 0.160). */
+    public boolean gameFinished() {
+        return gameFinished;
+    }
+
+    public void setGameFinished(boolean finished) {
+        gameFinished = finished;
+    }
+
+    /** L'étape du mélange (version 0.159) : le nombre de dimensions mêlées, de 1 à 9. */
+    public int mixStage() {
+        return mixStage;
+    }
+
+    public void setMixStage(int stage) {
+        mixStage = Math.max(1, Math.min(9, stage));
+    }
+
+    /** Les fragments gagnés depuis le début de l'étape : ce qui ouvre la suivante. */
+    public double mixStageEarned() {
+        return mixStageEarned;
+    }
+
+    public void setMixStageEarned(double earned) {
+        mixStageEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration du mélange, dans l'ordre de {@code Game.MixUpgrade}. */
+    public int mixLevel(int index) {
+        return level(mixLevels, index);
+    }
+
+    public void setMixLevel(int index, int level) {
+        setLevel(mixLevels, index, level);
+    }
+
     /** Les reflets du miroir (version 0.157). */
     public double mirrorShards() {
         return mirrorShards;
@@ -853,6 +921,15 @@ public abstract class GameStateCollider extends GameStateUnlocks {
 
     public void setMirrorShardsEarned(double earned) {
         mirrorShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Les motifs réussis en tout (version 0.158). */
+    public double mirrorWins() {
+        return mirrorWins;
+    }
+
+    public void setMirrorWins(double wins) {
+        mirrorWins = wins >= 0 && Double.isFinite(wins) ? Math.floor(wins) : 0;
     }
 
     /** Niveau d'une amélioration du miroir, dans l'ordre de {@code Game.MirrorUpgrade}. */

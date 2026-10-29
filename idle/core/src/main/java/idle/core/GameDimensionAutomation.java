@@ -111,6 +111,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
             case 7 -> buyClickerUpgrade(index);
             case 8 -> buyGridUpgrade(index);
             case 9 -> buyMirrorUpgrade(index);
+            case 10 -> buyMixUpgrade(index);
             default -> false;
         };
     }
@@ -129,6 +130,9 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     /** Achète l'amélioration du miroir de ce rang (version 0.157). */
     abstract boolean buyMirrorUpgrade(int index);
+
+    /** Achète l'amélioration du mélange de ce rang (version 0.158). */
+    abstract boolean buyMixUpgrade(int index);
 
     /** La visée du plan : le point file vers l'éclat le plus proche quand le joueur ne tient aucune direction. */
     @Override

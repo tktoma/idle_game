@@ -57,15 +57,24 @@ import javafx.scene.text.TextAlignment;
  * montre couche par couche (la molette, les flèches ou les boutons de la fenêtre changent de couche). La carte de la
  * couche montre toute la couche, ou, au zoom, la partie autour de la case visée ; un clic vise une case, que l'on essaie
  * du bouton de la fenêtre ; une grille réduite à {@value #GRID_CLICK_CELLS} cases par côté ou moins se montre case par
- * case, et un clic y essaie aussitôt. À côté, le cube vu de biais. Les cases essayées gardent leur couleur : neutre tant
- * que l'affichage ne montre rien, puis du froid au chaud selon la distance ; l'affichage montre ensuite la couche, puis
- * la colonne du point visé par le dernier essai, jamais plus. Un point trouvé fait un éclat doré, « Trouvé ! ×5 ». Les
+ * case, et un clic y essaie aussitôt. À côté, le cube vu de biais. Les cases essayées gardent leur couleur tant que
+ * leur point est là (version 0.158 : parti, elles s'effacent) : neutre tant que l'affichage ne montre rien, puis du
+ * froid au chaud selon la distance ; l'affichage montre ensuite la couche, puis la colonne du point visé par le dernier
+ * essai, jamais plus. Un point trouvé fait un éclat doré, « Trouvé ! ×5 ». Les
  * essais de l'automatisme se montrent comme ceux du joueur.
  *
  * <p>Le miroir a la sienne depuis la version 0.157 : un plateau coupé par un trait de lumière. Le motif s'allume case
  * après case à gauche (seule la case allumée se voit) ; puis, de mémoire, on clique ses reflets à droite, et seules les
  * cases déjà reproduites s'y montrent. Les clics justes s'éclairent en vert, les erreurs en rouge ; ceux de
- * l'automatisme aussi.
+ * l'automatisme aussi. Depuis la version 0.158, le plateau s'agrandit seul toutes les trois réussites : un éclat le dit.
+ *
+ * <p>Le mélange a la sienne depuis la version 0.159 (en 0.158, sa fenêtre montrait plutôt les vues de mini-jeux tirés au
+ * hasard) : une arène carrée où se mêlent, étape par étape, les mécaniques des neuf autres. La ligne et sa boule d'abord ;
+ * puis les éclats et le point, mené par la souris (clic ou bouton tenu) ou le clavier ; leur profondeur, que la molette
+ * change, et sa jauge ; la charge, que tient le bouton droit (ou la barre d'espace, que transmet la fenêtre) ; le cercle
+ * du rythme ; les ondes et leurs rebonds ; les clics et les zones ×2 ; le halo du trésor caché ; l'axe du miroir et ses
+ * paires. Les éclats ramassés s'éclairent, et les relâchements et les trésors font monter leur gain. Fermé, il reste un
+ * visuel : les motifs des neuf autres se resserrent en un point.
  */
 public final class DimensionView extends Canvas {
 
@@ -165,7 +174,7 @@ public final class DimensionView extends Canvas {
             setCursor(cursorAt(event.getX(), event.getY()));
         });
         setOnMouseDragged(event -> {
-            if (freeLook(event.getX(), event.getY()) || dragBrane(event.getX(), event.getY())
+            if (freeLook(event.getX(), event.getY()) || dragBrane(event.getX(), event.getY()) || dragMix(event.getX(), event.getY())
                     || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
         });
         setOnMouseReleased(event -> {
@@ -173,6 +182,8 @@ public final class DimensionView extends Canvas {
             releaseHold();
             // La brane (version 0.154) : relâcher la membrane, où que soit la souris, lance l'onde.
             if (releaseBrane()) event.consume();
+            // Le mélange (version 0.159) : le bouton droit relâché verse la charge ; le gauche lâche le point.
+            if (releaseMix(event.getButton() == javafx.scene.input.MouseButton.SECONDARY)) event.consume();
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
@@ -199,6 +210,8 @@ public final class DimensionView extends Canvas {
         // La grille (version 0.156) : la molette monte ou descend d'une couche.
         setOnScroll(event -> {
             if (dimension == Dimension.GRID && game.isGridOpen() && event.getDeltaY() != 0) shiftGridLayer(event.getDeltaY() > 0 ? 1 : -1);
+            // Le mélange (version 0.159) : la molette vers soi plonge le point, vers l'avant le fait remonter.
+            if (dimension == Dimension.MIX && event.getDeltaY() != 0) shiftMixDepth(event.getDeltaY() > 0 ? -1 : 1);
         });
     }
 
@@ -360,6 +373,16 @@ public final class DimensionView extends Canvas {
         lastGridProbes = -1;
         mirrorFlashes.clear();
         lastMirrorCount = -1;
+        mirrorGrowAge = -1;
+        releaseMix(true);
+        mixSteering = false;
+        mixDepthAim = Double.NaN;
+        mixMarks.clear();
+        mixFlashes.clear();
+        mixSeen.clear();
+        lastMixReleases = -1;
+        lastMixTreasures = -1;
+        lastMixStage = -1;
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -389,6 +412,7 @@ public final class DimensionView extends Canvas {
         if (dimension == Dimension.CLICKER) runClicker(Math.min(elapsed, 0.1));
         if (dimension == Dimension.GRID) runGrid(Math.min(elapsed, 0.1));
         if (dimension == Dimension.MIRROR) runMirror(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.MIX) runMix(Math.min(elapsed, 0.1));
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
             edgeTurn(Math.min(elapsed, 0.1));
@@ -462,6 +486,7 @@ public final class DimensionView extends Canvas {
             return braneHeld ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.HAND;
         }
         if (dimension == Dimension.CLICKER && game.isClickerOpen() && overClicker(x, y)) return javafx.scene.Cursor.HAND;
+        if (dimension == Dimension.MIX && game.isMixOpen() && game.isMixing(2) && mixAt(x, y) != null) return javafx.scene.Cursor.CROSSHAIR;
         if (dimension == Dimension.GRID && game.isGridOpen() && gridCellAt(x, y) != null) return javafx.scene.Cursor.HAND;
         if (dimension == Dimension.MIRROR && game.isMirrorOpen()) {
             Game.MirrorCell cell = mirrorCellAt(x, y);
@@ -478,8 +503,8 @@ public final class DimensionView extends Canvas {
      * Un bouton de la souris enfoncé sur le volume : dehors, un clic gauche sur le cube y fait plonger ; dedans, le
      * gauche commence à faire tourner le regard et le droit cueille la boule visée. En caméra libre, le regard suit
      * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Dans la durée, la boucle, la brane, le
-     * clicker, la grille et le miroir, le bouton du milieu, le cercle, la membrane, la surface ou la case. Vrai si le
-     * geste a servi.
+     * clicker, la grille et le miroir, le bouton du milieu, le cercle, la membrane, la surface ou la case ; dans le
+     * mélange, l'arène (version 0.159). Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension == Dimension.DURATION) return pressDuration(x, y);
@@ -488,6 +513,7 @@ public final class DimensionView extends Canvas {
         if (dimension == Dimension.CLICKER) return !secondary && pressClicker(x, y);
         if (dimension == Dimension.GRID) return !secondary && pressGrid(x, y);
         if (dimension == Dimension.MIRROR) return !secondary && pressMirror(x, y);
+        if (dimension == Dimension.MIX) return pressMix(x, y, secondary);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
             if (secondary || !overCube(x, y)) return false;
@@ -936,7 +962,7 @@ public final class DimensionView extends Canvas {
             case CLICKER -> clickerScene(g, cx, cy);
             case GRID -> gridScene(g, w, h);
             case MIRROR -> mirrorScene(g, w, h);
-            case POINT -> point(g, w, h, cx, cy, u);
+            case MIX -> mixScene(g, w, h, cx, cy, u);
         }
         g.setGlobalAlpha(1);
     }
@@ -2338,9 +2364,13 @@ public final class DimensionView extends Canvas {
         return true;
     }
 
-    /** Retient un essai, et fait monter son gain de sa case (« Trouvé ! ×5 » quand il a trouvé le point). */
+    /**
+     * Retient un essai, et fait monter son gain de sa case (« Trouvé ! ×5 » quand il a trouvé le point). Un essai qui a
+     * fait partir son point (trouvé, ou le dernier essai) ne garde pas de couleur : les essais contre ce point s'oublient.
+     */
     private void noteProbe(Game.GridProbe probe, boolean auto) {
         gridProbed.put(gridKey(probe.i(), probe.j(), probe.k()), probe);
+        forgetDeadProbes();
         GridMark mark = new GridMark();
         mark.i = probe.i();
         mark.j = probe.j();
@@ -2351,6 +2381,11 @@ public final class DimensionView extends Canvas {
                 + "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(probe.gain()));
         if (gridMarks.size() >= 12) gridMarks.remove(0);
         gridMarks.add(mark);
+    }
+
+    /** Oublie les cases essayées contre un point qui n'est plus là : elles ne se colorent plus. */
+    private void forgetDeadProbes() {
+        gridProbed.values().removeIf(probe -> !game.isGridPointAlive(probe.pointId()));
     }
 
     private static long gridKey(int i, int j, int k) {
@@ -2403,14 +2438,17 @@ public final class DimensionView extends Canvas {
      */
     public int[] gridRevealed() {
         Game.GridProbe last = game.gridLastProbe();
-        if (last == null || game.gridReveal() < 2 || last.found() || last.triesLeft() <= 0) return new int[] {-1, -1};
-        Game.GridPoint aimed = game.gridNearest(last.i(), last.j(), last.k());
+        if (last == null || game.gridReveal() < 2 || !game.isGridPointAlive(last.pointId())) return new int[] {-1, -1};
+        Game.GridPoint aimed = null;
+        for (int n = 0; n < game.gridPoints().size(); n++) if (game.gridPointId(n) == last.pointId()) aimed = game.gridPoints().get(n);
+        if (aimed == null) return new int[] {-1, -1};
         return new int[] {game.gridCell(aimed.z()), game.gridReveal() >= 3 ? game.gridCell(aimed.x()) : -1};
     }
 
     /**
-     * La grille avance d'une image : les gains montent et s'effacent ; une grille réduite oublie les cases essayées,
-     * revient à la carte entière et ramène la case visée en elle ; les essais de l'automatisme depuis l'image d'avant se montrent comme ceux du joueur.
+     * La grille avance d'une image : les gains montent et s'effacent ; les cases essayées contre un point parti (trouvé,
+     * ou ses essais épuisés) s'oublient, leurs couleurs ne diraient plus rien (version 0.158) ; une grille réduite oublie
+     * toutes les cases essayées, revient à la carte entière et ramène la case visée en elle ; les essais de l'automatisme depuis l'image d'avant se montrent comme ceux du joueur.
      */
     private void runGrid(double elapsed) {
         for (GridMark mark : gridMarks) mark.age += elapsed;
@@ -2430,6 +2468,7 @@ public final class DimensionView extends Canvas {
             gridAutoFlashes += probes - lastGridProbes;
         }
         lastGridProbes = probes;
+        forgetDeadProbes();
     }
 
     /**
@@ -2640,6 +2679,15 @@ public final class DimensionView extends Canvas {
     private long mirrorAutoFlashes;
     /** Les colonnes du plateau à l'image d'avant : un plateau agrandi efface les éclats, dont les cases ont bougé. */
     private int mirrorShownColumns = -1;
+    /** L'éclat de l'agrandissement du plateau : son âge, −1 sans éclat ; et les agrandissements vus depuis l'ouverture. */
+    private double mirrorGrowAge = -1;
+    private long mirrorGrowths;
+    private static final double MIRROR_GROW_SECONDS = 1.5;
+
+    /** Les agrandissements du plateau que la vue a montrés depuis l'ouverture : pour les vérifications. */
+    public long mirrorGrowths() {
+        return mirrorGrowths;
+    }
     /** Ce que la dernière image a montré du motif : ses cases allumées à gauche, les cases reproduites à droite. */
     private int mirrorPatternDrawn, mirrorReproducedDrawn;
 
@@ -2719,8 +2767,16 @@ public final class DimensionView extends Canvas {
         for (MirrorFlash flash : mirrorFlashes) flash.age += elapsed;
         mirrorFlashes.removeIf(flash -> flash.age > MIRROR_FLASH_SECONDS);
         if (!game.isMirrorOpen()) return;
-        if (mirrorShownColumns != game.mirrorColumns()) mirrorFlashes.clear();
+        if (mirrorShownColumns != game.mirrorColumns()) {
+            mirrorFlashes.clear();
+            // Le plateau s'agrandit (version 0.158) : un éclat le dit.
+            if (mirrorShownColumns >= 0 && game.mirrorColumns() > mirrorShownColumns) {
+                mirrorGrowAge = 0;
+                mirrorGrowths++;
+            }
+        }
         mirrorShownColumns = game.mirrorColumns();
+        if (mirrorGrowAge >= 0) mirrorGrowAge = mirrorGrowAge + elapsed > MIRROR_GROW_SECONDS ? -1 : mirrorGrowAge + elapsed;
         long count = mirrorCount();
         if (lastMirrorCount >= 0 && count != lastMirrorCount && game.isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.MIRROR_PLAY)) {
             List<Game.MirrorCell> pattern = game.mirrorPattern();
@@ -2835,6 +2891,17 @@ public final class DimensionView extends Canvas {
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.strokeRoundRect(at[0] - cell / 2 + 3, at[1] - cell / 2 + 3, cell - 6, cell - 6, 8, 8);
         }
+        // L'agrandissement du plateau : son bord s'illumine, et une ligne le dit.
+        if (mirrorGrowAge >= 0) {
+            double t = mirrorGrowAge / MIRROR_GROW_SECONDS;
+            g.setStroke(MIRROR_LIT);
+            g.setLineWidth(3);
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.strokeRoundRect(left - 6 - 10 * t, top - 6 - 10 * t, columns * cell + 12 + 20 * t, rows * cell + 12 + 20 * t, 12, 12);
+            g.setFill(MIRROR_LIT);
+            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 20));
+            g.fillText("Le plateau s'agrandit !", w / 2, top + rows * cell / 2);
+        }
         if (open) {
             g.setGlobalAlpha(1);
             g.setFill(Color.WHITE);
@@ -2855,7 +2922,487 @@ public final class DimensionView extends Canvas {
                 + (game.mirrorAllowedMistakes() > 0 ? " · erreurs " + game.mirrorMistakes() + " / " + game.mirrorAllowedMistakes() : "");
     }
 
-    // 10. Tout en un point : les motifs des neuf autres tournent en s'y resserrant, et la lumière en sort.
+    // ------------------------------------------------------------------
+    // Le mélange (version 0.159) : une arène où se mêlent, étape par étape, les mécaniques des neuf autres
+    // ------------------------------------------------------------------
+
+    /** Un gain qui monte de l'arène (relâchement, trésor), ou l'éclat d'un éclat ramassé : où (dans l'arène), son âge. */
+    private static final class MixMark {
+        double x, y, age;
+        String text;
+        Color tint;
+    }
+
+    /** Durée de vie d'un gain qui monte, et de l'éclat d'un éclat ramassé, en secondes. */
+    private static final double MIX_MARK_SECONDS = 1.3, MIX_FLASH_SECONDS = 0.5;
+    /** Les cases de la carte des zones ×2 : chaque case prend la couleur du nombre de zones qui la couvrent. */
+    private static final int MIX_ZONE_CELLS = 50;
+    /** Ce que la molette, ou une touche de profondeur, fait plonger ou remonter le point. */
+    public static final double MIX_DEPTH_STEP = 0.1;
+    private static final Color MIX_HOT = Color.web("#ff5a3c"), MIX_COLD = Color.web("#4fa3ff");
+    private static final Color MIX_SHALLOW = Color.web("#fff1c9"), MIX_DEEP = Color.web("#5a4fd8");
+    private final List<MixMark> mixMarks = new ArrayList<>();
+    private final List<MixMark> mixFlashes = new ArrayList<>();
+    /** Les éclats de l'image d'avant : ceux qui ont disparu depuis ont été ramassés, et s'éclairent. */
+    private final java.util.Map<Long, Game.MixShard> mixSeen = new java.util.HashMap<>();
+    private long lastMixReleases = -1, lastMixTreasures = -1;
+    private int lastMixStage = -1;
+    /** Le bouton droit tient la charge ; le gauche, tenu, mène le point. */
+    private boolean mixHeld, mixSteering;
+    /** La profondeur visée par la molette et les touches ; NaN tant qu'elles n'ont pas servi. */
+    private double mixDepthAim = Double.NaN;
+
+    /** L'arène à l'écran : gauche, haut, côté. La boucle se dessine à sa gauche, la jauge de profondeur à sa droite. */
+    public double[] mixArena() {
+        double w = getWidth(), h = getHeight();
+        double side = Math.max(40, Math.min(h * 0.9, w * 0.6));
+        return new double[] {w / 2 - side / 2, h / 2 - side / 2, side};
+    }
+
+    /** Où se dessine ce point de l'arène (de 0 à 1, y vers le bas) : pour les vérifications. */
+    public double[] mixScreen(double x, double y) {
+        double[] a = mixArena();
+        return new double[] {a[0] + x * a[2], a[1] + y * a[2]};
+    }
+
+    /** Le point de l'arène sous ce point de l'écran, ou {@code null} hors de l'arène. */
+    public double[] mixAt(double sx, double sy) {
+        double[] a = mixArena();
+        double x = (sx - a[0]) / a[2], y = (sy - a[1]) / a[2];
+        return x < 0 || x > 1 || y < 0 || y > 1 ? null : new double[] {x, y};
+    }
+
+    /**
+     * Un bouton enfoncé sur le mélange : le droit tient la charge (dès la durée) ; le gauche, sur l'arène, mène le point
+     * (dès le plan) et compte un clic (dès le clicker). Vrai si le geste a servi.
+     */
+    private boolean pressMix(double x, double y, boolean secondary) {
+        if (!game.isMixOpen()) return false;
+        if (secondary) {
+            if (!game.isMixing(4)) return false;
+            mixHeld = true;
+            game.holdMix(true);
+            return true;
+        }
+        double[] at = mixAt(x, y);
+        if (at == null || !game.isMixing(2)) return false;
+        mixSteering = true;
+        game.setMixTarget(at[0], at[1]);
+        if (game.isMixing(7)) game.clickMix();
+        return true;
+    }
+
+    /** La souris tenue glisse : le point la suit. Vrai si elle le menait. */
+    private boolean dragMix(double x, double y) {
+        if (!mixSteering || dimension != Dimension.MIX || !game.isMixOpen()) return false;
+        double[] a = mixArena();
+        game.setMixTarget((x - a[0]) / a[2], (y - a[1]) / a[2]);
+        return true;
+    }
+
+    /** Un bouton relâché : le droit verse la charge ; le gauche lâche le point. Vrai si la charge a été versée. */
+    public boolean releaseMix(boolean secondary) {
+        if (!secondary) {
+            mixSteering = false;
+            return false;
+        }
+        if (!mixHeld) return false;
+        mixHeld = false;
+        game.holdMix(false);
+        return true;
+    }
+
+    /** Vrai tant que le bouton droit tient la charge : pour les vérifications. */
+    public boolean mixHeld() {
+        return mixHeld;
+    }
+
+    /** Le point plonge ({@code steps} positif) ou remonte d'autant de pas : la molette, ou les touches de la fenêtre. */
+    public void shiftMixDepth(int steps) {
+        if (!game.isMixOpen() || !game.isMixing(3) || steps == 0) return;
+        // Tant que le point plonge vers la profondeur visée, les pas s'ajoutent à elle ; arrivé, ils partent de lui.
+        double from = Double.isNaN(mixDepthAim) ? game.mixDepth() : mixDepthAim;
+        mixDepthAim = Math.max(0, Math.min(1, from + steps * MIX_DEPTH_STEP));
+        game.setMixDepth(mixDepthAim);
+    }
+
+    /** Les gains qui montent, et les éclats ramassés qui s'éclairent : pour les vérifications. */
+    public int mixMarksShown() {
+        return mixMarks.size();
+    }
+
+    public int mixFlashesShown() {
+        return mixFlashes.size();
+    }
+
+    /** Le dernier gain qui monte (« Excellent ! +12 », « Trésor ! +40 »), ou une chaîne vide : pour les vérifications. */
+    public String mixLastMark() {
+        return mixMarks.isEmpty() ? "" : mixMarks.get(mixMarks.size() - 1).text;
+    }
+
+    /** Le mot d'un rythme, sous le cercle et dans le gain d'un relâchement. */
+    public static String rhythmWord(Game.MixRhythm rhythm) {
+        return switch (rhythm) {
+            case EXCELLENT -> "Excellent ! ×3";
+            case GOOD -> "Bien ×1,5";
+            case BAD -> "Mauvais ×1";
+            case MISS -> "Raté ×0,5";
+            case NONE -> "";
+        };
+    }
+
+    /**
+     * Une image du mélange : les gains et les éclats vieillissent ; les relâchements, les trésors trouvés et les éclats
+     * ramassés (par le point ou une onde, du joueur ou du mélange automatique) en font de nouveaux. Changer d'étape vide
+     * l'arène sans rien éclairer.
+     */
+    private void runMix(double dt) {
+        for (MixMark mark : mixMarks) mark.age += dt;
+        mixMarks.removeIf(mark -> mark.age > MIX_MARK_SECONDS);
+        for (MixMark flash : mixFlashes) flash.age += dt;
+        mixFlashes.removeIf(flash -> flash.age > MIX_FLASH_SECONDS);
+        if (!game.isMixOpen()) return;
+        if (!Double.isNaN(mixDepthAim) && Math.abs(game.mixDepth() - mixDepthAim) < 1e-9) mixDepthAim = Double.NaN;
+        boolean sameStage = lastMixStage == game.mixStage();
+        lastMixStage = game.mixStage();
+        java.util.Set<Long> present = new java.util.HashSet<>();
+        for (Game.MixShard shard : game.mixShardList()) present.add(shard.id());
+        if (sameStage) {
+            for (Game.MixShard gone : mixSeen.values()) {
+                if (present.contains(gone.id()) || mixFlashes.size() >= 24) continue;
+                mixFlashes.add(mixMark(gone.x(), gone.y(), null, shardColor(gone.depth())));
+            }
+        }
+        mixSeen.clear();
+        for (Game.MixShard shard : game.mixShardList()) mixSeen.put(shard.id(), shard);
+        long releases = game.mixReleases(), treasures = game.mixTreasures();
+        if (sameStage && lastMixReleases >= 0 && releases > lastMixReleases && game.mixLastGain() > 0) {
+            String word = rhythmWord(game.mixLastRhythm());
+            mixMarks.add(mixMark(game.mixX(), game.mixY(), (word.isEmpty() ? "" : word + " ") + "+"
+                    + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixLastGain())), color()));
+        }
+        if (sameStage && lastMixTreasures >= 0 && treasures > lastMixTreasures) {
+            mixMarks.add(mixMark(game.mixX(), game.mixY(), "Trésor ! +"
+                    + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixLastGain())), MIX_HOT));
+        }
+        while (mixMarks.size() > 12) mixMarks.remove(0);
+        lastMixReleases = releases;
+        lastMixTreasures = treasures;
+    }
+
+    private static MixMark mixMark(double x, double y, String text, Color tint) {
+        MixMark mark = new MixMark();
+        mark.x = x;
+        mark.y = y;
+        mark.text = text;
+        mark.tint = tint;
+        return mark;
+    }
+
+    /** La couleur d'une profondeur : claire en surface, violette au fond. */
+    private static Color shardColor(double depth) {
+        return MIX_SHALLOW.interpolate(MIX_DEEP, Math.max(0, Math.min(1, depth)));
+    }
+
+    /**
+     * L'arène du mélange, avec toutes les mécaniques mêlées à l'étape en cours : la ligne et sa boule ; les éclats et le
+     * point (le plan), leur profondeur (taille et couleur) et la jauge du point (le volume) ; la charge autour du point
+     * (la durée) ; le cercle du rythme à gauche (la boucle) ; les ondes et leurs rebonds découpés à l'arène (la brane) ;
+     * les zones ×2, colorées selon qu'elles se superposent (le clicker) ; une grille légère et le halo du point, du froid
+     * au chaud, sans jamais montrer le trésor (la grille) ; l'axe du miroir et un trait entre les éclats d'une paire (le
+     * miroir). Fermé, le mélange reste un visuel : les motifs des neuf autres se resserrent en un point.
+     */
+    private void mixScene(GraphicsContext g, double w, double h, double cx, double cy, double u) {
+        if (!game.isMixOpen()) {
+            point(g, w, h, cx, cy, u);
+            return;
+        }
+        Color c = color();
+        double[] a = mixArena();
+        double left = a[0], top = a[1], side = a[2];
+        g.setGlobalAlpha(0.6);
+        g.setFill(Color.web("#0b0e1a"));
+        g.fillRoundRect(left, top, side, side, 10, 10);
+        // La grille : un quadrillage léger de 10 × 10.
+        if (game.isMixing(8)) {
+            g.setStroke(Color.web("#3b4670"));
+            g.setLineWidth(1);
+            g.setGlobalAlpha(0.35);
+            for (int k = 1; k < Game.MIX_GRID; k++) {
+                double at = side * k / Game.MIX_GRID;
+                g.strokeLine(left + at, top, left + at, top + side);
+                g.strokeLine(left, top + at, left + side, top + at);
+            }
+        }
+        // Le clicker : chaque case prend la couleur du nombre de zones ×2 qui la couvrent.
+        if (game.isMixing(7)) {
+            List<Game.MixZone> zones = game.mixZones();
+            double cell = side / MIX_ZONE_CELLS;
+            for (int i = 0; i < MIX_ZONE_CELLS && !zones.isEmpty(); i++) {
+                for (int j = 0; j < MIX_ZONE_CELLS; j++) {
+                    double x = (i + 0.5) / MIX_ZONE_CELLS, y = (j + 0.5) / MIX_ZONE_CELLS;
+                    int stack = 0;
+                    for (Game.MixZone zone : zones) if (zone.contains(x, y)) stack++;
+                    if (stack == 0) continue;
+                    g.setGlobalAlpha(Math.min(0.75, 0.3 + 0.12 * stack));
+                    g.setFill(stackColor(stack));
+                    g.fillRect(left + i * cell, top + j * cell, cell + 0.5, cell + 0.5);
+                }
+            }
+            for (Game.MixZone zone : zones) {
+                double[] at = mixScreen(zone.x(), zone.y());
+                double r = zone.radius() * side;
+                g.setStroke(stackColor(1));
+                g.setLineWidth(2);
+                g.setGlobalAlpha(0.8);
+                g.strokeArc(at[0] - r, at[1] - r, 2 * r, 2 * r, 90, 360 * zone.left() / Game.MIX_ZONE_SECONDS, javafx.scene.shape.ArcType.OPEN);
+                g.setFill(Color.WHITE);
+                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 12));
+                g.setTextAlign(TextAlignment.CENTER);
+                g.fillText("×2", at[0], at[1] + 4);
+            }
+        }
+        g.setStroke(c);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.6);
+        g.strokeRoundRect(left, top, side, side, 10, 10);
+        // Le miroir : son axe, au milieu.
+        if (game.isMixing(9)) {
+            double mx = left + side / 2;
+            for (int k = 0; k < 5; k++) UniverseView.glow(g, mx, top + (k + 0.5) * side / 5, side * 0.06, PALETTE[8], 0.3 + 0.1 * Math.sin(time * 2 + k));
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.8);
+            g.strokeLine(mx, top, mx, top + side);
+        }
+        mixLine(g, left, top, side, c);
+        if (game.isMixing(6)) mixWaves(g, left, top, side);
+        if (game.isMixing(2)) {
+            mixShards(g, side);
+            mixCursor(g, side);
+        }
+        for (MixMark flash : mixFlashes) {
+            double t = flash.age / MIX_FLASH_SECONDS;
+            double[] at = mixScreen(flash.x, flash.y);
+            UniverseView.glow(g, at[0], at[1], side * (0.02 + 0.05 * t), flash.tint, 0.9 * (1 - t));
+        }
+        g.setTextAlign(TextAlignment.CENTER);
+        for (MixMark mark : mixMarks) {
+            double t = mark.age / MIX_MARK_SECONDS;
+            double[] at = mixScreen(mark.x, mark.y);
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.setFill(mark.tint);
+            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 16));
+            g.fillText(mark.text, at[0], at[1] - 18 - 40 * t);
+        }
+        if (game.isMixing(5)) mixRing(g, left, top, side);
+        if (game.isMixing(3)) mixGauge(g, left, top, side);
+        g.setGlobalAlpha(1);
+    }
+
+    /** La ligne : à mi-hauteur, ses graduations, et la boule qui fait l'aller-retour ; plus pâle dès qu'elle pose des éclats. */
+    private void mixLine(GraphicsContext g, double left, double top, double side, Color c) {
+        double y = top + Game.MIX_LINE_Y * side;
+        boolean first = !game.isMixing(2);
+        g.setStroke(c);
+        g.setLineWidth(first ? 3 : 1.5);
+        g.setGlobalAlpha(first ? 0.9 : 0.35);
+        g.strokeLine(left + side * 0.02, y, left + side * 0.98, y);
+        for (int i = 0; i < game.mixTicks(); i++) {
+            double x = left + game.mixTickX(i) * side;
+            g.strokeLine(x, y - (first ? 14 : 8), x, y + (first ? 14 : 8));
+        }
+        double bx = left + game.mixBall() * side;
+        UniverseView.glow(g, bx, y, first ? 26 : 14, c, first ? 0.8 : 0.4);
+        g.setGlobalAlpha(first ? 1 : 0.6);
+        g.setFill(Color.WHITE);
+        double r = first ? 7 : 4;
+        g.fillOval(bx - r, y - r, 2 * r, 2 * r);
+    }
+
+    /**
+     * Les éclats : plus petits et plus violets plus ils sont profonds ; un anneau autour de ceux que le point peut
+     * ramasser à sa profondeur. Un trait léger relie les deux éclats d'une paire, de part et d'autre du miroir.
+     */
+    private void mixShards(GraphicsContext g, double side) {
+        List<Game.MixShard> shards = game.mixShardList();
+        if (game.isMixing(9)) {
+            java.util.Map<Long, Game.MixShard> byId = new java.util.HashMap<>();
+            for (Game.MixShard shard : shards) byId.put(shard.id(), shard);
+            g.setStroke(PALETTE[8]);
+            g.setLineWidth(1);
+            g.setGlobalAlpha(0.4);
+            for (Game.MixShard shard : shards) {
+                Game.MixShard twin = byId.get(shard.twin());
+                if (twin == null || twin.id() < shard.id()) continue;
+                double[] p = mixScreen(shard.x(), shard.y()), q = mixScreen(twin.x(), twin.y());
+                g.strokeLine(p[0], p[1], q[0], q[1]);
+            }
+        }
+        boolean deep = game.isMixing(3);
+        for (Game.MixShard shard : shards) {
+            double[] at = mixScreen(shard.x(), shard.y());
+            Color tint = deep ? shardColor(shard.depth()) : SHARD;
+            double r = side * 0.018 * (deep ? 1.3 - 0.6 * shard.depth() : 1);
+            UniverseView.glow(g, at[0], at[1], r * 2.6, tint, 0.6);
+            g.setGlobalAlpha(1);
+            g.setFill(tint);
+            g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r, at[1], at[1] + r, at[1]}, 4);
+            if (deep && Math.abs(shard.depth() - game.mixDepth()) <= game.mixDepthTolerance() + 1e-9) {
+                g.setStroke(Color.WHITE);
+                g.setLineWidth(1.5);
+                g.setGlobalAlpha(0.8);
+                g.strokeOval(at[0] - r * 1.8, at[1] - r * 1.8, r * 3.6, r * 3.6);
+            }
+        }
+    }
+
+    /**
+     * Le point : son rayon de ramassage ; sa couleur dit sa profondeur ; le halo dit la chaleur du trésor, du bleu froid
+     * au rouge chaud ; la charge tenue l'entoure d'un anneau qui grossit avec son multiplicateur, et écrit ce qu'elle
+     * porte.
+     */
+    private void mixCursor(GraphicsContext g, double side) {
+        double[] at = mixScreen(game.mixX(), game.mixY());
+        if (game.isMixing(8)) {
+            double heat = game.mixHeat();
+            UniverseView.glow(g, at[0], at[1], side * (0.06 + 0.1 * heat), MIX_COLD.interpolate(MIX_HOT, heat), 0.5 + 0.4 * heat);
+        }
+        double reach = Game.MIX_REACH_RADIUS * side;
+        Color tint = game.isMixing(3) ? shardColor(game.mixDepth()) : Color.WHITE;
+        g.setStroke(tint);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.6);
+        g.strokeOval(at[0] - reach, at[1] - reach, 2 * reach, 2 * reach);
+        g.setGlobalAlpha(1);
+        g.setFill(tint);
+        g.fillOval(at[0] - 6, at[1] - 6, 12, 12);
+        if (game.isMixing(4) && game.isMixHolding()) {
+            double top = 1 + 1 + Game.MIX_CHARGE_STEP * game.mixLevel(Game.MixUpgrade.CHARGE);
+            double share = (game.mixChargeMultiplier() - 1) / (top - 1);
+            double r = reach + 6 + 14 * share;
+            g.setStroke(PALETTE[3]);
+            g.setLineWidth(3);
+            g.setGlobalAlpha(0.9);
+            g.strokeOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
+            g.setFill(PALETTE[3]);
+            g.setFont(Font.font(13));
+            g.setTextAlign(TextAlignment.CENTER);
+            g.fillText(mixChargeText(), at[0], at[1] + r + 16);
+        }
+    }
+
+    /** « 12,5 ×1,40 » : la charge tenue et son multiplicateur, sous le point. */
+    public String mixChargeText() {
+        return idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.mixPot())) + " "
+                + idle.ui.common.Format.multiplier(game.mixChargeMultiplier());
+    }
+
+    /**
+     * Les ondes : chacune est un cercle qui grandit jusqu'à sa portée ; ses rebonds sur les bords de l'arène sont les
+     * cercles de ses images ({@code Game.images}, dans le repère de −1 à 1 de la brane), découpés à l'arène et colorés
+     * selon leurs rebonds.
+     */
+    private void mixWaves(GraphicsContext g, double left, double top, double side) {
+        if (game.mixWaves().isEmpty()) return;
+        g.save();
+        g.beginPath();
+        g.moveTo(left, top);
+        g.lineTo(left + side, top);
+        g.lineTo(left + side, top + side);
+        g.lineTo(left, top + side);
+        g.closePath();
+        g.clip();
+        for (Game.MixWave wave : game.mixWaves()) {
+            double r = wave.radius();
+            if (r <= 0) continue;
+            double fade = Math.max(0.15, 1 - r / wave.reach());
+            for (double[] ix : Game.images(2 * wave.x() - 1)) {
+                for (double[] iy : Game.images(2 * wave.y() - 1)) {
+                    double x = (ix[0] + 1) / 2, y = (iy[0] + 1) / 2;
+                    // Une image dont le cercle ne touche pas l'arène ne se dessine pas.
+                    if (x + r < 0 || x - r > 1 || y + r < 0 || y - r > 1) continue;
+                    int bounces = (int) (ix[1] + iy[1]);
+                    g.setStroke(bounceColor(bounces));
+                    g.setLineWidth(2 + Math.min(4, bounces));
+                    g.setGlobalAlpha(0.85 * fade);
+                    g.strokeOval(left + (x - r) * side, top + (y - r) * side, 2 * r * side, 2 * r * side);
+                }
+            }
+        }
+        g.restore();
+        g.setGlobalAlpha(1);
+    }
+
+    /**
+     * La boucle : un petit cercle à gauche de l'arène, sa zone (le centre « excellent » plus vif) et le point qui tourne ;
+     * dessous, ce que donnerait un relâchement maintenant, et ce qu'a donné le dernier.
+     */
+    private void mixRing(GraphicsContext g, double left, double top, double side) {
+        double r = Math.min(56, Math.max(18, left * 0.3)), x = Math.max(r + 8, left - r - 24), y = top + side * 0.3;
+        g.setStroke(Color.web("#3b4670"));
+        g.setLineWidth(4);
+        g.setGlobalAlpha(0.9);
+        g.strokeOval(x - r, y - r, 2 * r, 2 * r);
+        double half = game.mixRingHalfWidth(), zone = game.mixRingZone();
+        g.setStroke(PALETTE[4]);
+        g.setLineWidth(6);
+        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + half), 720 * half, javafx.scene.shape.ArcType.OPEN);
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(7);
+        g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + 0.2 * half), 144 * half, javafx.scene.shape.ArcType.OPEN);
+        double angle = 2 * Math.PI * game.mixRingPhase();
+        double px = x + r * Math.sin(angle), py = y - r * Math.cos(angle);
+        UniverseView.glow(g, px, py, 16, PALETTE[4], 0.8);
+        g.setGlobalAlpha(1);
+        g.setFill(Color.WHITE);
+        g.fillOval(px - 5, py - 5, 10, 10);
+        g.setTextAlign(TextAlignment.CENTER);
+        g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 13));
+        g.setFill(PALETTE[4]);
+        g.fillText(rhythmWord(game.mixRhythmNow()), x, y + r + 20);
+        if (game.mixLastRhythm() != Game.MixRhythm.NONE) {
+            g.setFont(Font.font(11));
+            g.setFill(Color.web("#c8d4ea"));
+            g.fillText("Dernier : " + rhythmWord(game.mixLastRhythm()), x, y + r + 36);
+        }
+    }
+
+    /**
+     * Le volume : une jauge à droite de l'arène, de la surface (en haut) au fond ; la bande que le point ramasse autour
+     * de sa profondeur, le point, et un trait par éclat à sa profondeur.
+     */
+    private void mixGauge(GraphicsContext g, double left, double top, double side) {
+        double x = left + side + Math.min(36, Math.max(10, (getWidth() - left - side) * 0.25)), width = 14;
+        g.setGlobalAlpha(0.8);
+        g.setFill(new javafx.scene.paint.LinearGradient(0, top, 0, top + side, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0, Color.web("#3a3626")), new javafx.scene.paint.Stop(1, Color.web("#1d1a4a"))));
+        g.fillRoundRect(x, top, width, side, 6, 6);
+        double depth = game.mixDepth(), tolerance = game.mixDepthTolerance();
+        double from = Math.max(0, depth - tolerance), to = Math.min(1, depth + tolerance);
+        g.setGlobalAlpha(0.45);
+        g.setFill(shardColor(depth));
+        g.fillRect(x, top + from * side, width, (to - from) * side);
+        g.setStroke(Color.web("#c8d4ea"));
+        g.setLineWidth(1);
+        g.setGlobalAlpha(0.7);
+        for (Game.MixShard shard : game.mixShardList()) {
+            double y = top + shard.depth() * side;
+            g.strokeLine(x - 4, y, x, y);
+        }
+        double y = top + depth * side;
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(3);
+        g.setGlobalAlpha(1);
+        g.strokeLine(x - 6, y, x + width + 6, y);
+        g.setFill(Color.web("#c8d4ea"));
+        g.setFont(Font.font(11));
+        g.setTextAlign(TextAlignment.CENTER);
+        g.fillText("surface", x + width / 2, top - 6);
+        g.fillText("fond", x + width / 2, top + side + 14);
+    }
+
+    // 10. Le mélange, fermé : les motifs des neuf autres tournent en se resserrant en un point, et la lumière en sort.
     private void point(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         for (int k = 0; k < 48; k++) {
             double a = 2 * Math.PI * k / 48 + time * 0.05;

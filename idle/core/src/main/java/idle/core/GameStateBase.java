@@ -282,12 +282,27 @@ public abstract class GameStateBase {
     double mirrorShardsEarned = 0;
     static final int MIRROR_UPGRADES = 5;
     final int[] mirrorLevels = new int[MIRROR_UPGRADES];
+    /** Les motifs réussis en tout (version 0.158) : le plateau s'agrandit toutes les trois. */
+    double mirrorWins = 0;
+    /**
+     * Le mélange, dixième dimension (version 0.158, refait à la 0.159) : ses fragments, ceux gagnés en tout, son étape
+     * (le nombre de dimensions mêlées, de 1 à 9), ce qui a été gagné à cette étape, et ses onze améliorations, remises à
+     * zéro à chaque étape.
+     */
+    double mixShards = 0;
+    double mixShardsEarned = 0;
+    int mixStage = 1;
+    double mixStageEarned = 0;
+    static final int MIX_UPGRADES = 11;
+    /** Vrai une fois les dix paliers du défi final atteints (version 0.160) : la partie est finie. */
+    boolean gameFinished = false;
+    final int[] mixLevels = new int[MIX_UPGRADES];
     /**
      * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
      * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
      */
-    static final int SEED_UPGRADES = 16;
+    static final int SEED_UPGRADES = 17;
     final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
     double chronoStored = 0;
     double chronoSpeed = 1;

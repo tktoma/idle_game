@@ -369,7 +369,8 @@ public abstract class GameAppTabs extends GameAppWindow {
             entries.addAll(PopupPane.voidEntries(game));
             popupEntries = List.copyOf(entries);
         }
-        boolean busy = absencePane.isVisible() || endPane.isOpen() || transitionPane.isOpen() || exploding
+        boolean busy = absencePane.isVisible() || endPane.isOpen() || finalePane.isOpen() || universePage.isFinalePlaying()
+                || transitionPane.isOpen() || exploding
                 || (selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying()) || darkMatterPage.isRevealing();
         // La matière noire rendue par les bifurcations rouvertes (version 0.126) : annoncée avec son montant.
         idle.core.math.BigNum refund = game.takeForkRefund();
@@ -624,7 +625,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (selectedTab == Tab.BIG_BANG) {
             bigBangPage.frame(dt);
         }
-        if (selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying()) {
+        if (selectedTab == Tab.UNIVERSE || universePage.launchView().isPlaying() || universePage.isFinalePlaying()) {
             universePage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
         if (particlesTabPop >= 0) popParticlesTab(dt);

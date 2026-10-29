@@ -23,6 +23,66 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.160", "Le défi final", List.of(
+                    "Le défi final, comme le joueur l'avait demandé : la bulle des racines achetée, chaque dimension a un "
+                            + "palier à atteindre, en ressource gagnée en tout (cent fois son seuil ; dix millions de fragments "
+                            + "pour le mélange).",
+                    "Sur la carte des dimensions, chaque point se remplit de vert, du bas vers le haut, selon l'avancée vers "
+                            + "son palier, comptée en puissances de dix ; il devient tout vert au palier atteint. Le rond vert du "
+                            + "seuil devient un anneau autour du point ; l'avancée s'écrit sous chaque nom, et les paliers "
+                            + "atteints au milieu.",
+                    "Les dix paliers atteints, la partie est finie : les traits de la carte deviennent verts en vague, dans "
+                            + "une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue, et l'écran de fin s'ouvre "
+                            + "(temps de jeu, univers formés, chiffres de toute la partie). « Continuer » : le jeu continue "
+                            + "derrière. « Revoir la fin » la rejoue ; une partie déjà finie au chargement ne la rejoue pas seule.",
+                    "Le titre « Racines du monde » vient avec la fin. Les notifications ont leur catégorie « Défi final » "
+                            + "(un palier atteint, la fin) ; les statistiques, l'aide et le profil de test ont le défi final.")),
+            new Note("0.159", "Le mélange refait", List.of(
+                    "Le mélange est refait de fond en comble, à la demande du joueur : plus de tirage au hasard entre les "
+                            + "mini-jeux. C'est maintenant un seul mini-jeu, sur une grande arène, qui mêle étape par étape les "
+                            + "mécaniques des autres dimensions : la ligne seule à l'étape 1, puis le plan, le volume, la durée, "
+                            + "la boucle, la brane, le clicker, la grille et le miroir, jusqu'à l'étape 9 où tout est mêlé.",
+                    "Au-dessus de l'arène, l'étape (« Étape 4 sur 9 : ligne + plan + volume + durée ») et sa barre de "
+                            + "progression ; « Mêler la dimension suivante » s'allume quand l'étape est gagnée. Chaque dimension "
+                            + "mêlée ajoute 50 % au gain ; un malus de 10 % pèse au départ de chaque étape.",
+                    "On y joue à la souris (clic ou bouton tenu pour mener le point, molette pour la profondeur, bouton droit "
+                            + "tenu pour la charge, clics rapides pour la cadence) ou au clavier (Z Q S D et les flèches, A et E, "
+                            + "la barre d'espace). Le halo du point dit si le trésor caché est proche, sans jamais le montrer ; "
+                            + "l'axe du miroir et un trait entre les deux éclats d'une paire guident les reflets.",
+                    "Onze améliorations, payées en fragments, chacune ouverte à l'étape de sa mécanique (grisées avant, avec "
+                            + "l'étape qui les ouvre) : elles repartent de zéro à chaque changement d'étape. Les améliorations du "
+                            + "mélange de la 0.158 ne sont pas gardées.",
+                    "Le mélange automatique mène le point vers l'éclat le plus proche, plonge, tient et relâche la charge en "
+                            + "rythme, clique et passe seul les étapes ; avec un automatisme par amélioration, il y en a "
+                            + "maintenant soixante-neuf.",
+                    "Les statistiques ont l'étape du mélange, ses charges, ses trésors et ses paires ; l'aide le décrit ; le "
+                            + "profil de test a de quoi gagner une étape, y passer ou revenir à la première.")),
+            new Note("0.158", "Le mélange", List.of(
+                    "La dixième dimension s'ouvre au dixième univers : le mélange, à la place du « point », qui n'était qu'un "
+                            + "visuel. Il passe au hasard d'un mini-jeu des neuf autres dimensions à un autre, toutes les vingt "
+                            + "secondes ; sa fenêtre montre le mini-jeu du moment, où l'on joue comme dans sa propre fenêtre, et "
+                            + "« Ouvrir » l'ouvre en grand (« Retour » ramène au mélange).",
+                    "Ce que vous gagnez dans le mini-jeu du moment devient des fragments, la ressource du mélange, en part du "
+                            + "seuil de sa dimension, avec un énorme malus au départ (1 %). Le compte à rebours, le malus, le "
+                            + "multiplicateur et les changements en réserve s'affichent sous les mini-jeux.",
+                    "Six améliorations, payées en fragments : meilleur gain, réduction du malus, changements (« Changer » relance "
+                            + "un mini-jeu), mélange (jusqu'à trois mini-jeux à la fois, côte à côte), multiplicateur selon leur "
+                            + "nombre, et durée. Le seuil du mélange (5 000 fragments) marque la dimension d'un rond vert et "
+                            + "donne le titre « Maître du mélange ».",
+                    "L'automatisation des dimensions gagne la section du mélange, payée en reflets du miroir : le mélange "
+                            + "automatique ne tire plus que des dimensions qui se jouent seules, puis un automatisme par "
+                            + "amélioration ; il y en a maintenant soixante-quatre.",
+                    "La bulle des racines : la branche « Mélange » des améliorations de la graine, payée en fragments, l'ouvre ; "
+                            + "jusque-là, la bulle le dit. Son effet reste le défi final, à venir.",
+                    "La grille, comme le joueur l'avait demandé : quand un point se cache ailleurs (trouvé, ou ses essais "
+                            + "épuisés), les couleurs des cases essayées contre lui s'effacent ; le dernier essai le dit encore en "
+                            + "toutes lettres.",
+                    "Le miroir, comme le joueur l'avait demandé : le plateau s'agrandit seul toutes les trois réussites, d'une "
+                            + "colonne de chaque côté et d'une ligne, et le gain ×1,5 de plus, trois fois au plus ; la fenêtre dit "
+                            + "les réussites qu'il manque, et un éclat salue l'agrandissement. « Plateau plus vaste » permet un "
+                            + "agrandissement de plus par niveau.",
+                    "Les statistiques de l'univers ont le mélange, sa courbe, ses mélanges et le plateau du miroir ; l'aide les "
+                            + "décrit ; le profil de test a la rangée du mélange.")),
             new Note("0.157", "Le miroir", List.of(
                     "La neuvième dimension s'ouvre au neuvième univers : le miroir, à la place de « toutes les lois », qui "
                             + "n'était qu'un visuel. Un plateau coupé en deux par un trait de lumière ; un motif s'allume case "

@@ -367,6 +367,13 @@ public abstract class GameStateResets extends GameStateCollider {
         mirrorShards = 0;
         mirrorShardsEarned = 0;
         java.util.Arrays.fill(mirrorLevels, 0);
+        mirrorWins = 0;
+        mixShards = 0;
+        mixShardsEarned = 0;
+        mixStage = 1;
+        gameFinished = false;
+        mixStageEarned = 0;
+        java.util.Arrays.fill(mixLevels, 0);
         java.util.Arrays.fill(seedUpgradeLevels, 0);
         chronoStored = 0;
         chronoSpeed = 1;

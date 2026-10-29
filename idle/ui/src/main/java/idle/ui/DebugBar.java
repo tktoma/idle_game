@@ -56,7 +56,10 @@ import javafx.scene.layout.VBox;
  *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la
  *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, le clicker depuis la version 0.155,
  *       la grille depuis la version 0.156,
- *       le miroir depuis la version 0.157, puis la graine, son chrono, le rond de croissance et la météo ;</li>
+ *       le miroir depuis la version 0.157,
+ *       le mélange depuis la version 0.158 (et, depuis la version 0.159, sa rangée d'étapes : gagner l'étape, y
+ *       passer, revenir à la première), le défi final depuis la version 0.160 (l'ouvrir, atteindre les dix paliers,
+ *       jouer la fin), puis la graine, son chrono, le rond de croissance et la météo ;</li>
  *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension (de la ligne à la durée) joue la
  *       partie en cours.</li>
  * </ul>
@@ -113,13 +116,16 @@ final class DebugBar extends VBox {
     /** La politique choisie : DEPENDANCES d'abord, la meilleure des campagnes. */
     private int modeIndex = Math.max(0, BotBridge.modes().indexOf("DEPENDANCES"));
     private BotBridge bot;
+    /** L'outil « Jouer la fin » (version 0.160), branché par l'application. */
+    private Runnable playFinale = () -> { };
     private boolean live = false;
     private double sinceDecision = 0;
 
     // Les bots des dimensions (version 0.140)
     /** Les rangées des outils des dimensions : leur nom et leur ressource. */
     private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)",
-            "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)", "Grille (repères)", "Miroir (reflets)"};
+            "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)", "Grille (repères)", "Miroir (reflets)",
+            "Mélange (fragments)"};
     /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
     static final int DIMENSION_BATCH = 400;
     private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
@@ -337,8 +343,8 @@ final class DebugBar extends VBox {
         // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.
         VBox dimensionRows = new VBox(4);
-        // La boucle (version 0.153), la brane (version 0.154), le clicker (version 0.155), la grille (version 0.156) et le
-        // miroir (version 0.157) ont leur rangée ; ils n'ont pas encore de bot.
+        // La boucle (version 0.153), la brane (version 0.154), le clicker (version 0.155), la grille (version 0.156), le
+        // miroir (version 0.157) et le mélange (version 0.158) ont leur rangée ; ils n'ont pas encore de bot.
         for (int d = 1; d <= DIMENSION_ROWS.length; d++) {
             int number = d;
             dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
@@ -348,6 +354,44 @@ final class DebugBar extends VBox {
                     tool("Améliorations au maximum", () -> setDimensionLevels(number, true)),
                     tool("Améliorations à zéro", () -> setDimensionLevels(number, false))));
         }
+        // Version 0.159 : le mélange se joue par étapes ; de quoi les gagner, y passer, ou revenir à la première.
+        dimensionRows.getChildren().add(row("Mélange (étapes)",
+                tool("Fragments de l'étape", () -> {
+                    if (!game.isMixOpen() || game.mixStage() >= Game.MIX_STAGES) {
+                        note("Le mélange doit être ouvert, et pas à sa dernière étape.");
+                        return;
+                    }
+                    double missing = Math.max(0, game.mixStageGoal() - game.state().mixStageEarned());
+                    addDimensionShards(10, missing);
+                    game.state().setMixStageEarned(game.mixStageGoal());
+                }),
+                tool("Étape suivante", () -> {
+                    if (!game.isMixOpen() || game.mixStage() >= Game.MIX_STAGES) {
+                        note("Le mélange doit être ouvert, et pas à sa dernière étape.");
+                        return;
+                    }
+                    game.state().setMixStageEarned(game.mixStageGoal());
+                    game.advanceMix();
+                }),
+                tool("Retour à l'étape 1", () -> {
+                    game.state().setMixStage(1);
+                    game.state().setMixStageEarned(0);
+                    for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) game.state().setMixLevel(upgrade.ordinal(), 0);
+                    game.testClearMix();
+                })));
+        // Version 0.160 : le défi final ; ouvrir la bulle des racines, atteindre les dix paliers, rejouer la fin.
+        dimensionRows.getChildren().add(row("Défi final",
+                tool("Ouvrir le défi final", this::openFinalChallenge),
+                tool("Atteindre tous les paliers", () -> {
+                    openFinalChallenge();
+                    for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
+                        addDimensionShards(d, Math.max(0, Game.finalGoal(d) - game.dimensionEarned(d)));
+                    }
+                }),
+                tool("Jouer la fin", () -> {
+                    if (game.isDimensionsUnlocked()) playFinale.run();
+                    else note("La fin se joue sur la carte des dimensions : ouvrez d'abord une dimension.");
+                })));
         dimensionRows.getChildren().add(row("Graine et chrono",
                 tool("Améliorations de la graine au maximum", () -> setSeedUpgrades(true)),
                 tool("Améliorations de la graine à zéro", () -> setSeedUpgrades(false)),
@@ -651,7 +695,8 @@ final class DebugBar extends VBox {
             case 6 -> Game.BRANE_THRESHOLD;
             case 7 -> Game.CLICKER_THRESHOLD;
             case 8 -> Game.GRID_THRESHOLD;
-            default -> Game.MIRROR_THRESHOLD;
+            case 9 -> Game.MIRROR_THRESHOLD;
+            default -> Game.MIX_THRESHOLD;
         };
     }
 
@@ -691,9 +736,13 @@ final class DebugBar extends VBox {
                 state.setGridShards(state.gridShards() + amount);
                 state.setGridShardsEarned(state.gridShardsEarned() + amount);
             }
-            default -> {
+            case 9 -> {
                 state.setMirrorShards(state.mirrorShards() + amount);
                 state.setMirrorShardsEarned(state.mirrorShardsEarned() + amount);
+            }
+            default -> {
+                state.setMixShards(state.mixShards() + amount);
+                state.setMixShardsEarned(state.mixShardsEarned() + amount);
             }
         }
     }
@@ -711,13 +760,14 @@ final class DebugBar extends VBox {
             case 6 -> state.setBraneShardsEarned(Math.max(state.braneShardsEarned(), threshold));
             case 7 -> state.setClickerShardsEarned(Math.max(state.clickerShardsEarned(), threshold));
             case 8 -> state.setGridShardsEarned(Math.max(state.gridShardsEarned(), threshold));
-            default -> state.setMirrorShardsEarned(Math.max(state.mirrorShardsEarned(), threshold));
+            case 9 -> state.setMirrorShardsEarned(Math.max(state.mirrorShardsEarned(), threshold));
+            default -> state.setMixShardsEarned(Math.max(state.mixShardsEarned(), threshold));
         }
     }
 
     /**
      * Les améliorations de la dimension au plus haut, ou à zéro. La valeur du volume et de la durée, et le gain de la
-     * boucle, de la brane, du clicker, de la grille et du miroir, n'ont pas de plafond : dix niveaux.
+     * boucle, de la brane, du clicker, de la grille, du miroir et du mélange, n'ont pas de plafond : dix niveaux.
      */
     private void setDimensionLevels(int number, boolean max) {
         GameState state = game.state();
@@ -757,9 +807,13 @@ final class DebugBar extends VBox {
                 for (Game.GridUpgrade upgrade : Game.GridUpgrade.values())
                     state.setGridLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.GridUpgrade.GAIN ? 10 : upgrade.max());
             }
-            default -> {
+            case 9 -> {
                 for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values())
                     state.setMirrorLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.MirrorUpgrade.GAIN ? 10 : upgrade.max());
+            }
+            default -> {
+                for (Game.MixUpgrade upgrade : Game.MixUpgrade.values())
+                    state.setMixLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.MixUpgrade.GAIN ? 10 : upgrade.max());
             }
         }
     }
@@ -876,6 +930,17 @@ final class DebugBar extends VBox {
 
     /** S'arrête au prochain Big Bang, ou après 12 heures simulées au maximum. */
     private void botToNextBigBang() { startFastForward(12 * 3600, true); }
+
+    /** Ce que fait l'outil « Jouer la fin » : l'application montre la carte des dimensions et y joue la fin. */
+    void setOnPlayFinale(Runnable action) {
+        playFinale = action == null ? () -> { } : action;
+    }
+
+    /** Ouvre le défi final : la dernière amélioration de la graine, puis la bulle des racines, sans rien payer. */
+    private void openFinalChallenge() {
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), 1);
+        game.state().setTreeBubbleBought(Game.TreeBubble.ROOTS.ordinal(), true);
+    }
 
     /** Branche les outils qui ouvrent ou referment les cosmétiques, qui vivent dans les réglages de l'application. */
     void setCosmetics(CosmeticTools cosmetics) {

@@ -338,6 +338,8 @@ public abstract class GameAppBase extends Application {
     List<PopupPane.Entry> popupEntries;
     /** L'écran de fin (version 0.068) : une fois par partie, quand l'univers se forme. */
     final EndPane endPane = new EndPane(game);
+    /** L'écran de la fin de la partie (version 0.160), au bout de l'animation de la carte des dimensions. */
+    final FinalePane finalePane = new FinalePane(game);
     /** Le butin d'une sonde, par-dessus la fenêtre : une carte à la fois. */
     final LootPane lootPane = new LootPane(game, this::refresh);
     /** Temps réel donné au rattrapage d'une absence à chaque image, en nanosecondes : assez peu pour que la fenêtre reste vive. */
@@ -543,6 +545,7 @@ public abstract class GameAppBase extends Application {
         dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());
+        universePage.setOnFinale(finalePane::open);
         // Rouvrir les paliers (version 0.087) : les anciens onglets reviennent, la partie de l'univers suivant commence.
         universePage.setOnNextUniverse(() -> {
             // Les trois actes repartent de zéro (version 0.108) : les pages oublient ce qu'elles montraient.
@@ -559,6 +562,11 @@ public abstract class GameAppBase extends Application {
         testProfile = arguments.contains("--test");
         if (testProfile) {
             debugBar = new DebugBar(game);
+            debugBar.setOnPlayFinale(() -> {
+                dimensionWindow.close();
+                selectTab(Tab.UNIVERSE);
+                universePage.playFinale();
+            });
             debugBar.setCosmetics(new DebugBar.CosmeticTools() {
                 @Override
                 public void unlockAll() {
@@ -592,7 +600,7 @@ public abstract class GameAppBase extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, popupPane,
+        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
                 transitionPane, absencePane);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
@@ -639,6 +647,12 @@ public abstract class GameAppBase extends Application {
                 // L'écran de fin attend que la naissance de l'univers soit jouée.
                 boolean bornNow = hadUniverse == 0 && game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
                 if (!bornNow && !(selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying())) endPane.check();
+                // Le défi final (version 0.160) : la partie vient d'être finie, la fin se joue sur la carte des dimensions.
+                // La fenêtre d'une dimension ouverte se ferme : la carte doit se voir.
+                if (universePage.checkFinale()) {
+                    dimensionWindow.close();
+                    selectTab(Tab.UNIVERSE);
+                }
                 checkPopups();
                 // Les thèmes et notations à débloquer : annoncés après le reste, pour ne pas être chassés par lui.
                 // Version 0.146 : leur catégorie se coupe dans les réglages, comme les autres notifications.
