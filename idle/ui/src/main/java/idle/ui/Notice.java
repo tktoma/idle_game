@@ -13,7 +13,7 @@ public enum Notice {
     EXPLOSION("Explosions", "Le tableau qui peut exploser, et ce qu'une explosion a rapporté."),
     MILESTONES("Paliers de vitesse et de taille", "Les paliers de vitesse des particules et de taille de la matière noire."),
     CHALLENGES("Défis de matière noire", "Un défi qui s'ouvre, un défi réussi."),
-    COLLIDER("Collisionneur", "Le quark top, les améliorations qui s'ouvrent, l'énergie des trous noirs, les hadrons qui se proposent."),
+    COLLIDER("Collisionneur", "Le quark top, les améliorations qui s'ouvrent, l'énergie des trous noirs, les hadrons qui se proposent, les paliers de gluons."),
     BIG_BANG("Big Bang et ses défis", "Chaque Big Bang, et les défis de Big Bang commencés ou réussis."),
     MOLECULES("Molécules, espace et collections", "Un rayon de molécules qui s'ouvre, une amélioration d'espace, une collection."),
     SKY("Astres et jalons", "Les astres qui mûrissent, les jalons du cosmos."),

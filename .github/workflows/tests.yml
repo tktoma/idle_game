@@ -105,3 +105,37 @@ jobs:
         with:
           name: rapport-profils-${{ matrix.first }}-${{ matrix.last }}
           path: idle/bots/build/reports/tests/test
+
+  # Version 0.152 : le Speedrunner (profil 1, graine 201, pas de 20 s) joue une partie neuve jusqu'a onze univers
+  # formes (graine, bulles de l'arbre, hadrons). A part, comme la campagne des profils : de l'ordre d'une heure.
+  onze-univers:
+    name: Speedrunner jusqu'a onze univers
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    concurrency:
+      group: onze-univers-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: idle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Onze univers depuis zero
+        run: >-
+          sh ./gradlew :bots:test --continue --no-daemon
+          --tests ElevenUniversesLongTest -PonzeUnivers=true
+
+      - name: Garder le rapport si la partie echoue
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-onze-univers
+          path: idle/bots/build/reports/tests/test

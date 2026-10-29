@@ -47,6 +47,18 @@ sh ./gradlew :bots:bot -Pclasse=FreshUniverseAudit --args="1 3 168 60 sorties/au
 sh ./gradlew :bots:bot -Pclasse=FreshUniverseAudit --args="1 3 168 60 sorties/audit-depuis-zero true"
 ```
 
+Depuis la version 0.152, le septième argument (l'entrée « univers » de l'action) va de 1 à **11** (3 au plus avant).
+À partir de l'univers 4, le bot attend le palier de la graine qui ouvre l'univers suivant et joue l'arbre : bulles,
+hadrons, ligne et automatisation des dimensions (`UniverseTreePolicy`, voir `README.md`). Les univers 1 à 3 se jouent
+exactement comme avant. Mesure de référence (graine 200 + id, une décision toutes les 20 s) : le Speedrunner forme son
+onzième univers à **82 h 45** de jeu, le Regular à **104 h 08** ; le diagnostic a une ligne `arbre=` (palier de la
+graine, bulles achetées et quand, hadrons, gluons, automatismes). Le test long `ElevenUniversesLongTest` rejoue le
+Speedrunner jusqu'à l'univers 11 (job « onze-univers » de l'action Tests).
+
+```bash
+python run.py audit --de 1 --a 1 --univers 11 --hours 300 --step 20
+```
+
 L'audit ne corrige pas automatiquement les stratégies : il faut lire les états
 `LIMIT` / `BLOCKED` pour identifier celles à améliorer.
 

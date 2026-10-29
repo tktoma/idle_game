@@ -713,7 +713,7 @@ public abstract class GameBigBang extends GameDarkMatter {
         return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
                 * (inTrial(idle.core.universe.Trial.COLD_BANG) ? idle.core.universe.Trial.COLD_EXPANSION : 1)
                 * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier()
-                * bangAchievementMultiplier(BangAchievement.Reward.SPACE));
+                * bangAchievementMultiplier(BangAchievement.Reward.SPACE) * hadronBoost(idle.core.collider.Hadron.KAON));
     }
 
     /**

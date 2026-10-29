@@ -412,7 +412,7 @@ public final class DimensionWindow extends BorderPane {
         return switch (upgrade) {
             case SPEED -> "Vitesse des spirales : " + shardText(game.durationTurnsPerSecond()) + " tour par seconde, " + percent(Game.DURATION_SPEED_STEP) + " plus vite";
             case COUNT -> "Spirales : " + game.durationSpirals() + ", une de plus qui avance en même temps";
-            case VALUE -> "Valeur : le premier tour donne " + shardText(game.durationValue()) + " → " + shardText(game.durationValue() + 1);
+            case VALUE -> "Valeur : le premier tour donne " + shardText(game.durationValue()) + " → " + shardText(game.durationValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA));
             case TIME -> "Temps au plus : " + seconds(game.durationMaxSeconds()) + " s → "
                     + seconds(game.durationMaxSeconds() + Game.DURATION_TIME_STEP) + " s, des tours de plus";
         };
@@ -423,7 +423,7 @@ public final class DimensionWindow extends BorderPane {
         return switch (upgrade) {
             case TIME -> "Durée : " + seconds(game.volumeDiveSeconds()) + " s par plongée → "
                     + seconds(game.volumeDiveSeconds() + Game.VOLUME_DIVE_STEP) + " s";
-            case VALUE -> "Valeur : chaque boule cueillie donne " + shardText(game.volumeValue()) + " → " + shardText(game.volumeValue() + 1);
+            case VALUE -> "Valeur : chaque boule cueillie donne " + shardText(game.volumeValue()) + " → " + shardText(game.volumeValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA));
             case SPAWN -> "Réapparition : une boule toutes les " + seconds(game.volumeSpawnSeconds()) + " s, 15 % plus vite";
             case COUNT -> "Nombre : " + game.volumeMaxBalls() + " boules à la fois au plus, une de plus";
             case SIZE -> "Taille des boules (×" + shardText(game.volumeBallRadius() / Game.VOLUME_BALL_RADIUS)
@@ -434,7 +434,7 @@ public final class DimensionWindow extends BorderPane {
     /** Une amélioration du plan : son nom, où elle en est, et ce que donne le niveau suivant. */
     private String describe(Game.PlaneUpgrade upgrade) {
         return switch (upgrade) {
-            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + 1) + " facettes";
+            case VALUE -> "Valeur : chaque éclat ramassé donne " + shardText(game.planeValue()) + " → " + shardText(game.planeValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " facettes";
             case SPAWN -> "Réapparition : un éclat toutes les " + seconds(game.planeSpawnSeconds()) + " s, 15 % plus vite";
             case COUNT -> "Nombre : " + game.planeMaxShards() + " éclats à la fois au plus, un de plus";
             case SPEED -> "Vitesse du point : 20 % plus vite (×" + shardText(game.planeSpeed() / Game.PLANE_SPEED) + ")";
@@ -498,7 +498,7 @@ public final class DimensionWindow extends BorderPane {
     private String describe(Game.LineUpgrade upgrade) {
         return switch (upgrade) {
             case YIELD -> "Densité (niveau " + game.lineLevel(upgrade) + ") : " + shardText(game.lineShardsPerTouch())
-                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD) + " segment par trait touché";
+                    + " → " + shardText(game.lineShardsPerTouch() + Game.LINE_SHARD * game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " segment par trait touché";
             case TICKS -> "Graduation (" + game.lineTicks() + " traits) : un trait de plus, tous à égale distance";
             case SPEED -> "Élan (vitesse ×" + shardText(game.lineSpeed()) + ") : les boules vont " + percent(Game.LINE_SPEED_STEP) + " plus vite";
             case BALLS -> "Boules (" + game.lineBalls() + " par ligne) : une boule de plus sur chaque ligne";

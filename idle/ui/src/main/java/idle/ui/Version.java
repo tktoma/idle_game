@@ -23,6 +23,35 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.152", "Onze univers à l'essai", List.of(
+                    "Profil de test : les bots jouent maintenant depuis zéro jusqu'au onzième univers. Ils arrosent la graine, "
+                            + "achètent les bulles, lient des hadrons et prennent les automatismes des dimensions ; le Speedrunner "
+                            + "forme son onzième univers vers 82 h 45 de jeu.",
+                    "La bulle du géant de gauche, en bas : l'énergie du vide gardée d'un univers à l'autre ne compte plus au "
+                            + "cumul qu'une fois ; seule celle gagnée depuis la formation d'avant s'y ajoute (avant, elle était "
+                            + "recomptée à chaque formation et rendait toutes les bulles gratuites).",
+                    "La bulle du bonsaï, à droite : les automatismes sans délai font avancer le jeu par quarts de seconde, et "
+                            + "plus au délai le plus court ; ils achètent toujours tout ce qu'ils peuvent, sans recalculer les "
+                            + "bonus des éléments des centaines de fois par seconde.")),
+            new Note("0.151", "Ce que font les hadrons", List.of(
+                    "Chaque sorte de hadrons a maintenant son effet, qui grandit avec leur nombre : ×(1 + 0,25 × log₁₀(1 + n)) "
+                            + "pour n hadrons, ×1,25 à 9, ×1,5 à 99. Le proton renforce les atomes par fusion, le neutron "
+                            + "la matière noire par explosion, le pion l'énergie du collisionneur, le kaon l'espace par seconde, "
+                            + "le lambda les particules par création, l'oméga les éclats des quatre dimensions, le méson D "
+                            + "l'énergie du vide.",
+                    "Trois font baisser un prix, divisé d'autant : le J/ψ celui des améliorations du collisionneur, le méson B "
+                            + "celui des générateurs, l'upsilon celui des générateurs du collisionneur.",
+                    "Sous chaque carte du sous-onglet « Gluons », son bonus : ce qu'il vaut, ce qu'il vaudrait avec un de plus "
+                            + "et avec « Lier tout ». En tête de l'onglet, les gluons : chaque quark lié en compte un.",
+                    "Nouveau sous-onglet « Paliers » : cinq paliers de gluons, de 1 000 à 400 000, font garder les "
+                            + "améliorations, les automatismes et les éléments à l'explosion, l'arbre de matière noire et les "
+                            + "défis réussis au Big Bang. Ils agissent dès qu'ils sont atteints, et s'annoncent dans la "
+                            + "catégorie « Collisionneur ».",
+                    "Nouveau sous-onglet « Liaison » : les quarks en main y flottent, et chaque hadron lié s'y joue, ses "
+                            + "quarks rapprochés, reliés par des ressorts de gluons, puis rangés avec les hadrons formés. Il "
+                            + "suit le réglage « Animations du collisionneur ».",
+                    "Les statistiques des multiplicateurs ont un aspect « Hadrons » ; celles de l'univers comptent les gluons "
+                            + "et les paliers atteints. L'aide décrit les bonus, leur calcul et les paliers.")),
             new Note("0.150", "L'automatisation des dimensions", List.of(
                     "La bulle du sommet de l'arbre-monde prend effet : l'onglet Automatisation gagne deux sous-onglets, "
                             + "« Automatismes », tout ce qu'il montrait déjà, et « Dimensions », avec la bulle.",

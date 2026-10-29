@@ -507,4 +507,28 @@ public abstract class GameBase {
     final int bubbleLevel(GameUniverse.TreeBubble bubble) {
         return Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
     }
+
+    /** Ce que chaque ordre de grandeur de hadrons d'une sorte ajoute à son bonus (version 0.151) : +25 %. */
+    public static final double HADRON_BOOST_STEP = 0.25;
+
+    /**
+     * Le bonus d'une sorte de hadrons (version 0.151) : ×(1 + {@link #HADRON_BOOST_STEP} × log₁₀(1 + n)), n ceux
+     * qu'on en a ; 1 sans eux. Pour ceux qui baissent un prix, le prix est divisé d'autant.
+     */
+    public final double hadronBoost(idle.core.collider.Hadron hadron) {
+        long count = state.hadrons(hadron);
+        return count <= 0 ? 1 : 1 + HADRON_BOOST_STEP * Math.log10(1 + (double) count);
+    }
+
+    /** Les gluons (version 0.151) : les quarks liés dans tous les hadrons qu'on a. */
+    public final long gluons() {
+        long total = 0;
+        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) total += state.hadrons(hadron) * hadron.quarkCount();
+        return total;
+    }
+
+    /** Vrai une fois ce palier de gluons atteint : ce qu'il fait garder agit. */
+    public final boolean isGluonMilestoneReached(idle.core.collider.GluonMilestone milestone) {
+        return gluons() >= milestone.gluons();
+    }
 }

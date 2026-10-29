@@ -19,7 +19,10 @@ import java.util.random.RandomGenerator;
  * {@link #HADRONS_UNLOCK_SECONDS} secondes de production du collisionneur, jamais moins que
  * {@link #HADRONS_UNLOCK_COST}. La bulle du jeune arbre, à gauche, l'ouvre dès le début de chaque univers ; celle de
  * l'arbre ancien, à gauche, garde les hadrons d'un univers à l'autre ; celle du cœur de l'arbre-monde ouvre les
- * exotiques. Sans ces bulles, un nouvel univers les reprend, comme tout le reste. Ils n'ont pas encore d'effet.
+ * exotiques. Sans ces bulles, un nouvel univers les reprend, comme tout le reste.
+ *
+ * <p>Leurs effets (version 0.151) : un bonus, ou un prix plus bas, qui grandit avec leur nombre ({@link #hadronBoost}),
+ * et les paliers de gluons ({@link idle.core.collider.GluonMilestone}).
  */
 public abstract class GameHadrons extends GameVoid {
 

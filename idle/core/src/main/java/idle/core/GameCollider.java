@@ -86,7 +86,7 @@ public abstract class GameCollider extends GameDarkTree {
     public double colliderEnergyPerSecond() {
         if (!isColliderUnlocked()) return 0;
         return (1 + state.colliderGenerators(ColliderGenerator.BEAM)) * ColliderGenerator.BEAM.power() * colliderEnergyMultiplier()
-                * colliderOutputMultiplier(ColliderGenerator.BEAM);
+                * colliderOutputMultiplier(ColliderGenerator.BEAM) * hadronBoost(idle.core.collider.Hadron.PION);
     }
 
     /**
@@ -188,6 +188,8 @@ public abstract class GameCollider extends GameDarkTree {
     /** Prix du prochain exemplaire de ce générateur. */
     public double colliderGeneratorCost(ColliderGenerator generator) {
         double cost = generator.cost(state.colliderGeneratorsBought(generator));
+        // Version 0.151 : les upsilons baissent le prix des générateurs du collisionneur.
+        cost /= hadronBoost(idle.core.collider.Hadron.UPSILON);
         return hasColliderAchievement(ColliderAchievement.of(generator, ColliderAchievement.Kind.COST)) ? cost / 2 : cost;
     }
 
@@ -491,7 +493,8 @@ public abstract class GameCollider extends GameDarkTree {
     public static final int SUPERPOSITION_BIG_BANGS = 5;
 
     public double colliderUpgradeCost(ColliderUpgrade upgrade) {
-        return upgrade.cost(state.colliderUpgradeLevel(upgrade));
+        // Version 0.151 : les J/ψ baissent le prix des améliorations du collisionneur.
+        return upgrade.cost(state.colliderUpgradeLevel(upgrade)) / hadronBoost(idle.core.collider.Hadron.J_PSI);
     }
 
     /** Les quarks que demande le prochain niveau de cette amélioration (la chaîne, version 0.062) ; 0 pour les autres. */

@@ -203,6 +203,7 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (treeBubbleLevels[i] > 1) data.put("treeBubbleLevel" + i, treeBubbleLevels[i]);
         data.put("voidSpent", voidSpent);
         data.put("voidTrickled", voidTrickled);
+        data.put("voidCarried", voidCarried);
         // L'automatisation des dimensions (version 0.150).
         data.putList("dimensionAutomations", dimensionAutomations);
         data.putList("dimensionAutomationsOff", dimensionAutomationsOff);
@@ -485,6 +486,8 @@ public final class GameState extends GameStateResets {
         for (int i = 0; i < TREE_BUBBLES; i++) if (data.has("treeBubbleLevel" + i)) setTreeBubbleLevel(i, data.whole("treeBubbleLevel" + i, 1));
         setVoidSpent(data.real("voidSpent", 0));
         setVoidTrickled(data.real("voidTrickled", 0));
+        // Version 0.152 : absent d'avant, rien de compté d'avance.
+        setVoidCarried(data.real("voidCarried", 0));
         // L'automatisation des dimensions (version 0.150) : absente d'avant, rien d'acheté. Les noms inconnus sont oubliés.
         clearDimensionAutomations();
         data.list("dimensionAutomations").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,

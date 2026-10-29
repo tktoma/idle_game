@@ -387,7 +387,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // L'automatisation des dimensions (version 0.150) traverse les univers, comme les dimensions.
         Set<String> dimensionAutomationsKept = new java.util.TreeSet<>(dimensionAutomations);
         Set<String> dimensionAutomationsOffKept = new java.util.TreeSet<>(dimensionAutomationsOff);
-        double voidSpentKept = voidSpent, trickledKept = voidTrickled;
+        double voidSpentKept = voidSpent, trickledKept = voidTrickled, carriedKept = voidCarried;
         Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
@@ -463,6 +463,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         dimensionAutomationsOff.addAll(dimensionAutomationsOffKept);
         voidSpent = voidSpentKept;
         voidTrickled = trickledKept;
+        voidCarried = carriedKept;
         universeUpgrades.putAll(upgrades);
         settings.restore(this);
         restoreForBubbles(kept);
@@ -937,6 +938,15 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         if (hadron == null) return;
         if (count > 0) hadrons.put(hadron, count);
         else hadrons.remove(hadron);
+    }
+
+    /** L'énergie du vide gardée par la bulle du géant de gauche, en bas, et déjà comptée au cumul (version 0.152). */
+    public double voidCarried() {
+        return voidCarried;
+    }
+
+    public void setVoidCarried(double carried) {
+        voidCarried = carried >= 0 && Double.isFinite(carried) ? carried : 0;
     }
 
     /** L'énergie du vide que la bulle du géant de gauche a versée au cumul (version 0.148). */

@@ -43,6 +43,7 @@ python run.py verify --save sauvegardes/reference/checkpoint_universe_5s.save
 python run.py v2 --bot DEPENDANCES --hours 12 --step 20 --seed 42
 python run.py profils --id 21 --hours 200 --step 20 --seed 42
 python run.py fresh --id 1 --hours 4 --step 20 --seed 42       # les deux premiers actes seulement, depuis zéro
+python run.py audit --de 1 --a 1 --univers 11 --hours 300      # partie neuve jusqu'à onze univers (version 0.152)
 python run.py batch --tier rapide --workers 2
 ```
 
@@ -62,8 +63,8 @@ Avec Gradle, depuis `idle/` :
 
 | Dossier | Contenu |
 |---|---|
-| `src/main/java/` | Les 13 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve, les deux premiers actes seulement), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `VoidPolicy` (le vide du troisième univers, version 0.133), `DimensionBots` (un bot par dimension, à part, version 0.136), `ProfileProgressGuard` (le garde-fou des blocages) et `Bots` (le chargement d'une partie et les choix « le moins cher » partagés). Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory` et `Empreinte`. Les outils d'un diagnostic passé (`CorrectedCoach`, `RescueBench`, `RecreateLosers`, `RobotPhase3`, `DependencyAudit`, `DiagnoseState`, `EconomyAudit`, `OfflineBenchmark`, `AutoMatterBench`, `MakeAutoMatterCheckpoint`, `DarkMatterReservePolicy`) ont été retirés en 0.141 : rien ne les lançait plus, et les défauts qu'ils corrigeaient ou mesuraient sont réglés dans `RobotCosmosPlanner` (git les garde). |
-| `src/test/java/` | Les 10 classes de test : `BotsTest` (cohérence avec le jeu, et les correctifs de la 0.141), `NextUniverseTest` (l'univers 2, version 0.130), `VoidPolicyTest` (le vide, version 0.133), `EarlyStyleTest` (les styles des trois actes, version 0.135), `DimensionBotsTest` (les dimensions, version 0.136), `BotsExtendedValidationTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`. |
+| `src/main/java/` | Les 14 bots et outils compilés. Les politiques : `AdvancedLab` (les 12 politiques V2), `RobotCosmosPlanner` (le planificateur qu'elles partagent), `IdleProfiles24` (les 24 profils de fin de partie), `FreshPhaseProfiles` (les mêmes depuis une partie neuve, les deux premiers actes seulement), `FirstUniversePolicy` (l'économie des trois actes, l'ordre d'ouverture), `NextUniversePolicy` (ce que le deuxième univers ajoute, version 0.130), `VoidPolicy` (le vide du troisième univers, version 0.133), `UniverseTreePolicy` (la graine, les bulles de l'arbre, les hadrons et la ligne, à partir de l'univers 4, version 0.152), `DimensionBots` (un bot par dimension, à part, version 0.136), `ProfileProgressGuard` (le garde-fou des blocages) et `Bots` (le chargement d'une partie et les choix « le moins cher » partagés). Les campagnes et contrôles : `FreshUniverseAudit`, `VerifyVictory` et `Empreinte`. Les outils d'un diagnostic passé (`CorrectedCoach`, `RescueBench`, `RecreateLosers`, `RobotPhase3`, `DependencyAudit`, `DiagnoseState`, `EconomyAudit`, `OfflineBenchmark`, `AutoMatterBench`, `MakeAutoMatterCheckpoint`, `DarkMatterReservePolicy`) ont été retirés en 0.141 : rien ne les lançait plus, et les défauts qu'ils corrigeaient ou mesuraient sont réglés dans `RobotCosmosPlanner` (git les garde). |
+| `src/test/java/` | Les 12 classes de test : `UniverseTreePolicyTest` (les gestes des univers 4 et suivants, version 0.152), `BotsTest` (cohérence avec le jeu, et les correctifs de la 0.141), `NextUniverseTest` (l'univers 2, version 0.130), `VoidPolicyTest` (le vide, version 0.133), `EarlyStyleTest` (les styles des trois actes, version 0.135), `DimensionBotsTest` (les dimensions, version 0.136), `BotsExtendedValidationTest`, `ProfileProgressGuardTest`, `ProfileProgressGuardFailureTest`, et les campagnes `Profiles24CampaignTest` et `Profiles24LongCampaignTest`, et `ElevenUniversesLongTest` (le Speedrunner jusqu'à onze univers depuis zéro, de l'ordre d'une heure : il ne tourne qu'avec `-PonzeUnivers=true`). |
 | `sauvegardes/` | `reference/` : 9 points de départ, dont la partie à 7 Big Bangs, une partie neuve au 5e Big Bang (`checkpoint_fresh_fifth_bang.save`, profil 1, graine 201), le premier univers formé par le même Speedrunner (`checkpoint_universe1_speedrunner.save`, version 0.130), départ de l'univers 2, et le deuxième (`checkpoint_universe2_speedrunner.save`, version 0.133), départ de l'univers 3. `profils_bloques/` : les profils 11, 12 et 17 à 72 h. `victoires_corrigees/` : 2 parties (12 et 17 ; le profil 11 gagne aussi depuis les correctifs, mais sa victoire n'a pas été rangée ici). `victoires_historiques/` : les 21 victoires. |
 | `outils/` | `comparer_sauvegardes.py` (utilisé par `run.py comparer`) et `benchmark_actualise.py` (les 24 profils depuis la partie à 7 Big Bangs). `ab_matiere.py`, l'A/B du suivi automatique de la matière, a été retiré en 0.141 : l'option est dans le jeu depuis la 0.12x (page des automatismes). |
 
@@ -83,6 +84,10 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.partVide` | `VoidPolicy` | La part du collisionneur et de l'espace libre laissée au vide par tous les profils, de 0 à 1 ; autre valeur refusée (0.141). | celle du profil |
 | `idle.croissanceVide` | `VoidPolicy` | La part du prochain raccourci qu'une amélioration de croissance du vide peut coûter, pour l'expert. | `0.5` |
 | `idle.masseTrouNoir` | `VoidPolicy` | La masse du trou noir au-delà de laquelle on ne le nourrit plus (`0` : jamais). | `10` |
+| `idle.sansArbre` | `UniverseTreePolicy` | `true` : rien de l'univers 4 et suivants (ni graine, ni bulles, ni hadrons) ; l'univers suivant se lance dès l'univers formé, comme avant la 0.152. | `false` |
+| `idle.traceArbre` | `UniverseTreePolicy` | `true` : chaque bulle, ouverture des hadrons et automatisme des dimensions s'écrit (`ARBRE,…`). | `false` |
+| `idle.bulleSansDelai` | `UniverseTreePolicy` | `true` : les bots achètent aussi la bulle du bonsaï, à droite (automatismes sans délai), qui rend la simulation plus de vingt fois plus lente. | `false` |
+| `idle.onzeUnivers.heures`, `idle.onzeUnivers.univers` | `ElevenUniversesLongTest` | Le plafond en heures simulées et le nombre d'univers visés du test long. | `1000` et `11` |
 | `idle.stage` | `IdleProfiles24` | Le suffixe du CSV d'un profil (`01_Speedrunner_<stage>.csv`) ; le 7e argument de `IdleProfiles24` le pose. | `late` |
 | `idle.lenteurDimension` | `DimensionBots` | Le joueur des dimensions est autant de fois plus lent à réagir, viser et revenir. | `1` |
 | `idle.achatDimension` | `DimensionBots` | `moinsCher` : il achète le moins cher au lieu du meilleur rapport. | meilleur rapport |
@@ -314,7 +319,7 @@ tout, mêmes 8 679 décisions).
 Ce que les bots ne jouent toujours pas dans une partie : la graine et l'onglet Univers (améliorations, recherches,
 épreuves, skins, chrono). Les dimensions se jouent à part, par `DimensionBots` (0.136, voir plus bas), sans que leurs
 éclats servent à la graine. L'univers suivant se lance donc sans les paliers 2 et 3 de la graine qu'un joueur doit
-atteindre.
+atteindre. (Depuis la 0.152, la graine et l'arbre se jouent à partir de l'univers 4 : voir « Les univers 4 à 11 ».)
 
 Mesures, départ `checkpoint_universe2_speedrunner.save`, une décision toutes les 20 s, univers 3 compté depuis son
 lancement :
@@ -428,6 +433,63 @@ Ce que montre l'audit :
   maintenant). Partis d'une sauvegarde, il atteint 4 Big Bangs dans l'univers 2 et 7 dans l'univers 3. C'est un constat d'équilibrage : le jeu ne laisse presque rien à ces rythmes-là.
 - Les joueurs intermittents (mobile, soir, week-end, vétéran revenant) jouent 14 à 16 h en 168 h. Ils restent au
   plafond du premier univers, mais finissent les univers 2 et 3 quand ils partent d'une sauvegarde.
+
+## Les univers 4 à 11 (version 0.152)
+
+Les bots vont maintenant jusqu'à **onze univers** (`--univers 1` à `11`, le 7e argument de `FreshUniverseAudit`,
+l'entrée « univers » de l'action GitHub ; 3 au plus avant). Ce que les univers 4 et suivants demandent est dans
+`UniverseTreePolicy`, appelée à chaque décision par `RobotCosmosPlanner` ; rien ne s'y passe avant trois univers formés,
+aucun hasard n'y est tiré, et les univers 1 à 3 restent exactement ceux d'avant (vérifié : Speedrunner 26,8889, 42,3111
+et 52,4056 h ; Regular 34,1056, 52,1889 et 66,0222 h, comme sans elle). Le contenu du jeu : quatre dimensions jouables,
+les dimensions 5 à 10 s'ouvrent sans rien à jouer, ce qui ne gêne rien (la graine ne dépend plus des dimensions depuis
+la 0.139).
+
+- **La graine** : l'arrosoir (gratuit) est débloqué et tenu penché jusqu'au palier qui ouvre l'univers suivant (le
+  palier N ouvre l'univers N), puis repris. Dès l'univers 4, l'univers suivant ne se lance qu'avec ce palier, comme
+  dans l'interface (les univers 2 et 3 se lancent toujours sans attendre, pour garder les parties de référence). Le
+  seul arrêt mesuré : 100 s (90 arrosages, plus celui qui fait germer) entre l'univers 3 formé et le lancement du 4 ;
+  ensuite la graine est toujours prête.
+- **Les bulles**, payées avec l'énergie du vide accumulée : l'expert suit une liste (`UniverseTreePolicy.BEST_ORDER`) et
+  économise pour la suivante ; d'abord la base et ×2 sur l'énergie du vide, puis le chemin vers l'arbre mûr à droite
+  (garder matière noire, arbre, explosions et défis) et l'arbre ancien à droite (plus de maturation), le reste ensuite,
+  le cœur et le sommet de l'arbre-monde quand la graine les fait naître. Les joueurs moins appliqués prennent la moins
+  chère. La bulle des racines (« à venir ») n'est pas achetée, ni **celle du bonsaï, à droite** (automatismes sans délai) :
+  achetée, chaque heure de jeu coûte plus de dix minutes de calcul au lieu d'une demi-minute (la synthèse automatique
+  fait cent synthèses par pas, et chacune recalcule les bonus des éléments) ; le réseau s'en passe
+  (`-Didle.bulleSansDelai=true` la remet).
+- **Les hadrons** : l'onglet ouvert dès qu'il est payable (le collisionneur se garde pour lui, deux heures au plus) ;
+  les quarks en trop sont liés, la sorte la moins fournie d'abord, sans toucher à ceux que demandent les prochaines
+  améliorations du collisionneur.
+- **La ligne** (elle tourne seule) : ses améliorations au meilleur rapport, le débit de l'arrosoir, et les
+  automatismes des dimensions dès la bulle du sommet (ceux de la ligne en graines d'univers, puis ceux du plan en
+  segments). Le plan, le volume et la durée se jouent au dixième de seconde : pas avec un pas de 20 s (voir
+  `DimensionBots`) ; leurs éclats ne servent pas à former un univers. Le chrono (1,5 million d'instants) n'est pas acheté.
+
+Mesures, parties neuves, une décision toutes les 20 s (`FreshUniverseAudit 1 1 2000 20 … false 11`, et `3 3`) :
+
+| Univers | Speedrunner (graine 201) formé à | durée | Regular (graine 203) formé à | durée |
+|---:|---|---|---|---|
+| 1 | 26 h 53 | 26 h 53 | 34 h 06 | 34 h 06 |
+| 2 | 42 h 19 | 15 h 25 | 52 h 11 | 18 h 05 |
+| 3 | 52 h 24 | 10 h 06 | 66 h 01 | 13 h 50 |
+| 4 | 61 h 49 | 9 h 25 | 75 h 54 | 9 h 53 |
+| 5 | 71 h 53 | 10 h 04 | 89 h 47 | 13 h 53 |
+| 6 | 77 h 53 | 6 h 00 | 97 h 53 | 8 h 06 |
+| 7 | 78 h 55 | 1 h 02 | 99 h 12 | 1 h 19 |
+| 8 | 79 h 52 | 0 h 57 | 100 h 24 | 1 h 12 |
+| 9 | 80 h 50 | 0 h 57 | 101 h 37 | 1 h 13 |
+| 10 | 81 h 47 | 0 h 58 | 102 h 50 | 1 h 13 |
+| 11 | **82 h 45** | 0 h 57 | **104 h 08** | 1 h 18 |
+
+(La durée va d'une formation à la suivante : celle du 4 compte les 100 s d'arrosage avant son lancement.) Où passe le temps : les
+univers 4 et 5 rejouent les trois actes presque comme le 3 (premier Big Bang en 2 h 10 à 4 h 20, huitième en 6 h 15 à
+12 h 50) ; ensuite la galaxie attend les trous noirs, qui demandent de l'espace (de 1e14 à 2e16) : 3 h et 4 h 20 pour le
+Speedrunner dans les univers 5 et 6, 5 h 47 pour le Regular dans le 6. Les bulles
+achetées au début de l'univers 6 (arbre mûr et ancien à droite, géant de gauche en bas : le vide et ses allègements
+traversent les univers) ramènent les univers 7 à 11 à moins d'une heure : huit Big Bangs en 8 minutes, puis deux fois
+24 minutes de stabilisation (amas, univers), le plancher que laisse l'amélioration de rassemblement du vide.
+Le Regular suit l'une de ses deux trajectoires connues du premier univers (34,1056 h ; l'autre, 34,5056 h, s'est aussi
+vue pendant les essais).
 
 ## Un bot par dimension (version 0.136)
 

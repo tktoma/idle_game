@@ -363,6 +363,7 @@ public abstract class GameStateResets extends GameStateCollider {
         hadrons.clear();
         voidSpent = 0;
         voidTrickled = 0;
+        voidCarried = 0;
         universeUpgrades.clear();
         pulseCharges = 0;
         pulses = 0;

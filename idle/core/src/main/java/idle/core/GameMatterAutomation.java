@@ -52,7 +52,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
      * le palier qui le donne est atteint, ou ce Big Bang l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsChallenges() {
-        return !nextBigBangEffects(BigBangMilestone.KeepChallenges.class).isEmpty();
+        // Version 0.151 : ou le palier de gluons « Défis liés ».
+        return !nextBigBangEffects(BigBangMilestone.KeepChallenges.class).isEmpty() || isGluonMilestoneReached(idle.core.collider.GluonMilestone.CHALLENGES);
     }
 
     /**
@@ -61,7 +62,8 @@ public abstract class GameMatterAutomation extends GameMolecules {
      * l'atteindra. Ce Big Bang-là en profite donc déjà.
      */
     public boolean bigBangKeepsDarkTree() {
-        return !nextBigBangEffects(BigBangMilestone.KeepDarkTree.class).isEmpty();
+        // Version 0.151 : ou le palier de gluons « Arbre lié ».
+        return !nextBigBangEffects(BigBangMilestone.KeepDarkTree.class).isEmpty() || isGluonMilestoneReached(idle.core.collider.GluonMilestone.DARK_TREE);
     }
 
     /** Vrai une fois atteint le palier de Big Bang qui donne la création automatique ({@link BigBangMilestone.AutoMolecules}). */

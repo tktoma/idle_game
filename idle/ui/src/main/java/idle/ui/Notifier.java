@@ -7,6 +7,7 @@ import idle.core.bigbang.BangAchievement;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.collider.ColliderAchievement;
+import idle.core.collider.GluonMilestone;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.DarkAutomation;
@@ -60,6 +61,12 @@ final class Notifier {
     private final java.util.EnumSet<Game.VoidUpgrade> voidMaxedSeen = java.util.EnumSet.noneOf(Game.VoidUpgrade.class);
     /** Version 0.149 : les hadrons qui se proposent dans le collisionneur, annoncés une fois par univers, comme le vide. */
     private boolean hadronsOfferedSeen = false;
+    /**
+     * Version 0.151 : les paliers de gluons atteints au dernier relevé. Chacun s'annonce une fois, quand il est atteint ;
+     * ceux qu'une partie relue avait déjà sont pris au premier relevé, sans bruit. Un univers qui reprend les hadrons
+     * les fait redescendre : atteint de nouveau, il s'annonce de nouveau.
+     */
+    private final java.util.EnumSet<GluonMilestone> gluonMilestonesSeen = java.util.EnumSet.noneOf(GluonMilestone.class);
     /** Les succès du collisionneur déjà gagnés au dernier relevé. */
     private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
     private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
@@ -157,6 +164,11 @@ final class Notifier {
         boolean hadronsOffered = game.isHadronsOffered();
         if (hadronsOffered && !hadronsOfferedSeen) add(news, Notice.COLLIDER, "Collisionneur : les hadrons se proposent. Leur onglet s'ouvre contre de l'énergie du collisionneur.");
         hadronsOfferedSeen = hadronsOffered;
+        for (GluonMilestone milestone : GluonMilestone.values()) {
+            if (game.isGluonMilestoneReached(milestone) && gluonMilestonesSeen.add(milestone)) {
+                add(news, Notice.COLLIDER, "Palier de gluons : " + milestone.label() + ". " + milestone.effect());
+            }
+        }
         boolean voidHole = game.isVoidHoleOpen();
         if (voidHole && !voidHoleSeen) add(news, Notice.VOID, "Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
         voidHoleSeen = voidHole;
@@ -412,6 +424,8 @@ final class Notifier {
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
         voidOfferedSeen = game.isVoidOffered();
         hadronsOfferedSeen = game.isHadronsOffered();
+        gluonMilestonesSeen.clear();
+        for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) gluonMilestonesSeen.add(milestone);
         voidHoleSeen = game.isVoidHoleOpen();
         voidMaxedSeen.clear();
         for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) if (game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max()) voidMaxedSeen.add(upgrade);

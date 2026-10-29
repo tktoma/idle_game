@@ -21,7 +21,7 @@ on:
         required: true
         default: "false"
       univers:
-        description: "Univers a former : 1 (le premier, comme avant), 2 ou 3 (le suivant se lance des l'univers forme ; le vide se joue dans le 3e ; sans dimensions ni graine). L'horizon reste global : 168 h suffisent aux trois univers des profils rapides, pas aux lents (LIMIT, pas un echec hors mode strict)"
+        description: "Univers a former : 1 (le premier, comme avant) a 11 (version 0.152). Les univers 2 et 3 se lancent des l'univers forme ; a partir du 4e, le bot arrose la graine jusqu'a son palier et joue l'arbre (bulles, hadrons). L'horizon reste global : 168 h suffisent aux trois univers des profils rapides, pas aux lents ni a onze univers (LIMIT, pas un echec hors mode strict)"
         required: true
         default: "1"
 

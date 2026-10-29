@@ -517,7 +517,7 @@ public abstract class GameAppBase extends Application {
         dock(Tab.UNIVERSE, universePage, universePage.subTabs());
         // Le vide (version 0.129) : ses paires, et ses améliorations à part.
         dock(Tab.VOID, voidPage, voidPage.subTabs());
-        // Les hadrons (version 0.149) : les gluons, seuls pour l'instant.
+        // Les hadrons (version 0.149) : les gluons ; les paliers et la liaison (version 0.151).
         dock(Tab.HADRONS, hadronsPage, hadronsPage.subTabs());
         universePage.setOnOpenDimension(number -> dimensionWindow.open(Dimension.of(number)));
         universePage.setOnOldTabs(shown -> refresh());

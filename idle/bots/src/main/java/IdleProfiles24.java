@@ -133,6 +133,11 @@ early(true, true, true, true ), // 22 WeekendPlayer
 early(false,false,false,false), // 23 Forgetful : oublie l'ordre et les sondes
 early(true, true, true, true ), // 24 ReturningVeteran : l'expert, peu présent
 };
+/** La façon de jouer l'arbre (univers 4 et suivants) d'un profil (version 0.152). */
+static UniverseTreePolicy.Style treeStyle(Profile p,EarlyStyle early){
+if(p.id()==1)return UniverseTreePolicy.Style.EXPERT;
+return new UniverseTreePolicy.Style(p.planning(),early.opening()?UniverseTreePolicy.Plan.BEST:UniverseTreePolicy.Plan.CHEAPEST);
+}
 private static EarlyStyle early(boolean opening,boolean darkBest,boolean bangChallenges,boolean longTrips){
 return new EarlyStyle(opening,darkBest,bangChallenges,longTrips);
 }
@@ -161,6 +166,9 @@ this.nextUniverse=new NextUniversePolicy(STYLES[profile.id-1],new Random(seed ^ 
 this.earlyStyle=EARLY_STYLES[profile.id-1];
 // Version 0.133 : et le vide du troisième univers, à sa façon aussi.
 this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (profile.id*6151L) ^ 0x701dL));
+// Version 0.152 : l'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
+// avec leur sens de l'organisation, et suivent l'ordre de l'expert s'ils suivent l'ordre d'achat du modèle.
+this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^ (profile.id*9173L) ^ 0x7ee1L));
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
 }

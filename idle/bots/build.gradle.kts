@@ -50,6 +50,11 @@ tasks.test {
     if (providers.gradleProperty("ciWithoutProfiles").orNull == "true") {
         exclude("**/Profiles24CampaignTest.class", "**/Profiles24LongCampaignTest.class")
     }
+    // Version 0.152 : le Speedrunner jusqu'à onze univers depuis zéro (de l'ordre d'une heure) ne tourne qu'à la
+    // demande : ./gradlew :bots:test --tests ElevenUniversesLongTest -PonzeUnivers=true (job « onze-univers » en CI).
+    if (providers.gradleProperty("onzeUnivers").orNull != "true") {
+        exclude("**/ElevenUniversesLongTest.class")
+    }
     val profileStart = providers.gradleProperty("ciProfilesStart").orNull
     val profileEnd = providers.gradleProperty("ciProfilesEnd").orNull
     check((profileStart == null) == (profileEnd == null)) {

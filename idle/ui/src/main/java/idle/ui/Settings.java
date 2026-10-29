@@ -187,7 +187,7 @@ public final class Settings {
         TAB_ICONS("Icônes animées", "les petites icônes des onglets qui bougent"),
         DARK_MATTER_MOTION("Matière noire animée", "la matière noire qui palpite et le fond qui scintille"),
         DARK_FALL("Chute de matière noire", "la spirale de matière qui tombe dans la matière noire"),
-        COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille ; les faisceaux restent, ils servent à viser"),
+        COLLIDER_MOTION("Animations du collisionneur", "les ondes des collisions, les quarks qui s'envolent, l'anneau qui scintille, la liaison des hadrons ; les faisceaux restent, ils servent à viser"),
         COLLIDER_SPARKS("Étincelles du collisionneur", "les gerbes au détecteur à chaque croisement"),
         BIG_BANG_MOTION("Animations du Big Bang", "l'espace, le ciel, les systèmes solaires et la galaxie qui tournent"),
         UNIVERSE_MOTION("Animations de l'univers", "la toile de l'univers qui tourne et sa naissance");

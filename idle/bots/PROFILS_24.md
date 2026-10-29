@@ -172,4 +172,20 @@ Les profils 1, 17, 21 et 24 jouent le vide en experts, sans tirer de hasard pour
 | 23 | Forgetful | 40 % | 25 % | le moins cher | 40 % | 30 % | oublie souvent |
 | 24 | ReturningVeteran | 100 % | 50 % | au mieux | 100 % | 100 % | l'expert, peu présent |
 
+## L'arbre, à partir de l'univers 4 (version 0.152)
+
+À partir de trois univers formés, chaque profil joue aussi la graine, les bulles de l'arbre, les hadrons et la ligne
+(`UniverseTreePolicy`, voir README, « Les univers 4 à 11 »). Pas de table à part : la façon de jouer se déduit du
+profil (`IdleProfiles24.treeStyle`).
+
+- **Soin** : la chance, à chaque décision, de s'occuper de l'arbre (arroser, acheter, lier) : 100 % pour le
+  Speedrunner, sinon le sens de l'organisation du profil (`planning`, de 35 % pour le RandomClicker à 100 %).
+- **Bulles** : dans l'ordre de l'expert pour ceux qui suivent l'ordre d'achat du modèle (les mêmes que « ordre
+  d'ouverture » plus haut), la moins chère sinon (PassiveOptimist, BulkBuyer, OneClick, RandomClicker, Beginner,
+  Forgetful).
+
+Tous attendent le palier de la graine avant de lancer l'univers suivant (dès l'univers 4) ; personne n'achète la bulle
+du bonsaï, à droite (voir README). Mesuré depuis zéro, une décision toutes les 20 s : le Speedrunner (graine 201) forme
+son onzième univers à 82 h 45, le Regular (graine 203) à 104 h 08.
+
 **Attention :** les modes historiques ne sont pas des humains. L'ancien défaut de fusion et de synthèse après le Big Bang, qui bloquait les profils 11, 12 et 17, est corrigé depuis le 19 octobre 2026 (voir README, « Les correctifs des bots »).

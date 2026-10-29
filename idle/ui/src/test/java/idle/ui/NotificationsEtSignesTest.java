@@ -128,4 +128,22 @@ class NotificationsEtSignesTest {
         assertEquals("… et " + (news.size() - 3) + " autres nouvelles", shown.get(3));
         assertEquals(List.of("a", "b"), Notifier.summarize(List.of("a", "b")));
     }
+
+    /** Version 0.151 : un palier de gluons s'annonce une fois, en « Collisionneur » ; une partie relue qui l'avait se tait. */
+    @Test
+    void unPalierDeGluonsSAnnonceUneFois() {
+        Game game = new Game();
+        game.start();
+        Notifier notifier = new Notifier(game);
+        assertTrue(notifier.poll().isEmpty(), "premier relevé : rien");
+        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 334);
+        List<Notifier.News> news = notifier.poll();
+        assertEquals(1, news.size(), news.toString());
+        assertEquals(Notice.COLLIDER, news.get(0).kind());
+        assertEquals("Palier de gluons : Mémoire des liaisons. " + idle.core.collider.GluonMilestone.UPGRADES.effect(), news.get(0).text());
+        assertTrue(notifier.poll().isEmpty(), "une seule fois");
+        Notifier reloaded = new Notifier(game);
+        assertTrue(reloaded.poll().isEmpty());
+        assertTrue(reloaded.poll().isEmpty(), "déjà atteint au chargement : rien");
+    }
 }

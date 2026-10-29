@@ -116,7 +116,7 @@ public abstract class GameVoid extends GameBigBang {
 
     /** L'énergie du vide que donne une paire à sa naissance : 1, plus 1 par niveau de gain, ×2 par niveau de la bulle du bonsaï. */
     public double voidPairGain() {
-        return (1 + voidLevel(VoidUpgrade.GAIN)) * voidBubbleFactor();
+        return (1 + voidLevel(VoidUpgrade.GAIN)) * voidBubbleFactor() * hadronBoost(idle.core.collider.Hadron.D_MESON);
     }
 
     /** Ce que la bulle du bonsaï, à gauche, fait au gain du vide (version 0.148) : ×2 par niveau, ×32 au plus. */

@@ -17,12 +17,22 @@ import java.util.Locale;
  * profil trop lent qui atteint le plafond (LIMIT) est signale, sans faire echouer le segment. Le sixieme
  * argument {@code strict} exige au contraire que chaque profil forme son univers.
  *
- * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut, 3 au plus depuis la 0.133) dit combien d'univers former. Au-dela du
+ * <p>Version 0.130 : le septieme argument {@code univers} (1 par defaut ; 3 au plus de la 0.133 a la 0.151, 11 depuis la 0.152) dit combien d'univers former. Au-dela du
  * premier, le bot lance l'univers suivant des que l'univers se forme, et rejoue les trois actes avec ce que le deuxieme
  * univers ajoute ({@link NextUniversePolicy}), sans dimensions ni graine. La victoire est alors le dernier univers vise.
+ *
+ * <p>Version 0.152 : jusqu'a {@link #MAX_UNIVERSES} univers (11). A partir du quatrieme, le bot attend le palier de la
+ * graine qui ouvre l'univers suivant, et joue l'arbre : bulles, hadrons, ligne, automatisation des dimensions
+ * ({@link UniverseTreePolicy}). Les univers 1 a 3 se jouent exactement comme avant.
  */
 public final class FreshUniverseAudit {
     private FreshUniverseAudit() {}
+
+    /**
+     * Le plus d'univers qu'un essai peut viser (version 0.152 : 11, la graine a onze paliers ; 3 de la 0.133 à la 0.151).
+     * À partir du quatrième, le bot arrose la graine, achète les bulles et lie les hadrons ({@link UniverseTreePolicy}).
+     */
+    static final int MAX_UNIVERSES = Game.SEED_STAGES;
 
     private static String clean(String text) {
         return String.valueOf(text).replace('\n', ' ').replace('\r', ' ');
@@ -67,6 +77,7 @@ public final class FreshUniverseAudit {
         report.append("vide=ouvert ").append(bot.voidPolicy.opened).append(" fois, ").append(bot.voidPolicy.bought)
                 .append(" ameliorations, ").append(bot.voidPolicy.sacrifices).append(" sacrifices ; facon de jouer ")
                 .append(bot.voidPolicy.style()).append('\n');
+        report.append("arbre=").append(bot.tree.summary(game)).append('\n');
         report.append("production_particules_par_s=").append(game.productionPerSecond()).append('\n');
         report.append("particules=").append(game.state().particles()).append('\n');
         report.append("atomes=").append(game.state().atoms()).append('\n');
@@ -99,8 +110,8 @@ public final class FreshUniverseAudit {
         Path root = Path.of(args[4]);
         if (first < 1 || last > 24 || first > last
                 || !Double.isFinite(maxHours) || maxHours <= 0
-                || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > 3) {
-            throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 à 3) invalides");
+                || !Double.isFinite(dt) || dt <= 0 || dt > 60 || universes < 1 || universes > MAX_UNIVERSES) {
+            throw new IllegalArgumentException("Bornes, horizon, pas de simulation ou univers (1 à " + MAX_UNIVERSES + ") invalides");
         }
         Files.createDirectories(root);
         StringBuilder csv = new StringBuilder(

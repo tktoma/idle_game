@@ -472,7 +472,8 @@ public abstract class GameParticles extends GameMatterAutomation {
                 factor *= Math.pow(discount.factorPerLevel(), state.levelOf(upgrade.id()));
             }
         }
-        return factor * Math.max(0.5, 1 - achievementBonus(Achievement.Bonus.GENERATOR_COST));
+        // Version 0.151 : les mésons B baissent le prix des générateurs.
+        return factor * Math.max(0.5, 1 - achievementBonus(Achievement.Bonus.GENERATOR_COST)) / hadronBoost(idle.core.collider.Hadron.B_MESON);
     }
 
     /** Vrai si la fusion conserve les améliorations payées en particules (hors générateurs). */
@@ -709,6 +710,7 @@ public abstract class GameParticles extends GameMatterAutomation {
                 .multiply(moleculeBoost(Molecule.Stat.PARTICLES))
                 .multiply(speedMilestoneMultiplier())
                 .multiply(colliderParticlesMultiplier())
+                .multiply(hadronBoost(idle.core.collider.Hadron.LAMBDA))
                 .multiply(bangAchievementMultiplier(BangAchievement.Reward.PARTICLES))
                 .multiply(perfectCycleMultiplier())
                 .multiply(universeBangFactor(BANG_UNIVERSE_PARTICLES));
@@ -813,7 +815,8 @@ public abstract class GameParticles extends GameMatterAutomation {
                 .multiply(fusionYield())
                 .multiply(fusionGroups() * fusionGroupBonus())
                 .multiply(cycleChoice() == idle.core.universe.CycleChoice.FUSION ? 1 + idle.core.universe.CycleChoice.FUSION_GAIN : 1)
-                .multiply(contractionAtomsMultiplier());
+                .multiply(contractionAtomsMultiplier())
+                .multiply(hadronBoost(idle.core.collider.Hadron.PROTON));
     }
 
     /**

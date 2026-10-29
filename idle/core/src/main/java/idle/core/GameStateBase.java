@@ -286,6 +286,8 @@ public abstract class GameStateBase {
     final int[] treeBubbleLevels = new int[TREE_BUBBLES];
     double voidSpent = 0;
     double voidTrickled = 0;
+    /** L'énergie du vide gardée d'un univers à l'autre et déjà comptée au cumul (version 0.152). */
+    double voidCarried = 0;
     final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;

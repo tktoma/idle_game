@@ -156,13 +156,14 @@ public abstract class GameDarkMatter extends GameParticles {
      */
     private void clearRun() {
         // Ce que la matière noire permet de garder, mis de côté avant de tout effacer.
-        Map<String, Integer> keptLevels = hasDark(DarkEffect.KeepUpgradesOnExplosion.class)
+        // Version 0.151 : les paliers de gluons gardent aussi, comme l'arbre.
+        Map<String, Integer> keptLevels = hasDark(DarkEffect.KeepUpgradesOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.UPGRADES)
                 ? state.upgradeLevels() : Map.of();
-        boolean keepAutomations = hasDark(DarkEffect.KeepAutomationsOnExplosion.class);
+        boolean keepAutomations = hasDark(DarkEffect.KeepAutomationsOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.AUTOMATIONS);
         java.util.Set<String> owned = keepAutomations ? state.ownedAutomations() : java.util.Set.of();
         java.util.Set<String> enabled = keepAutomations ? state.enabledAutomations() : java.util.Set.of();
         List<Integer> keptElements = new ArrayList<>();
-        if (hasDark(DarkEffect.KeepUniqueElementsOnExplosion.class)) {
+        if (hasDark(DarkEffect.KeepUniqueElementsOnExplosion.class) || isGluonMilestoneReached(idle.core.collider.GluonMilestone.ELEMENTS)) {
             for (int number : state.elements().keySet()) {
                 if (PeriodicTable.element(number).category().unique()) keptElements.add(number);
             }
@@ -522,7 +523,7 @@ public abstract class GameDarkMatter extends GameParticles {
         if (rewarded(Challenge.Reward.EXTRA_DARK_MATTER)) amount = amount.add(BigNum.ONE);
         double factor = (state.bigBangs() == 0 && firstRunPace > 1 ? FIRST_CYCLE_DARK_MATTER : 1) * bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER)
                 * (cycleChoice() == idle.core.universe.CycleChoice.RESERVE ? 1 + idle.core.universe.CycleChoice.RESERVE_GAIN : 1)
-                * universeDarkMatterFactor();
+                * universeDarkMatterFactor() * hadronBoost(idle.core.collider.Hadron.NEUTRON);
         return factor == 1 ? amount : amount.multiply(factor);
     }
 

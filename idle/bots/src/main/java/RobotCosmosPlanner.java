@@ -71,6 +71,11 @@ public class RobotCosmosPlanner {
   NextUniversePolicy nextUniverse=new NextUniversePolicy();
   /** Le vide du troisième univers (version 0.133) ; rien tant qu'il ne se propose pas. Les profils y mettent leur façon. */
   VoidPolicy voidPolicy=new VoidPolicy();
+  /**
+   * La graine, les bulles de l'arbre, les hadrons et la ligne, à partir de l'univers 4 (version 0.152) ; rien avant.
+   * Les profils y mettent leur façon.
+   */
+  UniverseTreePolicy tree=new UniverseTreePolicy();
   /** Les automates du collisionneur que le bot a mis en pause pour garder l'énergie du vide. */
   final Set<ColliderUpgrade> pausedForVoid=EnumSet.noneOf(ColliderUpgrade.class);
   /** Anomalies du ciel saisies (version 0.131). */
@@ -104,6 +109,9 @@ public class RobotCosmosPlanner {
     launchedNextUniverse=false;
     while(universesSeen<g.universes()){universesSeen++;universeTimes.add(clockSeconds());}
     if(NextUniversePolicy.reached(g,targetUniverses))return true;
+    // Version 0.152 : à partir de l'univers 4, l'univers suivant attend le palier de la graine qui l'ouvre (l'arrosoir
+    // est tenu en attendant) ; les univers 2 et 3 se lancent toujours dès l'univers formé, comme avant.
+    if(g.universes()<targetUniverses && g.canStartNextUniverse() && !tree.readyToLaunch(g))return false;
     if(NextUniversePolicy.launchNext(g,targetUniverses)){
       launchedNextUniverse=true;
       // Les explosions repartent de zéro : un défi abandonné dans l'univers d'avant se retente normalement.
@@ -167,7 +175,8 @@ public class RobotCosmosPlanner {
     if(!g.isColliderUnlocked())return;
     // Version 0.133 : tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates
     // d'achat attendent aussi, et repartent ensuite.
-    if(voidPolicy.savingForVoid(g)){
+    // Version 0.152 : de même pour l'onglet des hadrons, à partir de l'univers 4.
+    if(voidPolicy.savingForVoid(g) || tree.savingForHadrons(g)){
       for(ColliderGenerator gen:ColliderGenerator.values()){
         ColliderUpgrade auto=ColliderUpgrade.automationOf(gen);
         if(g.isColliderAutomationRunning(auto)){g.toggleColliderAutomation(auto);pausedForVoid.add(auto);}
@@ -471,6 +480,8 @@ public class RobotCosmosPlanner {
     // Version 0.130 : régime rapide, choix de cycle, famille préférée, éléments gratuits ; rien dans le premier univers.
     nextUniverse.play(g);
     voidPolicy.play(g);
+    // Version 0.152 : la graine, les bulles, les hadrons et la ligne ; rien avant l'univers 4.
+    tree.play(g);
     if(bangChallenges())return;
     logBigBangDiagnostic();
     g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient

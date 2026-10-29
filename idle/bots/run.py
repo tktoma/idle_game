@@ -68,13 +68,14 @@ def main():
         z.add_argument('--seed',type=int,default=42)
         z.add_argument('--checkpoint',default=str(CP)) if name in ('v2','profils') else None
         # Version 0.130 : combien d'univers former ; au-delà du premier, l'univers suivant se lance dès l'univers formé.
+        # Version 0.152 : jusqu'à 11 (de 4 à 11, le bot arrose la graine et joue l'arbre ; voir UniverseTreePolicy).
         # Pas pour « fresh » : sans le cosmos, l'univers ne se forme pas (l'audit depuis zéro joue le chemin complet).
-        z.add_argument('--univers',type=int,choices=[1,2,3],default=1) if name!='fresh' else None
+        z.add_argument('--univers',type=int,choices=range(1,12),default=1) if name!='fresh' else None
         z.add_argument('--out',default=None)
     z=sub.add_parser('audit',help="parties neuves des profils jusqu'à l'univers visé (FreshUniverseAudit)")
     z.add_argument('--de',type=int,choices=range(1,25),default=1);z.add_argument('--a',type=int,choices=range(1,25),default=1)
     z.add_argument('--hours',type=float,default=168);z.add_argument('--step',type=float,default=20)
-    z.add_argument('--univers',type=int,choices=[1,2,3],default=1);z.add_argument('--strict',action='store_true')
+    z.add_argument('--univers',type=int,choices=range(1,12),default=1);z.add_argument('--strict',action='store_true')
     z.add_argument('--out',default=None)
     z=sub.add_parser('dimensions',help="un bot par dimension : le temps jusqu'au rond vert (DimensionBots)")
     z.add_argument('dimension',nargs='?',choices=['ligne','plan','volume','duree','toutes'],default='toutes')

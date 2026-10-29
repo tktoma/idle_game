@@ -297,8 +297,13 @@ final class HelpPane extends Overlay {
                 + "se lient en hadrons : le proton (deux quarks haut, un bas) et le neutron (un haut, deux bas), puis, avec la "
                 + "bulle du cœur de l'arbre-monde, " + (Hadron.values().length - 2) + " particules exotiques, mésons et baryons "
                 + "étranges, charmés ou beaux. Un antiquark coûte un quark de sa saveur. « Lier 1 » en assemble un, « Lier "
-                + "tout » autant que les quarks en main le permettent. Les hadrons n'ont pas encore d'effet : on les assemble, "
-                + "on les compte. Un nouvel univers les reprend, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde."));
+                + "tout » autant que les quarks en main le permettent. Chaque sorte renforce une grandeur, ou divise un prix, "
+                + "de ×(1 + " + hundredths(Game.HADRON_BOOST_STEP) + " × log₁₀(1 + n)) pour n hadrons de cette sorte : ×"
+                + hundredths(1 + Game.HADRON_BOOST_STEP) + " à 9, ×" + hundredths(1 + 2 * Game.HADRON_BOOST_STEP) + " à 99, ×"
+                + hundredths(1 + 3 * Game.HADRON_BOOST_STEP) + " à 999. " + hadronBonuses() + ". Chaque quark "
+                + "lié compte un gluon ; les paliers de gluons, dans le sous-onglet « Paliers », agissent dès qu'ils sont "
+                + "atteints : " + gluonMilestones() + ". Le sous-onglet « Liaison » montre les quarks se lier. Un nouvel "
+                + "univers reprend les hadrons, et leurs gluons avec, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde."));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
                 + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")
@@ -349,5 +354,30 @@ final class HelpPane extends Overlay {
         text.append('\n').append(Detail.keyName(settings.detailKey())).append("  —  Afficher les détails")
                 .append("\nLes touches se changent dans les réglages.");
         return text.toString();
+    }
+
+    /** « Proton : atomes par fusion ; … ; méson B : prix des générateurs divisé » : ce que renforce chaque hadron (version 0.151). */
+    private static String hadronBonuses() {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        for (Hadron hadron : Hadron.values()) {
+            parts.add(hadron.label() + " : " + hadron.bonus() + (hadron.lowersCost() ? ", divisé" : ""));
+        }
+        return String.join(" ; ", parts);
+    }
+
+    /** « 1,25 » : un nombre à deux décimales, à la française. */
+    private static String hundredths(double value) {
+        return String.format(java.util.Locale.FRANCE, "%.2f", value);
+    }
+
+    /** « Mémoire des liaisons (1 000 gluons) : l'explosion garde … » : les paliers de gluons (version 0.151). */
+    private static String gluonMilestones() {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        for (idle.core.collider.GluonMilestone milestone : idle.core.collider.GluonMilestone.values()) {
+            String effect = milestone.effect();
+            parts.add(milestone.label() + " (" + Format.whole(milestone.gluons()) + " gluons), "
+                    + Character.toLowerCase(effect.charAt(0)) + effect.substring(1, effect.length() - 1));
+        }
+        return String.join(" ; ", parts);
     }
 }

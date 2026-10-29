@@ -92,7 +92,7 @@ class HadronsPageTest {
             assertEquals("u  haut : 30", page.quarkText(Quark.UP));
             assertEquals("b  beau : 30", page.quarkText(Quark.BOTTOM));
             assertEquals("", page.quarkText(Quark.TOP), "le top ne se garde pas");
-            assertTrue(page.effectNote().getText().contains("n'ont pas encore d'effet"), page.effectNote().getText());
+            assertTrue(page.effectNote().getText().contains("Chaque sorte renforce une grandeur"), page.effectNote().getText());
             Card proton = page.card(Hadron.PROTON);
             assertEquals(Card.State.READY, proton.state());
             for (String part : new String[] {"Proton", "u u d", "2 u + 1 d", "0 possédé", Hadron.PROTON.detail()}) {

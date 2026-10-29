@@ -6,6 +6,7 @@ import idle.core.StatsHistory;
 import idle.core.bigbang.BangChallenge;
 import idle.core.bigbang.BigBangMilestone;
 import idle.core.bigbang.SpaceUpgrade;
+import idle.core.collider.GluonMilestone;
 import idle.core.collider.Hadron;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
@@ -363,7 +364,7 @@ public abstract class StatsPageLines extends StatsPageBase {
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats, le vide, les bulles de l'arbre, les hadrons (version
-     * 0.149), et les règles du deuxième univers (régime, cycle, épreuves, skins, recherches).
+     * 0.149) et leurs gluons (version 0.151), et les règles du deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
         page("Univers", UniversePage.COLOR, () -> game.universes() > 0, "au premier univers formé");
@@ -440,6 +441,13 @@ public abstract class StatsPageLines extends StatsPageBase {
             long exotic = 0;
             for (Hadron hadron : Hadron.values()) if (hadron.isExotic()) exotic += game.hadrons(hadron);
             return game.isExoticHadronsUnlocked() || exotic > 0 ? Format.whole(exotic) : "pas encore ouvertes";
+        }, game::isHadronsUnlocked);
+        // Version 0.151 : les gluons, un par quark lié, et les paliers qu'ils ont atteints.
+        row("Gluons", () -> Format.whole(game.gluons()), game::isHadronsUnlocked);
+        row("Paliers de gluons atteints", () -> {
+            int reached = 0;
+            for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) reached++;
+            return reached + " / " + GluonMilestone.values().length;
         }, game::isHadronsUnlocked);
 
         // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.

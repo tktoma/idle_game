@@ -160,8 +160,9 @@ public final class ColliderPage extends VBox {
         if (hadrons) {
             double price = game.hadronsPrice(), energy = game.colliderEnergy();
             hadronsOffer.setText("Les hadrons se proposent. Dans leur onglet, les gluons lient les quarks des collisions en "
-                    + "protons et en neutrons, puis, avec la bulle du cœur de l'arbre-monde, en particules exotiques. Ils n'ont "
-                    + "pas encore d'effet. L'onglet s'ouvre contre dix minutes de production du collisionneur, comptées à son "
+                    + "protons et en neutrons, puis, avec la bulle du cœur de l'arbre-monde, en particules exotiques. Chaque "
+                    + "sorte renforce une grandeur ou baisse un prix, et les gluons qui les lient font garder plus à "
+                    + "l'explosion et au Big Bang. L'onglet s'ouvre contre dix minutes de production du collisionneur, comptées à son "
                     + "arrivée, une fois par univers."
                     + (energy < price ? " Encore " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price - energy)) + " énergie." : ""));
             openHadrons.setText("Ouvrir les hadrons : " + idle.ui.common.Format.count(idle.core.math.BigNum.of(price)) + " énergie");

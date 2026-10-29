@@ -277,4 +277,35 @@ class BullesEffetsTest {
         assertFalse(plain.state().completedBangChallenges().contains("VOID"));
         assertFalse(plain.isProbesUnlocked());
     }
+
+    /** Version 0.152 : le vide gardé ne compte au cumul que ce qu'il a gagné depuis la formation d'avant. */
+    @Test
+    void leVideGardeNeCompteQuUneFoisAuCumul() {
+        Game game = GameTestSupport.universe(3);
+        give(game, TreeBubble.GIANT_LEFT_LOW);
+        game.state().setVoidOpen(true);
+        game.state().setVoidEnergy(BigNum.of(5_000));
+        double before = game.voidAccumulated();
+        game.testFormUniverse();
+        assertEquals(before + 5_000, game.voidAccumulated(), 1e-6, "la première fois, tout le stock");
+        assertEquals(5_000, game.voidEnergy().toDouble(), 1e-6, "et le vide le garde");
+        game.state().setVoidEnergy(BigNum.of(7_000));
+        game.testFormUniverse();
+        assertEquals(before + 7_000, game.voidAccumulated(), 1e-6, "ensuite, seulement les 2 000 gagnés depuis");
+        assertEquals(7_000, GameTestSupport.reread(game.state()).voidCarried(), 1e-9, "ce qui est déjà compté se sauvegarde");
+    }
+
+    /** Version 0.152 : sans délai, le jeu avance par pas d'un quart de seconde, pas au délai le plus court. */
+    @Test
+    void sansDelaiLeJeuNAvancePasAuDelaiLePlusCourt() {
+        Game game = GameTestSupport.realGame();
+        game.state().addAutomation("auto_speed");
+        game.state().setAutomationEnabled("auto_speed", true);
+        give(game, TreeBubble.LEAVES_RIGHT);
+        game.state().setParticles(BigNum.of(1e30));
+        game.tick(10);
+        assertTrue(game.levelOf("speed") > 50, "il achète toujours tout : " + game.levelOf("speed"));
+        assertTrue(game.stats().automationActions() <= 100L * (long) Math.ceil(10 / Game.INSTANT_STEP) + 100,
+                "au plus cent actions par pas d'un quart de seconde : " + game.stats().automationActions());
+    }
 }

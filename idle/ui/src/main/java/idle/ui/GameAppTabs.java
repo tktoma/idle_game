@@ -631,6 +631,10 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (selectedTab == Tab.VOID) {
             voidPage.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         }
+        // La liaison des hadrons (version 0.151) : elle ne se joue que dans son sous-onglet, à l'écran.
+        if (selectedTab == Tab.HADRONS) {
+            hadronsPage.frame(dt, settings.effect(Settings.Effect.COLLIDER_MOTION));
+        }
         dimensionWindow.frame(dt, settings.effect(Settings.Effect.UNIVERSE_MOTION));
         lootPane.frame(dt);
         if (selectedTab != Tab.PARTICLES) {

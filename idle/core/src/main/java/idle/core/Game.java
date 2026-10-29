@@ -451,6 +451,9 @@ public final class Game extends GameDimensionAutomation {
     /** L'amélioration « Persistance », que la bulle de l'arbuste, à droite, offre. */
     private static final String PERSISTENCE = "atom_keep";
 
+    /** Le pas de temps des automatismes sans délai (version 0.152). */
+    static final double INSTANT_STEP = 0.25;
+
     /** Fait passer le temps : la production, puis les automatismes à leur rythme. */
     private void advance(double dt) {
         boolean automation = hasActiveAutomation();
@@ -461,7 +464,9 @@ public final class Game extends GameDimensionAutomation {
         }
         // Avec un automatisme en marche, on avance au rythme de son délai minimal : il agit ainsi
         // au même moment que le jeu soit affiché à 20 ou 200 images par seconde, ou rattrapé hors-ligne.
-        double maxStep = automation ? minAutomationInterval() : MAX_STEP;
+        // Sans délai (bulle du bonsaï, version 0.152) : chaque pas fait déjà tout ce qui se peut ; des pas plus courts ne
+        // feraient que recalculer les mêmes bonus des centaines de fois par seconde.
+        double maxStep = !automation ? MAX_STEP : isAutomationInstant() ? Math.max(minAutomationInterval(), INSTANT_STEP) : minAutomationInterval();
         double remaining = dt;
         do {
             double part = Math.min(remaining, maxStep);

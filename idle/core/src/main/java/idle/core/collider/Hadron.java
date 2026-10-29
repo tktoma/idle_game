@@ -9,7 +9,9 @@ import java.util.Map;
  * neutron (u d d) ; puis, avec la bulle du cœur de l'arbre-monde, les particules exotiques : mésons (un quark et un
  * antiquark) et baryons étranges. Un antiquark coûte un quark de sa saveur : le collisionneur ne fait pas la différence.
  *
- * <p>Ils n'ont pas encore d'effet : on les assemble, on les compte.
+ * <p>Version 0.151 : chaque sorte renforce une grandeur, ou fait baisser un prix, d'autant plus qu'on en a
+ * ({@link #bonus()}, ×(1 + 0,25 × log₁₀(1 + n))) ; et chaque quark lié compte un gluon, pour les paliers de gluons
+ * ({@link GluonMilestone}).
  */
 public enum Hadron {
     PROTON("Proton", "u u d", false, "Le noyau de l'hydrogène : deux quarks haut, un quark bas.", 2, 1, 0, 0, 0),
@@ -60,6 +62,34 @@ public enum Hadron {
     /** Une phrase sur lui. */
     public String detail() {
         return detail;
+    }
+
+    /** Ce qu'il renforce (version 0.151) : « atomes par fusion », « prix des améliorations du collisionneur »… */
+    public String bonus() {
+        return switch (this) {
+            case PROTON -> "atomes par fusion";
+            case NEUTRON -> "matière noire par explosion";
+            case PION -> "énergie du collisionneur";
+            case KAON -> "espace par seconde";
+            case LAMBDA -> "particules par création";
+            case OMEGA -> "éclats des quatre dimensions";
+            case D_MESON -> "énergie du vide";
+            case J_PSI -> "prix des améliorations du collisionneur";
+            case B_MESON -> "prix des générateurs";
+            case UPSILON -> "prix des générateurs du collisionneur";
+        };
+    }
+
+    /** Vrai pour ceux qui font baisser un prix au lieu de multiplier une grandeur. */
+    public boolean lowersCost() {
+        return this == J_PSI || this == B_MESON || this == UPSILON;
+    }
+
+    /** Les quarks liés dans un hadron : autant de gluons. */
+    public int quarkCount() {
+        int count = 0;
+        for (int need : recipe.values()) count += need;
+        return count;
     }
 
     /** Les quarks qu'il consomme, par saveur ; un antiquark compte pour un quark de sa saveur. */

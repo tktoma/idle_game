@@ -300,7 +300,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Éclats de chaque trait touché : 0,1, et 0,1 de plus par niveau de l'amélioration. */
     public double lineShardsPerTouch() {
-        return LINE_SHARD * (1 + state.lineYieldLevel());
+        // Version 0.151 : les omégas renforcent les éclats des quatre dimensions.
+        return LINE_SHARD * (1 + state.lineYieldLevel()) * hadronBoost(idle.core.collider.Hadron.OMEGA);
     }
 
     /**
@@ -481,7 +482,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Éclats du plan que donne chaque éclat ramassé : 1, et 1 de plus par niveau. */
     public double planeValue() {
-        return 1 + planeLevel(PlaneUpgrade.VALUE);
+        return (1 + planeLevel(PlaneUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
     }
 
     /** Secondes entre deux apparitions : 3, ×0,85 par niveau. */
@@ -670,7 +671,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Éclats du volume que donne chaque boule cueillie : 1, et 1 de plus par niveau. */
     public double volumeValue() {
-        return 1 + volumeLevel(VolumeUpgrade.VALUE);
+        return (1 + volumeLevel(VolumeUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
     }
 
     /** Secondes entre deux boules : 1,5, ×0,85 par niveau. */
@@ -930,7 +931,7 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Ce que vaut le premier tour d'une spirale ; le n-ième vaut n fois autant. */
     public double durationValue() {
-        return 1 + durationLevel(DurationUpgrade.VALUE);
+        return (1 + durationLevel(DurationUpgrade.VALUE)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
     }
 
     /** Les tours d'une spirale entière, du bord au centre. */
@@ -1693,6 +1694,7 @@ public abstract class GameUniverse extends GameAtoms {
         state.clearTreeBubbles();
         state.setVoidSpent(0);
         state.setVoidTrickled(0);
+        state.setVoidCarried(0);
         state.setHadronsOpen(false);
         state.setHadronsPrice(0);
         state.clearDimensionAutomations();
@@ -2386,7 +2388,7 @@ public abstract class GameUniverse extends GameAtoms {
         if (hasBubble(TreeBubble.MATURE_LEFT)) kept.add("Le collisionneur, grâce à la bulle de l'arbre mûr, à gauche.");
         if (hasBubble(TreeBubble.GIANT_LEFT_LOW)) {
             kept.add("Le vide, son énergie (" + wholeText(state.voidEnergy()) + "), son trou noir et ses améliorations, grâce à la "
-                    + "bulle du géant de gauche" + (launching ? "." : " ; son énergie rejoint aussi le cumul."));
+                    + "bulle du géant de gauche" + (launching ? "." : " ; ce qu'il a gagné depuis la dernière formation rejoint aussi le cumul."));
         }
         if (hasBubble(TreeBubble.MATURE_RIGHT)) {
             kept.add("La matière noire, son arbre, les explosions et les défis réussis (" + state.completedChallenges().size()
@@ -2448,7 +2450,11 @@ public abstract class GameUniverse extends GameAtoms {
         state.stats().noteUniverseTally(state.bigBangs(), moleculesCreated(), state.collisionRuns(), state.cometsCaught());
         // Le vide (version 0.129) : ce qu'il en reste à la formation s'ajoute au cumul, gardé d'un univers à l'autre.
         if (state.voidOpen()) {
-            state.noteVoidHistory(String.valueOf(another ? 2 + state.extraUniverses() : 1), state.voidEnergy().toDouble());
+            // Version 0.152 : l'énergie que le vide gardé (bulle du géant de gauche, en bas) apportait d'un univers d'avant
+            // est déjà dans le cumul ; seule celle gagnée depuis s'y ajoute. Elle était comptée à chaque formation.
+            double stock = state.voidEnergy().toDouble();
+            state.noteVoidHistory(String.valueOf(another ? 2 + state.extraUniverses() : 1), Math.max(0, stock - state.voidCarried()));
+            state.setVoidCarried(hasBubble(TreeBubble.GIANT_LEFT_LOW) ? stock : 0);
         }
         state.startUniverse();
         if (another) state.setExtraUniverses(state.extraUniverses() + 1);
