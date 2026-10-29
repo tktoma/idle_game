@@ -8,7 +8,7 @@ package idle.core.universe;
  *
  * <p>Ceux de la dimension 1 se paient en graines d'univers ; ceux de la dimension n, avec la ressource de la dimension
  * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée,
- * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154), les ondes de la brane pour le clicker (version 0.155), les étincelles du clicker pour la grille (version 0.156).
+ * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154), les ondes de la brane pour le clicker (version 0.155), les étincelles du clicker pour la grille (version 0.156), les repères de la grille pour le miroir (version 0.157).
  */
 public enum DimensionAutomation {
     LINE_YIELD(1, Kind.UPGRADE, 0, "Densité"),
@@ -59,18 +59,26 @@ public enum DimensionAutomation {
     CLICKER_ZONE_SIZE(7, Kind.UPGRADE, 6, "Taille des zones"),
     CLICKER_STACK(7, Kind.UPGRADE, 7, "Zones superposées"),
     // Version 0.156 : la grille, payée en étincelles du clicker.
-    GRID_PROBE(8, Kind.PLAY, -1, "Sondage automatique"),
-    GRID_DIVISION(8, Kind.UPGRADE, 0, "Division de la grille"),
+    GRID_PROBE(8, Kind.PLAY, -1, "Essais automatiques"),
+    GRID_DIVISION(8, Kind.UPGRADE, 0, "Réduction de la grille"),
     GRID_GAIN(8, Kind.UPGRADE, 1, "Gain"),
     GRID_REVEAL(8, Kind.UPGRADE, 2, "Affichage du point"),
     GRID_POINTS(8, Kind.UPGRADE, 3, "Nombre de points"),
-    GRID_PROXIMITY(8, Kind.UPGRADE, 4, "Multiplicateur de proximité");
+    GRID_PROXIMITY(8, Kind.UPGRADE, 4, "Multiplicateur de proximité"),
+    GRID_ATTEMPTS(8, Kind.UPGRADE, 5, "Essais"),
+    // Version 0.157 : le miroir, payé en repères de la grille.
+    MIRROR_PLAY(9, Kind.PLAY, -1, "Miroir automatique"),
+    MIRROR_GAIN(9, Kind.UPGRADE, 0, "Gain"),
+    MIRROR_LENGTH(9, Kind.UPGRADE, 1, "Multiplicateur de longueur"),
+    MIRROR_MEMORY(9, Kind.UPGRADE, 2, "Temps de mémorisation"),
+    MIRROR_MISTAKES(9, Kind.UPGRADE, 3, "Seconde chance"),
+    MIRROR_BOARD(9, Kind.UPGRADE, 4, "Plateau plus grand");
 
     /** Ce que fait l'automatisme : jouer la dimension, ou acheter une de ses améliorations. */
     public enum Kind { PLAY, UPGRADE }
 
     /** Le prix du premier automatisme de chaque dimension, dans la ressource qui le paie (graines, segments, facettes, sphères). */
-    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000, 2_000, 2_000};
+    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000, 2_000, 2_000, 2_000};
     /** Ce que chaque automatisme suivant de la même dimension coûte de plus : ×2 (les graines : +1 tous les deux). */
     public static final double COST_GROWTH = 2;
 
@@ -86,7 +94,7 @@ public enum DimensionAutomation {
         this.label = label;
     }
 
-    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille. */
+    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir. */
     public int dimension() {
         return dimension;
     }

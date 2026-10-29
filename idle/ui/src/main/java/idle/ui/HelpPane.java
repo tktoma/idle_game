@@ -228,13 +228,13 @@ final class HelpPane extends Overlay {
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
                 + "production ou divise des prix par deux."));
         // Les dimensions (version 0.128) : une par univers, et ce que font les sept qui se jouent (la boucle, version 0.153 ;
-        // la brane, version 0.154 ; le clicker, version 0.155 ; la grille, version 0.156).
+        // la brane, version 0.154 ; le clicker, version 0.155 ; la grille, version 0.156 ; le miroir, version 0.157).
         if (game.isDimensionsUnlocked()) sections.add(new Section("Dimensions", "Dans l'onglet Univers, une dimension "
                 + "s'ouvre à chaque univers. Chacune a ses éclats, propres à elle, et un seuil d'éclats gagnés, un quart d'heure "
                 + "de jeu environ, qui marque la dimension d'un rond vert. Ces éclats ont leur nom : les segments de la ligne, les facettes du plan, "
                 + "les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes de la brane, les étincelles "
-                + "du clicker, les repères de la grille ; ils paient aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre "
-                + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo, graine profonde). La graine s'arrose à l'arrosoir : "
+                + "du clicker, les repères de la grille, les reflets du miroir ; ils paient aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre "
+                + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo, graine profonde, saisons). La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
                 + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
@@ -300,16 +300,28 @@ final class HelpPane extends Overlay {
                         + ElementText.number(game.weatherStormSeconds()) + " secondes) ; la branche « Clicker » de la graine "
                         + "allonge le beau temps, raccourcit les orages et renforce le soleil." : "")
                 // La grille (version 0.156), et la graine profonde qui vient avec elle.
-                + (game.isGridOpen() ? " Dans la grille, des points se cachent dans un cube découpé en cases ; on choisit "
-                        + "une couche (les boutons, la molette ou les flèches haut et bas) et l'on sonde une case d'un clic. "
-                        + "Plus son centre est près d'un point, plus elle donne de repères ; la case qui contient le point le "
-                        + "trouve (×" + ElementText.number(Game.GRID_FOUND) + "), et il se cache ailleurs. Après chaque sondage, "
-                        + "la grille attend " + ElementText.number(Game.GRID_COOLDOWN) + " seconde. L'affichage du point montre "
-                        + "d'abord la distance de chaque sondage (les cases sondées vont alors du froid au chaud), puis la "
-                        + "couche et enfin la colonne du point le plus proche du dernier sondage ; avant, seul le gain se voit. "
-                        + "Ses autres améliorations : division de la grille, gain, nombre de points, multiplicateur de "
-                        + "proximité. Avec la grille, la graine profonde, payée en repères, multiplie tout l'arrosage, jusqu'à "
-                        + "la racine carrée de la puissance de dix de l'énergie du vide récupérée." : "")));
+                + (game.isGridOpen() ? " Dans la grille, des points se cachent dans un cube énorme, mille cases par côté "
+                        + "au départ ; on choisit une couche (les boutons, la molette ou les flèches haut et bas), on vise une "
+                        + "case (un clic sur la carte, que le zoom précise, ou ses coordonnées x, y, z) et on l'essaie. Chaque "
+                        + "point n'a qu'un essai : il vise le point le plus proche, donne d'autant plus de repères qu'il en est "
+                        + "près, le trouve s'il tombe sur sa case (×" + ElementText.number(Game.GRID_FOUND) + "), puis le point se "
+                        + "cache ailleurs. Après chaque essai, la grille attend " + ElementText.number(Game.GRID_COOLDOWN)
+                        + " seconde. La réduction de la grille la rend plus petite, jusqu'à deux cases par côté : plus de "
+                        + "chances de toucher ; petite, elle se montre case par case et un clic l'essaie. L'affichage du point "
+                        + "montre d'abord la distance de chaque essai (les cases essayées vont alors du froid au chaud), puis "
+                        + "la couche et enfin la colonne du point visé par le dernier essai, tant qu'il lui reste un essai ; "
+                        + "avant, seul le gain se voit. Ses autres améliorations : gain, nombre de points, multiplicateur de "
+                        + "proximité, et des essais de plus par point. Avec la grille, la graine profonde, payée en repères, multiplie tout l'arrosage, jusqu'à "
+                        + "la racine carrée de la puissance de dix de l'énergie du vide récupérée." : "")
+                // Le miroir (version 0.157), et les saisons qui viennent avec lui.
+                + (game.isMirrorOpen() ? " Dans le miroir, un motif s'allume case après case sur la moitié gauche du "
+                        + "plateau, puis s'éteint : il faut le refaire de mémoire, en miroir, sur la moitié droite, dans le même "
+                        + "ordre. Réussi, il donne des reflets, d'autant plus qu'il est long, et le suivant a une case de plus ; "
+                        + "manqué, il donne un peu, et le suivant a une case de moins. Ses améliorations : gain, multiplicateur "
+                        + "de longueur, temps de mémorisation, seconde chance (des erreurs permises) et plateau plus grand. "
+                        + "Avec le miroir, les saisons passent sur la graine, deux minutes chacune : une fois l'amélioration "
+                        + "« Saisons » achetée (elle attend l'étage du chrono), chaque arrosage remplit le chrono, davantage au "
+                        + "printemps, moins en hiver." : "")));
         // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
         if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "La bulle du "
                 + "sommet de l'arbre-monde ouvre le sous-onglet « Dimensions » de l'onglet Automatisation : "
@@ -319,7 +331,7 @@ final class HelpPane extends Overlay {
                 + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ", ceux de la "
                 + "boucle en " + Game.dimensionResourceName(4) + ", ceux de la brane en " + Game.dimensionResourceName(5)
                 + ", ceux du clicker en " + Game.dimensionResourceName(6) + ", ceux de la grille en "
-                + Game.dimensionResourceName(7) + ". La visée "
+                + Game.dimensionResourceName(7) + ", ceux du miroir en " + Game.dimensionResourceName(8) + ". La visée "
                 + "automatique fait filer le point du plan vers l'éclat le plus proche tant que vous ne tenez aucune touche ; "
                 + "la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
                 + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
@@ -327,8 +339,10 @@ final class HelpPane extends Overlay {
                 + "passage d'un point de la boucle dans une zone, clic par clic ; la tirée automatique tire la membrane de "
                 + "la brane à fond, au milieu des points, toutes les " + ElementText.number(Game.BRANE_AUTO_SECONDS)
                 + " secondes ; les clics automatiques cliquent " + ElementText.number(Game.CLICKER_AUTO_RATE) + " fois par "
-                + "seconde là où se superposent le plus de zones du clicker ; le sondage automatique sonde toutes les "
-                + ElementText.number(Game.GRID_AUTO_SECONDS) + " secondes une case près d'un point de la grille. Les autres achètent chacun une amélioration dès "
+                + "seconde là où se superposent le plus de zones du clicker ; les essais automatiques essaient toutes "
+                + "les " + ElementText.number(Game.GRID_AUTO_SECONDS) + " secondes une case près d'un point de la grille ; "
+                + "le miroir automatique refait le motif, une case toutes les " + ElementText.number(Game.MIRROR_AUTO_STEP)
+                + " seconde. Les autres achètent chacun une amélioration dès "
                 + "qu'elle est payable. Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
                 + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
                 + "tous. Achetés, ils traversent les univers."));

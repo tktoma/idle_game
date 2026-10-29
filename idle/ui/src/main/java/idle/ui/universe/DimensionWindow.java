@@ -10,6 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -31,14 +32,18 @@ import javafx.scene.layout.VBox;
  * plus vite que chaque clic rapporte davantage, et dans les zones ×2 qui s'y superposent ; ses huit améliorations sont
  * sous la vue. La grille a la sienne depuis la version 0.156 : on choisit une couche du cube (boutons, molette ou flèches
  * haut et bas) et l'on sonde ses cases ; ce que la grille montre du point le plus proche suit l'amélioration
- * « Affichage du point », jamais plus. Ses cinq améliorations sont sous la vue. Les deux autres restent des visuels.
+ * « Affichage du point », jamais plus ; refaite en 0.157 : mille cases par côté au départ, on vise une case (un clic sur
+ * la carte, ou ses coordonnées) et on l'essaie, un essai par point caché. Le miroir a la sienne depuis la version 0.157 :
+ * un motif s'allume à gauche, on le refait de mémoire, en miroir, à droite ; ses cinq améliorations sont sous la vue. Le
+ * dixième reste un visuel.
  *
  * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
  * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
  * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
  * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière. Le rythme automatique de la
  * boucle (version 0.153), la tirée automatique de la brane (version 0.154), les clics automatiques du clicker (version
- * 0.155) et le sondage automatique de la grille (version 0.156) jouent de même, fenêtre ouverte ou non.
+ * 0.155), les essais automatiques de la grille (version 0.156) et le miroir automatique (version 0.157) jouent de même,
+ * fenêtre ouverte ou non.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -47,10 +52,11 @@ public final class DimensionWindow extends BorderPane {
 
     /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
     private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5",
-            BRANE_COLOR = "#7fe0d4", CLICKER_COLOR = "#ffb36b", GRID_COLOR = "#a8b8ff";
+            BRANE_COLOR = "#7fe0d4", CLICKER_COLOR = "#ffb36b", GRID_COLOR = "#a8b8ff",
+            MIRROR_COLOR = "#ff7ad9";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
-    /** La couleur de la dimension {@code number} (1 à 8), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    /** La couleur de la dimension {@code number} (1 à 9), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
     public static String color(int number) {
         return switch (number) {
             case 2 -> PLANE_COLOR;
@@ -60,6 +66,7 @@ public final class DimensionWindow extends BorderPane {
             case 6 -> BRANE_COLOR;
             case 7 -> CLICKER_COLOR;
             case 8 -> GRID_COLOR;
+            case 9 -> MIRROR_COLOR;
             default -> UniversePage.COLOR;
         };
     }
@@ -187,7 +194,20 @@ public final class DimensionWindow extends BorderPane {
     private final Button gridDown = new Button("▼ Couche du dessous");
     private final Button gridUp = new Button("Couche du dessus ▲");
     private final java.util.Map<Game.GridUpgrade, Button> gridButtons = new java.util.EnumMap<>(Game.GridUpgrade.class);
+    /** Version 0.157 : la taille de la grille, la case visée (x, y, z), le bouton qui l'essaie, et le zoom de la carte. */
+    private final Label gridSize = new Label();
+    private final TextField gridX = new TextField(), gridY = new TextField(), gridZ = new TextField();
+    private final Button gridTry = new Button("Essayer");
+    private final Button gridZoomIn = new Button("Zoom +"), gridZoomOut = new Button("Zoom −");
     private final VBox gridPane;
+    /** Le miroir (version 0.157) : ses reflets, son seuil, ce qu'on y fait, ses compteurs, et ses cinq améliorations. */
+    private final Label mirrorShards = new Label();
+    private final Label mirrorThreshold = new Label();
+    private final Label mirrorHint = new Label();
+    private final Label mirrorCounts = new Label();
+    private final Label mirrorDetail = new Label();
+    private final java.util.Map<Game.MirrorUpgrade, Button> mirrorButtons = new java.util.EnumMap<>(Game.MirrorUpgrade.class);
+    private final VBox mirrorPane;
     /** Les touches de cercles tenues : une touche tenue se répète, mais ne rejoue pas son cercle. */
     private final java.util.Set<javafx.scene.input.KeyCode> loopKeysHeld = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     /** La barre d'espace tient le bouton de la durée, comme la souris. */
@@ -386,7 +406,7 @@ public final class DimensionWindow extends BorderPane {
         Labels.centered(gridHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         gridHint.setMaxWidth(820);
         gridHint.setAlignment(Pos.CENTER);
-        // Deux lignes toujours : la grille ne bouge pas quand le dernier sondage change le texte.
+        // Deux lignes toujours : la grille ne bouge pas quand le dernier essai change le texte.
         gridHint.setMinHeight(38);
         gridHint.setPrefHeight(38);
         Labels.note(gridDetail, 820);
@@ -405,8 +425,47 @@ public final class DimensionWindow extends BorderPane {
             view.shiftGridLayer(1);
             refresh();
         });
+        gridLayerLabel.setMinWidth(200);
         HBox gridLayers = new HBox(10, gridDown, gridLayerLabel, gridUp);
         gridLayers.setAlignment(Pos.CENTER);
+        gridSize.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        HBox gridAim = new HBox(8);
+        gridAim.setAlignment(Pos.CENTER);
+        String[] axes = {"x", "y", "z"};
+        TextField[] fields = {gridX, gridY, gridZ};
+        for (int axis = 0; axis < 3; axis++) {
+            TextField field = fields[axis];
+            field.setPrefWidth(70);
+            field.setOnAction(event -> {
+                selectFromFields();
+                view.tryGrid();
+                refresh();
+            });
+            field.textProperty().addListener((obs, was, now) -> {
+                if (field.isFocused()) selectFromFields();
+            });
+            Label name = new Label(axes[axis]);
+            name.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GRID_COLOR + ";");
+            gridAim.getChildren().addAll(name, field);
+        }
+        for (Button button : new Button[] {gridTry, gridZoomIn, gridZoomOut}) {
+            button.setStyle(BUTTON_STYLE);
+            button.setFocusTraversable(false);
+        }
+        gridTry.setOnAction(event -> {
+            selectFromFields();
+            view.tryGrid();
+            refresh();
+        });
+        gridZoomIn.setOnAction(event -> {
+            view.zoomGrid(1);
+            refresh();
+        });
+        gridZoomOut.setOnAction(event -> {
+            view.zoomGrid(-1);
+            refresh();
+        });
+        gridAim.getChildren().addAll(gridTry, gridZoomOut, gridZoomIn);
         javafx.scene.layout.FlowPane gridRow = new javafx.scene.layout.FlowPane(12, 10);
         gridRow.setAlignment(Pos.CENTER);
         for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) {
@@ -414,10 +473,30 @@ public final class DimensionWindow extends BorderPane {
             gridButtons.put(upgrade, button);
             gridRow.getChildren().add(button);
         }
-        gridPane = new VBox(10, gridShards, gridThreshold, gridHint, gridLayers, gridDetail, gridRow);
+        gridPane = new VBox(8, gridShards, gridThreshold, gridSize, gridHint, gridLayers, gridAim, gridDetail, gridRow);
         gridPane.setAlignment(Pos.CENTER);
         gridPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane));
+        mirrorShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + MIRROR_COLOR + ";");
+        mirrorThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        mirrorCounts.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        Labels.centered(mirrorHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        mirrorHint.setMaxWidth(820);
+        mirrorHint.setAlignment(Pos.CENTER);
+        // Deux lignes toujours : le plateau ne bouge pas quand la phase change le texte.
+        mirrorHint.setMinHeight(38);
+        mirrorHint.setPrefHeight(38);
+        Labels.note(mirrorDetail, 820);
+        javafx.scene.layout.FlowPane mirrorRow = new javafx.scene.layout.FlowPane(12, 10);
+        mirrorRow.setAlignment(Pos.CENTER);
+        for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values()) {
+            Button button = upgradeButton(230, () -> game.buyMirror(upgrade));
+            mirrorButtons.put(upgrade, button);
+            mirrorRow.getChildren().add(button);
+        }
+        mirrorPane = new VBox(10, mirrorShards, mirrorThreshold, mirrorCounts, mirrorHint, mirrorDetail, mirrorRow);
+        mirrorPane.setAlignment(Pos.CENTER);
+        mirrorPane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane));
         setVisible(false);
     }
 
@@ -454,9 +533,13 @@ public final class DimensionWindow extends BorderPane {
         return false;
     }
 
-    /** Recopie la dimension montrée (de la ligne à la grille) : ses éclats, et ce que coûtent ses améliorations. */
+    /** Recopie la dimension montrée (de la ligne au miroir) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
         autoBadge.setVisible(automatic());
+        boolean mirror = view.dimension() == Dimension.MIRROR && game.isMirrorOpen();
+        mirrorPane.setVisible(mirror);
+        mirrorPane.setManaged(mirror);
+        if (mirror) refreshMirror();
         boolean grid = view.dimension() == Dimension.GRID && game.isGridOpen();
         gridPane.setVisible(grid);
         gridPane.setManaged(grid);
@@ -748,35 +831,53 @@ public final class DimensionWindow extends BorderPane {
     }
 
     /**
-     * La grille : ses repères, son seuil, comment on y joue ou ce que fait le sondage automatique, le dernier sondage tel
-     * que l'affichage permet de le dire (le gain, puis la distance, la couche et la colonne du point le plus proche), la
-     * couche montrée, le détail, et ses améliorations.
+     * La grille : ses repères, son seuil, sa taille, comment on y joue ou ce que font les essais automatiques, le dernier
+     * essai tel que l'affichage permet de le dire (le gain, puis la distance, la couche et la colonne du point visé) et
+     * les essais qu'il reste sur ce point, la couche et la case visée, le zoom, le détail, et ses améliorations.
      */
     private void refreshGrid() {
         gridShards.setText("Repères de la grille : " + shardText(game.state().gridShards()));
         threshold(gridThreshold, game.isDimensionThresholdReached(8), game.state().gridShardsEarned(), Game.GRID_THRESHOLD, "repères gagnés", 8);
         int layer = view.gridLayer(), n = game.gridDivisions();
-        gridLayerLabel.setText("Couche " + (layer + 1) + " / " + n);
+        gridLayerLabel.setText(DimensionView.layerText(layer, n));
         gridDown.setDisable(layer <= 0);
         gridUp.setDisable(layer >= n - 1);
+        // La case visée : les champs suivent la vue (un clic sur la carte, une couche changée), sans écraser la saisie en cours.
+        int[] at = view.gridSelected();
+        TextField[] fields = {gridX, gridY, gridZ};
+        for (int axis = 0; axis < 3; axis++) {
+            if (!fields[axis].isFocused() && parsed(fields[axis]) != at[axis]) fields[axis].setText(String.valueOf(at[axis]));
+        }
+        gridTry.setDisable(!game.canProbeGrid());
+        boolean big = !view.gridClickable();
+        gridZoomIn.setDisable(!big || view.gridSpan() <= DimensionView.GRID_CLICK_CELLS);
+        gridZoomOut.setDisable(!big || view.gridZoom() == 0);
+        String size = Format.whole(n) + " × " + Format.whole(n) + " × " + Format.whole(n);
+        gridSize.setText("Grille de " + size + " cases" + (big ? ", la carte en montre " + Format.whole(view.gridSpan()) + " × "
+                + Format.whole(view.gridSpan()) : "") + " · " + game.gridAttempts() + (game.gridAttempts() > 1 ? " essais" : " essai")
+                + " par point");
         String last = lastProbeText();
+        String how = big ? "Visez une case (un clic sur la carte, ou ses coordonnées), puis « Essayer »"
+                : "Cliquez une case pour l'essayer";
         gridHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE)
-                ? "Sondage automatique : toutes les " + seconds(Game.GRID_AUTO_SECONDS) + " s, il sonde une case près d'un "
-                        + "point, et tombe dessus une fois sur quatre. Vos sondages comptent en plus." + last
-                : "Cliquez une case pour la sonder (la molette ou les flèches haut et bas changent de couche) : plus elle est "
-                        + "près d'un point caché, plus elle donne de repères ; celle qui le contient le trouve, "
-                        + Format.multiplier(Game.GRID_FOUND) + "." + last);
+                ? "Essais automatiques : toutes les " + seconds(Game.GRID_AUTO_SECONDS) + " s, une case près d'un point ; sur "
+                        + "une grande grille ils ne trouvent presque jamais, réduite souvent. Vos essais comptent en plus." + last
+                : how + " (la molette ou les flèches haut et bas changent de couche) : plus elle est près d'un point caché, "
+                        + "plus elle donne de repères ; celle qui le contient le trouve, " + Format.multiplier(Game.GRID_FOUND) + "." + last);
         StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
         for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) levels.append('/').append(game.gridLevel(upgrade));
         if (changed(gridDetail, levels.toString())) {
-            gridDetail.setText(idle.ui.common.Detail.only("Le cube fait " + Math.round(Game.GRID_SIZE) + " de côté, en " + n
-                + " cases par côté de " + Math.round(game.gridCellSize()) + " ; " + game.gridPointCount() + " point"
-                + (game.gridPointCount() > 1 ? "s s'y cachent" : " s'y cache") + ". Un sondage donne " + shardText(game.gridValue())
-                + " repère" + (game.gridValue() >= 2 ? "s" : "") + " multiplié par la proximité du centre de la case au point le "
-                + "plus proche : " + Format.multiplier(game.gridProximityFactor(Game.GRID_DIAGONAL)) + " au plus loin, "
-                + Format.multiplier(game.gridProximityFactor(0)) + " sur le point ; la case qui contient le point le trouve ("
-                + Format.multiplier(Game.GRID_FOUND) + "), et il se cache ailleurs. Après chaque sondage, "
-                + seconds(Game.GRID_COOLDOWN) + " s d'attente. " + revealText(game.gridReveal())
+            gridDetail.setText(idle.ui.common.Detail.only("La grille compte " + size + " cases ; " + game.gridPointCount() + " point"
+                + (game.gridPointCount() > 1 ? "s s'y cachent" : " s'y cache") + ", et chacun n'a que " + game.gridAttempts()
+                + (game.gridAttempts() > 1 ? " essais" : " essai") + " : un essai vise le point le plus proche, et une fois ses "
+                + "essais épuisés, ou trouvé, le point se cache ailleurs. Un essai donne " + shardText(game.gridValue())
+                + " repère" + (game.gridValue() >= 2 ? "s" : "") + " multiplié par la proximité, comptée en part de la grille : "
+                + Format.multiplier(game.gridProximityFactor(n * Math.sqrt(3))) + " au plus loin, "
+                + Format.multiplier(game.gridProximityFactor(0)) + " sur le point ; la case du point le trouve ("
+                + Format.multiplier(Game.GRID_FOUND) + "). Après chaque essai, " + seconds(Game.GRID_COOLDOWN)
+                + " s d'attente. La réduction divise la grille par " + idle.ui.common.ElementText.number(1 / Game.GRID_SHRINK)
+                + " par niveau, jusqu'à " + Game.GRID_MIN_CELLS + " cases par côté : moins de cases, plus de chances. "
+                + revealText(game.gridReveal())
                 + " Les repères, le seuil et les améliorations de la grille traversent les univers ; le seuil marque la "
                 + "dimension d'un rond vert, et les repères paient aussi la graine profonde."));
             gridDetail.setVisible(!gridDetail.getText().isEmpty());
@@ -786,30 +887,49 @@ public final class DimensionWindow extends BorderPane {
                 " repère", GRID_COLOR);
     }
 
+    /** Le nombre d'un champ de coordonnée, ou −1 s'il n'en est pas un. */
+    private static int parsed(TextField field) {
+        try {
+            return Integer.parseInt(field.getText().trim());
+        } catch (NumberFormatException notANumber) {
+            return -1;
+        }
+    }
+
+    /** Vise la case des trois champs ; ce qui n'est pas un nombre garde la case d'avant sur son axe. */
+    private void selectFromFields() {
+        int[] at = view.gridSelected();
+        int x = parsed(gridX), y = parsed(gridY), z = parsed(gridZ);
+        view.selectGrid(x < 0 ? at[0] : x, y < 0 ? at[1] : y, z < 0 ? at[2] : z);
+    }
+
     /**
-     * Le dernier sondage, autant que l'affichage le permet : son gain (au niveau 0, rien d'autre), puis la distance au
-     * point le plus proche, sa couche, sa colonne. Rien sans sondage.
+     * Le dernier essai, autant que l'affichage le permet : son gain (au niveau 0, rien d'autre), puis la distance au
+     * point visé, sa couche, sa colonne ; et les essais qu'il reste sur ce point. Rien sans essai.
      */
     private String lastProbeText() {
         Game.GridProbe probe = game.gridLastProbe();
         if (probe == null) return "";
-        StringBuilder text = new StringBuilder(" Dernier sondage : ").append(probe.found() ? "trouvé ! " : "")
+        StringBuilder text = new StringBuilder(" Dernier essai : ").append(probe.found() ? "trouvé ! " : "")
                 .append('+').append(shardText(probe.gain()));
         int reveal = game.gridReveal();
-        if (reveal >= 1) text.append(", à ").append(Math.round(probe.distance())).append(" du point le plus proche");
+        if (reveal >= 1) text.append(", à ").append(idle.ui.common.ElementText.number(probe.distance())).append(" cases du point visé");
         int[] revealed = view.gridRevealed();
-        if (reveal >= 2) text.append(", dans la couche ").append(revealed[0] + 1);
-        if (reveal >= 3) text.append(", la colonne ").append(revealed[1] + 1);
+        if (reveal >= 2 && revealed[0] >= 0) text.append(", dans la couche z = ").append(revealed[0]);
+        if (reveal >= 3 && revealed[1] >= 0) text.append(", la colonne x = ").append(revealed[1]);
+        if (!probe.found()) text.append(probe.triesLeft() > 0 ? " ; encore " + probe.triesLeft() + (probe.triesLeft() > 1 ? " essais" : " essai")
+                + " sur ce point" : " ; plus d'essai : le point s'est caché ailleurs");
         return text.append('.').toString();
     }
 
     /** Ce que montre l'affichage du point à ce niveau. */
     private static String revealText(int level) {
         return switch (level) {
-            case 0 -> "La grille ne montre que le gain de chaque sondage.";
-            case 1 -> "La grille montre la distance de chaque sondage au point le plus proche, et colore les cases du froid au chaud.";
-            case 2 -> "La grille montre la distance de chaque sondage, et la couche du point le plus proche du dernier.";
-            default -> "La grille montre la distance de chaque sondage, et la couche et la colonne du point le plus proche du dernier.";
+            case 0 -> "La grille ne montre que le gain de chaque essai.";
+            case 1 -> "La grille montre la distance de chaque essai au point visé, et colore les cases du froid au chaud.";
+            case 2 -> "La grille montre la distance de chaque essai, et la couche du point visé par le dernier, tant qu'il lui reste un essai.";
+            default -> "La grille montre la distance de chaque essai, et la couche et la colonne du point visé par le dernier, "
+                    + "tant qu'il lui reste un essai.";
         };
     }
 
@@ -817,18 +937,84 @@ public final class DimensionWindow extends BorderPane {
     private String describe(Game.GridUpgrade upgrade) {
         int level = game.gridLevel(upgrade);
         return switch (upgrade) {
-            case DIVISION -> "Division de la grille : " + game.gridDivisions() + " → " + (game.gridDivisions() + 1) + " cases par côté";
-            case GAIN -> "Gain : chaque sondage vaut " + shardText(game.gridValue()) + " → "
+            case DIVISION -> "Réduction de la grille : " + Format.whole(game.gridDivisions()) + " → "
+                    + Format.whole(Game.cellsAt(level + 1)) + " cases par côté";
+            case GAIN -> "Gain : chaque essai vaut " + shardText(game.gridValue()) + " → "
                     + shardText(game.gridValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " repères, avant la proximité";
             case REVEAL -> switch (level) {
-                case 0 -> "Affichage du point : rien que le gain → la distance de chaque sondage";
-                case 1 -> "Affichage du point : la distance → aussi la couche du point le plus proche";
-                case 2 -> "Affichage du point : la couche → aussi la colonne du point le plus proche";
+                case 0 -> "Affichage du point : rien que le gain → la distance de chaque essai";
+                case 1 -> "Affichage du point : la distance → aussi la couche du point visé";
+                case 2 -> "Affichage du point : la couche → aussi la colonne du point visé";
                 default -> "Affichage du point : distance, couche et colonne";
             };
             case POINTS -> "Nombre de points : " + game.gridPointCount() + " cachés → " + (game.gridPointCount() + 1);
             case PROXIMITY -> "Multiplicateur de proximité : sur le point " + Format.multiplier(game.gridProximityFactor(0)) + " → "
                     + Format.multiplier(game.gridProximityFactor(0) + Game.GRID_PROXIMITY_STEP);
+            case ATTEMPTS -> "Essais : " + game.gridAttempts() + " par point → " + (game.gridAttempts() + 1);
+        };
+    }
+
+    /**
+     * Le miroir : ses reflets, son seuil, ses compteurs (longueur, record, réussis, manqués, erreurs), ce qu'il faut faire
+     * selon la phase ou ce que fait le miroir automatique, le dernier résultat, le détail, et ses améliorations.
+     */
+    private void refreshMirror() {
+        mirrorShards.setText("Reflets du miroir : " + shardText(game.state().mirrorShards()));
+        threshold(mirrorThreshold, game.isDimensionThresholdReached(9), game.state().mirrorShardsEarned(), Game.MIRROR_THRESHOLD,
+                "reflets gagnés", 9);
+        mirrorCounts.setText("Motif de " + game.mirrorLength() + " cases · record " + game.mirrorBest() + " · réussis "
+                + Format.whole(game.mirrorSuccesses()) + " · manqués " + Format.whole(game.mirrorFails())
+                + (game.mirrorAllowedMistakes() > 0 ? " · erreurs " + game.mirrorMistakes() + " / " + game.mirrorAllowedMistakes() : ""));
+        String last = switch (game.mirrorLastResult()) {
+            case SUCCESS -> " Dernier motif réussi : +" + shardText(game.mirrorLastGain()) + ".";
+            case FAIL -> " Dernier motif manqué : +" + shardText(game.mirrorLastGain()) + ".";
+            default -> "";
+        };
+        mirrorHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY)
+                ? "Miroir automatique : il reproduit une case toutes les " + seconds(Game.MIRROR_AUTO_STEP) + " s, sans faute "
+                        + "jusqu'à " + Game.MIRROR_AUTO_MAX + " cases, puis se trompe. Vos clics comptent en plus." + last
+                : switch (game.mirrorPhase()) {
+                    case SHOW -> "Regardez le motif s'allumer à gauche, case après case : vous le referez de mémoire, en miroir, "
+                            + "à droite, dans le même ordre." + last;
+                    case INPUT -> "De mémoire, cliquez à droite le reflet de chaque case, dans l'ordre : "
+                            + game.mirrorPosition() + " / " + game.mirrorLength() + "." + last;
+                    case PAUSE -> "Le motif suivant arrive." + last;
+                });
+        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        for (Game.MirrorUpgrade upgrade : Game.MirrorUpgrade.values()) levels.append('/').append(game.mirrorLevel(upgrade));
+        if (changed(mirrorDetail, levels.toString())) {
+            mirrorDetail.setText(idle.ui.common.Detail.only("Le plateau fait " + game.mirrorColumns() + " × " + game.mirrorRows()
+                + " cases, coupé au milieu par le miroir. Chaque case du motif reste allumée " + seconds(game.mirrorShowSeconds())
+                + " s ; ensuite, le motif s'éteint et attend. Réussi, un motif de L cases donne " + shardText(game.mirrorValue())
+                + " × L × " + idle.ui.common.ElementText.number(game.mirrorLengthFactor()) + " puissance (L − " + Game.MIRROR_START
+                + ") reflets (" + shardText(game.mirrorReward(game.mirrorLength())) + " pour le motif en cours), et le suivant a une "
+                + "case de plus, jusqu'à " + Game.MIRROR_MAX + " ; manqué, il donne un quart de reflet par case juste, et le suivant "
+                + "a une case de moins, jamais moins de " + Game.MIRROR_START + ". "
+                + (game.mirrorAllowedMistakes() > 0 ? game.mirrorAllowedMistakes() + (game.mirrorAllowedMistakes() > 1
+                        ? " erreurs sont permises" : " erreur est permise") + " par motif. " : "")
+                + "Les reflets, le seuil et les améliorations du miroir traversent les univers ; le seuil marque la dimension "
+                + "d'un rond vert, et les reflets paient aussi les saisons de la graine."));
+            mirrorDetail.setVisible(!mirrorDetail.getText().isEmpty());
+            mirrorDetail.setManaged(mirrorDetail.isVisible());
+        }
+        paintUpgrades(mirrorButtons, this::describe, game::mirrorLevel, Game.MirrorUpgrade::max, game::mirrorCost, game::canBuyMirror,
+                " reflet", MIRROR_COLOR);
+    }
+
+    /** Une amélioration du miroir : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.MirrorUpgrade upgrade) {
+        int level = game.mirrorLevel(upgrade);
+        return switch (upgrade) {
+            case GAIN -> "Gain : chaque case d'un motif réussi vaut " + shardText(game.mirrorValue()) + " → "
+                    + shardText(game.mirrorValue() / (1 + level) * (2 + level)) + " reflets";
+            case LENGTH -> "Multiplicateur de longueur : " + Format.multiplier(game.mirrorLengthFactor()) + " → "
+                    + Format.multiplier(game.mirrorLengthFactor() + Game.MIRROR_LENGTH_STEP) + " par case au-delà de " + Game.MIRROR_START;
+            case MEMORY -> "Temps de mémorisation : " + idle.ui.common.ElementText.number(game.mirrorShowSeconds()) + " s → "
+                    + idle.ui.common.ElementText.number(game.mirrorShowSeconds() + Game.MIRROR_SHOW_STEP) + " s par case";
+            case MISTAKES -> "Seconde chance : " + level + (level > 1 ? " erreurs permises" : " erreur permise") + " → " + (level + 1);
+            case BOARD -> "Plateau plus grand : " + game.mirrorColumns() + " × " + game.mirrorRows() + " → " + (game.mirrorColumns() + 2)
+                    + " × " + (game.mirrorRows() + 1) + " cases, gain " + Format.multiplier(1 + Game.MIRROR_BOARD * level) + " → "
+                    + Format.multiplier(1 + Game.MIRROR_BOARD * (level + 1));
         };
     }
 
@@ -1059,6 +1245,9 @@ public final class DimensionWindow extends BorderPane {
             case LOOP -> dimension.line() + (game.isLoopOpen()
                     ? " Cliquez chaque cercle quand son point passe dans une zone : plus le clic est juste, plus il donne de nœuds."
                     : " Il n'y a rien à y faire pour l'instant.");
+            case MIRROR -> dimension.line() + (game.isMirrorOpen()
+                    ? " Retenez le motif qui s'allume à gauche, puis refaites-le en miroir, à droite : chaque motif réussi donne des reflets."
+                    : " Il n'y a rien à y faire pour l'instant.");
             case GRID -> dimension.line() + (game.isGridOpen()
                     ? " Sondez ses cases, couche par couche : plus une case est près d'un point caché, plus elle donne de repères."
                     : " Il n'y a rien à y faire pour l'instant.");
@@ -1175,6 +1364,32 @@ public final class DimensionWindow extends BorderPane {
         return loopHint.getText();
     }
 
+    /** Le bouton d'une amélioration du miroir : pour les vérifications. */
+    public Button mirrorButton(Game.MirrorUpgrade upgrade) {
+        return mirrorButtons.get(upgrade);
+    }
+
+    public String mirrorShardsText() {
+        return mirrorShards.getText();
+    }
+
+    public String mirrorThresholdText() {
+        return mirrorThreshold.getText();
+    }
+
+    public String mirrorHintText() {
+        return mirrorHint.getText();
+    }
+
+    public String mirrorCountsText() {
+        return mirrorCounts.getText();
+    }
+
+    /** Le détail du miroir, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
+    public String mirrorDetailText() {
+        return mirrorDetail.getText();
+    }
+
     /** Le bouton d'une amélioration de la grille : pour les vérifications. */
     public Button gridButton(Game.GridUpgrade upgrade) {
         return gridButtons.get(upgrade);
@@ -1194,6 +1409,28 @@ public final class DimensionWindow extends BorderPane {
 
     public String gridLayerText() {
         return gridLayerLabel.getText();
+    }
+
+    /** La taille de la grille et les essais par point : pour les vérifications. */
+    public String gridSizeText() {
+        return gridSize.getText();
+    }
+
+    /** Les champs de la case visée (x, y, z), le bouton qui l'essaie, et ceux du zoom : pour les vérifications. */
+    public TextField[] gridFields() {
+        return new TextField[] {gridX, gridY, gridZ};
+    }
+
+    public Button gridTryButton() {
+        return gridTry;
+    }
+
+    public Button gridZoomInButton() {
+        return gridZoomIn;
+    }
+
+    public Button gridZoomOutButton() {
+        return gridZoomOut;
     }
 
     /** Les boutons de couche, du dessous et du dessus : pour les vérifications. */

@@ -381,6 +381,7 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(6, game.isDimensionThresholdReached(6));
         dimensions.setMarked(7, game.isDimensionThresholdReached(7));
         dimensions.setMarked(8, game.isDimensionThresholdReached(8));
+        dimensions.setMarked(9, game.isDimensionThresholdReached(9));
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         java.util.Map<String, Double> history = game.state().voidHistory();
@@ -486,6 +487,8 @@ public final class UniversePage extends VBox {
                 seedView.setBloomEffect(game.bloomActiveLeft(), game.bloomGain());
                 // La météo (version 0.155) : le temps qu'il fait, et son effet sur l'arrosage.
                 seedView.setWeather(game.isWeatherUnlocked() ? game.weather() : null, game.weatherLeft(), game.weatherFactor());
+                // Les saisons (version 0.157) : la saison, ce qu'il lui reste, et ce qu'un arrosage verse au chrono.
+                seedView.setSeason(game.areSeasonsUnlocked() ? game.season() : null, game.seasonLeft(), game.seasonFillPerWatering());
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;

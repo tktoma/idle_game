@@ -391,6 +391,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // La grille (version 0.156) aussi.
         double gridKept = gridShards, gridEarned = gridShardsEarned;
         int[] gridKeptLevels = gridLevels.clone();
+        // Le miroir (version 0.157) aussi.
+        double mirrorKept = mirrorShards, mirrorEarned = mirrorShardsEarned;
+        int[] mirrorKeptLevels = mirrorLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -479,6 +482,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         gridShards = gridKept;
         gridShardsEarned = gridEarned;
         System.arraycopy(gridKeptLevels, 0, gridLevels, 0, GRID_UPGRADES);
+        mirrorShards = mirrorKept;
+        mirrorShardsEarned = mirrorEarned;
+        System.arraycopy(mirrorKeptLevels, 0, mirrorLevels, 0, MIRROR_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -831,6 +837,33 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    /** Les reflets du miroir (version 0.157). */
+    public double mirrorShards() {
+        return mirrorShards;
+    }
+
+    public void setMirrorShards(double shards) {
+        mirrorShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Les reflets gagnés en tout : ce qui compte pour le seuil du miroir. */
+    public double mirrorShardsEarned() {
+        return mirrorShardsEarned;
+    }
+
+    public void setMirrorShardsEarned(double earned) {
+        mirrorShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration du miroir, dans l'ordre de {@code Game.MirrorUpgrade}. */
+    public int mirrorLevel(int index) {
+        return level(mirrorLevels, index);
+    }
+
+    public void setMirrorLevel(int index, int level) {
+        setLevel(mirrorLevels, index, level);
+    }
+
     /** Les repères de la grille (version 0.156). */
     public double gridShards() {
         return gridShards;

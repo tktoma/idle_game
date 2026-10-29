@@ -27,6 +27,10 @@ import javafx.scene.paint.Color;
  * temps, un soleil voilé d'un nuage par temps variable, un nuage sombre qui pleut et s'éclaire d'un éclair par orage ;
  * dessous, son effet sur l'arrosage et le temps qu'il lui reste (« Beau temps +30 % : 32 s »). Par beau temps, une
  * lumière chaude tombe sur la vue ; par orage, la pluie la traverse.
+ *
+ * <p>Version 0.157 : avec le miroir, les saisons. Au-dessus de l'étagère, près du chrono, la saison, son effet et le temps
+ * qu'il lui reste, et ce que chaque arrosage verse au chrono une fois l'amélioration achetée (« Printemps ×1,5 : 92 s ·
+ * +0.3 s au chrono par arrosage »).
  */
 public final class SeedView extends Canvas {
 
@@ -430,6 +434,27 @@ public final class SeedView extends Canvas {
         g.fillOval(x + r * 0.1, y - r * 0.4, r * 1.2, r * 1.05);
         g.fillRoundRect(x - r * 1.3, y, r * 2.6, r * 0.6, r * 0.6, r * 0.6);
         g.setGlobalAlpha(1);
+    }
+
+    // Les saisons (version 0.157).
+    /** Une couleur par saison : vert tendre, or, roux, bleu froid. */
+    private static final Color[] SEASON_COLORS = {Color.web("#9fe08a"), Color.web("#ffd27f"), Color.web("#ffb36b"), Color.web("#a8d8ff")};
+    /** La saison, {@code null} tant qu'elles ne sont pas là ; ce qu'il lui reste ; ce qu'un arrosage verse au chrono. */
+    private Game.Season season;
+    private double seasonLeft, seasonFill;
+
+    /** Les saisons de la graine : la saison ({@code null} sans elles), ce qu'il lui reste en secondes, ce qu'un arrosage verse au chrono. */
+    public void setSeason(Game.Season season, double left, double fillPerWatering) {
+        this.season = season;
+        seasonLeft = Math.max(0, left);
+        seasonFill = Math.max(0, fillPerWatering);
+    }
+
+    /** La ligne de la saison : « Printemps ×1,5 : 92 s · +0.3 s au chrono par arrosage » ; rien sans saisons. */
+    public String seasonText() {
+        if (season == null) return "";
+        return season.label() + " " + idle.ui.common.Format.multiplier(season.fill()) + " : " + (long) Math.ceil(seasonLeft - 1e-9) + " s"
+                + (seasonFill > 0 ? " · +" + idle.ui.common.ElementText.number(seasonFill) + " s au chrono par arrosage" : "");
     }
 
     private boolean canUnlocked;
@@ -1024,6 +1049,16 @@ public final class SeedView extends Canvas {
             g.fillRect(left - thick * 0.4, board + thick * 0.65, plank + thick * 0.8, thick * 0.35);
         }
         if (chronoShown) drawChrono(g, x, mid - level / 2, s * 0.45);
+        // La saison (version 0.157), au-dessus de l'étagère, près du chrono qu'elle remplit.
+        String season = seasonText();
+        if (!season.isEmpty()) {
+            g.setFont(javafx.scene.text.Font.font(12));
+            g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+            g.setGlobalAlpha(0.95);
+            g.setFill(SEASON_COLORS[this.season.ordinal()]);
+            g.fillText(season, Math.min(w - plank * 0.6, x), high - thick - 28);
+            g.setGlobalAlpha(1);
+        }
         // L'effet du rond de croissance (version 0.153), au-dessus de l'étagère : l'arrosage va plus vite.
         String boost = bloomText();
         if (!boost.isEmpty()) {

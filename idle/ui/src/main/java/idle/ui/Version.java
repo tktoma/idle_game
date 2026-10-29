@@ -23,6 +23,32 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.157", "Le miroir", List.of(
+                    "La neuvième dimension s'ouvre au neuvième univers : le miroir, à la place de « toutes les lois », qui "
+                            + "n'était qu'un visuel. Un plateau coupé en deux par un trait de lumière ; un motif s'allume case "
+                            + "après case sur la moitié gauche, puis s'éteint, et il faut le refaire de mémoire, en miroir, sur "
+                            + "la moitié droite, dans le même ordre. Seules les cases déjà reproduites restent visibles.",
+                    "Réussi, un motif donne des reflets, la ressource du miroir, d'autant plus qu'il est long, et le suivant "
+                            + "a une case de plus (jusqu'à vingt) ; manqué, il en donne un peu, et le suivant a une case de "
+                            + "moins (jamais moins de trois). La longueur, le record et les erreurs s'affichent au-dessus du plateau.",
+                    "Cinq améliorations, payées en reflets : gain, multiplicateur de longueur, temps de mémorisation, seconde "
+                            + "chance (jusqu'à trois erreurs permises) et plateau plus grand (le gain ×1,5 par niveau). Le seuil "
+                            + "du miroir (5 000 reflets) marque la dimension d'un rond vert et donne le titre « Gardien du miroir ».",
+                    "L'automatisation des dimensions gagne la section du miroir, payée en repères de la grille : le miroir "
+                            + "automatique refait le motif, une case toutes les 0,4 s, sans faute jusqu'à six cases, puis un "
+                            + "automatisme par amélioration ; il y en a maintenant cinquante-sept.",
+                    "La grille est refaite, comme le joueur l'avait demandé : énorme dès le départ, mille cases par côté (un "
+                            + "milliard de cases), et un seul essai par point caché avant qu'il se cache ailleurs. On vise une "
+                            + "case d'un clic sur la carte de la couche (le zoom la précise) ou par ses coordonnées x, y, z, et on "
+                            + "l'essaie. La « Réduction de la grille » la rend plus petite, ×0,7 par niveau jusqu'à deux cases "
+                            + "par côté, pour toucher plus souvent ; petite, elle se montre case par case. La nouvelle "
+                            + "amélioration « Essais » en ajoute un par point, jusqu'à quatre ; les essais automatiques trouvent "
+                            + "rarement sur la grande grille, souvent sur une grille réduite.",
+                    "Les saisons de la graine : avec le miroir, printemps, été, automne et hiver passent, deux minutes chacune. "
+                            + "La branche « Miroir » des améliorations de la graine, payée en reflets, fait remplir le chrono à "
+                            + "chaque arrosage, davantage au printemps, moins en hiver ; la saison se lit près du chrono.",
+                    "Les statistiques de l'univers ont le miroir, sa courbe, ses motifs réussis et manqués, son record et la "
+                            + "saison ; l'aide les décrit ; le profil de test a la rangée du miroir.")),
             new Note("0.156", "La grille", List.of(
                     "La huitième dimension s'ouvre au huitième univers : la grille, à la place de « la toile des débuts », "
                             + "qui n'était qu'un visuel. Un cube de 1 000 de côté, découpé en cases (deux par côté au départ), "

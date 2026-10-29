@@ -32,58 +32,98 @@ class GrilleTest {
         Game game = eight();
         assertTrue(game.isGridOpen());
         assertEquals("repères", Game.dimensionResourceName(8));
-        assertEquals(2, game.gridDivisions());
-        assertEquals(500, game.gridCellSize(), 1e-12);
+        assertEquals(1_000, game.gridDivisions(), "une énorme grille : mille cases par côté");
+        assertEquals(1, game.gridCellSize(), 1e-12);
         assertEquals(1, game.gridPoints().size());
+        assertEquals(1, game.gridAttempts(), "un essai par point caché");
         for (GridPoint point : game.gridPoints()) {
             assertTrue(point.x() >= 0 && point.x() <= 1_000 && point.z() >= 0 && point.z() <= 1_000, "dans le cube");
         }
     }
 
     @Test
-    void sonderLaBonneCaseTrouveLePoint() {
+    void tomberSurLaCaseTrouveLePoint() {
         Game game = eight();
-        game.testSetGridPoints(List.of(new GridPoint(100, 100, 100)));
-        GridProbe probe = game.probeGrid(0, 0, 0);
+        game.testSetGridPoints(List.of(new GridPoint(100.5, 100.5, 100.5)));
+        GridProbe probe = game.probeGrid(100, 100, 100);
         assertNotNull(probe);
         assertTrue(probe.found());
-        double d = Math.sqrt(3) * 150;
-        assertEquals(d, probe.distance(), 1e-9);
-        double p = 1 - d / GameGrid.GRID_DIAGONAL;
-        assertEquals((1 + 4 * p * p * p) * GameGrid.GRID_FOUND, probe.gain(), 1e-9);
+        assertEquals(0, probe.distance(), 1e-9);
+        assertEquals(5 * GameGrid.GRID_FOUND, probe.gain(), 1e-9, "×5 sur le point, ×5 trouvé");
         assertEquals(probe.gain(), game.state().gridShards(), 1e-9);
-        assertNull(game.probeGrid(1, 1, 1), "une courte attente après chaque sondage");
+        assertNull(game.probeGrid(1, 1, 1), "une courte attente après chaque essai");
         game.tick(GameGrid.GRID_COOLDOWN + 0.01);
         assertTrue(game.canProbeGrid());
-        assertFalse(game.gridPoints().get(0).equals(new GridPoint(100, 100, 100)), "trouvé, il se cache ailleurs");
+        assertFalse(game.gridPoints().get(0).equals(new GridPoint(100.5, 100.5, 100.5)), "trouvé, il se cache ailleurs");
         assertEquals(1, game.gridFound());
+    }
+
+    @Test
+    void unEssaiParPointPuisIlSeCacheAilleurs() {
+        Game game = eight();
+        game.testSetGridPoints(List.of(new GridPoint(500.5, 500.5, 500.5)));
+        GridProbe miss = game.probeGrid(0, 0, 0);
+        assertFalse(miss.found());
+        assertEquals(500 * Math.sqrt(3), miss.distance(), 1e-9, "en cases");
+        assertEquals(0, miss.triesLeft());
+        assertFalse(game.gridPoints().get(0).equals(new GridPoint(500.5, 500.5, 500.5)), "manqué, il se cache ailleurs aussi");
+        // Avec l'amélioration des essais : trois essais sur le même point.
+        game.state().setGridLevel(GridUpgrade.ATTEMPTS.ordinal(), 2);
+        assertEquals(3, game.gridAttempts());
+        game.testSetGridPoints(List.of(new GridPoint(500.5, 500.5, 500.5)));
+        assertEquals(3, game.gridTriesLeft(0));
+        assertEquals(2, game.probeGrid(0, 0, 0).triesLeft());
+        game.tick(0.6);
+        assertEquals(1, game.probeGrid(999, 999, 999).triesLeft());
+        assertEquals(new GridPoint(500.5, 500.5, 500.5), game.gridPoints().get(0), "il attend ses essais");
+        game.tick(0.6);
+        assertEquals(0, game.probeGrid(10, 10, 10).triesLeft());
+        assertFalse(game.gridPoints().get(0).equals(new GridPoint(500.5, 500.5, 500.5)));
+        assertEquals(3, game.gridTriesLeft(0), "le suivant a ses trois essais");
+    }
+
+    @Test
+    void reduireLaGrilleAideAToucher() {
+        assertEquals(1_000, GameGrid.cellsAt(0));
+        assertEquals(700, GameGrid.cellsAt(1));
+        assertEquals(2, GameGrid.cellsAt(GridUpgrade.DIVISION.max()), "deux cases par côté au plus réduit");
+        Game game = eight();
+        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), GridUpgrade.DIVISION.max());
+        assertEquals(500, game.gridCellSize(), 1e-12);
+        int found = 0;
+        java.util.Random random = new java.util.Random(3);
+        for (int n = 0; n < 400; n++) {
+            game.tick(0.6);
+            GridProbe probe = game.probeGrid(random.nextInt(2), random.nextInt(2), random.nextInt(2));
+            if (probe.found()) found++;
+        }
+        assertTrue(found > 25 && found < 80, "une chance sur huit : " + found + " sur 400");
     }
 
     @Test
     void plusProcheRapportePlus() {
         Game game = eight();
-        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), 8);
-        assertEquals(10, game.gridDivisions());
-        game.testSetGridPoints(List.of(new GridPoint(555, 555, 555)));
-        double far = game.probeGrid(9, 9, 9).gain();
-        game.testSetGridPoints(List.of(new GridPoint(555, 555, 555)));
-        double near = game.probeGrid(6, 5, 5).gain();
-        assertTrue(near > far, "voisine : " + near + ", au coin : " + far);
-        game.testSetGridPoints(List.of(new GridPoint(555, 555, 555)));
-        GridProbe found = game.probeGrid(5, 5, 5);
-        assertTrue(found.found() && found.gain() > near * GameGrid.GRID_FOUND * 0.9);
-        assertEquals(GameGrid.GRID_DIAGONAL, GameGrid.GRID_SIZE * Math.sqrt(3), 1e-9);
-        assertEquals(1, game.gridProximityFactor(GameGrid.GRID_DIAGONAL), 1e-12, "au plus loin, rien de plus");
+        game.testSetGridPoints(List.of(new GridPoint(555.5, 555.5, 555.5)));
+        double far = game.probeGrid(999, 999, 999).gain();
+        game.tick(0.6);
+        game.testSetGridPoints(List.of(new GridPoint(555.5, 555.5, 555.5)));
+        double near = game.probeGrid(560, 555, 555).gain();
+        assertTrue(near > far, "à cinq cases : " + near + ", au coin : " + far);
+        assertEquals(1, game.gridProximityFactor(1_000 * Math.sqrt(3)), 1e-12, "au plus loin, rien de plus");
         assertEquals(5, game.gridProximityFactor(0), 1e-12, "sur le point, ×5");
+        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), 5);
+        assertEquals(1, game.gridProximityFactor(game.gridDivisions() * Math.sqrt(3)), 1e-12, "en part de la grille, réduite ou non");
     }
 
     @Test
     void lePointLePlusProcheCompte() {
         Game game = eight();
         game.state().setGridLevel(GridUpgrade.POINTS.ordinal(), 1);
+        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), GridUpgrade.DIVISION.max());
         game.testSetGridPoints(List.of(new GridPoint(900, 900, 900), new GridPoint(400, 400, 400)));
         assertEquals(new GridPoint(400, 400, 400), game.gridNearest(0, 0, 0));
         assertEquals(new GridPoint(900, 900, 900), game.gridNearest(1, 1, 1));
+        assertEquals(1, game.gridTriesLeft(1));
     }
 
     @Test
@@ -91,28 +131,32 @@ class GrilleTest {
         Game game = eight();
         game.state().setGridShards(1e15);
         for (GridUpgrade upgrade : GridUpgrade.values()) assertTrue(game.buyGrid(upgrade), upgrade.toString());
-        assertEquals(3, game.gridDivisions());
+        assertEquals(700, game.gridDivisions());
         assertEquals(2 * game.hadronBoost(idle.core.collider.Hadron.OMEGA), game.gridValue(), 1e-9);
         assertEquals(1, game.gridReveal());
         assertEquals(2, game.gridPointCount());
         assertEquals(2, game.gridPoints().size(), "un point de plus, caché aussitôt");
         assertEquals(5, game.gridProximityStep(), 1e-12);
-        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), GridUpgrade.DIVISION.max());
-        assertEquals(24, game.gridDivisions());
-        assertFalse(game.canBuyGrid(GridUpgrade.DIVISION));
+        assertEquals(2, game.gridAttempts());
+        game.state().setGridLevel(GridUpgrade.ATTEMPTS.ordinal(), GridUpgrade.ATTEMPTS.max());
+        assertEquals(4, game.gridAttempts());
+        assertFalse(game.canBuyGrid(GridUpgrade.ATTEMPTS));
     }
 
     @Test
-    void lAutomatismeSondeSeul() {
+    void lAutomatismeEssaieSeul() {
         Game game = eight();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
         game.state().addDimensionAutomation(DimensionAutomation.GRID_PROBE.name());
         for (int i = 0; i < 1_200; i++) game.tick(0.05);
-        assertEquals(30, game.gridAutoProbes(), 1, "un sondage toutes les deux secondes");
-        assertTrue(game.gridFound() > 2 && game.gridFound() < 20, "il trouve une fois sur quatre environ : " + game.gridFound());
+        assertEquals(30, game.gridAutoProbes(), 1, "un essai toutes les deux secondes");
+        assertEquals(0, game.gridFound(), "sur un milliard de cases, il ne trouve pas");
+        assertTrue(game.state().gridShardsEarned() > 30, "mais il vise près : " + game.state().gridShardsEarned());
+        game.state().setGridLevel(GridUpgrade.DIVISION.ordinal(), GridUpgrade.DIVISION.max());
         game.tick(200);
         assertEquals(130, game.gridAutoProbes(), 2, "une absence les compte aussi");
-        assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
+        assertEquals(100, game.gridFound(), 2, "réduite à deux cases par côté, il trouve à chaque fois");
+        assertEquals(7, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
         assertEquals(7, DimensionAutomation.GRID_PROBE.paidWith(), "payés en étincelles du clicker");
     }
 

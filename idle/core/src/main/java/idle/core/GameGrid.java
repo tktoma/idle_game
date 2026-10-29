@@ -10,15 +10,15 @@ import java.util.List;
 import java.util.random.RandomGenerator;
 
 /**
- * La grille, huitième dimension (version 0.156) : un cube de {@value #GRID_SIZE} sur {@value #GRID_SIZE} sur
- * {@value #GRID_SIZE}, où des points sont cachés au hasard. Le joueur sonde une case de la grille (le cube est divisé en
- * d cases par côté) : plus le centre de la case sondée est proche d'un point, plus il gagne de repères (la ressource).
- * Une case qui contient un point le trouve : le gain est multiplié, et le point se cache ailleurs. Une courte attente
- * suit chaque sondage, pour que balayer toutes les cases ne paie pas.
+ * La grille, huitième dimension (version 0.156, revue à la 0.157) : une énorme grille de {@value #GRID_CELLS} cases
+ * sur {@value #GRID_CELLS} sur {@value #GRID_CELLS}, où un point est caché au hasard. Le joueur a un essai par point
+ * caché : il choisit une case, et plus elle est proche du point, plus il gagne de repères (la ressource). S'il tombe
+ * sur la case même, il le trouve : le gain est multiplié. Dans les deux cas, le point se cache ailleurs pour l'essai
+ * suivant. Une courte attente suit chaque essai.
  *
- * <p>Améliorations ({@link GridUpgrade}) : division de la grille (plus de cases, des sondages plus précis), gain,
- * affichage du point (d'abord la distance, puis sa couche, puis sa colonne), nombre de points, multiplicateur de
- * proximité.
+ * <p>Améliorations ({@link GridUpgrade}) : réduction de la grille (moins de cases par côté, plus de chances de toucher
+ * la cible), gain, affichage du point (d'abord la distance, puis sa couche, puis sa colonne), nombre de points,
+ * multiplicateur de proximité, essais (plusieurs essais par point, guidés par l'affichage).
  *
  * <p>Avec la grille vient la graine profonde : une amélioration de la graine, payée en repères, qui multiplie tout
  * l'arrosage par la racine carrée de la puissance de dix de l'énergie du vide récupérée.
@@ -32,16 +32,18 @@ public abstract class GameGrid extends GameClicker {
 
     /** Les améliorations de la grille, dans l'ordre de la sauvegarde. */
     public enum GridUpgrade implements Priced {
-        /** Une case de plus par côté : 2 au départ, 24 au plus. */
-        DIVISION(5, 2.4, 22),
-        /** Chaque sondage donne un repère de plus par niveau. */
+        /** Réduit la grille : ×0,7 cases par côté par niveau, de 1 000 à 2. */
+        DIVISION(5, 2.4, 18),
+        /** Chaque essai donne un repère de plus par niveau. */
         GAIN(6, 3, Integer.MAX_VALUE),
-        /** Ce que la grille montre : la distance du dernier sondage, puis la couche du point le plus proche, puis sa colonne. */
+        /** Ce que la grille montre : la distance du dernier essai, puis la couche du point le plus proche, puis sa colonne. */
         REVEAL(40, 6, 3),
         /** Un point caché de plus par niveau : 7 au plus. */
         POINTS(30, 3.5, 6),
         /** La proximité compte davantage : +1 au multiplicateur par niveau. */
-        PROXIMITY(10, 2.8, 20);
+        PROXIMITY(10, 2.8, 20),
+        /** Un essai de plus par point caché (version 0.157) : 4 au plus. */
+        ATTEMPTS(60, 8, 3);
 
         private final Price price;
 
@@ -55,34 +57,40 @@ public abstract class GameGrid extends GameClicker {
         }
     }
 
-    /** Un point caché, en coordonnées de 0 à {@value #GRID_SIZE}. */
+    /** Un point caché, en coordonnées de 0 à {@value #GRID_SIZE} (la case se lit de ses coordonnées). */
     public record GridPoint(double x, double y, double z) {
         public double distance(double px, double py, double pz) {
             return Math.sqrt((x - px) * (x - px) + (y - py) * (y - py) + (z - pz) * (z - pz));
         }
     }
 
-    /** Ce qu'a donné un sondage : la case, la distance au point le plus proche, s'il l'a trouvé, et le gain. */
-    public record GridProbe(int i, int j, int k, double distance, boolean found, double gain) {
+    /**
+     * Ce qu'a donné un essai : la case, la distance au point visé (en cases), s'il l'a trouvé, le gain, et les essais
+     * qu'il reste sur ce point (0 : il s'est caché ailleurs).
+     */
+    public record GridProbe(int i, int j, int k, double distance, boolean found, double gain, int triesLeft) {
     }
 
-    /** Le côté du cube. */
+    /** Le côté du cube, en coordonnées : les cases le découpent, mille par côté au départ. */
     public static final double GRID_SIZE = 1_000;
-    /** La plus grande distance dans le cube : sa diagonale. */
-    public static final double GRID_DIAGONAL = GRID_SIZE * Math.sqrt(3);
-    /** Deux cases par côté au départ. */
-    public static final int GRID_DIVISIONS = 2;
+    /** Mille cases par côté au départ : un milliard de cases. */
+    public static final int GRID_CELLS = 1_000;
+    /** Chaque niveau de réduction : ×0,7 cases par côté, 2 au moins. */
+    public static final double GRID_SHRINK = 0.7;
+    public static final int GRID_MIN_CELLS = 2;
     /** Le multiplicateur de proximité : ×(1 + 4 p³) au départ, p allant de 0 (au plus loin) à 1 (sur le point) ; +1 par niveau. */
     public static final double GRID_PROXIMITY = 4, GRID_PROXIMITY_STEP = 1;
-    /** Trouver un point (il est dans la case sondée) : ×5. */
+    /** Trouver un point (l'essai tombe sur sa case) : ×5. */
     public static final double GRID_FOUND = 5;
-    /** L'attente après chaque sondage, en secondes. */
+    /** L'attente après chaque essai, en secondes. */
     public static final double GRID_COOLDOWN = 0.5;
-    /** L'automatisme sonde toutes les {@value} secondes. */
+    /** L'automatisme essaie toutes les {@value} secondes. */
     public static final double GRID_AUTO_SECONDS = 2;
 
     private final java.util.Random gridRandom = new java.util.Random(8);
     private final List<GridPoint> gridPoints = new ArrayList<>();
+    /** Les essais qu'il reste sur chaque point, dans l'ordre de {@link #gridPoints}. */
+    private final List<Integer> gridTries = new ArrayList<>();
     private double gridWait, gridAutoTimer;
     private GridProbe gridLast;
     private long gridProbes, gridFound, gridAutoProbes;
@@ -96,9 +104,25 @@ public abstract class GameGrid extends GameClicker {
         return state.gridLevel(upgrade.ordinal());
     }
 
-    /** Le nombre de cases par côté. */
+    /** Le nombre de cases par côté : 1 000, ×0,7 par niveau de réduction, 2 au moins. */
     public int gridDivisions() {
-        return GRID_DIVISIONS + gridLevel(GridUpgrade.DIVISION);
+        return cellsAt(gridLevel(GridUpgrade.DIVISION));
+    }
+
+    /** Le nombre de cases par côté au niveau de réduction {@code level}. */
+    public static int cellsAt(int level) {
+        return (int) Math.max(GRID_MIN_CELLS, Math.round(GRID_CELLS * Math.pow(GRID_SHRINK, level)));
+    }
+
+    /** Les essais par point caché : 1, et un de plus par niveau. */
+    public int gridAttempts() {
+        return 1 + gridLevel(GridUpgrade.ATTEMPTS);
+    }
+
+    /** Les essais qu'il reste sur le point {@code index}. */
+    public int gridTriesLeft(int index) {
+        ensureGridPoints();
+        return index >= 0 && index < gridTries.size() ? gridTries.get(index) : 0;
     }
 
     /** Le côté d'une case. */
@@ -111,7 +135,7 @@ public abstract class GameGrid extends GameClicker {
         return 1 + gridLevel(GridUpgrade.POINTS);
     }
 
-    /** Ce que donne un sondage, avant la proximité : 1, plus 1 par niveau de gain, et le bonus des omégas. */
+    /** Ce que donne un essai, avant la proximité : 1, plus 1 par niveau de gain, et le bonus des omégas. */
     public double gridValue() {
         return (1 + gridLevel(GridUpgrade.GAIN)) * hadronBoost(idle.core.collider.Hadron.OMEGA);
     }
@@ -120,9 +144,12 @@ public abstract class GameGrid extends GameClicker {
         return GRID_PROXIMITY + GRID_PROXIMITY_STEP * gridLevel(GridUpgrade.PROXIMITY);
     }
 
-    /** Le multiplicateur de proximité à la distance {@code distance} : de 1 au plus loin à 1 + 4 (et plus) sur le point. */
+    /**
+     * Le multiplicateur de proximité à {@code distance} cases du point : de 1 au plus loin (la diagonale de la grille) à
+     * 1 + 4 (et plus) sur le point. Il se compte en part de la grille : la réduire ne l'abaisse pas.
+     */
     public double gridProximityFactor(double distance) {
-        double p = Math.max(0, 1 - distance / GRID_DIAGONAL);
+        double p = Math.max(0, 1 - distance / (gridDivisions() * Math.sqrt(3)));
         return 1 + gridProximityStep() * p * p * p;
     }
 
@@ -147,7 +174,12 @@ public abstract class GameGrid extends GameClicker {
         return Math.max(0, Math.min(gridDivisions() - 1, (int) Math.floor(coordinate / gridCellSize())));
     }
 
-    /** Le point le plus proche du centre de la case (i, j, k). */
+    /** La distance, en cases, du centre de la case (i, j, k) au point. */
+    public double gridDistance(GridPoint point, int i, int j, int k) {
+        return point.distance(gridCenter(i), gridCenter(j), gridCenter(k)) / gridCellSize();
+    }
+
+    /** Le point le plus proche du centre de la case (i, j, k) : c'est lui que vise un essai. */
     public GridPoint gridNearest(int i, int j, int k) {
         ensureGridPoints();
         GridPoint best = null;
@@ -162,12 +194,12 @@ public abstract class GameGrid extends GameClicker {
         return best;
     }
 
-    /** Le dernier sondage, ou {@code null}. */
+    /** Le dernier essai, ou {@code null}. */
     public GridProbe gridLastProbe() {
         return gridLast;
     }
 
-    /** Ce qu'il reste à attendre avant le prochain sondage. */
+    /** Ce qu'il reste à attendre avant le prochain essai. */
     public double gridWait() {
         return Math.max(0, gridWait);
     }
@@ -189,9 +221,9 @@ public abstract class GameGrid extends GameClicker {
     }
 
     /**
-     * Sonde la case (i, j, k) : gagne selon la distance de son centre au point le plus proche, et trouve le point s'il est
-     * dans la case (gain ×{@value #GRID_FOUND}, il se cache ailleurs). Rend le sondage ; {@code null} pendant l'attente ou
-     * la dimension fermée.
+     * Un essai sur la case (i, j, k) : il vise le point le plus proche et gagne selon la distance ; tombé sur la case du
+     * point, il le trouve (gain ×{@value #GRID_FOUND}). Le point se cache ailleurs une fois trouvé, ou ses essais
+     * épuisés. Rend l'essai ; {@code null} pendant l'attente ou la dimension fermée.
      */
     public GridProbe probeGrid(int i, int j, int k) {
         if (!canProbeGrid()) return null;
@@ -200,18 +232,23 @@ public abstract class GameGrid extends GameClicker {
         j = Math.max(0, Math.min(n - 1, j));
         k = Math.max(0, Math.min(n - 1, k));
         GridPoint nearest = gridNearest(i, j, k);
-        double distance = nearest.distance(gridCenter(i), gridCenter(j), gridCenter(k));
+        int index = gridPoints.indexOf(nearest);
+        double distance = gridDistance(nearest, i, j, k);
         boolean found = gridCell(nearest.x()) == i && gridCell(nearest.y()) == j && gridCell(nearest.z()) == k;
         double gain = gridValue() * gridProximityFactor(distance) * (found ? GRID_FOUND : 1);
         state.setGridShards(state.gridShards() + gain);
         state.setGridShardsEarned(state.gridShardsEarned() + gain);
-        if (found) {
-            gridPoints.set(gridPoints.indexOf(nearest), randomGridPoint());
-            gridFound++;
+        int left = found ? 0 : gridTries.get(index) - 1;
+        if (left <= 0) {
+            gridPoints.set(index, randomGridPoint());
+            gridTries.set(index, gridAttempts());
+        } else {
+            gridTries.set(index, left);
         }
+        if (found) gridFound++;
         gridProbes++;
         gridWait = GRID_COOLDOWN;
-        gridLast = new GridProbe(i, j, k, distance, found, gain);
+        gridLast = new GridProbe(i, j, k, distance, found, gain, Math.max(0, left));
         return gridLast;
     }
 
@@ -219,13 +256,16 @@ public abstract class GameGrid extends GameClicker {
     public void testSetGridPoints(List<GridPoint> points) {
         gridPoints.clear();
         gridPoints.addAll(points);
+        gridTries.clear();
+        for (int n = 0; n < points.size(); n++) gridTries.add(gridAttempts());
         gridWait = 0;
     }
 
     /**
      * La grille avance de {@code dt} secondes : l'attente s'écoule, il y a autant de points que le niveau le veut, et
-     * l'automatisme sonde toutes les {@value #GRID_AUTO_SECONDS} secondes une case voisine de celle d'un point (il
-     * cherche bien, sans trouver à coup sûr : une fois sur quatre, il tombe dans la bonne case).
+     * l'automatisme essaie toutes les {@value #GRID_AUTO_SECONDS} secondes une case près d'un point : à au plus un
+     * huitième de la grille sur chaque axe. Sur une grande grille, il ne trouve presque jamais ; réduite, il trouve
+     * souvent.
      */
     void runGrid(double dt) {
         if (!isGridOpen() || dt <= 0) return;
@@ -236,21 +276,28 @@ public abstract class GameGrid extends GameClicker {
         for (int turn = 0; gridAutoTimer >= GRID_AUTO_SECONDS && turn < 100_000; turn++) {
             gridAutoTimer -= GRID_AUTO_SECONDS;
             GridPoint target = gridPoints.get(gridRandom.nextInt(gridPoints.size()));
-            int i = gridCell(target.x()), j = gridCell(target.y()), k = gridCell(target.z());
-            if (gridRandom.nextInt(4) != 0) {
-                int axis = gridRandom.nextInt(3), step = gridRandom.nextBoolean() ? 1 : -1, n = gridDivisions();
-                if (axis == 0) i = Math.floorMod(i + step, n);
-                else if (axis == 1) j = Math.floorMod(j + step, n);
-                else k = Math.floorMod(k + step, n);
-            }
+            int n = gridDivisions(), spread = Math.max(0, n / 8);
+            int i = near(gridCell(target.x()), spread, n), j = near(gridCell(target.y()), spread, n), k = near(gridCell(target.z()), spread, n);
             gridWait = 0;
             if (probeGrid(i, j, k) != null) gridAutoProbes++;
         }
     }
 
+    /** Une case à au plus {@code spread} de {@code cell}, dans la grille. */
+    private int near(int cell, int spread, int n) {
+        return Math.max(0, Math.min(n - 1, cell + (spread == 0 ? 0 : gridRandom.nextInt(2 * spread + 1) - spread)));
+    }
+
     private void ensureGridPoints() {
-        while (gridPoints.size() < gridPointCount()) gridPoints.add(randomGridPoint());
-        while (gridPoints.size() > gridPointCount()) gridPoints.remove(gridPoints.size() - 1);
+        while (gridPoints.size() < gridPointCount()) {
+            gridPoints.add(randomGridPoint());
+            gridTries.add(gridAttempts());
+        }
+        while (gridPoints.size() > gridPointCount()) {
+            gridPoints.remove(gridPoints.size() - 1);
+            gridTries.remove(gridTries.size() - 1);
+        }
+        for (int n = 0; n < gridTries.size(); n++) gridTries.set(n, Math.min(gridTries.get(n), gridAttempts()));
     }
 
     private GridPoint randomGridPoint() {

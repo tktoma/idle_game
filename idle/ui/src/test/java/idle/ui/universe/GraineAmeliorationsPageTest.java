@@ -13,9 +13,10 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; les branches 9 et 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * sa ressource ; la branche 10 verrouillée (celle de la boucle, la cinquième, a ses cartes depuis la version
  * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155,
- * celle de la grille, la huitième, depuis la version 0.156) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ * celle de la grille, la huitième, depuis la version 0.156, celle du miroir, la neuvième, depuis la version 0.157) ;
+ * le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
 
@@ -175,7 +176,13 @@ class GraineAmeliorationsPageTest {
             pane.select(8);
             assertTrue(pane.button(SeedUpgrade.DEEP_SEED).isDisabled());
             assertTrue(pane.button(SeedUpgrade.DEEP_SEED).getText().endsWith("S'ouvre avec la dimension 8"), pane.button(SeedUpgrade.DEEP_SEED).getText());
-            for (int d = 9; d <= SeedUpgradesPane.BRANCHES; d++) {
+            // Le miroir (version 0.157) : sa branche a les saisons, fermées sans la dimension 9.
+            assertFalse(pane.isBranchOpen(9));
+            assertEquals("Miroir", SeedUpgradesPane.branchName(9));
+            pane.select(9);
+            assertTrue(pane.button(SeedUpgrade.SEASONS).isDisabled());
+            assertTrue(pane.button(SeedUpgrade.SEASONS).getText().endsWith("S'ouvre avec la dimension 9"), pane.button(SeedUpgrade.SEASONS).getText());
+            for (int d = 10; d <= SeedUpgradesPane.BRANCHES; d++) {
                 assertFalse(pane.isBranchOpen(d));
                 pane.select(d);
                 assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));

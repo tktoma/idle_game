@@ -272,17 +272,22 @@ public abstract class GameStateBase {
     double clickerShardsEarned = 0;
     static final int CLICKER_UPGRADES = 8;
     final int[] clickerLevels = new int[CLICKER_UPGRADES];
-    /** La grille, huitième dimension (version 0.156) : ses repères, ceux gagnés en tout, et ses cinq améliorations. */
+    /** La grille, huitième dimension (version 0.156) : ses repères, ceux gagnés en tout, et ses six améliorations (les essais à la 0.157). */
     double gridShards = 0;
     double gridShardsEarned = 0;
-    static final int GRID_UPGRADES = 5;
+    static final int GRID_UPGRADES = 6;
     final int[] gridLevels = new int[GRID_UPGRADES];
+    /** Le miroir, neuvième dimension (version 0.157) : ses reflets, ceux gagnés en tout, et ses cinq améliorations. */
+    double mirrorShards = 0;
+    double mirrorShardsEarned = 0;
+    static final int MIRROR_UPGRADES = 5;
+    final int[] mirrorLevels = new int[MIRROR_UPGRADES];
     /**
      * Les améliorations de la graine (version 0.139), dans l'ordre de {@code Game.SeedUpgrade} : débit de l'arrosoir,
      * tuyau, terre fertile, étage du chrono, puis remplissage, réserve, accélération et pertes du chrono. Et le chrono :
      * le temps qu'il garde, en secondes, et l'accélération choisie (×1 : arrêté).
      */
-    static final int SEED_UPGRADES = 15;
+    static final int SEED_UPGRADES = 16;
     final int[] seedUpgradeLevels = new int[SEED_UPGRADES];
     double chronoStored = 0;
     double chronoSpeed = 1;

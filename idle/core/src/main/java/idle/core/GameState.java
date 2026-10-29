@@ -207,6 +207,9 @@ public final class GameState extends GameStateResets {
         data.put("gridShards", gridShards);
         data.put("gridShardsEarned", gridShardsEarned);
         for (int i = 0; i < GRID_UPGRADES; i++) data.put("gridLevel" + i, gridLevel(i));
+        data.put("mirrorShards", mirrorShards);
+        data.put("mirrorShardsEarned", mirrorShardsEarned);
+        for (int i = 0; i < MIRROR_UPGRADES; i++) data.put("mirrorLevel" + i, mirrorLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -504,6 +507,10 @@ public final class GameState extends GameStateResets {
         setGridShards(data.real("gridShards", 0));
         setGridShardsEarned(data.real("gridShardsEarned", 0));
         for (int i = 0; i < GRID_UPGRADES; i++) setGridLevel(i, data.whole("gridLevel" + i, 0));
+        // Le miroir (version 0.157) : absent d'avant, il part de zéro.
+        setMirrorShards(data.real("mirrorShards", 0));
+        setMirrorShardsEarned(data.real("mirrorShardsEarned", 0));
+        for (int i = 0; i < MIRROR_UPGRADES; i++) setMirrorLevel(i, data.whole("mirrorLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));
