@@ -378,6 +378,7 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(3, game.isVolumeThresholdReached());
         dimensions.setMarked(4, game.isDurationThresholdReached());
         dimensions.setMarked(5, game.isLoopThresholdReached());
+        dimensions.setMarked(6, game.isDimensionThresholdReached(6));
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         java.util.Map<String, Double> history = game.state().voidHistory();

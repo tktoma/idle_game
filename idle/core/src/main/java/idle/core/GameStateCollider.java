@@ -382,6 +382,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // La boucle (version 0.153) aussi.
         double loopKept = loopShards, loopEarned = loopShardsEarned;
         int[] loopKeptLevels = loopLevels.clone();
+        // La brane (version 0.154) aussi.
+        double braneKept = braneShards, braneEarned = braneShardsEarned;
+        int[] braneKeptLevels = braneLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -461,6 +464,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         loopShards = loopKept;
         loopShardsEarned = loopEarned;
         System.arraycopy(loopKeptLevels, 0, loopLevels, 0, LOOP_UPGRADES);
+        braneShards = braneKept;
+        braneShardsEarned = braneEarned;
+        System.arraycopy(braneKeptLevels, 0, braneLevels, 0, BRANE_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -813,6 +819,33 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    /** Les ondes de la brane (version 0.154). */
+    public double braneShards() {
+        return braneShards;
+    }
+
+    public void setBraneShards(double shards) {
+        braneShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Les ondes gagnées en tout : ce qui compte pour le seuil de la brane. */
+    public double braneShardsEarned() {
+        return braneShardsEarned;
+    }
+
+    public void setBraneShardsEarned(double earned) {
+        braneShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration de la brane, dans l'ordre de {@code Game.BraneUpgrade}. */
+    public int braneLevel(int index) {
+        return level(braneLevels, index);
+    }
+
+    public void setBraneLevel(int index, int level) {
+        setLevel(braneLevels, index, level);
+    }
+
     /** Les nœuds de la boucle (version 0.153). */
     public double loopShards() {
         return loopShards;

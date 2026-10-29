@@ -212,21 +212,72 @@ public abstract class GameLoop extends GameDimensionAutomation {
         state.setLoopShardsEarned(state.loopShardsEarned() + nodes);
     }
 
-    /** La zone la plus proche du point repart ailleurs, loin de lui. */
+    /** La zone la plus proche du point repart ailleurs, loin de lui et des autres zones. */
     private void moveTouchedZone(int ring, double phase) {
         double[] centers = zonesOf(ring);
         int nearest = 0;
         for (int i = 1; i < loopZoneCount(); i++) {
             if (circular(phase - centers[i]) < circular(phase - centers[nearest])) nearest = i;
         }
-        centers[nearest] = phase + 0.25 + loopRandom.nextDouble() * 0.5;
-        centers[nearest] -= Math.floor(centers[nearest]);
+        placeZone(ring, nearest, phase);
+    }
+
+    /** L'écart qu'il reste au moins entre deux zones d'un même cercle, en tours (version 0.154 : elles ne se superposent plus). */
+    public static final double LOOP_ZONE_GAP = 0.02;
+
+    /**
+     * Pose la zone {@code zone} du cercle {@code ring} au hasard, sans toucher les autres zones du cercle et loin du
+     * point ({@code avoid}, en tours) : il ne la touche pas tout de suite. Faute de place, au plus loin de tout.
+     */
+    private void placeZone(int ring, int zone, double avoid) {
+        double[] centers = zonesOf(ring);
+        double half = loopZoneHalfWidth();
+        // Toutes les places possibles, un tour découpé en 360, décalé au hasard : on en tire une parmi les libres.
+        double offset = loopRandom.nextDouble() / PLACES;
+        List<Double> free = new ArrayList<>(), farFromPoint = new ArrayList<>();
+        double best = Double.NEGATIVE_INFINITY, bestCenter = centers[zone];
+        for (int k = 0; k < PLACES; k++) {
+            double center = offset + (double) k / PLACES;
+            double room = Double.POSITIVE_INFINITY;
+            for (int other = 0; other < loopZoneCount(); other++) {
+                if (other != zone) room = Math.min(room, circular(center - centers[other]) - 2 * half - LOOP_ZONE_GAP);
+            }
+            if (room >= 0) {
+                free.add(center);
+                if (circular(center - avoid) >= half + 0.05) farFromPoint.add(center);
+            }
+            if (room > best) {
+                best = room;
+                bestCenter = center;
+            }
+        }
+        List<Double> pick = farFromPoint.isEmpty() ? free : farFromPoint;
+        centers[zone] = pick.isEmpty() ? bestCenter : pick.get(loopRandom.nextInt(pick.size()));
+    }
+
+    /** Les places essayées sur un tour pour poser une zone. */
+    private static final int PLACES = 360;
+
+    /** Déplace les zones qui se chevauchent : quand une zone de plus arrive, ou que les zones grandissent. */
+    private void spreadZones(int ring) {
+        double[] centers = zonesOf(ring);
+        double half = loopZoneHalfWidth();
+        for (int zone = 1; zone < loopZoneCount(); zone++) {
+            for (int other = 0; other < zone; other++) {
+                if (circular(centers[zone] - centers[other]) < 2 * half + LOOP_ZONE_GAP - 1e-12) {
+                    placeZone(ring, zone, loopPhase[ring]);
+                    break;
+                }
+            }
+        }
     }
 
     private double[] zonesOf(int ring) {
         if (loopZones[ring] == null) {
             loopZones[ring] = new double[MAX_ZONES];
-            for (int i = 0; i < MAX_ZONES; i++) loopZones[ring][i] = (0.3 + i * 0.25 + loopRandom.nextDouble() * 0.1 + ring * 0.13) % 1;
+            // Réparties d'avance sur le cercle, à un quart de tour l'une de l'autre : elles ne se touchent pas.
+            double start = 0.3 + loopRandom.nextDouble() * 0.2 + ring * 0.13;
+            for (int i = 0; i < MAX_ZONES; i++) loopZones[ring][i] = (start + i * 0.25) % 1;
         }
         return loopZones[ring];
     }
@@ -242,18 +293,24 @@ public abstract class GameLoop extends GameDimensionAutomation {
     }
 
     /**
-     * La boucle avance de {@code dt} secondes : les points tournent, les attentes passent. L'automatisme de jeu
-     * (automatisation des dimensions) clique « bien » à chaque passage du point dans une zone : autant de clics que
-     * les points en font, quel que soit le pas.
+     * La boucle avance de {@code dt} secondes : les points tournent, les attentes passent, les zones qui se
+     * chevauchent s'écartent. L'automatisme de jeu (automatisation des dimensions) joue vraiment (version 0.154) : il
+     * clique quand le point arrive dans le « bien » d'une zone, qui part ailleurs, et son cercle attend, comme pour un
+     * clic du joueur. Sur un grand pas (une absence, un bot), il compte autant de « bien » que de passages.
      */
     void runLoop(double dt) {
         if (!isLoopOpen() || dt <= 0) return;
         double turns = loopTurnsPerSecond() * dt;
+        boolean automatic = isLoopAutomatic();
+        boolean played = automatic && dt <= LOOP_PLAYED_STEP;
         for (int ring = 0; ring < loopRings(); ring++) {
-            loopPhase[ring] = (loopPhase[ring] + turns) % 1;
+            spreadZones(ring);
+            double from = loopPhase[ring];
+            loopPhase[ring] = (from + turns) % 1;
+            if (played) playRing(ring, from, turns, dt);
             loopWait[ring] = Math.max(0, loopWait[ring] - dt);
         }
-        if (isLoopAutomatic()) {
+        if (automatic && !played) {
             loopAutoPending += turns * loopRings() * loopZoneCount();
             long clicks = (long) Math.floor(loopAutoPending);
             if (clicks > 0) {
@@ -263,6 +320,45 @@ public abstract class GameLoop extends GameDimensionAutomation {
                 lastLoopHit = LoopHit.GOOD;
             }
         }
+    }
+
+    /** Au-delà de ce pas, en secondes, l'automatisme compte ses clics au lieu de les jouer. */
+    public static final double LOOP_PLAYED_STEP = 1;
+
+    /**
+     * L'automatisme sur un cercle : le point a fait {@code turns} tours depuis {@code from} ; s'il a passé l'endroit
+     * où il vise dans une zone (au milieu du « bien », côté arrivée) et que le cercle n'attendait plus, il clique là.
+     */
+    private void playRing(int ring, double from, double turns, double dt) {
+        double half = loopZoneHalfWidth(), aim = -half * (LOOP_EXCELLENT + LOOP_GOOD) / 2;
+        double[] centers = zonesOf(ring);
+        for (int zone = 0; zone < loopZoneCount(); zone++) {
+            double ahead = (centers[zone] + aim - from) - Math.floor(centers[zone] + aim - from);
+            if (ahead > turns) continue;
+            // Le cercle doit avoir fini d'attendre quand le point y arrive.
+            double when = turns <= 0 ? 0 : dt * ahead / turns;
+            if (loopWait[ring] - when > 1e-9) continue;
+            double phase = loopPhase[ring];
+            loopPhase[ring] = (from + ahead) % 1;
+            LoopHit hit = hitAt(ring, loopPhase[ring]);
+            if (hit == LoopHit.GOOD || hit == LoopHit.EXCELLENT) {
+                gainLoop(loopReward(hit));
+                loopHits++;
+                lastLoopHit = hit;
+                loopAutoClicks++;
+                moveTouchedZone(ring, loopPhase[ring]);
+                loopWait[ring] = LOOP_COOLDOWN + when;
+            }
+            loopPhase[ring] = phase;
+            return;
+        }
+    }
+
+    private long loopAutoClicks;
+
+    /** Les clics de l'automatisme, joués un par un : l'interface les montre comme ceux du joueur. */
+    public long loopAutoClicks() {
+        return loopAutoClicks;
     }
 
     /** Vrai quand l'automatisme de la boucle joue (automatisation des dimensions, version 0.153). */

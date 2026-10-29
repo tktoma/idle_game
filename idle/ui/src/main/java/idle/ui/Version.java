@@ -23,6 +23,28 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.154", "La brane", List.of(
+                    "La sixième dimension s'ouvre au sixième univers : la brane, à la place de « tous les possibles », qui "
+                            + "n'était qu'un visuel. Une membrane carrée : on l'appuie en un point, on glisse pour la tendre, "
+                            + "et un cercle en pointillé montre jusqu'où ira l'onde ; au relâchement, l'onde part du point "
+                            + "appuyé, grandit, et rebondit sur les bords.",
+                    "Des points apparaissent sur la membrane, un toutes les deux secondes, six au plus. Chaque passage du "
+                            + "front sur un point, en direct puis après chaque rebond, donne des ondes, la ressource de la "
+                            + "brane : davantage après un rebond, et davantage pour chaque passage de plus de la même onde. Un "
+                            + "point touché se dore et reste tant que l'onde court, puis part avec elle. Trois ondes au plus à la fois.",
+                    "Cinq améliorations, payées en ondes : gain, élasticité (une tirée plus courte porte déjà à fond), "
+                            + "grandeur des ondes, rebond, et points en une onde. Le seuil de la brane (5 000 ondes) marque la "
+                            + "dimension d'un rond vert et donne le titre « Surfeur de la brane » ; l'oméga renforce aussi ses ondes.",
+                    "La lumière astrale : la branche « Brane » des améliorations de la graine, payée en ondes, multiplie "
+                            + "l'arrosage par seconde de l'arrosoir et du tuyau, +20 % par niveau.",
+                    "L'automatisation des dimensions gagne la section de la brane, payée en nœuds de la boucle : la tirée "
+                            + "automatique tire la membrane à fond au milieu des points toutes les trois secondes, puis un "
+                            + "automatisme par amélioration ; il y en a maintenant trente-cinq.",
+                    "La boucle : le rythme automatique joue vraiment, clic par clic, fenêtre ouverte : chacun de ses clics "
+                            + "éclaire son cercle, son mot monte du point, et la zone touchée part ailleurs, comme pour un clic "
+                            + "du joueur. Les zones d'un même cercle ne se superposent plus.",
+                    "Les statistiques de l'univers ont la brane, sa courbe, ses ondes tirées, ses points touchés et la lumière "
+                            + "astrale ; l'aide les décrit ; le profil de test a la rangée de la brane.")),
             new Note("0.153", "La boucle", List.of(
                     "La cinquième dimension s'ouvre au cinquième univers : la boucle, à la place des embranchements, qui "
                             + "n'étaient qu'un visuel. Sur un cercle, un point tourne, très lentement au début ; une zone y "

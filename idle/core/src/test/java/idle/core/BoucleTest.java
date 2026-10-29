@@ -90,7 +90,7 @@ class BoucleTest {
         game.tick(200);
         // 200 s, un tour en 20 s, une zone : dix passages, dix « bien ».
         assertEquals(10 * game.loopReward(LoopHit.GOOD), game.state().loopShardsEarned(), 1e-6);
-        assertEquals(29, DimensionAutomation.values().length, "sept de plus pour la boucle");
+        assertEquals(29 + 6, DimensionAutomation.values().length, "sept de plus pour la boucle, puis six pour la brane");
         assertEquals(4, DimensionAutomation.LOOP_PLAY.paidWith(), "payés en instants de la durée");
     }
 
@@ -152,5 +152,47 @@ class BoucleTest {
             if (game.catchBloom()) caught++;
         }
         assertTrue(caught >= 7 && caught <= 15, "une dizaine en vingt minutes : " + caught);
+    }
+
+    /** Version 0.154 : l'automatisme joue vraiment, clic par clic, en jeu ouvert. */
+    @Test
+    void lAutomatismeJoueVraiment() {
+        Game game = five();
+        game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
+        game.state().addDimensionAutomation(DimensionAutomation.LOOP_PLAY.name());
+        java.util.List<Double> before = game.loopZones(0);
+        for (int frame = 0; frame < 200 * 20; frame++) game.tick(0.05);
+        long clicks = game.loopAutoClicks();
+        // Au moins un clic par passage ; souvent plus, car la zone touchée se repose devant le point.
+        assertTrue(clicks >= 10 && clicks <= 30, "en 200 s : " + clicks);
+        assertEquals(clicks * game.loopReward(LoopHit.GOOD), game.state().loopShardsEarned(), 1e-6, "des « bien »");
+        assertFalse(before.equals(game.loopZones(0)), "la zone touchée part ailleurs, comme pour un clic du joueur");
+    }
+
+    /** Version 0.154 : les zones d'un même cercle ne se superposent pas. */
+    @Test
+    void lesZonesNeSeSuperposentPas() {
+        Game game = five();
+        game.state().setLoopLevel(LoopUpgrade.ZONES.ordinal(), LoopUpgrade.ZONES.max());
+        game.state().setLoopLevel(LoopUpgrade.SIZE.ordinal(), LoopUpgrade.SIZE.max());
+        game.state().setLoopLevel(LoopUpgrade.RINGS.ordinal(), 3);
+        double half = game.loopZoneHalfWidth();
+        for (int click = 0; click < 300; click++) {
+            game.tick(0.5);
+            for (int ring = 0; ring < game.loopRings(); ring++) {
+                java.util.List<Double> zones = game.loopZones(ring);
+                assertEquals(GameLoop.MAX_ZONES, zones.size());
+                for (int a = 0; a < zones.size(); a++) {
+                    for (int b = a + 1; b < zones.size(); b++) {
+                        double d = Math.abs(zones.get(a) - zones.get(b));
+                        d = Math.min(d, 1 - d);
+                        assertTrue(d >= 2 * half, "cercle " + ring + " : deux zones se touchent (" + d + ")");
+                    }
+                }
+                // Le joueur clique au centre d'une zone : elle part ailleurs.
+                game.setLoopPhase(ring, zones.get(click % zones.size()));
+                game.clickLoop(ring);
+            }
+        }
     }
 }

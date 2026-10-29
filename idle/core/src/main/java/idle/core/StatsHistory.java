@@ -174,6 +174,8 @@ public final class StatsHistory {
         DURATION_SHARDS,
         /** Nœuds de la boucle gagnés en tout, en puissance de dix (version 0.153). */
         LOOP_SHARDS,
+        /** Ondes de la brane gagnées en tout, en puissance de dix (version 0.154). */
+        BRANE_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
 

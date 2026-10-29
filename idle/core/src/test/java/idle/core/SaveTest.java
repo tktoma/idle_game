@@ -214,7 +214,7 @@ class SaveTest {
         state.setSeedSprouted(true);
         state.setSeedWaterings(17);
         state.setWateringCan(true);
-        for (int i = 0; i < 10; i++) state.setSeedUpgradeLevel(i, i + 1);
+        for (int i = 0; i < 11; i++) state.setSeedUpgradeLevel(i, i + 1);
         state.setChronoStored(123.5);
         state.setChronoSpeed(2.5);
         state.setTreeBubbles(0b1000000000000000101);   // la base, la bulle de droite du bonsaï, et le sommet (la 19e, bit 18)
@@ -227,6 +227,10 @@ class SaveTest {
         state.setLoopShards(55.5);
         state.setLoopShardsEarned(4321.25);
         for (int i = 0; i < 6; i++) state.setLoopLevel(i, i + 2);
+        // Version 0.154 : la brane.
+        state.setBraneShards(66.5);
+        state.setBraneShardsEarned(5432.25);
+        for (int i = 0; i < 5; i++) state.setBraneLevel(i, i + 3);
         // Version 0.149 : les hadrons.
         state.setHadronsOpen(true);
         state.setHadronsPrice(2.5e9);

@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
  * Version 0.153 : la boucle, cinquième dimension, et le rond de croissance de la graine, sous Xvfb. Les cercles se
  * jouent à la souris ou à leurs touches ; un clic juste donne des nœuds, un clic à côté rien, et le cercle attend après
  * chaque clic ; le métronome bat sur le centre des zones du premier cercle ; les améliorations s'achètent dans la
- * fenêtre ; le rythme automatique joue seul. Le rond de croissance pousse dans la vue de la graine, se cueille d'un clic
- * et accélère l'arrosage ; ses deux améliorations sont dans la branche « Boucle ».
+ * fenêtre ; le rythme automatique joue seul, clic par clic depuis la version 0.154. Le rond de croissance pousse dans
+ * la vue de la graine, se cueille d'un clic et accélère l'arrosage ; ses deux améliorations sont dans la branche
+ * « Boucle ».
  */
 class BouclePageTest {
 
@@ -216,6 +217,10 @@ class BouclePageTest {
                 rose = window.view().loopMarksShown() > 0;
             }
             assertTrue(rose && game.loopHits() > hits, "ses clics font monter leurs nœuds");
+            // Version 0.154 : il joue clic par clic ; chacun éclaire son cercle et fait monter son mot du point.
+            assertTrue(game.loopAutoClicks() > 0 && window.view().loopAutoFlashes() > 0, "ses clics se voient sur leur cercle");
+            String word = window.view().lastLoopMark();
+            assertTrue(word.equals("Bien") || word.equals("Excellent"), word);
             return null;
         });
     }

@@ -355,6 +355,9 @@ public abstract class GameStateResets extends GameStateCollider {
         loopShards = 0;
         loopShardsEarned = 0;
         java.util.Arrays.fill(loopLevels, 0);
+        braneShards = 0;
+        braneShardsEarned = 0;
+        java.util.Arrays.fill(braneLevels, 0);
         java.util.Arrays.fill(seedUpgradeLevels, 0);
         chronoStored = 0;
         chronoSpeed = 1;

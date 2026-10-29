@@ -54,7 +54,8 @@ import javafx.scene.layout.VBox;
  *   <li><b>Actes</b> : refaire un acte depuis son début, vider le collisionneur ;</li>
  *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
  *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la
- *       boucle comprise depuis la version 0.153, puis la graine, son chrono et le rond de croissance ;</li>
+ *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, puis la graine, son chrono et le
+ *       rond de croissance ;</li>
  *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension (de la ligne à la durée) joue la
  *       partie en cours.</li>
  * </ul>
@@ -117,7 +118,7 @@ final class DebugBar extends VBox {
     // Les bots des dimensions (version 0.140)
     /** Les rangées des outils des dimensions : leur nom et leur ressource. */
     private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)",
-            "Boucle (nœuds)"};
+            "Boucle (nœuds)", "Brane (ondes)"};
     /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
     static final int DIMENSION_BATCH = 400;
     private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
@@ -335,7 +336,7 @@ final class DebugBar extends VBox {
         // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.
         VBox dimensionRows = new VBox(4);
-        // La boucle (version 0.153) a sa rangée ; elle n'a pas encore de bot.
+        // La boucle (version 0.153) et la brane (version 0.154) ont leur rangée ; elles n'ont pas encore de bot.
         for (int d = 1; d <= DIMENSION_ROWS.length; d++) {
             int number = d;
             dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
@@ -635,7 +636,8 @@ final class DebugBar extends VBox {
             case 2 -> Game.PLANE_THRESHOLD;
             case 3 -> Game.VOLUME_THRESHOLD;
             case 4 -> Game.DURATION_THRESHOLD;
-            default -> Game.LOOP_THRESHOLD;
+            case 5 -> Game.LOOP_THRESHOLD;
+            default -> Game.BRANE_THRESHOLD;
         };
     }
 
@@ -659,9 +661,13 @@ final class DebugBar extends VBox {
                 state.setDurationShards(state.durationShards() + amount);
                 state.setDurationShardsEarned(state.durationShardsEarned() + amount);
             }
-            default -> {
+            case 5 -> {
                 state.setLoopShards(state.loopShards() + amount);
                 state.setLoopShardsEarned(state.loopShardsEarned() + amount);
+            }
+            default -> {
+                state.setBraneShards(state.braneShards() + amount);
+                state.setBraneShardsEarned(state.braneShardsEarned() + amount);
             }
         }
     }
@@ -675,13 +681,14 @@ final class DebugBar extends VBox {
             case 2 -> state.setPlaneShardsEarned(Math.max(state.planeShardsEarned(), threshold));
             case 3 -> state.setVolumeShardsEarned(Math.max(state.volumeShardsEarned(), threshold));
             case 4 -> state.setDurationShardsEarned(Math.max(state.durationShardsEarned(), threshold));
-            default -> state.setLoopShardsEarned(Math.max(state.loopShardsEarned(), threshold));
+            case 5 -> state.setLoopShardsEarned(Math.max(state.loopShardsEarned(), threshold));
+            default -> state.setBraneShardsEarned(Math.max(state.braneShardsEarned(), threshold));
         }
     }
 
     /**
      * Les améliorations de la dimension au plus haut, ou à zéro. La valeur du volume et de la durée, et le gain de la
-     * boucle, n'ont pas de plafond : dix niveaux.
+     * boucle et de la brane, n'ont pas de plafond : dix niveaux.
      */
     private void setDimensionLevels(int number, boolean max) {
         GameState state = game.state();
@@ -705,9 +712,13 @@ final class DebugBar extends VBox {
                 for (Game.DurationUpgrade upgrade : Game.DurationUpgrade.values())
                     state.setDurationLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.DurationUpgrade.VALUE ? 10 : upgrade.max());
             }
-            default -> {
+            case 5 -> {
                 for (Game.LoopUpgrade upgrade : Game.LoopUpgrade.values())
                     state.setLoopLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.LoopUpgrade.GAIN ? 10 : upgrade.max());
+            }
+            default -> {
+                for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values())
+                    state.setBraneLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.BraneUpgrade.GAIN ? 10 : upgrade.max());
             }
         }
     }

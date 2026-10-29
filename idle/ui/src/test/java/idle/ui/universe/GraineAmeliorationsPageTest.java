@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; les branches 6 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
- * 0.153) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ * sa ressource ; les branches 7 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * 0.153, celle de la brane, la sixième, depuis la version 0.154) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
 
@@ -153,7 +153,14 @@ class GraineAmeliorationsPageTest {
             assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).isDisabled());
             assertTrue(pane.button(SeedUpgrade.BLOOM_DURATION).getText().endsWith("S'ouvre avec la dimension 5"),
                     pane.button(SeedUpgrade.BLOOM_DURATION).getText());
-            for (int d = 6; d <= SeedUpgradesPane.BRANCHES; d++) {
+            // La brane (version 0.154) : sa branche a la lumière astrale, fermée tant que la dimension 6 ne l'est pas.
+            assertFalse(pane.isBranchOpen(6));
+            assertEquals("Brane", SeedUpgradesPane.branchName(6));
+            pane.select(6);
+            assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).isDisabled());
+            assertTrue(pane.button(SeedUpgrade.ASTRAL_LIGHT).getText().endsWith("S'ouvre avec la dimension 6"),
+                    pane.button(SeedUpgrade.ASTRAL_LIGHT).getText());
+            for (int d = 7; d <= SeedUpgradesPane.BRANCHES; d++) {
                 assertFalse(pane.isBranchOpen(d));
                 pane.select(d);
                 assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));

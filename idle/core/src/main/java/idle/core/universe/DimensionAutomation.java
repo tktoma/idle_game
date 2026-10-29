@@ -8,7 +8,7 @@ package idle.core.universe;
  *
  * <p>Ceux de la dimension 1 se paient en graines d'univers ; ceux de la dimension n, avec la ressource de la dimension
  * n − 1 : les segments de la ligne pour le plan, les facettes du plan pour le volume, les sphères du volume pour la durée,
- * les instants de la durée pour la boucle (version 0.153).
+ * les instants de la durée pour la boucle (version 0.153), les nœuds de la boucle pour la brane (version 0.154).
  */
 public enum DimensionAutomation {
     LINE_YIELD(1, Kind.UPGRADE, 0, "Densité"),
@@ -40,13 +40,20 @@ public enum DimensionAutomation {
     LOOP_GAIN(5, Kind.UPGRADE, 2, "Gain par zone"),
     LOOP_PRECISION(5, Kind.UPGRADE, 3, "Précision"),
     LOOP_SIZE(5, Kind.UPGRADE, 4, "Taille des zones"),
-    LOOP_RINGS(5, Kind.UPGRADE, 5, "Cercles");
+    LOOP_RINGS(5, Kind.UPGRADE, 5, "Cercles"),
+    // Version 0.154 : la brane, payée en nœuds de la boucle.
+    BRANE_PULL(6, Kind.PLAY, -1, "Tirée automatique"),
+    BRANE_GAIN(6, Kind.UPGRADE, 0, "Gain"),
+    BRANE_ELASTICITY(6, Kind.UPGRADE, 1, "Élasticité"),
+    BRANE_SIZE(6, Kind.UPGRADE, 2, "Grandeur des ondes"),
+    BRANE_BOUNCE(6, Kind.UPGRADE, 3, "Rebond"),
+    BRANE_COMBO(6, Kind.UPGRADE, 4, "Points en une onde");
 
     /** Ce que fait l'automatisme : jouer la dimension, ou acheter une de ses améliorations. */
     public enum Kind { PLAY, UPGRADE }
 
     /** Le prix du premier automatisme de chaque dimension, dans la ressource qui le paie (graines, segments, facettes, sphères). */
-    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000};
+    private static final double[] FIRST_COST = {1, 100_000, 500, 1_000, 50_000, 2_000};
     /** Ce que chaque automatisme suivant de la même dimension coûte de plus : ×2 (les graines : +1 tous les deux). */
     public static final double COST_GROWTH = 2;
 
@@ -62,7 +69,7 @@ public enum DimensionAutomation {
         this.label = label;
     }
 
-    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle. */
+    /** La dimension qu'il automatise : 1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane. */
     public int dimension() {
         return dimension;
     }

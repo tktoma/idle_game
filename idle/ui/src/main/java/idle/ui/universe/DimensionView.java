@@ -13,7 +13,7 @@ import javafx.scene.text.TextAlignment;
 /**
  * Le visuel d'une dimension, dans sa fenêtre (version 0.081) : une tentative, sans logique, pour
  * chacune des dix. De la ligne (un point qui va et vient) au point qui contient tout, en passant
- * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, tous les débuts, et d'autres lois.
+ * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, la brane, tous les débuts, et d'autres lois.
  *
  * <p>La ligne a sa logique depuis la version 0.101 : la boule est celle du jeu ({@link Game#linePosition()}),
  * un trait à chaque bout et, avec l'amélioration, d'autres à égale distance entre les deux. Chaque trait
@@ -36,7 +36,15 @@ import javafx.scene.text.TextAlignment;
  * « excellent »). Un clic sur un cercle (ou sa touche, que la fenêtre transmet) le joue : le mot de ce qu'il a valu
  * monte du point, et un anneau autour du point se remplit tant que le cercle attend. Les clics du rythme automatique
  * font monter leurs nœuds du centre. Le métronome, s'il est branché ({@link #setOnBeat}), bat à chaque passage du point
- * du premier cercle sur le centre d'une zone.
+ * du premier cercle sur le centre d'une zone. Depuis la version 0.154, le rythme automatique joue clic par clic, fenêtre
+ * ouverte : chacun de ses clics éclaire son cercle et fait monter son mot du point, comme un clic du joueur.
+ *
+ * <p>La brane a la sienne depuis la version 0.154 : la membrane, un carré tendu, quadrillé. On l'appuie en un point, on
+ * glisse (la membrane se creuse vers la souris, et un cercle en pointillé montre jusqu'où ira l'onde), on relâche : une
+ * onde part du point appuyé. Chaque onde est un cercle qui grandit et s'efface vers sa portée ; ses rebonds sur les bords
+ * se dessinent comme les cercles des sources symétriques (les images), découpés au carré. Les points attendent sur la
+ * membrane ; touchés par une onde qui court, ils changent de couleur, et chaque passage fait monter son gain (marqué
+ * « rebond » après un bord).
  */
 public final class DimensionView extends Canvas {
 
@@ -136,11 +144,14 @@ public final class DimensionView extends Canvas {
             setCursor(cursorAt(event.getX(), event.getY()));
         });
         setOnMouseDragged(event -> {
-            if (freeLook(event.getX(), event.getY()) || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
+            if (freeLook(event.getX(), event.getY()) || dragBrane(event.getX(), event.getY())
+                    || event.isPrimaryButtonDown() && dragTo(event.getX(), event.getY())) event.consume();
         });
         setOnMouseReleased(event -> {
             // La durée (version 0.134) : relâcher le bouton, où que soit la souris, donne les éclats.
             releaseHold();
+            // La brane (version 0.154) : relâcher la membrane, où que soit la souris, lance l'onde.
+            if (releaseBrane()) event.consume();
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
@@ -300,6 +311,12 @@ public final class DimensionView extends Canvas {
         lastLoopHits = -1;
         lastBeatPhase = Double.NaN;
         java.util.Arrays.fill(ringFlash, 0);
+        lastLoopAuto = -1;
+        cancelBrane();
+        braneMarks.clear();
+        braneSeen.clear();
+        braneSeenPoints = List.of();
+        lastBraneTouches = -1;
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -325,6 +342,7 @@ public final class DimensionView extends Canvas {
             lastReleases = releases;
         }
         if (dimension == Dimension.LOOP) runLoop(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.BRANE) runBrane(Math.min(elapsed, 0.1));
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
             edgeTurn(Math.min(elapsed, 0.1));
@@ -394,6 +412,9 @@ public final class DimensionView extends Canvas {
     private javafx.scene.Cursor cursorAt(double x, double y) {
         if (dimension == Dimension.DURATION && game.isDurationOpen() && overDurationButton(x, y)) return javafx.scene.Cursor.HAND;
         if (dimension == Dimension.LOOP && game.isLoopOpen() && loopRingAt(x, y) >= 0) return javafx.scene.Cursor.HAND;
+        if (dimension == Dimension.BRANE && game.isBraneOpen() && (braneHeld || overBrane(x, y) && game.canPullBrane())) {
+            return braneHeld ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.HAND;
+        }
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
         // La caméra libre cache la souris : la croix au centre de la vue la remplace.
         if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
@@ -404,11 +425,13 @@ public final class DimensionView extends Canvas {
     /**
      * Un bouton de la souris enfoncé sur le volume : dehors, un clic gauche sur le cube y fait plonger ; dedans, le
      * gauche commence à faire tourner le regard et le droit cueille la boule visée. En caméra libre, le regard suit
-     * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Vrai si le geste a servi.
+     * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Dans la durée, la boucle et la brane,
+     * le bouton du milieu, le cercle ou la membrane. Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension == Dimension.DURATION) return pressDuration(x, y);
         if (dimension == Dimension.LOOP) return pressLoop(x, y);
+        if (dimension == Dimension.BRANE) return !secondary && pressBrane(x, y);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
             if (secondary || !overCube(x, y)) return false;
@@ -853,7 +876,7 @@ public final class DimensionView extends Canvas {
                 else duration(g, w, cx, cy, u);
             }
             case LOOP -> loopScene(g, cx, cy);
-            case POSSIBLES -> possibles(g, w, cx, cy, u);
+            case BRANE -> braneScene(g, cx, cy);
             case BEGINNINGS -> beginnings(g, w, h, u);
             case WEAVE -> weave(g, cx, cy, u);
             case LAWS -> laws(g, cx, cy, u);
@@ -1209,6 +1232,13 @@ public final class DimensionView extends Canvas {
     /** L'éclat de chaque cercle juste joué, de 1 à 0, et ce que le clic a valu. */
     private final double[] ringFlash = new double[Game.MAX_RINGS];
     private final Game.LoopHit[] ringFlashHit = new Game.LoopHit[Game.MAX_RINGS];
+    /**
+     * Les clics du rythme automatique que la vue a déjà montrés (version 0.154), −1 tant qu'elle n'a rien vu, et
+     * l'attente de chaque cercle à l'image d'avant : un cercle dont l'attente remonte vient d'être joué par lui.
+     */
+    private long lastLoopAuto = -1;
+    private final double[] lastLoopWait = new double[Game.MAX_RINGS];
+    private long loopAutoFlashes;
 
     /** Le métronome de la boucle : ce qu'il joue à chaque battement, ou {@code null} pour le couper. */
     public void setOnBeat(Runnable beat) {
@@ -1223,6 +1253,11 @@ public final class DimensionView extends Canvas {
     /** Les mots de clics qui montent encore : pour les vérifications. */
     public int loopMarksShown() {
         return loopMarks.size();
+    }
+
+    /** Les clics du rythme automatique que la vue a montrés sur leur cercle (version 0.154) : pour les vérifications. */
+    public long loopAutoFlashes() {
+        return loopAutoFlashes;
     }
 
     /** Le texte du dernier mot de clic, ou rien : pour les vérifications. */
@@ -1275,6 +1310,14 @@ public final class DimensionView extends Canvas {
         Game.LoopHit hit = game.clickLoop(ring);
         lastLoopHits = game.loopHits();
         if (hit == Game.LoopHit.WAIT || ring < 0 || ring >= Game.MAX_RINGS) return hit;
+        // Le cercle attend : ce n'est pas le rythme automatique qui l'a joué.
+        lastLoopWait[ring] = game.loopWait(ring);
+        ringMark(ring, hit);
+        return hit;
+    }
+
+    /** Le mot d'un clic monte du point du cercle, avec son gain, et le cercle s'éclaire de sa couleur. */
+    private void ringMark(int ring, Game.LoopHit hit) {
         double[] at = loopPoint(ring);
         LoopMark mark = new LoopMark();
         mark.x = at[0];
@@ -1286,7 +1329,6 @@ public final class DimensionView extends Canvas {
         loopMarks.add(mark);
         ringFlash[ring] = 1;
         ringFlashHit[ring] = hit;
-        return hit;
     }
 
     /** Le mot d'un clic : « Excellent », « Bien », « Mauvais », « Raté » ; rien pour un clic qui attendait. */
@@ -1310,23 +1352,36 @@ public final class DimensionView extends Canvas {
     }
 
     /**
-     * La boucle avance d'une image : les mots montent, les éclats des cercles s'éteignent, les clics du rythme
-     * automatique font monter leurs nœuds du centre, et le métronome bat si le point du premier cercle a passé le centre
-     * d'une zone depuis l'image d'avant.
+     * La boucle avance d'une image : les mots montent, les éclats des cercles s'éteignent, et le métronome bat si le
+     * point du premier cercle a passé le centre d'une zone depuis l'image d'avant. Les clics du rythme automatique
+     * (version 0.154 : joués un par un) se montrent comme ceux du joueur : le cercle dont l'attente vient de remonter
+     * s'éclaire, et le mot monte de son point. Ceux qu'il compte sans les jouer (un grand pas) montent du centre.
      */
     private void runLoop(double elapsed) {
         for (LoopMark mark : loopMarks) mark.age += elapsed;
         loopMarks.removeIf(mark -> mark.age > LOOP_MARK_SECONDS);
         for (int ring = 0; ring < ringFlash.length; ring++) ringFlash[ring] = Math.max(0, ringFlash[ring] - elapsed / 0.4);
         if (!game.isLoopOpen()) return;
-        long hits = game.loopHits();
-        if (lastLoopHits >= 0 && hits > lastLoopHits && loopMarks.size() < 20) {
+        long hits = game.loopHits(), auto = game.loopAutoClicks(), played = 0;
+        if (lastLoopAuto >= 0 && auto > lastLoopAuto) {
+            Game.LoopHit hit = game.lastLoopHit() == Game.LoopHit.EXCELLENT ? Game.LoopHit.EXCELLENT : Game.LoopHit.GOOD;
+            for (int ring = 0; ring < game.loopRings() && played < auto - lastLoopAuto; ring++) {
+                if (game.loopWait(ring) <= lastLoopWait[ring] + 1e-9) continue;
+                ringMark(ring, hit);
+                played++;
+                loopAutoFlashes++;
+            }
+        }
+        lastLoopAuto = auto;
+        for (int ring = 0; ring < Game.MAX_RINGS; ring++) lastLoopWait[ring] = game.loopWait(ring);
+        long counted = lastLoopHits < 0 ? 0 : hits - lastLoopHits - played;
+        if (counted > 0 && loopMarks.size() < 20) {
             LoopMark mark = new LoopMark();
             mark.x = getWidth() / 2;
             mark.y = getHeight() / 2;
             mark.hit = Game.LoopHit.GOOD;
             mark.text = "";
-            mark.gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(Game.LoopHit.GOOD) * (hits - lastLoopHits)));
+            mark.gain = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.loopReward(Game.LoopHit.GOOD) * counted));
             loopMarks.add(mark);
         }
         lastLoopHits = hits;
@@ -1426,47 +1481,329 @@ public final class DimensionView extends Canvas {
         g.strokeArc(cx - r, cy - r, r * 2, r * 2, start, extent, javafx.scene.shape.ArcType.OPEN);
     }
 
-    // 6. Toutes les suites d'un même début, en éventail, et des passages qui sautent de l'une à l'autre.
-    private void possibles(GraphicsContext g, double w, double cx, double cy, double u) {
-        double x0 = w * 0.1;
-        int count = 22;
-        double[] ends = new double[count];
-        for (int k = 0; k < count; k++) {
-            double t = k / (count - 1.0);
-            double end = cy + (t - 0.5) * u * 0.8;
-            ends[k] = end;
-            int steps = 24;
-            double[] xs = new double[steps + 1], ys = new double[steps + 1];
-            for (int s = 0; s <= steps; s++) {
-                double f = s / (double) steps;
-                xs[s] = x0 + (w * 0.8) * f;
-                ys[s] = cy + (end - cy) * f + Math.sin(f * 9 + k + time) * 4 * f;
-            }
-            g.setStroke(PALETTE[k % PALETTE.length]);
-            g.setLineWidth(1);
-            g.setGlobalAlpha(0.45);
-            g.strokePolyline(xs, ys, steps + 1);
+    // ------------------------------------------------------------------
+    // La brane (version 0.154) : la membrane, ses ondes, leurs rebonds, ses points
+    // ------------------------------------------------------------------
+
+    /** La demi-largeur de la membrane, relative au plus petit côté de la vue. */
+    private static final double BRANE_HALF = 0.42;
+    /** Le glissé, en unités de la membrane (de côté 2), qui la tire à fond. */
+    public static final double BRANE_FULL_PULL = 0.6;
+    /** Le quadrillage de la membrane : tant de cases sur chaque axe. */
+    private static final int BRANE_GRID = 12;
+    /** Un point touché par une onde qui court, et un passage après un rebond. */
+    public static final Color BRANE_STRUCK = Color.web("#fff1c9"), BRANE_BOUNCED = Color.web("#ffb36b");
+    /** Durée de vie du gain d'un passage, qui monte du point et s'efface, en secondes. */
+    private static final double BRANE_MARK_SECONDS = 1;
+
+    /** Le gain d'un passage : où il monte, son âge, et s'il vient d'un rebond. */
+    private static final class BraneMark {
+        double x, y, age;
+        String text;
+        boolean bounced;
+    }
+
+    /** La membrane tenue : où on l'a appuyée et où est la souris, en unités de la membrane (−1 à 1). */
+    private boolean braneHeld;
+    private double braneFromX, braneFromY, braneToX, braneToY;
+    private final List<BraneMark> braneMarks = new ArrayList<>();
+    /**
+     * Ce que la vue a vu de chaque onde à l'image d'avant : son rayon et ses passages. Entre deux images, chaque front
+     * (l'onde et ses huit images) passé sur un point est un passage : son gain monte de ce point.
+     */
+    private final java.util.Map<Game.BraneWave, double[]> braneSeen = new java.util.IdentityHashMap<>();
+    /** Les points de l'image d'avant : une onde qui s'éteint emporte ceux qu'elle a touchés. */
+    private List<Game.BranePoint> braneSeenPoints = List.of();
+    /** Les passages que la vue a déjà montrés, −1 tant qu'elle n'a rien vu. */
+    private long lastBraneTouches = -1;
+    /** Les fronts d'onde dessinés à la dernière image, rebonds compris. */
+    private int braneFronts;
+
+    /** La demi-largeur de la membrane à l'écran, en pixels. */
+    public double braneHalf() {
+        return Math.min(getWidth(), getHeight()) * BRANE_HALF;
+    }
+
+    /** Où se dessine ce point de la membrane (−1 à 1 sur chaque axe). */
+    public double[] braneScreen(double x, double y) {
+        return new double[] {getWidth() / 2 + x * braneHalf(), getHeight() / 2 + y * braneHalf()};
+    }
+
+    /** Le point de la membrane sous ce point de la vue (hors d'elle, au-delà de ±1). */
+    private double[] braneAt(double x, double y) {
+        double half = Math.max(1e-9, braneHalf());
+        return new double[] {(x - getWidth() / 2) / half, (y - getHeight() / 2) / half};
+    }
+
+    /** Vrai si ce point de la vue est sur la membrane. */
+    public boolean overBrane(double x, double y) {
+        double[] at = braneAt(x, y);
+        return Math.abs(at[0]) <= Game.BRANE_EDGE && Math.abs(at[1]) <= Game.BRANE_EDGE;
+    }
+
+    /** Vrai pendant qu'on tient la membrane. */
+    public boolean braneHeld() {
+        return braneHeld;
+    }
+
+    /** La force de la tirée en cours, de 0 à 1 : la longueur du glissé, à fond à {@link #BRANE_FULL_PULL}. */
+    public double branePull() {
+        if (!braneHeld) return 0;
+        return Math.min(1, Math.hypot(braneToX - braneFromX, braneToY - braneFromY) / BRANE_FULL_PULL);
+    }
+
+    /** Un appui sur la membrane : on la tient là. Faux hors d'elle, ou si trois ondes courent déjà. */
+    private boolean pressBrane(double x, double y) {
+        if (!game.isBraneOpen() || !overBrane(x, y) || !game.canPullBrane()) return false;
+        double[] at = braneAt(x, y);
+        braneHeld = true;
+        braneFromX = braneToX = at[0];
+        braneFromY = braneToY = at[1];
+        return true;
+    }
+
+    /** La souris tenue glisse : la membrane se tend vers elle. Vrai si on la tenait. */
+    public boolean dragBrane(double x, double y) {
+        if (!braneHeld || dimension != Dimension.BRANE) return false;
+        double[] at = braneAt(x, y);
+        braneToX = at[0];
+        braneToY = at[1];
+        return true;
+    }
+
+    /** La membrane relâchée : une onde part du point appuyé, à la force du glissé. Vrai si une onde est partie. */
+    public boolean releaseBrane() {
+        if (!braneHeld) return false;
+        double pull = branePull();
+        braneHeld = false;
+        return dimension == Dimension.BRANE && game.pullBrane(braneFromX, braneFromY, pull);
+    }
+
+    /** La membrane lâchée sans onde : la fenêtre se ferme, ou la vue change de dimension. */
+    public void cancelBrane() {
+        braneHeld = false;
+    }
+
+    /** Les fronts d'onde (l'onde et ses rebonds) dessinés à la dernière image : pour les vérifications. */
+    public int braneFrontsDrawn() {
+        return braneFronts;
+    }
+
+    /** Les gains de passages qui montent encore : pour les vérifications. */
+    public int braneMarksShown() {
+        return braneMarks.size();
+    }
+
+    /** Le texte du dernier gain monté, ou rien : pour les vérifications. */
+    public String lastBraneMark() {
+        return braneMarks.isEmpty() ? "" : braneMarks.get(braneMarks.size() - 1).text;
+    }
+
+    /** Vrai si le cercle de centre ({@code x}, {@code y}) et de rayon {@code r} passe dans le carré de la membrane. */
+    private static boolean reachesSquare(double x, double y, double r, double cx, double cy, double half) {
+        double dx = Math.max(0, Math.abs(x - cx) - half), dy = Math.max(0, Math.abs(y - cy) - half);
+        return Math.hypot(dx, dy) < r;
+    }
+
+    /** Une coordonnée et ses deux symétriques par les bords : les sources de l'onde et de ses rebonds. */
+    private static double[] braneImages(double c) {
+        return new double[] {c, 2 * Game.BRANE_EDGE - c, -2 * Game.BRANE_EDGE - c};
+    }
+
+    /**
+     * La brane avance d'une image : les gains montent et s'effacent. Les passages comptés depuis l'image d'avant se
+     * retrouvent, chaque front passé sur un point entre l'ancien rayon de son onde et le nouveau (ou sa portée, si elle
+     * s'est éteinte), dans l'ordre où ils sont arrivés : le gain de chacun monte de son point.
+     */
+    private void runBrane(double elapsed) {
+        for (BraneMark mark : braneMarks) mark.age += elapsed;
+        braneMarks.removeIf(mark -> mark.age > BRANE_MARK_SECONDS);
+        if (!game.isBraneOpen()) {
+            braneHeld = false;
+            return;
         }
-        // Les passages : des arcs qui relient deux suites, et un éclat qui les emprunte.
-        for (int k = 0; k < 6; k++) {
-            int a = (int) (UniverseView.noise(k * 5 + 1) * count), b = (int) (UniverseView.noise(k * 5 + 2) * count);
-            double x = x0 + w * 0.8 * (0.4 + 0.5 * UniverseView.noise(k * 5 + 3));
-            double ya = cy + (ends[a] - cy) * (x - x0) / (w * 0.8), yb = cy + (ends[b] - cy) * (x - x0) / (w * 0.8);
-            int steps = 16;
-            double[] xs = new double[steps + 1], ys = new double[steps + 1];
-            for (int s = 0; s <= steps; s++) {
-                double f = s / (double) steps;
-                xs[s] = x + Math.sin(f * Math.PI) * u * 0.08;
-                ys[s] = ya + (yb - ya) * f;
+        // Trois ondes courent déjà (la tirée automatique a pu en lancer une) : la tirée en cours n'en lancera pas.
+        if (braneHeld && !game.canPullBrane()) braneHeld = false;
+        long touches = game.braneTouches();
+        List<Game.BraneWave> current = game.braneWaves();
+        if (lastBraneTouches >= 0 && touches > lastBraneTouches) {
+            long left = touches - lastBraneTouches;
+            java.util.Set<Game.BranePoint> points = new java.util.LinkedHashSet<>(braneSeenPoints);
+            points.addAll(game.branePoints());
+            java.util.Set<Game.BraneWave> waves = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            waves.addAll(braneSeen.keySet());
+            waves.addAll(current);
+            for (Game.BraneWave wave : waves) {
+                double[] seen = braneSeen.getOrDefault(wave, new double[] {0, 0});
+                boolean running = current.stream().anyMatch(other -> other == wave);
+                left -= branePasses(wave, seen[0], running ? wave.radius() : wave.reach(), (int) seen[1], points, left);
+                if (left <= 0) break;
             }
+        }
+        braneSeen.clear();
+        for (Game.BraneWave wave : current) braneSeen.put(wave, new double[] {wave.radius(), wave.touched()});
+        braneSeenPoints = List.copyOf(game.branePoints());
+        lastBraneTouches = touches;
+    }
+
+    /**
+     * Les passages d'une onde entre les rayons {@code from} et {@code to}, au plus {@code most} : le gain de chacun
+     * monte de son point. {@code rank} est le nombre de passages qu'elle avait déjà. Rend le nombre de passages montrés.
+     */
+    private int branePasses(Game.BraneWave wave, double from, double to, int rank, java.util.Collection<Game.BranePoint> points, long most) {
+        List<double[]> passes = new ArrayList<>();
+        double[] xs = braneImages(wave.x()), ys = braneImages(wave.y());
+        for (Game.BranePoint point : points) {
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    double d = Math.hypot(point.x() - xs[i], point.y() - ys[j]);
+                    if (d > from - 1e-12 && d <= to + 1e-12) passes.add(new double[] {d, point.x(), point.y(), (i > 0 ? 1 : 0) + (j > 0 ? 1 : 0)});
+                }
+            }
+        }
+        passes.sort(java.util.Comparator.comparingDouble(pass -> pass[0]));
+        int shown = 0;
+        for (double[] pass : passes) {
+            if (shown >= most) break;
+            shown++;
+            int bounces = (int) pass[3];
+            double[] at = braneScreen(pass[1], pass[2]);
+            BraneMark mark = new BraneMark();
+            mark.x = at[0];
+            mark.y = at[1];
+            mark.bounced = bounces > 0;
+            mark.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.braneReward(rank + shown, bounces)))
+                    + (bounces > 0 ? ", rebond" : "");
+            if (braneMarks.size() >= 24) braneMarks.remove(0);
+            braneMarks.add(mark);
+        }
+        return shown;
+    }
+
+    /**
+     * La membrane : un carré quadrillé, qui se creuse vers la souris tant qu'on la tient, avec le cercle en pointillé de
+     * l'onde qui partirait. Les ondes et leurs rebonds (les cercles des huit images), découpés au carré ; les points,
+     * dorés une fois touchés par une onde qui court ; les gains des passages, qui montent. Fermée, la membrane ondule
+     * seule, sans point.
+     */
+    private void braneScene(GraphicsContext g, double cx, double cy) {
+        Color c = color();
+        double half = braneHalf();
+        boolean open = game.isBraneOpen();
+        UniverseView.glow(g, cx, cy, half * 1.1, c, 0.1);
+        // Le quadrillage, creusé vers la souris autour du point tenu ; fermée, une houle lente.
+        double pullX = braneHeld ? braneToX - braneFromX : 0, pullY = braneHeld ? braneToY - braneFromY : 0;
+        g.setStroke(c);
+        g.setLineWidth(1);
+        int steps = 24;
+        for (int axis = 0; axis < 2; axis++) {
+            for (int k = 0; k <= BRANE_GRID; k++) {
+                double fixed = -1 + 2.0 * k / BRANE_GRID;
+                double[] xs = new double[steps + 1], ys = new double[steps + 1];
+                for (int s = 0; s <= steps; s++) {
+                    double run = -1 + 2.0 * s / steps, bx = axis == 0 ? run : fixed, by = axis == 0 ? fixed : run;
+                    double near = braneHeld ? Math.exp(-(Math.pow(bx - braneFromX, 2) + Math.pow(by - braneFromY, 2)) / 0.18) : 0;
+                    // Les bords restent tenus : la membrane ne bouge qu'en dedans.
+                    double edge = (1 - bx * bx) * (1 - by * by);
+                    double sway = open ? 0 : 0.015 * Math.sin(time * 1.4 + bx * 3 + by * 2) * edge;
+                    xs[s] = cx + (bx + pullX * near * edge * 0.6) * half;
+                    ys[s] = cy + (by + pullY * near * edge * 0.6 + sway) * half;
+                }
+                g.setGlobalAlpha(k == 0 || k == BRANE_GRID ? 0.8 : 0.18);
+                g.setLineWidth(k == 0 || k == BRANE_GRID ? 2 : 1);
+                g.strokePolyline(xs, ys, steps + 1);
+            }
+        }
+        braneFronts = 0;
+        if (!open) {
+            g.setGlobalAlpha(1);
+            return;
+        }
+        // Les ondes, découpées au carré : la source, puis ses huit images, dont les cercles sont les rebonds.
+        g.save();
+        g.beginPath();
+        g.moveTo(cx - half, cy - half);
+        g.lineTo(cx + half, cy - half);
+        g.lineTo(cx + half, cy + half);
+        g.lineTo(cx - half, cy + half);
+        g.closePath();
+        g.clip();
+        for (Game.BraneWave wave : game.braneWaves()) {
+            double fade = Math.max(0.15, 1 - wave.radius() / Math.max(1e-9, wave.reach()));
+            double[] xs = braneImages(wave.x()), ys = braneImages(wave.y());
+            double r = wave.radius() * half;
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    double[] at = braneScreen(xs[i], ys[j]);
+                    boolean direct = i == 0 && j == 0;
+                    g.setStroke(direct ? Color.WHITE : BRANE_BOUNCED);
+                    g.setLineWidth(direct ? 2.5 : 1.6);
+                    g.setGlobalAlpha((direct ? 0.9 : 0.6) * fade);
+                    // Seuls les fronts qui entrent dans le carré se voient : les autres, découpés, ne se dessinent pas.
+                    if (r <= 0.5 || !reachesSquare(at[0], at[1], r, cx, cy, half)) continue;
+                    g.strokeOval(at[0] - r, at[1] - r, r * 2, r * 2);
+                    braneFronts++;
+                    // Un second front, plus pâle, juste derrière : l'onde a de l'épaisseur.
+                    double inner = r * 0.9;
+                    g.setStroke(c);
+                    g.setLineWidth(1);
+                    g.setGlobalAlpha(0.35 * fade);
+                    g.strokeOval(at[0] - inner, at[1] - inner, inner * 2, inner * 2);
+                }
+            }
+            double[] from = braneScreen(wave.x(), wave.y());
+            UniverseView.glow(g, from[0], from[1], 10, c, 0.5 * fade);
+        }
+        // L'onde qui partirait : un cercle en pointillé, de sa portée, autour du point tenu ; un trait vers la souris.
+        if (braneHeld) {
+            double[] from = braneScreen(braneFromX, braneFromY), to = braneScreen(braneToX, braneToY);
+            double reach = game.braneReach(branePull()) * half;
             g.setStroke(Color.WHITE);
-            g.setLineWidth(1.2);
-            g.setGlobalAlpha(0.6);
-            g.strokePolyline(xs, ys, steps + 1);
-            double f = (time * 0.5 + k * 0.17) % 1;
-            UniverseView.glow(g, x + Math.sin(f * Math.PI) * u * 0.08, ya + (yb - ya) * f, 5, Color.WHITE, 0.9);
+            g.setLineWidth(1.5);
+            g.setGlobalAlpha(0.75);
+            g.setLineDashes(6, 6);
+            g.strokeOval(from[0] - reach, from[1] - reach, reach * 2, reach * 2);
+            g.setLineDashes((double[]) null);
+            g.setStroke(c);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.6 + 0.4 * branePull());
+            g.strokeLine(from[0], from[1], to[0], to[1]);
+            UniverseView.glow(g, to[0], to[1], 8 + 10 * branePull(), c, 0.8);
         }
-        UniverseView.glow(g, x0, cy, u * 0.05, color(), 0.9);
+        g.restore();
+        // Les points : dorés une fois touchés par une onde qui court (ils partent avec elle).
+        int k = 0;
+        for (Game.BranePoint point : game.branePoints()) {
+            boolean struck = false;
+            for (Game.BraneWave wave : game.braneWaves()) struck |= wave.hasStruck(point);
+            double[] at = braneScreen(point.x(), point.y());
+            double r = 5 + (struck ? 2 : 0.8 * Math.sin(time * 3 + k++));
+            Color tint = struck ? BRANE_STRUCK : c;
+            UniverseView.glow(g, at[0], at[1], r * (struck ? 3.4 : 2.6), tint, struck ? 0.9 : 0.6);
+            g.setGlobalAlpha(1);
+            g.setFill(struck ? BRANE_STRUCK : Color.WHITE);
+            g.fillOval(at[0] - r * 0.6, at[1] - r * 0.6, r * 1.2, r * 1.2);
+        }
+        // La force de la tirée, près de la souris.
+        g.setTextAlign(TextAlignment.CENTER);
+        if (braneHeld) {
+            double[] to = braneScreen(braneToX, braneToY);
+            g.setGlobalAlpha(1);
+            g.setFill(Color.WHITE);
+            g.setFont(Font.font(13));
+            g.fillText("Force " + Math.round(branePull() * 100) + " %", to[0], to[1] - 16);
+        }
+        // Les gains des passages montent du point, orangés après un rebond.
+        for (BraneMark mark : braneMarks) {
+            double t = mark.age / BRANE_MARK_SECONDS;
+            Color tint = mark.bounced ? BRANE_BOUNCED : BRANE_STRUCK;
+            UniverseView.glow(g, mark.x, mark.y, 8 + 24 * t, tint, 0.6 * (1 - t));
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.setFill(tint);
+            g.setFont(Font.font(13));
+            g.fillText(mark.text, mark.x, mark.y - 14 - 26 * t);
+        }
+        g.setGlobalAlpha(1);
     }
 
     // 7. Plusieurs débuts, chacun avec son éventail de possibles.

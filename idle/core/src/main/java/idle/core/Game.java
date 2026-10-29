@@ -76,7 +76,7 @@ import java.util.random.RandomGenerator;
  * méthode définie plus loin dans la chaîne, elle la déclare abstraite en tête, sous « Ce que fournissent
  * les parties suivantes ».
  */
-public final class Game extends GameLoop {
+public final class Game extends GameBrane {
 
     /** Nouvelle partie avec les catalogues par défaut, succès compris. */
     public Game() {
@@ -385,6 +385,8 @@ public final class Game extends GameLoop {
         // La boucle et le rond de croissance (version 0.153).
         runLoop(dt);
         runBloom(dt);
+        // La brane (version 0.154).
+        runBrane(dt);
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);
@@ -717,6 +719,7 @@ public final class Game extends GameLoop {
                 case VOLUME_SHARDS -> isVolumeOpen() ? power(BigNum.of(state.volumeShardsEarned())) : Double.NaN;
                 case DURATION_SHARDS -> isDurationOpen() ? power(BigNum.of(state.durationShardsEarned())) : Double.NaN;
                 case LOOP_SHARDS -> isLoopOpen() ? power(BigNum.of(state.loopShardsEarned())) : Double.NaN;
+                case BRANE_SHARDS -> isBraneOpen() ? power(BigNum.of(state.braneShardsEarned())) : Double.NaN;
                 case SEED_WATERINGS -> isUniverseFormed() || state.seedWaterings() > 0 ? state.seedWaterings() : Double.NaN;
                 case PARTICLES -> power(state.particles());
                 case ATOMS -> power(state.atoms());

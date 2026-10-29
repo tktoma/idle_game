@@ -25,13 +25,15 @@ import javafx.scene.layout.VBox;
  * la version 0.128 : on plonge dans le cube, et ses améliorations s'achètent ici, une fois ressorti. La durée a la
  * sienne depuis la version 0.134 : on tient le bouton du milieu, les spirales avancent, on relâche. La boucle a la
  * sienne depuis la version 0.153 : on clique chaque cercle (ou sa touche) quand son point passe dans une zone ; ses
- * six améliorations, son métronome et le rappel des touches sont sous la vue. Les cinq autres restent des visuels.
+ * six améliorations, son métronome et le rappel des touches sont sous la vue. La brane a la sienne depuis la version
+ * 0.154 : on appuie la membrane, on glisse pour la tendre, on relâche, et l'onde qui part rebondit sur ses bords ; ses
+ * cinq améliorations sont sous la vue. Les quatre autres restent des visuels.
  *
  * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
  * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
  * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
  * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière. Le rythme automatique de la
- * boucle (version 0.153) joue de même, fenêtre ouverte ou non.
+ * boucle (version 0.153) et la tirée automatique de la brane (version 0.154) jouent de même, fenêtre ouverte ou non.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -39,16 +41,18 @@ public final class DimensionWindow extends BorderPane {
             + " -fx-border-radius: 6; -fx-text-fill: " + UniversePage.COLOR + "; -fx-background-color: #141a2c; -fx-border-color: #3b4670;";
 
     /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
-    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5";
+    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5",
+            BRANE_COLOR = "#7fe0d4";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
-    /** La couleur de la dimension {@code number} (1 à 5), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    /** La couleur de la dimension {@code number} (1 à 6), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
     public static String color(int number) {
         return switch (number) {
             case 2 -> PLANE_COLOR;
             case 3 -> VOLUME_COLOR;
             case 4 -> DURATION_COLOR;
             case 5 -> LOOP_COLOR;
+            case 6 -> BRANE_COLOR;
             default -> UniversePage.COLOR;
         };
     }
@@ -153,6 +157,13 @@ public final class DimensionWindow extends BorderPane {
     private final java.util.Map<Game.LoopUpgrade, Button> loopButtons = new java.util.EnumMap<>(Game.LoopUpgrade.class);
     private final VBox loopPane;
     private LoopSettings loopSettings = new LocalLoopSettings();
+    /** La brane (version 0.154) : ses ondes, son seuil, ce qu'on y fait, et ses cinq améliorations. */
+    private final Label braneShards = new Label();
+    private final Label braneThreshold = new Label();
+    private final Label braneHint = new Label();
+    private final Label braneDetail = new Label();
+    private final java.util.Map<Game.BraneUpgrade, Button> braneButtons = new java.util.EnumMap<>(Game.BraneUpgrade.class);
+    private final VBox branePane;
     /** Les touches de cercles tenues : une touche tenue se répète, mais ne rejoue pas son cercle. */
     private final java.util.Set<javafx.scene.input.KeyCode> loopKeysHeld = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     /** La barre d'espace tient le bouton de la durée, comme la souris. */
@@ -307,7 +318,26 @@ public final class DimensionWindow extends BorderPane {
         loopPane = new VBox(10, loopShards, loopThreshold, loopHint, metronomeButton, loopDetail, loopRow);
         loopPane.setAlignment(Pos.CENTER);
         loopPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane));
+        braneShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + BRANE_COLOR + ";");
+        braneThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        Labels.centered(braneHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        braneHint.setMaxWidth(820);
+        braneHint.setAlignment(Pos.CENTER);
+        // Deux lignes toujours : la membrane ne bouge pas quand le texte change, tenue ou relâchée.
+        braneHint.setMinHeight(38);
+        braneHint.setPrefHeight(38);
+        Labels.note(braneDetail, 820);
+        javafx.scene.layout.FlowPane braneRow = new javafx.scene.layout.FlowPane(12, 10);
+        braneRow.setAlignment(Pos.CENTER);
+        for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values()) {
+            Button button = upgradeButton(250, () -> game.buyBrane(upgrade));
+            braneButtons.put(upgrade, button);
+            braneRow.getChildren().add(button);
+        }
+        branePane = new VBox(10, braneShards, braneThreshold, braneHint, braneDetail, braneRow);
+        branePane.setAlignment(Pos.CENTER);
+        branePane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane));
         setVisible(false);
     }
 
@@ -344,9 +374,13 @@ public final class DimensionWindow extends BorderPane {
         return false;
     }
 
-    /** Recopie la dimension montrée (ligne, plan, volume, durée ou boucle) : ses éclats, et ce que coûtent ses améliorations. */
+    /** Recopie la dimension montrée (de la ligne à la brane) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
         autoBadge.setVisible(automatic());
+        boolean brane = view.dimension() == Dimension.BRANE && game.isBraneOpen();
+        branePane.setVisible(brane);
+        branePane.setManaged(brane);
+        if (brane) refreshBrane();
         boolean loop = view.dimension() == Dimension.LOOP && game.isLoopOpen();
         loopPane.setVisible(loop);
         loopPane.setManaged(loop);
@@ -539,6 +573,68 @@ public final class DimensionWindow extends BorderPane {
                 " nœud", LOOP_COLOR);
     }
 
+    /**
+     * La brane : ses ondes, son seuil, comment on la tire (la force et la portée pendant qu'on la tient) ou ce que fait la
+     * tirée automatique, le gain du dernier passage, le détail des passages et des rebonds, et ses améliorations, qui
+     * s'achètent toujours.
+     */
+    private void refreshBrane() {
+        braneShards.setText("Ondes de la brane : " + shardText(game.state().braneShards()));
+        threshold(braneThreshold, game.isDimensionThresholdReached(6), game.state().braneShardsEarned(), Game.BRANE_THRESHOLD, "ondes gagnées", 6);
+        String last = game.braneTouches() == 0 ? "" : " Dernier passage : +" + shardText(game.braneLastGain()) + ".";
+        braneHint.setText(view.braneHeld()
+                ? "Tirée à " + Math.round(view.branePull() * 100) + " % : l'onde portera à " + reach(game.braneReach(view.branePull()))
+                        + " (" + reach(game.braneMaxReach()) + " à fond). Relâchez pour la lancer."
+                : game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL)
+                ? "Tirée automatique : toutes les " + seconds(Game.BRANE_AUTO_SECONDS) + " s, elle tire la membrane à fond au "
+                        + "milieu des points. Vos tirées comptent en plus ; les améliorations s'achètent quand même." + last
+                : !game.canPullBrane()
+                ? "Trois ondes courent déjà : attendez qu'une s'éteigne pour tirer de nouveau." + last
+                : "Appuyez sur la membrane, glissez pour la tendre (plus loin, plus fort), relâchez : l'onde part du point "
+                        + "appuyé et rebondit sur les bords. Chaque point qu'elle touche donne des ondes." + last);
+        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values()) levels.append('/').append(game.braneLevel(upgrade));
+        if (changed(braneDetail, levels.toString())) {
+            braneDetail.setText(idle.ui.common.Detail.only("La membrane fait 2 de côté. Une onde tirée à fond porte à "
+                + reach(game.braneMaxReach()) + ", à peine tirée à " + Math.round(Game.BRANE_MIN_PULL * 100) + " % de cela ; un glissé de "
+                + reach(DimensionView.BRANE_FULL_PULL) + " la tire à fond. Son front avance de " + reach(Game.BRANE_WAVE_SPEED)
+                + " par seconde et rebondit sur les bords : chaque passage sur un point compte, en direct puis après chaque "
+                + "rebond qui le retrouve. Un passage donne " + shardText(game.braneValue()) + " onde"
+                + (game.braneValue() >= 2 ? "s" : "") + ", " + Format.multiplier(game.braneBounceFactor())
+                + " par bord rebondi, et " + percent(game.braneComboStep()) + " de plus par passage de plus de la même onde. "
+                + "Les points touchés restent tant que l'onde court, puis partent avec elle ; un point paraît toutes les "
+                + seconds(Game.BRANE_SPAWN_SECONDS) + " s, " + Game.BRANE_MAX_POINTS + " au plus, et " + Game.BRANE_MAX_WAVES
+                + " ondes courent au plus à la fois. Les ondes, le seuil et les améliorations de la brane traversent les "
+                + "univers ; le seuil marque la dimension d'un rond vert, et les ondes paient aussi la lumière astrale de la graine."));
+            braneDetail.setVisible(!braneDetail.getText().isEmpty());
+            braneDetail.setManaged(braneDetail.isVisible());
+        }
+        paintUpgrades(braneButtons, this::describe, game::braneLevel, Game.BraneUpgrade::max, game::braneCost, game::canBuyBrane,
+                " onde", BRANE_COLOR);
+    }
+
+    /** Une longueur sur la membrane (de côté 2) : deux décimales. */
+    private static String reach(double value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
+    }
+
+    /** Une amélioration de la brane : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.BraneUpgrade upgrade) {
+        int level = game.braneLevel(upgrade);
+        return switch (upgrade) {
+            case GAIN -> "Gain : chaque passage vaut " + shardText(game.braneValue()) + " → "
+                    + shardText(game.braneValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " ondes";
+            case ELASTICITY -> "Élasticité : l'onde porte à fond dès " + Math.round(100 / (1 + Game.BRANE_ELASTIC_STEP * level))
+                    + " % de tirée → " + Math.round(100 / (1 + Game.BRANE_ELASTIC_STEP * (level + 1))) + " %";
+            case SIZE -> "Grandeur des ondes : portée à fond " + reach(game.braneMaxReach()) + " → "
+                    + reach(Game.BRANE_REACH * (1 + Game.BRANE_SIZE_STEP * (level + 1))) + " (côté 2)";
+            case BOUNCE -> "Rebond : un passage après un bord vaut " + Format.multiplier(game.braneBounceFactor()) + " → "
+                    + Format.multiplier(game.braneBounceFactor() + Game.BRANE_BOUNCE_STEP);
+            case COMBO -> "Points en une onde : chaque passage de plus de la même onde +" + percent(game.braneComboStep())
+                    + " → +" + percent(game.braneComboStep() + Game.BRANE_COMBO_STEP);
+        };
+    }
+
     /** Les touches des cercles en jeu, dans l'ordre : « S, D, F ». */
     private String loopKeysText() {
         StringBuilder keys = new StringBuilder();
@@ -713,6 +809,9 @@ public final class DimensionWindow extends BorderPane {
             case LOOP -> dimension.line() + (game.isLoopOpen()
                     ? " Cliquez chaque cercle quand son point passe dans une zone : plus le clic est juste, plus il donne de nœuds."
                     : " Il n'y a rien à y faire pour l'instant.");
+            case BRANE -> dimension.line() + (game.isBraneOpen()
+                    ? " Tirez la membrane et relâchez-la : chaque point que touche l'onde, ou l'un de ses rebonds, donne des ondes."
+                    : " Il n'y a rien à y faire pour l'instant.");
             default -> dimension.line() + (dimension == Dimension.DURATION && game.isDurationOpen()
                     ? " Tenez le bouton du milieu : plus les spirales vont loin vers le centre, plus elles donnent d'instants."
                     : " Il n'y a rien à y faire pour l'instant.");
@@ -728,6 +827,8 @@ public final class DimensionWindow extends BorderPane {
     public void close() {
         // La durée : fermer la fenêtre relâche le bouton, qui donne ce qu'il avait ; l'appui automatique, lui, continue.
         view.releaseHold();
+        // La brane : la membrane tenue se lâche sans onde.
+        view.cancelBrane();
         spaceHeld = false;
         held.clear();
         loopKeysHeld.clear();
@@ -816,6 +917,28 @@ public final class DimensionWindow extends BorderPane {
 
     public String loopHintText() {
         return loopHint.getText();
+    }
+
+    /** Le bouton d'une amélioration de la brane : pour les vérifications. */
+    public Button braneButton(Game.BraneUpgrade upgrade) {
+        return braneButtons.get(upgrade);
+    }
+
+    public String braneShardsText() {
+        return braneShards.getText();
+    }
+
+    public String braneThresholdText() {
+        return braneThreshold.getText();
+    }
+
+    public String braneHintText() {
+        return braneHint.getText();
+    }
+
+    /** Le détail de la brane, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
+    public String braneDetailText() {
+        return braneDetail.getText();
     }
 
     /** Le bouton du métronome : pour les vérifications. */

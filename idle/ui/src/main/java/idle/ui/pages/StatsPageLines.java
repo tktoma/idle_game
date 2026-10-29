@@ -364,7 +364,7 @@ public abstract class StatsPageLines extends StatsPageBase {
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
-     * 0.153), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * 0.153, la brane et la lumière astrale depuis la version 0.154), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
      * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
@@ -378,6 +378,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Sphères du volume", "gagnées en tout", ChartPane.AQUA, StatsHistory.Stat.VOLUME_SHARDS, game::isVolumeOpen);
         log("Instants de la durée", "gagnés en tout", ChartPane.ORANGE, StatsHistory.Stat.DURATION_SHARDS, game::isDurationOpen);
         log("Nœuds de la boucle", "gagnés en tout", ChartPane.VIOLET, StatsHistory.Stat.LOOP_SHARDS, game::isLoopOpen);
+        log("Ondes de la brane", "gagnées en tout", ChartPane.TEAL, StatsHistory.Stat.BRANE_SHARDS, game::isBraneOpen);
         log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
         log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
 
@@ -419,6 +420,13 @@ public abstract class StatsPageLines extends StatsPageBase {
                 : "+" + Math.round(game.bloomGain() * 100) + " % pendant " + ElementText.number(game.bloomSeconds()) + " s")
                 + ", " + Format.whole(game.bloomsCaught()) + " cueilli" + (game.bloomsCaught() > 1 ? "s" : "") + " depuis le lancement",
                 game::isBloomUnlocked);
+        dimension(6, "Brane", Game.BRANE_THRESHOLD, game::isBraneOpen, () -> game.state().braneShardsEarned(), "Ondes de la brane");
+        row("Ondes tirées sur la brane", () -> Format.whole(game.braneWavesSent()) + " depuis le lancement, "
+                + game.braneWaves().size() + " en cours", game::isBraneOpen);
+        row("Points touchés de la brane", () -> Format.whole(game.braneTouches()) + " passages, dont "
+                + Format.whole(game.braneBounces()) + " après un rebond", game::isBraneOpen);
+        row("Lumière astrale", () -> "arrosage par seconde " + Format.multiplier(game.astralLight()),
+                () -> game.seedUpgradeLevel(Game.SeedUpgrade.ASTRAL_LIGHT) > 0);
 
         section("Le vide");
         charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "

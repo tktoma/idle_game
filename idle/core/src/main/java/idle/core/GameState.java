@@ -198,6 +198,9 @@ public final class GameState extends GameStateResets {
         data.put("loopShards", loopShards);
         data.put("loopShardsEarned", loopShardsEarned);
         for (int i = 0; i < LOOP_UPGRADES; i++) data.put("loopLevel" + i, loopLevel(i));
+        data.put("braneShards", braneShards);
+        data.put("braneShardsEarned", braneShardsEarned);
+        for (int i = 0; i < BRANE_UPGRADES; i++) data.put("braneLevel" + i, braneLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -483,6 +486,10 @@ public final class GameState extends GameStateResets {
         setLoopShards(data.real("loopShards", 0));
         setLoopShardsEarned(data.real("loopShardsEarned", 0));
         for (int i = 0; i < LOOP_UPGRADES; i++) setLoopLevel(i, data.whole("loopLevel" + i, 0));
+        // La brane (version 0.154) : absente d'avant, elle part de zéro.
+        setBraneShards(data.real("braneShards", 0));
+        setBraneShardsEarned(data.real("braneShardsEarned", 0));
+        for (int i = 0; i < BRANE_UPGRADES; i++) setBraneLevel(i, data.whole("braneLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));
