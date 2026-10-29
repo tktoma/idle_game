@@ -55,7 +55,7 @@ import javafx.scene.layout.VBox;
  *   <li><b>Thèmes et notations</b> : tout débloquer, tout refermer, ou ouvrir et refermer chacun.</li>
  *   <li><b>Dimensions</b> (version 0.140) : une rangée par dimension (l'ouvrir, son seuil, ses améliorations), la
  *       boucle comprise depuis la version 0.153, la brane depuis la version 0.154, le clicker depuis la version 0.155,
- *       puis la graine, son chrono, le rond de croissance et la météo ;</li>
+ *       la grille depuis la version 0.156, puis la graine, son chrono, le rond de croissance et la météo ;</li>
  *   <li><b>Bots dimension</b> (version 0.140) : le joueur appliqué d'une dimension (de la ligne à la durée) joue la
  *       partie en cours.</li>
  * </ul>
@@ -118,7 +118,7 @@ final class DebugBar extends VBox {
     // Les bots des dimensions (version 0.140)
     /** Les rangées des outils des dimensions : leur nom et leur ressource. */
     private static final String[] DIMENSION_ROWS = {"Ligne (segments)", "Plan (facettes)", "Volume (sphères)", "Durée (instants)",
-            "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)"};
+            "Boucle (nœuds)", "Brane (ondes)", "Clicker (étincelles)", "Grille (repères)"};
     /** Pas joués par impulsion en avance rapide : 400 pas de 0,05 s, vingt secondes de jeu toutes les 25 ms. */
     static final int DIMENSION_BATCH = 400;
     private final javafx.scene.control.ComboBox<String> dimensionChoice = new javafx.scene.control.ComboBox<>();
@@ -336,8 +336,8 @@ final class DebugBar extends VBox {
         // Version 0.140 : une rangée par dimension, avec sa ressource (l'ouvrir, s'approcher du seuil, l'atteindre, ses
         // améliorations au plus haut ou à zéro), puis la graine et son chrono.
         VBox dimensionRows = new VBox(4);
-        // La boucle (version 0.153), la brane (version 0.154) et le clicker (version 0.155) ont leur rangée ; ils n'ont pas
-        // encore de bot.
+        // La boucle (version 0.153), la brane (version 0.154), le clicker (version 0.155) et la grille (version 0.156) ont
+        // leur rangée ; ils n'ont pas encore de bot.
         for (int d = 1; d <= DIMENSION_ROWS.length; d++) {
             int number = d;
             dimensionRows.getChildren().add(row(DIMENSION_ROWS[d - 1],
@@ -648,7 +648,8 @@ final class DebugBar extends VBox {
             case 4 -> Game.DURATION_THRESHOLD;
             case 5 -> Game.LOOP_THRESHOLD;
             case 6 -> Game.BRANE_THRESHOLD;
-            default -> Game.CLICKER_THRESHOLD;
+            case 7 -> Game.CLICKER_THRESHOLD;
+            default -> Game.GRID_THRESHOLD;
         };
     }
 
@@ -680,9 +681,13 @@ final class DebugBar extends VBox {
                 state.setBraneShards(state.braneShards() + amount);
                 state.setBraneShardsEarned(state.braneShardsEarned() + amount);
             }
-            default -> {
+            case 7 -> {
                 state.setClickerShards(state.clickerShards() + amount);
                 state.setClickerShardsEarned(state.clickerShardsEarned() + amount);
+            }
+            default -> {
+                state.setGridShards(state.gridShards() + amount);
+                state.setGridShardsEarned(state.gridShardsEarned() + amount);
             }
         }
     }
@@ -698,13 +703,14 @@ final class DebugBar extends VBox {
             case 4 -> state.setDurationShardsEarned(Math.max(state.durationShardsEarned(), threshold));
             case 5 -> state.setLoopShardsEarned(Math.max(state.loopShardsEarned(), threshold));
             case 6 -> state.setBraneShardsEarned(Math.max(state.braneShardsEarned(), threshold));
-            default -> state.setClickerShardsEarned(Math.max(state.clickerShardsEarned(), threshold));
+            case 7 -> state.setClickerShardsEarned(Math.max(state.clickerShardsEarned(), threshold));
+            default -> state.setGridShardsEarned(Math.max(state.gridShardsEarned(), threshold));
         }
     }
 
     /**
      * Les améliorations de la dimension au plus haut, ou à zéro. La valeur du volume et de la durée, et le gain de la
-     * boucle, de la brane et du clicker, n'ont pas de plafond : dix niveaux.
+     * boucle, de la brane, du clicker et de la grille, n'ont pas de plafond : dix niveaux.
      */
     private void setDimensionLevels(int number, boolean max) {
         GameState state = game.state();
@@ -736,9 +742,13 @@ final class DebugBar extends VBox {
                 for (Game.BraneUpgrade upgrade : Game.BraneUpgrade.values())
                     state.setBraneLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.BraneUpgrade.GAIN ? 10 : upgrade.max());
             }
-            default -> {
+            case 7 -> {
                 for (Game.ClickerUpgrade upgrade : Game.ClickerUpgrade.values())
                     state.setClickerLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.ClickerUpgrade.GAIN ? 10 : upgrade.max());
+            }
+            default -> {
+                for (Game.GridUpgrade upgrade : Game.GridUpgrade.values())
+                    state.setGridLevel(upgrade.ordinal(), !max ? 0 : upgrade == Game.GridUpgrade.GAIN ? 10 : upgrade.max());
             }
         }
     }

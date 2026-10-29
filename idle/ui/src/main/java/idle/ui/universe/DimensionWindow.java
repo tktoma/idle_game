@@ -29,14 +29,16 @@ import javafx.scene.layout.VBox;
  * 0.154 : on appuie la membrane, on glisse pour la tendre, on relâche, et l'onde qui part rebondit sur ses bords ; ses
  * cinq améliorations sont sous la vue. Le clicker a la sienne depuis la version 0.155 : on clique la surface, d'autant
  * plus vite que chaque clic rapporte davantage, et dans les zones ×2 qui s'y superposent ; ses huit améliorations sont
- * sous la vue. Les trois autres restent des visuels.
+ * sous la vue. La grille a la sienne depuis la version 0.156 : on choisit une couche du cube (boutons, molette ou flèches
+ * haut et bas) et l'on sonde ses cases ; ce que la grille montre du point le plus proche suit l'amélioration
+ * « Affichage du point », jamais plus. Ses cinq améliorations sont sous la vue. Les deux autres restent des visuels.
  *
  * <p>Depuis la version 0.150, le jeu peut jouer seul le plan, le volume et la durée (l'automatisation des dimensions) :
  * une mention « automatique », à droite du titre, le dit tant que l'automatisme de jeu de la dimension tourne (pour la
  * ligne, qui avance seule, tant qu'un de ses achats automatiques tourne), et les explications disent ce qu'il fait.
  * Fermer la fenêtre n'arrête alors ni la plongée ni l'appui : ils continuent derrière. Le rythme automatique de la
- * boucle (version 0.153), la tirée automatique de la brane (version 0.154) et les clics automatiques du clicker (version
- * 0.155) jouent de même, fenêtre ouverte ou non.
+ * boucle (version 0.153), la tirée automatique de la brane (version 0.154), les clics automatiques du clicker (version
+ * 0.155) et le sondage automatique de la grille (version 0.156) jouent de même, fenêtre ouverte ou non.
  */
 public final class DimensionWindow extends BorderPane {
 
@@ -45,10 +47,10 @@ public final class DimensionWindow extends BorderPane {
 
     /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
     private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5",
-            BRANE_COLOR = "#7fe0d4", CLICKER_COLOR = "#ffb36b";
+            BRANE_COLOR = "#7fe0d4", CLICKER_COLOR = "#ffb36b", GRID_COLOR = "#a8b8ff";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
-    /** La couleur de la dimension {@code number} (1 à 7), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    /** La couleur de la dimension {@code number} (1 à 8), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
     public static String color(int number) {
         return switch (number) {
             case 2 -> PLANE_COLOR;
@@ -57,6 +59,7 @@ public final class DimensionWindow extends BorderPane {
             case 5 -> LOOP_COLOR;
             case 6 -> BRANE_COLOR;
             case 7 -> CLICKER_COLOR;
+            case 8 -> GRID_COLOR;
             default -> UniversePage.COLOR;
         };
     }
@@ -175,6 +178,16 @@ public final class DimensionWindow extends BorderPane {
     private final Label clickerDetail = new Label();
     private final java.util.Map<Game.ClickerUpgrade, Button> clickerButtons = new java.util.EnumMap<>(Game.ClickerUpgrade.class);
     private final VBox clickerPane;
+    /** La grille (version 0.156) : ses repères, son seuil, ce qu'on y fait, la couche montrée, et ses cinq améliorations. */
+    private final Label gridShards = new Label();
+    private final Label gridThreshold = new Label();
+    private final Label gridHint = new Label();
+    private final Label gridDetail = new Label();
+    private final Label gridLayerLabel = new Label();
+    private final Button gridDown = new Button("▼ Couche du dessous");
+    private final Button gridUp = new Button("Couche du dessus ▲");
+    private final java.util.Map<Game.GridUpgrade, Button> gridButtons = new java.util.EnumMap<>(Game.GridUpgrade.class);
+    private final VBox gridPane;
     /** Les touches de cercles tenues : une touche tenue se répète, mais ne rejoue pas son cercle. */
     private final java.util.Set<javafx.scene.input.KeyCode> loopKeysHeld = java.util.EnumSet.noneOf(javafx.scene.input.KeyCode.class);
     /** La barre d'espace tient le bouton de la durée, comme la souris. */
@@ -368,7 +381,43 @@ public final class DimensionWindow extends BorderPane {
         clickerPane = new VBox(10, clickerShards, clickerThreshold, clickerHint, clickerDetail, clickerRow);
         clickerPane.setAlignment(Pos.CENTER);
         clickerPane.setPadding(new Insets(10, 0, 0, 0));
-        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane));
+        gridShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + GRID_COLOR + ";");
+        gridThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
+        Labels.centered(gridHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
+        gridHint.setMaxWidth(820);
+        gridHint.setAlignment(Pos.CENTER);
+        // Deux lignes toujours : la grille ne bouge pas quand le dernier sondage change le texte.
+        gridHint.setMinHeight(38);
+        gridHint.setPrefHeight(38);
+        Labels.note(gridDetail, 820);
+        gridLayerLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GRID_COLOR + ";");
+        gridLayerLabel.setMinWidth(120);
+        gridLayerLabel.setAlignment(Pos.CENTER);
+        for (Button button : new Button[] {gridDown, gridUp}) {
+            button.setStyle(BUTTON_STYLE);
+            button.setFocusTraversable(false);
+        }
+        gridDown.setOnAction(event -> {
+            view.shiftGridLayer(-1);
+            refresh();
+        });
+        gridUp.setOnAction(event -> {
+            view.shiftGridLayer(1);
+            refresh();
+        });
+        HBox gridLayers = new HBox(10, gridDown, gridLayerLabel, gridUp);
+        gridLayers.setAlignment(Pos.CENTER);
+        javafx.scene.layout.FlowPane gridRow = new javafx.scene.layout.FlowPane(12, 10);
+        gridRow.setAlignment(Pos.CENTER);
+        for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) {
+            Button button = upgradeButton(230, () -> game.buyGrid(upgrade));
+            gridButtons.put(upgrade, button);
+            gridRow.getChildren().add(button);
+        }
+        gridPane = new VBox(10, gridShards, gridThreshold, gridHint, gridLayers, gridDetail, gridRow);
+        gridPane.setAlignment(Pos.CENTER);
+        gridPane.setPadding(new Insets(10, 0, 0, 0));
+        setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane));
         setVisible(false);
     }
 
@@ -405,9 +454,13 @@ public final class DimensionWindow extends BorderPane {
         return false;
     }
 
-    /** Recopie la dimension montrée (de la ligne au clicker) : ses éclats, et ce que coûtent ses améliorations. */
+    /** Recopie la dimension montrée (de la ligne à la grille) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
         autoBadge.setVisible(automatic());
+        boolean grid = view.dimension() == Dimension.GRID && game.isGridOpen();
+        gridPane.setVisible(grid);
+        gridPane.setManaged(grid);
+        if (grid) refreshGrid();
         boolean clicker = view.dimension() == Dimension.CLICKER && game.isClickerOpen();
         clickerPane.setVisible(clicker);
         clickerPane.setManaged(clicker);
@@ -694,6 +747,91 @@ public final class DimensionWindow extends BorderPane {
                 game::canBuyClicker, " étincelle", CLICKER_COLOR);
     }
 
+    /**
+     * La grille : ses repères, son seuil, comment on y joue ou ce que fait le sondage automatique, le dernier sondage tel
+     * que l'affichage permet de le dire (le gain, puis la distance, la couche et la colonne du point le plus proche), la
+     * couche montrée, le détail, et ses améliorations.
+     */
+    private void refreshGrid() {
+        gridShards.setText("Repères de la grille : " + shardText(game.state().gridShards()));
+        threshold(gridThreshold, game.isDimensionThresholdReached(8), game.state().gridShardsEarned(), Game.GRID_THRESHOLD, "repères gagnés", 8);
+        int layer = view.gridLayer(), n = game.gridDivisions();
+        gridLayerLabel.setText("Couche " + (layer + 1) + " / " + n);
+        gridDown.setDisable(layer <= 0);
+        gridUp.setDisable(layer >= n - 1);
+        String last = lastProbeText();
+        gridHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE)
+                ? "Sondage automatique : toutes les " + seconds(Game.GRID_AUTO_SECONDS) + " s, il sonde une case près d'un "
+                        + "point, et tombe dessus une fois sur quatre. Vos sondages comptent en plus." + last
+                : "Cliquez une case pour la sonder (la molette ou les flèches haut et bas changent de couche) : plus elle est "
+                        + "près d'un point caché, plus elle donne de repères ; celle qui le contient le trouve, "
+                        + Format.multiplier(Game.GRID_FOUND) + "." + last);
+        StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown());
+        for (Game.GridUpgrade upgrade : Game.GridUpgrade.values()) levels.append('/').append(game.gridLevel(upgrade));
+        if (changed(gridDetail, levels.toString())) {
+            gridDetail.setText(idle.ui.common.Detail.only("Le cube fait " + Math.round(Game.GRID_SIZE) + " de côté, en " + n
+                + " cases par côté de " + Math.round(game.gridCellSize()) + " ; " + game.gridPointCount() + " point"
+                + (game.gridPointCount() > 1 ? "s s'y cachent" : " s'y cache") + ". Un sondage donne " + shardText(game.gridValue())
+                + " repère" + (game.gridValue() >= 2 ? "s" : "") + " multiplié par la proximité du centre de la case au point le "
+                + "plus proche : " + Format.multiplier(game.gridProximityFactor(Game.GRID_DIAGONAL)) + " au plus loin, "
+                + Format.multiplier(game.gridProximityFactor(0)) + " sur le point ; la case qui contient le point le trouve ("
+                + Format.multiplier(Game.GRID_FOUND) + "), et il se cache ailleurs. Après chaque sondage, "
+                + seconds(Game.GRID_COOLDOWN) + " s d'attente. " + revealText(game.gridReveal())
+                + " Les repères, le seuil et les améliorations de la grille traversent les univers ; le seuil marque la "
+                + "dimension d'un rond vert, et les repères paient aussi la graine profonde."));
+            gridDetail.setVisible(!gridDetail.getText().isEmpty());
+            gridDetail.setManaged(gridDetail.isVisible());
+        }
+        paintUpgrades(gridButtons, this::describe, game::gridLevel, Game.GridUpgrade::max, game::gridCost, game::canBuyGrid,
+                " repère", GRID_COLOR);
+    }
+
+    /**
+     * Le dernier sondage, autant que l'affichage le permet : son gain (au niveau 0, rien d'autre), puis la distance au
+     * point le plus proche, sa couche, sa colonne. Rien sans sondage.
+     */
+    private String lastProbeText() {
+        Game.GridProbe probe = game.gridLastProbe();
+        if (probe == null) return "";
+        StringBuilder text = new StringBuilder(" Dernier sondage : ").append(probe.found() ? "trouvé ! " : "")
+                .append('+').append(shardText(probe.gain()));
+        int reveal = game.gridReveal();
+        if (reveal >= 1) text.append(", à ").append(Math.round(probe.distance())).append(" du point le plus proche");
+        int[] revealed = view.gridRevealed();
+        if (reveal >= 2) text.append(", dans la couche ").append(revealed[0] + 1);
+        if (reveal >= 3) text.append(", la colonne ").append(revealed[1] + 1);
+        return text.append('.').toString();
+    }
+
+    /** Ce que montre l'affichage du point à ce niveau. */
+    private static String revealText(int level) {
+        return switch (level) {
+            case 0 -> "La grille ne montre que le gain de chaque sondage.";
+            case 1 -> "La grille montre la distance de chaque sondage au point le plus proche, et colore les cases du froid au chaud.";
+            case 2 -> "La grille montre la distance de chaque sondage, et la couche du point le plus proche du dernier.";
+            default -> "La grille montre la distance de chaque sondage, et la couche et la colonne du point le plus proche du dernier.";
+        };
+    }
+
+    /** Une amélioration de la grille : son nom, où elle en est, et ce que donne le niveau suivant. */
+    private String describe(Game.GridUpgrade upgrade) {
+        int level = game.gridLevel(upgrade);
+        return switch (upgrade) {
+            case DIVISION -> "Division de la grille : " + game.gridDivisions() + " → " + (game.gridDivisions() + 1) + " cases par côté";
+            case GAIN -> "Gain : chaque sondage vaut " + shardText(game.gridValue()) + " → "
+                    + shardText(game.gridValue() + game.hadronBoost(idle.core.collider.Hadron.OMEGA)) + " repères, avant la proximité";
+            case REVEAL -> switch (level) {
+                case 0 -> "Affichage du point : rien que le gain → la distance de chaque sondage";
+                case 1 -> "Affichage du point : la distance → aussi la couche du point le plus proche";
+                case 2 -> "Affichage du point : la couche → aussi la colonne du point le plus proche";
+                default -> "Affichage du point : distance, couche et colonne";
+            };
+            case POINTS -> "Nombre de points : " + game.gridPointCount() + " cachés → " + (game.gridPointCount() + 1);
+            case PROXIMITY -> "Multiplicateur de proximité : sur le point " + Format.multiplier(game.gridProximityFactor(0)) + " → "
+                    + Format.multiplier(game.gridProximityFactor(0) + Game.GRID_PROXIMITY_STEP);
+        };
+    }
+
     /** Une amélioration du clicker : son nom, où elle en est, et ce que donne le niveau suivant ; celles des zones les attendent. */
     private String describe(Game.ClickerUpgrade upgrade) {
         int level = game.clickerLevel(upgrade);
@@ -817,8 +955,8 @@ public final class DimensionWindow extends BorderPane {
 
     /**
      * Une touche, quand la fenêtre d'une dimension est ouverte : dans le plan, Z Q S D et les flèches déplacent le point ;
-     * dans la durée, la barre d'espace tient le bouton ; dans la boucle, la touche de chaque cercle le joue. Vrai si la
-     * touche a servi (le reste du jeu ne la voit pas).
+     * dans la durée, la barre d'espace tient le bouton ; dans la boucle, la touche de chaque cercle le joue ; dans la
+     * grille, les flèches haut et bas changent de couche. Vrai si la touche a servi (le reste du jeu ne la voit pas).
      */
     public boolean key(javafx.scene.input.KeyCode code, boolean down) {
         // La boucle (version 0.153) : la touche d'un cercle le joue à l'appui ; tenue, elle ne le rejoue pas. Les touches
@@ -830,6 +968,15 @@ public final class DimensionWindow extends BorderPane {
                 else if (loopKeysHeld.add(code) && ring < game.loopRings()) view.clickRing(ring);
                 return true;
             }
+        }
+        // La grille (version 0.156) : les flèches haut et bas changent de couche.
+        if (isVisible() && view.dimension() == Dimension.GRID && game.isGridOpen()
+                && (code == javafx.scene.input.KeyCode.UP || code == javafx.scene.input.KeyCode.DOWN)) {
+            if (down) {
+                view.shiftGridLayer(code == javafx.scene.input.KeyCode.UP ? 1 : -1);
+                refresh();
+            }
+            return true;
         }
         // Le volume (version 0.128) : en caméra libre, Échap rend la souris retenue ; la plongée continue.
         if (isVisible() && code == javafx.scene.input.KeyCode.ESCAPE && view.mouseHeld()) {
@@ -911,6 +1058,9 @@ public final class DimensionWindow extends BorderPane {
             case VOLUME -> dimension.line() + " Plongez dans le cube : chaque boule cueillie de son centre donne des sphères.";
             case LOOP -> dimension.line() + (game.isLoopOpen()
                     ? " Cliquez chaque cercle quand son point passe dans une zone : plus le clic est juste, plus il donne de nœuds."
+                    : " Il n'y a rien à y faire pour l'instant.");
+            case GRID -> dimension.line() + (game.isGridOpen()
+                    ? " Sondez ses cases, couche par couche : plus une case est près d'un point caché, plus elle donne de repères."
                     : " Il n'y a rien à y faire pour l'instant.");
             case CLICKER -> dimension.line() + (game.isClickerOpen()
                     ? " Cliquez la surface, et vite : plus la cadence est haute, plus chaque clic donne d'étincelles."
@@ -1023,6 +1173,41 @@ public final class DimensionWindow extends BorderPane {
 
     public String loopHintText() {
         return loopHint.getText();
+    }
+
+    /** Le bouton d'une amélioration de la grille : pour les vérifications. */
+    public Button gridButton(Game.GridUpgrade upgrade) {
+        return gridButtons.get(upgrade);
+    }
+
+    public String gridShardsText() {
+        return gridShards.getText();
+    }
+
+    public String gridThresholdText() {
+        return gridThreshold.getText();
+    }
+
+    public String gridHintText() {
+        return gridHint.getText();
+    }
+
+    public String gridLayerText() {
+        return gridLayerLabel.getText();
+    }
+
+    /** Les boutons de couche, du dessous et du dessus : pour les vérifications. */
+    public Button gridDownButton() {
+        return gridDown;
+    }
+
+    public Button gridUpButton() {
+        return gridUp;
+    }
+
+    /** Le détail de la grille, vide tant que la touche de détail n'est pas tenue : pour les vérifications. */
+    public String gridDetailText() {
+        return gridDetail.getText();
     }
 
     /** Le bouton d'une amélioration du clicker : pour les vérifications. */

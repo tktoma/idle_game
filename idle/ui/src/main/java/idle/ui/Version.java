@@ -23,6 +23,28 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.156", "La grille", List.of(
+                    "La huitième dimension s'ouvre au huitième univers : la grille, à la place de « la toile des débuts », "
+                            + "qui n'était qu'un visuel. Un cube de 1 000 de côté, découpé en cases (deux par côté au départ), "
+                            + "où des points se cachent. On choisit une couche (les boutons, la molette ou les flèches haut et "
+                            + "bas) et l'on sonde une case d'un clic : plus son centre est près d'un point, plus elle donne de "
+                            + "repères, la ressource de la grille.",
+                    "La case qui contient un point le trouve : un éclat doré, « Trouvé ! ×5 », et le point se cache ailleurs. "
+                            + "Après chaque sondage, une demi-seconde d'attente. À côté de la couche, le cube vu de biais montre "
+                            + "la couche choisie et les cases déjà sondées.",
+                    "Cinq améliorations, payées en repères : division de la grille (jusqu'à 24 cases par côté), gain, "
+                            + "affichage du point, nombre de points (jusqu'à sept) et multiplicateur de proximité. L'affichage "
+                            + "montre d'abord la distance de chaque sondage (les cases vont du froid au chaud), puis la couche, "
+                            + "et enfin la colonne du point le plus proche du dernier sondage ; avant lui, seul le gain se voit.",
+                    "Le seuil de la grille (5 000 repères) marque la dimension d'un rond vert et donne le titre « Arpenteur de "
+                            + "la grille ». L'automatisation des dimensions gagne la section de la grille, payée en étincelles "
+                            + "du clicker : le sondage automatique sonde une case près d'un point toutes les deux secondes, puis "
+                            + "un automatisme par amélioration ; il y en a maintenant cinquante.",
+                    "La graine profonde : la branche « Grille » des améliorations de la graine, payée en repères, multiplie "
+                            + "tout l'arrosage, d'un dixième par niveau de la racine carrée de la puissance de dix de l'énergie "
+                            + "du vide récupérée ; la ligne de la graine dit son effet.",
+                    "Les statistiques de l'univers ont la grille, sa courbe, ses sondages, ses points trouvés et la graine "
+                            + "profonde ; l'aide les décrit ; le profil de test a la rangée de la grille.")),
             new Note("0.155", "Le clicker", List.of(
                     "La septième dimension s'ouvre au septième univers : le clicker, à la place de « tous les débuts », qui "
                             + "n'était qu'un visuel. Chaque clic sur sa surface donne des étincelles, et d'autant plus que vous "

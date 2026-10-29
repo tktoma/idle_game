@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Version 0.139 : les améliorations de la graine, à gauche de sa vue, sous Xvfb. Une branche par dimension, payée avec
- * sa ressource ; les branches 8 à 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
- * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155) ;
- * le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
+ * sa ressource ; les branches 9 et 10 verrouillées (celle de la boucle, la cinquième, a ses cartes depuis la version
+ * 0.153, celle de la brane, la sixième, depuis la version 0.154, celle du clicker, la septième, depuis la version 0.155,
+ * celle de la grille, la huitième, depuis la version 0.156) ; le tuyau et le chrono dessinés dans la vue ; le réglage du chrono.
  */
 class GraineAmeliorationsPageTest {
 
@@ -169,7 +169,13 @@ class GraineAmeliorationsPageTest {
                 assertTrue(pane.button(weather).isDisabled());
                 assertTrue(pane.button(weather).getText().endsWith("S'ouvre avec la dimension 7"), pane.button(weather).getText());
             }
-            for (int d = 8; d <= SeedUpgradesPane.BRANCHES; d++) {
+            // La grille (version 0.156) : sa branche a la graine profonde, fermée sans la dimension 8.
+            assertFalse(pane.isBranchOpen(8));
+            assertEquals("Grille", SeedUpgradesPane.branchName(8));
+            pane.select(8);
+            assertTrue(pane.button(SeedUpgrade.DEEP_SEED).isDisabled());
+            assertTrue(pane.button(SeedUpgrade.DEEP_SEED).getText().endsWith("S'ouvre avec la dimension 8"), pane.button(SeedUpgrade.DEEP_SEED).getText());
+            for (int d = 9; d <= SeedUpgradesPane.BRANCHES; d++) {
                 assertFalse(pane.isBranchOpen(d));
                 pane.select(d);
                 assertEquals("Dim. " + d, SeedUpgradesPane.branchName(d));

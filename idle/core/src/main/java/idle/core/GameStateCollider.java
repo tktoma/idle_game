@@ -388,6 +388,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         // Le clicker (version 0.155) aussi.
         double clickerKept = clickerShards, clickerEarned = clickerShardsEarned;
         int[] clickerKeptLevels = clickerLevels.clone();
+        // La grille (version 0.156) aussi.
+        double gridKept = gridShards, gridEarned = gridShardsEarned;
+        int[] gridKeptLevels = gridLevels.clone();
         // Les améliorations de la graine et le chrono (version 0.139) traversent les univers, comme la graine.
         int[] seedKeptLevels = seedUpgradeLevels.clone();
         double chronoKept = chronoStored, chronoSpeedKept = chronoSpeed;
@@ -473,6 +476,9 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         clickerShards = clickerKept;
         clickerShardsEarned = clickerEarned;
         System.arraycopy(clickerKeptLevels, 0, clickerLevels, 0, CLICKER_UPGRADES);
+        gridShards = gridKept;
+        gridShardsEarned = gridEarned;
+        System.arraycopy(gridKeptLevels, 0, gridLevels, 0, GRID_UPGRADES);
         System.arraycopy(seedKeptLevels, 0, seedUpgradeLevels, 0, SEED_UPGRADES);
         chronoStored = chronoKept;
         chronoSpeed = chronoSpeedKept;
@@ -825,6 +831,33 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     /** Éclats de la durée (version 0.134) : propres à la quatrième dimension. */
+    /** Les repères de la grille (version 0.156). */
+    public double gridShards() {
+        return gridShards;
+    }
+
+    public void setGridShards(double shards) {
+        gridShards = shards >= 0 && Double.isFinite(shards) ? shards : 0;
+    }
+
+    /** Les repères gagnés en tout : ce qui compte pour le seuil de la grille. */
+    public double gridShardsEarned() {
+        return gridShardsEarned;
+    }
+
+    public void setGridShardsEarned(double earned) {
+        gridShardsEarned = earned >= 0 && Double.isFinite(earned) ? earned : 0;
+    }
+
+    /** Niveau d'une amélioration de la grille, dans l'ordre de {@code Game.GridUpgrade}. */
+    public int gridLevel(int index) {
+        return level(gridLevels, index);
+    }
+
+    public void setGridLevel(int index, int level) {
+        setLevel(gridLevels, index, level);
+    }
+
     /** Les étincelles du clicker (version 0.155). */
     public double clickerShards() {
         return clickerShards;

@@ -150,7 +150,7 @@ class BraneTest {
         run(game, 60);
         assertTrue(game.braneWavesSent() >= 15, "une onde toutes les trois secondes : " + game.braneWavesSent());
         assertTrue(game.braneTouches() > 0 && game.state().braneShardsEarned() > 0);
-        assertEquals(44, DimensionAutomation.values().length, "six de plus pour la brane, puis neuf pour le clicker");
+        assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 6).count(), "six pour la brane");
         assertEquals(5, DimensionAutomation.BRANE_PULL.paidWith(), "payés en nœuds de la boucle");
     }
 

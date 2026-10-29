@@ -20,11 +20,12 @@ import javafx.scene.text.Text;
 /**
  * Les améliorations de la graine (version 0.139), à gauche de sa vue : une branche par dimension, payée avec sa
  * ressource (les segments de la ligne, les facettes du plan, les sphères du volume, les instants de la durée, les nœuds
- * de la boucle, les ondes de la brane, les étincelles du clicker). Les quatre premières branches ont une amélioration de l'arrosage ou de
+ * de la boucle, les ondes de la brane, les étincelles du clicker, les repères de la grille). Les quatre premières branches ont une amélioration de l'arrosage ou de
  * l'étagère, et une du chrono ; celle de la boucle (version 0.153), deux du rond de croissance : sa durée et sa force ;
  * celle de la brane (version 0.154), la lumière astrale, qui multiplie l'arrosage par seconde de l'arrosoir et du tuyau ;
  * celle du clicker (version 0.155), trois de la météo : un beau temps plus long, des orages plus courts, un soleil plus
- * fort. Les branches des dimensions 8 à 10 sont déjà là, verrouillées, avec des améliorations à venir : ces dimensions
+ * fort ; celle de la grille (version 0.156), la graine profonde, qui multiplie tout l'arrosage selon l'énergie du vide
+ * récupérée. Les branches des dimensions 9 et 10 sont déjà là, verrouillées, avec des améliorations à venir : ces dimensions
  * n'existent pas encore.
  *
  * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération.
@@ -33,7 +34,7 @@ public final class SeedUpgradesPane extends VBox {
 
     /** Les branches : une par dimension, de la ligne à la dixième. */
     public static final int BRANCHES = Game.MAX_DIMENSIONS;
-    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle", "Brane", "Clicker"};
+    private static final String[] BRANCH_NAMES = {"Ligne", "Plan", "Volume", "Durée", "Boucle", "Brane", "Clicker", "Grille"};
     private static final String COLOR = "#e6d27a";
     /** La largeur du texte d'une carte, dans le panneau de 320 pixels. */
     private static final double CARD_TEXT_WIDTH = 285;
@@ -249,7 +250,15 @@ public final class SeedUpgradesPane extends VBox {
                     + Format.darkMatter(Math.max(3, game.weatherStormSeconds() - Game.WEATHER_STORM_SECONDS_STEP)) + " s d'orage";
             case WEATHER_POWER -> "Soleil plus fort (niveau " + level + ") : beau temps, arrosage +" + percent(game.weatherSunGain())
                     + " → +" + percent(game.weatherSunGain() + Game.WEATHER_SUN_GAIN_STEP);
+            case DEEP_SEED -> "Graine profonde (niveau " + level + ") : tout l'arrosage " + Format.multiplier(game.deepSeed()) + " → "
+                    + Format.multiplier(deepSeedAt(level + 1)) + " ; " + Format.multiplier(game.deepSeedFull())
+                    + " au niveau " + upgrade.max() + ", la racine de la puissance de dix de l'énergie du vide récupérée";
         };
+    }
+
+    /** L'effet de la graine profonde au niveau {@code level} : un dixième de l'effet entier par niveau. */
+    private double deepSeedAt(int level) {
+        return 1 + (game.deepSeedFull() - 1) * Math.min(1, level / (double) SeedUpgrade.DEEP_SEED.max());
     }
 
     /** Ce qui manque pour acheter : la dimension, l'arrosoir, l'étage du chrono ; ou le prix, et ce qui manque. */
@@ -304,7 +313,7 @@ public final class SeedUpgradesPane extends VBox {
                 shown.add(button);
             }
         } else {
-            // Les dimensions 8 à 10 : leurs branches existent déjà, sans rien à acheter.
+            // Les dimensions 9 et 10 : leurs branches existent déjà, sans rien à acheter.
             resource.setText("Dimension " + branch + " : pas encore créée. Sa ressource paiera une branche de la graine "
                     + "et une du chrono.");
             fill(placeholders.get(0), "??? (branche de la graine)", "S'ouvrira avec la dimension " + branch, CardState.LOCKED);
@@ -323,7 +332,8 @@ public final class SeedUpgradesPane extends VBox {
             case 4 -> "de la durée";
             case 5 -> "de la boucle";
             case 6 -> "de la brane";
-            default -> "du clicker";
+            case 7 -> "du clicker";
+            default -> "de la grille";
         };
     }
 

@@ -364,8 +364,8 @@ public abstract class StatsPageLines extends StatsPageBase {
     /**
      * Les univers (version 0.144) : ce que les univers suivants ajoutent, et qui n'avait pas de statistiques — les
      * univers formés et la graine, les dimensions et leurs éclats (la boucle et le rond de croissance depuis la version
-     * 0.153, la brane et la lumière astrale depuis la version 0.154, le clicker et la météo depuis la version 0.155), le
-     * vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
+     * 0.153, la brane et la lumière astrale depuis la version 0.154, le clicker et la météo depuis la version 0.155, la grille
+     * et la graine profonde depuis la version 0.156), le vide, les bulles de l'arbre, les hadrons (version 0.149) et leurs gluons (version 0.151), et les règles du
      * deuxième univers (régime, cycle, épreuves, skins, recherches).
      */
     void universe() {
@@ -381,6 +381,7 @@ public abstract class StatsPageLines extends StatsPageBase {
         log("Nœuds de la boucle", "gagnés en tout", ChartPane.VIOLET, StatsHistory.Stat.LOOP_SHARDS, game::isLoopOpen);
         log("Ondes de la brane", "gagnées en tout", ChartPane.TEAL, StatsHistory.Stat.BRANE_SHARDS, game::isBraneOpen);
         log("Étincelles du clicker", "gagnées en tout", ChartPane.ORANGE, StatsHistory.Stat.CLICKER_SHARDS, game::isClickerOpen);
+        log("Repères de la grille", "gagnés en tout", ChartPane.BLUE, StatsHistory.Stat.GRID_SHARDS, game::isGridOpen);
         log("Énergie du vide", "en réserve", ChartPane.TEAL, StatsHistory.Stat.VOID_ENERGY, game::isVoidUnlocked);
         log("Énergie du vide par seconde", "ce que donnent les paires", ChartPane.VIOLET, StatsHistory.Stat.VOID_ENERGY_RATE, game::isVoidUnlocked);
 
@@ -441,6 +442,14 @@ public abstract class StatsPageLines extends StatsPageBase {
                 + Format.multiplier(game.weatherFactor()) + " ; " + Format.whole(game.sunnySpells()) + " beau"
                 + (game.sunnySpells() > 1 ? "x" : "") + " temps et " + Format.whole(game.storms()) + " orage"
                 + (game.storms() > 1 ? "s" : "") + " depuis le lancement", game::isWeatherUnlocked);
+        dimension(8, "Grille", Game.GRID_THRESHOLD, game::isGridOpen, () -> game.state().gridShardsEarned(), "Repères de la grille");
+        row("Sondages de la grille", () -> Format.whole(game.gridProbes()) + " depuis le lancement, dont "
+                + Format.whole(game.gridAutoProbes()) + " automatiques", game::isGridOpen);
+        row("Points trouvés", () -> Format.whole(game.gridFound()) + " depuis le lancement, " + game.gridPointCount()
+                + " caché" + (game.gridPointCount() > 1 ? "s" : "") + " dans " + game.gridDivisions() + "³ cases", game::isGridOpen);
+        row("Graine profonde", () -> "tout l'arrosage " + Format.multiplier(game.deepSeed()) + ", "
+                + Format.multiplier(game.deepSeedFull()) + " au niveau " + Game.SeedUpgrade.DEEP_SEED.max(),
+                () -> game.seedUpgradeLevel(Game.SeedUpgrade.DEEP_SEED) > 0);
 
         section("Le vide");
         charted("Énergie du vide", row("Énergie du vide", () -> Format.count(game.voidEnergy()) + " (équilibre : "

@@ -272,8 +272,8 @@ class BranePageTest {
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Ondes tirées sur la brane : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Points touchés de la brane : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : " + game.dimensionAutomationsOwned()
-                    + " / 44 achetés")), rows.toString());
-            assertEquals("0.155", Version.CURRENT);
+                    + " / " + DimensionAutomation.values().length + " achetés")), rows.toString());
+            assertTrue(Version.CURRENT.compareTo("0.155") >= 0, Version.CURRENT);
             return null;
         });
     }

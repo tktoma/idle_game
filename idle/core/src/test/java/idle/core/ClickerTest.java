@@ -124,7 +124,7 @@ class ClickerTest {
         game.tick(10);
         assertTrue(Math.abs(game.clickerAutoClicks() - 120) <= 3, "une absence les compte aussi : " + game.clickerAutoClicks());
         assertEquals(60 * game.clickerValue() * game.clickerSpeedFactor(6), game.state().clickerShardsEarned() - before, 1e-6);
-        assertEquals(44, DimensionAutomation.values().length);
+        assertEquals(9, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count());
         assertEquals(6, DimensionAutomation.CLICKER_PLAY.paidWith(), "payés en ondes de la brane");
         assertEquals(2_000, DimensionAutomation.CLICKER_PLAY.cost(), 0);
     }

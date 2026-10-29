@@ -109,6 +109,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
             case 5 -> buyLoopUpgrade(index);
             case 6 -> buyBraneUpgrade(index);
             case 7 -> buyClickerUpgrade(index);
+            case 8 -> buyGridUpgrade(index);
             default -> false;
         };
     }
@@ -121,6 +122,9 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     /** Achète l'amélioration du clicker de ce rang (version 0.155). */
     abstract boolean buyClickerUpgrade(int index);
+
+    /** Achète l'amélioration de la grille de ce rang (version 0.156). */
+    abstract boolean buyGridUpgrade(int index);
 
     /** La visée du plan : le point file vers l'éclat le plus proche quand le joueur ne tient aucune direction. */
     @Override

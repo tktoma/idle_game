@@ -178,6 +178,8 @@ public final class StatsHistory {
         BRANE_SHARDS,
         /** Étincelles du clicker gagnées en tout, en puissance de dix (version 0.155). */
         CLICKER_SHARDS,
+        /** Repères de la grille gagnés en tout, en puissance de dix (version 0.156). */
+        GRID_SHARDS,
         /** Arrosages reçus par la graine d'univers. */
         SEED_WATERINGS,
 

@@ -26,7 +26,7 @@ import javafx.scene.layout.VBox;
  * <p>En tête, ce qui paie chaque dimension, et le rappel que « Couper tous les automatismes » les arrête et qu'ils
  * traversent les univers ; le même bouton de coupure que le sous-onglet « Automatismes », pour s'en servir d'ici. Puis
  * une section par dimension ouverte (la ligne, le plan, le volume, la durée, la boucle depuis la version 0.153, la brane
- * depuis la version 0.154, le clicker depuis la version 0.155), qui dit
+ * depuis la version 0.154, le clicker depuis la version 0.155, la grille depuis la version 0.156), qui dit
  * ce que le joueur a pour payer, et
  * une carte par automatisme : son nom, ce qu'il fait, son prix et ce qui le paie. Pas encore achetable, la carte dit
  * celui qu'il faut avoir acheté avant (« Après : … ») ; à acheter, un clic l'achète ; acheté, elle sert d'interrupteur,
@@ -44,7 +44,7 @@ public final class DimensionAutomationPane extends VBox {
     private final Button pauseButton = new Button();
     private final Label intro = new Label();
     private final Map<DimensionAutomation, Card> cards = new EnumMap<>(DimensionAutomation.class);
-    /** Par dimension (1 à 7) : son titre, la ligne de ce qui la paie, ses cartes, et la boîte qui les tient. */
+    /** Par dimension (1 à 8) : son titre, la ligne de ce qui la paie, ses cartes, et la boîte qui les tient. */
     private final Label[] headings = new Label[Dimension.PLAYABLE + 1];
     private final Label[] balances = new Label[Dimension.PLAYABLE + 1];
     private final VBox[] sections = new VBox[Dimension.PLAYABLE + 1];
@@ -71,7 +71,8 @@ public final class DimensionAutomationPane extends VBox {
                 + " du plan, ceux de la durée en " + Game.dimensionResourceName(3) + " du volume, ceux de la boucle en "
                 + Game.dimensionResourceName(4) + " de la durée, ceux de la brane en " + Game.dimensionResourceName(5)
                 + " de la boucle, ceux du clicker en " + Game.dimensionResourceName(6)
-                + " de la brane. « Couper tous les "
+                + " de la brane, ceux de la grille en " + Game.dimensionResourceName(7)
+                + " du clicker. « Couper tous les "
                 + "automatismes » les arrête tous ; chacun se met aussi en pause d'un clic. Achetés, ils traversent les univers.");
         getChildren().addAll(title, pauseButton, intro);
 
@@ -119,6 +120,8 @@ public final class DimensionAutomationPane extends VBox {
                     + String.format(java.util.Locale.FRANCE, "%.0f", Game.BRANE_AUTO_SECONDS) + " s";
             case CLICKER_PLAY -> "Clique " + String.format(java.util.Locale.FRANCE, "%.0f", Game.CLICKER_AUTO_RATE)
                     + " fois par seconde au meilleur endroit";
+            case GRID_PROBE -> "Sonde une case près d'un point toutes les "
+                    + String.format(java.util.Locale.FRANCE, "%.0f", Game.GRID_AUTO_SECONDS) + " s";
             default -> "Achète « " + automation.label() + " » dès qu'il est payable";
         };
     }
@@ -138,6 +141,9 @@ public final class DimensionAutomationPane extends VBox {
                 case CLICKER_PLAY -> "Il clique là où se superposent le plus de zones (sinon au milieu), fenêtre "
                         + "ouverte ou non ; ses clics comptent dans la cadence, et vos clics comptent en plus. Les "
                         + "améliorations du clicker s'achètent quand même.";
+                case GRID_PROBE -> "Il sonde une case voisine de celle d'un point, fenêtre ouverte ou non, et tombe "
+                        + "dessus une fois sur quatre ; vos sondages comptent en plus. Les améliorations de la grille "
+                        + "s'achètent quand même.";
                 default -> "Il lance une onde de toute sa portée depuis le milieu des points, fenêtre ouverte ou non, dès "
                         + "que l'onde d'avant s'est éteinte ; vos tirées comptent en plus. Les améliorations de la brane "
                         + "s'achètent quand même.";
@@ -214,7 +220,7 @@ public final class DimensionAutomationPane extends VBox {
         return cards.get(automation);
     }
 
-    /** Vrai si la section de cette dimension (1 à 7) se montre. */
+    /** Vrai si la section de cette dimension (1 à 8) se montre. */
     public boolean sectionShown(int number) {
         return sections[number].isVisible();
     }

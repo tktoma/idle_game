@@ -380,6 +380,7 @@ public final class UniversePage extends VBox {
         dimensions.setMarked(5, game.isLoopThresholdReached());
         dimensions.setMarked(6, game.isDimensionThresholdReached(6));
         dimensions.setMarked(7, game.isDimensionThresholdReached(7));
+        dimensions.setMarked(8, game.isDimensionThresholdReached(8));
         dimensionsLine.setText(open + " / " + Game.MAX_DIMENSIONS + " dimensions ouvertes : une de plus à chaque univers, jusqu'au dixième."
                 + " Cliquez une dimension ouverte pour y entrer.");
         java.util.Map<String, Double> history = game.state().voidHistory();
@@ -411,7 +412,9 @@ public final class UniversePage extends VBox {
         String can = game.isWateringCanUnlocked() ? "" : "Débloquez l'arrosoir sur l'étagère. ";
         String pace = " (arrosoir : " + Format.darkMatter(BigNum.of(game.wateringCanRate())) + " par seconde"
                 + (game.hasHose() ? ", tuyau : " + Format.darkMatter(BigNum.of(game.hoseRate())) + " par seconde" : "")
-                + (game.seedSoilFactor() > 1 ? ", chaque arrosage compte " + game.seedSoilFactor() : "") + ")";
+                + (game.seedSoilFactor() > 1 ? ", chaque arrosage compte " + game.seedSoilFactor() : "")
+                // La graine profonde (version 0.156) : ce qu'elle multiplie, une fois achetée.
+                + (game.deepSeed() > 1 + 1e-9 ? ", graine profonde " + Format.multiplier(BigNum.of(game.deepSeed())) : "") + ")";
         seedStatus.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
                 : stage >= 2
                 ? can + "Arroser " + Game.SEED_STAGE_NAMES.get(stage - 1) + " : " + waterings + " sur " + nextWaterings + " arrosages, palier "

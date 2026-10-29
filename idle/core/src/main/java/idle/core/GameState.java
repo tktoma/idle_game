@@ -204,6 +204,9 @@ public final class GameState extends GameStateResets {
         data.put("clickerShards", clickerShards);
         data.put("clickerShardsEarned", clickerShardsEarned);
         for (int i = 0; i < CLICKER_UPGRADES; i++) data.put("clickerLevel" + i, clickerLevel(i));
+        data.put("gridShards", gridShards);
+        data.put("gridShardsEarned", gridShardsEarned);
+        for (int i = 0; i < GRID_UPGRADES; i++) data.put("gridLevel" + i, gridLevel(i));
         for (int i = 0; i < SEED_UPGRADES; i++) data.put("seedUpgrade" + i, seedUpgradeLevel(i));
         data.put("chronoStored", chronoStored);
         data.put("chronoSpeed", chronoSpeed);
@@ -497,6 +500,10 @@ public final class GameState extends GameStateResets {
         setClickerShards(data.real("clickerShards", 0));
         setClickerShardsEarned(data.real("clickerShardsEarned", 0));
         for (int i = 0; i < CLICKER_UPGRADES; i++) setClickerLevel(i, data.whole("clickerLevel" + i, 0));
+        // La grille (version 0.156) : absente d'avant, elle part de zéro.
+        setGridShards(data.real("gridShards", 0));
+        setGridShardsEarned(data.real("gridShardsEarned", 0));
+        for (int i = 0; i < GRID_UPGRADES; i++) setGridLevel(i, data.whole("gridLevel" + i, 0));
         // Les améliorations de la graine et le chrono (version 0.139) : absents d'avant, ils partent de zéro.
         for (int i = 0; i < SEED_UPGRADES; i++) setSeedUpgradeLevel(i, data.whole("seedUpgrade" + i, 0));
         setChronoStored(data.real("chronoStored", 0));

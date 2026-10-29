@@ -209,7 +209,8 @@ class ClickerPageTest {
             upgrades.button(SeedUpgrade.WEATHER_POWER).fire();
             assertEquals(50, game.weatherSunSeconds(), 1e-9);
             assertEquals(0.4, game.weatherSunGain(), 1e-9);
-            assertEquals(14, SeedUpgrade.values().length);
+            assertEquals(3, java.util.Arrays.stream(SeedUpgrade.values()).filter(u -> u.dimension() == 7).count(),
+                    "trois améliorations de la graine pour le clicker");
             assertFalse(page.dimensionsView().isMarked(7));
             game.state().setClickerShardsEarned(Game.CLICKER_THRESHOLD);
             page.refresh();
@@ -235,7 +236,8 @@ class ClickerPageTest {
             assertTrue(play.text().contains("Clique 6 fois par seconde au meilleur endroit"), play.text());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY));
-            assertEquals(44, DimensionAutomation.values().length);
+            assertEquals(9, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
+                    "neuf automatismes pour le clicker");
             StatsPage stats = new StatsPage(game);
             stats.refresh();
             stats.openSubPage("Univers");
@@ -244,8 +246,8 @@ class ClickerPageTest {
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Clicker : seuil : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Clics du clicker : ")), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Météo de la graine : Variable")), rows.toString());
-            assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : 1 / 44 achetés")), rows.toString());
-            assertEquals("0.155", Version.CURRENT);
+            assertTrue(rows.stream().anyMatch(r -> r.equals("Automatismes des dimensions : 1 / " + DimensionAutomation.values().length + " achetés")), rows.toString());
+            assertTrue(Version.CURRENT.compareTo("0.155") >= 0, Version.CURRENT);
             return null;
         });
     }

@@ -13,7 +13,8 @@ import javafx.scene.text.TextAlignment;
 /**
  * Le visuel d'une dimension, dans sa fenêtre (version 0.081) : une tentative, sans logique, pour
  * chacune des dix. De la ligne (un point qui va et vient) au point qui contient tout, en passant
- * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, la brane, le clicker, et d'autres lois.
+ * par le plan, le cube qui tourne, ses instants mis bout à bout, la boucle, la brane, le clicker, la grille, et d'autres
+ * lois.
  *
  * <p>La ligne a sa logique depuis la version 0.101 : la boule est celle du jeu ({@link Game#linePosition()}),
  * un trait à chaque bout et, avec l'amélioration, d'autres à égale distance entre les deux. Chaque trait
@@ -52,6 +53,12 @@ import javafx.scene.text.TextAlignment;
  * clique, plus il rapporte (la cadence est écrite au-dessus). Les zones ×2 y apparaissent et s'y superposent : chaque
  * endroit prend la couleur du nombre de zones qui le couvrent, chaque zone a l'anneau du temps qu'il lui reste, et sous
  * la souris s'écrit le multiplicateur. Chaque clic, du joueur ou des clics automatiques, fait une onde et son gain monte.
+ *
+ * <p>La grille a la sienne depuis la version 0.156 : le cube se montre couche par couche (la molette, les flèches ou les
+ * boutons de la fenêtre changent de couche), et un clic sonde une case ; à côté, le cube vu de biais. Les cases sondées
+ * gardent leur couleur : neutre tant que l'affichage ne montre rien, puis du froid au chaud selon la distance ; l'affichage
+ * montre ensuite la couche, puis la colonne du point le plus proche du dernier sondage, jamais plus. Un point trouvé fait
+ * un éclat doré, « Trouvé ! ×5 ». Les sondages de l'automatisme se montrent comme ceux du joueur.
  */
 public final class DimensionView extends Canvas {
 
@@ -165,6 +172,7 @@ public final class DimensionView extends Canvas {
         setOnMouseMoved(event -> {
             freeLook(event.getX(), event.getY());
             hoverClicker(event.getX(), event.getY());
+            hoverGrid(event.getX(), event.getY());
             setCursor(cursorAt(event.getX(), event.getY()));
         });
         setOnMouseExited(event -> {
@@ -178,6 +186,12 @@ public final class DimensionView extends Canvas {
             mouseY = Double.NaN;
             clickerMouseX = Double.NaN;
             clickerMouseY = Double.NaN;
+            gridHoverI = -1;
+            gridHoverJ = -1;
+        });
+        // La grille (version 0.156) : la molette monte ou descend d'une couche.
+        setOnScroll(event -> {
+            if (dimension == Dimension.GRID && game.isGridOpen() && event.getDeltaY() != 0) shiftGridLayer(event.getDeltaY() > 0 ? 1 : -1);
         });
     }
 
@@ -333,6 +347,10 @@ public final class DimensionView extends Canvas {
         clickerMouseX = Double.NaN;
         clickerMouseY = Double.NaN;
         lastClickerAuto = -1;
+        gridMarks.clear();
+        gridHoverI = -1;
+        gridHoverJ = -1;
+        lastGridProbes = -1;
     }
 
     /** Les traits allumés à l'instant : pour les vérifications. */
@@ -360,6 +378,7 @@ public final class DimensionView extends Canvas {
         if (dimension == Dimension.LOOP) runLoop(Math.min(elapsed, 0.1));
         if (dimension == Dimension.BRANE) runBrane(Math.min(elapsed, 0.1));
         if (dimension == Dimension.CLICKER) runClicker(Math.min(elapsed, 0.1));
+        if (dimension == Dimension.GRID) runGrid(Math.min(elapsed, 0.1));
         if (dimension == Dimension.VOLUME) {
             runDive(Math.min(elapsed, 0.1));
             edgeTurn(Math.min(elapsed, 0.1));
@@ -433,6 +452,7 @@ public final class DimensionView extends Canvas {
             return braneHeld ? javafx.scene.Cursor.CLOSED_HAND : javafx.scene.Cursor.HAND;
         }
         if (dimension == Dimension.CLICKER && game.isClickerOpen() && overClicker(x, y)) return javafx.scene.Cursor.HAND;
+        if (dimension == Dimension.GRID && game.isGridOpen() && gridCellAt(x, y) != null) return javafx.scene.Cursor.HAND;
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return javafx.scene.Cursor.DEFAULT;
         // La caméra libre cache la souris : la croix au centre de la vue la remplace.
         if (freeInside()) return robotRefused ? javafx.scene.Cursor.CROSSHAIR : javafx.scene.Cursor.NONE;
@@ -443,14 +463,15 @@ public final class DimensionView extends Canvas {
     /**
      * Un bouton de la souris enfoncé sur le volume : dehors, un clic gauche sur le cube y fait plonger ; dedans, le
      * gauche commence à faire tourner le regard et le droit cueille la boule visée. En caméra libre, le regard suit
-     * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Dans la durée, la boucle, la brane et
-     * le clicker, le bouton du milieu, le cercle, la membrane ou la surface. Vrai si le geste a servi.
+     * déjà la souris : les deux boutons cueillent la boule sous la croix, au centre. Dans la durée, la boucle, la brane, le
+     * clicker et la grille, le bouton du milieu, le cercle, la membrane, la surface ou la case. Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
         if (dimension == Dimension.DURATION) return pressDuration(x, y);
         if (dimension == Dimension.LOOP) return pressLoop(x, y);
         if (dimension == Dimension.BRANE) return !secondary && pressBrane(x, y);
         if (dimension == Dimension.CLICKER) return !secondary && pressClicker(x, y);
+        if (dimension == Dimension.GRID) return !secondary && pressGrid(x, y);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
             if (secondary || !overCube(x, y)) return false;
@@ -897,7 +918,7 @@ public final class DimensionView extends Canvas {
             case LOOP -> loopScene(g, cx, cy);
             case BRANE -> braneScene(g, cx, cy);
             case CLICKER -> clickerScene(g, cx, cy);
-            case WEAVE -> weave(g, cx, cy, u);
+            case GRID -> gridScene(g, w, h);
             case LAWS -> laws(g, cx, cy, u);
             case POINT -> point(g, w, h, cx, cy, u);
         }
@@ -2151,30 +2172,327 @@ public final class DimensionView extends Canvas {
                 + idle.ui.common.Format.multiplier(game.clickerSpeedFactor(rate));
     }
 
-    // 8. Tous les débuts en cercle, chacun son éventail tourné vers le milieu, et tous reliés.
-    private void weave(GraphicsContext g, double cx, double cy, double u) {
-        int roots = 12;
-        double r = u * 0.38;
-        for (int k = 0; k < roots; k++) {
-            double a = 2 * Math.PI * k / roots + time * 0.08;
-            double x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-            Color c = PALETTE[k % PALETTE.length];
-            for (int j = 0; j < 5; j++) {
-                double spread = (j - 2) * 0.12;
-                double tx = cx + r * 0.25 * Math.cos(a + Math.PI + spread), ty = cy + r * 0.25 * Math.sin(a + Math.PI + spread);
-                g.setStroke(c);
-                g.setLineWidth(1);
-                g.setGlobalAlpha(0.35);
-                g.strokeLine(x, y, tx, ty);
-            }
-            int next = (k + 5) % roots;
-            double b = 2 * Math.PI * next / roots + time * 0.08;
-            g.setStroke(Color.WHITE);
-            g.setGlobalAlpha(0.12);
-            g.strokeLine(x, y, cx + r * Math.cos(b), cy + r * Math.sin(b));
-            UniverseView.glow(g, x, y, u * 0.03, c, 0.9);
+    // ------------------------------------------------------------------
+    // La grille (version 0.156) : les couches du cube, les sondages, le cube vu de biais
+    // ------------------------------------------------------------------
+
+    /** Une case sondée, au plus loin (bleu), à mi-chemin (jaune), tout près (rouge) ; trouvée, dorée ; sans l'affichage, neutre. */
+    private static final Color GRID_COLD = Color.web("#5a8cff"), GRID_MILD = Color.web("#ffd27f"), GRID_HOT = Color.web("#ff5a4a"),
+            GRID_FOUND = Color.web("#fff1c9"), GRID_PROBED = Color.web("#59607a");
+    /** La couche ou la colonne du point le plus proche, quand l'affichage la montre. */
+    private static final Color GRID_HINT = Color.web("#ff7ad9");
+    /** Durée de vie du gain d'un sondage, qui monte de la case, en secondes. */
+    private static final double GRID_MARK_SECONDS = 1.2;
+
+    /** Le gain d'un sondage : sa case, son âge, son texte, s'il a trouvé le point et s'il vient de l'automatisme. */
+    private static final class GridMark {
+        int i, j, k;
+        double age;
+        String text;
+        boolean found, auto;
+    }
+
+    /** La couche montrée (k, de 0 à d − 1). */
+    private int gridLayer;
+    /** Les cases déjà sondées, et ce qu'elles ont donné ; oubliées quand la grille change de division. */
+    private final java.util.Map<Integer, Game.GridProbe> gridProbed = new java.util.HashMap<>();
+    private int gridProbedDivisions = -1;
+    private final List<GridMark> gridMarks = new ArrayList<>();
+    /** Les sondages que la vue a déjà montrés, −1 tant qu'elle n'a rien vu : ceux de plus viennent de l'automatisme. */
+    private long lastGridProbes = -1;
+    private long gridAutoFlashes;
+    /** La case sous la souris dans la couche montrée, ou −1. */
+    private int gridHoverI = -1, gridHoverJ = -1;
+
+    /** Le côté de la grille de la couche, à l'écran. */
+    private double gridSide() {
+        return Math.min(getHeight() * 0.8, getWidth() * 0.55);
+    }
+
+    private double gridLeft() {
+        return getWidth() * 0.4 - gridSide() / 2;
+    }
+
+    private double gridTop() {
+        return getHeight() / 2 - gridSide() / 2;
+    }
+
+    /** Le centre de la case (i, j) de la couche, à l'écran. */
+    public double[] gridCellScreen(int i, int j) {
+        double cell = gridSide() / game.gridDivisions();
+        return new double[] {gridLeft() + (i + 0.5) * cell, gridTop() + (j + 0.5) * cell};
+    }
+
+    /** La case (i, j) sous ce point de la vue, ou {@code null} hors de la grille. */
+    public int[] gridCellAt(double x, double y) {
+        int n = game.gridDivisions();
+        double cell = gridSide() / n, fx = (x - gridLeft()) / cell, fy = (y - gridTop()) / cell;
+        if (fx < 0 || fy < 0 || fx >= n || fy >= n) return null;
+        return new int[] {(int) fx, (int) fy};
+    }
+
+    /** La couche montrée, de 0 à d − 1. */
+    public int gridLayer() {
+        return Math.max(0, Math.min(game.gridDivisions() - 1, gridLayer));
+    }
+
+    /** Montre la couche {@code layer}, ramenée dans la grille. */
+    public void setGridLayer(int layer) {
+        gridLayer = Math.max(0, Math.min(game.gridDivisions() - 1, layer));
+    }
+
+    /** Monte ou descend d'une couche (la molette, les flèches, les boutons de la fenêtre). */
+    public void shiftGridLayer(int step) {
+        setGridLayer(gridLayer() + step);
+    }
+
+    /** Un clic sur une case de la couche : il la sonde. Vrai s'il est tombé sur la grille, même pendant l'attente. */
+    private boolean pressGrid(double x, double y) {
+        if (!game.isGridOpen()) return false;
+        int[] cell = gridCellAt(x, y);
+        if (cell == null) return false;
+        Game.GridProbe probe = game.probeGrid(cell[0], cell[1], gridLayer());
+        if (probe != null) {
+            noteProbe(probe, false);
+            lastGridProbes = game.gridProbes();
         }
-        UniverseView.glow(g, cx, cy, u * 0.12, color(), 0.35);
+        return true;
+    }
+
+    /** Retient un sondage, et fait monter son gain de sa case (« Trouvé ! ×5 » quand il a trouvé le point). */
+    private void noteProbe(Game.GridProbe probe, boolean auto) {
+        gridProbed.put(gridKey(probe.i(), probe.j(), probe.k()), probe);
+        GridMark mark = new GridMark();
+        mark.i = probe.i();
+        mark.j = probe.j();
+        mark.k = probe.k();
+        mark.found = probe.found();
+        mark.auto = auto;
+        mark.text = (probe.found() ? "Trouvé ! ×" + idle.ui.common.ElementText.number(Game.GRID_FOUND) + "  " : "")
+                + "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(probe.gain()));
+        if (gridMarks.size() >= 12) gridMarks.remove(0);
+        gridMarks.add(mark);
+    }
+
+    private static int gridKey(int i, int j, int k) {
+        return (i * 64 + j) * 64 + k;
+    }
+
+    /** La souris bouge : la case sous elle s'éclaire. */
+    private void hoverGrid(double x, double y) {
+        int[] cell = dimension == Dimension.GRID && game.isGridOpen() ? gridCellAt(x, y) : null;
+        gridHoverI = cell == null ? -1 : cell[0];
+        gridHoverJ = cell == null ? -1 : cell[1];
+    }
+
+    /** Ce qu'a donné la case (i, j, k) au dernier sondage qui l'a touchée, ou {@code null} : pour les vérifications. */
+    public Game.GridProbe gridProbedAt(int i, int j, int k) {
+        return gridProbed.get(gridKey(i, j, k));
+    }
+
+    /** Les gains de sondages qui montent encore : pour les vérifications. */
+    public int gridMarksShown() {
+        return gridMarks.size();
+    }
+
+    /** Le texte du dernier gain monté, ou rien : pour les vérifications. */
+    public String lastGridMark() {
+        return gridMarks.isEmpty() ? "" : gridMarks.get(gridMarks.size() - 1).text;
+    }
+
+    /** Les sondages automatiques que la vue a montrés depuis l'ouverture : pour les vérifications. */
+    public long gridAutoFlashes() {
+        return gridAutoFlashes;
+    }
+
+    /**
+     * La couleur d'une case sondée : sans l'affichage de la distance (niveau 0), neutre, rien ne dit si elle brûle ;
+     * ensuite, du bleu (froid, loin du point) au rouge (chaud, tout près) ; dorée quand elle a trouvé le point.
+     */
+    public Color gridProbeColor(Game.GridProbe probe) {
+        if (probe.found()) return GRID_FOUND;
+        if (game.gridReveal() < 1) return GRID_PROBED;
+        double heat = Math.max(0, Math.min(1, 1 - probe.distance() / (Game.GRID_SIZE * 0.6)));
+        return heat < 0.5 ? GRID_COLD.interpolate(GRID_MILD, heat * 2) : GRID_MILD.interpolate(GRID_HOT, heat * 2 - 1);
+    }
+
+    /**
+     * La couche (k) puis la colonne (i) du point le plus proche du dernier sondage, autant que l'affichage le permet :
+     * −1 pour ce qu'il ne montre pas encore (la couche au niveau 2, la colonne au niveau 3), ou sans sondage.
+     */
+    public int[] gridRevealed() {
+        Game.GridProbe last = game.gridLastProbe();
+        if (last == null || game.gridReveal() < 2) return new int[] {-1, -1};
+        Game.GridPoint nearest = game.gridNearest(last.i(), last.j(), last.k());
+        return new int[] {game.gridCell(nearest.z()), game.gridReveal() >= 3 ? game.gridCell(nearest.x()) : -1};
+    }
+
+    /**
+     * La grille avance d'une image : les gains montent et s'effacent ; une division changée oublie les cases sondées ;
+     * les sondages de l'automatisme depuis l'image d'avant se montrent comme ceux du joueur.
+     */
+    private void runGrid(double elapsed) {
+        for (GridMark mark : gridMarks) mark.age += elapsed;
+        gridMarks.removeIf(mark -> mark.age > GRID_MARK_SECONDS);
+        if (!game.isGridOpen()) return;
+        if (gridProbedDivisions != game.gridDivisions()) {
+            gridProbed.clear();
+            gridProbedDivisions = game.gridDivisions();
+            setGridLayer(gridLayer);
+        }
+        long probes = game.gridProbes();
+        if (lastGridProbes >= 0 && probes > lastGridProbes && game.gridLastProbe() != null) {
+            // Plusieurs sondages depuis l'image d'avant (une absence) : on ne montre que le dernier.
+            noteProbe(game.gridLastProbe(), true);
+            gridAutoFlashes += probes - lastGridProbes;
+        }
+        lastGridProbes = probes;
+    }
+
+    /**
+     * La grille : à gauche, la couche montrée, ses cases, celles déjà sondées colorées (selon l'affichage), la case sous
+     * la souris, et les gains qui montent ; à droite, le cube vu de biais, la couche montrée, les cases sondées, et ce
+     * que l'affichage montre du point le plus proche (sa couche, puis sa colonne). Au-dessus, la couche. Pendant
+     * l'attente, la grille pâlit. Fermée, un cube vide.
+     */
+    private void gridScene(GraphicsContext g, double w, double h) {
+        Color c = color();
+        boolean open = game.isGridOpen();
+        int n = open ? game.gridDivisions() : Game.GRID_DIVISIONS, layer = open ? gridLayer() : 0;
+        double side = gridSide(), left = gridLeft(), top = gridTop(), cell = side / n;
+        int[] revealed = open ? gridRevealed() : new int[] {-1, -1};
+        boolean waiting = open && game.gridWait() > 0;
+        // La couche : ses cases, sondées ou non.
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                Game.GridProbe probe = gridProbed.get(gridKey(i, j, layer));
+                double x = left + i * cell, y = top + j * cell;
+                if (probe != null) {
+                    g.setGlobalAlpha(waiting ? 0.45 : 0.7);
+                    g.setFill(gridProbeColor(probe));
+                    g.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+                }
+                if (i == gridHoverI && j == gridHoverJ) {
+                    g.setGlobalAlpha(0.25);
+                    g.setFill(Color.WHITE);
+                    g.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+                }
+            }
+        }
+        // La colonne du point le plus proche (affichage 3) : une bande sur toute la couche.
+        if (revealed[1] >= 0) {
+            g.setStroke(GRID_HINT);
+            g.setLineWidth(3);
+            g.setGlobalAlpha(revealed[0] == layer ? 0.95 : 0.45);
+            g.strokeRect(left + revealed[1] * cell + 1.5, top + 1.5, cell - 3, side - 3);
+        }
+        g.setStroke(c);
+        for (int k = 0; k <= n; k++) {
+            boolean edge = k == 0 || k == n;
+            g.setLineWidth(edge ? 2 : 1);
+            g.setGlobalAlpha(edge ? 0.8 : 0.3);
+            g.strokeLine(left + k * cell, top, left + k * cell, top + side);
+            g.strokeLine(left, top + k * cell, left + side, top + k * cell);
+        }
+        g.setTextAlign(TextAlignment.CENTER);
+        g.setGlobalAlpha(1);
+        g.setFill(revealed[0] == layer ? GRID_HINT : Color.WHITE);
+        g.setFont(Font.font(14));
+        g.fillText("Couche " + (layer + 1) + " / " + n + (revealed[0] == layer ? " : le point le plus proche est dans cette couche" : ""),
+                left + side / 2, top - 12);
+        // Dans les cases sondées assez grandes, le gain (et la distance, si l'affichage la montre).
+        if (cell >= 38) {
+            g.setFont(Font.font(11));
+            for (Game.GridProbe probe : gridProbed.values()) {
+                if (probe.k() != layer) continue;
+                double[] at = gridCellScreen(probe.i(), probe.j());
+                g.setFill(Color.WHITE);
+                g.setGlobalAlpha(0.9);
+                g.fillText("+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(probe.gain())), at[0], at[1] + (game.gridReveal() >= 1 ? -2 : 4));
+                if (game.gridReveal() >= 1) g.fillText(Math.round(probe.distance()) + "", at[0], at[1] + 12);
+            }
+        }
+        if (waiting) {
+            g.setGlobalAlpha(0.85);
+            g.setFill(Color.web("#8a93b0"));
+            g.setFont(Font.font(13));
+            g.fillText(String.format(java.util.Locale.ROOT, "Attente : %.1f s", game.gridWait()), left + side / 2, top + side + 20);
+        }
+        // Le cube vu de biais.
+        gridCube(g, w * 0.82, h / 2, Math.min(w * 0.12, h * 0.26), n, layer, revealed, c);
+        // Les gains des sondages montent de leur case (de la couche montrée) ; trouvé, un éclat doré.
+        for (GridMark mark : gridMarks) {
+            double t = mark.age / GRID_MARK_SECONDS;
+            if (mark.k != layer) continue;
+            double[] at = gridCellScreen(mark.i, mark.j);
+            Color tint = mark.found ? GRID_FOUND : mark.auto ? Color.web("#9be7a8") : Color.WHITE;
+            UniverseView.glow(g, at[0], at[1], (mark.found ? cell * 1.2 : cell * 0.5) * (0.6 + t), tint, (mark.found ? 0.9 : 0.5) * (1 - t));
+            g.setGlobalAlpha(Math.max(0, 1 - t));
+            g.setFill(tint);
+            g.setFont(mark.found ? Font.font(null, javafx.scene.text.FontWeight.BOLD, 17) : Font.font(14));
+            g.fillText(mark.text, at[0], at[1] - 10 - 30 * t);
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Un point du cube (0 à 1 sur chaque axe, z vers le haut) vu de biais, autour de ({@code ox}, {@code oy}). */
+    private static double[] iso(double ox, double oy, double s, double x, double y, double z) {
+        return new double[] {ox + (x - y) * s * 0.87, oy + (x + y - 1) * s * 0.5 - (z - 0.5) * s};
+    }
+
+    /**
+     * Le cube de biais : ses arêtes, la couche montrée en plaque, les cases sondées en petits losanges colorés, et, selon
+     * l'affichage, la couche du point le plus proche (un contour rose) et sa colonne (un trait sur cette couche).
+     */
+    private void gridCube(GraphicsContext g, double ox, double oy, double s, int n, int layer, int[] revealed, Color c) {
+        g.setStroke(c);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.7);
+        for (int a = 0; a < 8; a++) {
+            for (int bit : new int[] {1, 2, 4}) {
+                int b = a ^ bit;
+                if (b < a) continue;
+                double[] p = iso(ox, oy, s, a & 1, (a >> 1) & 1, (a >> 2) & 1), q = iso(ox, oy, s, b & 1, (b >> 1) & 1, (b >> 2) & 1);
+                g.strokeLine(p[0], p[1], q[0], q[1]);
+            }
+        }
+        slab(g, ox, oy, s, (layer + 0.5) / n, c, 0.3, false);
+        if (revealed[0] >= 0) slab(g, ox, oy, s, (revealed[0] + 0.5) / n, GRID_HINT, 0.9, true);
+        if (revealed[0] >= 0 && revealed[1] >= 0) {
+            double x = (revealed[1] + 0.5) / n, z = (revealed[0] + 0.5) / n;
+            double[] p = iso(ox, oy, s, x, 0, z), q = iso(ox, oy, s, x, 1, z);
+            g.setStroke(GRID_HINT);
+            g.setLineWidth(3);
+            g.setGlobalAlpha(0.95);
+            g.strokeLine(p[0], p[1], q[0], q[1]);
+        }
+        for (Game.GridProbe probe : gridProbed.values()) {
+            double[] at = iso(ox, oy, s, (probe.i() + 0.5) / n, (probe.j() + 0.5) / n, (probe.k() + 0.5) / n);
+            double r = Math.max(2.5, s / n * 0.3);
+            g.setGlobalAlpha(probe.k() == layer ? 1 : 0.55);
+            g.setFill(gridProbeColor(probe));
+            g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r * 0.6, at[1], at[1] + r * 0.6, at[1]}, 4);
+        }
+        for (GridMark mark : gridMarks) {
+            double[] at = iso(ox, oy, s, (mark.i + 0.5) / n, (mark.j + 0.5) / n, (mark.k + 0.5) / n);
+            UniverseView.glow(g, at[0], at[1], 10 + 10 * mark.age, mark.found ? GRID_FOUND : Color.WHITE, 0.8 * Math.max(0, 1 - mark.age / GRID_MARK_SECONDS));
+        }
+        g.setGlobalAlpha(1);
+    }
+
+    /** Une couche du cube de biais, à la hauteur {@code z} : une plaque pleine, ou son seul contour. */
+    private static void slab(GraphicsContext g, double ox, double oy, double s, double z, Color color, double alpha, boolean outline) {
+        double[] a = iso(ox, oy, s, 0, 0, z), b = iso(ox, oy, s, 1, 0, z), d = iso(ox, oy, s, 1, 1, z), e = iso(ox, oy, s, 0, 1, z);
+        double[] xs = {a[0], b[0], d[0], e[0], a[0]}, ys = {a[1], b[1], d[1], e[1], a[1]};
+        g.setGlobalAlpha(alpha);
+        if (outline) {
+            g.setStroke(color);
+            g.setLineWidth(2);
+            g.strokePolyline(xs, ys, 5);
+        } else {
+            g.setFill(color);
+            g.fillPolygon(xs, ys, 4);
+        }
     }
 
     // 9. Des anneaux, chacun avec ses lois : on tourne, on s'arrête, on spirale, on tremble.
