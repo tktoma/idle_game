@@ -160,7 +160,7 @@ class DefiFinalPageTest {
             assertTrue(rows.contains("Paliers du défi final : 10 / 10 atteints"), rows.toString());
             assertTrue(rows.contains("Fin de la partie : atteinte : les dix paliers du défi final"), rows.toString());
             assertTrue(rows.stream().anyMatch(r -> r.startsWith("Défi final, le mélange : 100 % (")), rows.toString());
-            assertEquals("0.160", Version.CURRENT);
+            assertTrue(Version.CURRENT.compareTo("0.160") >= 0, "la version 0.160 ou après");
             return null;
         });
     }

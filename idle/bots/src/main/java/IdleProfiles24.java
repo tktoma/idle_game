@@ -242,23 +242,41 @@ if(p.cycleSeconds()==0)return true;
 return (wallSeconds % p.cycleSeconds()) < p.onlineSeconds();
 }
 private static String fmt(double d){return String.format(Locale.ROOT,"%.4f",d);}
+/** Version 0.161 : vrai pour une partie d'essai (l'estimation de l'analyste), qui n'écrit rien et n'a pas de garde-fou. */
+boolean quiet=false;
 private void event(String what){
+if(quiet)return;
 System.out.printf(Locale.ROOT,"EVENT,%d,%s,%s,wall_h=%.4f,game_h=%.4f,bb=%d,bodies=%d,cosmos=%d%n",p.id(),p.name(),what,wallSeconds/3600,g.state().timePlayed()/3600,g.bigBangs(),g.bodiesFormed(),RobotCosmosPlanner.cosmosStage(g));
 }
-void execute(double horizonWallHours,Path output) throws Exception{
+/*
+ * Version 0.161 : la boucle de jeu se découpe en pas ({@link #stepOnce()}), pour que le bot analyste joue pas à pas,
+ * regarde ce que chaque décision a fait, et lance des parties d'essai. Deux crochets, vides ici, l'encadrent :
+ * {@link #beforeDecisions()} juste avant les décisions du pas, {@link #afterStep(boolean)} une fois le pas joué.
+ */
+double actionInterval, nextActionAt;
+int stepIndex;
+StringBuilder logs;
+/** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
+void begin(){
+actionInterval=Math.max(1,p.actionEverySeconds());
+nextActionAt=Math.min(actionInterval,step);
+logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
+if(!quiet)progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));
+}
+/** Juste avant les décisions du pas, la partie déjà avancée : rien ici. */
+void beforeDecisions(){}
+/** Le pas joué ; rend vrai pour arrêter la partie (ici, seulement quand l'univers visé est atteint). */
+boolean afterStep(boolean done){return done;}
+/** Un pas : le temps passe de {@link #step} secondes, puis le bot décide s'il est là. Vrai quand la partie s'arrête. */
+boolean stepOnce(){
 double dt=step;
-int count=(int)Math.ceil(horizonWallHours*3600/dt);
-double actionInterval=Math.max(1,p.actionEverySeconds());
-double nextActionAt=Math.min(actionInterval,dt);
-double startGameTime=g.state().timePlayed();
-StringBuilder logs=new StringBuilder("wall_hours,game_hours,online_hours,bb,bodies,mature,systems,cosmos,particles_log,atoms_log,space,shop\n");
-progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));
-for(int i=0;i<count;i++){
+int i=stepIndex++;
 boolean isOnline=online();
 if(isOnline){back();g.tick(dt);onlineSeconds+=dt;}
 else creditedOfflineSeconds+=away(dt);
 wallSeconds+=dt;
 if(isOnline){
+beforeDecisions();
 int opportunities=0;
 int maxOpportunities=(int)Math.ceil(dt/actionInterval)+1;
 while(wallSeconds+0.000001>=nextActionAt && opportunities++<maxOpportunities){
@@ -299,14 +317,23 @@ if(lastCosmos<3 && RobotCosmosPlanner.cosmosStage(g)>=3){if(universe<0)universe=
 boolean done=universeProgress();
 if(launchedNextUniverse)event("NEXT_UNIVERSE");
 lastBang=g.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(g);lastExplosions=g.state().explosions();
-if(wallSeconds+0.000001>=nextGuardSampleAt || done){
+done=afterStep(done);
+if(!quiet && (wallSeconds+0.000001>=nextGuardSampleAt || done)){
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,isOnline));
 while(nextGuardSampleAt<=wallSeconds+0.000001)nextGuardSampleAt+=ProfileProgressGuard.SAMPLE_SECONDS;
 }
 if((i+1)%(int)Math.ceil(3600/dt)==0 || done){
 logs.append(String.format(Locale.ROOT,"%.4f,%.4f,%.4f,%d,%d,%d,%d,%d,%.3f,%.3f,%s,%s%n",wallSeconds/3600,g.state().timePlayed()/3600,onlineSeconds/3600,g.bigBangs(),g.bodiesFormed(),g.bodiesMature(),g.solarSystemsComplete(),RobotCosmosPlanner.cosmosStage(g),g.state().particles().log10(),g.state().atoms().log10(),g.state().space(),g.shoppingList().target().replace(',',';')));
 }
-if(done)break;
+return done;
+}
+void execute(double horizonWallHours,Path output) throws Exception{
+double dt=step;
+int count=(int)Math.ceil(horizonWallHours*3600/dt);
+double startGameTime=g.state().timePlayed();
+begin();
+for(int i=0;i<count;i++){
+if(stepOnce())break;
 }
 if(wallSeconds>progressGuard.lastWall()+0.000001)
 progressGuard.observe(ProfileProgressGuard.capture(g,wallSeconds,onlineSeconds,creditedOfflineSeconds,actions,online()));

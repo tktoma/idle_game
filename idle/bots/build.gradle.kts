@@ -82,3 +82,26 @@ tasks.register<JavaExec>("bot") {
     workingDir = projectDir
     maxHeapSize = "1g"
 }
+
+// Version 0.161 : le bot analyste. Il joue comme le Speedrunner, à vitesse humaine (une décision toutes les 5 s), et écrit
+// dans le dossier choisi un journal à la seconde, ses tableaux (achats, paliers, estimations) et une page HTML.
+//   ./gradlew :bots:analyste                         onze univers, dans sorties/analyste
+//   ./gradlew :bots:analyste -Punivers=1 -Pdossier=sorties/essai -Pheures=60 -Pgraine=201 -Ppas=5 -Pestimation=30
+//   ./gradlew :bots:analyste -Pcomparer=true         compare aussi six façons de jouer à chaque palier (bien plus long)
+tasks.register<JavaExec>("analyste") {
+    group = "application"
+    description = "Le bot analyste : journal, achats, paliers, estimations et rapport HTML"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "BotAnalyste"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(
+        providers.gradleProperty("dossier").orElse("sorties/analyste").get(),
+        providers.gradleProperty("univers").orElse("11").get(),
+        providers.gradleProperty("heures").orElse("200").get(),
+        providers.gradleProperty("graine").orElse("201").get(),
+        providers.gradleProperty("pas").orElse("5").get(),
+        providers.gradleProperty("estimation").orElse("30").get(),
+        providers.gradleProperty("comparer").orElse("false").get(),
+    )
+}

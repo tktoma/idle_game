@@ -491,6 +491,31 @@ traversent les univers) ramènent les univers 7 à 11 à moins d'une heure : hui
 Le Regular suit l'une de ses deux trajectoires connues du premier univers (34,1056 h ; l'autre, 34,5056 h, s'est aussi
 vue pendant les essais).
 
+## Le bot analyste (version 0.161)
+
+`BotAnalyste` joue comme le Speedrunner, mais à vitesse humaine (une décision toutes les 5 s, pas de 5 s), et note tout à la seconde de jeu près. Un double-clic sur `analyste.bat` (ou `./analyste.sh`, ou `./gradlew :bots:analyste`) lance onze univers. Options : `-Punivers=1 -Pdossier=sorties/essai -Pheures=60 -Pgraine=201 -Ppas=5 -Pestimation=30`.
+
+Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
+
+| Fichier | Contenu |
+|---|---|
+| `journal.txt` | Tout, ligne par ligne, avec le chrono (hh:mm:ss de jeu) : achats, choses obtenues, succès, défis, automatismes allumés ou coupés, explosions, Big Bangs, paliers, estimations, blocage. |
+| `achats.csv` | Chaque achat : quoi, combien de niveaux, payé en quoi, combien, la part de la réserve, son poids sur chaque grandeur et le gain de temps estimé. |
+| `paliers.csv` | Chaque palier : quand, depuis le précédent, le moment que l'estimation annonçait et l'écart. |
+| `estimations.csv` | Chaque estimation : le palier visé, le temps estimé, le goulot. |
+| `rapport.html` | La page : résultat, frise, résumé par étape, paliers, courbes des grandeurs, estimations, achats regroupés et les 200 plus lourds, journal filtrable. |
+| `sauvegardes/` | Une sauvegarde à chaque palier, pour reprendre une partie à ce moment. |
+
+**Comment il voit ce qu'il fait.** Il prend deux photos de la partie, juste avant et juste après les décisions d'un pas, sans que le temps passe entre elles. Ce qui monte est acheté ou obtenu, ce qui baisse est payé. Quand plusieurs achats tombent dans la même seconde (un lot), chaque monnaie se répartit au prorata de leur prix estimé, et le poids sur les grandeurs est celui du lot.
+
+**Comment il estime.** Toutes les 30 minutes de jeu et à chaque palier, il joue la suite sur une copie de la partie, avec la mémoire du bot, jusqu'au palier suivant. Sans cette mémoire, une copie prise à 2 h n'explosait plus. Sur le premier univers, les annonces tombent à quelques minutes près.
+
+**Comparer les façons de jouer.** Avec `-Pcomparer=true`, à chaque palier principal, six façons de jouer jouent chacune la suite sur une copie jusqu'au palier suivant : celles du Speedrunner, du Méthodique, du Chimiste, de l'Astronome, de l'Explorateur et du Prestige, toutes sans faute et à vitesse humaine. Le bot garde la plus rapide, et le journal (et `choix.csv`) donne le classement avec ce que chaque autre aurait coûté. Mesuré à la 0.161 entre le premier et le dernier Big Bang du premier univers, elles finissent toutes entre 6 h 50 et 6 h 55, le Speedrunner devant. C'est six parties d'essai par palier, donc bien plus long : l'option est coupée par défaut.
+
+**Ce qui n'est pas un achat.** Seules les clés d'achat comptent comme achats : améliorations, automatismes, arbre, générateurs, bulles, dimensions, graine. Les compteurs d'actions (fusions, synthèses, impulsions, molécules) restent dans les grandeurs. Les réglages (part du vide, réserve des molécules, choix de cycle…) se notent comme des choix, et les éléments synthétisés comme des choses obtenues.
+
+**Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
+
 ## Un bot par dimension (version 0.136)
 
 Les dimensions se jouent chacune à part : leurs éclats ne servent qu'à elles, et rien d'autre dans la partie ne les

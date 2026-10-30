@@ -23,6 +23,22 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.161", "Le bot analyste", List.of(
+                    "Un nouveau bot pour comprendre le jeu : il joue comme le meilleur profil, à vitesse humaine (une décision "
+                            + "toutes les cinq secondes), et note tout à la seconde de jeu près. Un double-clic sur analyste.bat le "
+                            + "lance pour onze univers.",
+                    "Chaque achat est noté : quoi, combien, payé en quoi, combien, la part de la réserve, son poids sur chaque "
+                            + "grandeur du jeu et le temps qu'il fait gagner. Les succès, les défis, les automatismes allumés ou "
+                            + "coupés, les explosions et les Big Bangs aussi.",
+                    "Chaque palier est noté avec son chrono : les trois actes de chaque univers et leurs étapes, chaque Big Bang, "
+                            + "les paliers de la graine, les dimensions et leurs seuils, le défi final et la fin. Une sauvegarde est "
+                            + "gardée à chaque palier.",
+                    "Toutes les 30 minutes de jeu, il estime le temps jusqu'au prochain palier en jouant la suite sur une copie de "
+                            + "la partie, et dit ce qui freine. S'il n'avance plus, il s'arrête et explique pourquoi.",
+                    "Tout s'écrit en texte brut, en tableaux CSV et dans une page HTML : frise, résumé par étape, paliers, courbes, "
+                            + "achats regroupés, journal filtrable.",
+                    "En option, il compare six façons de jouer à chaque palier (chacune joue la suite sur une copie) et garde la plus "
+                            + "rapide, avec le classement et ce que chaque autre aurait coûté.")),
             new Note("0.160", "Le défi final", List.of(
                     "Le défi final, comme le joueur l'avait demandé : la bulle des racines achetée, chaque dimension a un "
                             + "palier à atteindre, en ressource gagnée en tout (cent fois son seuil ; dix millions de fragments "
