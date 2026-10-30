@@ -51,6 +51,14 @@ public final class GameState extends GameStateResets {
      * un test compare champ par champ une partie à sa copie relue, et échoue sinon.
      */
     public void save(SaveData data) {
+        save(data, true);
+    }
+
+    /**
+     * La même chose, avec ou sans les statistiques (version 0.162). Sans elles, l'écriture va bien plus vite : le bot
+     * analyste photographie la partie deux fois par pas, et l'historique des statistiques était sa première dépense.
+     */
+    public void save(SaveData data, boolean withStats) {
         data.put("started", started);
         data.put("particles", particles);
         data.put("atoms", atoms);
@@ -302,7 +310,7 @@ public final class GameState extends GameStateResets {
         data.putList("automationOrder", automationOrder);
         data.put("automationOrdered", automationOrdered);
         data.put("space", space);
-        stats.save(data, "stats.");
+        if (withStats) stats.save(data, "stats.");
     }
 
     /**
@@ -686,7 +694,10 @@ public final class GameState extends GameStateResets {
             automationSpeedLevels.keySet().retainAll(known.automations());
             automationTimers.keySet().retainAll(known.automations());
         }
-        if (elements.keySet().removeIf(number -> number < 1 || number > known.elements())) elementsVersion++;
+        if (elements.keySet().removeIf(number -> number < 1 || number > known.elements())) {
+            syncElementCounts();
+            elementsVersion++;
+        }
         if (!known.darkUpgrades().isEmpty() && darkUpgradeLevels.keySet().retainAll(known.darkUpgrades())) darkVersion++;
         if (!known.darkAutomations().isEmpty()) {
             enabledDarkAutomations.retainAll(known.darkAutomations());
@@ -735,17 +746,17 @@ public final class GameState extends GameStateResets {
 
     /** Vue en lecture seule des automatismes achetés, pour la sauvegarde. */
     public Set<String> ownedAutomations() {
-        return Set.copyOf(ownedAutomations);
+        return ordered(ownedAutomations);
     }
 
     /** Vue en lecture seule des automatismes en marche, pour la sauvegarde. */
     public Set<String> enabledAutomations() {
-        return Set.copyOf(enabledAutomations);
+        return ordered(enabledAutomations);
     }
 
     /** Vue en lecture seule des niveaux, pour la sauvegarde. */
     public Map<String, Integer> upgradeLevels() {
-        return Map.copyOf(upgradeLevels);
+        return ordered(upgradeLevels);
     }
 
     /** Donne à {@code action} chaque entrée dont la clé nomme une constante de {@code type} ; les noms d'une autre version sont écartés. */

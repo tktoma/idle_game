@@ -41,6 +41,16 @@ class AnalyseTest {
         assertTrue(paid.baisse());
         assertEquals(particles - game.state().particles().toDouble(), paid.avant().minus(paid.apres()).toDouble(), particles * 1e-9);
         assertEquals("particles", BotAnalyste.monnaie("upgradeLevels", id));
+        for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
+            String expected = switch (d.branch()) {
+                case PARTICLES -> "particles";
+                case ATOMS -> "atoms";
+                case SIZE -> null;
+                case DARK_MATTER -> "darkMatter";
+            };
+            assertEquals(expected, BotAnalyste.monnaie("darkUpgradeLevels", d.id()), "l'arbre se paie selon sa branche : " + d.id());
+        }
+        assertEquals("atoms", BotAnalyste.monnaie("ownedAutomations", idle.core.upgrades.Automations.DEFAULT.get(0).id()), "les automatismes se paient en atomes");
     }
 
     @Test
@@ -73,8 +83,9 @@ class AnalyseTest {
     void uneCourtePartieEcritSonJournalSesTableauxEtSaPage(@TempDir Path dir) throws Exception {
         BotAnalyste bot = new BotAnalyste(Bots.fresh(201), 201, 5, dir, 30);
         bot.targetUniverses = 1;
+        bot.etsi = false;
         bot.joue(1);
-        for (String file : List.of("journal.txt", "achats.csv", "paliers.csv", "estimations.csv", "rapport.html", "fin.save")) {
+        for (String file : List.of("journal.txt", "achats.csv", "paliers.csv", "estimations.csv", "rapport.html", "fin.save", "classement.csv", "etsi.csv")) {
             assertTrue(Files.exists(dir.resolve(file)), file);
         }
         assertFalse(bot.journal.achats.isEmpty(), "une heure de jeu : des achats");
@@ -84,6 +95,68 @@ class AnalyseTest {
         String page = Files.readString(dir.resolve("rapport.html"));
         assertTrue(page.contains("Rapport du bot analyste") && page.contains("<svg"));
         assertTrue(Files.readString(dir.resolve("journal.txt")).contains("[00:00:"));
+        // Version 0.162 : les achats ont un coût en temps de production, et le classement les range.
+        assertTrue(bot.journal.achats.stream().anyMatch(a -> Double.isFinite(a.coutSecondes()) && a.coutSecondes() > 0), "un coût en production connu");
+        assertTrue(bot.revenuLog.containsKey("particles"), "ce que rapportent les particules est mesuré");
+        assertFalse(bot.journal.classement().isEmpty());
+        assertTrue(Files.readString(dir.resolve("journal.txt")).contains("Rentabilité : coûte"));
+    }
+
+    @Test
+    void uneRemiseAZeroDitQuiACoupeLesAutomatismes() {
+        AnalyseEtat.Nombre un = AnalyseEtat.Nombre.of(1), deux = AnalyseEtat.Nombre.of(2);
+        assertEquals("l'explosion", BotAnalyste.cause(List.of(new AnalyseEtat.Changement("explosions", null, un, deux, null, null))));
+        assertEquals("le début du défi", BotAnalyste.cause(List.of(new AnalyseEtat.Changement("activeChallenge", "x", null, null, "x", null))));
+        assertEquals(null, BotAnalyste.cause(List.of(new AnalyseEtat.Changement("particles", null, deux, un, null, null))), "un achat n'est pas une remise à zéro");
+    }
+
+    @Test
+    void laRentabiliteSeLitEnMots() {
+        assertEquals("Rentabilité : coûte 1 min 00 s de production (Particules) ; en fait gagner 3 min 00 s : ×3,00, rentable avant le palier.",
+                BotAnalyste.rentabiliteTexte(60, 180, "Particules"));
+        assertTrue(BotAnalyste.rentabiliteTexte(600, 60, "Atomes").contains("×0,10, pas remboursé avant le palier"));
+        assertTrue(BotAnalyste.rentabiliteTexte(60, Double.NaN, "Atomes").contains("gain de temps inconnu"));
+    }
+
+    @Test
+    void leClassementRangeDuPlusRentableAuMoinsRentable() {
+        AnalyseJournal j = new AnalyseJournal();
+        j.achats.add(achat("Amélioration", "A", 100, 50));
+        j.achats.add(achat("Amélioration", "B", 10, 100));
+        j.achats.add(achat("Amélioration", "B", 10, 100));
+        j.achats.add(achat("Amélioration", "C", Double.NaN, 100));
+        List<AnalyseJournal.Classement> c = j.classement();
+        assertEquals("Amélioration — B", c.get(0).quoi());
+        assertEquals(2, c.get(0).achats());
+        assertEquals(10, c.get(0).rentabilite(), 1e-9);
+        assertEquals(0.5, c.get(1).rentabilite(), 1e-9);
+        assertTrue(Double.isNaN(c.get(2).rentabilite()), "sans coût connu : à la fin");
+    }
+
+    private static AnalyseJournal.Achat achat(String groupe, String chose, double cout, double gain) {
+        return new AnalyseJournal.Achat(0, 1, groupe, chose, 1, "Particules", "1", 0.1, 0, "", 0, gain, cout,
+                Double.isFinite(cout) ? gain / cout : Double.NaN);
+    }
+
+    @Test
+    void lesDefisLesSuccesEtLesAutomatismesDisentPourquoi() {
+        for (idle.core.darkmatter.Challenge c : idle.core.darkmatter.Challenges.ALL) {
+            assertFalse(AnalysePourquoi.contrainte(c).isBlank(), c.id());
+            assertFalse(AnalysePourquoi.recompense(c).isBlank(), c.id());
+            assertEquals(c, AnalysePourquoi.defi(c.id()));
+        }
+        Game game = Bots.fresh(7);
+        String first = idle.core.darkmatter.Challenges.DEFAULT.get(0).id();
+        assertTrue(AnalysePourquoi.lancement(game, first).stream().anyMatch(l -> l.startsWith("Récompense")));
+        assertTrue(AnalysePourquoi.lancement(game, "VOID").stream().anyMatch(l -> l.contains(idle.core.bigbang.BangChallenge.VOID.rewardText())));
+        idle.core.achievements.Achievement feat = game.achievements().stream().filter(a -> a.hasBonus()).findFirst().orElseThrow();
+        List<String> why = AnalysePourquoi.succes(game, feat.id());
+        assertTrue(why.get(0).contains(feat.description()), why.toString());
+        assertTrue(why.stream().anyMatch(l -> l.startsWith("Bonus propre")));
+        String auto = idle.core.upgrades.Automations.DEFAULT.get(0).id();
+        assertFalse(AnalysePourquoi.role(auto).isBlank());
+        assertTrue(AnalysePourquoi.role("PLANE_AIM").startsWith("joue la dimension 2"));
+        assertEquals("", AnalysePourquoi.role("inconnu"));
     }
 
     @Test

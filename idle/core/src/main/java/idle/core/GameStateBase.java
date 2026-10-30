@@ -26,6 +26,20 @@ import java.util.TreeMap;
  */
 public abstract class GameStateBase {
 
+    /**
+     * Version 0.162 : une copie en lecture seule, parcourue dans l'ordre alphabétique. {@code Set.copyOf} parcourait ses
+     * éléments dans un ordre tiré au sort à chaque lancement du jeu : le rassemblement automatique, qui parcourt les
+     * molécules, ne faisait pas les mêmes choix d'une session à l'autre, et deux parties identiques divergeaient.
+     */
+    static Set<String> ordered(Set<String> set) {
+        return Collections.unmodifiableSortedSet(new java.util.TreeSet<>(set));
+    }
+
+    /** La même chose pour une table : ses clés dans l'ordre alphabétique. */
+    static <V> Map<String, V> ordered(Map<String, V> map) {
+        return Collections.unmodifiableSortedMap(new java.util.TreeMap<>(map));
+    }
+
     /** Seul {@link GameState} prolonge la chaîne. */
     GameStateBase() {
     }
@@ -48,6 +62,12 @@ public abstract class GameStateBase {
     final Map<String, Integer> automationSpeedLevels = new HashMap<>();
     final Map<String, Double> automationTimers = new HashMap<>();
     final Map<Integer, Integer> elements = new TreeMap<>();
+    /**
+     * Version 0.162 : les mêmes nombres d'exemplaires, rangés par numéro atomique, pour les lire sans chercher dans la
+     * table. Le jeu les lit des milliers de fois par seconde (bonus des éléments, plafonds) : c'était la première
+     * dépense du moteur. Tenu à jour à chaque changement de {@link #elements} ({@link #syncElementCounts()}).
+     */
+    int[] elementCounts = new int[129];
     int elementsVersion = 0;
     /** Augmente à chaque changement des niveaux de l'arbre de matière noire : le jeu s'en sert pour ne recalculer leurs effets qu'alors. */
     int darkVersion = 0;
@@ -566,11 +586,12 @@ public abstract class GameStateBase {
 
     /** Vue en lecture seule des niveaux de cadence, pour la sauvegarde. */
     public Map<String, Integer> automationSpeedLevels() {
-        return Map.copyOf(automationSpeedLevels);
+        return ordered(automationSpeedLevels);
     }
 
     /** Nombre d'exemplaires possédés d'un élément du tableau périodique (0 si jamais obtenu). */
     public int elementCount(int atomicNumber) {
+        if (atomicNumber >= 0 && atomicNumber < elementCounts.length) return elementCounts[atomicNumber];
         return elements.getOrDefault(atomicNumber, 0);
     }
 
@@ -581,7 +602,17 @@ public abstract class GameStateBase {
         } else {
             elements.put(atomicNumber, count);
         }
+        if (atomicNumber >= 0 && atomicNumber < elementCounts.length) elementCounts[atomicNumber] = count;
         elementsVersion++;
+    }
+
+    /** Remet {@link #elementCounts} d'accord avec {@link #elements}, après un changement de la table entière. */
+    void syncElementCounts() {
+        java.util.Arrays.fill(elementCounts, 0);
+        for (Map.Entry<Integer, Integer> e : elements.entrySet()) {
+            int n = e.getKey();
+            if (n >= 0 && n < elementCounts.length) elementCounts[n] = e.getValue();
+        }
     }
 
     /** Compteur qui change à chaque modification des éléments possédés ; sert à savoir quand recalculer leurs bonus. */
@@ -752,7 +783,7 @@ public abstract class GameStateBase {
 
     /** Vue en lecture seule des molécules créées (identifiant → nombre), pour la sauvegarde. */
     public Map<String, Integer> molecules() {
-        return Map.copyOf(molecules);
+        return ordered(molecules);
     }
 
     /**

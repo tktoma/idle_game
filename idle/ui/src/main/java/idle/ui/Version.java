@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.162", "Le bot analyste dit pourquoi", List.of(
+                    "Chaque achat a sa rentabilité : le temps de production qu'il a coûté (son prix divisé par ce que la ressource "
+                            + "rapportait par seconde), contre le temps qu'il fait gagner vers le palier suivant. Le rapport classe "
+                            + "tout ce qui a été acheté, du plus rentable au moins rentable.",
+                    "Chaque défi lancé dit sa contrainte, sa récompense, s'il est une condition du Big Bang, et combien de temps il "
+                            + "prendra (joué sur une copie de la partie) ; à la fin, réussi ou abandonné, en combien de temps.",
+                    "Chaque succès dit ce qu'il demandait, son bonus et son poids sur chaque grandeur ; chaque automatisme, ce qu'il "
+                            + "fait et pourquoi il est mis en marche ou coupé ; chaque explosion, la matière noire qu'elle rapporte par heure.",
+                    "À chaque palier principal, « et si » : la suite jouée par un joueur qui passe une fois par minute, puis toutes "
+                            + "les dix minutes, à côté du temps du bot.",
+                    "Les parties se rejouent à l'identique : le rassemblement automatique parcourait les molécules dans un ordre "
+                            + "qui changeait à chaque lancement du jeu, et deux parties jouées pareil divergeaient.",
+                    "Le moteur compte les éléments possédés sans chercher dans une table : c'était sa première dépense. Une partie "
+                            + "de bot se calcule environ 17 % plus vite ; le jeu devrait en profiter aussi, surtout quand la synthèse "
+                            + "automatique tourne.")),
             new Note("0.161", "Le bot analyste", List.of(
                     "Un nouveau bot pour comprendre le jeu : il joue comme le meilleur profil, à vitesse humaine (une décision "
                             + "toutes les cinq secondes), et note tout à la seconde de jeu près. Un double-clic sur analyste.bat le "

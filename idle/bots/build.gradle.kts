@@ -88,6 +88,9 @@ tasks.register<JavaExec>("bot") {
 //   ./gradlew :bots:analyste                         onze univers, dans sorties/analyste
 //   ./gradlew :bots:analyste -Punivers=1 -Pdossier=sorties/essai -Pheures=60 -Pgraine=201 -Ppas=5 -Pestimation=30
 //   ./gradlew :bots:analyste -Pcomparer=true         compare aussi six façons de jouer à chaque palier (bien plus long)
+// Version 0.162 : la rentabilité de chaque achat et son classement, le pourquoi des défis, succès, automatismes et
+// explosions, et les « et si » à chaque palier principal (un joueur qui passe une fois par minute, toutes les dix minutes).
+//   ./gradlew :bots:analyste -Petsi=false            sans les « et si » (environ deux fois plus rapide)
 tasks.register<JavaExec>("analyste") {
     group = "application"
     description = "Le bot analyste : journal, achats, paliers, estimations et rapport HTML"
@@ -103,5 +106,6 @@ tasks.register<JavaExec>("analyste") {
         providers.gradleProperty("pas").orElse("5").get(),
         providers.gradleProperty("estimation").orElse("30").get(),
         providers.gradleProperty("comparer").orElse("false").get(),
+        providers.gradleProperty("etsi").orElse("true").get(),
     )
 }

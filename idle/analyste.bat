@@ -1,9 +1,10 @@
 @echo off
 rem Version 0.161 : le bot analyste. Un double-clic lance une partie de onze univers ; le rapport s'ouvre a la fin.
 rem Avec des options : analyste.bat -Punivers=1 -Pdossier=sorties/essai (le dossier se compte depuis idle\bots).
+rem Version 0.162 : analyste.bat -Petsi=false va environ deux fois plus vite, sans les "et si".
 chcp 65001 >nul
 cd /d "%~dp0"
-echo Le bot analyste joue (onze univers : comptez une a trois heures)...
+echo Le bot analyste joue (onze univers : comptez deux a quatre heures)...
 echo.
 call gradlew.bat :bots:analyste %*
 if errorlevel 1 (
@@ -11,7 +12,7 @@ if errorlevel 1 (
     echo ECHEC : le bot n'a pas pu finir. Le detail est au-dessus.
 ) else (
     echo.
-    echo Fini. Le rapport : bots\sorties\analyste\rapport.html ^(et journal.txt, achats.csv, paliers.csv^).
+    echo Fini. Le rapport : bots\sorties\analyste\rapport.html ^(et journal.txt, achats.csv, paliers.csv, classement.csv, etsi.csv^).
     if exist bots\sorties\analyste\rapport.html start "" bots\sorties\analyste\rapport.html
 )
 echo.

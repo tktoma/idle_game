@@ -6,8 +6,9 @@ import java.util.Locale;
 
 /**
  * La page HTML du bot analyste (version 0.161) : un seul fichier, sans rien à télécharger, lisible dans n'importe quel
- * navigateur. En haut, le résultat ; puis les paliers (avec ce que l'estimation annonçait), les courbes des grandeurs,
- * les achats (filtrables, triables par poids) et tout le journal, filtrable par sorte.
+ * navigateur. En haut, le résultat ; puis les paliers (avec ce que l'estimation annonçait), les « et si » (version
+ * 0.162), les courbes des grandeurs, le classement des achats par rentabilité (version 0.162), les achats (filtrables,
+ * triables par poids) et tout le journal, filtrable par sorte.
  */
 final class AnalyseRapport {
 
@@ -74,6 +75,20 @@ final class AnalyseRapport {
         }
         h.append("</tbody></table></div>");
 
+        // Version 0.162 : les « et si ».
+        if (!j.etsi.isEmpty()) {
+            h.append("<h2>Et si on jouait à un autre rythme</h2><p class=sub>À chaque palier principal, la suite jouée sur des copies de la partie "
+                    + "jusqu'au palier suivant : par le bot (une décision toutes les 5 s), par un joueur qui passe une fois par minute, et par un "
+                    + "joueur qui passe toutes les dix minutes. L'écart dit ce que l'attention rapporte à chaque étape.</p>");
+            h.append("<div class=scroll><table><thead><tr><th>Chrono</th><th>De</th><th>Jusqu'à</th><th>Le bot</th><th>Une fois par minute</th><th>Toutes les 10 min</th></tr></thead><tbody>");
+            for (AnalyseJournal.EtSi e : j.etsi) {
+                h.append("<tr><td class=t>").append(AnalyseJournal.chrono(e.t())).append("</td><td>").append(esc(e.depuis())).append("</td><td>")
+                        .append(esc(e.vise())).append("</td><td>").append(AnalyseJournal.duree(e.reel())).append("</td><td>").append(etsi(e.parMinute(), e.reel()))
+                        .append("</td><td>").append(etsi(e.parDixMinutes(), e.reel())).append("</td></tr>");
+            }
+            h.append("</tbody></table></div>");
+        }
+
         // Les courbes.
         h.append("<h2>Grandeurs au fil du temps</h2><div class=card>");
         courbes(h, bot.releves);
@@ -105,6 +120,32 @@ final class AnalyseRapport {
                         old.poids() + a.poidsMax()));
             }
         }
+        // Version 0.162 : le classement par rentabilité.
+        List<AnalyseJournal.Classement> classement = j.classement().stream().filter(c -> Double.isFinite(c.rentabilite())).toList();
+        if (!classement.isEmpty()) {
+            h.append("<h2>Classement des achats par rentabilité</h2><p class=sub>Pour chaque chose achetée : le temps de production qu'elle a "
+                    + "coûté en tout (le prix divisé par ce que la ressource rapportait par seconde), le temps qu'elle a fait gagner vers les "
+                    + "paliers (estimé), et le rapport des deux. Au-dessus de ×1, elle a rendu plus de temps qu'elle n'en a coûté. Le gain est une "
+                    + "borne haute, et ne compte que le palier suivant : un achat sous ×1 peut servir plus loin. Le classement complet est dans "
+                    + "classement.csv.</p>");
+            h.append("<div class=scroll><table><thead><tr><th data-n>Rang</th><th>Quoi</th><th data-n>Achats</th><th>Coût en production</th>"
+                    + "<th>Temps gagné</th><th data-n>Rentabilité</th></tr></thead><tbody>");
+            int n = classement.size();
+            for (int i = 0; i < n; i++) {
+                if (i >= 25 && i < n - 15) {
+                    if (i == 25) h.append("<tr><td></td><td class=det>… ").append(n - 40).append(" autres dans classement.csv …</td><td></td><td></td><td></td><td></td></tr>");
+                    continue;
+                }
+                AnalyseJournal.Classement c = classement.get(i);
+                double r = c.rentabilite();
+                h.append("<tr><td>").append(i + 1).append("</td><td>").append(esc(c.quoi())).append("</td><td>").append(c.achats()).append("</td><td>")
+                        .append(AnalyseJournal.duree(c.coutSecondes())).append("</td><td>").append(AnalyseJournal.duree(c.gainSecondes()))
+                        .append("</td><td class=").append(r >= 1 ? "good" : "bad").append('>')
+                        .append(r >= 1000 ? String.format(Locale.ROOT, "×10^%.1f", Math.log10(r)) : String.format(Locale.FRANCE, "×%.2f", r)).append("</td></tr>");
+            }
+            h.append("</tbody></table></div>");
+        }
+
         h.append("<h2>Achats, par chose achetée</h2><p class=sub>").append(j.achats.size()).append(" achats en tout (la liste complète, avec "
                 + "chaque prix et chaque poids, est dans achats.csv). Un clic sur un titre de colonne trie ; le poids cumulé additionne les "
                 + "ordres de grandeur gagnés à chaque achat.</p><input type=search id=qa placeholder=\"Filtrer…\">");
@@ -119,7 +160,7 @@ final class AnalyseRapport {
         }
         h.append("</tbody></table></div>");
         h.append("<h2>Les 200 achats qui ont fait gagner le plus de temps</h2><div class=scroll><table><thead><tr><th>Chrono</th><th>U</th><th>Quoi</th><th>Payé</th><th>Part</th>"
-                + "<th>Poids</th><th data-n>Gain estimé (s)</th></tr></thead><tbody>");
+                + "<th>Poids</th><th data-n>Gain estimé (s)</th><th data-n>Coût en production (s)</th><th data-n>Rentabilité</th></tr></thead><tbody>");
         j.achats.stream().sorted((x, y) -> {
             double gx = Double.isFinite(x.gainSecondes()) ? x.gainSecondes() : 0, gy = Double.isFinite(y.gainSecondes()) ? y.gainSecondes() : 0;
             return gx != gy ? Double.compare(gy, gx) : Double.compare(y.poidsMax(), x.poidsMax());
@@ -128,7 +169,9 @@ final class AnalyseRapport {
                 .append(esc(a.groupe() + (a.chose().isEmpty() ? "" : " — " + a.chose()) + (Math.round(a.quantite()) > 1 ? " ×" + Math.round(a.quantite()) : "")))
                 .append("</td><td>").append(esc(a.montant() + " " + a.paye())).append("</td><td>")
                 .append(Double.isNaN(a.part()) ? "—" : String.format(Locale.FRANCE, "%.1f %%", 100 * a.part())).append("</td><td class=det>")
-                .append(esc(a.poids())).append("</td><td>").append(Double.isFinite(a.gainSecondes()) ? String.format(Locale.ROOT, "%.0f", a.gainSecondes()) : "—").append("</td></tr>"));
+                .append(esc(a.poids())).append("</td><td>").append(Double.isFinite(a.gainSecondes()) ? String.format(Locale.ROOT, "%.0f", a.gainSecondes()) : "—")
+                .append("</td><td>").append(Double.isFinite(a.coutSecondes()) ? String.format(Locale.ROOT, "%.0f", a.coutSecondes()) : "—")
+                .append("</td><td>").append(Double.isFinite(a.rentabilite()) ? String.format(Locale.ROOT, "%.3g", a.rentabilite()) : "—").append("</td></tr>"));
         h.append("</tbody></table></div>");
 
         // Le journal.
@@ -235,6 +278,17 @@ final class AnalyseRapport {
             fromName = p.nom();
         }
         h.append("</tbody></table></div>");
+    }
+
+    /** Le temps d'un « et si », et l'écart avec celui du bot : « 2 h 10 min (+25 min, ×1,24) ». */
+    private static String etsi(double secondes, double reel) {
+        if (secondes < 0) return "<span class=bad>pas atteint en 24 h</span>";
+        String out = AnalyseJournal.duree(secondes);
+        if (Double.isFinite(reel) && reel > 0) {
+            double diff = secondes - reel;
+            out += " <span class=det>(" + (diff >= 0 ? "+" : "−") + AnalyseJournal.duree(Math.abs(diff)) + String.format(Locale.FRANCE, ", ×%.2f", secondes / reel) + ")</span>";
+        }
+        return out;
     }
 
     private static void kpi(StringBuilder h, String value, String label) {

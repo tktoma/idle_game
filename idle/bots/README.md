@@ -516,6 +516,28 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## Le bot analyste dit pourquoi (version 0.162)
+
+Ce qu'il ajoute au journal et au rapport :
+
+| Quoi | Ce qu'il dit |
+|---|---|
+| Chaque achat | Sa **rentabilité** : le temps de production qu'il a coûté (son prix divisé par ce que la ressource rapportait par seconde au pas d'avant, mesuré sans décision ; pour la matière noire, sur la dernière explosion), contre le temps qu'il fait gagner vers le palier suivant. Au-dessus de ×1, il rend plus de temps qu'il n'en coûte. |
+| `classement.csv` et le rapport | Tout ce qui a été acheté, du plus rentable au moins rentable, avec le coût et le gain cumulés. |
+| Chaque défi lancé | Sa contrainte, sa récompense, s'il est une condition du Big Bang, et le temps qu'il prendra, joué sur une copie. À la fin : réussi ou abandonné, en combien de temps, contre l'annonce. |
+| Chaque succès | Ce qu'il demandait, son bonus propre, le bonus commun, s'il compte pour le Big Bang, et le poids des succès du moment sur chaque grandeur. |
+| Chaque automatisme | Ce qu'il fait, et pourquoi il est mis en marche ou coupé (ce que le bot met de côté, le défi en cours, le goulot). |
+| Chaque explosion | La matière noire gagnée, par heure depuis la précédente, et pourquoi maintenant. |
+| `etsi.csv` et le rapport | À chaque palier principal, la suite jouée sur des copies jusqu'au palier suivant par un joueur qui passe une fois par minute, puis toutes les dix minutes, à côté du temps du bot. |
+
+Les « et si » ajoutent deux parties d'essai par palier : `-Petsi=false` les coupe et va environ deux fois plus vite.
+
+**Les limites.** Le temps gagné reste une borne haute (tout le multiplicateur gagné est compté comme de la vitesse), et ne regarde que le palier suivant : un achat sous ×1 peut servir plus loin. Le « pourquoi » d'un automatisme coupé lit la situation (la visée, le goulot, le défi), pas la règle exacte de la politique qui l'a coupé.
+
+**Le moteur se rejoue à l'identique.** Deux parties analystes jouées pareil finissaient à 76:06:20 et 76:12:25. La cause : certaines copies de l'état (`Map.copyOf`, `Set.copyOf`) se parcouraient dans un ordre tiré au sort à chaque lancement de Java, et le rassemblement automatique parcourt les molécules. Elles se parcourent maintenant dans l'ordre alphabétique (`OrdreTest`).
+
+**Plus rapide.** Les « et si » jouent leurs copies au pas d'une minute, les deux en même temps. Le moteur lit le nombre d'exemplaires de chaque élément dans un tableau plutôt que dans une table triée (c'était sa première dépense), et les photos du bot n'écrivent plus l'historique des statistiques. Sur dix heures de jeu sans « et si » : 915 s de calcul avant, 708 s après, pour une partie identique à l'octet près.
+
 ## Un bot par dimension (version 0.136)
 
 Les dimensions se jouent chacune à part : leurs éclats ne servent qu'à elles, et rien d'autre dans la partie ne les

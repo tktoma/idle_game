@@ -1,4 +1,4 @@
-import idle.core.save.SaveCodec;
+import idle.core.save.SaveData;
 import idle.core.GameState;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -101,12 +101,13 @@ final class AnalyseEtat {
 
     static AnalyseEtat of(GameState state) {
         AnalyseEtat etat = new AnalyseEtat();
-        for (String line : SaveCodec.write(state, 0).split("\n")) {
-            int eq = line.indexOf('=');
-            if (eq <= 0) continue;
-            String key = line.substring(0, eq);
+        // Version 0.162 : la sauvegarde sans les statistiques, lue clé par clé sans passer par le texte : deux fois
+        // plus rapide (l'historique des statistiques était la première dépense de la partie analysée).
+        SaveData data = new SaveData();
+        state.save(data, false);
+        for (String key : data.keys("")) {
             if (key.startsWith("stats.") || key.startsWith("found.") || IGNOREES.contains(key)) continue;
-            etat.brut.put(key, line.substring(eq + 1));
+            etat.brut.put(key, data.text(key, ""));
         }
         return etat;
     }

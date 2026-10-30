@@ -79,7 +79,7 @@ public abstract class GameStateResets extends GameStateCollider {
 
     /** Vue en lecture seule des améliorations d'espace acquises, pour la sauvegarde. */
     public Set<String> spaceUpgrades() {
-        return Set.copyOf(spaceUpgrades);
+        return ordered(spaceUpgrades);
     }
 
     /** Nombre de sortes de molécules différentes créées. */
@@ -226,7 +226,7 @@ public abstract class GameStateResets extends GameStateCollider {
 
     /** Vue en lecture seule des automatismes de matière noire en marche, pour la sauvegarde. */
     public Set<String> enabledDarkAutomations() {
-        return Set.copyOf(enabledDarkAutomations);
+        return ordered(enabledDarkAutomations);
     }
 
     /** Temps écoulé depuis la dernière action d'un automatisme de matière noire, en secondes. */
@@ -257,7 +257,7 @@ public abstract class GameStateResets extends GameStateCollider {
 
     /** Vue en lecture seule des niveaux des améliorations de matière noire, pour la sauvegarde. */
     public Map<String, Integer> darkUpgradeLevels() {
-        return Map.copyOf(darkUpgradeLevels);
+        return ordered(darkUpgradeLevels);
     }
 
     /**
@@ -465,6 +465,7 @@ public abstract class GameStateResets extends GameStateCollider {
         automationSpeedLevels.clear();
         automationTimers.clear();
         elements.clear();
+        syncElementCounts();
         elementsVersion++;
         synthesisCount = 0;
         synthesisTarget = null;
