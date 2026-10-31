@@ -28,7 +28,8 @@ public final class Goals {
         ESTIMATE("Le temps qu'il demande", "Ce qui sépare de l'objectif, quand le jeu peut l'estimer : fusions, synthèse, générateur."),
         BIG_BANG("Le prochain Big Bang", "Les conditions du prochain Big Bang, sans ouvrir l'arbre."),
         ACT("Le troisième acte", "Le prochain pas du ciel, après le premier Big Bang."),
-        CHRONO("Le chrono", "L'avance ou le retard sur le record de la prochaine étape, quand il y en a un.");
+        CHRONO("Le chrono", "L'avance ou le retard sur le record de la prochaine étape, quand il y en a un."),
+        PACE("La prochaine étape", "Le temps qu'il reste avant la prochaine étape, au rythme des dix dernières minutes.");
 
         private final String label;
         private final String detail;
@@ -49,10 +50,10 @@ public final class Goals {
 
     /**
      * La ligne d'objectif, morceau par morceau (version 0.146) : l'objectif et son temps estimé, le prochain Big Bang, le
-     * troisième acte, le chrono ; seuls ceux que {@code shown} garde. Ce qui reste se suit, séparé par des barres ; vide
+     * troisième acte, le chrono, la prochaine étape au rythme du moment (version 0.165) ; seuls ceux que {@code shown} garde. Ce qui reste se suit, séparé par des barres ; vide
      * si rien ne reste.
      */
-    public static String line(Game game, java.util.function.Predicate<Part> shown) {
+    public static String line(Game game, java.util.function.Predicate<Part> shown, idle.core.history.Pace pace) {
         java.util.List<String> parts = new java.util.ArrayList<>();
         if (shown.test(Part.GOAL)) parts.add("Objectif : " + (shown.test(Part.ESTIMATE) ? withEstimate(game, game.stats()) : next(game)));
         // Entre les deux, l'avancée du prochain Big Bang : ses conditions, sans ouvrir l'arbre.
@@ -66,6 +67,9 @@ public final class Goals {
         // Le mode chrono : l'écart au record sur la prochaine étape, quand il y a un record à battre.
         String chrono = shown.test(Part.CHRONO) ? chrono(game) : "";
         if (!chrono.isEmpty()) parts.add(chrono);
+        // Version 0.165 : la prochaine étape et le temps qu'elle demande, quand le rythme permet de l'estimer.
+        String next = shown.test(Part.PACE) ? pace(pace) : "";
+        if (!next.isEmpty()) parts.add(next);
         return String.join("   |   ", parts);
     }
 
@@ -218,6 +222,13 @@ public final class Goals {
         String label = Character.toLowerCase(next.label().charAt(0)) + next.label().substring(1);
         return "Chrono : " + label + ", record " + Format.duration(record) + ", "
                 + (gap <= 0 ? Format.duration(-gap) + " d'avance" : Format.duration(gap) + " de retard");
+    }
+
+    /** « Premier Big Bang dans 1 h 20 environ » ; vide sans étape à venir ou sans estimation. */
+    static String pace(idle.core.history.Pace pace) {
+        if (pace == null || pace.step() == null) return "";
+        double left = pace.secondsLeft();
+        return Double.isNaN(left) ? "" : pace.step().label() + " dans " + about(left);
     }
 
     /** « un amas rocheux », « une comète glacée », « le Soleil » : le nom d'un astre avec son article. */

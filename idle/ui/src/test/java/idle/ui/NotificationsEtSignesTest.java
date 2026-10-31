@@ -88,10 +88,10 @@ class NotificationsEtSignesTest {
     void laLigneDObjectifNeGardeQueSesMorceauxMontres() {
         Game game = new Game(1L);
         game.start();
-        String all = Goals.line(game, part -> true);
+        String all = Goals.line(game, part -> true, new idle.core.history.Pace());
         assertTrue(all.startsWith("Objectif : "), all);
-        assertEquals("", Goals.line(game, part -> false), "rien de montré : une ligne vide");
-        String bare = Goals.line(game, part -> part != Goals.Part.ESTIMATE);
+        assertEquals("", Goals.line(game, part -> false, new idle.core.history.Pace()), "rien de montré : une ligne vide");
+        String bare = Goals.line(game, part -> part != Goals.Part.ESTIMATE, new idle.core.history.Pace());
         assertEquals("Objectif : " + Goals.next(game), bare, "sans le temps estimé, l'objectif seul");
     }
 

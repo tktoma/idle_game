@@ -153,7 +153,7 @@ class DefiFinalPageTest {
             openChallenge(game);
             reachAll(game);
             game.tick(0.05);
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

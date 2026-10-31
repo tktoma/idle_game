@@ -516,6 +516,20 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## La lecture des achats passe dans le moteur (version 0.165)
+
+Le jeu note maintenant les achats du joueur comme le bot analyste (sous-page « Achats » des statistiques), et dit dans combien de temps vient la prochaine étape. Pour qu'ils lisent les achats de la même façon, ce qui était au bot vit dans le moteur, paquet `idle.core.history` :
+
+| Avant (bots) | Maintenant (moteur) |
+|---|---|
+| `AnalyseEtat` | `Photo` : la partie clé par clé, et ce qui a changé entre deux photos |
+| `AnalyseNoms` | `Noms` : les noms en français des clés et des choses |
+| `BotAnalyste.achat`, `monnaie`, `coutRelatif`, `REGLAGES` et la répartition des prix | `Achats` : ce qui est un achat, sa monnaie, et `Achats.lire` qui rend les achats d'un diff avec leur prix |
+| (nouveau) | `Pace` : la prochaine étape et le temps qu'elle demande au rythme des dix dernières minutes |
+| (nouveau) | `PurchaseHistory` : les achats du joueur entre une action et le pas de temps suivant |
+
+Le bot analyste joue exactement pareil : sur dix heures de jeu, `achats.csv` est identique à l'octet près avant et après. Le journal gagne les lignes « Éléments synthétisés », que l'ancien code ne pouvait pas atteindre (les éléments étaient pris pour une ressource juste avant). À supprimer : `src/main/java/AnalyseEtat.java` et `src/main/java/AnalyseNoms.java`.
+
 ## Illogismes, comparaisons, sans une amélioration, plusieurs graines (version 0.164)
 
 **Les détecteurs d'illogismes** relisent chaque partie du bot analyste à la fin (`AnalyseIllogismes`), et l'écrivent dans `illogismes.txt`, `illogismes.csv` et en tête du rapport. Un signalement n'est pas une preuve : c'est un endroit où regarder.

@@ -48,7 +48,7 @@ class StatsUniversePageTest {
         FxTestSupport.fx(() -> {
             Game fresh = new Game();
             fresh.start();
-            StatsPage page = new StatsPage(fresh);
+            StatsPage page = new StatsPage(fresh, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             page.refresh();
             assertFalse(page.openSubPages().contains("Univers"), "premier univers en cours : rien à montrer");
             assertFalse(page.openSubPage("Univers"));
@@ -60,7 +60,7 @@ class StatsUniversePageTest {
     void laSousPageUniversMontreLaGraineLesDimensionsEtLeVide() {
         FxTestSupport.fx(() -> {
             Game game = third();
-            StatsPage page = new StatsPage(game);
+            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             page.refresh();
             List<String> names = page.openSubPages();
             assertTrue(names.contains("Univers"), names.toString());
@@ -93,7 +93,7 @@ class StatsUniversePageTest {
     void leDetailDesMultiplicateursProposeLesTroisNouvellesGrandeurs() {
         FxTestSupport.fx(() -> {
             Game game = third();
-            StatsPage page = new StatsPage(game);
+            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             page.openMultipliers();
             for (Multipliers.Quantity quantity : List.of(Multipliers.Quantity.COLLIDER_ENERGY, Multipliers.Quantity.VOID_ENERGY,
                     Multipliers.Quantity.LINE_SHARDS)) {

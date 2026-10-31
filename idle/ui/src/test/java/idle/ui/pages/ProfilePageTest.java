@@ -169,7 +169,7 @@ class ProfilePageTest {
             page.refresh();
             assertEquals(2, page.journalRows());
             assertEquals("12:01  ·  1 min 05 s de jeu | annonce deux", page.journalRow(0));
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             assertFalse(stats.openSubPages().contains("Journal"), stats.openSubPages().toString());
             assertFalse(stats.openSubPage("Journal"));

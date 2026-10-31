@@ -30,8 +30,8 @@ import java.util.List;
  */
 public abstract class StatsPageLines extends StatsPageBase {
 
-    StatsPageLines(Game game) {
-        super(game);
+    StatsPageLines(Game game, idle.core.history.PurchaseHistory purchaseHistory, idle.core.history.Pace pace) {
+        super(game, purchaseHistory, pace);
     }
 
 

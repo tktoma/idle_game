@@ -322,7 +322,7 @@ class GrillePageTest {
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE));
             assertEquals(7, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count(),
                     "sept automatismes pour la grille");
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

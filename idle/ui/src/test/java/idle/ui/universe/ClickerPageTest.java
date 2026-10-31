@@ -238,7 +238,7 @@ class ClickerPageTest {
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY));
             assertEquals(9, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
                     "neuf automatismes pour le clicker");
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

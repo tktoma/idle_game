@@ -314,7 +314,7 @@ class MelangePageTest {
             assertEquals(69, DimensionAutomation.values().length);
             assertEquals(12, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count(),
                     "douze automatismes pour le mélange");
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

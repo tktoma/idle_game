@@ -31,6 +31,7 @@ import javafx.scene.text.TextAlignment;
  * ressource. Chaque sous-page n'apparaît qu'avec la ressource dont elle parle :
  * <ul>
  *   <li>« Général » : toujours là ;</li>
+ *   <li>« Achats » : dès le premier générateur (version 0.165) ;</li>
  *   <li>« Particules » : dès le premier générateur ;</li>
  *   <li>« Atomes » : dès la première fusion ;</li>
  *   <li>« Automatisation » : dès qu'un automatisme est débloqué ;</li>
@@ -70,8 +71,8 @@ import javafx.scene.text.TextAlignment;
  */
 public final class StatsPage extends StatsPageLines {
 
-    public StatsPage(Game game) {
-        super(game);
+    public StatsPage(Game game, idle.core.history.PurchaseHistory purchaseHistory, idle.core.history.Pace pace) {
+        super(game, purchaseHistory, pace);
     }
 
     // ------------------------------------------------------------------
@@ -124,7 +125,26 @@ public final class StatsPage extends StatsPageLines {
         multiplierPage = building;
     }
 
+    /**
+     * Vos achats (version 0.165) : la prochaine étape et le temps qu'elle demande, ce qui a fait gagner le plus de temps,
+     * et les derniers achats avec leur prix, leur poids et le temps gagné ({@link PurchasesPane}).
+     */
+    void purchases() {
+        page("Achats", "#9fd0ff", game::isStarted, "en créant le premier générateur");
+        Label intro = new Label("Vos achats de la session, notés comme le bot analyste les note : ce qu'ils ont coûté, ce qu'ils "
+                + "multiplient, et le temps qu'ils font gagner vers la prochaine étape (une estimation haute, au rythme des dix "
+                + "dernières minutes). Ceux des automatismes n'y sont pas.");
+        intro.setStyle(NAME_STYLE);
+        intro.setWrapText(true);
+        intro.setMaxWidth(MAX_WIDTH);
+        building.content.getChildren().add(intro);
+        purchasesPane = new PurchasesPane(game, purchaseHistory, pace);
+        building.content.getChildren().add(purchasesPane);
+        building.updaters.add(purchasesPane::refresh);
+    }
+
     // Sans valeur de départ : ils sont posés pendant la construction de la page, appelée par le constructeur de la base.
+    private PurchasesPane purchasesPane;
     private MultiplierPane multiplierPane;
     private SubPage multiplierPage;
 

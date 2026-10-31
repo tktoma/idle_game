@@ -1,3 +1,4 @@
+import idle.core.history.Photo;
 import idle.core.Multipliers;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -157,7 +158,7 @@ final class AnalyseRapport {
         for (Somme x : sommes.values()) {
             h.append("<tr><td>").append(esc(x.groupe())).append("</td><td>").append(esc(x.chose())).append("</td><td>").append(x.fois()).append("</td><td>")
                     .append(Math.round(x.quantite())).append("</td><td>").append(esc(x.paye())).append("</td><td>")
-                    .append(Double.isFinite(x.montantLog()) ? new AnalyseEtat.Nombre(1, x.montantLog()).texte() : "—").append("</td><td class=t>")
+                    .append(Double.isFinite(x.montantLog()) ? new Photo.Nombre(1, x.montantLog()).texte() : "—").append("</td><td class=t>")
                     .append(AnalyseJournal.chrono(x.premier())).append("</td><td class=t>").append(AnalyseJournal.chrono(x.dernier())).append("</td><td>")
                     .append(String.format(Locale.ROOT, "%.3f", x.poids())).append("</td></tr>");
         }

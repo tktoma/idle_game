@@ -1,3 +1,4 @@
+import idle.core.history.Noms;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.darkmatter.DarkUpgrades;
 import idle.core.upgrades.Upgrade;
@@ -139,7 +140,7 @@ final class AnalyseIllogismes {
         Set<String> payees = new HashSet<>();
         for (AnalyseJournal.Achat a : j.achats) payees.add(a.paye());
         for (String key : bot.revenuLog.keySet()) {
-            String nom = AnalyseNoms.cle(key);
+            String nom = Noms.cle(key);
             if (!payees.contains(nom)) {
                 out.add(new Illogisme(9, NOMS[9], Gravite.NOTER, nom, List.of("Le bot l'a gagnée, mais ne l'a jamais dépensée "
                         + "dans un achat qu'il a fait lui-même (un automatisme a pu la dépenser, ou elle sert seulement de condition).")));

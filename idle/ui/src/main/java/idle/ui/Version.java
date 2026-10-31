@@ -23,6 +23,15 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.165", "Vos achats et la prochaine étape", List.of(
+                    "La ligne d'objectif dit dans combien de temps vient la prochaine étape (première fusion, explosion, Big "
+                            + "Bang, galaxie, amas, univers), au rythme des dix dernières minutes. Quand l'avancée ne bouge pas assez "
+                            + "pour en tirer un temps, elle n'en donne pas. Elle se cache dans les réglages, comme les autres "
+                            + "morceaux de l'objectif.",
+                    "Dans les statistiques, la sous-page « Achats » garde vos achats de la session : ce qu'ils ont coûté et la "
+                            + "part de la réserve, ce qu'ils multiplient, et le temps qu'ils font gagner vers la prochaine étape ; "
+                            + "puis ce qui a fait gagner le plus de temps. Ceux des automatismes n'y sont pas.",
+                    "Le jeu et le bot analyste lisent les achats de la même façon : la lecture vit maintenant dans le moteur.")),
             new Note("0.164", "Les détecteurs d'illogismes", List.of(
                     "Le bot analyste relit sa partie avec dix détecteurs : joueur moins présent plus rapide, achat jamais rentable, "
                             + "amélioration jamais achetée, défi trivial, rafale de succès, étape éclair ou interminable, estimation "

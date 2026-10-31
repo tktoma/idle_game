@@ -1,3 +1,7 @@
+import idle.core.history.Photo;
+import idle.core.history.PurchaseHistory;
+import idle.core.history.Noms;
+import idle.core.history.Achats;
 import idle.core.Game;
 import idle.core.GameState;
 import idle.core.GameUniverse.TreeBubble;
@@ -94,7 +98,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     final double estimationEvery;
     String blocage;
 
-    private AnalyseEtat avant;
+    private Photo avant;
     private Map<Multipliers.Quantity, Double> grandeursAvant;
     private int indexPrincipal, seedStage, dimensions, finalTiers, bigBangs;
     private final boolean[] seuils = new boolean[Game.MAX_DIMENSIONS + 1];
@@ -337,55 +341,55 @@ public final class BotAnalyste extends IdleProfiles24 {
 
     @Override
     void beforeDecisions() {
-        avant = AnalyseEtat.of(g.state());
+        avant = Photo.of(g.state());
         grandeursAvant = grandeurs();
         // Ce que le temps a apporté depuis les décisions du pas d'avant : les succès, titres et défis tombent souvent là,
         // et ce que chaque ressource a rapporté pendant ce pas sans décision.
         if (precedent != null) {
-            List<AnalyseEtat.Changement> changes = AnalyseEtat.diff(precedent, avant);
+            List<Photo.Changement> changes = Photo.diff(precedent, avant);
             revenus(changes);
             evenements(temps(), changes);
         }
     }
 
     /** Ce que chaque ressource a rapporté par seconde pendant le pas, quand elle a monté (une baisse : un automatisme a payé). */
-    private void revenus(List<AnalyseEtat.Changement> changes) {
-        for (AnalyseEtat.Changement c : changes) {
-            if (c.sousCle() != null || !AnalyseNoms.ressource(c.cle()) || c.cle().equals("darkMatter") || !c.monte()) continue;
-            AnalyseEtat.Nombre gained = c.apres().minus(c.avant());
+    private void revenus(List<Photo.Changement> changes) {
+        for (Photo.Changement c : changes) {
+            if (c.sousCle() != null || !Noms.ressource(c.cle()) || c.cle().equals("darkMatter") || !c.monte()) continue;
+            Photo.Nombre gained = c.apres().minus(c.avant());
             if (gained.signe() > 0) revenuLog.put(c.cle(), gained.log10() - Math.log10(step));
         }
     }
 
     /** La photo prise après les décisions du pas d'avant. */
-    private AnalyseEtat precedent;
+    private Photo precedent;
 
     /**
      * Ce qui arrive sans être un achat, entre deux photos : succès, titres, défis lancés, réussis ou abandonnés,
      * automatismes mis en marche ou coupés, réglages. Noté que ce soit pendant le temps de jeu ou pendant les
      * décisions, et même au pas d'une explosion (un défi se réussit en explosant).
      */
-    private void evenements(double t, List<AnalyseEtat.Changement> changes) {
+    private void evenements(double t, List<Photo.Changement> changes) {
         List<String> succes = new ArrayList<>();
-        List<AnalyseEtat.Changement> automatismes = new ArrayList<>();
+        List<Photo.Changement> automatismes = new ArrayList<>();
         // Dans l'ordre où le joueur les vit : le défi qui finit, puis celui qui commence, puis le reste.
-        List<AnalyseEtat.Changement> ordre = new ArrayList<>(changes);
+        List<Photo.Changement> ordre = new ArrayList<>(changes);
         ordre.sort(java.util.Comparator.comparingInt(c -> !c.cle().startsWith("active") ? 2 : c.retire() != null ? 0 : 1));
-        for (AnalyseEtat.Changement c : ordre) {
+        for (Photo.Changement c : ordre) {
             String key = c.cle();
             if (key.equals("achievements") && c.ajoute() != null) {
                 succes.add(c.ajoute());
             } else if (key.equals("titles") && c.monte() && c.avant().signe() == 0) {
-                journal.ajoute(t, univers(), AnalyseJournal.Sorte.SUCCES, "Titre obtenu : " + AnalyseNoms.chose(c.sousCle()));
+                journal.ajoute(t, univers(), AnalyseJournal.Sorte.SUCCES, "Titre obtenu : " + Noms.chose(c.sousCle()));
             } else if ((key.equals("activeChallenge") || key.equals("activeBangChallenge")) && c.ajoute() != null) {
                 defiLance(t, c.ajoute());
             } else if ((key.equals("activeChallenge") || key.equals("activeBangChallenge")) && c.retire() != null) {
                 defiFini(t, c.retire(), changes);
-            } else if (REGLAGES.containsKey(key)) {
-                String from = c.avant() != null ? c.avant().texte() : c.retire() != null ? AnalyseNoms.chose(c.retire()) : "—";
-                String to = c.apres() != null ? c.apres().texte() : c.ajoute() != null ? AnalyseNoms.chose(c.ajoute()) : "—";
-                journal.ajoute(t, univers(), AnalyseJournal.Sorte.CHOIX, "Réglage : " + REGLAGES.get(key) + (c.sousCle() != null && c.ajoute() == null && c.retire() == null
-                        ? " (" + AnalyseNoms.chose(c.sousCle()) + ")" : "") + " : " + from + " → " + to);
+            } else if (Achats.REGLAGES.containsKey(key)) {
+                String from = c.avant() != null ? c.avant().texte() : c.retire() != null ? Noms.chose(c.retire()) : "—";
+                String to = c.apres() != null ? c.apres().texte() : c.ajoute() != null ? Noms.chose(c.ajoute()) : "—";
+                journal.ajoute(t, univers(), AnalyseJournal.Sorte.CHOIX, "Réglage : " + Achats.REGLAGES.get(key) + (c.sousCle() != null && c.ajoute() == null && c.retire() == null
+                        ? " (" + Noms.chose(c.sousCle()) + ")" : "") + " : " + from + " → " + to);
             } else if (key.equals("enabledAutomations") || key.equals("enabledDarkAutomations") || key.equals("dimensionAutomationsOff")) {
                 automatismes.add(c);
             }
@@ -395,8 +399,8 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /** Ce qui a remis la partie à zéro pendant ces changements ({@code null} : rien) : une explosion, un défi, un Big Bang… */
-    static String cause(List<AnalyseEtat.Changement> changes) {
-        for (AnalyseEtat.Changement c : changes) {
+    static String cause(List<Photo.Changement> changes) {
+        for (Photo.Changement c : changes) {
             switch (c.cle()) {
                 case "explosions" -> { if (c.monte()) return "l'explosion"; }
                 case "bigBangs" -> { if (c.monte()) return "le Big Bang"; }
@@ -431,14 +435,14 @@ public final class BotAnalyste extends IdleProfiles24 {
                 double delta = e.getValue() - partSucces.getOrDefault(e.getKey(), 0.0);
                 if (Math.abs(delta) < 1e-6) continue;
                 if (poids.length() > 0) poids.append(" ; ");
-                poids.append(e.getKey().label()).append(" ×").append(facteur(delta));
+                poids.append(e.getKey().label()).append(" ×").append(PurchaseHistory.facteur(delta));
             }
         }
         partSucces = now;
         for (String id : ids) {
             List<String> details = new ArrayList<>(AnalysePourquoi.succes(g, id));
             if (poids.length() > 0) details.add("Poids" + (ids.size() > 1 ? " des " + ids.size() + " succès de ce moment" : "") + " : " + poids);
-            journal.ajoute(t, univers(), AnalyseJournal.Sorte.SUCCES, "Succès obtenu : " + AnalyseNoms.chose(id), details);
+            journal.ajoute(t, univers(), AnalyseJournal.Sorte.SUCCES, "Succès obtenu : " + Noms.chose(id), details);
         }
     }
 
@@ -450,7 +454,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         if (duree < 0) details.add("Joué sur une copie : pas fini en " + AnalyseJournal.duree(HORIZON) + ".");
         else details.add("Joué sur une copie : " + (reussi ? "réussi" : "abandonné") + " en " + AnalyseJournal.duree(duree) + ".");
         defisEnCours.put(id, new double[] {t, reussi ? duree : Double.NaN});
-        journal.ajoute(t, univers(), AnalyseJournal.Sorte.DEFI, "Défi lancé : " + AnalyseNoms.chose(id), details);
+        journal.ajoute(t, univers(), AnalyseJournal.Sorte.DEFI, "Défi lancé : " + Noms.chose(id), details);
     }
 
     /** Vrai si ce défi, d'explosion ou de Big Bang, est réussi dans cette partie. */
@@ -466,7 +470,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     /** Un défi qui n'est plus en cours : réussi (il est dans les défis réussis) ou abandonné. */
-    private void defiFini(double t, String id, List<AnalyseEtat.Changement> changes) {
+    private void defiFini(double t, String id, List<Photo.Changement> changes) {
         boolean reussi = reussi(g, id);
         double[] start = defisEnCours.remove(id);
         List<String> details = new ArrayList<>();
@@ -480,8 +484,8 @@ public final class BotAnalyste extends IdleProfiles24 {
             if (c != null) details.add("Récompense gagnée : " + AnalysePourquoi.recompense(c) + ".");
             if (b != null) details.add("Récompense gagnée : " + b.rewardText() + ".");
         }
-        if (start != null) journal.defis.add(new AnalyseJournal.Defi(t, AnalyseNoms.chose(id), t - start[0], reussi));
-        journal.ajoute(t, univers(), AnalyseJournal.Sorte.DEFI, (reussi ? "Défi réussi : " : "Défi abandonné : ") + AnalyseNoms.chose(id), details);
+        if (start != null) journal.defis.add(new AnalyseJournal.Defi(t, Noms.chose(id), t - start[0], reussi));
+        journal.ajoute(t, univers(), AnalyseJournal.Sorte.DEFI, (reussi ? "Défi réussi : " : "Défi abandonné : ") + Noms.chose(id), details);
     }
 
     /** La grandeur qui fait avancer vers le prochain palier principal : celle dont l'achat raccourcit l'attente. */
@@ -543,8 +547,8 @@ public final class BotAnalyste extends IdleProfiles24 {
 
     /** Ce que les décisions du pas ont fait : le diff des deux photos, rangé en achats, choses obtenues, automatismes. */
     private void decisions() {
-        AnalyseEtat apres = AnalyseEtat.of(g.state());
-        List<AnalyseEtat.Changement> changes = AnalyseEtat.diff(avant, apres);
+        Photo apres = Photo.of(g.state());
+        List<Photo.Changement> changes = Photo.diff(avant, apres);
         avant = null;
         precedent = apres;
         if (changes.isEmpty()) return;
@@ -553,7 +557,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         boolean reset = changes.stream().anyMatch(c -> (c.cle().equals("explosions") || c.cle().equals("bigBangs") || c.cle().equals("extraUniverses")
                 || c.cle().equals("replaying") || c.cle().equals("cosmos")) && c.monte());
         if (reset) {
-            for (AnalyseEtat.Changement c : changes) {
+            for (Photo.Changement c : changes) {
                 if (!c.monte()) continue;
                 switch (c.cle()) {
                     case "explosions" -> explosion(t, (long) c.apres().toDouble(), changes);
@@ -578,7 +582,7 @@ public final class BotAnalyste extends IdleProfiles24 {
                 double delta = e.getValue() - before;
                 if (Math.abs(delta) < 1e-6) continue;
                 if (poids.length() > 0) poids.append(" ; ");
-                poids.append(e.getKey().label()).append(" ×").append(facteur(delta));
+                poids.append(e.getKey().label()).append(" ×").append(PurchaseHistory.facteur(delta));
                 poidsMax = Math.max(poidsMax, delta);
             }
         }
@@ -589,88 +593,41 @@ public final class BotAnalyste extends IdleProfiles24 {
         double reste = Double.isNaN(annonceAjustee) ? Double.NaN : Math.max(0, annonceAjustee - t);
         double gain = Double.isNaN(reste) || deltaMoteur <= 0 ? 0 : reste * (1 - Math.pow(10, -deltaMoteur));
 
-        // Ce qui a été payé, par monnaie.
-        Map<String, AnalyseEtat.Nombre> payes = new LinkedHashMap<>();
-        Map<String, AnalyseEtat.Nombre> reserves = new LinkedHashMap<>();
-        for (AnalyseEtat.Changement c : changes) {
-            if (c.sousCle() == null && AnalyseNoms.ressource(c.cle()) && c.baisse()) {
-                payes.put(c.cle(), c.avant().minus(c.apres()));
-                reserves.put(c.cle(), c.avant());
-            }
-            if (c.sousCle() == null && c.cle().equals("voidSpent") && c.monte()) {
-                payes.put("voidSpent", c.apres().minus(c.avant()));
-            }
-        }
-        // Ce qui a été obtenu.
-        List<Acquis> acquis = new ArrayList<>();
+        // Ce qui a été acheté et payé (version 0.165 : la lecture vit dans le moteur, l'historique du jeu s'en sert aussi).
+        List<Achats.Achat> acquis = Achats.lire(changes);
+        boolean depense = changes.stream().anyMatch(c -> c.sousCle() == null && Noms.ressource(c.cle()) && c.baisse());
+        // Les éléments synthétisés : obtenus, pas achetés.
         List<String> elements = new ArrayList<>();
-        for (AnalyseEtat.Changement c : changes) {
-            String key = c.cle();
-            if (AnalyseNoms.ressource(key) || key.equals("voidSpent") || key.equals("darkMatterSpent") || key.equals("totalAtoms")) continue;
-            if (REGLAGES.containsKey(key) || key.equals("enabledAutomations") || key.equals("enabledDarkAutomations")
-                    || key.equals("dimensionAutomationsOff") || key.equals("achievements") || key.equals("titles")) continue;
-            if (key.equals("treeBubbles") && c.monte()) {
-                for (String bubble : AnalyseNoms.bulles((long) c.avant().toDouble(), (long) c.apres().toDouble())) {
-                    acquis.add(new Acquis("Bulle de l'arbre", bubble, 1, "voidSpent", Double.NaN));
-                }
-                continue;
-            }
-            if (key.equals("elements") && c.monte()) {
-                elements.add(AnalyseNoms.chose(c.sousCle()) + (c.apres().toDouble() - c.avant().toDouble() > 1 ? " ×" + (long) (c.apres().toDouble() - c.avant().toDouble()) : ""));
-                continue;
-            }
-            // Les compteurs d'actions (fusions, synthèses, impulsions, molécules…) ne sont pas des achats : les grandeurs les suivent.
-            if (!achat(key)) continue;
-            if (c.ajoute() != null) {
-                acquis.add(new Acquis(AnalyseNoms.cle(key), AnalyseNoms.chose(c.ajoute()), 1, monnaie(key, c.ajoute()), coutRelatif(key, c.ajoute(), 0, 1)));
-            } else if (c.monte()) {
-                double from = c.avant().toDouble(), to = c.apres().toDouble();
-                String chose = c.sousCle() == null ? "" : AnalyseNoms.chose(c.sousCle());
-                acquis.add(new Acquis(AnalyseNoms.cle(key), chose, to - from, monnaie(key, c.sousCle()), coutRelatif(key, c.sousCle(), (int) from, (int) to)));
+        for (Photo.Changement c : changes) {
+            if (c.cle().equals("elements") && c.monte()) {
+                elements.add(Noms.chose(c.sousCle()) + (c.apres().toDouble() - c.avant().toDouble() > 1 ? " ×" + (long) (c.apres().toDouble() - c.avant().toDouble()) : ""));
             }
         }
         if (!elements.isEmpty()) {
             journal.ajoute(t, univers(), AnalyseJournal.Sorte.OBTENU, "Éléments synthétisés : " + String.join(", ", elements));
         }
-        if (!payes.isEmpty() || !acquis.isEmpty()) derniereActivite = t;
+        if (depense || !acquis.isEmpty()) derniereActivite = t;
         if (acquis.isEmpty()) return;
         if (gain > 0) annonceAjustee -= gain;
-        // Chaque monnaie payée se répartit entre ses achats, au prorata de leur prix estimé (sinon à parts égales).
-        for (Acquis a : acquis) {
-            AnalyseEtat.Nombre total = a.monnaie == null ? null : payes.get(a.monnaie);
-            String montant = "—", paye = a.monnaie == null ? "—" : AnalyseNoms.cle(a.monnaie);
-            double part = Double.NaN, montantLog = Double.NaN;
-            if (total != null && total.signe() > 0) {
-                List<Acquis> memes = acquis.stream().filter(x -> a.monnaie.equals(x.monnaie)).toList();
-                double share;
-                if (memes.stream().allMatch(x -> Double.isFinite(x.coutLog))) {
-                    double max = memes.stream().mapToDouble(x -> x.coutLog).max().orElse(0), sum = 0;
-                    for (Acquis x : memes) sum += Math.pow(10, x.coutLog - max);
-                    share = Math.pow(10, a.coutLog - max) / sum;
-                } else {
-                    share = 1.0 / memes.size();
-                }
-                montantLog = total.log10() + Math.log10(share);
-                montant = new AnalyseEtat.Nombre(1, montantLog).texte() + (memes.size() > 1 ? " (lot de " + memes.size() + ")" : "");
-                AnalyseEtat.Nombre reserve = reserves.get(a.monnaie);
-                part = reserve == null || reserve.signe() <= 0 ? Double.NaN : Math.pow(10, montantLog - reserve.log10());
-            }
+        for (Achats.Achat a : acquis) {
+            String montant = a.montant(), paye = a.paye();
+            double part = a.part(), montantLog = a.montantLog();
             int lot = acquis.size();
             String texte = (lot > 1 ? "(lot de " + lot + " achats) " : "") + (poids.length() == 0 ? "aucun effet mesuré sur les grandeurs" : poids);
             // La rentabilité : le temps de production que l'achat a coûté, contre le temps qu'il fait gagner.
-            Double revenu = a.monnaie == null ? null : revenuLog.get(a.monnaie);
+            Double revenu = a.monnaie() == null ? null : revenuLog.get(a.monnaie());
             double cout = revenu == null || !Double.isFinite(montantLog) ? Double.NaN : Math.pow(10, montantLog - revenu);
             double gagne = Double.isNaN(reste) ? Double.NaN : gain / lot;
             double rentabilite = Double.isFinite(cout) && cout > 0 && Double.isFinite(gagne) ? gagne / cout : Double.NaN;
-            journal.achats.add(new AnalyseJournal.Achat(t, univers(), a.groupe, a.chose, a.quantite, paye, montant, part, montantLog, texte,
+            journal.achats.add(new AnalyseJournal.Achat(t, univers(), a.groupe(), a.chose(), a.quantite(), paye, montant, part, montantLog, texte,
                     poidsMax / lot, gain / lot, cout, rentabilite));
             List<String> details = new ArrayList<>();
             details.add("Payé : " + montant + " " + paye + (Double.isNaN(part) ? "" : String.format(Locale.FRANCE, " (%.1f %% de la réserve)", 100 * part)));
             details.add("Poids : " + texte);
             if (gain > 0) details.add("Gain de temps estimé vers « " + visee + " » : " + AnalyseJournal.duree(gain / lot));
             if (Double.isFinite(cout)) details.add(rentabiliteTexte(cout, gagne, paye));
-            long niveaux = Math.round(a.quantite);
-            String quoi = a.groupe + (a.chose.isEmpty() ? "" : " — " + a.chose) + (niveaux > 1 ? " ×" + niveaux : "");
+            long niveaux = Math.round(a.quantite());
+            String quoi = a.quoi() + (niveaux > 1 ? " ×" + niveaux : "");
             journal.ajoute(t, univers(), AnalyseJournal.Sorte.ACHAT, quoi, details);
         }
     }
@@ -680,22 +637,22 @@ public final class BotAnalyste extends IdleProfiles24 {
         String out = "Rentabilité : coûte " + AnalyseJournal.duree(cout) + " de production (" + paye + ")";
         if (!Double.isFinite(gagne)) return out + " ; gain de temps inconnu (pas encore d'estimation).";
         double r = cout > 0 ? gagne / cout : Double.POSITIVE_INFINITY;
-        String ratio = r >= 1000 ? "×" + facteur(Math.log10(r)) : String.format(Locale.FRANCE, "×%.2f", r);
+        String ratio = r >= 1000 ? "×" + PurchaseHistory.facteur(Math.log10(r)) : String.format(Locale.FRANCE, "×%.2f", r);
         return out + " ; en fait gagner " + AnalyseJournal.duree(gagne) + " : " + ratio
                 + (r >= 1 ? ", rentable avant le palier." : ", pas remboursé avant le palier (il sert peut-être plus loin).");
     }
 
     /** Une explosion : la matière noire qu'elle rapporte, par heure depuis la précédente, et pourquoi maintenant. */
-    private void explosion(double t, long numero, List<AnalyseEtat.Changement> changes) {
+    private void explosion(double t, long numero, List<Photo.Changement> changes) {
         List<String> details = new ArrayList<>();
-        for (AnalyseEtat.Changement c : changes) {
+        for (Photo.Changement c : changes) {
             if (!c.cle().equals("darkMatter") || c.sousCle() != null || !c.monte()) continue;
-            AnalyseEtat.Nombre gained = c.apres().minus(c.avant());
+            Photo.Nombre gained = c.apres().minus(c.avant());
             double depuis = t - derniereExplosion;
             details.add("Matière noire : +" + gained.texte() + " (réserve " + c.avant().texte() + " → " + c.apres().texte() + ")");
             if (depuis > 0 && gained.signe() > 0) {
                 revenuLog.put("darkMatter", gained.log10() - Math.log10(depuis));
-                details.add("Soit " + new AnalyseEtat.Nombre(1, gained.log10() + Math.log10(3600 / depuis)).texte() + " par heure depuis "
+                details.add("Soit " + new Photo.Nombre(1, gained.log10() + Math.log10(3600 / depuis)).texte() + " par heure depuis "
                         + (numero <= 1 ? "le début" : "l'explosion précédente") + " (" + AnalyseJournal.duree(depuis) + ").");
             }
         }
@@ -710,19 +667,14 @@ public final class BotAnalyste extends IdleProfiles24 {
         journal.ajoute(t, univers(), AnalyseJournal.Sorte.CHOIX, "Explosion (n° " + numero + ")", details);
     }
 
-    private static String facteur(double log10) {
-        if (Math.abs(log10) < 3) return String.format(Locale.FRANCE, "%.3f", Math.pow(10, log10));
-        return String.format(Locale.ROOT, "10^%.2f", log10);
-    }
-
     /**
      * Les automatismes mis en marche ou coupés d'un même pas. Ceux qu'une remise à zéro a coupés ({@code cause}) se
      * notent en une ligne, avec cette cause : ce n'est pas le bot qui les a coupés. Trois ou plus d'un coup, aussi en une
      * ligne, avec ce que fait chacun.
      */
-    private void automatismes(double t, List<AnalyseEtat.Changement> changes, String cause) {
+    private void automatismes(double t, List<Photo.Changement> changes, String cause) {
         List<String> on = new ArrayList<>(), off = new ArrayList<>();
-        for (AnalyseEtat.Changement c : changes) {
+        for (Photo.Changement c : changes) {
             String id = c.ajoute() != null ? c.ajoute() : c.retire();
             boolean marche = c.cle().equals("dimensionAutomationsOff") ? c.retire() != null : c.ajoute() != null;
             (marche ? on : off).add(id);
@@ -732,7 +684,7 @@ public final class BotAnalyste extends IdleProfiles24 {
                     List.of("Ce n'est pas le bot : " + cause + " remet les automatismes à zéro ; il les remet en marche dès qu'il peut."));
             off.clear();
         }
-        for (String id : off) coupures.merge(AnalyseNoms.chose(id), 1, Integer::sum);
+        for (String id : off) coupures.merge(Noms.chose(id), 1, Integer::sum);
         for (List<String> ids : List.of(on, off)) {
             if (ids.isEmpty()) continue;
             boolean marche = ids == on;
@@ -743,7 +695,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             List<String> details = new ArrayList<>();
             for (String id : ids) {
                 String role = AnalysePourquoi.role(id);
-                if (!role.isEmpty()) details.add(AnalyseNoms.chose(id) + " : il " + role + ".");
+                if (!role.isEmpty()) details.add(Noms.chose(id) + " : il " + role + ".");
             }
             details.add(marche ? pourquoiMarche() : pourquoiCoupe());
             journal.ajoute(t, univers(), AnalyseJournal.Sorte.AUTOMATISME, (marche ? "Mis en marche : " : "Coupés : ") + noms(ids), details);
@@ -751,7 +703,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     }
 
     private static String noms(List<String> ids) {
-        return String.join(", ", ids.stream().map(AnalyseNoms::chose).toList());
+        return String.join(", ", ids.stream().map(Noms::chose).toList());
     }
 
     private static String pourquoiMarche() {
@@ -760,7 +712,7 @@ public final class BotAnalyste extends IdleProfiles24 {
 
     private String pourquoiCoupe() {
         String defi = defiActif(g);
-        return "Pourquoi : il dépenserait ce que le bot met de côté" + (defi != null ? " pendant le défi « " + AnalyseNoms.chose(defi) + " »"
+        return "Pourquoi : il dépenserait ce que le bot met de côté" + (defi != null ? " pendant le défi « " + Noms.chose(defi) + " »"
                 : " pour « " + (visee.isEmpty() ? nomPalier(indexPrincipal + 1) : visee) + " »") + " (goulot : " + goulot() + ").";
     }
 
@@ -771,7 +723,7 @@ public final class BotAnalyste extends IdleProfiles24 {
     final Map<String, Integer> coupures = new LinkedHashMap<>();
 
     private void automatisme(double t, String id, boolean on) {
-        String name = AnalyseNoms.chose(id);
+        String name = Noms.chose(id);
         List<String> details = new ArrayList<>();
         String role = AnalysePourquoi.role(id);
         if (!role.isEmpty()) details.add("Il " + role + ".");
@@ -782,140 +734,6 @@ public final class BotAnalyste extends IdleProfiles24 {
     private static String cosmosNom(int stage) {
         Cosmos[] all = Cosmos.values();
         return stage >= 1 && stage <= all.length ? all[stage - 1].label() : "échelle " + stage;
-    }
-
-    private record Acquis(String groupe, String chose, double quantite, String monnaie, double coutLog) {}
-
-    /** Les clés où ce qui monte a été acheté (version 0.162 : les autres, des compteurs d'actions, ne sont plus pris pour des achats). */
-    static final java.util.Set<String> ACHATS = java.util.Set.of("upgradeLevels", "ownedAutomations", "automationSpeedLevels", "darkUpgradeLevels",
-            "spaceUpgrades", "boughtMilestones", "colliderGeneratorsBought", "colliderUpgrades", "probeUpgrades", "dimensionAutomations",
-            "hadrons", "universeUpgrades", "tableWeightLevel", "voidOpen", "hadronsOpen", "unlockedSkins");
-
-    /** Vrai si ce qui monte à cette clé a été acheté. */
-    static boolean achat(String key) {
-        if (ACHATS.contains(key)) return true;
-        for (String prefix : List.of("voidLevel", "treeBubbleLevel", "line", "planeLevel", "volumeLevel", "durationLevel", "loopLevel", "braneLevel",
-                "clickerLevel", "gridLevel", "mirrorLevel", "mixStageLevel", "seedUpgrade")) {
-            if (key.startsWith(prefix) && (key.endsWith("Level") || Character.isDigit(key.charAt(key.length() - 1)))) return true;
-        }
-        return false;
-    }
-
-    /** Les réglages : ce que le joueur règle sans rien acheter. Ils se notent comme des choix, pas comme des achats. */
-    static final Map<String, String> REGLAGES = Map.ofEntries(
-            Map.entry("autoMoleculeReserve", "réserve des molécules automatiques"), Map.entry("voidShare", "part laissée au vide"),
-            Map.entry("cycleChoice", "choix de cycle"), Map.entry("chosenSkins", "apparence choisie"), Map.entry("automationPaused", "tout couper"),
-            Map.entry("chronoSpeed", "accélération du chrono"), Map.entry("stateCaps", "plafond des états de la matière"),
-            Map.entry("systemPlan", "plan du système"), Map.entry("darkPlan", "plan de l'arbre de matière noire"), Map.entry("plannedBodies", "astres prévus"),
-            Map.entry("autoHold", "réserve automatique"), Map.entry("autoMolecules", "molécules automatiques"), Map.entry("autoFollowList", "suivre la liste"),
-            Map.entry("autoFollowMatter", "suivre la matière"), Map.entry("autoGather", "rassemblement automatique"), Map.entry("autoForm", "formation automatique"),
-            Map.entry("favoriteMolecules", "molécules favorites"), Map.entry("recipeReservation", "réservation des recettes"),
-            Map.entry("holdLocked", "réserve verrouillée"), Map.entry("colliderPaused", "collisionneur en pause"));
-
-    private static final String[] RESSOURCE_DIMENSION = {"universeSeeds", "dimensionShards", "planeShards", "volumeShards", "durationShards",
-        "loopShards", "braneShards", "clickerShards", "gridShards", "mirrorShards", "mixShards"};
-
-    /** La ressource qui paie ce qui est monté à cette clé : sa clé dans la sauvegarde, ou {@code null} si inconnue. */
-    static String monnaie(String key, String sub) {
-        if (key.equals("upgradeLevels")) {
-            for (Upgrade u : Upgrades.DEFAULT) if (u.id().equals(sub)) return u.resource() == idle.core.Resource.PARTICLES ? "particles" : "atoms";
-            return null;
-        }
-        if (key.equals("darkUpgradeLevels")) {
-            // L'arbre se paie selon la branche : particules, atomes ou matière noire ; la taille s'atteint sans payer.
-            for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
-                if (!d.id().equals(sub)) continue;
-                return switch (d.branch()) {
-                    case PARTICLES -> "particles";
-                    case ATOMS -> "atoms";
-                    case SIZE -> null;
-                    case DARK_MATTER -> "darkMatter";
-                };
-            }
-            return null;
-        }
-        // Les automatismes ordinaires et leur cadence se paient en atomes.
-        if (key.equals("ownedAutomations") || key.equals("automationSpeedLevels")) return "atoms";
-        if (key.equals("spaceUpgrades")) return "space";
-        if (key.startsWith("collider")) return "colliderEnergy";
-        if (key.startsWith("voidLevel")) return "voidEnergy";
-        if (key.startsWith("treeBubble")) return "voidSpent";
-        if (key.startsWith("line")) return "dimensionShards";
-        if (key.equals("hadrons")) return "quarks";
-        String[][] dims = {{"planeLevel", "planeShards"}, {"volumeLevel", "volumeShards"}, {"durationLevel", "durationShards"},
-            {"loopLevel", "loopShards"}, {"braneLevel", "braneShards"}, {"clickerLevel", "clickerShards"}, {"gridLevel", "gridShards"},
-            {"mirrorLevel", "mirrorShards"}, {"mixStageLevel", "mixShards"}};
-        for (String[] d : dims) if (key.startsWith(d[0])) return d[1];
-        if (key.startsWith("seedUpgrade")) {
-            int i = Integer.parseInt(key.substring("seedUpgrade".length()));
-            return RESSOURCE_DIMENSION[Game.SeedUpgrade.values()[i].dimension()];
-        }
-        if (key.equals("dimensionAutomations") && sub != null) {
-            try {
-                return RESSOURCE_DIMENSION[DimensionAutomation.valueOf(sub).paidWith()];
-            } catch (IllegalArgumentException unknown) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    /** Le prix relatif (en ordres de grandeur) des niveaux {@code from} à {@code to} : pour répartir un lot ; NaN si inconnu. */
-    static double coutRelatif(String key, String sub, int from, int to) {
-        try {
-            if (key.equals("upgradeLevels")) {
-                for (Upgrade u : Upgrades.DEFAULT) if (u.id().equals(sub)) return somme(u.baseCost().log10(), Math.log10(u.costGrowth()), from, to);
-            }
-            if (key.equals("ownedAutomations")) {
-                for (var a : idle.core.upgrades.Automations.DEFAULT) if (a.id().equals(sub)) return a.cost().log10();
-            }
-            if (key.equals("automationSpeedLevels")) {
-                for (var a : idle.core.upgrades.Automations.DEFAULT) if (a.id().equals(sub)) return somme(a.speedBaseCost().log10(), Math.log10(a.speedCostGrowth()), from, to);
-            }
-            if (key.equals("darkUpgradeLevels")) {
-                for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) if (d.id().equals(sub)) return somme(d.baseCost().log10(), Math.log10(d.costGrowth()), from, to);
-            }
-            if (key.equals("colliderGeneratorsBought")) {
-                var gen = idle.core.collider.ColliderGenerator.valueOf(sub);
-                return Math.log10(gen.cost(from)) + Math.log10(Math.max(1, to - from));
-            }
-            if (key.equals("colliderUpgrades")) return Math.log10(idle.core.collider.ColliderUpgrade.valueOf(sub).cost(from));
-            if (key.equals("dimensionAutomations")) return Math.log10(DimensionAutomation.valueOf(sub).cost());
-            if (key.startsWith("treeBubbleLevel")) {
-                TreeBubble bubble = TreeBubble.values()[Integer.parseInt(key.substring("treeBubbleLevel".length()))];
-                return Math.log10(bubble.costAt(from));
-            }
-            idle.core.GameUniverse.Priced priced = priced(key);
-            if (priced != null) return Math.log10(priced.cost(from)) + Math.log10(Math.max(1, to - from));
-        } catch (RuntimeException unknown) {
-            return Double.NaN;
-        }
-        return Double.NaN;
-    }
-
-    private static double somme(double baseLog, double growthLog, int from, int to) {
-        // Une suite géométrique : la somme est dominée par son dernier terme.
-        int last = Math.max(from, to - 1);
-        return baseLog + growthLog * last;
-    }
-
-    private static idle.core.GameUniverse.Priced priced(String key) {
-        String[][] prefixes = {{"planeLevel"}, {"volumeLevel"}, {"durationLevel"}, {"loopLevel"}, {"braneLevel"}, {"clickerLevel"},
-            {"gridLevel"}, {"mirrorLevel"}, {"mixStageLevel"}, {"voidLevel"}, {"seedUpgrade"}};
-        Object[][] enums = {Game.PlaneUpgrade.values(), Game.VolumeUpgrade.values(), Game.DurationUpgrade.values(), Game.LoopUpgrade.values(),
-            Game.BraneUpgrade.values(), Game.ClickerUpgrade.values(), Game.GridUpgrade.values(), Game.MirrorUpgrade.values(),
-            Game.MixUpgrade.values(), Game.VoidUpgrade.values(), Game.SeedUpgrade.values()};
-        for (int i = 0; i < prefixes.length; i++) {
-            String p = prefixes[i][0];
-            if (key.startsWith(p) && key.length() > p.length()) {
-                int index = Integer.parseInt(key.substring(p.length()));
-                return (idle.core.GameUniverse.Priced) enums[i][index];
-            }
-        }
-        String[][] line = {{"lineYieldLevel", "YIELD"}, {"lineTicksLevel", "TICKS"}, {"lineSpeedLevel", "SPEED"}, {"lineBallsLevel", "BALLS"},
-            {"lineCountLevel", "LINES"}};
-        for (String[] l : line) if (key.equals(l[0])) return Game.LineUpgrade.valueOf(l[1]);
-        return null;
     }
 
     // ------------------------------------------------------------------
@@ -1218,7 +1036,7 @@ public final class BotAnalyste extends IdleProfiles24 {
                 + (int) ANALYSTE.actionEverySeconds() + " s ; pas de " + (int) step + " s ; graine " + graine + " ; "
                 + (jusquALaFin ? "jusqu'à la fin de la partie" : targetUniverses + " univers visés")
                 + (temps() > 0 ? " ; reprise d'une sauvegarde à " + AnalyseJournal.chrono(temps()) : "")
-                + (sans.isEmpty() ? "" : " ; sans " + String.join(", ", sans.stream().map(AnalyseNoms::chose).toList()))));
+                + (sans.isEmpty() ? "" : " ; sans " + String.join(", ", sans.stream().map(Noms::chose).toList()))));
         begin();
         partSucces = partSucces();
         prochaineEstimation = 0;

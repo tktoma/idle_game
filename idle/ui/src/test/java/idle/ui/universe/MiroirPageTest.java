@@ -271,7 +271,7 @@ class MiroirPageTest {
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY));
             assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count(),
                     "six automatismes pour le miroir");
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

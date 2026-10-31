@@ -250,7 +250,13 @@ public abstract class GameAppBase extends Application {
     /** La fenêtre d'une dimension (version 0.081), par-dessus tout le jeu, avec son bouton de retour. */
     final DimensionWindow dimensionWindow = new DimensionWindow(game, settings::freeCamera, settings::setFreeCamera);
     final AchievementsPage achievementsPage = new AchievementsPage(game);
-    final StatsPage statsPage = new StatsPage(game);
+    /**
+     * Version 0.165 : vos achats, notés entre une action et le pas de temps suivant ({@link PurchaseHistory}), et le
+     * compteur de la prochaine étape ({@link Pace}).
+     */
+    final idle.core.history.PurchaseHistory purchaseHistory = new idle.core.history.PurchaseHistory();
+    final idle.core.history.Pace pace = new idle.core.history.Pace();
+    final StatsPage statsPage = new StatsPage(game, purchaseHistory, pace);
     /** Le profil : l'image importée se copie dans le dossier des données, connu seulement au lancement. */
     final ProfilePage profilePage = new ProfilePage(game, () -> store.enabled() ? store.folder() : null);
     final SettingsPage settingsPage = new SettingsPage(settings, this::resetGame, this::applyAppearance, new SaveActions());
@@ -617,6 +623,8 @@ public abstract class GameAppBase extends Application {
             public void handle(long now) {
                 double elapsed = previous == 0 ? 0 : (now - previous) / 1e9; // nanosecondes → secondes
                 previous = now;
+                // Version 0.165 : ce que le joueur a acheté depuis l'image d'avant, avant que le temps ne repasse.
+                purchaseHistory.after(game, pace);
                 // Au retour d'une absence, le jeu rattrape d'abord le temps perdu : rien d'autre n'avance.
                 if (absencePane.isCatchingUp()) {
                     catchUp();
@@ -636,9 +644,12 @@ public abstract class GameAppBase extends Application {
                         game.tick(dt * timeFactor());
                         if (debugBar != null) debugBar.frame(dt * timeFactor());
                     }
+                    pace.observe(game);
                     animate(dt);
                 }
                 // Le clic tenu sur une carte qui se répète (une molécule, une fois la création continue acquise).
+                // Version 0.165 : ce qu'il achète compte comme un achat du joueur.
+                if (Card.held() != null || !heldKeys.isEmpty()) purchaseHistory.before(game);
                 Card.repeatHeld(dt);
                 repeatHeldKeys(dt);
                 explosionArmed = Math.max(0, explosionArmed - dt);
@@ -682,7 +693,13 @@ public abstract class GameAppBase extends Application {
         applyAppearance();
         // Les touches sont lues avant les boutons : sinon, Espace irait d'abord au bouton qui a le focus.
         // Sauf quand le joueur écrit dans une barre de recherche : ses lettres ne sont pas des raccourcis.
+        // Version 0.165 : la photo d'avant une action du joueur, prise avant que l'action ne s'applique (les filtres
+        // passent avant les boutons) ; la comparaison se fait à l'image suivante, avant le pas de temps.
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> purchaseHistory.before(game));
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, event -> purchaseHistory.before(game));
+        scene.addEventFilter(javafx.event.ActionEvent.ACTION, event -> purchaseHistory.before(game));
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            purchaseHistory.before(game);
             cosmetics.input();
             if (GameApp.typing(scene) && !event.getCode().isModifierKey()) return;
             if (keyPressed(event.getCode())) event.consume();

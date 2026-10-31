@@ -1,5 +1,7 @@
 package idle.ui.pages;
 
+import idle.core.history.Pace;
+import idle.core.history.PurchaseHistory;
 import idle.core.Game;
 import idle.core.GameStats;
 import idle.core.Resource;
@@ -46,9 +48,11 @@ public abstract class StatsPageBase extends VBox {
         return (StatsPage) this;
     }
 
-    StatsPageBase(Game game) {
+    StatsPageBase(Game game, PurchaseHistory purchaseHistory, Pace pace) {
         super(8);
         this.game = game;
+        this.purchaseHistory = purchaseHistory;
+        this.pace = pace;
         setAlignment(Pos.TOP_CENTER);
         setPadding(new Insets(16, 24, 16, 24));
 
@@ -69,6 +73,7 @@ public abstract class StatsPageBase extends VBox {
 
         general();
         multipliers();
+        purchases();
         particles();
         atoms();
         automation();
@@ -109,6 +114,7 @@ public abstract class StatsPageBase extends VBox {
     abstract List<ChartPane.Series> explosionSeries();
     abstract void collider();
     abstract void multipliers();
+    abstract void purchases();
     abstract void records();
     abstract void page(String name, String color, BooleanSupplier unlocked, String howToUnlock);
     abstract void section(String title);
@@ -198,6 +204,9 @@ public abstract class StatsPageBase extends VBox {
     }
 
     final Game game;
+    /** Version 0.165 : les achats du joueur pendant la session, et le compteur de la prochaine étape. */
+    final PurchaseHistory purchaseHistory;
+    final Pace pace;
     final List<SubPage> pages = new ArrayList<>();
     final FlowPane subTabs = new FlowPane();
 

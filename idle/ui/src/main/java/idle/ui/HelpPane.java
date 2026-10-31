@@ -201,6 +201,9 @@ final class HelpPane extends Overlay {
                 + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne. Sous "
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
+                + ", et le temps qu'il reste avant la prochaine étape, au rythme des dix dernières minutes (rien quand l'avancée ne bouge pas assez pour l'estimer)"
+                + ". Dans les statistiques, la sous-page « Achats » garde vos achats de la session : leur prix, ce qu'ils "
+                + "multiplient et le temps qu'ils font gagner vers la prochaine étape (ceux des automatismes n'y sont pas)"
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
                 + "sous-onglet « Notifications et signes », coupent les annonces par catégorie, cachent les morceaux de "
                 + "l'objectif un par un et les pastilles ● des onglets par sorte."));

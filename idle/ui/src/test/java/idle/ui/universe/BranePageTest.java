@@ -263,7 +263,7 @@ class BranePageTest {
             assertEquals(Card.State.LOCKED, pane.card(DimensionAutomation.BRANE_COMBO).state());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL));
-            StatsPage stats = new StatsPage(game);
+            StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");
             List<String> rows = stats.shownRows();

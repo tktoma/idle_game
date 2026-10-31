@@ -1,3 +1,4 @@
+import idle.core.history.Noms;
 import idle.core.Game;
 import idle.core.achievements.Achievement;
 import idle.core.bigbang.BangChallenge;
@@ -134,7 +135,7 @@ final class AnalysePourquoi {
         for (Automation a : Automations.DEFAULT) {
             if (!a.id().equals(id)) continue;
             return switch (a.kind()) {
-                case UPGRADE -> "achète « " + AnalyseNoms.chose(a.upgradeId()) + " » dès que possible";
+                case UPGRADE -> "achète « " + Noms.chose(a.upgradeId()) + " » dès que possible";
                 case FUSION -> "fusionne les générateurs dès que possible";
                 case SYNTHESIS -> "synthétise un élément dès que possible";
             } + ", une action toutes les " + fois(a.baseInterval()) + " s au départ (moins avec la cadence)";

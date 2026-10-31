@@ -1,3 +1,6 @@
+import idle.core.history.Achats;
+import idle.core.history.Photo;
+import idle.core.history.Noms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,30 +20,30 @@ class AnalyseTest {
 
     @Test
     void lesNombresSeLisentEtSeComparentMemeTresGrands() {
-        AnalyseEtat.Nombre huge = AnalyseEtat.Nombre.parse("4.18e27316531");
-        AnalyseEtat.Nombre small = AnalyseEtat.Nombre.parse("3.5E7");
+        Photo.Nombre huge = Photo.Nombre.parse("4.18e27316531");
+        Photo.Nombre small = Photo.Nombre.parse("3.5E7");
         assertTrue(huge.greater(small));
         assertEquals(27316531.62, huge.log10(), 0.01);
         assertEquals(35_000_000, small.toDouble(), 1e-6);
-        assertEquals(1_000, AnalyseEtat.Nombre.of(1_500).minus(AnalyseEtat.Nombre.of(500)).toDouble(), 1e-6);
-        assertEquals("1,23e9", AnalyseEtat.Nombre.of(1.234e9).texte().replace('.', ','));
-        assertEquals(null, AnalyseEtat.Nombre.parse("RESERVE"));
+        assertEquals(1_000, Photo.Nombre.of(1_500).minus(Photo.Nombre.of(500)).toDouble(), 1e-6);
+        assertEquals("1,23e9", Photo.Nombre.of(1.234e9).texte().replace('.', ','));
+        assertEquals(null, Photo.Nombre.parse("RESERVE"));
     }
 
     @Test
     void unAchatSeVoitDansLeDiffAvecSonPrix() {
         Game game = Bots.fresh(7);
         for (int i = 0; i < 600; i++) game.tick(1);
-        AnalyseEtat avant = AnalyseEtat.of(game.state());
+        Photo avant = Photo.of(game.state());
         String id = game.upgrades(idle.core.Resource.PARTICLES).get(0).id();
         double particles = game.state().particles().toDouble();
         assertTrue(game.buy(id), "assez de particules pour la première amélioration");
-        List<AnalyseEtat.Changement> diff = AnalyseEtat.diff(avant, AnalyseEtat.of(game.state()));
+        List<Photo.Changement> diff = Photo.diff(avant, Photo.of(game.state()));
         assertTrue(diff.stream().anyMatch(c -> c.cle().equals("upgradeLevels") && id.equals(c.sousCle()) && c.monte()), diff.toString());
-        AnalyseEtat.Changement paid = diff.stream().filter(c -> c.cle().equals("particles")).findFirst().orElseThrow();
+        Photo.Changement paid = diff.stream().filter(c -> c.cle().equals("particles")).findFirst().orElseThrow();
         assertTrue(paid.baisse());
         assertEquals(particles - game.state().particles().toDouble(), paid.avant().minus(paid.apres()).toDouble(), particles * 1e-9);
-        assertEquals("particles", BotAnalyste.monnaie("upgradeLevels", id));
+        assertEquals("particles", Achats.monnaie("upgradeLevels", id));
         for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) {
             String expected = switch (d.branch()) {
                 case PARTICLES -> "particles";
@@ -48,21 +51,21 @@ class AnalyseTest {
                 case SIZE -> null;
                 case DARK_MATTER -> "darkMatter";
             };
-            assertEquals(expected, BotAnalyste.monnaie("darkUpgradeLevels", d.id()), "l'arbre se paie selon sa branche : " + d.id());
+            assertEquals(expected, Achats.monnaie("darkUpgradeLevels", d.id()), "l'arbre se paie selon sa branche : " + d.id());
         }
-        assertEquals("atoms", BotAnalyste.monnaie("ownedAutomations", idle.core.upgrades.Automations.DEFAULT.get(0).id()), "les automatismes se paient en atomes");
+        assertEquals("atoms", Achats.monnaie("ownedAutomations", idle.core.upgrades.Automations.DEFAULT.get(0).id()), "les automatismes se paient en atomes");
     }
 
     @Test
     void lesChosesSeNommentEnFrancais() {
-        assertEquals("Particules", AnalyseNoms.cle("particles"));
-        assertEquals("Plan : Valeur", AnalyseNoms.cle("planeLevel0"));
-        assertEquals("Graine : " + Game.SeedUpgrade.ASTRAL_LIGHT.label(), AnalyseNoms.cle("seedUpgrade" + Game.SeedUpgrade.ASTRAL_LIGHT.ordinal()));
-        assertEquals("Proton", AnalyseNoms.chose("PROTON"));
-        assertEquals("élément Z = 26", AnalyseNoms.chose("26"));
-        assertEquals("inconnue", AnalyseNoms.cle("inconnue"), "une clé inconnue garde son nom");
-        assertEquals("planeShards", BotAnalyste.monnaie("planeLevel2", null));
-        assertEquals("mixShards", BotAnalyste.monnaie("seedUpgrade" + Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), null));
+        assertEquals("Particules", Noms.cle("particles"));
+        assertEquals("Plan : Valeur", Noms.cle("planeLevel0"));
+        assertEquals("Graine : " + Game.SeedUpgrade.ASTRAL_LIGHT.label(), Noms.cle("seedUpgrade" + Game.SeedUpgrade.ASTRAL_LIGHT.ordinal()));
+        assertEquals("Proton", Noms.chose("PROTON"));
+        assertEquals("élément Z = 26", Noms.chose("26"));
+        assertEquals("inconnue", Noms.cle("inconnue"), "une clé inconnue garde son nom");
+        assertEquals("planeShards", Achats.monnaie("planeLevel2", null));
+        assertEquals("mixShards", Achats.monnaie("seedUpgrade" + Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), null));
     }
 
     @Test
@@ -104,10 +107,10 @@ class AnalyseTest {
 
     @Test
     void uneRemiseAZeroDitQuiACoupeLesAutomatismes() {
-        AnalyseEtat.Nombre un = AnalyseEtat.Nombre.of(1), deux = AnalyseEtat.Nombre.of(2);
-        assertEquals("l'explosion", BotAnalyste.cause(List.of(new AnalyseEtat.Changement("explosions", null, un, deux, null, null))));
-        assertEquals("le début du défi", BotAnalyste.cause(List.of(new AnalyseEtat.Changement("activeChallenge", "x", null, null, "x", null))));
-        assertEquals(null, BotAnalyste.cause(List.of(new AnalyseEtat.Changement("particles", null, deux, un, null, null))), "un achat n'est pas une remise à zéro");
+        Photo.Nombre un = Photo.Nombre.of(1), deux = Photo.Nombre.of(2);
+        assertEquals("l'explosion", BotAnalyste.cause(List.of(new Photo.Changement("explosions", null, un, deux, null, null))));
+        assertEquals("le début du défi", BotAnalyste.cause(List.of(new Photo.Changement("activeChallenge", "x", null, null, "x", null))));
+        assertEquals(null, BotAnalyste.cause(List.of(new Photo.Changement("particles", null, deux, un, null, null))), "un achat n'est pas une remise à zéro");
     }
 
     @Test
@@ -161,14 +164,14 @@ class AnalyseTest {
 
     @Test
     void seulsLesAchatsSontDesAchats() {
-        assertTrue(BotAnalyste.achat("planeLevel2"));
-        assertTrue(BotAnalyste.achat("lineYieldLevel"));
-        assertTrue(BotAnalyste.achat("upgradeLevels"));
-        assertTrue(BotAnalyste.achat("seedUpgrade3"));
-        assertFalse(BotAnalyste.achat("pulses"), "un compteur d'impulsions n'est pas un achat");
-        assertFalse(BotAnalyste.achat("linePhase"));
-        assertFalse(BotAnalyste.achat("synthesisCount"));
-        assertTrue(BotAnalyste.REGLAGES.containsKey("voidShare"), "un réglage se note comme un choix");
+        assertTrue(Achats.achat("planeLevel2"));
+        assertTrue(Achats.achat("lineYieldLevel"));
+        assertTrue(Achats.achat("upgradeLevels"));
+        assertTrue(Achats.achat("seedUpgrade3"));
+        assertFalse(Achats.achat("pulses"), "un compteur d'impulsions n'est pas un achat");
+        assertFalse(Achats.achat("linePhase"));
+        assertFalse(Achats.achat("synthesisCount"));
+        assertTrue(Achats.REGLAGES.containsKey("voidShare"), "un réglage se note comme un choix");
     }
 
     @Test

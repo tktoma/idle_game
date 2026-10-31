@@ -426,6 +426,6 @@ public final class GameApp extends GameAppTabs {
 
     /** La ligne d'objectif, morceau par morceau (version 0.146) : ceux que les réglages montrent. */
     String goalLine() {
-        return Goals.line(game, settings::goalPart);
+        return Goals.line(game, settings::goalPart, pace);
     }
 }
