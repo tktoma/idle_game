@@ -23,6 +23,27 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.164", "Les détecteurs d'illogismes", List.of(
+                    "Le bot analyste relit sa partie avec dix détecteurs : joueur moins présent plus rapide, achat jamais rentable, "
+                            + "amélioration jamais achetée, défi trivial, rafale de succès, étape éclair ou interminable, estimation "
+                            + "ratée, automatisme en va-et-vient, ressource jamais dépensée, gros multiplicateur sans effet. Ils "
+                            + "s'écrivent dans illogismes.txt et en tête du rapport.",
+                    "Une partie sans une amélioration : elle garde son nom mais prend un prix impossible ; comparée à la partie "
+                            + "normale, elle dit ce que l'amélioration apporte.",
+                    "Deux parties se comparent palier par palier (comparaison.html), et le bot se joue sur plusieurs graines pour "
+                            + "voir ce qui tient au hasard (graines.html).")),
+            new Note("0.163", "Jusqu'à la fin", List.of(
+                    "Le plan, le volume et la brane automatiques rapportent pendant une absence autant que fenêtre ouverte. "
+                            + "Avant, une absence se rejouait par pas de 10 secondes : le point du plan avançait quarante fois "
+                            + "moins vite, la plongée du volume expirait avant de replonger (moitié moins de sphères), et la brane "
+                            + "rapportait de −17 % à +46 % selon le pas.",
+                    "La tirée automatique de la brane vise le point d'où l'onde en touche le plus. Avant, elle tirait au milieu "
+                            + "des points : quand ils étaient trop écartés, l'onde n'en touchait aucun, aucun ne partait, et la "
+                            + "brane s'arrêtait pour de bon.",
+                    "Le bot analyste joue jusqu'à la fin de la partie : il continue de former des univers après le onzième, "
+                            + "prend les bulles du sommet et des racines et les améliorations de la graine, laisse les automatismes "
+                            + "jouer les dimensions, et s'arrête aux dix paliers du défi final. Il peut aussi repartir d'une "
+                            + "sauvegarde.")),
             new Note("0.162", "Le bot analyste dit pourquoi", List.of(
                     "Chaque achat a sa rentabilité : le temps de production qu'il a coûté (son prix divisé par ce que la ressource "
                             + "rapportait par seconde), contre le temps qu'il fait gagner vers le palier suivant. Le rapport classe "

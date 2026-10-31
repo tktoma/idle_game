@@ -182,4 +182,59 @@ class AnalyseTest {
         assertEquals(IdleProfiles24.EARLY_STYLES[6], bot.earlyStyle);
         assertEquals(6, AnalyseStrategies.TOUTES.size());
     }
+
+    @Test
+    void lesDetecteursSignalentCeQuIlsVoient(@TempDir Path dir) throws Exception {
+        BotAnalyste bot = new BotAnalyste(Bots.fresh(201), 201, 5, dir, 30);
+        AnalyseJournal j = bot.journal;
+        j.etsi.add(new AnalyseJournal.EtSi(0, 5, "Univers 5 : début", "Univers 5 : acte 1 : première explosion", 720, 2160, 3635));
+        j.etsi.add(new AnalyseJournal.EtSi(0, 1, "Début", "Univers 1 : acte 1 : première explosion", 24000, 67800, 14255));
+        j.defis.add(new AnalyseJournal.Defi(10, "Rouille", 25, true));
+        j.defis.add(new AnalyseJournal.Defi(20, "Fuite", 900, true));
+        for (int i = 0; i < 6; i++) j.ajoute(100, 1, AnalyseJournal.Sorte.SUCCES, "Succès obtenu : " + i);
+        j.paliers.add(new AnalyseJournal.Palier(5000, 1, "Univers 1 : acte 2 : premier Big Bang", 4000, 3000));
+        for (int i = 0; i < 25; i++) bot.coupures.merge("Couplage", 1, Integer::sum);
+        List<AnalyseIllogismes.Illogisme> found = AnalyseIllogismes.detecter(bot);
+        assertEquals(1, found.stream().filter(i -> i.numero() == 1).count(), "le joueur à la minute plus rapide, une fois");
+        assertTrue(found.stream().anyMatch(i -> i.numero() == 4 && i.titre().equals("Rouille")));
+        assertFalse(found.stream().anyMatch(i -> i.numero() == 4 && i.titre().equals("Fuite")), "un quart d'heure n'est pas trivial");
+        assertTrue(found.stream().anyMatch(i -> i.numero() == 5));
+        assertTrue(found.stream().anyMatch(i -> i.numero() == 7), "annoncé 2 000 s trop tôt sur 4 000");
+        assertTrue(found.stream().anyMatch(i -> i.numero() == 8 && i.titre().startsWith("Couplage")));
+        assertTrue(found.stream().anyMatch(i -> i.numero() == 3), "rien acheté : tout le catalogue est jamais acheté");
+        AnalyseIllogismes.ecrire(found, dir);
+        assertTrue(Files.readString(dir.resolve("illogismes.txt")).contains("4. Défi trivial : 1"));
+    }
+
+    @Test
+    void deuxPartiesSeComparentPalierParPalier(@TempDir Path dir) throws Exception {
+        Path a = dir.resolve("a"), b = dir.resolve("b");
+        Files.createDirectories(a);
+        Files.createDirectories(b);
+        String head = "chrono,secondes,univers,palier,depuis_precedent_s,annonce_pour_s,ecart_s\n";
+        Files.writeString(a.resolve("paliers.csv"), head + "01:00:00,3600,1,\"Univers 1 : acte 1 : première explosion\",3600,,\n"
+                + "02:00:00,7200,1,\"Univers 1, encore\",3600,,\n");
+        Files.writeString(b.resolve("paliers.csv"), head + "00:50:00,3000,1,\"Univers 1 : acte 1 : première explosion\",3000,,\n");
+        assertEquals(List.of("a", "b, c", ""), AnalyseComparaison.cellules("a,\"b, c\","));
+        List<AnalyseComparaison.Ligne> lignes = AnalyseComparaison.comparer(AnalyseComparaison.paliers(a), AnalyseComparaison.paliers(b));
+        assertEquals(-600, lignes.get(0).ecart(), 1e-9, "B arrive dix minutes plus tôt");
+        assertTrue(Double.isNaN(lignes.get(1).b()), "pas atteint dans B");
+        AnalyseComparaison.ecrire(a, b, dir.resolve("sortie"));
+        assertTrue(Files.readString(dir.resolve("sortie/comparaison.txt")).contains("1 paliers plus tôt dans B"));
+        List<AnalyseGraines.Resume> r = AnalyseGraines.resumer(List.of(a, b));
+        assertEquals(2, r.get(0).atteint());
+        assertEquals(3300, r.get(0).mediane(), 1e-9);
+        assertEquals(600.0 / 3300, r.get(0).dispersion(), 1e-9);
+    }
+
+    @Test
+    void uneAmeliorationSeRetireDuJeu() {
+        assertEquals(java.util.Set.of("atom_keep"), BotAnalyste.sans("atom_keep"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.sans("n_existe_pas"));
+        Game game = Bots.game(new idle.core.GameState(), 7, java.util.Set.of("atom_keep"));
+        game.start();
+        assertTrue(game.costOf("atom_keep").log10() > 1e14, "Persistance garde son nom, à un prix impossible");
+        for (int i = 0; i < 600; i++) game.tick(1);
+        assertFalse(game.canBuy("atom_keep"));
+    }
 }

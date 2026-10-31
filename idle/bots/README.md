@@ -516,6 +516,54 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## Illogismes, comparaisons, sans une amélioration, plusieurs graines (version 0.164)
+
+**Les détecteurs d'illogismes** relisent chaque partie du bot analyste à la fin (`AnalyseIllogismes`), et l'écrivent dans `illogismes.txt`, `illogismes.csv` et en tête du rapport. Un signalement n'est pas une preuve : c'est un endroit où regarder.
+
+| N° | Détecteur | La règle |
+|---|---|---|
+| 1 | Joueur moins présent plus rapide | un « et si » (une fois par minute, toutes les dix minutes) bat le bot de plus de 20 % sur une étape de plus de 5 min |
+| 2 | Achat jamais rentable | 5 achats ou plus, au moins une minute de production en tout, moins d'un dixième rendu |
+| 3 | Amélioration jamais achetée | une amélioration ordinaire ou une case de l'arbre que le bot n'achète jamais |
+| 4 | Défi trivial | un défi réussi en moins d'une minute |
+| 5 | Rafale de succès | cinq succès ou plus au même instant |
+| 6 | Étape éclair ou interminable | une étape principale des onze premiers univers en moins de 30 s, ou en plus de 6 h |
+| 7 | Estimation ratée | l'annonce se trompe de plus d'un quart de l'étape, et d'au moins 5 min |
+| 8 | Automatisme en va-et-vient | coupé par le bot plus de 20 fois (pas par une remise à zéro) |
+| 9 | Ressource jamais dépensée | gagnée, jamais payée dans un achat du bot |
+| 10 | Gros multiplicateur sans effet | trois achats ou plus à ×1 000 ou plus, et pas une seconde gagnée en tout |
+
+**Sans une amélioration** : `-Psans=atom_keep` (identifiants des améliorations ordinaires ou de l'arbre de matière noire, séparés par des virgules). L'amélioration garde son nom, mais prend un prix hors d'atteinte : personne ne l'achète, et les politiques la sautent au lieu de l'attendre (`Bots.interdite`). Ce que le jeu offre lui-même (la Persistance d'une bulle de l'arbre) reste offert.
+
+**Comparer deux parties** : `./gradlew :bots:comparer -Pa=sorties/analyste -Pb=sorties/sans-persistance` écrit `comparaison.txt` et `comparaison.html` : pour chaque palier, le moment dans A, dans B, et l'écart. Pour deux versions du jeu : la même commande sur deux dossiers.
+
+**Plusieurs graines** : `./gradlew :bots:graines -Pgraines=201,202,203 -Punivers=fin` joue le bot sur chaque graine (sans « et si »), chacune dans `graine-…`, et résume chaque palier : atteint combien de fois, le plus tôt, la médiane, le plus tard, et la dispersion ((plus tard − plus tôt) / médiane).
+
+## Le bot analyste va jusqu'à la fin (version 0.163)
+
+Par défaut, `analyste.bat` joue maintenant jusqu'à la fin de la partie : les dix paliers du défi final. Après l'univers 11, le bot continue de former des univers (leur énergie du vide paie les bulles), prend la bulle du sommet (l'automatisation des dimensions) puis celle des racines (le défi final), achète les automatismes de dimension et les améliorations de la graine dès qu'ils sont payables, et laisse les automatismes jouer les dimensions. `-Punivers=11` garde l'ancien arrêt à onze univers ; `-Pdepart=chemin/une.save` repart d'une sauvegarde (par exemple un palier d'une partie d'avant, dans `sauvegardes/`).
+
+Mesure (graine 201, une décision toutes les 5 s) : la fin à **82:22:00** de jeu, après 18 univers formés.
+
+| Moment | Étape |
+|---|---|
+| 76:12:25 | Univers 11 formé |
+| 77:03:15 | Univers 12 formé |
+| 78:34:55 | Bulle des racines : défi final ouvert, son premier palier (la ligne) déjà atteint |
+| 79:07:55 | Les dix seuils des dimensions atteints |
+| 82:22:00 | Dixième palier du défi final : fin de la partie |
+
+**Ce qui bloquait.** Quatre choses empêchaient d'aller au bout, trois dans le jeu et une dans les bots :
+
+- le plan automatique : une absence se rejoue par pas de 10 s, et un pas ne valait jamais plus d'un quart de seconde de course du point. En absence, il avançait quarante fois moins vite ; les bots, qui jouent par pas de 5 s, ne le voyaient presque pas ramasser. Le plan, le volume et la brane automatiques se jouent maintenant par morceaux de 0,05 s sur un grand pas : sur dix minutes, mêmes gains à 0,05 s, 5 s ou 10 s (le volume perdait la moitié à 10 s, la brane variait de −17 % à +46 %) ;
+- la brane automatique tirait au milieu des points : quand ils étaient plus écartés que la portée, elle ne touchait plus rien, pour toujours (13,7 ondes, puis plus rien en deux heures). Elle vise maintenant le point d'où l'onde en touche le plus ;
+- la bulle des racines s'ouvre avec une amélioration de la graine (payée en fragments du mélange), que les bots n'achetaient pas : ils ne prenaient que le débit de l'arrosoir. Ils achètent maintenant toutes les améliorations de la graine payables, celle des racines d'abord ;
+- l'ordre d'achat des bulles de l'expert ne contient pas la bulle des racines, et l'expert n'achetait rien hors de sa liste. Sa liste finie, il prend la bulle payable la moins chère.
+
+**Ce qui ne change pas.** Les références (pas de 20 s) restent les mêmes : Speedrunner univers 1 à 26 h 53 et univers 2 à 42 h 19, Régulier 34 h 30. Les univers 1 à 11 du bot analyste tombent aux mêmes moments qu'en 0.162 : les bots ne jouent pas les dimensions à la main, et les automatismes de dimension ne viennent qu'avec la bulle du sommet.
+
+**Ce qui reste.** Le bot ne joue pas les dimensions à la main : le seuil du plan (ouvert à 35:53) n'est atteint qu'à 74:46, quand ses automatismes arrivent ; un joueur le ferait en un quart d'heure. La boucle automatique compte ses clics sur un grand pas au lieu de les jouer (22 % de moins sur dix minutes, une approximation voulue).
+
 ## Le bot analyste dit pourquoi (version 0.162)
 
 Ce qu'il ajoute au journal et au rapport :

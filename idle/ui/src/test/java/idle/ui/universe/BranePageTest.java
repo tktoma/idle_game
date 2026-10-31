@@ -259,7 +259,7 @@ class BranePageTest {
             assertTrue(pane.balanceText(6).startsWith("Payés en nœuds"), pane.balanceText(6));
             Card play = pane.card(DimensionAutomation.BRANE_PULL);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Tire la membrane à fond au milieu des points"), play.text());
+            assertTrue(play.text().contains("Tire la membrane à fond sur le point qui en touche le plus"), play.text());
             assertEquals(Card.State.LOCKED, pane.card(DimensionAutomation.BRANE_COMBO).state());
             play.click();
             assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL));

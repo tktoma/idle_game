@@ -78,6 +78,11 @@ final class AnalyseJournal {
     final List<Estimation> estimations = new ArrayList<>();
     final List<Choix> choix = new ArrayList<>();
     final List<EtSi> etsi = new ArrayList<>();
+    /** Version 0.164 : les défis finis (réussis ou abandonnés), pour les détecteurs d'illogismes. */
+    final List<Defi> defis = new ArrayList<>();
+
+    /** Un défi fini : quand, lequel, combien de temps il a duré, réussi ou non. */
+    record Defi(double t, String nom, double duree, boolean reussi) {}
 
     void ajoute(double t, int univers, Sorte sorte, String titre, List<String> details) {
         lignes.add(new Ligne(t, univers, sorte, titre, List.copyOf(details)));

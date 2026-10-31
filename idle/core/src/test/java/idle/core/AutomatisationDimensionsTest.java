@@ -14,7 +14,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Version 0.150 : l'automatisation des dimensions, ouverte par la bulle du sommet de l'arbre-monde. Dans chaque
  * dimension, les automatismes s'achètent l'un après l'autre : ceux de la ligne en graines d'univers, ceux de la
- * dimension n avec la ressource de la dimension n − 1.
+ * dimension n avec la ressource de la dimension n − 1. Version 0.163 : le plan automatique ramasse ses éclats aussi
+ * par grands pas (une absence rejouée par pas de 10 s), les dimensions étant découpées en pas d'au plus 0,05 s.
  */
 class AutomatisationDimensionsTest {
 
@@ -201,5 +202,17 @@ class AutomatisationDimensionsTest {
             assertEquals(before - automation.cost(), game.dimensionAutomationBalance(automation), before * 1e-12 + 1e-9, automation.toString());
         }
         assertEquals(DimensionAutomation.values().length, game.dimensionAutomationsOwned());
+    }
+
+    @Test
+    void parGrandsPasLePlanAutomatiqueRamasseCommeImageParImage() {
+        Game fine = four(), coarse = four();
+        for (Game game : new Game[] {fine, coarse}) assertTrue(game.buyDimensionAutomation(DimensionAutomation.PLANE_AIM));
+        double start = fine.state().planeShardsEarned();
+        for (int i = 0; i < 6000; i++) fine.tick(0.05);
+        for (int i = 0; i < 30; i++) coarse.tick(10);
+        double a = fine.state().planeShardsEarned() - start, b = coarse.state().planeShardsEarned() - start;
+        assertTrue(a > 10, "le plan automatique ramasse : " + a);
+        assertTrue(Math.abs(a - b) <= 0.05 * a, "par pas de 10 s comme par pas de 0,05 s : " + a + " et " + b);
     }
 }

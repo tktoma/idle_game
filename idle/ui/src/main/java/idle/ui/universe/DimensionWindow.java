@@ -839,8 +839,8 @@ public final class DimensionWindow extends BorderPane {
                 ? "Tirée à " + Math.round(view.branePull() * 100) + " % : l'onde portera à " + reach(game.braneReach(view.branePull()))
                         + " (" + reach(game.braneMaxReach()) + " à fond). Relâchez pour la lancer."
                 : game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL)
-                ? "Tirée automatique : toutes les " + seconds(Game.BRANE_AUTO_SECONDS) + " s, elle tire la membrane à fond au "
-                        + "milieu des points. Vos tirées comptent en plus ; les améliorations s'achètent quand même." + last
+                ? "Tirée automatique : toutes les " + seconds(Game.BRANE_AUTO_SECONDS) + " s, elle tire la membrane à fond sur "
+                        + "le point qui en touche le plus. Vos tirées comptent en plus ; les améliorations s'achètent quand même." + last
                 : !game.canPullBrane()
                 ? "Une onde court déjà : attendez qu'elle s'éteigne pour tirer de nouveau." + last
                 : "Appuyez sur la membrane, glissez pour la tendre (plus loin, plus fort), relâchez : l'onde part du point "

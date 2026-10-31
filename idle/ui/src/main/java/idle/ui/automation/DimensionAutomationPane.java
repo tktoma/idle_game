@@ -118,7 +118,7 @@ public final class DimensionAutomationPane extends VBox {
                     + String.format(java.util.Locale.FRANCE, "%.1f", Game.VOLUME_AUTO_SHOT_SECONDS) + " s";
             case DURATION_HOLD -> "Tient le bouton jusqu'au centre, relâche, recommence";
             case LOOP_PLAY -> "Clique « bien » à chaque passage d'un point dans une zone";
-            case BRANE_PULL -> "Tire la membrane à fond au milieu des points toutes les "
+            case BRANE_PULL -> "Tire la membrane à fond sur le point qui en touche le plus toutes les "
                     + String.format(java.util.Locale.FRANCE, "%.0f", Game.BRANE_AUTO_SECONDS) + " s";
             case CLICKER_PLAY -> "Clique " + String.format(java.util.Locale.FRANCE, "%.0f", Game.CLICKER_AUTO_RATE)
                     + " fois par seconde au meilleur endroit";
@@ -157,7 +157,7 @@ public final class DimensionAutomationPane extends VBox {
                 case MIRROR_PLAY -> "Il refait chaque motif sans faute jusqu'à " + Game.MIRROR_AUTO_MAX + " cases, puis se "
                         + "trompe, fenêtre ouverte ou non ; vos clics comptent en plus. Les améliorations du miroir s'achètent "
                         + "quand même.";
-                default -> "Il lance une onde de toute sa portée depuis le milieu des points, fenêtre ouverte ou non, dès "
+                default -> "Il lance une onde de toute sa portée depuis le point d'où elle en touche le plus, fenêtre ouverte ou non, dès "
                         + "que l'onde d'avant s'est éteinte ; vos tirées comptent en plus. Les améliorations de la brane "
                         + "s'achètent quand même.";
             };

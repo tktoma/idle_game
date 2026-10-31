@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Le bot analyste (version 0.161) : il joue comme le meilleur profil (le Speedrunner), mais à vitesse humaine, une
@@ -43,7 +44,17 @@ import java.util.Map;
  * qu'elle rapporte par heure. À chaque palier principal, « et si » : la suite jouée sur des copies par un joueur qui
  * passe une fois par minute, puis toutes les dix minutes.
  *
- * <p>Usage : {@code BotAnalyste <dossier> [univers=11] [heures=200] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true]}.
+ * <p>Version 0.163 : il va jusqu'à la fin de la partie. Après l'univers 11, il continue de former des univers (l'énergie
+ * du vide paie les bulles), prend les bulles du sommet (l'automatisation des dimensions) et des racines (le défi final),
+ * laisse les automatismes jouer les dimensions, et s'arrête quand les dix paliers du défi final sont atteints ; le défi
+ * ouvert, il estime le palier suivant du défi. Il peut aussi repartir d'une sauvegarde (un palier d'une partie
+ * d'avant, par exemple).
+ *
+ * <p>Usage : {@code BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false]
+ * [etsi=true] [depart=sauvegarde] [sans=id,id]} ; {@code univers} est un nombre d'univers, ou {@code fin} pour jouer
+ * jusqu'à la fin. Version 0.164 : {@code sans} retire ces améliorations du jeu (identifiants des améliorations ordinaires
+ * ou de l'arbre de matière noire) ; avec {@link AnalyseComparaison}, on voit ce que chacune apporte. À la fin, les
+ * détecteurs d'illogismes ({@link AnalyseIllogismes}) relisent la partie.
  * Avec {@code comparer=true}, il compare aussi six façons de jouer à chaque palier principal et garde la plus rapide
  * ({@link #choisirStrategie()}) : six parties d'essai par palier, la partie dure plusieurs fois plus longtemps. Avec
  * {@code etsi=false}, il ne joue pas les « et si » : la partie se calcule environ deux fois plus vite.
@@ -63,6 +74,10 @@ public final class BotAnalyste extends IdleProfiles24 {
     /** Version 0.162 : la façon de jouer du moment, et si le bot les compare à chaque palier principal. */
     AnalyseStrategies.Strategie strategie = AnalyseStrategies.TOUTES.get(0);
     boolean comparer = false;
+    /** Version 0.164 : les améliorations retirées du jeu (leurs identifiants), pour mesurer ce que chacune apporte. */
+    java.util.Set<String> sans = java.util.Set.of();
+    /** Version 0.163 : jouer jusqu'à la fin de la partie (les dix paliers du défi final), plutôt qu'à un nombre d'univers. */
+    boolean jusquALaFin = false;
     /** Version 0.162 : les « et si » à chaque palier principal (deux parties d'essai de plus par palier). */
     boolean etsi = true;
     /** Les rythmes des « et si » : un joueur qui passe une fois par minute, puis toutes les dix minutes. */
@@ -93,6 +108,8 @@ public final class BotAnalyste extends IdleProfiles24 {
      * part de ce qui reste après les précédents : les gains d'une même attente ne dépassent jamais l'attente.
      */
     private double annonceAjustee = Double.NaN;
+    /** Le moment de la dernière estimation (version 0.163). */
+    private double derniereEstimation = Double.NEGATIVE_INFINITY;
     private String annonceVisee = "";
     /** Ce qui bouge dans la partie, même sans décision : les compteurs et les grandeurs ; changé, la partie avance. */
     private String signature = "";
@@ -124,6 +141,14 @@ public final class BotAnalyste extends IdleProfiles24 {
         indexPrincipal = indexPrincipal(game);
         seedStage = game.seedStage();
         dimensions = game.dimensionsUnlocked();
+        // Version 0.163 : une partie reprise d'une sauvegarde garde ce qu'elle avait déjà atteint ; seul le neuf est un palier.
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) seuils[d] = game.isDimensionThresholdReached(d);
+        finalTiers = game.isFinalChallengeOpen() ? game.finalTiersReached() : 0;
+        fini = game.isGameFinished();
+        bigBangs = game.bigBangs();
+        dernierPalier = game.state().timePlayed();
+        derniereActivite = dernierPalier;
+        prochainReleve = dernierPalier;
     }
 
     // ------------------------------------------------------------------
@@ -455,6 +480,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             if (c != null) details.add("Récompense gagnée : " + AnalysePourquoi.recompense(c) + ".");
             if (b != null) details.add("Récompense gagnée : " + b.rewardText() + ".");
         }
+        if (start != null) journal.defis.add(new AnalyseJournal.Defi(t, AnalyseNoms.chose(id), t - start[0], reussi));
         journal.ajoute(t, univers(), AnalyseJournal.Sorte.DEFI, (reussi ? "Défi réussi : " : "Défi abandonné : ") + AnalyseNoms.chose(id), details);
     }
 
@@ -478,7 +504,11 @@ public final class BotAnalyste extends IdleProfiles24 {
             prochainReleve = t + 60;
         }
         if (t + 1e-6 >= prochaineEstimation && blocage == null) {
-            estimer();
+            // Version 0.163 : pas deux fois de suite la même estimation (deux paliers dans la même minute).
+            if (t - derniereEstimation >= 60 || !Objects.equals(viseeDuMoment(), annonceVisee)) {
+                estimer();
+                derniereEstimation = t;
+            }
             prochaineEstimation = t + estimationEvery;
         }
         String now = signature();
@@ -490,7 +520,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             bloque("Plus rien ne bouge depuis " + AnalyseJournal.duree(t - Math.max(dernierPalier, derniereActivite))
                     + " : ni palier, ni achat, ni compteur (Big Bangs, astres, arrosages…), ni grandeur qui monte");
         }
-        return done || blocage != null;
+        return done || blocage != null || jusquALaFin && fini;
     }
 
     /** Les compteurs de la partie et ses grandeurs (au centième d'ordre de grandeur) : si rien n'y change, rien n'avance. */
@@ -702,6 +732,7 @@ public final class BotAnalyste extends IdleProfiles24 {
                     List.of("Ce n'est pas le bot : " + cause + " remet les automatismes à zéro ; il les remet en marche dès qu'il peut."));
             off.clear();
         }
+        for (String id : off) coupures.merge(AnalyseNoms.chose(id), 1, Integer::sum);
         for (List<String> ids : List.of(on, off)) {
             if (ids.isEmpty()) continue;
             boolean marche = ids == on;
@@ -732,6 +763,12 @@ public final class BotAnalyste extends IdleProfiles24 {
         return "Pourquoi : il dépenserait ce que le bot met de côté" + (defi != null ? " pendant le défi « " + AnalyseNoms.chose(defi) + " »"
                 : " pour « " + (visee.isEmpty() ? nomPalier(indexPrincipal + 1) : visee) + " »") + " (goulot : " + goulot() + ").";
     }
+
+    /** Version 0.164 : les illogismes repérés à la fin de la partie. */
+    List<AnalyseIllogismes.Illogisme> illogismes = List.of();
+
+    /** Version 0.164 : combien de fois le bot a coupé chaque automatisme lui-même (pas une remise à zéro). */
+    final Map<String, Integer> coupures = new LinkedHashMap<>();
 
     private void automatisme(double t, String id, boolean on) {
         String name = AnalyseNoms.chose(id);
@@ -915,7 +952,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         } catch (Exception failure) {
             return -1;
         }
-        Game cg = Bots.game(copy, graine + 7919L * (long) temps());
+        Game cg = Bots.game(copy, graine + 7919L * (long) temps(), sans);
         double pas = rythme > 0 ? Math.min(rythme, ETSI_PAS) : ESSAI_PAS;
         IdleProfiles24 clone = copieDuBot(cg, pas);
         if (strategie != null) AnalyseStrategies.appliquer(clone, strategie);
@@ -972,8 +1009,20 @@ public final class BotAnalyste extends IdleProfiles24 {
         return clone;
     }
 
+    /** Le palier que viserait une estimation maintenant. */
+    private String viseeDuMoment() {
+        if (g.isFinalChallengeOpen()) return "Défi final : " + (g.finalTiersReached() + 1) + " palier(s) sur 10";
+        int cible = indexPrincipal + 1 + ((indexPrincipal + 1) % 7 == 0 ? 1 : 0);
+        int bang = g.bigBangs() >= 1 && g.bigBangs() + 1 < Bots.LAST_BIG_BANG && etape(g) == 2 ? g.bigBangs() + 1 : 0;
+        return bang > 0 ? "Univers " + univers() + " : Big Bang n° " + bang : nomPalier(cible);
+    }
+
     private void estimer() {
-        if (NextUniversePolicy.reached(g, targetUniverses)) return;
+        if (NextUniversePolicy.reached(g, targetUniverses) || fini) return;
+        if (g.isFinalChallengeOpen()) {
+            estimerDefiFinal();
+            return;
+        }
         int cible = indexPrincipal + 1 + ((indexPrincipal + 1) % 7 == 0 ? 1 : 0);
         // Entre le premier et le dernier Big Bang, le prochain palier est le Big Bang suivant.
         int bang = g.bigBangs() >= 1 && g.bigBangs() + 1 < Bots.LAST_BIG_BANG && etape(g) == 2 ? g.bigBangs() + 1 : 0;
@@ -992,6 +1041,46 @@ public final class BotAnalyste extends IdleProfiles24 {
         annonceVisee = visee;
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » dans " + AnalyseJournal.duree(secondes)
                 + " (vers " + AnalyseJournal.chrono(temps() + secondes) + ")", List.of("Goulot : " + goulot));
+    }
+
+    /**
+     * Le défi final ouvert (version 0.163) : l'estimation vise son palier suivant, joué sur une copie. Au-delà de 24 h,
+     * le bot s'arrête, comme ailleurs.
+     */
+    private void estimerDefiFinal() {
+        int next = g.finalTiersReached() + 1;
+        visee = "Défi final : " + next + " palier(s) sur 10";
+        double secondes = essai(game -> game.finalTiersReached() >= next || game.isGameFinished(), HORIZON, null, 0);
+        String goulot = goulotDefiFinal();
+        journal.estimations.add(new AnalyseJournal.Estimation(temps(), visee, secondes, goulot));
+        if (secondes < 0) {
+            estimationCourante = Double.NaN;
+            bloque("Plus de " + AnalyseJournal.duree(HORIZON) + " estimées avant « " + visee + " » en jouant la suite sur une copie");
+            return;
+        }
+        estimationCourante = secondes;
+        annonceAbsolue = temps() + secondes;
+        annonceAjustee = annonceAbsolue;
+        annonceVisee = visee;
+        journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » dans " + AnalyseJournal.duree(secondes)
+                + " (vers " + AnalyseJournal.chrono(temps() + secondes) + ")", List.of("Goulot : " + goulot));
+    }
+
+    /** Pour le défi final : la dimension la plus loin de son palier, en puissances de dix, et son avancée. */
+    String goulotDefiFinal() {
+        int worst = 0;
+        double lowest = 2;
+        for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
+            if (g.isFinalTierReached(d)) continue;
+            double p = g.finalProgress(d);
+            if (p < lowest) {
+                lowest = p;
+                worst = d;
+            }
+        }
+        if (worst == 0) return "tous les paliers sont atteints";
+        return String.format(Locale.FRANCE, "la dimension %d (%s) : %.0f %% de son palier, en puissances de dix", worst,
+                Game.dimensionResourceName(worst), 100 * lowest);
     }
 
     /**
@@ -1126,7 +1215,10 @@ public final class BotAnalyste extends IdleProfiles24 {
     void joue(double heures) throws Exception {
         long start = System.nanoTime();
         journal.ajoute(0, 1, AnalyseJournal.Sorte.INFO, "Début de la partie", List.of("Profil : le Speedrunner, une décision toutes les "
-                + (int) ANALYSTE.actionEverySeconds() + " s ; pas de " + (int) step + " s ; graine " + graine + " ; " + targetUniverses + " univers visés"));
+                + (int) ANALYSTE.actionEverySeconds() + " s ; pas de " + (int) step + " s ; graine " + graine + " ; "
+                + (jusquALaFin ? "jusqu'à la fin de la partie" : targetUniverses + " univers visés")
+                + (temps() > 0 ? " ; reprise d'une sauvegarde à " + AnalyseJournal.chrono(temps()) : "")
+                + (sans.isEmpty() ? "" : " ; sans " + String.join(", ", sans.stream().map(AnalyseNoms::chose).toList()))));
         begin();
         partSucces = partSucces();
         prochaineEstimation = 0;
@@ -1143,29 +1235,53 @@ public final class BotAnalyste extends IdleProfiles24 {
         }
         double seconds = (System.nanoTime() - start) / 1e9;
         String fin = blocage != null ? "Arrêt sur blocage : " + blocage
+                : fini ? "Fin de la partie atteinte"
                 : NextUniversePolicy.reached(g, targetUniverses) ? "Objectif atteint : " + targetUniverses + " univers" : "Limite de " + heures + " h atteinte";
+        // Version 0.164 : les détecteurs d'illogismes relisent la partie.
+        illogismes = AnalyseIllogismes.detecter(this);
+        journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, illogismes.size() + " illogismes repérés (détail dans illogismes.txt et le rapport)");
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, fin, List.of(String.format(Locale.FRANCE, "Calcul : %.0f s de temps réel", seconds)));
         journal.ecrire(dossier);
+        AnalyseIllogismes.ecrire(illogismes, dossier);
         Files.writeString(dossier.resolve("fin.save"), SaveCodec.write(g.state(), 0));
         AnalyseRapport.ecrire(this, dossier.resolve("rapport.html"), fin);
         System.out.println("ANALYSTE," + fin + "," + AnalyseJournal.chrono(temps()) + "," + dossier.toAbsolutePath());
     }
 
+    /** Les identifiants d'améliorations à retirer, séparés par des virgules ; refuse ceux qui n'existent pas. */
+    static java.util.Set<String> sans(String text) {
+        java.util.Set<String> ids = new java.util.LinkedHashSet<>();
+        for (String part : text.split(",")) if (!part.isBlank()) ids.add(part.trim());
+        for (String id : ids) {
+            boolean known = Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id))
+                    || idle.core.darkmatter.DarkUpgrades.DEFAULT.stream().anyMatch(d -> d.id().equals(id));
+            if (!known) throw new IllegalArgumentException("Amélioration inconnue : " + id + " (identifiants dans le catalogue : upgrades, arbre de matière noire)");
+        }
+        return ids;
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
-            System.err.println("Usage : BotAnalyste <dossier> [univers=11] [heures=200] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true]");
+            System.err.println("Usage : BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id]");
             System.exit(2);
         }
         Path dossier = Path.of(args[0]);
-        int univers = args.length > 1 ? Integer.parseInt(args[1]) : 11;
-        double heures = args.length > 2 ? Double.parseDouble(args[2]) : 200;
+        String univers = args.length > 1 ? args[1] : "fin";
+        double heures = args.length > 2 ? Double.parseDouble(args[2]) : 400;
         long graine = args.length > 3 ? Long.parseLong(args[3]) : 201;
         double pas = args.length > 4 ? Double.parseDouble(args[4]) : 5;
         double estimation = args.length > 5 ? Double.parseDouble(args[5]) : 30;
         boolean comparer = args.length > 6 && Boolean.parseBoolean(args[6]);
         boolean etsi = args.length <= 7 || Boolean.parseBoolean(args[7]);
-        BotAnalyste bot = new BotAnalyste(Bots.fresh(graine), graine, pas, dossier, estimation);
-        bot.targetUniverses = univers;
+        String depart = args.length > 8 && !args[8].isBlank() ? args[8] : null;
+        java.util.Set<String> sans = args.length > 9 ? sans(args[9]) : java.util.Set.of();
+        GameState state = depart == null ? new GameState() : SaveCodec.read(Files.readString(Path.of(depart))).state();
+        Game game = Bots.game(state, graine, sans);
+        if (depart == null) game.start();
+        BotAnalyste bot = new BotAnalyste(game, graine, pas, dossier, estimation);
+        bot.jusquALaFin = univers.equalsIgnoreCase("fin");
+        bot.sans = sans;
+        bot.targetUniverses = bot.jusquALaFin ? Integer.MAX_VALUE : Integer.parseInt(univers);
         bot.comparer = comparer;
         bot.etsi = etsi;
         bot.joue(heures);

@@ -13,7 +13,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Version 0.154 : la brane, sixième dimension. On tire la membrane, une onde en part, grandit jusqu'à sa portée et
  * rebondit sur les bords ; chaque point qu'elle touche donne des ondes, plus après un rebond, plus pour chaque point de
- * plus touché par la même onde. Et la lumière astrale, qui multiplie l'arrosage par seconde.
+ * plus touché par la même onde. Et la lumière astrale, qui multiplie l'arrosage par seconde. Version 0.163 :
+ * l'automatisme vise un point, et la brane avance pareil par grands pas (une absence, un bot) que image par image.
  */
 class BraneTest {
 
@@ -181,5 +182,32 @@ class BraneTest {
         game.state().setReplaying(false);
         assertTrue(game.startNextUniverse());
         assertEquals(1, game.braneLevel(BraneUpgrade.BOUNCE));
+    }
+
+    @Test
+    void lAutomatismeViseUnPointMemeQuandIlsSontEcartes() {
+        // Six points aux quatre coins et sur les bords : leur centre est loin de chacun, plus loin que la portée.
+        Game game = six();
+        game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
+        game.state().addDimensionAutomation(DimensionAutomation.BRANE_PULL.name());
+        double[][] corners = {{0.9, 0.9}, {-0.9, 0.9}, {0.9, -0.9}, {-0.9, -0.9}, {0.9, 0}, {-0.9, 0}};
+        for (double[] c : corners) game.addBranePoint(c[0], c[1]);
+        double[] aim = game.braneAutoAim();
+        assertTrue(java.util.Arrays.stream(corners).anyMatch(c -> c[0] == aim[0] && c[1] == aim[1]), "il vise un des points");
+        run(game, 120);
+        assertTrue(game.braneTouches() >= 10, "les ondes touchent, les points partent et reviennent : " + game.braneTouches());
+    }
+
+    @Test
+    void parGrandsPasLaBraneAvanceCommeImageParImage() {
+        Game fine = six(), coarse = six();
+        for (Game game : new Game[] {fine, coarse}) {
+            game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
+            game.state().addDimensionAutomation(DimensionAutomation.BRANE_PULL.name());
+        }
+        run(fine, 300);
+        for (int i = 0; i < 30; i++) coarse.tick(10);
+        double a = fine.state().braneShardsEarned(), b = coarse.state().braneShardsEarned();
+        assertTrue(a > 0 && Math.abs(a - b) <= 0.02 * a, "par pas de 10 s comme par pas de 0,05 s : " + a + " et " + b);
     }
 }

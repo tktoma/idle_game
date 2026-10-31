@@ -30,6 +30,30 @@ final class Bots {
                 new Random(seed));
     }
 
+    /**
+     * Version 0.164 : une partie sans certaines améliorations (ordinaires ou de l'arbre de matière noire), nommées par leur
+     * identifiant. Elles restent au catalogue (le jeu et les bots les nomment), mais à un prix qu'on n'atteint jamais :
+     * personne ne les achète. Ce que le jeu offre lui-même (la Persistance d'une bulle de l'arbre, par exemple) reste offert.
+     */
+    static Game game(GameState state, long seed, java.util.Set<String> sans) {
+        if (sans.isEmpty()) return game(state, seed);
+        idle.core.math.BigNum jamais = idle.core.math.BigNum.pow10(1e15);
+        java.util.List<idle.core.upgrades.Upgrade> upgrades = Upgrades.DEFAULT.stream().map(u -> !sans.contains(u.id()) ? u
+                : new idle.core.upgrades.Upgrade(u.id(), u.name(), u.resource(), jamais, u.costGrowth(), u.maxLevel(), u.effect())).toList();
+        java.util.List<idle.core.darkmatter.DarkUpgrade> dark = DarkUpgrades.DEFAULT.stream().map(d -> !sans.contains(d.id()) ? d
+                : new idle.core.darkmatter.DarkUpgrade(d.id(), d.name(), d.branch(), jamais, d.costGrowth(), d.maxLevel(), d.requires(), d.effect(),
+                        d.fork())).toList();
+        return new Game(state, upgrades, Automations.DEFAULT, dark, Achievements.DEFAULT, new Random(seed));
+    }
+
+    /**
+     * Vrai pour une amélioration retirée du jeu ({@link #game(GameState, long, java.util.Set)}) : son prix est hors
+     * d'atteinte. Les politiques la sautent au lieu de l'attendre (version 0.164).
+     */
+    static boolean interdite(Game game, String upgradeId) {
+        return game.costOf(upgradeId).log10() > 1e12;
+    }
+
     /** Une partie neuve, démarrée, avec ce hasard. */
     static Game fresh(long seed) {
         Game game = game(new GameState(), seed);

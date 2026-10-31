@@ -124,7 +124,7 @@ public abstract class GameBrane extends GameLoop {
     public static final double BRANE_SPAWN_SECONDS = 2;
     /** Le rebond : ×1,5 au départ, +0,25 par niveau ; la suite : +10 % par point de plus, +5 points par niveau. */
     public static final double BRANE_BOUNCE = 1.5, BRANE_BOUNCE_STEP = 0.25, BRANE_COMBO = 0.1, BRANE_COMBO_STEP = 0.05;
-    /** L'automatisme tire une onde à fond toutes les {@value} secondes, au milieu des points. */
+    /** L'automatisme tire une onde à fond toutes les {@value} secondes, sur le point qui en touche le plus (version 0.163). */
     public static final double BRANE_AUTO_SECONDS = 3;
 
     private final java.util.Random braneRandom = new java.util.Random(6);
@@ -227,6 +227,27 @@ public abstract class GameBrane extends GameLoop {
         return true;
     }
 
+    /**
+     * Où l'automatisme tire (version 0.163) : sur le point d'où une onde à fond en touche le plus, directement ; au
+     * milieu de la membrane s'il n'y en a aucun. Avant, il tirait au centre des points : quand ils étaient plus écartés
+     * que la portée, l'onde n'en touchait aucun, aucun ne partait, aucun nouveau ne venait, et la brane s'arrêtait pour
+     * de bon. Viser un point en touche toujours au moins un.
+     */
+    double[] braneAutoAim() {
+        double reach = braneReach(1);
+        BranePoint best = null;
+        int most = -1;
+        for (BranePoint from : branePoints) {
+            int count = 0;
+            for (BranePoint to : branePoints) if (Math.hypot(to.x() - from.x(), to.y() - from.y()) <= reach) count++;
+            if (count > most) {
+                most = count;
+                best = from;
+            }
+        }
+        return best == null ? new double[] {0, 0} : new double[] {best.x(), best.y()};
+    }
+
     /** Pose un point : pour les essais. */
     public void addBranePoint(double x, double y) {
         if (branePoints.size() < BRANE_MAX_POINTS) branePoints.add(new BranePoint(x, y));
@@ -242,10 +263,20 @@ public abstract class GameBrane extends GameLoop {
     /**
      * La brane avance de {@code dt} secondes : un point apparaît à son rythme tant qu'il en manque ; chaque onde
      * grandit, touche les points que son front (ou l'un de ses rebonds) passe, et s'éteint à sa portée. L'automatisme
-     * de jeu tire une onde à fond au milieu des points, toutes les {@link #BRANE_AUTO_SECONDS} secondes.
+     * de jeu tire une onde à fond sur le point qui en touche le plus ({@link #braneAutoAim()}), toutes les {@link #BRANE_AUTO_SECONDS} secondes.
      */
     void runBrane(double dt) {
         if (!isBraneOpen() || dt <= 0) return;
+        // Version 0.163 : la tirée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert : d'un coup,
+        // l'onde et la tirée suivante ne s'enchaînaient pas pareil, et la brane rapportait de −17 % à +46 % selon le pas.
+        if (dt > PLANE_AUTO_STEP && isBraneAutomatic()) {
+            for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runBraneStep(Math.min(PLANE_AUTO_STEP, left));
+            return;
+        }
+        runBraneStep(dt);
+    }
+
+    private void runBraneStep(double dt) {
         braneSpawnTimer += dt;
         while (braneSpawnTimer >= BRANE_SPAWN_SECONDS && branePoints.size() < BRANE_MAX_POINTS) {
             braneSpawnTimer -= BRANE_SPAWN_SECONDS;
@@ -256,13 +287,8 @@ public abstract class GameBrane extends GameLoop {
             braneAutoTimer += dt;
             while (braneAutoTimer >= BRANE_AUTO_SECONDS && canPullBrane()) {
                 braneAutoTimer -= BRANE_AUTO_SECONDS;
-                double cx = 0, cy = 0;
-                for (BranePoint point : branePoints) {
-                    cx += point.x();
-                    cy += point.y();
-                }
-                int n = Math.max(1, branePoints.size());
-                pullBrane(cx / n, cy / n, 1);
+                double[] aim = braneAutoAim();
+                pullBrane(aim[0], aim[1], 1);
             }
             if (!canPullBrane()) braneAutoTimer = Math.min(braneAutoTimer, BRANE_AUTO_SECONDS);
         }

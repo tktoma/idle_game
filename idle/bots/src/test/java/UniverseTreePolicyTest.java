@@ -209,4 +209,29 @@ class UniverseTreePolicyTest {
         assertTrue(expert.lineBought > 0);
         assertTrue(game.state().dimensionShards() < 100);
     }
+
+    @Test
+    void laBulleDesRacinesAttendLOnziemeUnivers() {
+        Game ten = universes(10, true), eleven = universes(11, false);
+        assertTrue(UniverseTreePolicy.skipped(ten, TreeBubble.ROOTS), "avant l'univers 11 formé, pas de défi final");
+        assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.ROOTS), "après, le bot la prend (version 0.163)");
+        assertTrue(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai reste sautée");
+    }
+
+    @Test
+    void lOrdreDeLExpertFiniIlPrendLaBulleQuiReste() {
+        Game game = universes(11, false);
+        worldTree(game);
+        for (TreeBubble bubble : TreeBubble.values()) {
+            if (bubble != TreeBubble.ROOTS) game.state().setTreeBubbleLevel(bubble.ordinal(), bubble.maxLevel());
+        }
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), 1);
+        game.state().noteVoidHistory("11", 1e6);
+        assertTrue(UniverseTreePolicy.allBestDone(game));
+        assertTrue(game.isTreeBubbleOpen(TreeBubble.ROOTS));
+        UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
+        expert.buyBubbles(game);
+        assertTrue(game.isTreeBubbleBought(TreeBubble.ROOTS), "la bulle des racines, hors de la liste de l'expert");
+        assertTrue(game.isFinalChallengeOpen());
+    }
 }

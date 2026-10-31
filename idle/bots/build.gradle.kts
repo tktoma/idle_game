@@ -85,12 +85,14 @@ tasks.register<JavaExec>("bot") {
 
 // Version 0.161 : le bot analyste. Il joue comme le Speedrunner, à vitesse humaine (une décision toutes les 5 s), et écrit
 // dans le dossier choisi un journal à la seconde, ses tableaux (achats, paliers, estimations) et une page HTML.
-//   ./gradlew :bots:analyste                         onze univers, dans sorties/analyste
+//   ./gradlew :bots:analyste                         jusqu'à la fin (0.163 ; onze univers avant), dans sorties/analyste
 //   ./gradlew :bots:analyste -Punivers=1 -Pdossier=sorties/essai -Pheures=60 -Pgraine=201 -Ppas=5 -Pestimation=30
 //   ./gradlew :bots:analyste -Pcomparer=true         compare aussi six façons de jouer à chaque palier (bien plus long)
 // Version 0.162 : la rentabilité de chaque achat et son classement, le pourquoi des défis, succès, automatismes et
 // explosions, et les « et si » à chaque palier principal (un joueur qui passe une fois par minute, toutes les dix minutes).
 //   ./gradlew :bots:analyste -Petsi=false            sans les « et si » (environ deux fois plus rapide)
+// Version 0.163 : par défaut, il joue jusqu'à la fin de la partie (les dix paliers du défi final) ; -Punivers=11 s'arrête
+// à onze univers. -Pdepart=chemin/vers/une.save repart d'une sauvegarde (un palier d'une partie d'avant, par exemple).
 tasks.register<JavaExec>("analyste") {
     group = "application"
     description = "Le bot analyste : journal, achats, paliers, estimations et rapport HTML"
@@ -100,12 +102,43 @@ tasks.register<JavaExec>("analyste") {
     maxHeapSize = "2500m"
     args = listOf(
         providers.gradleProperty("dossier").orElse("sorties/analyste").get(),
-        providers.gradleProperty("univers").orElse("11").get(),
-        providers.gradleProperty("heures").orElse("200").get(),
+        providers.gradleProperty("univers").orElse("fin").get(),
+        providers.gradleProperty("heures").orElse("400").get(),
         providers.gradleProperty("graine").orElse("201").get(),
         providers.gradleProperty("pas").orElse("5").get(),
         providers.gradleProperty("estimation").orElse("30").get(),
         providers.gradleProperty("comparer").orElse("false").get(),
         providers.gradleProperty("etsi").orElse("true").get(),
+        providers.gradleProperty("depart").orElse("").get(),
+        providers.gradleProperty("sans").orElse("").get(),
     )
+}
+
+// Version 0.164 : sans une amélioration (-Psans=identifiant,identifiant), puis la comparaison de deux parties, et le bot
+// sur plusieurs graines.
+//   ./gradlew :bots:analyste -Psans=atom_keep -Pdossier=sorties/sans-persistance -Punivers=2
+//   ./gradlew :bots:comparer -Pa=sorties/analyste -Pb=sorties/sans-persistance -Psortie=sorties/comparaison
+//   ./gradlew :bots:graines -Pgraines=201,202,203 -Punivers=11 -Psortie=sorties/graines
+tasks.register<JavaExec>("comparer") {
+    group = "application"
+    description = "Compare deux parties du bot analyste, palier par palier"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "AnalyseComparaison"
+    workingDir = projectDir
+    args = listOf(
+        providers.gradleProperty("a").orElse("sorties/analyste").get(),
+        providers.gradleProperty("b").orElse("sorties/analyste-b").get(),
+        providers.gradleProperty("sortie").orElse("sorties/comparaison").get(),
+    )
+}
+
+tasks.register<JavaExec>("graines") {
+    group = "application"
+    description = "Le bot analyste sur plusieurs graines, et le résumé de chaque palier"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "AnalyseGraines"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(providers.gradleProperty("sortie").orElse("sorties/graines").get(), providers.gradleProperty("univers").orElse("11").get()) +
+        providers.gradleProperty("graines").orElse("201,202,203").get().split(",").map { it.trim() }
 }

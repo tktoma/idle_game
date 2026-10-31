@@ -362,7 +362,7 @@ final class HelpPane extends Overlay {
                 + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
                 + "bouton de la durée jusqu'au centre, relâche et recommence ; le rythme automatique clique « bien » à chaque "
                 + "passage d'un point de la boucle dans une zone, clic par clic ; la tirée automatique tire la membrane de "
-                + "la brane à fond, au milieu des points, toutes les " + ElementText.number(Game.BRANE_AUTO_SECONDS)
+                + "la brane à fond, sur le point qui en touche le plus, toutes les " + ElementText.number(Game.BRANE_AUTO_SECONDS)
                 + " secondes ; les clics automatiques cliquent " + ElementText.number(Game.CLICKER_AUTO_RATE) + " fois par "
                 + "seconde là où se superposent le plus de zones du clicker ; les essais automatiques essaient toutes "
                 + "les " + ElementText.number(Game.GRID_AUTO_SECONDS) + " secondes une case près d'un point de la grille ; "

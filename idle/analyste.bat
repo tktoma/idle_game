@@ -1,10 +1,11 @@
 @echo off
-rem Version 0.161 : le bot analyste. Un double-clic lance une partie de onze univers ; le rapport s'ouvre a la fin.
+rem Version 0.161 : le bot analyste. Un double-clic lance une partie jusqu'a la fin (version 0.163) ; le rapport s'ouvre a la fin.
 rem Avec des options : analyste.bat -Punivers=1 -Pdossier=sorties/essai (le dossier se compte depuis idle\bots).
 rem Version 0.162 : analyste.bat -Petsi=false va environ deux fois plus vite, sans les "et si".
+rem Version 0.163 : -Punivers=11 s'arrete a onze univers ; -Pdepart=chemin\une.save repart d'une sauvegarde.
 chcp 65001 >nul
 cd /d "%~dp0"
-echo Le bot analyste joue (onze univers : comptez deux a quatre heures)...
+echo Le bot analyste joue jusqu'a la fin de la partie (comptez plusieurs heures)...
 echo.
 call gradlew.bat :bots:analyste %*
 if errorlevel 1 (

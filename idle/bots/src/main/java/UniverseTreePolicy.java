@@ -79,12 +79,17 @@ final class UniverseTreePolicy {
      */
     static final boolean INSTANT_BUBBLE = Boolean.getBoolean("idle.bulleSansDelai");
 
+    /** Version 0.163 : le nombre d'univers formés après lequel les bots prennent la bulle des racines (le défi final). */
+    static final int ROOTS_AFTER = 11;
+
     /**
-     * Vrai pour une bulle que les bots n'achètent pas : celle des racines (le défi final, version 0.160 : les bots ne
-     * jouent pas les dimensions qui y mènent), et celle du bonsaï à droite (sauf demande).
+     * Vrai pour une bulle que les bots n'achètent pas : celle des racines (le défi final) tant que l'univers 11 n'est pas
+     * formé (version 0.163 : avant, jamais, les bots ne jouant pas les dimensions qui y mènent), et celle du bonsaï à
+     * droite (sauf demande).
      */
-    static boolean skipped(TreeBubble bubble) {
-        return bubble == TreeBubble.ROOTS || bubble == TreeBubble.LEAVES_RIGHT && !INSTANT_BUBBLE;
+    static boolean skipped(Game game, TreeBubble bubble) {
+        if (bubble == TreeBubble.ROOTS) return game.universes() < ROOTS_AFTER;
+        return bubble == TreeBubble.LEAVES_RIGHT && !INSTANT_BUBBLE;
     }
 
     /**
@@ -211,18 +216,26 @@ final class UniverseTreePolicy {
     /** La prochaine bulle de l'expert : la première de la liste pas encore au niveau voulu et ouverte, ou {@code null}. */
     static Step nextBest(Game game) {
         for (Step step : BEST_ORDER) {
-            if (skipped(step.bubble()) || game.treeBubbleLevel(step.bubble()) >= step.level()) continue;
+            if (skipped(game, step.bubble()) || game.treeBubbleLevel(step.bubble()) >= step.level()) continue;
             if (!game.isTreeBubbleOpen(step.bubble())) continue;
             return step;
         }
         return null;
     }
 
+    /** Vrai quand toutes les bulles de l'ordre de l'expert (hors celles qu'on saute) sont au niveau voulu. */
+    static boolean allBestDone(Game game) {
+        for (Step step : BEST_ORDER) {
+            if (!skipped(game, step.bubble()) && game.treeBubbleLevel(step.bubble()) < step.level()) return false;
+        }
+        return true;
+    }
+
     /** La bulle ouverte la moins chère qu'on peut payer, hors de celles de {@link #skipped}. */
     static TreeBubble cheapestBubble(Game game) {
         TreeBubble best = null;
         for (TreeBubble bubble : TreeBubble.values()) {
-            if (skipped(bubble) || !game.canBuyTreeBubble(bubble)) continue;
+            if (skipped(game, bubble) || !game.canBuyTreeBubble(bubble)) continue;
             if (best == null || game.treeBubbleCost(bubble) < game.treeBubbleCost(best)) best = bubble;
         }
         return best;
@@ -233,8 +246,9 @@ final class UniverseTreePolicy {
         for (int n = 0; n < 40; n++) {
             TreeBubble choice;
             if (style.plan() == Plan.BEST) {
+                // Version 0.163 : l'ordre de l'expert fini, les bulles qui restent (celle des racines), la moins chère d'abord.
                 Step next = nextBest(game);
-                choice = next == null ? null : next.bubble();
+                choice = next == null ? (allBestDone(game) ? cheapestBubble(game) : null) : next.bubble();
             } else {
                 choice = cheapestBubble(game);
             }
@@ -319,7 +333,8 @@ final class UniverseTreePolicy {
 
     /**
      * Les automatismes des dimensions (bulle du sommet), dans l'ordre du jeu ; le débit de l'arrosoir tant que la graine
-     * pousse ; puis la ligne au meilleur rapport.
+     * pousse ; les autres améliorations de la graine dès qu'elles sont payables (version 0.163) ; puis la ligne au
+     * meilleur rapport.
      */
     int line(Game game) {
         int done = 0;
@@ -335,6 +350,25 @@ final class UniverseTreePolicy {
         if (game.canTendSeed() && game.canBuySeedUpgrade(SeedUpgrade.WATERING) && game.buySeedUpgrade(SeedUpgrade.WATERING)) {
             seedBought++;
             done++;
+        }
+        // Version 0.163 : les autres améliorations de la graine, payées avec les ressources des dimensions, dès qu'elles
+        // sont payables (avant, les bots ne prenaient que le débit de l'arrosoir) ; la bulle des racines d'abord, puisqu'elle
+        // ouvre le défi final.
+        if (game.canBuySeedUpgrade(SeedUpgrade.ROOT_BUBBLE) && game.buySeedUpgrade(SeedUpgrade.ROOT_BUBBLE)) {
+            seedBought++;
+            done++;
+        }
+        for (int round = 0; round < 20; round++) {
+            boolean any = false;
+            for (SeedUpgrade upgrade : SeedUpgrade.values()) {
+                if (upgrade == SeedUpgrade.WATERING) continue;
+                if (game.canBuySeedUpgrade(upgrade) && game.buySeedUpgrade(upgrade)) {
+                    seedBought++;
+                    done++;
+                    any = true;
+                }
+            }
+            if (!any) break;
         }
         for (int n = 0; n < 50; n++) {
             LineUpgrade best = DimensionBots.bestLine(game);

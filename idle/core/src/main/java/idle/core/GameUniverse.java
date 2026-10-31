@@ -551,6 +551,23 @@ public abstract class GameUniverse extends GameAtoms {
      */
     void runPlane(double dt) {
         if (!isPlaneOpen() || dt <= 0) return;
+        // La visée automatique, sur un grand pas (une absence rejouée par pas de 10 s), se joue par morceaux, comme en jeu
+        // ouvert (version 0.163). Avant, un pas ne valait jamais plus d'un quart de seconde de course : sur un pas de 10 s, le
+        // point automatique avançait quarante fois moins vite, et le plan ne rapportait presque rien en absence.
+        if (dt > PLANE_AUTO_STEP && planeInputX == 0 && planeInputY == 0 && planeAutoDirection() != null) {
+            for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runPlaneStep(Math.min(PLANE_AUTO_STEP, left));
+            return;
+        }
+        runPlaneStep(dt);
+    }
+
+    /**
+     * Le morceau de temps des automatismes de jeu sur un grand pas (version 0.163) : celui du plan, du volume et de la
+     * brane. Assez court pour que le point du plan ne passe à côté d'aucun éclat ; en jeu ouvert, une image dure moins.
+     */
+    public static final double PLANE_AUTO_STEP = 0.05;
+
+    private void runPlaneStep(double dt) {
         planeSpawnTimer += dt;
         double every = planeSpawnSeconds();
         while (planeSpawnTimer >= every && planeShardsOnBoard.size() < planeMaxShards()) {
@@ -748,6 +765,17 @@ public abstract class GameUniverse extends GameAtoms {
      * qu'il en manque, et le minuteur descend ; à zéro, le cube rejette le joueur.
      */
     void runVolume(double dt) {
+        // Version 0.163 : la plongée automatique, sur un grand pas, se joue par morceaux, comme en jeu ouvert. D'un coup,
+        // un pas de 10 s (une absence rejouée) laissait expirer la plongée avant de replonger, et le volume rapportait
+        // moitié moins en absence.
+        if (dt > PLANE_AUTO_STEP && isVolumeAutomatic() && isVolumeOpen()) {
+            for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runVolumeStep(Math.min(PLANE_AUTO_STEP, left));
+            return;
+        }
+        runVolumeStep(dt);
+    }
+
+    private void runVolumeStep(double dt) {
         // La plongée automatique (version 0.150) : elle replonge dès qu'elle sort, et vise une boule à son rythme.
         if (isVolumeAutomatic() && isVolumeOpen() && dt > 0) {
             if (!inVolume) enterVolume();

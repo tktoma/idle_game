@@ -59,6 +59,9 @@ final class AnalyseRapport {
             h.append("</div>");
         }
 
+        // Version 0.164 : les illogismes, juste après le résultat.
+        illogismes(h, bot.illogismes);
+
         // La frise et les résumés.
         h.append("<h2>Frise de la partie</h2><div class=card>");
         frise(h, j.paliers, bot.temps());
@@ -214,7 +217,7 @@ final class AnalyseRapport {
         }
         double w = 1100, ht = 110, left = 10, right = 10;
         h.append("<svg viewBox=\"0 0 ").append((int) w).append(' ').append((int) ht).append("\" style=\"width:100%;height:auto\">");
-        double start = 0;
+        double start = 0, lastLabel = Double.NEGATIVE_INFINITY;
         int u = 1;
         for (AnalyseJournal.Palier p : paliers) {
             if (p.univers() != u || p == paliers.get(paliers.size() - 1)) {
@@ -222,7 +225,11 @@ final class AnalyseRapport {
                 double x0 = left + (w - left - right) * start / fin, x1 = left + (w - left - right) * end / fin;
                 h.append(String.format(Locale.ROOT, "<rect x=%.1f y=40 width=%.1f height=26 fill=\"%s\" opacity=.18 />", x0, Math.max(1, x1 - x0),
                         u % 2 == 0 ? "#2f8f5b" : "#2f6fdb"));
-                h.append(String.format(Locale.ROOT, "<text x=%.1f y=80>u%d</text>", x0 + 2, u));
+                // Version 0.163 : les univers rapides de la fin se suivent de près ; une étiquette seulement s'il y a la place.
+                if (x0 - lastLabel >= 34) {
+                    h.append(String.format(Locale.ROOT, "<text x=%.1f y=80>u%d</text>", x0 + 2, u));
+                    lastLabel = x0;
+                }
                 start = p.t();
                 u = p.univers();
             }
@@ -289,6 +296,39 @@ final class AnalyseRapport {
             out += " <span class=det>(" + (diff >= 0 ? "+" : "−") + AnalyseJournal.duree(Math.abs(diff)) + String.format(Locale.FRANCE, ", ×%.2f", secondes / reel) + ")</span>";
         }
         return out;
+    }
+
+    /** Les illogismes repérés, détecteur par détecteur, repliés ; ceux « à creuser » d'abord. */
+    private static void illogismes(StringBuilder h, List<AnalyseIllogismes.Illogisme> all) {
+        h.append("<h2>Illogismes repérés</h2><p class=sub>Dix détecteurs relisent la partie et signalent ce qui semble ne pas tourner "
+                + "rond. Un signalement n'est pas une preuve : c'est un endroit où regarder (le détail est aussi dans illogismes.txt).</p>");
+        if (all.isEmpty()) {
+            h.append("<div class=card>Rien à signaler.</div>");
+            return;
+        }
+        h.append("<div class=card>");
+        for (int n = 1; n < AnalyseIllogismes.NOMS.length; n++) {
+            final int numero = n;
+            List<AnalyseIllogismes.Illogisme> these = all.stream().filter(i -> i.numero() == numero)
+                    .sorted((a, b) -> a.gravite().compareTo(b.gravite())).toList();
+            h.append("<details").append(these.stream().anyMatch(i -> i.gravite() == AnalyseIllogismes.Gravite.CREUSER) ? " open" : "")
+                    .append("><summary><b>").append(n).append(". ").append(esc(AnalyseIllogismes.NOMS[n])).append("</b> — ")
+                    .append(these.isEmpty() ? "rien" : these.size() + " signalement" + (these.size() > 1 ? "s" : "")).append("</summary>");
+            int shown = 0;
+            for (AnalyseIllogismes.Illogisme i : these) {
+                // Les quinze premiers ; le reste dans illogismes.txt.
+                if (shown++ == 15) {
+                    h.append("<div class=det style=\"margin:6px 0 6px 18px\">… et ").append(these.size() - 15).append(" autres dans illogismes.txt.</div>");
+                    break;
+                }
+                h.append("<div style=\"margin:6px 0 6px 18px\"><span class=").append(i.gravite() == AnalyseIllogismes.Gravite.CREUSER ? "bad" : "sub")
+                        .append('>').append(esc(i.gravite().label)).append("</span> ").append(esc(i.titre()));
+                for (String d : i.details()) h.append("<div class=det>").append(esc(d)).append("</div>");
+                h.append("</div>");
+            }
+            h.append("</details>");
+        }
+        h.append("</div>");
     }
 
     private static void kpi(StringBuilder h, String value, String label) {

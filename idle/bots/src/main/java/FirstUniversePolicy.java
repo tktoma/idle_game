@@ -21,8 +21,9 @@ final class FirstUniversePolicy {
     private FirstUniversePolicy() {}
 
     static boolean needsPersistence(Game game) {
+        // Version 0.164 : une Persistance retirée du jeu ne s'attend pas.
         return game.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS)
-                && !game.keepsUpgradesOnFusion();
+                && !game.keepsUpgradesOnFusion() && !Bots.interdite(game, "atom_keep");
     }
 
     static boolean skyReady(Game game) {
@@ -115,7 +116,8 @@ final class FirstUniversePolicy {
 
     static boolean done(Game game, Step step) {
         return switch (step.kind()) {
-            case UPGRADE -> game.levelOf(step.id()) >= step.level() || game.isMaxed(step.id());
+            // Version 0.164 : une amélioration retirée du jeu compte comme faite, le plan passe à la suite.
+            case UPGRADE -> game.levelOf(step.id()) >= step.level() || game.isMaxed(step.id()) || Bots.interdite(game, step.id());
             case AUTOMATION -> game.ownsAutomation(step.id());
             case CADENCE -> game.automationSpeedLevel(step.id()) >= step.level()
                     || (game.ownsAutomation(step.id()) && game.isAutomationMaxed(step.id()));
