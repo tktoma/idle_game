@@ -205,9 +205,18 @@ public abstract class GameBase {
      * et leurs récompenses par {@link #BANG_UNIVERSE_PROBE_REWARDS}. Les bonus se multiplient d'un défi à l'autre ;
      * les trois réussis, chaque planète peut aussi entrer dans deux systèmes solaires.
      */
-    public static final double BANG_UNIVERSE_PARTICLES = 2, BANG_UNIVERSE_MOLECULES = 2, BANG_UNIVERSE_MATURATION = 4,
+    public static final double BANG_UNIVERSE_PARTICLES = 2, BANG_UNIVERSE_MOLECULES = 2,
             // Les sondes, ramenées à ×2 en 0.118 (×4 et ×10 avant).
             BANG_UNIVERSE_PROBE_SPEED = 2, BANG_UNIVERSE_PROBE_REWARDS = 2;
+
+    /**
+     * La maturation, par défi de Big Bang réussi, depuis le deuxième univers : la racine cubique de 2,5 (version 0.166 ;
+     * 4 avant). Avec les trois défis que fait le Speedrunner et la récompense « maturation » de la barre haute (×2), les
+     * astres mûrissent cinq fois plus vite que dans le premier univers, et non plus cent vingt-huit : le trou noir
+     * supermassif y met 72 minutes au lieu de 2 min 49, la galaxie redevient une étape, et les autres bonus de maturation
+     * (le vide, les places, les impulsions) comptent de nouveau.
+     */
+    public static final double BANG_UNIVERSE_MATURATION = Math.cbrt(2.5);
 
     /** Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. */
     public int universeBangChallenges() {
@@ -268,9 +277,21 @@ public abstract class GameBase {
         return raisedBar() ? BIG_BANG_ATOMS.multiply(idle.core.bigbang.BangChallenge.RAISED_ATOMS) : BIG_BANG_ATOMS;
     }
 
-    /** La matière noire en réserve que demande le Big Bang : plus pendant la barre haute. */
+    /**
+     * La réserve du tout premier Big Bang de la partie (version 0.166) : celui de l'acte 2 du premier univers. Avec 500,
+     * quatre conditions sur cinq étaient réunies vers 5 h et le joueur attendait ensuite 4 h les seules particules ; avec
+     * cette réserve, qui se remplit d'environ 43 000 à l'heure à ce moment, la dernière attente est d'environ une heure,
+     * sans changer l'heure du Big Bang.
+     */
+    public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(120_000);
+
+    /**
+     * La matière noire en réserve que demande le Big Bang : plus pour le tout premier (version 0.166), et plus pendant la
+     * barre haute.
+     */
     public BigNum bigBangDarkMatter() {
-        return raisedBar() ? BIG_BANG_DARK_MATTER.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : BIG_BANG_DARK_MATTER;
+        BigNum need = !state.universeFormed() && state.bigBangs() == 0 ? FIRST_BIG_BANG_DARK_MATTER : BIG_BANG_DARK_MATTER;
+        return raisedBar() ? need.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : need;
     }
 
     /** Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les soixante-sept du jeu. */

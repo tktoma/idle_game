@@ -100,10 +100,11 @@ class UniverseTreePolicyTest {
     void lExpertAcheteSesBullesDansLOrdreEtEconomisePourLaSuivante() {
         Game game = universes(3, true);
         worldTree(game);
-        game.state().noteVoidHistory("3", 7_500);
+        // Version 0.166 : les prix suivent l'énergie gardée ; le test se règle sur eux.
+        game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_LEFT.costAt(0) + TreeBubble.LEAVES_LEFT.costAt(1) + 500);
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
         expert.play(game);
-        // La base 1 000, ×2 sur le vide 2 000 puis ×4 4 000 ; l'arbuste au milieu (4 000) attend.
+        // La base, puis deux niveaux de ×2 sur le vide ; l'arbuste au milieu attend.
         assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
         assertEquals(2, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
         assertFalse(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT), "la bulle sans délai n'est pas achetée");
@@ -111,9 +112,9 @@ class UniverseTreePolicyTest {
         assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_LEFT), "il garde pour la suivante de sa liste, pas pour une autre");
         assertEquals(500, game.voidAvailable(), 1e-9);
         assertEquals(TreeBubble.CROWN_MIDDLE, UniverseTreePolicy.nextBest(game).bubble());
-        game.state().noteVoidHistory("4", 9_500);
+        game.state().noteVoidHistory("4", TreeBubble.CROWN_MIDDLE.cost() + TreeBubble.YOUNG_RIGHT.cost() - 500);
         expert.play(game);
-        // L'arbuste au milieu 4 000, le jeune arbre à droite 6 000 : il rouvre l'arbuste à droite, qui passe devant.
+        // L'arbuste au milieu, puis le jeune arbre à droite : il rouvre l'arbuste à droite, qui passe devant.
         assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_MIDDLE));
         assertTrue(game.isTreeBubbleBought(TreeBubble.YOUNG_RIGHT));
         assertEquals(TreeBubble.CROWN_RIGHT, UniverseTreePolicy.nextBest(game).bubble());
@@ -140,10 +141,11 @@ class UniverseTreePolicyTest {
         Game game = universes(3, true);
         worldTree(game);
         own(game, TreeBubble.SEED, TreeBubble.LEAVES_LEFT, TreeBubble.LEAVES_RIGHT);
-        game.state().noteVoidHistory("3", 4_000);
+        double cheapest = Math.min(TreeBubble.LEAVES_LEFT.costAt(1), TreeBubble.CROWN_LEFT.cost());
+        game.state().noteVoidHistory("3", cheapest);
         UniverseTreePolicy policy = new UniverseTreePolicy(new UniverseTreePolicy.Style(1, UniverseTreePolicy.Plan.CHEAPEST), new NoRandom());
         policy.buyBubbles(game);
-        // Ouvertes : ×2 sur le vide (niveau 2, 4 000) et les trois bulles de l'arbuste (4 000) : la première trouvée.
+        // Ouvertes : ×2 sur le vide (niveau 2) et les trois bulles de l'arbuste : la moins chère, une seule.
         assertEquals(1, policy.bubbles);
         assertEquals(0, game.voidAvailable(), 1e-9);
         assertTrue(UniverseTreePolicy.cheapestBubble(game) == null);

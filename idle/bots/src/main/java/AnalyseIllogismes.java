@@ -28,7 +28,10 @@ import java.util.Set;
  *   <li>une estimation ratée : l'annonce se trompe de plus d'un quart du temps de l'étape, et d'au moins 5 min ;</li>
  *   <li>un automatisme que le bot coupe sans cesse (plus de 20 fois) ;</li>
  *   <li>une ressource gagnée, jamais dépensée par un achat ;</li>
- *   <li>un gros multiplicateur sans effet : trois achats ou plus à ×1 000 ou plus, et pas une seconde gagnée en tout.</li>
+ *   <li>un gros multiplicateur sans effet : trois achats ou plus à ×1 000 ou plus, et pas une seconde gagnée en tout ;</li>
+ *   <li>version 0.166 : une réserve qui dort, plus de dix fois au-dessus de ce qu'elle peut payer pendant plus d'une heure
+ *       ({@link AnalyseSuivi}) ;</li>
+ *   <li>version 0.166 : un palier bloqué par une seule condition pendant plus d'une heure.</li>
  * </ol>
  */
 final class AnalyseIllogismes {
@@ -51,7 +54,7 @@ final class AnalyseIllogismes {
 
     static final String[] NOMS = {"", "Joueur moins présent plus rapide", "Achat jamais rentable", "Amélioration jamais achetée",
         "Défi trivial", "Rafale de succès", "Étape éclair ou interminable", "Estimation ratée", "Automatisme en va-et-vient",
-        "Ressource jamais dépensée", "Gros multiplicateur sans effet"};
+        "Ressource jamais dépensée", "Gros multiplicateur sans effet", "Réserve qui dort", "Une seule condition qui manque"};
 
     /** Tous les détecteurs, sur ce que le bot a vu. */
     static List<Illogisme> detecter(BotAnalyste bot) {
@@ -158,6 +161,17 @@ final class AnalyseIllogismes {
                     + " achats qui multiplient une grandeur par mille ou plus, et, tous achats réunis, pas une seconde gagnée vers les "
                     + "paliers : la grandeur qu'ils multiplient ne mène à rien ici.")));
         });
+        // 11 et 12 (version 0.166) : ce que le suivi a vu en continu.
+        for (AnalyseSuivi.Episode e : bot.suivi.reserves) {
+            out.add(new Illogisme(11, NOMS[11], Gravite.CREUSER, "Univers " + e.univers() + " : " + e.quoi() + " pendant " + AnalyseJournal.duree(e.duree()),
+                    List.of("De " + AnalyseJournal.chrono(e.debut()) + " à " + AnalyseJournal.chrono(e.fin()) + ", " + e.detail() + ".",
+                            "Une réserve qui ne trouve rien à payer : soit il manque de quoi la dépenser, soit ce qu'elle doit payer est trop bon marché.")));
+        }
+        for (AnalyseSuivi.Episode e : bot.suivi.uneCondition) {
+            out.add(new Illogisme(12, NOMS[12], Gravite.CREUSER, "Univers " + e.univers() + " : " + e.quoi() + " pendant " + AnalyseJournal.duree(e.duree()),
+                    List.of("De " + AnalyseJournal.chrono(e.debut()) + " à " + AnalyseJournal.chrono(e.fin()) + ", " + e.detail() + ".",
+                            "Tout le reste est prêt : le joueur n'attend qu'une chose, et rien de ce qu'il a en trop ne l'aide.")));
+        }
         return out;
     }
 
@@ -171,7 +185,7 @@ final class AnalyseIllogismes {
 
     /** Les signalements en texte et en tableau : illogismes.txt et illogismes.csv. */
     static void ecrire(List<Illogisme> illogismes, Path dossier) throws Exception {
-        StringBuilder txt = new StringBuilder("Illogismes repérés par le bot analyste (version 0.164) : " + illogismes.size() + "\n\n");
+        StringBuilder txt = new StringBuilder("Illogismes repérés par le bot analyste : " + illogismes.size() + "\n\n");
         StringBuilder csv = new StringBuilder("numero,detecteur,gravite,titre,detail\n");
         for (int n = 1; n < NOMS.length; n++) {
             final int numero = n;

@@ -1,4 +1,5 @@
 import idle.core.Game;
+import idle.core.GameUniverse;
 import idle.core.GameUniverse.VoidUpgrade;
 import java.util.ArrayList;
 import java.util.List;
@@ -204,11 +205,25 @@ final class VoidPolicy {
                 && game.voidMassAfterSacrifice() - game.voidMass() >= SACRIFICE_MIN_GAIN;
     }
 
+    /**
+     * Vrai quand l'énergie du vide se garde pour les bulles de l'arbre (version 0.166) : la galaxie formée, il ne reste à
+     * l'univers que le rassemblement, et tant que la bulle du géant (à gauche, en bas) n'a pas rendu le vide permanent, ce
+     * qui reste à la formation de l'univers paie les bulles. Le bot n'achète plus alors que les raccourcis (maturation,
+     * rassemblement, allègement), qui raccourcissent ce qui reste. Avant, il achetait jusqu'au bout des croissances à
+     * plusieurs millions, perdues à la formation : avec les bulles au prix de l'énergie gardée (moteur 0.166), il ne lui
+     * restait presque rien pour elles.
+     */
+    static boolean savingForBubbles(Game game) {
+        return game.isUniverseFormed() && game.universes() >= 2 && !game.isTreeBubbleBought(GameUniverse.TreeBubble.GIANT_LEFT_LOW)
+                && RobotCosmosPlanner.cosmosStage(game) >= 1;
+    }
+
     /** Les achats d'une décision, selon le plan du joueur. */
     int buy(Game game) {
         int done = 0;
+        boolean saving = savingForBubbles(game);
         for (int n = 0; n < 50; n++) {
-            VoidUpgrade choice = switch (style.plan()) {
+            VoidUpgrade choice = saving ? cheapest(game, SHORTENERS) : switch (style.plan()) {
                 case BEST -> best(game);
                 case CHEAPEST -> cheapest(game, List.of(VoidUpgrade.values()));
                 case RANDOM -> anyAffordable(game);

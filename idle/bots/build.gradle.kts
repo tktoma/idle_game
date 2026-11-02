@@ -111,6 +111,7 @@ tasks.register<JavaExec>("analyste") {
         providers.gradleProperty("etsi").orElse("true").get(),
         providers.gradleProperty("depart").orElse("").get(),
         providers.gradleProperty("sans").orElse("").get(),
+        providers.gradleProperty("profil").orElse("speedrunner").get(),
     )
 }
 
@@ -141,4 +142,19 @@ tasks.register<JavaExec>("graines") {
     maxHeapSize = "2500m"
     args = listOf(providers.gradleProperty("sortie").orElse("sorties/graines").get(), providers.gradleProperty("univers").orElse("11").get()) +
         providers.gradleProperty("graines").orElse("201,202,203").get().split(",").map { it.trim() }
+}
+
+// Version 0.166 : ce que vaut chaque amélioration durable du premier univers, mesuré par une partie sans elle.
+//   ./gradlew :bots:durables -Psortie=sorties/durables                 les neuf améliorations payées en atomes
+//   ./gradlew :bots:durables -Psortie=sorties/durables -Pids=atom_keep  une seule
+// Et les autres joueurs du bot analyste : -Pprofil=regulier (une décision par minute) ou -Pprofil=absent (cinq minutes
+// par heure, le jeu fermé entre deux).
+tasks.register<JavaExec>("durables") {
+    group = "application"
+    description = "Le premier univers sans chaque amélioration durable : ce que vaut chacune"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "AnalyseDurables"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(providers.gradleProperty("sortie").orElse("sorties/durables").get(), providers.gradleProperty("ids").orElse("").get())
 }

@@ -42,7 +42,7 @@ class BullesEffetsTest {
     }
 
     @Test
-    void deuxBullesSeRachetentCinqFoisEtCoutentDeuxFoisPlusAChaqueNiveau() throws Exception {
+    void deuxBullesSeRachetentCinqFoisEtCoutentPlusAChaqueNiveau() throws Exception {
         assertEquals(5, TreeBubble.LEAVES_LEFT.maxLevel());
         assertEquals(5, TreeBubble.GIANT_LEFT_HIGH.maxLevel());
         for (TreeBubble bubble : TreeBubble.values()) {
@@ -54,13 +54,15 @@ class BullesEffetsTest {
         assertFalse(game.buyTreeBubble(TreeBubble.SEED), "la base ne s'achète qu'une fois");
         double spent = game.state().voidSpent();
         for (int level = 1; level <= 5; level++) {
-            assertEquals(2_000 * Math.pow(2, level - 1), game.treeBubbleCost(TreeBubble.LEAVES_LEFT), 1e-9, "niveau " + level);
+            assertEquals(TreeBubble.LEAVES_LEFT.cost() * Math.pow(TreeBubble.LEVEL_GROWTH, level - 1), game.treeBubbleCost(TreeBubble.LEAVES_LEFT), 1e-9, "niveau " + level);
             assertTrue(game.buyTreeBubble(TreeBubble.LEAVES_LEFT), "niveau " + level);
             assertEquals(level, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
         }
         assertTrue(game.isTreeBubbleMaxed(TreeBubble.LEAVES_LEFT));
         assertFalse(game.canBuyTreeBubble(TreeBubble.LEAVES_LEFT), "pas de sixième niveau");
-        assertEquals(spent + 2_000 * 31, game.state().voidSpent(), 1e-6, "2 000 + 4 000 + … + 32 000");
+        double total = 0;
+        for (int k = 0; k < 5; k++) total += TreeBubble.LEAVES_LEFT.cost() * Math.pow(2.5, k);
+        assertEquals(spent + total, game.state().voidSpent(), 1e-6, "le prix, puis ×2,5 à chaque niveau, cinq fois");
         // Le niveau se sauvegarde ; une sauvegarde d'avant (le champ de bits seul) relit chaque bulle au niveau 1.
         GameState back = GameTestSupport.reread(game.state());
         assertEquals(5, back.treeBubbleLevel(TreeBubble.LEAVES_LEFT.ordinal()));

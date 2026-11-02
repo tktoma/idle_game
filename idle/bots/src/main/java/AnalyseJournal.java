@@ -63,8 +63,16 @@ final class AnalyseJournal {
      */
     record EtSi(double t, int univers, String depuis, String vise, double parMinute, double parDixMinutes, double reel) {}
 
-    /** Un palier atteint : quand, lequel, le temps depuis le précédent, et le moment que la dernière estimation annonçait (NaN sans). */
-    record Palier(double t, int univers, String nom, double depuis, double annonce) {}
+    /**
+     * Un palier atteint : quand, lequel, le temps depuis le précédent, et le moment que la dernière estimation annonçait
+     * (NaN sans). Version 0.166 : le temps réel, le temps en ligne et le temps de jeu compté hors ligne à ce moment
+     * (NaN si inconnus), et sa cause.
+     */
+    record Palier(double t, int univers, String nom, double depuis, double annonce, double reel, double enLigne, double horsLigne, String cause) {
+        Palier(double t, int univers, String nom, double depuis, double annonce) {
+            this(t, univers, nom, depuis, annonce, Double.NaN, Double.NaN, Double.NaN, "");
+        }
+    }
 
     /** Un choix de façon de jouer (version 0.162) : quand, pour quel palier, laquelle, et le temps de chacune (en secondes, −1 : pas atteint). */
     record Choix(double t, String vise, String retenue, List<String> temps) {}
@@ -129,6 +137,49 @@ final class AnalyseJournal {
         return out;
     }
 
+    /**
+     * La charge de décisions d'un univers (version 0.166) : sa durée, les décisions (les pas où le bot a acheté quelque
+     * chose, un lot comptant pour une), les décisions utiles (celles dont les achats font gagner au moins une seconde
+     * vers un palier), et le temps réel, en ligne et hors ligne qu'il a pris (NaN si inconnus).
+     */
+    record Charge(int univers, double duree, int decisions, int utiles, double reel, double enLigne) {
+        double parHeure() {
+            return duree > 0 ? decisions / (duree / 3600) : Double.NaN;
+        }
+
+        double utilesParHeure() {
+            return duree > 0 ? utiles / (duree / 3600) : Double.NaN;
+        }
+    }
+
+    /** La charge de décisions, univers par univers : de la formation du précédent à la sienne (ou au dernier palier). */
+    List<Charge> charges() {
+        List<Charge> out = new ArrayList<>();
+        if (paliers.isEmpty()) return out;
+        int dernier = paliers.get(paliers.size() - 1).univers();
+        // Une partie reprise d'une sauvegarde commence au moment de la sauvegarde, pas à zéro.
+        Palier premier = paliers.get(0);
+        double debut = premier.t() - premier.depuis(), debutReel = 0, debutLigne = 0;
+        for (int u = premier.univers(); u <= dernier; u++) {
+            final int univers = u;
+            Palier fin = null;
+            for (Palier x : paliers) if (x.univers() == u && x.nom().startsWith("Univers " + u + " formé")) fin = x;
+            if (fin == null) fin = paliers.stream().filter(x -> x.univers() == univers).reduce((a, b) -> b).orElse(null);
+            if (fin == null) continue;
+            final double from = debut, to = fin.t();
+            Map<Double, Double> parPas = new LinkedHashMap<>();
+            for (Achat a : achats) {
+                if (a.t() > from && a.t() <= to) parPas.merge(a.t(), Double.isFinite(a.gainSecondes()) ? a.gainSecondes() : 0, Double::sum);
+            }
+            int utiles = (int) parPas.values().stream().filter(g -> g >= 1).count();
+            out.add(new Charge(u, to - from, parPas.size(), utiles, fin.reel() - debutReel, fin.enLigne() - debutLigne));
+            debut = to;
+            debutReel = Double.isFinite(fin.reel()) ? fin.reel() : 0;
+            debutLigne = Double.isFinite(fin.enLigne()) ? fin.enLigne() : 0;
+        }
+        return out;
+    }
+
     private static String csv(String value) {
         return "\"" + String.valueOf(value).replace("\"", "\"\"") + "\"";
     }
@@ -150,11 +201,12 @@ final class AnalyseJournal {
                     x.poidsMax(), x.gainSecondes(), nombre(x.coutSecondes()), nombre(x.rentabilite())));
         }
         Files.writeString(dossier.resolve("achats.csv"), a.toString());
-        StringBuilder p = new StringBuilder("chrono,secondes,univers,palier,depuis_precedent_s,annonce_pour_s,ecart_s\n");
+        StringBuilder p = new StringBuilder("chrono,secondes,univers,palier,depuis_precedent_s,annonce_pour_s,ecart_s,reel_s,en_ligne_s,hors_ligne_compte_s,cause\n");
         for (Palier x : paliers) {
             String annonce = Double.isNaN(x.annonce()) ? "," // pas d'annonce pour ce palier : deux cases vides
                     : String.format(Locale.ROOT, "%.0f,%.0f", x.annonce(), x.t() - x.annonce());
-            p.append(String.format(Locale.ROOT, "%s,%.0f,%d,%s,%.0f,%s%n", chrono(x.t()), x.t(), x.univers(), csv(x.nom()), x.depuis(), annonce));
+            p.append(String.format(Locale.ROOT, "%s,%.0f,%d,%s,%.0f,%s,%s,%s,%s,%s%n", chrono(x.t()), x.t(), x.univers(), csv(x.nom()), x.depuis(), annonce,
+                    nombre(x.reel()), nombre(x.enLigne()), nombre(x.horsLigne()), csv(x.cause())));
         }
         Files.writeString(dossier.resolve("paliers.csv"), p.toString());
         StringBuilder e = new StringBuilder("chrono,secondes,palier_vise,estime_s,goulot\n");
@@ -180,6 +232,12 @@ final class AnalyseJournal {
                     nombre(x.reel()), nombre(x.parMinute()), nombre(x.parDixMinutes())));
         }
         Files.writeString(dossier.resolve("etsi.csv"), w.toString());
+        StringBuilder d = new StringBuilder("univers,duree_s,decisions,decisions_utiles,decisions_par_heure,utiles_par_heure,reel_s,en_ligne_s\n");
+        for (Charge x : charges()) {
+            d.append(String.format(Locale.ROOT, "%d,%.0f,%d,%d,%s,%s,%s,%s%n", x.univers(), x.duree(), x.decisions(), x.utiles(), nombre(x.parHeure()),
+                    nombre(x.utilesParHeure()), nombre(x.reel()), nombre(x.enLigne())));
+        }
+        Files.writeString(dossier.resolve("decisions.csv"), d.toString());
     }
 
     /** Un nombre pour le CSV : vide s'il est inconnu (NaN) ou infini, négatif s'il n'a pas été atteint. */

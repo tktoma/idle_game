@@ -382,10 +382,25 @@ final class FirstUniversePolicy {
     /** Part de la matière noire en main qu'un niveau répétable de la boutique peut coûter. */
     static final double SHOP_REPEAT_SHARE = 0.05;
 
-    /** Vrai quand la matière noire du Big Bang se garde : tous ses autres prérequis en matière noire sont réunis. */
+    /**
+     * Vrai quand la matière noire du Big Bang se garde : tous ses autres prérequis en matière noire sont réunis, et les
+     * particules en sont à {@value #SAVE_FROM_PARTICLES} de leur seuil en ordres de grandeur (version 0.166). Avant, le bot
+     * gardait dès que les défis et les succès étaient là ; avec la réserve de 120 000 du premier Big Bang, il n'achetait
+     * plus rien dans l'arbre pendant 3 h, et le Big Bang reculait de 42 min.
+     */
     static boolean savingForBigBang(Game game) {
         return game.bigBangs() < Bots.LAST_BIG_BANG && game.baseChallengesDone()
-                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS;
+                && game.achievementCount() >= Game.BIG_BANG_ACHIEVEMENTS && particlesNear(game);
+    }
+
+    /** La part des ordres de grandeur de particules à partir de laquelle la réserve du Big Bang se garde. */
+    static final double SAVE_FROM_PARTICLES = 0.9;
+
+    /** Vrai quand la condition des particules est remplie, ou à {@link #SAVE_FROM_PARTICLES} de l'être. */
+    static boolean particlesNear(Game game) {
+        if (game.isBigBangConditionMet(BigBangCondition.PARTICLES)) return true;
+        double have = game.darkBalance(DarkUpgrade.Branch.PARTICLES).log10(), need = game.bigBangParticles().log10();
+        return need <= 0 || (Double.isFinite(have) && have >= SAVE_FROM_PARTICLES * need);
     }
 
     /**

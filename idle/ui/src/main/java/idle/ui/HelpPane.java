@@ -156,7 +156,9 @@ final class HelpPane extends Overlay {
                     + "matières noires : seuls les prix rythment l'arbre. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste. Au bout de l'arbre, les "
                     + game.bigBangConditions().size() + " conditions du prochain Big Bang, une fois réunies, le "
-                    + "déclenchent. Exploser nettement plus vite que la fois d'avant (en moins de "
+                    + "déclenchent ; le tout premier demande une grande réserve de matière noire ("
+                    + ElementText.number(Game.FIRST_BIG_BANG_DARK_MATTER.toDouble()) + "), les suivants "
+                    + ElementText.number(Game.BIG_BANG_DARK_MATTER.toDouble()) + ". Exploser nettement plus vite que la fois d'avant (en moins de "
                     + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."));
         }
         if (game.isBigBangUnlocked()) {
@@ -243,9 +245,10 @@ final class HelpPane extends Overlay {
                 + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
-                + "racines. Un clic achète une bulle avec l'énergie du vide accumulée, une fois achetée une bulle reliée à elle "
+                + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
+                + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
                 + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants. Deux "
-                + "se rachètent cinq fois, deux fois plus cher à chaque niveau ; celle des racines s'achète déjà, son effet "
+                + "se rachètent cinq fois, 2,5 fois plus cher à chaque niveau ; celle des racines s'achète déjà, son effet "
                 + "viendra plus tard. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
                 + "éclats en passant dessus."

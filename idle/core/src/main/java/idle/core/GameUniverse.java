@@ -1279,50 +1279,52 @@ public abstract class GameUniverse extends GameAtoms {
      * <p>L'ordre des bulles est celui de la sauvegarde (un bit par bulle) : les nouvelles s'ajoutent à la fin.
      */
     public enum TreeBubble {
-        // Les prix : le Speedrunner garde environ 4 500 d'énergie du vide à la formation de l'univers 3 (mesuré à la
-        // 0.142) ; de quoi payer la base et une bulle du bonsaï. Ensuite, environ ×1,5 par palier (choix arbitraire).
-        // Les effets (version 0.148) ; les bulles qui se rachètent coûtent deux fois plus à chaque niveau.
-        SEED(4, "Bulle de la graine", 1_000, 1,
+        // Les prix (version 0.166) : les bulles qui naissent à un palier de la graine coûtent ensemble environ 1,4 fois
+        // l'énergie du vide que le Speedrunner a gardée à la formation de l'univers d'avant (mesuré sur la partie de
+        // référence, graine 201). Il ne peut pas toutes les prendre d'un coup : il choisit, et garde pour la suite. Avant,
+        // environ ×1,5 par palier à partir de 1 000 : à l'univers 5, l'énergie gardée valait déjà cent fois les prix.
+        // Les effets (version 0.148) ; les bulles qui se rachètent coûtent 2,5 fois plus à chaque niveau (version 0.166).
+        SEED(4, "Bulle de la graine", 5_200, 1,
                 "+1 place de maturation des astres par dimension ouverte"),
-        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 2_000, 5,
+        LEAVES_LEFT(5, "Bulle du bonsaï, à gauche", 10_400, 5,
                 "×2 sur l'énergie du vide gagnée, par niveau", 0),
-        LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 2_000, 1,
+        LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 10_400, 1,
                 "Les automatismes agissent sans délai et achètent tout ce qu'ils peuvent", 0),
-        CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 4_000, 1,
+        CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 21_400, 1,
                 "Le collisionneur est ouvert dès le début de l'univers", 1),
-        CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 4_000, 1,
+        CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 21_400, 1,
                 "L'onglet des hadrons se propose dans le collisionneur, comme le vide", 1, 2),
-        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 4_000, 1,
+        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 21_400, 1,
                 "Persistance dès le début, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
-        YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 6_000, 1,
+        YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 32_100, 1,
                 "Les hadrons sont ouverts dès le début de l'univers, sans les payer", 3, 4),
-        YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 6_000, 1,
+        YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 32_100, 1,
                 "Plus de plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite", 4, 5),
-        MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 9_000, 1,
+        MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 32_100, 1,
                 "Le collisionneur traverse les univers : toujours ouvert, jamais remis à zéro", 3, 6),
-        MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 9_000, 1,
+        MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 32_100, 1,
                 "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
-        ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 13_000, 1,
+        ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 7_900, 1,
                 "Les hadrons traversent les univers : jamais remis à zéro", 6, 8),
-        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 13_000, 1,
+        ANCIENT_RIGHT(9, "Bulle de l'arbre ancien, à droite", 7_900, 1,
                 "Les astres n'ont plus besoin de mûrir", 7, 9),
-        GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 20_000, 5,
+        GIANT_LEFT_HIGH(10, "Bulle de l'arbre géant, tout à gauche", 12_100, 5,
                 "5 % de l'énergie du vide gagnée vont aussi, chaque seconde, au cumul des bulles, par niveau", 10),
-        GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 20_000, 1,
+        GIANT_LEFT_LOW(10, "Bulle de l'arbre géant, à gauche, en bas", 12_100, 1,
                 "Le vide traverse les univers : toujours ouvert, jamais remis à zéro", 8, 12),
-        GIANT_RIGHT_HIGH(10, "Bulle de l'arbre géant, tout à droite", 20_000, 1,
+        GIANT_RIGHT_HIGH(10, "Bulle de l'arbre géant, tout à droite", 12_100, 1,
                 "De la matière noire chaque seconde selon les atomes, sans exploser", 11),
-        GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 20_000, 1,
+        GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 12_100, 1,
                 "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
-        ROOTS(11, "Bulle des racines", 30_000, 1,
+        ROOTS(11, "Bulle des racines", 69_300, 1,
                 "Le défi final : un palier à atteindre dans chaque dimension ; les dix atteints, la partie est finie", 0, 13, 15),
-        HEART(11, "Bulle de l'arbre-monde, au cœur", 30_000, 1,
+        HEART(11, "Bulle de l'arbre-monde, au cœur", 69_300, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
-        SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 30_000, 1,
+        SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 69_300, 1,
                 "L'automatisation des dimensions : des automatismes qui les jouent et achètent leurs améliorations", 10, 11, 17);
 
-        /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2. */
-        public static final double LEVEL_GROWTH = 2;
+        /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2,5 (version 0.166 ; ×2 avant). */
+        public static final double LEVEL_GROWTH = 2.5;
 
         private final int stage;
         private final String label;

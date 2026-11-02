@@ -210,7 +210,8 @@ class DeuxiemeUniversTest {
 
     @Test
     void lesDefisDeBigBangDuDeuxiemeUniversAccelerentLeTroisiemeActe() {
-        // Version 0.116 : ×2 particules, ×4 maturation, par défi ; 0.118 : sondes ×2 et ×2, plus d'espace.
+        // Version 0.116 : ×2 particules, ×4 maturation, par défi ; 0.118 : sondes ×2 et ×2, plus d'espace ; 0.166 : maturation
+        // ×2,5^(1/3) par défi (×5 avec les trois défis et la barre haute).
         Game first = GameTestSupport.realGame();
         first.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
         assertEquals(1, first.universeBangFactor(2), 0, "rien dans le premier univers");
@@ -224,7 +225,7 @@ class DeuxiemeUniversTest {
         game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.VOID.name());
         game.state().addCompletedBangChallenge(idle.core.bigbang.BangChallenge.FORGOTTEN.name());
         assertEquals(4, game.universeBangFactor(Game.BANG_UNIVERSE_PARTICLES), 0, "deux défis : ×2 ×2");
-        assertEquals(slow / 16, game.maturationSeconds(rubble), 1e-9);
+        assertEquals(slow / Math.pow(Game.BANG_UNIVERSE_MATURATION, 2), game.maturationSeconds(rubble), 1e-9, "deux défis : maturation ×1,84");
         assertEquals(trip0 / 4, game.probeDuration(trip), 1e-9);
         assertEquals(value0 * 4, game.probeValue(trip), 1e-9);
         assertEquals(particles0.toDouble() * 4, game.particlesPerCreation().toDouble(), particles0.toDouble() * 1e-9);

@@ -23,6 +23,19 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.166", "Une galaxie qui se joue, des bulles qui se choisissent", List.of(
+                    "Depuis le deuxième univers, les défis de Big Bang font mûrir les astres cinq fois plus vite, et non plus cent "
+                            + "vingt-huit : le trou noir supermassif met 72 minutes au lieu de 3, la galaxie redevient une étape, et "
+                            + "le vide, les places de maturation et les impulsions comptent de nouveau.",
+                    "Les bulles de l'arbre coûtent ensemble environ 1,4 fois l'énergie du vide qu'un univers laisse : il faut "
+                            + "choisir lesquelles prendre d'abord. Les deux bulles qui se rachètent coûtent 2,5 fois plus à chaque niveau.",
+                    "Le tout premier Big Bang demande une réserve de 120 000 matières noires : le joueur n'attend plus quatre "
+                            + "heures les seules particules, mais une heure, sans que le Big Bang vienne plus tard.",
+                    "Le compteur de la prochaine étape ne se tait plus avant le Big Bang : une condition qui se perd un instant "
+                            + "(les atomes, à chaque explosion) ne le remet plus à zéro.",
+                    "Le bot analyste joue aussi le Régulier et un joueur absent, dit ce qui a débloqué chaque palier, compte "
+                            + "les décisions par heure, mesure les améliorations des dimensions et de la graine, et repère les réserves "
+                            + "qui dorment et les paliers bloqués par une seule condition.")),
             new Note("0.165", "Vos achats et la prochaine étape", List.of(
                     "La ligne d'objectif dit dans combien de temps vient la prochaine étape (première fusion, explosion, Big "
                             + "Bang, galaxie, amas, univers), au rythme des dix dernières minutes. Quand l'avancée ne bouge pas assez "

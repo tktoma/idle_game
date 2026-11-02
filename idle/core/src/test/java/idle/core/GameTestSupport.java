@@ -62,7 +62,8 @@ abstract class GameTestSupport {
         game.state().setExplosions(Math.max(1, game.state().explosions()));
         game.state().setParticles(Game.BIG_BANG_PARTICLES);
         game.state().setAtoms(Game.BIG_BANG_ATOMS);
-        game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER);
+        // Version 0.166 : la réserve du Big Bang à venir (120 000 pour le tout premier).
+        game.state().setDarkMatter(game.bigBangDarkMatter());
         int given = 0;
         for (Achievement achievement : game.achievements()) {
             if (given++ < Game.BIG_BANG_ACHIEVEMENTS) game.state().addAchievement(achievement.id());

@@ -407,13 +407,30 @@ class BotsTest {
         assertEquals(BigNum.of(1000), g.bigBangDarkMatter());
         assertFalse(FirstUniversePolicy.holdExplosions(g), "il en faut 1000 pendant la barre haute : on explose encore");
         g.state().setDarkMatter(BigNum.of(1050));
+        // Version 0.166 : la réserve ne se garde qu'à l'approche du seuil de particules (90 % de ses ordres de grandeur).
+        g.state().setParticles(BigNum.pow10(0.95 * g.bigBangParticles().log10()));
+        assertTrue(FirstUniversePolicy.savingForBigBang(g));
         FirstUniversePolicy.dark(g, 50);
         assertTrue(g.state().darkMatter().gte(BigNum.of(1000)), "l'expert garde les 1000 du défi : " + g.state().darkMatter());
         Game cheap = load(FIFTH_BANG);
         assertTrue(cheap.startBangChallenge(BangChallenge.RAISED));
         cheap.state().setDarkMatter(BigNum.of(1050));
+        cheap.state().setParticles(BigNum.pow10(0.95 * cheap.bigBangParticles().log10()));
         FirstUniversePolicy.cheapestDark(cheap, 50);
         assertTrue(cheap.state().darkMatter().gte(BigNum.of(1000)), "le moins cher aussi : " + cheap.state().darkMatter());
+    }
+
+    @Test
+    void laReserveDuBigBangNeSeGardeQuALApprocheDesParticules() throws Exception {
+        // Version 0.166 : avec la réserve de 120 000 du premier Big Bang, garder dès que défis et succès étaient là coupait
+        // les achats de l'arbre pendant 3 h et retardait le Big Bang de 42 min.
+        Game g = load(FIFTH_BANG);
+        g.state().setParticles(BigNum.pow10(0.5 * g.bigBangParticles().log10()));
+        assertFalse(FirstUniversePolicy.particlesNear(g), "à mi-chemin des particules");
+        assertFalse(FirstUniversePolicy.savingForBigBang(g));
+        g.state().setParticles(BigNum.pow10(0.91 * g.bigBangParticles().log10()));
+        assertTrue(FirstUniversePolicy.particlesNear(g), "à 91 % des ordres de grandeur");
+        assertTrue(FirstUniversePolicy.savingForBigBang(g));
     }
 
     /** Tout est prêt pour un Big Bang sans ciel exigé (quatre Big Bangs), avec 1e13 atomes et la fusion automatique. */

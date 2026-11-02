@@ -85,9 +85,9 @@ class JeuBigBangTest extends GameTestSupport {
         void laMatiereNoireDepenseeNeComptePlus() {
             Game game = readyGame();
             // Tout a été gagné, mais une partie est dépensée : il n'en reste plus assez en réserve.
-            game.state().setDarkMatter(Game.BIG_BANG_DARK_MATTER.subtract(BigNum.ONE));
-            game.state().setDarkMatterSpent(BigNum.of(1000));
-            assertTrue(game.darkMatterEarned().gte(Game.BIG_BANG_DARK_MATTER));
+            game.state().setDarkMatter(game.bigBangDarkMatter().subtract(BigNum.ONE));
+            game.state().setDarkMatterSpent(BigNum.of(1_000_000));
+            assertTrue(game.darkMatterEarned().gte(game.bigBangDarkMatter()));
             assertFalse(game.isBigBangConditionMet(BigBangCondition.DARK_MATTER));
             assertFalse(game.canBigBang());
         }
@@ -235,7 +235,7 @@ class JeuBigBangTest extends GameTestSupport {
             game.tick(StatsHistory.FIRST_INTERVAL * 2);
             List<StatsHistory.Sample> samples = game.stats().history().samples();
             StatsHistory.Sample last = samples.get(samples.size() - 1);
-            assertEquals(Game.BIG_BANG_DARK_MATTER.log10(), last.value(StatsHistory.Stat.DARK_MATTER), 1e-9);
+            assertEquals(Game.FIRST_BIG_BANG_DARK_MATTER.log10(), last.value(StatsHistory.Stat.DARK_MATTER), 1e-9);
             assertEquals(Game.BIG_BANG_ATOMS.log10(), last.value(StatsHistory.Stat.ATOMS), 1e-9);
             assertEquals(Game.BIG_BANG_PARTICLES.log10(), last.value(StatsHistory.Stat.PARTICLES), 1e-6);
             assertEquals(copies, last.value(StatsHistory.Stat.ELEMENT_COPIES));

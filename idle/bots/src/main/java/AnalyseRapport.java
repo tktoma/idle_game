@@ -70,14 +70,18 @@ final class AnalyseRapport {
         resumes(h, j);
 
         // Les paliers.
-        h.append("<h2>Paliers</h2><div class=scroll><table><thead><tr><th>Chrono</th><th>Univers</th><th>Palier</th><th>Depuis le précédent</th><th>Annoncé pour</th></tr></thead><tbody>");
+        h.append("<h2>Paliers</h2><div class=scroll><table><thead><tr><th>Chrono</th><th>Univers</th><th>Palier</th><th>Depuis le précédent</th><th>Annoncé pour</th>"
+                + "<th>Cause</th></tr></thead><tbody>");
         for (AnalyseJournal.Palier p : j.paliers) {
             String annonce = Double.isNaN(p.annonce()) ? "—" : AnalyseJournal.chrono(p.annonce()) + " (écart " + (p.t() >= p.annonce() ? "+" : "−")
                     + AnalyseJournal.duree(Math.abs(p.t() - p.annonce())) + ")";
             h.append("<tr><td class=t>").append(AnalyseJournal.chrono(p.t())).append("</td><td>").append(p.univers()).append("</td><td>")
-                    .append(esc(p.nom())).append("</td><td>").append(AnalyseJournal.duree(p.depuis())).append("</td><td>").append(annonce).append("</td></tr>");
+                    .append(esc(p.nom())).append("</td><td>").append(AnalyseJournal.duree(p.depuis())).append("</td><td>").append(annonce)
+                    .append("</td><td class=sub>").append(esc(p.cause())).append("</td></tr>");
         }
         h.append("</tbody></table></div>");
+        charges(h, j);
+        horsUnivers(h, j);
 
         // Version 0.162 : les « et si ».
         if (!j.etsi.isEmpty()) {
@@ -299,9 +303,44 @@ final class AnalyseRapport {
         return out;
     }
 
+    /**
+     * Version 0.166 : univers par univers, la durée, le temps réel et en ligne (un joueur absent), et les décisions par
+     * heure : toutes, et celles qui font gagner au moins une seconde vers un palier.
+     */
+    private static void charges(StringBuilder h, AnalyseJournal j) {
+        List<AnalyseJournal.Charge> charges = j.charges();
+        if (charges.isEmpty()) return;
+        h.append("<h2>Temps et décisions par univers</h2><p class=sub>Une décision : un pas où le bot achète quelque chose (un lot compte pour une). "
+                + "Utile : ses achats font gagner au moins une seconde vers un palier. Le temps réel et le temps en ligne diffèrent pour un joueur "
+                + "qui ferme le jeu entre deux visites.</p><div class=scroll><table><thead><tr><th>Univers</th><th>Durée de jeu</th><th>Temps réel</th>"
+                + "<th>En ligne</th><th>Décisions</th><th>Par heure</th><th>Utiles par heure</th></tr></thead><tbody>");
+        for (AnalyseJournal.Charge c : charges) {
+            h.append("<tr><td>").append(c.univers()).append("</td><td>").append(AnalyseJournal.duree(c.duree())).append("</td><td>")
+                    .append(AnalyseJournal.duree(c.reel())).append("</td><td>").append(AnalyseJournal.duree(c.enLigne())).append("</td><td>")
+                    .append(c.decisions()).append(String.format(Locale.FRANCE, "</td><td>%.0f</td><td>%.1f</td></tr>", c.parHeure(), c.utilesParHeure()));
+        }
+        h.append("</tbody></table></div>");
+    }
+
+    /** Version 0.166 : les dimensions, la graine et le défi final, à part des étapes des univers. */
+    private static void horsUnivers(StringBuilder h, AnalyseJournal j) {
+        List<AnalyseJournal.Palier> autres = j.paliers.stream().filter(p -> p.nom().startsWith("Dimension") || p.nom().startsWith("Seuil")
+                || p.nom().startsWith("Graine") || p.nom().startsWith("Défi final") || p.nom().startsWith("Fin de la partie")).toList();
+        if (autres.isEmpty()) return;
+        h.append("<h2>Dimensions, graine et défi final</h2><p class=sub>Leurs améliorations ont le même traitement que les autres : "
+                + "le temps qu'elles font gagner vers le seuil de leur dimension, le palier du défi final ou le palier suivant de la graine, "
+                + "mesuré sur le rythme des cinq minutes d'avant et d'après (classement et achats.csv).</p><div class=scroll><table><thead><tr>"
+                + "<th>Chrono</th><th>Univers</th><th>Palier</th><th>Cause</th></tr></thead><tbody>");
+        for (AnalyseJournal.Palier p : autres) {
+            h.append("<tr><td class=t>").append(AnalyseJournal.chrono(p.t())).append("</td><td>").append(p.univers()).append("</td><td>")
+                    .append(esc(p.nom())).append("</td><td class=sub>").append(esc(p.cause())).append("</td></tr>");
+        }
+        h.append("</tbody></table></div>");
+    }
+
     /** Les illogismes repérés, détecteur par détecteur, repliés ; ceux « à creuser » d'abord. */
     private static void illogismes(StringBuilder h, List<AnalyseIllogismes.Illogisme> all) {
-        h.append("<h2>Illogismes repérés</h2><p class=sub>Dix détecteurs relisent la partie et signalent ce qui semble ne pas tourner "
+        h.append("<h2>Illogismes repérés</h2><p class=sub>Douze détecteurs relisent la partie et signalent ce qui semble ne pas tourner "
                 + "rond. Un signalement n'est pas une preuve : c'est un endroit où regarder (le détail est aussi dans illogismes.txt).</p>");
         if (all.isEmpty()) {
             h.append("<div class=card>Rien à signaler.</div>");

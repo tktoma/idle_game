@@ -797,7 +797,8 @@ class TroisiemeActeTest {
             Body rubble = game.bodies().get(0);
             double slow = game.maturationSeconds(rubble);
             game.state().addCompletedBangChallenge(BangChallenge.RAISED.name());
-            assertEquals(slow / 8, game.maturationSeconds(rubble), 1e-9, "sa récompense ×2, et le bonus du deuxième univers ×4");
+            assertEquals(slow / 2 / Game.BANG_UNIVERSE_MATURATION, game.maturationSeconds(rubble), 1e-9,
+                    "sa récompense ×2, et le bonus du deuxième univers (racine cubique de 2,5 par défi depuis la 0.166)");
         }
     }
 }

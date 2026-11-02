@@ -240,4 +240,76 @@ class AnalyseTest {
         for (int i = 0; i < 600; i++) game.tick(1);
         assertFalse(game.canBuy("atom_keep"));
     }
+
+    @Test
+    void lesProfilsDuBotAnalysteSeChoisissentParLeurNom() {
+        // Version 0.166 : le Speedrunner par défaut, le Régulier des profils, et le joueur absent.
+        assertTrue(BotAnalyste.profil("") == BotAnalyste.ANALYSTE);
+        assertEquals("Regular", BotAnalyste.profil("regulier").name());
+        assertEquals(3600, BotAnalyste.profil("absent").cycleSeconds());
+        assertEquals(300, BotAnalyste.profil("absent").onlineSeconds());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.profil("lent"));
+    }
+
+    @Test
+    void lesAmeliorationsDesDimensionsEtDeLaGraineVisentLeurPalier() {
+        assertEquals("graine", AnalyseSuivi.cible("Graine : Saisons", "planeShards"), "la graine se paie dans une dimension, mais vise la graine");
+        assertEquals("1", AnalyseSuivi.cible("Ligne : élan", "dimensionShards"));
+        assertEquals("10", AnalyseSuivi.cible("Mélange : étage", "mixShards"));
+        assertEquals(null, AnalyseSuivi.cible("Amélioration", "particles"));
+        Game game = Bots.fresh(7);
+        assertEquals("Seuil de la dimension 2 atteint", AnalyseSuivi.palierVise(game, "2"));
+        assertEquals(Game.PLANE_THRESHOLD, AnalyseSuivi.avancee(game, "2")[1], 1e-9);
+    }
+
+    @Test
+    void uneReserveQuiDortPlusDUneHeureEstSignalee() {
+        Game game = Bots.fresh(7);
+        AnalyseSuivi suivi = new AnalyseSuivi();
+        AnalyseJournal journal = new AnalyseJournal();
+        // Dix millions de matière noire pour un Big Bang qui en demande 120 000 : plus de dix fois, pendant 1 h 10.
+        game.state().setDarkMatter(idle.core.math.BigNum.of(1e7));
+        for (double t = 0; t <= 4200; t += 60) suivi.observe(game, t, 1, journal);
+        assertTrue(suivi.reserves.isEmpty(), "encore en cours");
+        game.state().setDarkMatter(idle.core.math.BigNum.of(10));
+        suivi.observe(game, 4260, 1, journal);
+        assertEquals(1, suivi.reserves.size());
+        assertEquals("Matière noire", suivi.reserves.get(0).quoi());
+        assertEquals(4260, suivi.reserves.get(0).duree(), 1e-9);
+        // Moins d'une heure : rien.
+        game.state().setDarkMatter(idle.core.math.BigNum.of(1e7));
+        for (double t = 4320; t <= 6000; t += 60) suivi.observe(game, t, 1, journal);
+        suivi.fin(6000);
+        assertEquals(1, suivi.reserves.size());
+        assertEquals("20", AnalyseSuivi.fois(Math.log10(20)));
+        assertEquals("10^6,5", AnalyseSuivi.fois(6.5));
+    }
+
+    @Test
+    void laChargeDeDecisionsSeCompteParUnivers(@TempDir Path dir) throws Exception {
+        AnalyseJournal j = new AnalyseJournal();
+        j.paliers.add(new AnalyseJournal.Palier(3600, 1, "Univers 1 : acte 1 : première explosion", 3600, Double.NaN));
+        j.paliers.add(new AnalyseJournal.Palier(7200, 1, "Univers 1 formé (acte 3)", 3600, Double.NaN, 7200, 7200, 0, "le temps qui passe"));
+        // Deux achats au même pas : une décision ; un achat sans gain : une décision qui n'est pas utile.
+        j.achats.add(new AnalyseJournal.Achat(100, 1, "Amélioration", "Vitesse", 1, "Particules", "4", 1, 0.6, "", 0, 30, 10, 3));
+        j.achats.add(new AnalyseJournal.Achat(100, 1, "Amélioration", "Masse", 1, "Particules", "8", 1, 0.9, "", 0, 0, 10, 0));
+        j.achats.add(new AnalyseJournal.Achat(500, 1, "Amélioration", "Masse", 1, "Particules", "8", 1, 0.9, "", 0, 0, 10, 0));
+        AnalyseJournal.Charge c = j.charges().get(0);
+        assertEquals(2, c.decisions());
+        assertEquals(1, c.utiles());
+        assertEquals(1, c.parHeure(), 1e-9);
+        j.ecrire(dir);
+        assertTrue(Files.readString(dir.resolve("paliers.csv")).startsWith("chrono,secondes,univers,palier,depuis_precedent_s,annonce_pour_s,ecart_s,reel_s,en_ligne_s,hors_ligne_compte_s,cause"));
+        assertTrue(Files.readString(dir.resolve("paliers.csv")).contains("\"le temps qui passe\""));
+        assertTrue(Files.readString(dir.resolve("decisions.csv")).contains("1,7200,2,1,"));
+    }
+
+    @Test
+    void lesDurablesSontLesAmeliorationsPayeesEnAtomes() {
+        for (String id : AnalyseDurables.DURABLES) {
+            assertTrue(idle.core.upgrades.Upgrades.DEFAULT.stream().anyMatch(u -> u.id().equals(id) && u.resource() == idle.core.Resource.ATOMS), id);
+        }
+        assertEquals(9, AnalyseDurables.DURABLES.size());
+        assertEquals(4, AnalyseDurables.PALIERS.size());
+    }
 }

@@ -123,8 +123,10 @@ public final class Pace {
             samples.clear();
             return;
         }
-        // Une avancée qui recule (une remise à zéro) repart de là.
-        if (!samples.isEmpty() && p < samples.peekLast()[1] - 1e-9) samples.clear();
+        // Une avancée ne recule pas (version 0.166) : une condition qui se perd un instant (les atomes, dépensés à chaque
+        // explosion) gardait le compteur muet, car il repartait de zéro à chaque recul. On garde le plus haut atteint vers
+        // cette étape ; une vraie remise à zéro change d'étape et vide les relevés.
+        if (!samples.isEmpty()) p = Math.max(p, samples.peekLast()[1]);
         samples.addLast(new double[] {t, p});
         while (samples.size() > 2 && t - samples.peekFirst()[0] > WINDOW) samples.removeFirst();
     }

@@ -40,14 +40,23 @@ class BullesArbreTest {
         }
     }
 
-    /** Version 0.143 : les prix des dix-neuf bulles, de 1 000 à 30 000, environ ×1,5 par palier, et leurs noms. */
+    /**
+     * Version 0.143 : les prix des dix-neuf bulles et leurs noms. Version 0.166 : les bulles qui naissent ensemble coûtent
+     * ensemble environ 1,4 fois la meilleure énergie du vide gardée à la formation d'un univers jusque-là (Speedrunner,
+     * graine 201) : 26 000 pour la graine et le bonsaï (18 863 gardés à l'univers 3), 64 200 pour chacun des paliers de
+     * l'arbuste, du jeune arbre, de l'arbre mûr et de l'arbre ancien et du géant (46 707 à l'univers 4), 208 000 pour
+     * l'arbre-monde et ses racines (151 000 à l'univers 9).
+     */
     @Test
     void lesPrixEtLesNomsDesDixNeufBulles() {
         assertEquals(19, TreeBubble.values().length);
-        double[] byStage = {1_000, 2_000, 4_000, 6_000, 9_000, 13_000, 20_000, 30_000};
-        for (TreeBubble bubble : TreeBubble.values()) {
-            assertEquals(byStage[bubble.stage() - 4], bubble.cost(), 0, bubble + " : le prix de son palier");
-        }
+        java.util.Map<Integer, Double> parPalier = new java.util.TreeMap<>();
+        for (TreeBubble bubble : TreeBubble.values()) parPalier.merge(bubble.stage() == 5 ? 4 : bubble.stage() == 10 ? 9 : bubble.stage(), bubble.cost(), Double::sum);
+        assertEquals(26_000, parPalier.get(4), 1e-9, "la graine et le bonsaï naissent ensemble");
+        for (int stage : new int[] {6, 7, 8, 9}) assertEquals(64_200, parPalier.get(stage), 300, "palier " + stage);
+        assertEquals(207_900, parPalier.get(11), 1e-9, "l'arbre-monde et ses racines");
+        assertEquals(5_200, TreeBubble.SEED.cost(), 0);
+        assertEquals(TreeBubble.ANCIENT_LEFT.cost() * 20 / 13, TreeBubble.GIANT_LEFT_LOW.cost(), 100, "l'arbre ancien et le géant gardent à peu près leur rapport");
         assertEquals("Bulle de la graine", TreeBubble.SEED.label());
         assertEquals("Bulle du bonsaï, à gauche", TreeBubble.LEAVES_LEFT.label());
         assertEquals("Bulle de l'arbuste, au milieu", TreeBubble.CROWN_MIDDLE.label());
@@ -58,21 +67,21 @@ class BullesArbreTest {
         assertEquals("Bulle des racines", TreeBubble.ROOTS.label());
         assertEquals("Bulle de l'arbre-monde, au cœur", TreeBubble.HEART.label());
         assertEquals("Bulle de l'arbre-monde, au sommet", TreeBubble.SUMMIT.label());
-        // Chaque nom dit son palier ; d'un palier au suivant, le prix monte d'un tiers à deux fois.
-        for (TreeBubble bubble : TreeBubble.values()) {
-            assertTrue(bubble.label().startsWith("Bulle "), bubble.label());
-            if (bubble.stage() > 4) {
-                double previous = byStage[bubble.stage() - 5];
-                assertTrue(bubble.cost() >= previous * 1.33 && bubble.cost() <= previous * 2, bubble + " : " + bubble.cost() + " après " + previous);
-            }
+        // Chaque nom dit son palier ; d'un palier au suivant, le prix total ne baisse jamais.
+        double previous = 0;
+        for (double total : parPalier.values()) {
+            assertTrue(total >= previous - 300, total + " après " + previous);
+            previous = total;
         }
-        // Le prix se paie en énergie du vide accumulée : à 999, la base attend ; à 1 000, elle s'achète et tout est dépensé.
-        Game game = at(4, 999);
+        for (TreeBubble bubble : TreeBubble.values()) assertTrue(bubble.label().startsWith("Bulle "), bubble.label());
+        // Le prix se paie en énergie du vide accumulée : un de moins, la base attend ; au prix, elle s'achète et tout est dépensé.
+        double base = TreeBubble.SEED.cost();
+        Game game = at(4, base - 1);
         assertFalse(game.canBuyTreeBubble(TreeBubble.SEED));
-        game = at(4, 1_000);
+        game = at(4, base);
         assertTrue(game.buyTreeBubble(TreeBubble.SEED));
         assertEquals(0, game.voidAvailable(), 1e-9);
-        assertEquals(1_000, game.state().voidSpent(), 1e-9);
+        assertEquals(base, game.state().voidSpent(), 1e-9);
         // La dix-neuvième bulle (le sommet, bit 18) se sauvegarde comme les autres.
         game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
         GameState back = GameTestSupport.reread(game.state());

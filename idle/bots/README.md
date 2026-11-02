@@ -516,6 +516,42 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## Profils, causes, charge de décisions, dimensions et graine (version 0.166)
+
+**D'autres joueurs que le Speedrunner.** `-Pprofil=regulier` joue le Régulier des profils (une décision par minute, 90 % d'attention) ; `-Pprofil=absent` joue le Speedrunner, mais cinq minutes par heure, le jeu fermé entre deux visites (l'absence compte au taux hors ligne, 24 h au plus par absence). Le blocage (« plus rien ne bouge depuis 30 min ») se juge maintenant sur le temps en ligne.
+
+**Ce qui débloque chaque palier.** `paliers.csv` gagne quatre colonnes : le temps réel, le temps en ligne, le temps de jeu compté hors ligne, et la cause : la dernière chose faite dans la minute d'avant (un achat, une chose obtenue, un défi), ou « le temps qui passe ». Pour un Big Bang, la dernière de ses conditions à se remplir, et combien de temps elle a manqué seule.
+
+**La charge de décisions.** `decisions.csv` et le rapport donnent, univers par univers, les décisions par heure (un pas où le bot achète quelque chose ; un lot compte pour une) et les décisions utiles (celles qui font gagner au moins une seconde vers un palier).
+
+**Les dimensions et la graine, même traitement.** Leurs améliorations se jugent sur leur propre palier (`AnalyseSuivi`) : le seuil de leur dimension, puis le palier du défi final ; le palier suivant de la graine. Le gain se mesure sur le rythme des cinq minutes d'avant et des cinq minutes d'après l'achat ; le coût en temps de production, au rythme de la dimension qui paie. Le rapport a une section « Dimensions, graine et défi final ».
+
+**Deux détecteurs de plus.**
+
+| N° | Détecteur | La règle |
+|---|---|---|
+| 11 | Réserve qui dort | la matière noire, ou l'énergie du vide gardée pour les bulles, plus de dix fois au-dessus de ce qu'elle peut payer (la réserve du Big Bang ou la case de l'arbre la moins chère ; la bulle ouverte la moins chère) pendant plus d'une heure |
+| 12 | Une seule condition qui manque | un Big Bang, ou une échelle du cosmos, à qui il ne manque qu'une condition pendant plus d'une heure |
+
+**Le vide se garde pour les bulles.** La galaxie formée, et tant que la bulle du géant n'a pas rendu le vide permanent, le bot n'achète plus que les raccourcis du vide (maturation, rassemblement, allègement) : ce qui reste à la formation paie les bulles (`VoidPolicy.savingForBubbles`). Il gardait 5 076 d'énergie à la formation de l'univers 4 avec les prix 0.166 ; il en garde 46 707.
+
+**Ce que vaut chaque amélioration durable.** `./gradlew :bots:durables` joue le premier univers avec tout, puis sans chacune des neuf améliorations payées en atomes (celles que la fusion garde) ; `durables.txt` et `durables.csv` donnent l'écart à chaque grand palier. C'est la mesure qui remplace le gain estimé là où il se trompe (la Persistance).
+
+**Ce que mesure la 0.166** (graine 201, une décision toutes les 5 s pour le Speedrunner, toutes les 60 s pour le Régulier) :
+
+| Partie | Fin | Univers formés | Rassemblement | Calcul |
+|---|---|---|---|---|
+| Speedrunner 0.165 | 82:22:00 | 18 | 21 h 00 (25,6 %) | — |
+| Speedrunner 0.166 | 110:44:10 | 15 | 18 h 26 (16,7 %) | 67 min |
+| Régulier 0.166 | 186:24:35 | 16 | 21 h 07 (11,4 %) | 43 min |
+| Absent 0.166 | arrêté à 817 h réelles (univers 5) | 4 en 751 h réelles, dont 63 h en ligne | — | 2 h (limite) |
+
+Les améliorations durables du premier univers (`:bots:durables`), ce qu'il faut de plus sans elles pour former l'univers 1 (23:05:00 avec tout) : Rendement +5 h 08, Persistance +4 h 52, Dédoublement +1 h 50, Catalyseur +1 h 05, Masse atomique +59 min, Patience +39 min, Surcharge +17 min, Achat groupé +2 min ; Compression −30 s (et le premier Big Bang 10 min plus tôt sans elle).
+
+À savoir : une partie reprise d'une sauvegarde repart avec un autre hasard et une mémoire neuve. En 0.166, cela change beaucoup : reprise à 49 h 31, la partie du Speedrunner finit à 90:40:00 au lieu de 110:44:10 (elle achète ses bulles dans un autre ordre). Les achats faits au pas qui lance un univers (les bulles, souvent) ne sont pas dans achats.csv.
+
+**La réserve du Big Bang se garde plus tard.** Avec la réserve de 120 000 du premier Big Bang (moteur 0.166), le bot ne gardait sa matière noire qu'en arrêtant ses achats dans l'arbre pendant 3 h : le Big Bang reculait de 42 min. Il ne la garde plus qu'à 90 % des ordres de grandeur de particules (`FirstUniversePolicy.particlesNear`).
+
 ## La lecture des achats passe dans le moteur (version 0.165)
 
 Le jeu note maintenant les achats du joueur comme le bot analyste (sous-page « Achats » des statistiques), et dit dans combien de temps vient la prochaine étape. Pour qu'ils lisent les achats de la même façon, ce qui était au bot vit dans le moteur, paquet `idle.core.history` :

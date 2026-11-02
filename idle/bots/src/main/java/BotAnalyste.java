@@ -55,18 +55,41 @@ import java.util.Objects;
  * d'avant, par exemple).
  *
  * <p>Usage : {@code BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false]
- * [etsi=true] [depart=sauvegarde] [sans=id,id]} ; {@code univers} est un nombre d'univers, ou {@code fin} pour jouer
+ * [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner]} ; {@code univers} est un nombre d'univers, ou {@code fin} pour jouer
  * jusqu'à la fin. Version 0.164 : {@code sans} retire ces améliorations du jeu (identifiants des améliorations ordinaires
  * ou de l'arbre de matière noire) ; avec {@link AnalyseComparaison}, on voit ce que chacune apporte. À la fin, les
  * détecteurs d'illogismes ({@link AnalyseIllogismes}) relisent la partie.
  * Avec {@code comparer=true}, il compare aussi six façons de jouer à chaque palier principal et garde la plus rapide
  * ({@link #choisirStrategie()}) : six parties d'essai par palier, la partie dure plusieurs fois plus longtemps. Avec
  * {@code etsi=false}, il ne joue pas les « et si » : la partie se calcule environ deux fois plus vite.
+ *
+ * <p>Version 0.166 : {@code profil} choisit le joueur : le Speedrunner (par défaut), le Régulier (une décision par minute,
+ * moins attentif), ou l'absent (le Speedrunner, cinq minutes par heure, le jeu fermé entre deux). Chaque palier dit sa
+ * cause (la dernière chose faite dans la minute d'avant ; pour un Big Bang, sa dernière condition remplie), le temps réel,
+ * en ligne et hors ligne ; le suivi continu ({@link AnalyseSuivi}) mesure les améliorations des dimensions et de la graine
+ * sur leur propre palier et nourrit deux détecteurs de plus ; decisions.csv compte les décisions par heure.
  */
 public final class BotAnalyste extends IdleProfiles24 {
 
     /** Le Speedrunner, à vitesse humaine : une décision toutes les cinq secondes. */
     static final Profile ANALYSTE = new Profile(1, "Analyste", "Le meilleur jeu connu, à vitesse humaine", 5, 0, 0, 1, 1, 1, 1, 1, 0, "doubleplan");
+    /**
+     * Version 0.166 : le joueur absent. Il joue comme le Speedrunner, mais ne passe que cinq minutes par heure ; le jeu
+     * est fermé entre deux visites et compte l'absence au taux hors ligne. Il garde le numéro du Speedrunner pour en
+     * garder les choix (styles des univers, du vide, de l'arbre).
+     */
+    static final Profile ABSENT = new Profile(1, "Absent", "Une visite de 5 minutes toutes les heures, le jeu fermé entre deux", 5, 3600, 300,
+            1, 1, 1, 1, 1, 0, "doubleplan");
+
+    /** Le profil d'un nom (version 0.166) : speedrunner (par défaut), regulier (le Régulier des profils), absent. */
+    static Profile profil(String nom) {
+        return switch (nom == null ? "" : nom.trim().toLowerCase(Locale.ROOT)) {
+            case "", "speedrunner", "analyste" -> ANALYSTE;
+            case "regulier", "régulier", "regular" -> IdleProfiles24.PROFILES[2];
+            case "absent" -> ABSENT;
+            default -> throw new IllegalArgumentException("Profil inconnu : " + nom + " (speedrunner, regulier, absent)");
+        };
+    }
     /** Le pas des parties d'essai : plus long, pour estimer vite. */
     static final double ESSAI_PAS = 10;
     /** Au-delà, l'estimation abandonne : la partie est bloquée. */
@@ -135,10 +158,27 @@ public final class BotAnalyste extends IdleProfiles24 {
     private double derniereExplosion;
     /** Le « et si » qui attend le temps réel de son palier, et l'indice de ce palier. */
     private AnalyseJournal.EtSi etsiEnAttente;
+    /** Version 0.166 : le suivi continu (réserves, conditions, dimensions et graine). */
+    final AnalyseSuivi suivi = new AnalyseSuivi();
+    /**
+     * Version 0.166 : le temps en ligne au dernier palier ou à la dernière activité. Le blocage se juge sur le temps où le
+     * joueur est là : un joueur absent ne fait rien pendant 55 minutes, sans que rien ne soit bloqué.
+     */
+    private double ligneTouchee;
+    /** Version 0.166 : la dernière chose faite (un achat, une chose obtenue, un défi), et quand : la cause d'un palier. */
+    private String derniereAction = "";
+    private double derniereActionT = Double.NEGATIVE_INFINITY;
+    /** Le délai au-delà duquel un palier ne doit rien à la dernière action : il vient du temps qui passe. */
+    static final double CAUSE_DELAI = 60;
     private int etsiCible = -1;
 
     BotAnalyste(Game game, long seed, double step, Path dossier, double estimationMinutes) {
-        super(game, ANALYSTE, seed, step);
+        this(game, ANALYSTE, seed, step, dossier, estimationMinutes);
+    }
+
+    /** Version 0.166 : avec un autre profil que le Speedrunner ({@link #profil}). */
+    BotAnalyste(Game game, Profile profile, long seed, double step, Path dossier, double estimationMinutes) {
+        super(game, profile, seed, step);
         this.graine = seed;
         this.dossier = dossier;
         this.estimationEvery = estimationMinutes * 60;
@@ -206,9 +246,15 @@ public final class BotAnalyste extends IdleProfiles24 {
     private void palier(String nom, int u) {
         double t = temps();
         double annonce = nom.equals(annonceVisee) ? annonceAbsolue : Double.NaN;
-        journal.paliers.add(new AnalyseJournal.Palier(t, u, nom, t - dernierPalier, annonce));
+        String cause = cause(nom);
+        journal.paliers.add(new AnalyseJournal.Palier(t, u, nom, t - dernierPalier, annonce, wallSeconds, onlineSeconds, creditedOfflineSeconds, cause));
         List<String> details = new ArrayList<>();
         details.add("Depuis le palier précédent : " + AnalyseJournal.duree(t - dernierPalier));
+        details.add("Cause : " + cause);
+        if (wallSeconds > t + 1) {
+            details.add("Temps réel : " + AnalyseJournal.chrono(wallSeconds) + " ; en ligne : " + AnalyseJournal.duree(onlineSeconds)
+                    + " ; hors ligne, compté au taux d'absence : " + AnalyseJournal.duree(creditedOfflineSeconds) + " de jeu");
+        }
         if (!Double.isNaN(annonce)) {
             details.add("La dernière estimation l'annonçait vers " + AnalyseJournal.chrono(annonce) + " : écart de "
                     + (t >= annonce ? "+" : "−") + AnalyseJournal.duree(Math.abs(t - annonce)));
@@ -216,6 +262,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         details.addAll(decomposition());
         journal.ajoute(t, u, AnalyseJournal.Sorte.PALIER, nom, details);
         dernierPalier = t;
+        ligneTouchee = onlineSeconds;
         sauvegarde(nom);
         // Le journal s'écrit aussi à chaque palier : une partie interrompue garde ce qu'elle a vu.
         try {
@@ -223,6 +270,28 @@ public final class BotAnalyste extends IdleProfiles24 {
         } catch (Exception failure) {
             // L'écriture finale réessaiera.
         }
+    }
+
+    /**
+     * Vrai pour un joueur qui ferme le jeu entre deux visites (version 0.166) : une estimation au-delà de l'horizon n'est
+     * pas un blocage pour lui, il avance surtout hors ligne.
+     */
+    boolean absences() {
+        return p.cycleSeconds() > 0;
+    }
+
+    /**
+     * Ce qui a débloqué un palier (version 0.166) : la dernière chose faite dans la minute d'avant, ou le temps qui passe ;
+     * pour un Big Bang, la dernière de ses conditions à se remplir, et combien de temps elle a manqué seule.
+     */
+    private String cause(String nom) {
+        double t = temps();
+        String out = t - derniereActionT <= CAUSE_DELAI ? derniereAction : "le temps qui passe (rien de fait dans la minute d'avant)";
+        if (nom.contains("Big Bang") && !nom.contains("dernier Big Bang")) {
+            String derniere = suivi.derniereCondition(g);
+            if (!derniere.isEmpty()) out = derniere + " ; " + out;
+        }
+        return out;
     }
 
     /**
@@ -500,9 +569,12 @@ public final class BotAnalyste extends IdleProfiles24 {
 
     @Override
     boolean afterStep(boolean done) {
+        int lignes = journal.lignes.size();
         if (avant != null) decisions();
+        actionsDuPas(lignes);
         paliers();
         double t = temps();
+        suivi.observe(g, t, univers(), journal);
         if (t + 1e-6 >= prochainReleve) {
             releve();
             prochainReleve = t + 60;
@@ -519,9 +591,10 @@ public final class BotAnalyste extends IdleProfiles24 {
         if (!now.equals(signature)) {
             signature = now;
             derniereActivite = t;
+            ligneTouchee = onlineSeconds;
         }
-        if (blocage == null && t - Math.max(dernierPalier, derniereActivite) > IMMOBILE) {
-            bloque("Plus rien ne bouge depuis " + AnalyseJournal.duree(t - Math.max(dernierPalier, derniereActivite))
+        if (blocage == null && onlineSeconds - ligneTouchee > IMMOBILE) {
+            bloque("Plus rien ne bouge depuis " + AnalyseJournal.duree(onlineSeconds - ligneTouchee) + " de jeu en ligne"
                     + " : ni palier, ni achat, ni compteur (Big Bangs, astres, arrosages…), ni grandeur qui monte");
         }
         return done || blocage != null || jusquALaFin && fini;
@@ -535,6 +608,18 @@ public final class BotAnalyste extends IdleProfiles24 {
                 .append('|').append(g.state().seedWaterings()).append('|').append(g.achievementCount()).append('|').append(g.stats().fusions());
         for (Map.Entry<Multipliers.Quantity, Double> e : grandeurs().entrySet()) sig.append('|').append(Math.round(e.getValue() * 100));
         return sig.toString();
+    }
+
+    /** La dernière chose faite pendant le pas (un achat, une chose obtenue, un défi) : la cause possible du palier suivant. */
+    private void actionsDuPas(int depuis) {
+        for (int i = journal.lignes.size() - 1; i >= depuis; i--) {
+            AnalyseJournal.Ligne l = journal.lignes.get(i);
+            if (l.sorte() == AnalyseJournal.Sorte.ACHAT || l.sorte() == AnalyseJournal.Sorte.OBTENU || l.sorte() == AnalyseJournal.Sorte.DEFI) {
+                derniereAction = l.sorte().label.toLowerCase(Locale.FRANCE) + " : " + l.titre();
+                derniereActionT = l.t();
+                return;
+            }
+        }
     }
 
     private void releve() {
@@ -606,7 +691,10 @@ public final class BotAnalyste extends IdleProfiles24 {
         if (!elements.isEmpty()) {
             journal.ajoute(t, univers(), AnalyseJournal.Sorte.OBTENU, "Éléments synthétisés : " + String.join(", ", elements));
         }
-        if (depense || !acquis.isEmpty()) derniereActivite = t;
+        if (depense || !acquis.isEmpty()) {
+            derniereActivite = t;
+            ligneTouchee = onlineSeconds;
+        }
         if (acquis.isEmpty()) return;
         if (gain > 0) annonceAjustee -= gain;
         for (Achats.Achat a : acquis) {
@@ -621,10 +709,14 @@ public final class BotAnalyste extends IdleProfiles24 {
             double rentabilite = Double.isFinite(cout) && cout > 0 && Double.isFinite(gagne) ? gagne / cout : Double.NaN;
             journal.achats.add(new AnalyseJournal.Achat(t, univers(), a.groupe(), a.chose(), a.quantite(), paye, montant, part, montantLog, texte,
                     poidsMax / lot, gain / lot, cout, rentabilite));
+            // Version 0.166 : une amélioration de dimension ou de graine se juge sur son propre palier, cinq minutes plus tard.
+            boolean suivie = suivi.achat(g, t, journal.achats.size() - 1, a.groupe(), a.monnaie(), montantLog, lot);
             List<String> details = new ArrayList<>();
             details.add("Payé : " + montant + " " + paye + (Double.isNaN(part) ? "" : String.format(Locale.FRANCE, " (%.1f %% de la réserve)", 100 * part)));
             details.add("Poids : " + texte);
-            if (gain > 0) details.add("Gain de temps estimé vers « " + visee + " » : " + AnalyseJournal.duree(gain / lot));
+            if (suivie) details.add("Gain de temps : mesuré dans cinq minutes sur le rythme de « "
+                    + AnalyseSuivi.palierVise(g, AnalyseSuivi.cible(a.groupe(), a.monnaie())) + " » (achats.csv)");
+            else if (gain > 0) details.add("Gain de temps estimé vers « " + visee + " » : " + AnalyseJournal.duree(gain / lot));
             if (Double.isFinite(cout)) details.add(rentabiliteTexte(cout, gagne, paye));
             long niveaux = Math.round(a.quantite());
             String quoi = a.quoi() + (niveaux > 1 ? " ×" + niveaux : "");
@@ -814,7 +906,7 @@ public final class BotAnalyste extends IdleProfiles24 {
      * {@code pas} secondes, sans rien écrire.
      */
     IdleProfiles24 copieDuBot(Game copie, double pas) {
-        IdleProfiles24 clone = new IdleProfiles24(copie, ANALYSTE, graine, pas);
+        IdleProfiles24 clone = new IdleProfiles24(copie, p, graine, pas);
         AnalyseCopie.memoire(this, clone);
         clone.quiet = true;
         try {
@@ -850,6 +942,11 @@ public final class BotAnalyste extends IdleProfiles24 {
         journal.estimations.add(new AnalyseJournal.Estimation(temps(), visee, secondes, goulot));
         if (secondes < 0) {
             estimationCourante = Double.NaN;
+            if (absences()) {
+                journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » : au-delà de "
+                        + AnalyseJournal.duree(HORIZON) + " de jeu", List.of("Le joueur ferme le jeu entre deux visites : une longue attente n'est pas un blocage."));
+                return;
+            }
             bloque("Plus de " + AnalyseJournal.duree(HORIZON) + " estimées avant « " + visee + " » en jouant la suite sur une copie");
             return;
         }
@@ -873,6 +970,11 @@ public final class BotAnalyste extends IdleProfiles24 {
         journal.estimations.add(new AnalyseJournal.Estimation(temps(), visee, secondes, goulot));
         if (secondes < 0) {
             estimationCourante = Double.NaN;
+            if (absences()) {
+                journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » : au-delà de "
+                        + AnalyseJournal.duree(HORIZON) + " de jeu", List.of("Le joueur ferme le jeu entre deux visites : une longue attente n'est pas un blocage."));
+                return;
+            }
             bloque("Plus de " + AnalyseJournal.duree(HORIZON) + " estimées avant « " + visee + " » en jouant la suite sur une copie");
             return;
         }
@@ -971,7 +1073,7 @@ public final class BotAnalyste extends IdleProfiles24 {
             details.add("Un joueur qui passe " + (RYTHMES_ETSI[i] < 120 ? "une fois par minute" : "toutes les " + (int) (RYTHMES_ETSI[i] / 60) + " minutes")
                     + " : " + (temps[i] < 0 ? "pas atteint en " + AnalyseJournal.duree(HORIZON) : AnalyseJournal.duree(temps[i])));
         }
-        details.add("Le temps du bot (une décision toutes les " + (int) ANALYSTE.actionEverySeconds() + " s) s'écrit au palier suivant, dans etsi.csv et le rapport.");
+        details.add("Le temps du bot (une décision toutes les " + (int) p.actionEverySeconds() + " s) s'écrit au palier suivant, dans etsi.csv et le rapport.");
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.CHOIX, "Et si : jusqu'à « " + vise + " » à un autre rythme", details);
     }
 
@@ -991,6 +1093,11 @@ public final class BotAnalyste extends IdleProfiles24 {
         }
         if (out.length() == 0) out.append("la grandeur qui fait avancer : ").append(moteur().label());
         return out.toString();
+    }
+
+    /** Le nom d'une condition du Big Bang dans une phrase (« les particules »). */
+    static String conditionNom(BigBangCondition c) {
+        return condition(c);
     }
 
     private static String condition(BigBangCondition c) {
@@ -1032,8 +1139,9 @@ public final class BotAnalyste extends IdleProfiles24 {
     /** Joue jusqu'à l'univers visé, le blocage ou la limite d'heures, puis écrit tout. */
     void joue(double heures) throws Exception {
         long start = System.nanoTime();
-        journal.ajoute(0, 1, AnalyseJournal.Sorte.INFO, "Début de la partie", List.of("Profil : le Speedrunner, une décision toutes les "
-                + (int) ANALYSTE.actionEverySeconds() + " s ; pas de " + (int) step + " s ; graine " + graine + " ; "
+        journal.ajoute(0, 1, AnalyseJournal.Sorte.INFO, "Début de la partie", List.of("Profil : " + (p == ANALYSTE ? "le Speedrunner" : p.name() + " (" + p.label() + ")")
+                + ", une décision toutes les "
+                + (int) p.actionEverySeconds() + " s ; pas de " + (int) step + " s ; graine " + graine + " ; "
                 + (jusquALaFin ? "jusqu'à la fin de la partie" : targetUniverses + " univers visés")
                 + (temps() > 0 ? " ; reprise d'une sauvegarde à " + AnalyseJournal.chrono(temps()) : "")
                 + (sans.isEmpty() ? "" : " ; sans " + String.join(", ", sans.stream().map(Noms::chose).toList()))));
@@ -1056,6 +1164,7 @@ public final class BotAnalyste extends IdleProfiles24 {
                 : fini ? "Fin de la partie atteinte"
                 : NextUniversePolicy.reached(g, targetUniverses) ? "Objectif atteint : " + targetUniverses + " univers" : "Limite de " + heures + " h atteinte";
         // Version 0.164 : les détecteurs d'illogismes relisent la partie.
+        suivi.fin(temps());
         illogismes = AnalyseIllogismes.detecter(this);
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, illogismes.size() + " illogismes repérés (détail dans illogismes.txt et le rapport)");
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.INFO, fin, List.of(String.format(Locale.FRANCE, "Calcul : %.0f s de temps réel", seconds)));
@@ -1080,7 +1189,7 @@ public final class BotAnalyste extends IdleProfiles24 {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
-            System.err.println("Usage : BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id]");
+            System.err.println("Usage : BotAnalyste <dossier> [univers=fin] [heures=400] [graine=201] [pas=5] [estimation_min=30] [comparer=false] [etsi=true] [depart=sauvegarde] [sans=id,id] [profil=speedrunner|regulier|absent]");
             System.exit(2);
         }
         Path dossier = Path.of(args[0]);
@@ -1093,10 +1202,11 @@ public final class BotAnalyste extends IdleProfiles24 {
         boolean etsi = args.length <= 7 || Boolean.parseBoolean(args[7]);
         String depart = args.length > 8 && !args[8].isBlank() ? args[8] : null;
         java.util.Set<String> sans = args.length > 9 ? sans(args[9]) : java.util.Set.of();
+        Profile profile = profil(args.length > 10 ? args[10] : "");
         GameState state = depart == null ? new GameState() : SaveCodec.read(Files.readString(Path.of(depart))).state();
         Game game = Bots.game(state, graine, sans);
         if (depart == null) game.start();
-        BotAnalyste bot = new BotAnalyste(game, graine, pas, dossier, estimation);
+        BotAnalyste bot = new BotAnalyste(game, profile, graine, pas, dossier, estimation);
         bot.jusquALaFin = univers.equalsIgnoreCase("fin");
         bot.sans = sans;
         bot.targetUniverses = bot.jusquALaFin ? Integer.MAX_VALUE : Integer.parseInt(univers);

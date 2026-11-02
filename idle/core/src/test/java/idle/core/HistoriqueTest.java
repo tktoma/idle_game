@@ -117,6 +117,26 @@ class HistoriqueTest {
     }
 
     @Test
+    void uneConditionQuiSePerdUnInstantNeFaitPasTaireLeCompteur() {
+        // Version 0.166 : les atomes, dépensés à chaque explosion, faisaient reculer l'avancée du Big Bang ; le compteur
+        // repartait de zéro à chaque recul et ne donnait presque jamais d'estimation.
+        Game game = GameTestSupport.newGame();
+        Pace pace = new Pace();
+        for (int k = 0; k <= 1; k++) {
+            game.state().setLevel(GameTestSupport.GENERATOR.id(), k);
+            for (int s = 0; s < 30; s++) {
+                game.state().setTimePlayed(game.state().timePlayed() + 5);
+                pace.observe(game);
+            }
+        }
+        assertTrue(Double.isFinite(pace.secondsLeft()));
+        game.state().setLevel(GameTestSupport.GENERATOR.id(), 0);
+        game.state().setTimePlayed(game.state().timePlayed() + 5);
+        pace.observe(game);
+        assertTrue(Double.isFinite(pace.secondsLeft()), "le recul ne remet pas les relevés à zéro : " + pace.secondsLeft());
+    }
+
+    @Test
     void lesParticulesDuBigBangSeComptentCommeLaCondition() throws Exception {
         Game game = GameTestSupport.newGame();
         java.lang.reflect.Method part = Pace.class.getDeclaredMethod("part", Game.class, idle.core.bigbang.BigBangCondition.class);
