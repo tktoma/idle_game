@@ -122,7 +122,11 @@ final class HelpPane extends Overlay {
         }
         if (game.isPeriodicTableUnlocked() || game.isDarkMatterUnlocked() || game.isBigBangUnlocked()) {
             sections.add(new Section("Automatisation", "Un automatisme s'achète une fois, en atomes, puis achète ou "
-                    + "fusionne à votre place. Il se coupe et se relance d'un clic, et sa cadence s'accélère en atomes."
+                    + "fusionne à votre place. Il se coupe et se relance d'un clic, et sa cadence s'accélère en atomes. "
+                    + "Chaque action achète un seul niveau, un générateur compris"
+                    + (game.isDarkMatterUnlocked() || game.isBigBangUnlocked()
+                            ? ", ou un lot payé en matière noire, propre à chaque automatisme : ×2 par niveau, jusqu'à 64, pour tout l'univers" : "")
+                    + " ; une bulle de l'arbre, plus tard, les fait agir sans délai et tout acheter d'un coup."
                     + (game.isDarkMatterUnlocked() || game.isBigBangUnlocked()
                             ? " Ceux de matière noire ne coûtent rien ; les deux qui achètent suivent le moins cher "
                                     + "d'abord, ou l'ordre que vous leur donnez sous leurs cartes." : "")
@@ -135,9 +139,11 @@ final class HelpPane extends Overlay {
                     + "pauses du collisionneur) tiennent d'une remise à zéro à l'autre (explosion, "
                     + "Big Bang et au-delà) : seul « Recommencer de zéro », dans les réglages, les remet comme au début."
                     // Version 0.147 : ce que la coupure générale laisse tourner.
+                    // Version 0.167 : elle arrête aussi les automates du collisionneur.
                     + (game.isColliderUpgradesUnlocked() ? " L'onglet montre aussi les automates du collisionneur, qui se "
-                            + "mettent en pause un par un, et son déclencheur automatique" + (game.hasHose() ? ", et le tuyau "
-                            + "d'arrosage de la graine" : "") + " : la coupure générale ne les arrête pas." : "")));
+                            + "mettent en pause un par un ou tous d'un bouton, et que la coupure générale arrête aussi ; elle "
+                            + "laisse son déclencheur automatique" + (game.hasHose() ? " et le tuyau d'arrosage de la graine" : "")
+                            + "." : "")));
             sections.add(new Section("Tableau périodique", "Une synthèse coûte des atomes et donne un élément. Chaque "
                     + "élément apporte un bonus, ses exemplaires le renforcent, et une famille réunie forme un ensemble. "
                     + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."));
@@ -166,7 +172,9 @@ final class HelpPane extends Overlay {
             sections.add(new Section("Big Bang", "Le Big Bang remet la partie à zéro comme une explosion, et efface en plus "
                     + "la matière noire en réserve et sa taille ; l'arbre de matière noire et les défis réussis ne restent "
                     + "qu'avec les paliers qui les gardent (les bifurcations se rouvrent quand même). Restent les succès, les "
-                    + "records, le collisionneur et ce que l'onglet Big Bang a construit : molécules, astres, espace. Il ouvre l'expansion : l'espace grandit seul. Une molécule se crée avec des "
+                    + "records, le collisionneur et ce que l'onglet Big Bang a construit : molécules, astres, espace. Il ouvre l'expansion : l'espace grandit seul, de "
+                    + "moins en moins vite au-delà de " + ElementText.number(Game.SPACE_DAMPING_START) + " par seconde, où les "
+                    + "bonus ne comptent plus qu'à la racine cubique. Une molécule se crée avec des "
                     + "exemplaires du tableau périodique et de l'espace libre, et reste d'un Big Bang à l'autre. À partir de "
                     + Game.SUBSTANCE_MOLECULES + " molécules, une sorte se rassemble ; les sortes rassemblées forment des "
                     + "assemblages, puis des astres, jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
@@ -247,7 +255,7 @@ final class HelpPane extends Overlay {
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
                 + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
-                + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants. Deux "
+                + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants. Trois "
                 + "se rachètent cinq fois, 2,5 fois plus cher à chaque niveau ; celle des racines s'achète déjà, son effet "
                 + "viendra plus tard. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "

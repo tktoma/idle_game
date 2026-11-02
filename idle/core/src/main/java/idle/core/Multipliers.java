@@ -319,6 +319,10 @@ public final class Multipliers {
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.SPACE)));
         add(factors, Aspect.BIG_BANG, "Sillage de comète", log(game.cometBoost()));
         hadron(game, factors, idle.core.collider.Hadron.KAON);
+        // Version 0.167 : l'amorti au-delà de 10 000 par seconde, un frein.
+        double raw = game.rawSpacePerSecond();
+        add(factors, Aspect.BRAKE, "Amorti au-delà de 10 000 par seconde",
+                raw > 0 ? log(Game.dampedSpace(raw)) - log(raw) : 0);
     }
 
     /** L'énergie du collisionneur (version 0.144) : {@link Game#colliderEnergyPerSecond()}, facteur par facteur. */

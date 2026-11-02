@@ -50,14 +50,18 @@ public final class ElementBonuses {
      */
     public static ElementBonuses of(Map<Integer, Integer> owned, double elementStrength) {
         ElementBonuses bonuses = new ElementBonuses();
+        // Les exemplaires rangés en tableau, une fois : les ensembles les consultent sans chercher dans la table.
+        int[] counts = new int[PeriodicTable.ELEMENTS.size() + 1];
         for (Map.Entry<Integer, Integer> entry : owned.entrySet()) {
             if (entry.getValue() <= 0) continue;
-            bonuses.apply(PeriodicTable.element(entry.getKey()).effect(), Math.sqrt(entry.getValue()) * elementStrength);
+            int number = entry.getKey();
+            if (number >= 0 && number < counts.length) counts[number] = entry.getValue();
+            bonuses.apply(PeriodicTable.element(number).effect(), Math.sqrt(entry.getValue()) * elementStrength);
         }
         // Les ensembles : leur bonus s'ajoute à ceux des éléments, au quart de sa force dès la
         // moitié réunie, à pleine force une fois complets.
         for (ElementSet set : ElementSets.DEFAULT) {
-            double strength = set.strength(owned);
+            double strength = set.strength(counts);
             if (strength <= 0) continue;
             bonuses.apply(set.effect(), strength);
             if (strength >= 1) bonuses.completedSets++;

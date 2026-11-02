@@ -99,18 +99,36 @@ class RythmeTest {
     @Nested
     class AchatGroupeDesGenerateurs {
 
+        /** La bulle du bonsaï, à droite : les automatismes agissent sans délai, et celui des générateurs achète « max ». */
+        private Game instant(Game game) {
+            game.state().setTreeBubbleBought(GameUniverse.TreeBubble.LEAVES_RIGHT.ordinal(), true);
+            return game;
+        }
+
         @Test
-        void uneSeuleActionAcheteTousLesGenerateursPayables() {
+        void sansLaBulleUneActionAcheteUnSeulGenerateur() {
+            // Version 0.167 : avant, une action prenait tous les générateurs payables, bulle ou pas.
             Game game = automated();
+            assertFalse(game.buysInBulk(AUTO_GEN));
             game.state().setParticles(BigNum.of(1e9));
             game.tick(4.1);                                   // le délai d'une action, pas de deux
+            assertEquals(1, game.levelOf("gen"));
+            game.tick(4);
+            assertEquals(2, game.levelOf("gen"));
+        }
+
+        @Test
+        void avecLaBulleUneActionAcheteTousLesGenerateursPayables() {
+            Game game = instant(automated());
+            game.state().setParticles(BigNum.of(1e9));
+            game.tick(0.1);                                   // sans délai
             assertEquals(4, game.levelOf("gen"));
             assertEquals(5, game.generatorCount());
         }
 
         @Test
         void elleSArreteAuPremierGenerateurTropCher() {
-            Game game = automated();
+            Game game = instant(automated());
             game.tick(4.1);                                   // l'automatisme est prêt, sans rien pouvoir payer
             assertEquals(0, game.levelOf("gen"));
             game.state().setParticles(BigNum.of(1_150));      // 100 + 1 000 : deux générateurs, pas le troisième
@@ -146,6 +164,7 @@ class RythmeTest {
                     game.start();
                     game.state().setLevel("discount", 2);
                 }
+                instant(bulk);
                 bulk.state().setAtoms(BigNum.of(3));
                 bulk.buy("keep");
                 bulk.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);

@@ -74,6 +74,7 @@ class SaveTest {
         state.addAutomation("auto_fusion");
         state.setAutomationEnabled("auto_speed", true);
         state.setAutomationSpeedLevel("auto_speed", 7);
+        state.setAutomationBatchLevel("auto_generator", 3);
         state.setAutomationTimer("auto_speed", 0.125);
         state.setElementCount(1, 3);
         state.setElementCount(26, 1);
@@ -732,6 +733,23 @@ class SaveTest {
             GameState target = richState();
             assertThrows(SaveCodec.Unreadable.class, () -> SaveCodec.readInto(target, "n'importe quoi"));
             assertEquals(List.of(), differences("partie", richState(), target, false));
+        }
+
+        @Test
+        void uneSauvegardeDAvantLesCinqNiveauxDePersistanceGardeTout() throws Exception {
+            // Version 0.167 : Persistance a cinq niveaux ; le seul niveau d'avant gardait tout, il devient le cinquième.
+            GameState state = new GameState();
+            state.setLevel("atom_keep", 1);
+            String text = SaveCodec.write(state, 0);
+            assertTrue(text.contains("persistenceTiers="));
+            assertEquals(1, SaveCodec.read(text).state().levelOf("atom_keep"), "une sauvegarde d'aujourd'hui garde son niveau");
+            StringBuilder old = new StringBuilder();
+            for (String line : text.split("\n")) if (!line.startsWith("persistenceTiers=")) old.append(line).append('\n');
+            assertEquals(5, SaveCodec.read(old.toString()).state().levelOf("atom_keep"), "le seul niveau d'avant gardait tout");
+            state.setLevel("atom_keep", 0);
+            StringBuilder none = new StringBuilder();
+            for (String line : SaveCodec.write(state, 0).split("\n")) if (!line.startsWith("persistenceTiers=")) none.append(line).append('\n');
+            assertEquals(0, SaveCodec.read(none.toString()).state().levelOf("atom_keep"), "pas de Persistance, rien à relever");
         }
 
         @Test

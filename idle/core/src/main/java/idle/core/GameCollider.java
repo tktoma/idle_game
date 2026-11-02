@@ -517,9 +517,32 @@ public abstract class GameCollider extends GameDarkTree {
         return true;
     }
 
-    /** Vrai si cet automate est acheté et que le joueur le laisse faire. */
+    /**
+     * Vrai si cet automate est acheté et que le joueur le laisse faire : ni mis en pause, ni arrêté par la coupure de tous
+     * les automatismes (version 0.167 : avant, la coupure générale ne les touchait pas).
+     */
     public boolean isColliderAutomationRunning(ColliderUpgrade upgrade) {
-        return state.colliderUpgradeLevel(upgrade) > 0 && !state.isColliderPaused(upgrade);
+        return state.colliderUpgradeLevel(upgrade) > 0 && !state.isColliderPaused(upgrade) && !state.automationPaused();
+    }
+
+    /** Vrai si au moins un automate du collisionneur est acheté et en pause (version 0.167). */
+    public boolean anyColliderAutomationPaused() {
+        for (ColliderGenerator generator : ColliderGenerator.values()) {
+            ColliderUpgrade automation = ColliderUpgrade.automationOf(generator);
+            if (state.colliderUpgradeLevel(automation) > 0 && state.isColliderPaused(automation)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Met en pause tous les automates du collisionneur achetés, ou les relance tous (version 0.167 : le bouton de leur
+     * section dans l'onglet Automatisation).
+     */
+    public void setColliderAutomationsPaused(boolean paused) {
+        for (ColliderGenerator generator : ColliderGenerator.values()) {
+            ColliderUpgrade automation = ColliderUpgrade.automationOf(generator);
+            if (state.colliderUpgradeLevel(automation) > 0) state.setColliderPaused(automation, paused);
+        }
     }
 
     /** Met en pause un automate, ou le relance. */

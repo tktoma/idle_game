@@ -62,6 +62,12 @@ public final class Upgrades {
     /** Écart entre deux paliers de « Vitesse de création », en niveaux. */
     public static final int SPEED_MILESTONE_EVERY = 25;
 
+    /**
+     * Ce que Persistance garde à chaque niveau (version 0.167) : la part des niveaux de chaque amélioration payée en
+     * particules qui survit à la fusion, arrondie à l'unité inférieure. Les niveaux se cumulent : le cinquième garde tout.
+     */
+    public static final List<Double> PERSISTENCE_SHARES = List.of(0.10, 0.25, 0.50, 0.75, 1.0);
+
     public static final List<Upgrade> DEFAULT = List.of(
             // Chaque niveau rend la création 10 % plus rapide, sur tous les générateurs à la fois.
             // Le coût monte plus vite (+31 %) que le gain (+10 %) : les achats s'espacent peu à peu.
@@ -113,14 +119,14 @@ public final class Upgrades {
             new Upgrade("atom_discount", "Compression", Resource.ATOMS,
                     BigNum.of(3), 2, 5,
                     new Effect.DiscountGenerators(0.8)),
-            // La fusion ne remet plus « Vitesse de création » à zéro. Elle ne débloque plus rien :
-            // l'automatisation et le tableau périodique s'ouvrent à 30 atomes créés
-            // (Game.UNLOCK_TOTAL_ATOMS). À 25 atomes au lieu de 8, c'est un vrai choix : l'acheter avant
-            // ce cap le retarde d'une heure et demie ; le mieux est de la prendre juste après les
-            // premiers automatismes, vers 4 h 40 de jeu.
+            // La fusion garde une part des améliorations payées en particules (version 0.167 : cinq niveaux qui se
+            // cumulent, 10 %, 25 %, 50 %, 75 % puis 100 % de leurs niveaux, PERSISTENCE_SHARES ; avant, un seul
+            // niveau à 25 atomes qui gardait tout). Les prix vont de 8 à 118 atomes, le plafond d'avant la première
+            // explosion : 8, 16, 31, 61 et 118. Elle ne débloque rien : l'automatisation et le tableau périodique
+            // s'ouvrent à 30 atomes créés (Game.UNLOCK_TOTAL_ATOMS).
             new Upgrade("atom_keep", "Persistance", Resource.ATOMS,
-                    BigNum.of(25), 1, 1,
-                    new Effect.KeepUpgradesOnFusion()),
+                    BigNum.of(8), Math.pow(118 / 8.0, 0.25), 5,
+                    new Effect.KeepUpgradesOnFusion(PERSISTENCE_SHARES)),
 
             // ----- Le puits d'atomes. -----
 

@@ -252,6 +252,66 @@ public abstract class GameAtoms extends GamePlans {
         return true;
     }
 
+    // ------------------------------------------------------------------
+    // L'achat en lot (version 0.167)
+    // ------------------------------------------------------------------
+
+    /** Niveaux d'achat en lot d'un automatisme : ×2, ×4… jusqu'à ×64. */
+    public static final int AUTOMATION_BATCH_LEVELS = 6;
+
+    /** Prix du premier niveau d'achat en lot, en matière noire, et ce que chaque niveau coûte de plus : 2, 8, 32… 2 048. */
+    public static final double AUTOMATION_BATCH_BASE_COST = 2, AUTOMATION_BATCH_COST_GROWTH = 4;
+
+    /**
+     * Vrai si cet automatisme peut acheter en lot : ceux qui achètent des améliorations, une fois la matière noire
+     * obtenue (l'entrée dans l'acte 2). Chacun a son propre niveau.
+     */
+    public boolean isAutomationBatchAvailable(String automationId) {
+        return isDarkMatterUnlocked() && automation(automationId).kind() == Automation.Kind.UPGRADE;
+    }
+
+    /** Niveau d'achat en lot de cet automatisme, de 0 à {@link #AUTOMATION_BATCH_LEVELS}. */
+    public int automationBatchLevel(String automationId) {
+        return Math.min(AUTOMATION_BATCH_LEVELS, state.automationBatchLevel(automation(automationId).id()));
+    }
+
+    /** Ce qu'une action de cet automatisme achète au plus : 1, puis ×2 par niveau d'achat en lot, jusqu'à 64. */
+    public int automationBatch(String automationId) {
+        return 1 << automationBatchLevel(automationId);
+    }
+
+    /** Vrai quand cet automatisme achète déjà par 64. */
+    public boolean isAutomationBatchMaxed(String automationId) {
+        return automationBatchLevel(automationId) >= AUTOMATION_BATCH_LEVELS;
+    }
+
+    /** Prix du prochain niveau d'achat en lot de cet automatisme, en matière noire. */
+    public BigNum automationBatchCost(String automationId) {
+        return BigNum.of(AUTOMATION_BATCH_BASE_COST * Math.pow(AUTOMATION_BATCH_COST_GROWTH, automationBatchLevel(automationId)));
+    }
+
+    public boolean canBuyAutomationBatch(String automationId) {
+        return isAutomationBatchAvailable(automationId) && !isAutomationBatchMaxed(automationId)
+                && state.darkMatter().gte(automationBatchCost(automationId));
+    }
+
+    /**
+     * Double ce qu'une action de cet automatisme achète (version 0.167), payé en matière noire : elle est dépensée, mais
+     * toujours comptée comme gagnée. Le niveau tient tout l'univers, explosions et Big Bangs compris ; il ne part qu'avec
+     * l'univers suivant.
+     *
+     * @return {@code true} si l'achat a eu lieu
+     */
+    public boolean buyAutomationBatch(String automationId) {
+        if (!canBuyAutomationBatch(automationId)) return false;
+        BigNum cost = automationBatchCost(automationId);
+        state.setDarkMatter(state.darkMatter().subtract(cost).max(BigNum.ZERO));
+        state.setDarkMatterSpent(state.darkMatterSpent().add(cost));
+        Automation automation = automation(automationId);
+        state.setAutomationBatchLevel(automation.id(), state.automationBatchLevel(automation.id()) + 1);
+        return true;
+    }
+
     /** L'automatisme vu par les éléments qui accélèrent les automatismes. */
     private ElementEffect.AutomationTarget target(Automation automation) {
         return switch (automation.kind()) {
@@ -318,17 +378,19 @@ public abstract class GameAtoms extends GamePlans {
     }
 
     /**
-     * L'achat d'un automatisme : un niveau par action, sauf celui des générateurs, qui prend d'un
-     * coup tous ceux que les particules permettent. Une fois les automatismes rapides, c'est leur
-     * cadence et non la production qui fixait la durée d'une partie : neuf achats de générateurs,
-     * un par action, avant chaque fusion. Pris d'un coup, la fusion revient au rythme d'une action.
+     * L'achat d'un automatisme (version 0.167) : un niveau par action, générateurs compris (avant, celui des générateurs
+     * prenait d'un coup tous ceux que les particules permettaient), ou le lot que la matière noire a payé pour lui
+     * ({@link #automationBatch(String)}, jusqu'à 64). La cadence fixe donc le rythme des fusions : neuf achats de
+     * générateurs avant chacune, un par action sans lot. La bulle du bonsaï, à droite, rend l'achat « max » : sans délai,
+     * celui des générateurs prend d'un coup tous ceux que les particules permettent ({@link #buysInBulk(Automation)}).
      */
     private boolean bulkBuy(Automation automation) {
-        if (!buysInBulk(automation)) return buy(automation.upgradeId());
+        int most = buysInBulk(automation) ? MAX_GENERATORS_PER_ACTION : automationBatch(automation.id());
         Upgrade upgrade = upgrades.get(automation.upgradeId());
-        if (upgrade.resource() != Resource.PARTICLES || !state.started()) {
+        if (most <= 1) return buy(upgrade.id());
+        if (!(upgrade.effect() instanceof Effect.AddGenerator) || upgrade.resource() != Resource.PARTICLES || !state.started()) {
             boolean any = false;
-            for (int bought = 0; bought < MAX_GENERATORS_PER_ACTION && buy(upgrade.id()); bought++) any = true;
+            for (int bought = 0; bought < most && buy(upgrade.id()); bought++) any = true;
             return any;
         }
         // Version 0.126 : les mêmes règles qu'un achat un à un (l'épreuve du premier générateur seul, entre autres),
@@ -341,10 +403,10 @@ public abstract class GameAtoms extends GamePlans {
         // ci-dessous : ceux-là s'achètent un à un, avec leur vrai prix.
         if (generatorCount() >= generatorCap()) {
             boolean any = false;
-            for (int bought = 0; bought < MAX_GENERATORS_PER_ACTION && buy(upgrade.id()); bought++) any = true;
+            for (int bought = 0; bought < most && buy(upgrade.id()); bought++) any = true;
             return any;
         }
-        int room = Math.min(MAX_GENERATORS_PER_ACTION, Math.min(maxGeneratorCount(), generatorCap()) - generatorCount());
+        int room = Math.min(most, Math.min(maxGeneratorCount(), generatorCap()) - generatorCount());
         double factor = generatorCostFactor();
         int level = state.levelOf(upgrade.id());
         BigNum particles = state.particles();
@@ -368,9 +430,12 @@ public abstract class GameAtoms extends GamePlans {
         return true;
     }
 
-    /** Vrai pour l'automatisme qui achète les générateurs : une action prend tous ceux que les particules permettent. */
+    /**
+     * Vrai pour l'automatisme qui achète les générateurs quand les automatismes agissent sans délai (la bulle du bonsaï, à
+     * droite, version 0.167) : une action prend tous ceux que les particules permettent. Sans la bulle, un par action.
+     */
     public boolean buysInBulk(Automation automation) {
-        return automation.kind() == Automation.Kind.UPGRADE
+        return isAutomationInstant() && automation.kind() == Automation.Kind.UPGRADE
                 && upgrades.get(automation.upgradeId()).effect() instanceof Effect.AddGenerator;
     }
 
@@ -682,14 +747,21 @@ public abstract class GameAtoms extends GamePlans {
      * @param uniqueOnly vrai pour ne tirer que parmi les familles uniques
      */
     private Element drawElement(boolean uniqueOnly) {
+        // Version 0.167 : chaque poids se calcule une fois par tirage (deux avant), pour la synthèse sans délai.
+        ElementCategory[] categories = ElementCategory.values();
+        double[] weights = new double[categories.length];
         double total = 0;
-        for (ElementCategory category : ElementCategory.values()) {
-            if (!uniqueOnly || category.unique()) total += drawWeight(category);
+        for (int i = 0; i < categories.length; i++) {
+            if (!uniqueOnly || categories[i].unique()) {
+                weights[i] = drawWeight(categories[i]);
+                total += weights[i];
+            }
         }
         double roll = random.nextDouble() * total;
         ElementCategory chosen = null;
-        for (ElementCategory category : ElementCategory.values()) {
-            double weight = uniqueOnly && !category.unique() ? 0 : drawWeight(category);
+        for (int i = 0; i < categories.length; i++) {
+            ElementCategory category = categories[i];
+            double weight = weights[i];
             if (weight <= 0) continue;
             chosen = category;
             roll -= weight;
@@ -745,9 +817,17 @@ public abstract class GameAtoms extends GamePlans {
                 .toList();
     }
 
+    /** Vrai si un élément de la famille peut encore sortir : comme {@link #availableElements}, sans construire la liste. */
+    private boolean anyAvailable(ElementCategory category) {
+        for (Element element : PeriodicTable.elements(category)) {
+            if (state.elementCount(element.number()) < maxCopiesOf(element)) return true;
+        }
+        return false;
+    }
+
     /** Poids d'une famille dans le tirage : sa chance de base, augmentée si elle est rare, nulle si elle est épuisée. */
     private double drawWeight(ElementCategory category) {
-        if (availableElements(category).isEmpty()) return 0;
+        if (!anyAvailable(category)) return 0;
         return category.chance() * (category.rare() ? bonuses().luckMultiplier() : 1) * preferenceMultiplier(category);
     }
 

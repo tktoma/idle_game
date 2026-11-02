@@ -57,9 +57,10 @@ import javafx.scene.text.TextAlignment;
  * <p>Depuis la version 0.147, tout ce qui agit seul s'y retrouve. Les huit automates du collisionneur, une carte
  * chacun, dès que ses améliorations s'ouvrent : pas encore acheté, la carte dit son prix et l'achète si le
  * collisionneur le propose déjà, sinon elle renvoie au collisionneur ; acheté, elle le met en pause ou le relance.
- * Une ligne dit où en est le déclencheur automatique (un croisement sur cinq, sur trois, puis tous), une autre ce que
- * verse le tuyau d'arrosage de la graine. Ces trois-là ne relèvent pas de la coupure générale : le moteur ne les
- * arrête pas quand « Couper tous les automatismes » est actif, et la note de la coupure le dit.
+ * Depuis la version 0.167, un bouton coupe ou relance tous les automates d'un geste, et « Couper tous les automatismes »
+ * les arrête aussi. Une ligne dit où en est le déclencheur automatique (un croisement sur cinq, sur trois, puis tous),
+ * une autre ce que verse le tuyau d'arrosage de la graine. Ces deux-là ne relèvent pas de la coupure générale : le
+ * moteur ne les arrête pas quand « Couper tous les automatismes » est actif, et la note de la coupure le dit.
  *
  * <p>Sous chaque groupe, une ligne dit ce qui reste à découvrir, pour que le joueur sache qu'il
  * y a une suite. Chaque section n'apparaît qu'une fois son système ouvert.
@@ -106,6 +107,8 @@ public final class AutomationPage extends VBox {
     private final Label ordinaryHint = new Label();
     private final Map<Automation, Card> cards = new LinkedHashMap<>();
     private final Map<Automation, Card> cadences = new LinkedHashMap<>();
+    /** L'achat en lot de chaque automatisme qui achète (version 0.167), payé en matière noire. */
+    private final Map<Automation, Card> batches = new LinkedHashMap<>();
     private final Map<Automation, HBox> rows = new LinkedHashMap<>();
     /** Ce qui reste à débloquer parmi les automatismes ordinaires. */
     private final Label ordinaryNext = new Label();
@@ -129,16 +132,20 @@ public final class AutomationPage extends VBox {
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     private static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
 
-    /** Ajouté à la note de la coupure quand elle laisse tourner quelque chose (version 0.147). */
-    private static final String UNCUT_NOTE = " Attention : la coupure n'arrête ni les automates du collisionneur, ni son "
-            + "déclencheur automatique, ni le tuyau d'arrosage de la graine. Les automates se mettent en pause un par un, ici "
-            + "ou dans le collisionneur.";
+    /**
+     * Ajouté à la note de la coupure quand elle laisse tourner quelque chose (version 0.147 ; depuis la 0.167, elle arrête
+     * aussi les automates du collisionneur).
+     */
+    private static final String UNCUT_NOTE = " Attention : la coupure n'arrête ni le déclencheur automatique du "
+            + "collisionneur, ni le tuyau d'arrosage de la graine.";
 
     // Les automates du collisionneur (version 0.147), son déclencheur automatique, et le tuyau d'arrosage de la graine.
     private final Label colliderTitle = new Label("Automates du collisionneur");
     private final Label colliderHint = new Label();
     private final Map<ColliderUpgrade, Card> colliderCards = new EnumMap<>(ColliderUpgrade.class);
     private final TileGrid colliderGrid = new TileGrid(230, 4, 8);
+    /** Coupe ou relance d'un geste tous les automates du collisionneur achetés (version 0.167). */
+    private final Button colliderPauseButton = new Button();
     private final Label catchLine = new Label();
     private final Label hoseLine = new Label();
 
@@ -221,6 +228,18 @@ public final class AutomationPage extends VBox {
             cadences.put(automation, cadence);
 
             HBox row = new HBox(8, card, cadence);
+            // L'achat en lot se paie en matière noire : sa carte en a la couleur. Seuls ceux qui achètent en ont une.
+            if (automation.kind() == Automation.Kind.UPGRADE) {
+                Card batch = new Card(GameApp.DARK_MATTER_COLOR);
+                batch.setPrefWidth(200);
+                batch.setMaxWidth(200);
+                batch.setOnAction(() -> {
+                    game.buyAutomationBatch(automation.id());
+                    refresh();
+                });
+                batches.put(automation, batch);
+                row.getChildren().add(batch);
+            }
             row.setAlignment(Pos.CENTER);
             row.setFillHeight(true);     // les deux cartes ont la même hauteur, quelle qu'elle soit
             rows.put(automation, row);
@@ -413,11 +432,16 @@ public final class AutomationPage extends VBox {
             colliderGrid.add(card);
         }
         colliderGrid.setMaxWidth(778);
+        colliderPauseButton.setFocusTraversable(false);
+        colliderPauseButton.setOnAction(event -> {
+            game.setColliderAutomationsPaused(!game.anyColliderAutomationPaused());
+            refresh();
+        });
         wrapped(catchLine, "-fx-font-size: 13px; -fx-text-fill: " + ColliderPane.COLOR + ";");
         catchLine.setMaxWidth(760);
         wrapped(hoseLine, "-fx-font-size: 13px; -fx-text-fill: #e6d27a;");
         hoseLine.setMaxWidth(760);
-        ordinary.getChildren().addAll(colliderTitle, colliderHint, colliderGrid, catchLine, hoseLine);
+        ordinary.getChildren().addAll(colliderTitle, colliderHint, colliderPauseButton, colliderGrid, catchLine, hoseLine);
 
         // Chaque sous-page défile quand la fenêtre est trop basse pour toutes ses cartes ; la barre reste en haut.
         dimensions = new DimensionAutomationPane(game);
@@ -687,8 +711,8 @@ public final class AutomationPage extends VBox {
                 : " -fx-text-fill: #9be7a8; -fx-background-color: #16202e; -fx-border-color: #3a4a5e;"));
         boolean handOnly = game.isHandOnly();
         show(pauseNote, (paused || handOnly) && anyToPause(game));
-        // Ce que la coupure générale laisse tourner : le moteur n'arrête ni le collisionneur ni le tuyau.
-        boolean uncut = ownsColliderAutomate(game) || game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH) > 0 || game.hasHose();
+        // Ce que la coupure générale laisse tourner : le moteur n'arrête ni le déclencheur du collisionneur ni le tuyau.
+        boolean uncut = game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH) > 0 || game.hasHose();
         pauseNote.setText(handOnly
                 ? "Défi de Big Bang « À la main » : les automatismes de matière noire et ceux du Big Bang ne font rien jusqu'au "
                         + "prochain Big Bang. Leurs réglages restent."
@@ -696,6 +720,7 @@ public final class AutomationPage extends VBox {
         // Coupés, les automatismes s'estompent : leurs cartes disent toujours leur réglage, pas ce qu'ils font.
         double shade = paused ? 0.45 : 1;
         rows.values().forEach(row -> row.setOpacity(shade));
+        colliderGrid.setOpacity(shade);
         darkGrid.setOpacity(shade);
         spaceGrid.setOpacity(shade);
         upgradeOrder.setOpacity(shade);
@@ -751,6 +776,7 @@ public final class AutomationPage extends VBox {
             if (available) {
                 refreshCard(automation);
                 refreshCadence(automation);
+                refreshBatch(automation);
             } else {
                 showLocked(automation);
             }
@@ -910,7 +936,8 @@ public final class AutomationPage extends VBox {
 
     /**
      * Les automates du collisionneur, son déclencheur automatique et le tuyau d'arrosage : chacun n'apparaît qu'une fois
-     * son système ouvert. La coupure générale ne les estompe pas : elle ne les arrête pas.
+     * son système ouvert. Depuis la version 0.167, la coupure générale arrête et estompe les automates, et un bouton les
+     * coupe ou les relance tous ; elle laisse le déclencheur et le tuyau.
      */
     private void refreshCollider() {
         boolean open = game.isColliderUpgradesUnlocked();
@@ -919,17 +946,18 @@ public final class AutomationPage extends VBox {
         show(colliderGrid, open);
         if (open) {
             colliderHint.setText("Énergie du collisionneur : " + energy(game.colliderEnergy()) + ". Chaque automate achète tout "
-                    + "seul les exemplaires de son générateur ; la coupure générale ne les arrête pas : un clic sur la carte "
-                    + "met en pause ou relance."
+                    + "seul les exemplaires de son générateur ; un clic sur la carte le met en pause ou le relance, le bouton "
+                    + "les coupe tous, et la coupure générale les arrête aussi."
                     + Detail.only(" Ils s'achètent une fois, ici ou dans le collisionneur, chacun après le précédent. Comme tout "
                             + "le collisionneur, ils traversent l'explosion et le Big Bang, et leurs pauses aussi."));
             for (Map.Entry<ColliderUpgrade, Card> entry : colliderCards.entrySet()) {
                 ColliderUpgrade upgrade = entry.getKey();
                 Card card = entry.getValue();
                 if (game.colliderUpgradeLevel(upgrade) > 0) {
-                    boolean running = game.isColliderAutomationRunning(upgrade);
-                    card.show(running ? Card.State.ON : Card.State.OFF, "", running ? "en marche" : "en pause", upgrade.label(),
-                            upgrade.brief(), upgrade.effect() + ". Un clic " + (running ? "le met en pause." : "le relance."), "", "");
+                    // Son propre réglage ; la coupure générale l'arrête sans le changer (la carte s'estompe).
+                    boolean on = !game.state().isColliderPaused(upgrade);
+                    card.show(on ? Card.State.ON : Card.State.OFF, "", on ? "en marche" : "en pause", upgrade.label(),
+                            upgrade.brief(), upgrade.effect() + ". Un clic " + (on ? "le met en pause." : "le relance."), "", "");
                 } else if (game.isColliderUpgradeOpen(upgrade)) {
                     card.show(game.canBuyColliderUpgrade(upgrade) ? Card.State.READY : Card.State.WAITING, "", "", upgrade.label(),
                             upgrade.brief(), upgrade.effect() + ". S'achète une fois, ici ou dans le collisionneur.",
@@ -940,6 +968,15 @@ public final class AutomationPage extends VBox {
                             "à acheter dans le collisionneur", "");
                 }
             }
+        }
+        boolean anyAutomate = open && ownsColliderAutomate(game);
+        show(colliderPauseButton, anyAutomate);
+        if (anyAutomate) {
+            boolean anyPaused = game.anyColliderAutomationPaused();
+            colliderPauseButton.setText(anyPaused ? "Relancer les automates du collisionneur" : "Couper les automates du collisionneur");
+            colliderPauseButton.setStyle("-fx-font-size: 13px; -fx-padding: 4 14; -fx-cursor: hand; -fx-background-radius: 6;"
+                    + " -fx-border-radius: 6; -fx-text-fill: " + ColliderPane.COLOR + "; -fx-background-color: #16202e;"
+                    + " -fx-border-color: " + ColliderPane.COLOR + ";");
         }
         int catchLevel = game.colliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH);
         boolean catching = open && (catchLevel > 0 || game.isColliderUpgradeOpen(ColliderUpgrade.AUTO_CATCH));
@@ -980,6 +1017,11 @@ public final class AutomationPage extends VBox {
         return Format.big(BigNum.of(value));
     }
 
+    /** La carte de l'achat en lot d'un automatisme (version 0.167), {@code null} pour ceux qui n'achètent pas : pour les vérifications. */
+    public Card batchCard(Automation automation) {
+        return batches.get(automation);
+    }
+
     /** La carte d'un automate du collisionneur : pour les vérifications. */
     public Card colliderCard(ColliderUpgrade upgrade) {
         return colliderCards.get(upgrade);
@@ -1014,7 +1056,10 @@ public final class AutomationPage extends VBox {
         return switch (automation.kind()) {
             case UPGRADE -> game.buysInBulk(automation)
                     ? "À chaque action, achète d'un coup tous les générateurs que les particules permettent."
-                    : "Achète « " + automation.name() + " » dès qu'il y a assez de particules.";
+                    : game.automationBatch(automation.id()) > 1
+                    ? "Achète « " + automation.name() + " » dès qu'il y a assez de particules, jusqu'à "
+                            + game.automationBatch(automation.id()) + " niveaux par action."
+                    : "Achète « " + automation.name() + " » dès qu'il y a assez de particules, un niveau par action.";
             case FUSION -> "Fusionne dès que tous les générateurs sont débloqués.";
             case SYNTHESIS -> "Synthétise un élément dès qu'il y a assez d'atomes, réserve déduite.";
         };
@@ -1028,6 +1073,35 @@ public final class AutomationPage extends VBox {
                 !game.isAutomationUnlocked() ? "À " + Format.count(Game.UNLOCK_TOTAL_ATOMS) + " atomes créés"
                         : needsUnique ? "Avec un élément unique ★" : "", "");
         cadences.get(automation).show(Card.State.LOCKED, "", "", "Cadence", "", "", "", "");
+        Card batch = batches.get(automation);
+        if (batch != null) show(batch, false);
+    }
+
+    /**
+     * L'achat en lot (version 0.167) : caché avant la matière noire ; puis le lot actuel, et le prix du suivant en matière
+     * noire, jusqu'à 64.
+     */
+    private void refreshBatch(Automation automation) {
+        Card batch = batches.get(automation);
+        if (batch == null) return;
+        String id = automation.id();
+        boolean open = game.isAutomationBatchAvailable(id);
+        show(batch, open);
+        if (!open) return;
+        int level = game.automationBatchLevel(id);
+        String corner = level + "/" + Game.AUTOMATION_BATCH_LEVELS;
+        String now = game.isAutomationInstant() && game.buysInBulk(automation) ? "Tout d'un coup (bulle du bonsaï)"
+                : "Par " + game.automationBatch(id) + " à chaque action";
+        String detail = "Ce qu'une action achète au plus : 1, puis deux fois plus à chaque niveau, jusqu'à 64. Il se paie en "
+                + "matière noire et tient tout l'univers, explosions et Big Bangs compris.";
+        if (game.isAutomationBatchMaxed(id)) {
+            batch.show(Card.State.DONE, corner, "max", now, "Lot le plus grand", detail, "", "");
+        } else {
+            BigNum cost = game.automationBatchCost(id);
+            batch.show(game.canBuyAutomationBatch(id) ? Card.State.READY : level > 0 ? Card.State.STARTED : Card.State.WAITING,
+                    corner, "", now, "Niveau suivant : par " + (game.automationBatch(id) * 2), detail,
+                    Format.darkMatter(cost) + " matière noire", "");
+        }
     }
 
     /** Ce qu'il manque pour qu'un automatisme ordinaire soit de nouveau disponible. */

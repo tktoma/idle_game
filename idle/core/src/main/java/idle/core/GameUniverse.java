@@ -1294,8 +1294,9 @@ public abstract class GameUniverse extends GameAtoms {
                 "Le collisionneur est ouvert dès le début de l'univers", 1),
         CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 21_400, 1,
                 "L'onglet des hadrons se propose dans le collisionneur, comme le vide", 1, 2),
-        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 21_400, 1,
-                "Persistance dès le début, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
+        // Version 0.167 : elle se rachète cinq fois, un niveau de Persistance offert par niveau.
+        CROWN_RIGHT(6, "Bulle de l'arbuste, à droite", 21_400, 5,
+                "Un niveau de Persistance dès le début par niveau, et des atomes chaque seconde selon les générateurs, sans fusionner", 2),
         YOUNG_LEFT(7, "Bulle du jeune arbre, à gauche", 32_100, 1,
                 "Les hadrons sont ouverts dès le début de l'univers, sans les payer", 3, 4),
         YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 32_100, 1,
@@ -1343,7 +1344,7 @@ public abstract class GameUniverse extends GameAtoms {
             this.below = below;
         }
 
-        /** Combien de fois elle s'achète : 1, ou 5 pour les deux qui se rachètent (version 0.148). */
+        /** Combien de fois elle s'achète : 1, ou 5 pour les trois qui se rachètent (version 0.148 ; l'arbuste à droite depuis la 0.167). */
         public int maxLevel() {
             return maxLevel;
         }
@@ -2528,7 +2529,7 @@ public abstract class GameUniverse extends GameAtoms {
             if (!secondary) gained.add("L'onglet Univers s'ouvre : ce qui s'y gagne (graines, dimensions, skins) traverse "
                     + "ensuite chaque univers.");
             gained.add("Un univers de plus : la matière noire des explosions et sa croissance ×"
-                    + (int) idle.core.GameDarkMatter.UNIVERSE_DARK_MATTER_FACTOR + " pour la suite.");
+                    + (universes() + 2) + " pour la suite, au lieu de ×" + (universes() + 1) + ".");
         }
         return new idle.core.universe.UniverseTransition(launching, lost, kept, gained);
     }

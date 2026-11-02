@@ -476,14 +476,18 @@ public abstract class GameParticles extends GameMatterAutomation {
         return factor * Math.max(0.5, 1 - achievementBonus(Achievement.Bonus.GENERATOR_COST)) / hadronBoost(idle.core.collider.Hadron.B_MESON);
     }
 
-    /** Vrai si la fusion conserve les améliorations payées en particules (hors générateurs). */
+    /** Vrai si la fusion conserve au moins une part des améliorations payées en particules (hors générateurs). */
     public boolean keepsUpgradesOnFusion() {
+        return fusionKeepShare() > 0;
+    }
+
+    /** La part des améliorations payées en particules que la fusion garde, de 0 à 1, selon le niveau de Persistance. */
+    public double fusionKeepShare() {
+        double share = 0;
         for (Upgrade upgrade : upgrades.values()) {
-            if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion && state.levelOf(upgrade.id()) > 0) {
-                return true;
-            }
+            if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion keep) share = Math.max(share, keep.shareAt(state.levelOf(upgrade.id())));
         }
-        return false;
+        return share;
     }
 
     /** Nombre de générateurs actifs : aucun avant {@link #start()}, puis le premier plus ceux achetés. */
@@ -894,7 +898,7 @@ public abstract class GameParticles extends GameMatterAutomation {
      * <p>Impossible tant qu'il manque des générateurs, ou si le joueur possède déjà
      * {@link #MAX_ATOMS} atomes. Sinon il gagne {@link #atomsPerFusion()} et repart du début : un
      * seul générateur, plus aucune particule, plus aucune amélioration payée en particules, sauf
-     * s'il possède une amélioration {@link Effect.KeepUpgradesOnFusion}. Les améliorations payées
+     * la part que garde Persistance ({@link #fusionKeepShare()}). Les améliorations payées
      * en atomes sont toujours conservées.
      *
      * @return {@code true} si la fusion a eu lieu
@@ -926,14 +930,14 @@ public abstract class GameParticles extends GameMatterAutomation {
         state.setParticles(BigNum.ZERO);
         state.clearFormations();
         state.setTimeSinceFusion(0);
-        boolean keep = keepsUpgradesOnFusion();
+        double keep = fusionKeepShare();
         for (Upgrade upgrade : upgrades.values()) {
             if (upgrade.resource() != Resource.PARTICLES) continue;
-            // Les générateurs sont consommés par la fusion, quoi qu'il arrive.
+            // Les générateurs sont consommés par la fusion, quoi qu'il arrive ; les autres gardent la part de Persistance.
             boolean fused = upgrade.effect() instanceof Effect.AddGenerator;
-            if (fused || !keep) {
-                state.setLevel(upgrade.id(), 0);
-            }
+            int level = state.levelOf(upgrade.id());
+            int kept = fused ? 0 : (int) Math.floor(level * keep + 1e-9);
+            if (kept != level) state.setLevel(upgrade.id(), kept);
         }
         if (ruled(Challenge.Rule.AMNESIA)) {
             // Le défi : la fusion reprend aussi tout ce qui a été acheté en atomes, Persistance comprise.
@@ -989,14 +993,15 @@ public abstract class GameParticles extends GameMatterAutomation {
             int over = 1 + level - (generatorCap() - 1);
             if (over > 0) cost = cost.multiply(BigNum.pow10(BUBBLE_GENERATOR_SCALING * over * over));
         }
-        ElementBonuses bonuses = bonuses();
+        // Version 0.167 : les bonus des éléments ne se lisent que pour les prix qu'ils touchent (ils se recalculent après
+        // chaque synthèse, et l'achat sans délai demande des milliers de prix par seconde de jeu).
         double factor = 1;
         if (upgrade.effect() instanceof Effect.AddGenerator) {
             factor = generatorCostFactor();
         } else if (upgrade.effect() instanceof Effect.MultiplySpeed) {
-            factor = 1 / bonuses.costDivisor(ElementEffect.CostTarget.SPEED_UPGRADES);
+            factor = 1 / bonuses().costDivisor(ElementEffect.CostTarget.SPEED_UPGRADES);
         } else if (upgrade.resource() == Resource.ATOMS) {
-            factor = 1 / bonuses.costDivisor(ElementEffect.CostTarget.ATOM_UPGRADES);
+            factor = 1 / bonuses().costDivisor(ElementEffect.CostTarget.ATOM_UPGRADES);
             if (rewarded(Challenge.Reward.CHEAPER_ATOM_UPGRADES)) factor /= REWARD_ATOM_UPGRADE_DIVISOR;
         }
         if (factor != 1) {
@@ -1050,10 +1055,20 @@ public abstract class GameParticles extends GameMatterAutomation {
     }
 
     public boolean canBuy(String upgradeId) {
+        return priceIfBuyable(upgradeId) != null;
+    }
+
+    /**
+     * Le prix du prochain niveau s'il peut s'acheter maintenant, sinon {@code null} : les règles de {@link #canBuy(String)},
+     * avec un seul calcul du prix pour la vérification et l'achat (version 0.167).
+     */
+    private BigNum priceIfBuyable(String upgradeId) {
         Upgrade upgrade = upgrade(upgradeId);
         // L'épreuve du premier générateur seul (version 0.088) : pas d'autre générateur.
-        if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(idle.core.universe.Trial.LONE_GENERATOR)) return false;
-        return state.started() && !isMaxed(upgradeId) && balance(upgrade.resource()).gte(costOf(upgradeId));
+        if (upgrade.effect() instanceof Effect.AddGenerator && inTrial(idle.core.universe.Trial.LONE_GENERATOR)) return null;
+        if (!state.started() || isMaxed(upgradeId)) return null;
+        BigNum cost = costOf(upgradeId);
+        return balance(upgrade.resource()).gte(cost) ? cost : null;
     }
 
     /**
@@ -1063,10 +1078,10 @@ public abstract class GameParticles extends GameMatterAutomation {
      * @return {@code true} si l'achat a eu lieu
      */
     public boolean buy(String upgradeId) {
-        if (!canBuy(upgradeId)) return false;
+        BigNum cost = priceIfBuyable(upgradeId);
+        if (cost == null) return false;
         Upgrade upgrade = upgrade(upgradeId);
         // max(0) : la soustraction de deux double proches peut donner -1e-15 au lieu de 0
-        BigNum cost = costOf(upgradeId);
         BigNum left = balance(upgrade.resource()).subtract(cost).max(BigNum.ZERO);
         switch (upgrade.resource()) {
             case PARTICLES -> {

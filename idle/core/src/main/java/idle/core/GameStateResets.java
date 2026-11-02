@@ -267,6 +267,8 @@ public abstract class GameStateResets extends GameStateCollider {
     public void reset() {
         clearMatter();
         clearDarkMatter();
+        // Version 0.167 : l'achat en lot des automatismes, payé en matière noire, tient tout l'univers ; il ne part qu'ici.
+        automationBatchLevels.clear();
         clearCollider();
         clearBigBangAct();
         fusionThreshold = 0;

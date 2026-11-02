@@ -452,8 +452,10 @@ public final class Game extends GameFinale {
     private void runBubbles(double dt) {
         if (dt <= 0 || !state.started()) return;
         if (hasBubble(TreeBubble.CROWN_RIGHT)) {
-            // Persistance offerte dès le début ; pas pendant l'amnésie, le défi qui la reprend exprès.
-            if (state.levelOf(PERSISTENCE) == 0 && !ruled(Challenge.Rule.AMNESIA)) state.setLevel(PERSISTENCE, 1);
+            // Persistance offerte dès le début, un niveau par niveau de la bulle (version 0.167 : la bulle se rachète cinq
+            // fois) ; pas pendant l'amnésie, le défi qui la reprend exprès.
+            int offered = treeBubbleLevel(TreeBubble.CROWN_RIGHT);
+            if (state.levelOf(PERSISTENCE) < offered && !ruled(Challenge.Rule.AMNESIA)) state.setLevel(PERSISTENCE, offered);
             BigNum gained = bubbleAtomsPerSecond().multiply(dt);
             if (gained.sign() > 0) {
                 BigNum atoms = state.atoms().add(gained);

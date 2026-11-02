@@ -476,17 +476,21 @@ public abstract class GameDarkMatter extends GameParticles {
         return SPEED_PRIME.multiply(bigBangDarkMatterFactor() * bangReward(BangChallenge.Reward.DARK_MATTER) * universeDarkMatterFactor());
     }
 
-    /** Ce que double chaque univers formé (version 0.112) : la matière noire des explosions, et sa croissance. */
-    public static final double UNIVERSE_DARK_MATTER_FACTOR = 2;
+    /**
+     * Ce que chaque univers formé ajoute au multiplicateur de la matière noire des explosions et de sa croissance : +1
+     * (version 0.167 ; avant, chaque univers le doublait).
+     */
+    public static final double UNIVERSE_DARK_MATTER_STEP = 1;
 
     /**
-     * Le bonus permanent des univers formés (version 0.112) : ×{@link #UNIVERSE_DARK_MATTER_FACTOR} par univers,
-     * multiplicatif (×2 dans la partie de l'univers 2, ×4 dans celle du troisième…). Il multiplie la matière
-     * noire que laisse une explosion, sa prime de vitesse, et l'élan de sa croissance. Rien ne l'efface.
+     * Le bonus permanent des univers formés (version 0.112) : 1 + {@link #UNIVERSE_DARK_MATTER_STEP} par univers, additif
+     * depuis la version 0.167 (×2 dans la partie de l'univers 2, ×3 dans celle du troisième, ×11 dans celle du douzième ;
+     * avant, ×2 par univers, multiplicatif : ×2 048 au douzième). Il multiplie la matière noire que laisse une explosion,
+     * sa prime de vitesse, et l'élan de sa croissance. Rien ne l'efface.
      */
     public double universeDarkMatterFactor() {
-        int formed = Math.min(1000, universes());
-        return formed <= 0 ? 1 : Math.pow(UNIVERSE_DARK_MATTER_FACTOR, formed);
+        int formed = Math.max(0, universes());
+        return 1 + UNIVERSE_DARK_MATTER_STEP * formed;
     }
 
     /** La matière noire rendue par les bifurcations rouvertes, pas encore annoncée (version 0.126). Non sauvegardée. */

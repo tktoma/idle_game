@@ -122,8 +122,11 @@ public final class GameApp extends GameAppTabs {
                             : "+" + Format.amount(gain) + (gain.gt(BigNum.ONE) ? " atomes" : " atome"),
                     capped ? "Dépensez des atomes" + (table ? " ou synthétisez un élément" : "") + " pour fusionner de nouveau."
                             : "Les générateurs fusionnent : il n'en reste qu'un, et les particules repartent de zéro. "
-                                    + (game.keepsUpgradesOnFusion()
+                                    + (game.fusionKeepShare() >= 1
                                             ? "Les améliorations payées en particules sont gardées (Persistance)."
+                                            : game.keepsUpgradesOnFusion()
+                                            ? "Les améliorations payées en particules gardent " + Math.round(game.fusionKeepShare() * 100)
+                                                    + " % de leurs niveaux (Persistance)."
                                             : "Les améliorations payées en particules aussi."),
                     "", "");
             fuseCard.setVisible(game.hasAllGenerators() && !generators.isFusing());

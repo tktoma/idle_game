@@ -82,4 +82,19 @@ public record ElementSet(String id, String name, ElementCategory category, int p
         if (found == members().size()) return 1;
         return found >= halfSize() ? HALF_STRENGTH : 0;
     }
+
+    /**
+     * Comme {@link #strength(Map)}, pour une collection rangée en tableau (exemplaires par numéro atomique) : le même
+     * résultat, sans chercher chaque élément dans une table (version 0.167, pour la synthèse sans délai, qui recalcule les
+     * bonus des éléments à chaque synthèse).
+     */
+    public double strength(int[] counts) {
+        int found = 0;
+        for (Element element : members()) {
+            int n = element.number();
+            if (n < counts.length && counts[n] > 0) found++;
+        }
+        if (found == members().size()) return 1;
+        return found >= halfSize() ? HALF_STRENGTH : 0;
+    }
 }

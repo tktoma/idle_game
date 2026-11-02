@@ -95,7 +95,7 @@ public final class Achats {
     /** Les clés où ce qui monte a été acheté (version 0.162 : les autres, des compteurs d'actions, ne sont plus pris pour des achats). */
     public static final java.util.Set<String> ACHATS = java.util.Set.of("upgradeLevels", "ownedAutomations", "automationSpeedLevels", "darkUpgradeLevels",
             "spaceUpgrades", "boughtMilestones", "colliderGeneratorsBought", "colliderUpgrades", "probeUpgrades", "dimensionAutomations",
-            "hadrons", "universeUpgrades", "tableWeightLevel", "voidOpen", "hadronsOpen", "unlockedSkins");
+            "hadrons", "universeUpgrades", "tableWeightLevel", "voidOpen", "hadronsOpen", "unlockedSkins", "automationBatchLevels");
 
     /** Vrai si ce qui monte à cette clé a été acheté. */
     public static boolean achat(String key) {
@@ -142,6 +142,8 @@ public final class Achats {
         }
         // Les automatismes ordinaires et leur cadence se paient en atomes.
         if (key.equals("ownedAutomations") || key.equals("automationSpeedLevels")) return "atoms";
+        // L'achat en lot des automatismes (version 0.167) se paie en matière noire.
+        if (key.equals("automationBatchLevels")) return "darkMatter";
         if (key.equals("spaceUpgrades")) return "space";
         if (key.startsWith("collider")) return "colliderEnergy";
         if (key.startsWith("voidLevel")) return "voidEnergy";
@@ -177,6 +179,9 @@ public final class Achats {
             }
             if (key.equals("automationSpeedLevels")) {
                 for (var a : idle.core.upgrades.Automations.DEFAULT) if (a.id().equals(sub)) return somme(a.speedBaseCost().log10(), Math.log10(a.speedCostGrowth()), from, to);
+            }
+            if (key.equals("automationBatchLevels")) {
+                return somme(Math.log10(Game.AUTOMATION_BATCH_BASE_COST), Math.log10(Game.AUTOMATION_BATCH_COST_GROWTH), from, to);
             }
             if (key.equals("darkUpgradeLevels")) {
                 for (var d : idle.core.darkmatter.DarkUpgrades.DEFAULT) if (d.id().equals(sub)) return somme(d.baseCost().log10(), Math.log10(d.costGrowth()), from, to);

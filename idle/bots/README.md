@@ -86,7 +86,6 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.masseTrouNoir` | `VoidPolicy` | La masse du trou noir au-delà de laquelle on ne le nourrit plus (`0` : jamais). | `10` |
 | `idle.sansArbre` | `UniverseTreePolicy` | `true` : rien de l'univers 4 et suivants (ni graine, ni bulles, ni hadrons) ; l'univers suivant se lance dès l'univers formé, comme avant la 0.152. | `false` |
 | `idle.traceArbre` | `UniverseTreePolicy` | `true` : chaque bulle, ouverture des hadrons et automatisme des dimensions s'écrit (`ARBRE,…`). | `false` |
-| `idle.bulleSansDelai` | `UniverseTreePolicy` | `true` : les bots achètent aussi la bulle du bonsaï, à droite (automatismes sans délai), qui rend la simulation plus de vingt fois plus lente. | `false` |
 | `idle.onzeUnivers.heures`, `idle.onzeUnivers.univers` | `ElevenUniversesLongTest` | Le plafond en heures simulées et le nombre d'univers visés du test long. | `1000` et `11` |
 | `idle.stage` | `IdleProfiles24` | Le suffixe du CSV d'un profil (`01_Speedrunner_<stage>.csv`) ; le 7e argument de `IdleProfiles24` le pose. | `late` |
 | `idle.lenteurDimension` | `DimensionBots` | Le joueur des dimensions est autant de fois plus lent à réagir, viser et revenir. | `1` |
@@ -515,6 +514,27 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 **Ce qui n'est pas un achat.** Seules les clés d'achat comptent comme achats : améliorations, automatismes, arbre, générateurs, bulles, dimensions, graine. Les compteurs d'actions (fusions, synthèses, impulsions, molécules) restent dans les grandeurs. Les réglages (part du vide, réserve des molécules, choix de cycle…) se notent comme des choix, et les éléments synthétisés comme des choses obtenues.
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
+
+## La touche M tenue, l'achat en lot et la Persistance par niveaux (version 0.167)
+
+**La touche M.** Depuis la 0.167, les automatismes n'achètent qu'un niveau par action, ou leur lot. Le joueur attentif tient donc la touche M (« tout acheter avec les particules », que le jeu répète tant qu'elle est tenue). Les profils qui décident au moins toutes les 5 s et ne relâchent jamais leur attention la tiennent : le pas de jeu se coupe en morceaux d'une demi-seconde, avec un « tout acheter » après chacun (`IdleProfiles24.holdsBuyAll`). Les autres, comme le Régulier, l'appuient une fois à chaque décision.
+
+**L'achat en lot.** Le bot achète les niveaux d'achat en lot des automatismes (×2 à ×64, payés en matière noire, gardés tout l'univers) avant le reste, le moins cher d'abord, sans entamer la réserve du Big Bang quand elle se garde (`FirstUniversePolicy.automationBatches`). Il prend aussi la bulle du bonsaï à droite, qui supprime le délai des automatismes : sans elle, ils n'achètent qu'un niveau par action.
+
+**La Persistance par niveaux.** Ses cinq niveaux (8 à 118 atomes) passent avant le reste, un par un, une fois l'automatisation lancée ; la réserve d'atomes posée pour le prochain niveau est rendue telle quelle ensuite (`RobotCosmosPlanner.prioritizePersistence`).
+
+**Ce que mesure la 0.167** (graine 201). Les parties ne tiennent plus en une tranche de 2 h de calcul : en fin de partie, le jeu simule environ 400 fusions et 400 synthèses par seconde, et le calcul avance de 3 à 5 h de jeu par heure réelle. Elles ont été jouées en tranches, chacune reprise de la dernière sauvegarde de la précédente, puis mises bout à bout. Une tranche coupée n'écrit ni `illogismes.csv` ni `rapport.html`.
+
+| Partie | Fin | Univers formés | Univers 1 formé | Minuteur de rassemblement |
+| --- | --- | --- | --- | --- |
+| Speedrunner 0.166 | 110:44:10 | 15 | 23:05:00 | 18 h 26 (16,7 %) |
+| Speedrunner 0.167 | 87:23:20 | 18 | 26:08:55 | 23 h 07 (26,5 %) |
+| Régulier 0.166 | 186:24:35 | 16 | 35:02:05 | 21 h 07 (11,4 %) |
+| Régulier 0.167 | pas finie (univers 14 à 234:37) | 13 | 54:03:05 | — |
+
+Le Speedrunner décide 271 fois par heure au lieu de 471. Le Régulier, qui ne tient pas M, met 11 à 14 h pour l'acte 1 des univers 2 à 5 (3 à 4 h en 0.166) : l'achat en lot ne vient qu'avec l'acte 2.
+
+À savoir : les achats faits en tenant M ne sont pas notés un par un dans `achats.csv` (3 043 lignes « Amélioration » au lieu de 41 379). L'achat en lot se note dans `achats.csv` depuis une correction du moteur faite après ces parties.
 
 ## Profils, causes, charge de décisions, dimensions et graine (version 0.166)
 

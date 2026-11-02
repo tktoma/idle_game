@@ -250,10 +250,13 @@ class ProfilePageTest {
             assertTrue(game.isColliderAutomationRunning(ColliderUpgrade.AUTO_BEAM));
             game.setAutomationPaused(true);
             page.refresh();
-            assertTrue(game.isColliderAutomationRunning(ColliderUpgrade.AUTO_BEAM), "la coupure générale ne l'arrête pas");
-            assertTrue(page.pauseNoteText().contains("la coupure n'arrête ni les automates du collisionneur"), page.pauseNoteText());
+            // Version 0.167 : la coupure générale arrête aussi les automates ; la carte garde leur réglage.
+            assertFalse(game.isColliderAutomationRunning(ColliderUpgrade.AUTO_BEAM), "la coupure générale l'arrête");
+            assertEquals(Card.State.ON, beam.state());
+            assertFalse(page.pauseNoteText().contains("automates du collisionneur"), page.pauseNoteText());
             game.state().setColliderUpgradeLevel(ColliderUpgrade.AUTO_CATCH, 2);
             page.refresh();
+            assertTrue(page.pauseNoteText().contains("ni le déclencheur automatique du collisionneur"), page.pauseNoteText());
             assertTrue(page.catchText().contains("un croisement sur trois"), page.catchText());
             game.state().setSeedUpgradeLevel(Game.SeedUpgrade.HOSE.ordinal(), 2);
             page.refresh();

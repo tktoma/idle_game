@@ -63,6 +63,10 @@ class EarlyStyleTest {
         game.state().setExplosions(1);
         game.state().setDarkLevel("dark_shop_atoms", 1);
         game.state().setDarkLevel("dark_shop_cadence", 1);
+        // Version 0.167 : les lots des automatismes passent avant tout ; déjà pleins ici, pour ne mesurer que la boutique.
+        for (var automation : game.automations())
+            if (game.isAutomationBatchAvailable(automation.id()))
+                game.state().setAutomationBatchLevel(automation.id(), idle.core.GameAtoms.AUTOMATION_BATCH_LEVELS);
         game.state().setDarkMatter(BigNum.of(400));
         assertTrue(game.canBuyDark("dark_shop_atoms"), "la case répétable est payable");
         FirstUniversePolicy.cheapestDark(game, 50);

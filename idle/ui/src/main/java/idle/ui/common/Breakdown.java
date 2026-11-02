@@ -122,7 +122,7 @@ public final class Breakdown {
                 times(lines, "paliers de Big Bang", factor);
                 times(lines, "défis de Big Bang", challenges);
                 times(lines, "petit arbre du cycle (réserve)", reserve);
-                times(lines, "univers formés (×2 par univers)", universes);
+                times(lines, "univers formés (+1 par univers)", universes);
                 if (game.earnsSpeedPrime()) lines.add("+" + Format.count(game.speedPrime()) + "  prime de vitesse, si l'explosion a lieu dans "
                         + Format.wait(Math.max(1, game.speedPrimeLeft())));
                 if (game.isChallengeReplay()) lines.add("Défi déjà réussi : cette explosion-ci ne rapporte rien.");
@@ -138,6 +138,10 @@ public final class Breakdown {
                 times(lines, "collections de molécules", game.collectionBoost(Molecule.Stat.SPACE));
                 times(lines, "défis de Big Bang", game.bangReward(BangChallenge.Reward.SPACE));
                 times(lines, "sillage de comète", game.cometBoost());
+                // Version 0.167 : l'amorti au-delà de 10 000 par seconde (les autres bonus ne sont pas tous listés ici).
+                double raw = game.rawSpacePerSecond();
+                if (raw > Game.SPACE_DAMPING_START) times(lines, "amorti au-delà de " + ElementText.number(Game.SPACE_DAMPING_START)
+                        + " par seconde", Game.dampedSpace(raw) / raw);
             }
         }
         return lines;

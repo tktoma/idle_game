@@ -381,15 +381,15 @@ class JeuAutomatismesTest extends GameTestSupport {
 
         @Test
         void auPlusDixActionsParSecondeParAutomatisme() {
-            // Les deux générateurs sont rachetés d'un coup, puis la fusion suit dans le même dixième de seconde :
-            // même avec des particules illimitées, dix fusions par seconde au mieux.
+            // Version 0.167 : un générateur par action, deux actions pour les deux générateurs, puis la fusion suit :
+            // même avec des particules illimitées, cinq fusions par seconde au mieux (dix quand ils s'achetaient d'un coup).
             Game game = fullyAutomatedGame();
             for (int i = 0; i < 100; i++) {          // 5 secondes à 20 ticks/s
                 game.state().setParticles(BigNum.of(1e9));
                 game.tick(0.05);
             }
             double atoms = game.state().atoms().toDouble();
-            assertTrue(atoms >= 45 && atoms <= 51, "fusions en 5 s : " + atoms);
+            assertTrue(atoms >= 23 && atoms <= 27, "fusions en 5 s : " + atoms);
         }
 
         @Test

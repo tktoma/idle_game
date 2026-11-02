@@ -61,13 +61,20 @@ class BotsTest {
         g.state().setAtoms(idle.core.math.BigNum.of(20));
         RobotCosmosPlanner bot = new RobotCosmosPlanner(g, 20);
         bot.prioritizePersistence();
-        assertEquals(idle.core.math.BigNum.of(25), g.synthesisReserve());
+        // Version 0.167 : le premier niveau (8) se paie, la réserve garde le prix du suivant (16).
+        assertEquals(1, g.levelOf("atom_keep"));
+        assertEquals(idle.core.math.BigNum.of(16), g.synthesisReserve());
         assertEquals(0, FirstUniversePolicy.atoms(g, 40));
-        assertEquals(idle.core.math.BigNum.of(20), g.state().atoms());
-        g.state().setAtoms(idle.core.math.BigNum.of(25));
+        assertEquals(idle.core.math.BigNum.of(12), g.state().atoms());
+        // Les quatre niveaux suivants, un par un, chacun à son prix.
+        for (int level = 2; level <= 5; level++) {
+            g.state().setAtoms(g.costOf("atom_keep"));
+            bot.prioritizePersistence();
+            assertEquals(level, g.levelOf("atom_keep"));
+        }
         bot.prioritizePersistence();
-        assertTrue(g.keepsUpgradesOnFusion());
-        assertEquals(idle.core.math.BigNum.ZERO, g.synthesisReserve());
+        assertEquals(1, g.fusionKeepShare(), 1e-12);
+        assertEquals(idle.core.math.BigNum.ZERO, g.synthesisReserve(), "la réserve d'avant revient au dernier niveau");
     }
 
     @Test
@@ -77,7 +84,7 @@ class BotsTest {
         Game g = new Game(42L);
         g.start();
         g.state().setTotalAtoms(Game.UNLOCK_TOTAL_ATOMS);
-        // Ouverture du §14.1 faite jusqu'aux automatismes ; Persistance (25) n'est pas encore achetée.
+        // Ouverture du §14.1 faite jusqu'aux automatismes ; Persistance (8 son premier niveau) n'est pas encore achetée.
         g.state().setLevel("atom_double", 2);
         g.state().setLevel("atom_patience", 1);
         g.state().setLevel("atom_mass", 1);
@@ -88,9 +95,9 @@ class BotsTest {
         g.state().setAutomationSpeedLevel("auto_generator", 2);
         assertEquals("atom_keep", FirstUniversePolicy.nextStep(g).id());
         g.state().setAtoms(idle.core.math.BigNum.of(31));
-        // 31 atomes : 25 gardés pour Persistance, la synthèse à 2 et à 4 passe avec le reste.
-        assertEquals(2, FirstUniversePolicy.synthesize(g, 20));
-        assertEquals(idle.core.math.BigNum.of(25), g.state().atoms());
+        // 31 atomes : 8 gardés pour Persistance, les synthèses à 2, 4 et 8 passent avec le reste (version 0.167).
+        assertEquals(3, FirstUniversePolicy.synthesize(g, 20));
+        assertEquals(idle.core.math.BigNum.of(17), g.state().atoms());
         assertEquals(1, FirstUniversePolicy.atoms(g, 5));
         assertTrue(g.keepsUpgradesOnFusion());
     }
@@ -504,5 +511,52 @@ class BotsTest {
             System.clearProperty("idle.defisBB");
         }
         assertEquals(BangChallenge.RAISED, bot.bangChallengeOrder(true).get(1), "par défaut : « maturation »");
+    }
+
+    @Test
+    void leLotDesAutomatismesSAcheteLeMoinsCherDAbordSansEntamerLaReserve() {
+        // Version 0.167 : 2, 8, 32… en matière noire, chacun le sien.
+        Game g = new Game(42L);
+        g.start();
+        g.state().setExplosions(1);
+        g.state().setDarkMatter(BigNum.of(12));
+        assertEquals(3, FirstUniversePolicy.automationBatches(g, false), "trois lots à 2 : 6, reste 6, pas de lot à 8");
+        assertEquals(2, g.automationBatch("auto_generator"));
+        assertEquals(2, g.automationBatch("auto_speed"));
+        assertEquals(1, g.automationBatch("auto_fusion"), "la fusion n'achète rien");
+        g.state().setDarkMatter(BigNum.of(10_000));
+        assertEquals(0, FirstUniversePolicy.automationBatches(g, true), "la réserve du Big Bang passe avant");
+        g.state().setDarkMatter(BigNum.of(200_000));
+        assertTrue(FirstUniversePolicy.automationBatches(g, true) > 0, "au-delà de la réserve, il achète");
+    }
+
+    @Test
+    void leSpeedrunnerTientLaToucheMEntreDeuxDecisions() {
+        // Version 0.167 : les automatismes n'achètent qu'un niveau par action ; le joueur attentif tient M.
+        Game g = new Game(42L);
+        g.start();
+        IdleProfiles24 speed = new IdleProfiles24(g, BotAnalyste.ANALYSTE, 42, 5);
+        assertTrue(speed.holdsBuyAll());
+        IdleProfiles24 regular = new IdleProfiles24(new Game(42L), IdleProfiles24.PROFILES[2], 42, 5);
+        assertFalse(regular.holdsBuyAll(), "le Régulier ne la tient pas");
+        speed.quiet = true;
+        speed.begin();
+        for (int i = 0; i < 24; i++) speed.stepOnce();
+        assertTrue(g.levelOf("speed") + g.levelOf("generator") > 0, "deux minutes : des achats");
+    }
+
+    @Test
+    void leRegulierAppuieSurMAChaqueDecision() {
+        // Version 0.167 : sans la tenir, le Régulier appuie une fois sur M quand il décide (toutes les 60 s).
+        Game g = new Game(42L);
+        g.start();
+        IdleProfiles24 regular = new IdleProfiles24(g, IdleProfiles24.PROFILES[2], 42, 5);
+        regular.quiet = true;
+        regular.begin();
+        long before = regular.actions;
+        int steps = 0;
+        while (regular.actions == before && steps++ < 200) regular.stepOnce();
+        assertTrue(regular.actions > before, "il a décidé");
+        assertTrue(g.levelOf("speed") + g.levelOf("generator") > 0, "sa décision achète en particules");
     }
 }

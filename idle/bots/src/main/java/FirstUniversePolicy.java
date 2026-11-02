@@ -7,6 +7,7 @@ import idle.core.math.BigNum;
 import idle.core.elements.ElementCategory;
 import idle.core.elements.PeriodicTable;
 import idle.core.molecules.Molecule;
+import idle.core.upgrades.Automation;
 import idle.core.upgrades.Upgrade;
 
 /**
@@ -20,10 +21,14 @@ import idle.core.upgrades.Upgrade;
 final class FirstUniversePolicy {
     private FirstUniversePolicy() {}
 
+    /**
+     * Vrai tant que Persistance n'est pas à son dernier niveau (version 0.167 : cinq niveaux, 10 % à 100 % ; avant, un
+     * seul) : ses niveaux passent avant le reste, un par un, une fois l'automatisation lancée.
+     */
     static boolean needsPersistence(Game game) {
         // Version 0.164 : une Persistance retirée du jeu ne s'attend pas.
         return game.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS)
-                && !game.keepsUpgradesOnFusion() && !Bots.interdite(game, "atom_keep");
+                && !game.isMaxed("atom_keep") && !Bots.interdite(game, "atom_keep");
     }
 
     static boolean skyReady(Game game) {
@@ -107,7 +112,7 @@ final class FirstUniversePolicy {
             new Step(Step.Kind.AUTOMATION, "auto_generator", 1),
             new Step(Step.Kind.AUTOMATION, "auto_fusion", 1),
             new Step(Step.Kind.CADENCE, "auto_generator", 2),
-            new Step(Step.Kind.UPGRADE, "atom_keep", 1),
+            new Step(Step.Kind.UPGRADE, "atom_keep", 5),
             new Step(Step.Kind.AUTOMATION, "auto_speed", 1),
             new Step(Step.Kind.CADENCE, "auto_fusion", 1),
             new Step(Step.Kind.CADENCE, "auto_generator", 3),
@@ -248,7 +253,7 @@ final class FirstUniversePolicy {
         // Réserver la matière noire du Big Bang (500, le double pendant la barre haute) dès que les autres prérequis
         // sont assurés, et non seulement après l'avoir déjà atteinte.
         boolean bank = savingForBigBang(game);
-        int count = 0;
+        int count = automationBatches(game, bank);
         for (int n = 0; n < limit; n++) {
             DarkUpgrade chosen = null;
             // Une liaison ou un nouveau nœud doit pouvoir passer avant Densité à l'infini.
@@ -357,7 +362,7 @@ final class FirstUniversePolicy {
     static int cheapestDark(Game game, int limit) {
         boolean bank = savingForBigBang(game);
         boolean finalMode = finalBangPreparation(game);
-        int count = 0;
+        int count = automationBatches(game, bank);
         for (int n = 0; n < limit; n++) {
             DarkUpgrade choice = null;
             double choiceShare = Double.POSITIVE_INFINITY;
@@ -401,6 +406,26 @@ final class FirstUniversePolicy {
         if (game.isBigBangConditionMet(BigBangCondition.PARTICLES)) return true;
         double have = game.darkBalance(DarkUpgrade.Branch.PARTICLES).log10(), need = game.bigBangParticles().log10();
         return need <= 0 || (Double.isFinite(have) && have >= SAVE_FROM_PARTICLES * need);
+    }
+
+    /**
+     * L'achat en lot des automatismes (version 0.167), avant tout le reste : le moins cher d'abord, sans entamer la réserve
+     * du Big Bang quand elle se garde. Sans lot, l'automatisme des générateurs n'en prend qu'un par action, et c'est lui
+     * qui rythme les fusions.
+     */
+    static int automationBatches(Game game, boolean bank) {
+        int count = 0;
+        while (true) {
+            String chosen = null;
+            for (Automation automation : game.automations()) {
+                String id = automation.id();
+                if (!game.canBuyAutomationBatch(id)) continue;
+                if (bank && game.state().darkMatter().subtract(game.automationBatchCost(id)).lt(game.bigBangDarkMatter())) continue;
+                if (chosen == null || game.automationBatchCost(id).lt(game.automationBatchCost(chosen))) chosen = id;
+            }
+            if (chosen == null || !game.buyAutomationBatch(chosen)) return count;
+            count++;
+        }
     }
 
     /**

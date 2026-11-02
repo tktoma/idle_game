@@ -42,11 +42,14 @@ class BullesEffetsTest {
     }
 
     @Test
-    void deuxBullesSeRachetentCinqFoisEtCoutentPlusAChaqueNiveau() throws Exception {
+    void troisBullesSeRachetentCinqFoisEtCoutentPlusAChaqueNiveau() throws Exception {
         assertEquals(5, TreeBubble.LEAVES_LEFT.maxLevel());
         assertEquals(5, TreeBubble.GIANT_LEFT_HIGH.maxLevel());
+        assertEquals(5, TreeBubble.CROWN_RIGHT.maxLevel(), "version 0.167 : un niveau de Persistance par niveau");
         for (TreeBubble bubble : TreeBubble.values()) {
-            if (bubble != TreeBubble.LEAVES_LEFT && bubble != TreeBubble.GIANT_LEFT_HIGH) assertEquals(1, bubble.maxLevel(), bubble.toString());
+            if (bubble != TreeBubble.LEAVES_LEFT && bubble != TreeBubble.GIANT_LEFT_HIGH && bubble != TreeBubble.CROWN_RIGHT) {
+                assertEquals(1, bubble.maxLevel(), bubble.toString());
+            }
             assertFalse(bubble.effect().isBlank(), bubble + " dit ce qu'elle fait");
         }
         Game game = at(5, 1e9);
@@ -157,6 +160,23 @@ class BullesEffetsTest {
         // La part : le premier générateur seul, un dixième des générateurs d'une fusion.
         BigNum expected = game.atomsPerFusion().multiply((double) game.generatorCount() / game.generatorsPerAtom() / Game.BUBBLE_FUSION_SECONDS);
         assertEquals(expected.toDouble(), game.bubbleAtomsPerSecond().toDouble(), expected.toDouble() * 1e-9);
+    }
+
+    @Test
+    void chaqueNiveauDeLArbusteDeDroiteOffreUnNiveauDePersistance() {
+        // Version 0.167 : la bulle se rachète cinq fois ; elle ne reprend jamais un niveau acheté au-delà.
+        Game game = GameTestSupport.realGame();
+        game.state().setTreeBubbleLevel(TreeBubble.CROWN_RIGHT.ordinal(), 3);
+        game.tick(1);
+        assertEquals(3, game.levelOf("atom_keep"));
+        assertEquals(0.50, game.fusionKeepShare(), 1e-12, "trois niveaux : la moitié");
+        game.state().setLevel("atom_keep", 4);
+        game.tick(1);
+        assertEquals(4, game.levelOf("atom_keep"), "un niveau payé au-delà de la bulle reste");
+        game.state().setTreeBubbleLevel(TreeBubble.CROWN_RIGHT.ordinal(), 5);
+        game.tick(1);
+        assertEquals(5, game.levelOf("atom_keep"));
+        assertEquals(1, game.fusionKeepShare(), 1e-12);
     }
 
     @Test

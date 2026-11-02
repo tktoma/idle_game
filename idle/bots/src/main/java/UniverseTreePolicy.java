@@ -69,27 +69,16 @@ final class UniverseTreePolicy {
     /** Une bulle de la liste de l'expert, au niveau voulu. */
     record Step(TreeBubble bubble, int level) {}
 
-    /**
-     * La bulle que les bots n'achètent pas : celle du bonsaï, à droite (« les automatismes agissent sans délai et achètent
-     * tout ce qu'ils peuvent »). Mesuré en 0.152 sur le Speedrunner : achetée au début de l'univers 5, chaque heure de jeu
-     * demande plus de dix minutes de calcul au lieu d'une demi-minute (la synthèse automatique fait cent synthèses par
-     * pas du moteur, et chacune recalcule les bonus des éléments, {@code GameAtoms.runAutomation} et
-     * {@code GameAtoms.bonuses}) : onze univers ne se mesuraient plus. Le réseau s'en passe (l'arbuste au milieu ouvre le
-     * jeune arbre, qui rouvre l'arbuste à droite). {@code -Didle.bulleSansDelai=true} la remet à sa place, la troisième.
-     */
-    static final boolean INSTANT_BUBBLE = Boolean.getBoolean("idle.bulleSansDelai");
-
     /** Version 0.163 : le nombre d'univers formés après lequel les bots prennent la bulle des racines (le défi final). */
     static final int ROOTS_AFTER = 11;
 
     /**
-     * Vrai pour une bulle que les bots n'achètent pas : celle des racines (le défi final) tant que l'univers 11 n'est pas
-     * formé (version 0.163 : avant, jamais, les bots ne jouant pas les dimensions qui y mènent), et celle du bonsaï à
-     * droite (sauf demande).
+     * Vrai pour une bulle que les bots n'achètent pas encore : celle des racines (le défi final) tant que l'univers 11
+     * n'est pas formé (version 0.163 : avant, jamais, les bots ne jouant pas les dimensions qui y mènent). Celle du bonsaï,
+     * à droite, s'achète depuis la version 0.167 : sans elle, les automatismes n'achètent qu'un niveau par action.
      */
     static boolean skipped(Game game, TreeBubble bubble) {
-        if (bubble == TreeBubble.ROOTS) return game.universes() < ROOTS_AFTER;
-        return bubble == TreeBubble.LEAVES_RIGHT && !INSTANT_BUBBLE;
+        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER;
     }
 
     /**
@@ -107,7 +96,7 @@ final class UniverseTreePolicy {
             new Step(TreeBubble.CROWN_MIDDLE, 1),
             new Step(TreeBubble.YOUNG_RIGHT, 1),
             new Step(TreeBubble.MATURE_RIGHT, 1),
-            new Step(TreeBubble.CROWN_RIGHT, 1),
+            new Step(TreeBubble.CROWN_RIGHT, 2),
             new Step(TreeBubble.LEAVES_LEFT, 3),
             new Step(TreeBubble.ANCIENT_RIGHT, 1),
             new Step(TreeBubble.CROWN_LEFT, 1),
@@ -121,6 +110,9 @@ final class UniverseTreePolicy {
             new Step(TreeBubble.GIANT_LEFT_LOW, 1),
             new Step(TreeBubble.HEART, 1),
             new Step(TreeBubble.SUMMIT, 1),
+            new Step(TreeBubble.CROWN_RIGHT, 3),
+            new Step(TreeBubble.CROWN_RIGHT, 4),
+            new Step(TreeBubble.CROWN_RIGHT, 5),
             new Step(TreeBubble.GIANT_LEFT_HIGH, 1),
             new Step(TreeBubble.GIANT_LEFT_HIGH, 2),
             new Step(TreeBubble.GIANT_LEFT_HIGH, 3),

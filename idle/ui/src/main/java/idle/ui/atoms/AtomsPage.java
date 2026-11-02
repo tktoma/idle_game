@@ -288,7 +288,7 @@ public final class AtomsPage extends VBox {
             case Effect.StrengthenSpeed strengthen -> "+" + trim(game.speedExtraPerLevel() * 100) + " pts";
             case Effect.DiscountGenerators discount -> "−" + trim((1 - game.generatorCostFactor()) * 100) + " %";
             case Effect.MultiplyAtomsByProduction byProduction -> Format.multiplier(BigNum.of(game.fusionYield()));
-            case Effect.KeepUpgradesOnFusion keep -> "";
+            case Effect.KeepUpgradesOnFusion keep -> level > 0 ? trim(game.fusionKeepShare() * 100) + " %" : "";
             case Effect.BulkAtomBuy bulk -> "";
             default -> Format.multiplier(game.particlesMultiplier(upgrade.id(), level));
         };
@@ -304,7 +304,7 @@ public final class AtomsPage extends VBox {
                     "Vitesse : +" + trim(strengthen.extraPerLevel() * 100) + " point par niveau";
             case Effect.DiscountGenerators discount ->
                     "Générateurs −" + trim((1 - discount.factorPerLevel()) * 100) + " % par niveau";
-            case Effect.KeepUpgradesOnFusion keep -> "La fusion garde vitesse et couplage";
+            case Effect.KeepUpgradesOnFusion keep -> "La fusion garde 10, 25, 50, 75 puis 100 % de vitesse et couplage";
             case Effect.BulkAtomBuy bulk -> "Acheter par dix, ou tout d'un coup";
             case Effect.Overload overload -> "Particules ×" + trim(overload.perLevel()) + " par niveau, sans limite";
             case Effect.MultiplyByGenerators coupling -> "Chaque générateur renforce les autres";
@@ -343,8 +343,10 @@ public final class AtomsPage extends VBox {
                             + "Il tient jusqu'à la prochaine explosion ; « Achat groupé » de la boutique de matière "
                             + "noire le garde pour toujours.";
             case Effect.KeepUpgradesOnFusion keep ->
-                    "La fusion ne remet plus à zéro les améliorations payées en particules (vitesse, couplage). "
-                            + "Les générateurs, eux, fusionnent toujours.";
+                    "La fusion garde une part des niveaux des améliorations payées en particules (vitesse, couplage) : "
+                            + "10 %, 25 %, 50 %, 75 % puis 100 % selon le niveau, arrondi à l'unité inférieure. "
+                            + "Les générateurs, eux, fusionnent toujours."
+                            + (level > 0 ? " Actuellement " + trim(game.fusionKeepShare() * 100) + " %." : "");
             case Effect.Overload overload ->
                     "Multiplie par " + trim(overload.perLevel()) + " les particules créées, à chaque niveau, sans "
                             + "limite de niveau. " + (level > 0 ? now : "");

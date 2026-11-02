@@ -51,6 +51,7 @@ public final class Noms {
             {"clickerShards", "Étincelles du clicker"}, {"gridShards", "Repères de la grille"}, {"mirrorShards", "Reflets du miroir"},
             {"mixShards", "Fragments du mélange"}, {"upgradeLevels", "Amélioration"}, {"ownedAutomations", "Automatisme acheté"},
             {"enabledAutomations", "Automatisme en marche"}, {"automationSpeedLevels", "Vitesse d'automatisme"},
+            {"automationBatchLevels", "Achat en lot"},
             {"darkUpgradeLevels", "Arbre de matière noire"}, {"achievements", "Succès"}, {"completedChallenges", "Défi de matière noire réussi"},
             {"enabledDarkAutomations", "Automatisme de matière noire en marche"}, {"elements", "Éléments du tableau"},
             {"spaceUpgrades", "Amélioration d'espace"}, {"completedBangChallenges", "Défi de Big Bang réussi"},

@@ -23,6 +23,22 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.167", "Persistance par paliers, un espace à sa mesure", List.of(
+                    "Persistance a cinq niveaux, de 8 à 118 atomes : la fusion garde 10 %, 25 %, 50 %, 75 % puis 100 % des "
+                            + "niveaux de vitesse et de couplage. La bulle de l'arbuste, à droite, se rachète cinq fois : un niveau "
+                            + "de Persistance offert par niveau.",
+                    "Les automatismes achètent un seul niveau par action, générateurs compris. Dès la matière noire, chacun "
+                            + "peut acheter en lot : ×2 par niveau payé en matière noire (2, 8, 32… 2 048), jusqu'à 64 par action, pour "
+                            + "tout l'univers, et l'historique des achats le note. "
+                            + "La bulle du bonsaï, à droite, les fait agir sans délai et acheter tout ce qu'ils peuvent.",
+                    "Au-delà de 10 000 par seconde, l'espace gagné ne croît plus que comme la racine cubique de ses bonus : "
+                            + "il n'en vient plus des milliards de fois plus que ce qui sert.",
+                    "Chaque univers formé ajoute 1 au multiplicateur de la matière noire des explosions et de sa croissance "
+                            + "(×2, ×3, ×4…), au lieu de le doubler.",
+                    "« Couper tous les automatismes » arrête aussi les automates du collisionneur, et un bouton les coupe ou "
+                            + "les relance tous dans l'onglet Automatisation.",
+                    "Le bot analyste sait payer les niveaux de Persistance un à un, achète le lot de chaque automatisme et la "
+                            + "bulle sans délai, et le Speedrunner tient la touche M (tout acheter) entre deux décisions.")),
             new Note("0.166", "Une galaxie qui se joue, des bulles qui se choisissent", List.of(
                     "Depuis le deuxième univers, les défis de Big Bang font mûrir les astres cinq fois plus vite, et non plus cent "
                             + "vingt-huit : le trou noir supermassif met 72 minutes au lieu de 3, la galaxie redevient une étape, et "

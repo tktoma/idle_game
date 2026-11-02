@@ -88,10 +88,29 @@ public sealed interface Effect {
     record DiscountGenerators(double factorPerLevel) implements Effect {}
 
     /**
-     * La fusion ne remet plus à zéro les améliorations payées en particules.
-     * Les générateurs, eux, sont toujours consommés : ce sont eux qui fusionnent.
+     * La fusion garde une part des niveaux des améliorations payées en particules : {@code shares.get(n - 1)} au niveau
+     * {@code n} (version 0.167 : Persistance garde 10 %, 25 %, 50 %, 75 % puis 100 %,
+     * {@link Upgrades#PERSISTENCE_SHARES} ; avant, elle gardait tout dès son seul niveau). Les générateurs,
+     * eux, sont toujours consommés : ce sont eux qui fusionnent.
+     *
+     * @param shares la part gardée à chaque niveau, de 0 à 1, en croissant
      */
-    record KeepUpgradesOnFusion() implements Effect {}
+    record KeepUpgradesOnFusion(java.util.List<Double> shares) implements Effect {
+        public KeepUpgradesOnFusion {
+            if (shares == null || shares.isEmpty()) throw new IllegalArgumentException("Il faut au moins une part");
+            shares = java.util.List.copyOf(shares);
+        }
+
+        /** Un seul niveau, qui garde tout : la Persistance d'avant la version 0.167. */
+        public KeepUpgradesOnFusion() {
+            this(java.util.List.of(1.0));
+        }
+
+        /** La part gardée au niveau {@code level} : 0 sans niveau, la dernière au-delà. */
+        public double shareAt(int level) {
+            return level <= 0 ? 0 : shares.get(Math.min(level, shares.size()) - 1);
+        }
+    }
 
     /**
      * Ouvre l'achat par dix et « max » des améliorations payées en atomes. La même chose s'achète

@@ -256,6 +256,24 @@ System.out.printf(Locale.ROOT,"EVENT,%d,%s,%s,wall_h=%.4f,game_h=%.4f,bb=%d,bodi
 double actionInterval, nextActionAt;
 int stepIndex;
 StringBuilder logs;
+/**
+ * Version 0.167 : la touche M tenue (« tout acheter avec les particules », que le jeu répète tant qu'elle est tenue). Les
+ * automatismes n'achètent plus qu'un niveau par action, ou leur lot : le joueur attentif tient M entre deux décisions.
+ * Seuls les profils qui décident au moins toutes les {@link #HOLD_MAX_ACTION_SECONDS} secondes la tiennent ; le pas de
+ * jeu se coupe alors en morceaux de {@link #HOLD_STEP} seconde, avec un « tout acheter » après chacun (le jeu le répète
+ * toutes les 0,08 s ; plus fin, le calcul ralentit sans rien changer de visible). Les autres l'appuient une fois à chaque
+ * décision.
+ */
+static final double HOLD_STEP=0.5;
+static final int HOLD_MAX_ACTION_SECONDS=5;
+/** Vrai si ce profil tient la touche M pendant qu'il joue. */
+boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1;}
+/** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
+private void tickHoldingBuyAll(double dt){
+if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
+double left=dt;
+while(left>1e-9){double part=Math.min(HOLD_STEP,left);g.tick(part);left-=part;g.buyAllWithParticles();}
+}
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){
 actionInterval=Math.max(1,p.actionEverySeconds());
@@ -272,7 +290,7 @@ boolean stepOnce(){
 double dt=step;
 int i=stepIndex++;
 boolean isOnline=online();
-if(isOnline){back();g.tick(dt);onlineSeconds+=dt;}
+if(isOnline){back();tickHoldingBuyAll(dt);onlineSeconds+=dt;}
 else creditedOfflineSeconds+=away(dt);
 wallSeconds+=dt;
 if(isOnline){
@@ -299,6 +317,8 @@ if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
         }else g.pulse();
       }
     }
+// Version 0.167 : celui qui ne tient pas M l'appuie une fois à chaque décision (un achat « max » en particules).
+if(!holdsBuyAll() && g.isStarted())g.buyAllWithParticles();
 if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
 probes();cosmos();resourceLoop();
 }

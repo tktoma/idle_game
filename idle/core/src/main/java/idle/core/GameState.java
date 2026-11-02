@@ -40,6 +40,8 @@ public final class GameState extends GameStateResets {
     // ------------------------------------------------------------------
 
     /** Les clés de sauvegarde des cinq niveaux de la ligne, dans l'ordre de {@code Game.LineUpgrade} (nommées depuis la 0.101). */
+    /** L'identifiant de Persistance, pour relire les sauvegardes d'avant ses cinq niveaux (version 0.167). */
+    private static final String PERSISTENCE_ID = "atom_keep";
     private static final String[] LINE_LEVEL_KEYS = {"lineYieldLevel", "lineTicksLevel", "lineSpeedLevel", "lineBallsLevel", "lineCountLevel"};
 
     /**
@@ -69,9 +71,12 @@ public final class GameState extends GameStateResets {
         data.putDoubleList("formations", formations);
         data.put("timePlayed", timePlayed);
         data.putInts("upgradeLevels", new TreeMap<>(upgradeLevels));
+        // Version 0.167 : Persistance a cinq niveaux ; une sauvegarde sans cette marque n'en connaissait qu'un, qui gardait tout.
+        data.put("persistenceTiers", true);
         data.putList("ownedAutomations", new java.util.TreeSet<>(ownedAutomations));
         data.putList("enabledAutomations", new java.util.TreeSet<>(enabledAutomations));
         data.putInts("automationSpeedLevels", new TreeMap<>(automationSpeedLevels));
+        data.putInts("automationBatchLevels", new TreeMap<>(automationBatchLevels));
         data.putDoubles("automationTimers", new TreeMap<>(automationTimers));
         Map<String, Integer> copies = new java.util.LinkedHashMap<>();
         elements.forEach((number, count) -> copies.put(String.valueOf(number), count));
@@ -333,9 +338,13 @@ public final class GameState extends GameStateResets {
         for (int generator = 0; generator < made.size(); generator++) setFormation(generator, made.get(generator));
         timePlayed = Math.max(0, data.real("timePlayed", 0));
         data.ints("upgradeLevels").forEach(this::setLevel);
+        // Avant la version 0.167, le seul niveau de Persistance gardait tout : il vaut maintenant son cinquième niveau.
+        if (!data.has("persistenceTiers") && levelOf(PERSISTENCE_ID) == 1) setLevel(PERSISTENCE_ID, 5);
         ownedAutomations.addAll(data.list("ownedAutomations"));
         enabledAutomations.addAll(data.list("enabledAutomations"));
         data.ints("automationSpeedLevels").forEach(this::setAutomationSpeedLevel);
+        automationBatchLevels.clear();
+        data.ints("automationBatchLevels").forEach(this::setAutomationBatchLevel);
         data.doubles("automationTimers").forEach(this::setAutomationTimer);
         data.ints("elements").forEach((number, count) -> setElementCount(Integer.parseInt(number), count));
         setSynthesisCount(data.whole("synthesisCount", 0));
@@ -692,6 +701,7 @@ public final class GameState extends GameStateResets {
             ownedAutomations.retainAll(known.automations());
             enabledAutomations.retainAll(known.automations());
             automationSpeedLevels.keySet().retainAll(known.automations());
+            automationBatchLevels.keySet().retainAll(known.automations());
             automationTimers.keySet().retainAll(known.automations());
         }
         if (elements.keySet().removeIf(number -> number < 1 || number > known.elements())) {
@@ -732,7 +742,7 @@ public final class GameState extends GameStateResets {
 
     /** Nombre d'identifiants que porte la partie, tous catalogues confondus. */
     private int identifiers() {
-        return upgradeLevels.size() + ownedAutomations.size() + enabledAutomations.size() + automationSpeedLevels.size()
+        return upgradeLevels.size() + ownedAutomations.size() + enabledAutomations.size() + automationSpeedLevels.size() + automationBatchLevels.size()
                 + automationTimers.size() + elements.size() + darkUpgradeLevels.size() + enabledDarkAutomations.size()
                 + darkAutomationTimers.size() + (activeChallenge == null ? 0 : 1) + completedChallenges.size()
                 + challengeTimes.size() + achievements.size() + molecules.size() + substances.size()

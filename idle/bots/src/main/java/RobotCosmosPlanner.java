@@ -23,6 +23,8 @@ public class RobotCosmosPlanner {
   boolean patiencePausedByRobot=false;
   boolean persistenceReserveManaged=false;
   BigNum previousPersistenceReserve=BigNum.ZERO;
+  /** La réserve posée pour le prochain niveau de Persistance (version 0.167), pour la rendre telle quelle ensuite. */
+  BigNum persistenceReserveSet=null;
   /** La variante experte sait quand différer volontairement une fusion. */
   boolean waitForPatientFusion(){return false;}
   /**
@@ -151,7 +153,7 @@ public class RobotCosmosPlanner {
   RobotCosmosPlanner(Game game,double step){this.g=game;this.step=step;universesSeen=g.universes();bigBangsSeen=g.bigBangs();explosionsSeen=g.state().explosions();}
   /** Achète, au plus {@code limit} fois, l'amélioration en particules la moins chère. */
   static void particle(Game g,int limit){for(int i=0;i<limit;i++){Upgrade b=Bots.cheapest(g,Resource.PARTICLES);if(b==null)break;g.buy(b.id());}}
-  /** Réserve les 25 atomes nécessaires à Persistance seulement après l'automatisation. */
+  /** Réserve les atomes du prochain niveau de Persistance (8 à 118, version 0.167) seulement après l'automatisation. */
   void prioritizePersistence(){
     if(FirstUniversePolicy.readyForPersistence(g)){
       if(g.canBuy("atom_keep"))g.buy("atom_keep");
@@ -160,15 +162,19 @@ public class RobotCosmosPlanner {
           previousPersistenceReserve=g.synthesisReserve();
           persistenceReserveManaged=true;
         }
-        if(g.synthesisReserve().lt(g.costOf("atom_keep")))
+        if(g.synthesisReserve().lt(g.costOf("atom_keep"))){
           g.setSynthesisReserve(g.costOf("atom_keep"));
+          persistenceReserveSet=g.synthesisReserve();
+        }
       }
     }
     if(!FirstUniversePolicy.readyForPersistence(g) && persistenceReserveManaged){
-      // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser.
-      if(g.synthesisReserve().equals(g.costOf("atom_keep")))
+      // Une autre politique a pu relever la réserve entre-temps : ne pas l'écraser. Version 0.167 : la réserve posée se
+      // compare à elle-même, plus au prix de Persistance, qui change à chaque niveau (et n'existe plus au dernier).
+      if(g.synthesisReserve().equals(persistenceReserveSet))
         g.setSynthesisReserve(previousPersistenceReserve);
       persistenceReserveManaged=false;
+      persistenceReserveSet=null;
     }
   }
   void collider(){

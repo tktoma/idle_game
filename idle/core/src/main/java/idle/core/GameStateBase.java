@@ -60,6 +60,8 @@ public abstract class GameStateBase {
     final Set<String> ownedAutomations = new HashSet<>();
     final Set<String> enabledAutomations = new HashSet<>();
     final Map<String, Integer> automationSpeedLevels = new HashMap<>();
+    /** Version 0.167 : l'achat en lot de chaque automatisme qui achète (×2 par niveau), payé en matière noire. */
+    final Map<String, Integer> automationBatchLevels = new HashMap<>();
     final Map<String, Double> automationTimers = new HashMap<>();
     final Map<Integer, Integer> elements = new TreeMap<>();
     /**
@@ -582,6 +584,22 @@ public abstract class GameStateBase {
     public void setAutomationTimer(String automationId, double seconds) {
         if (!(seconds >= 0)) throw new IllegalArgumentException("Durée invalide : " + seconds);
         automationTimers.put(automationId, seconds);
+    }
+
+    /** Niveau d'achat en lot d'un automatisme (version 0.167) : chaque action achète 2 puissance ce niveau. */
+    public int automationBatchLevel(String automationId) {
+        return automationBatchLevels.getOrDefault(automationId, 0);
+    }
+
+    public void setAutomationBatchLevel(String automationId, int level) {
+        if (level < 0) throw new IllegalArgumentException("Niveau négatif");
+        if (level == 0) automationBatchLevels.remove(automationId);
+        else automationBatchLevels.put(automationId, level);
+    }
+
+    /** Vue en lecture seule des niveaux d'achat en lot, pour la sauvegarde. */
+    public Map<String, Integer> automationBatchLevels() {
+        return ordered(automationBatchLevels);
     }
 
     /** Vue en lecture seule des niveaux de cadence, pour la sauvegarde. */

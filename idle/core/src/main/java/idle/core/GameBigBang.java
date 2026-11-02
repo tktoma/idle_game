@@ -710,10 +710,32 @@ public abstract class GameBigBang extends GameDarkMatter {
     /** L'espace par seconde sans le sillage d'une comète : ce que l'expansion donne en régime ordinaire. */
     public BigNum steadySpacePerSecond() {
         if (!isBigBangUnlocked()) return BigNum.ZERO;
-        return BigNum.of(SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
+        return BigNum.of(dampedSpace(rawSpacePerSecond()) * probeBoostMultiplier());
+    }
+
+    /**
+     * L'espace par seconde avant l'amorti, sans le sursaut des sondes ni le sillage d'une comète : la base, fois tous les
+     * bonus d'espace.
+     */
+    public double rawSpacePerSecond() {
+        if (!isBigBangUnlocked()) return 0;
+        return SPACE_PER_SECOND * state.bigBangs() * moleculeBoost(Molecule.Stat.SPACE) * darkMatterSpaceBoost()
                 * (inTrial(idle.core.universe.Trial.COLD_BANG) ? idle.core.universe.Trial.COLD_EXPANSION : 1)
-                * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier() * probeBoostMultiplier()
-                * bangAchievementMultiplier(BangAchievement.Reward.SPACE) * hadronBoost(idle.core.collider.Hadron.KAON));
+                * bangReward(BangChallenge.Reward.SPACE) * colliderSpaceMultiplier()
+                * bangAchievementMultiplier(BangAchievement.Reward.SPACE) * hadronBoost(idle.core.collider.Hadron.KAON);
+    }
+
+    /**
+     * L'amorti de l'espace (version 0.167) : au-delà de {@link #SPACE_DAMPING_START} par seconde, l'espace gagné ne croît
+     * plus que comme la puissance {@link #SPACE_DAMPING_POWER} des bonus. Avant, les bonus des molécules et de la matière
+     * noire s'empilaient jusqu'à 10¹¹ par seconde, pour un espace utilisé qui ne passe guère 10⁸ : vers le septième Big
+     * Bang, l'expansion donnait déjà mille fois ce qui servait. Sous le seuil, là où l'espace manque, rien ne change.
+     */
+    public static final double SPACE_DAMPING_START = 10_000, SPACE_DAMPING_POWER = 1.0 / 3;
+
+    /** L'espace par seconde amorti au-delà de {@link #SPACE_DAMPING_START} ({@link #rawSpacePerSecond()} en entrée). */
+    public static double dampedSpace(double raw) {
+        return raw <= SPACE_DAMPING_START ? raw : SPACE_DAMPING_START * Math.pow(raw / SPACE_DAMPING_START, SPACE_DAMPING_POWER);
     }
 
     /**

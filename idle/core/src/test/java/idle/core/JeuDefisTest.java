@@ -809,7 +809,7 @@ class JeuDefisTest extends GameTestSupport {
             assertTrue(game.isAutomationUnlocked());
             assertTrue(game.isPeriodicTableUnlocked());       // les deux se débloquent ensemble
             assertEquals(0, game.levelOf("atom_keep"));
-            assertValue(25, game.costOf("atom_keep"));
+            assertValue(8, game.costOf("atom_keep"));      // version 0.167 : le premier de cinq niveaux (25 avant)
             assertTrue(minutes >= 95 && minutes <= 120, "trentième atome créé après " + minutes + " min");
             assertEquals(1, game.firstRunSlowdown(), 0, "trente atomes : la création a tout son élan");
         }

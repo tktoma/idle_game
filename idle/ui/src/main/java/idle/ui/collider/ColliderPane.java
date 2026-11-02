@@ -266,7 +266,8 @@ public final class ColliderPane extends VBox {
             generatorMaxes.get(generator).setDisable(!game.canBuyColliderGenerator(generator));
             ColliderUpgrade automation = ColliderUpgrade.automationOf(generator);
             generatorAutos.get(generator).setText(game.colliderUpgradeLevel(automation) == 0 ? ""
-                    : game.isColliderAutomationRunning(automation) ? "auto" : "auto (pause)");
+                    : game.isColliderAutomationRunning(automation) ? "auto"
+                    : game.state().isColliderPaused(automation) ? "auto (pause)" : "auto (tout est coupé)");
         }
     }
 
@@ -381,10 +382,12 @@ public final class ColliderPane extends VBox {
             Card.State state;
             String price;
             if (full && upgrade.isPausable()) {
-                boolean running = game.isColliderAutomationRunning(upgrade);
-                state = running ? Card.State.ON : Card.State.OFF;
-                price = running ? (Detail.shown() ? "En marche : un clic le met en pause" : "En marche")
-                        : (Detail.shown() ? "En pause : un clic le relance" : "En pause");
+                // Son propre réglage ; la coupure générale de l'onglet Automatisation l'arrête aussi (version 0.167).
+                boolean on = !game.state().isColliderPaused(upgrade);
+                state = on ? Card.State.ON : Card.State.OFF;
+                price = !on ? (Detail.shown() ? "En pause : un clic le relance" : "En pause")
+                        : game.isAutomationPaused() ? "Arrêté : tout est coupé dans l'onglet Automatisation"
+                        : Detail.shown() ? "En marche : un clic le met en pause" : "En marche";
             } else if (full) {
                 state = Card.State.DONE;
                 price = "Au maximum";

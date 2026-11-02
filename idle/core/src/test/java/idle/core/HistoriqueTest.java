@@ -38,6 +38,25 @@ class HistoriqueTest {
     }
 
     @Test
+    void lAchatEnLotDUnAutomatismeSeNoteAvecSaMatiereNoire() {
+        // Version 0.167 : le niveau d'achat en lot se paie en matière noire et figure dans l'historique.
+        Game game = GameTestSupport.realGame();
+        game.state().setExplosions(1);
+        game.state().setDarkMatter(idle.core.math.BigNum.of(100));
+        Photo avant = Photo.of(game.state());
+        assertTrue(game.buyAutomationBatch("auto_generator"));
+        List<Achats.Achat> achats = Achats.lire(Photo.diff(avant, Photo.of(game.state())));
+        assertEquals(1, achats.size());
+        Achats.Achat a = achats.get(0);
+        assertEquals("Achat en lot — " + Noms.chose("auto_generator"), a.quoi());
+        assertEquals("Matière noire", a.paye());
+        assertEquals(2, Math.pow(10, a.montantLog()), 1e-9);
+        assertTrue(Achats.achat("automationBatchLevels"));
+        assertEquals("darkMatter", Achats.monnaie("automationBatchLevels", "auto_generator"));
+        assertEquals(Math.log10(8), Achats.coutRelatif("automationBatchLevels", "auto_generator", 1, 2), 1e-12);
+    }
+
+    @Test
     void lesReglagesEtLesCompteursNeSontPasDesAchats() {
         assertFalse(Achats.achat("pulses"));
         assertFalse(Achats.achat("synthesisCount"));

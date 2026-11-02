@@ -309,8 +309,9 @@ class DeuxiemeUniversTest {
     }
 
     @Test
-    void chaqueUniversFormeDoubleLaMatiereNoireEtSaCroissance() {
-        // Version 0.112 : ×2 par univers formé, multiplicatif, sur la matière noire des explosions et sa croissance.
+    void chaqueUniversFormeAjouteUnALaMatiereNoireEtASaCroissance() {
+        // Version 0.167 : +1 par univers formé (×2, ×3, ×4…), sur la matière noire des explosions et sa croissance ;
+        // de la 0.112 à la 0.166, ×2 par univers, multiplicatif.
         Game before = GameTestSupport.realGame();
         assertEquals(1, before.universeDarkMatterFactor(), 0);
         BigNum base = before.darkMatterPerExplosion();
@@ -321,10 +322,12 @@ class DeuxiemeUniversTest {
         game.state().setExplosions(1);
         double momentum = game.darkMatterMomentum();
         game.testAddUniverse();
-        assertEquals(4, game.universeDarkMatterFactor(), 0, "deux univers : ×4");
-        assertEquals(momentum * 2, game.darkMatterMomentum(), momentum * 1e-9, "la croissance double aussi");
+        assertEquals(3, game.universeDarkMatterFactor(), 0, "deux univers : ×3, et non plus ×4");
+        assertEquals(momentum * 1.5, game.darkMatterMomentum(), momentum * 1e-9, "la croissance suit, ×3 au lieu de ×2");
         assertTrue(game.startNextUniverse());
-        assertEquals(4, game.universeDarkMatterFactor(), 0, "le bonus reste pendant la partie suivante");
+        assertEquals(3, game.universeDarkMatterFactor(), 0, "le bonus reste pendant la partie suivante");
+        for (int k = 0; k < 9; k++) game.testAddUniverse();
+        assertEquals(12, game.universeDarkMatterFactor(), 0, "onze univers formés : ×12 (×2 048 avant)");
     }
 
     @Test

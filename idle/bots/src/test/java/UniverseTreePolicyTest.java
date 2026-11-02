@@ -101,24 +101,26 @@ class UniverseTreePolicyTest {
         Game game = universes(3, true);
         worldTree(game);
         // Version 0.166 : les prix suivent l'énergie gardée ; le test se règle sur eux.
-        game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_LEFT.costAt(0) + TreeBubble.LEAVES_LEFT.costAt(1) + 500);
+        game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_LEFT.costAt(0) + TreeBubble.LEAVES_RIGHT.cost()
+                + TreeBubble.LEAVES_LEFT.costAt(1) + 500);
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
         expert.play(game);
-        // La base, puis deux niveaux de ×2 sur le vide ; l'arbuste au milieu attend.
+        // La base, ×2 sur le vide, la bulle sans délai (version 0.167), un second ×2 ; l'arbuste au milieu attend.
         assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
         assertEquals(2, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
-        assertFalse(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT), "la bulle sans délai n'est pas achetée");
+        assertTrue(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT), "la bulle sans délai, troisième de la liste");
         assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_MIDDLE));
         assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_LEFT), "il garde pour la suivante de sa liste, pas pour une autre");
         assertEquals(500, game.voidAvailable(), 1e-9);
-        assertEquals(TreeBubble.CROWN_MIDDLE, UniverseTreePolicy.nextBest(game).bubble());
-        game.state().noteVoidHistory("4", TreeBubble.CROWN_MIDDLE.cost() + TreeBubble.YOUNG_RIGHT.cost() - 500);
+        // La bulle sans délai ouvre l'arbuste à droite, qui passe en tête.
+        assertEquals(TreeBubble.CROWN_RIGHT, UniverseTreePolicy.nextBest(game).bubble());
+        game.state().noteVoidHistory("4", TreeBubble.CROWN_RIGHT.cost() + TreeBubble.CROWN_MIDDLE.cost() + TreeBubble.YOUNG_RIGHT.cost() - 500);
         expert.play(game);
-        // L'arbuste au milieu, puis le jeune arbre à droite : il rouvre l'arbuste à droite, qui passe devant.
+        // L'arbuste à droite, celui du milieu, puis le jeune arbre à droite.
+        assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_RIGHT));
         assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_MIDDLE));
         assertTrue(game.isTreeBubbleBought(TreeBubble.YOUNG_RIGHT));
-        assertEquals(TreeBubble.CROWN_RIGHT, UniverseTreePolicy.nextBest(game).bubble());
-        assertEquals(5, expert.bubbles);
+        assertEquals(7, expert.bubbles);
     }
 
     @Test
@@ -131,7 +133,8 @@ class UniverseTreePolicyTest {
         game.state().setSeedWaterings(Game.seedStageWaterings(5));
         expert.buyBubbles(game);
         for (TreeBubble bubble : TreeBubble.values()) {
-            assertEquals(bubble.stage() <= 5 && bubble != TreeBubble.LEAVES_RIGHT, game.isTreeBubbleBought(bubble), bubble.name());
+            // Version 0.167 : la bulle sans délai s'achète aussi.
+            assertEquals(bubble.stage() <= 5, game.isTreeBubbleBought(bubble), bubble.name());
         }
         assertEquals(5, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT), "le bonsaï à gauche, ses cinq niveaux");
     }
@@ -217,7 +220,8 @@ class UniverseTreePolicyTest {
         Game ten = universes(10, true), eleven = universes(11, false);
         assertTrue(UniverseTreePolicy.skipped(ten, TreeBubble.ROOTS), "avant l'univers 11 formé, pas de défi final");
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.ROOTS), "après, le bot la prend (version 0.163)");
-        assertTrue(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai reste sautée");
+        assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai s'achète (version 0.167)");
+        assertFalse(UniverseTreePolicy.skipped(ten, TreeBubble.LEAVES_RIGHT));
     }
 
     @Test

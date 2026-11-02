@@ -1117,7 +1117,7 @@ final class DebugBar extends VBox {
     private void fillTable(boolean everyCopy) {
         maxAutomations();
         for (Upgrade upgrade : game.upgrades()) {
-            if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion) game.state().setLevel(upgrade.id(), 1);
+            if (upgrade.effect() instanceof Effect.KeepUpgradesOnFusion) game.state().setLevel(upgrade.id(), upgrade.maxLevel());
         }
         for (Element element : PeriodicTable.ELEMENTS) {
             give(element.number(), everyCopy ? Integer.MAX_VALUE : 1);
