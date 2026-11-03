@@ -166,7 +166,10 @@ final class AnalyseSuivi {
             int n = g.cosmosConditions(scale), met = g.cosmosConditionsMet(scale);
             if (n > 1 && met == n - 1) {
                 bloque = scale.label();
-                detail = "il ne manque qu'une condition sur " + n;
+                // Version 0.168 : laquelle (quel astre, quelle matière), sans les nombres qui bougent à chaque pas.
+                List<String> manque = g.cosmosMissing(scale);
+                detail = "il ne manque qu'une condition sur " + n
+                        + (manque.size() == 1 ? " : " + manque.get(0).replaceAll(" \\([^)]*\\)$", "") : "");
             }
         }
         String cle = "seule|" + bloque + "|" + detail;

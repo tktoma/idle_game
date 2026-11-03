@@ -112,6 +112,7 @@ tasks.register<JavaExec>("analyste") {
         providers.gradleProperty("depart").orElse("").get(),
         providers.gradleProperty("sans").orElse("").get(),
         providers.gradleProperty("profil").orElse("speedrunner").get(),
+        providers.gradleProperty("ordre").orElse("").get(),
     )
 }
 
@@ -142,6 +143,26 @@ tasks.register<JavaExec>("graines") {
     maxHeapSize = "2500m"
     args = listOf(providers.gradleProperty("sortie").orElse("sorties/graines").get(), providers.gradleProperty("univers").orElse("11").get()) +
         providers.gradleProperty("graines").orElse("201,202,203").get().split(",").map { it.trim() }
+}
+
+// Version 0.168 : -Pordre=meilleur ou -Pordre=moins-cher impose l'ordre des bulles ; -Psans accepte les bulles
+// (-Psans=bulle:LEAVES_LEFT) ; chaque sauvegarde garde la mémoire du bot (.bot), et -Pdepart=… la reprend.
+//   ./gradlew :bots:graines -Pgraines=201,202,201:moins-cher -Punivers=4 -Psortie=sorties/dispersion
+//   ./gradlew :bots:durables -Psortie=sorties/arbre -Pids=arbre        les huit cases de l'arbre les plus achetées
+//   ./gradlew :bots:bulles -Psortie=sorties/bulles -Pdepart=…/Univers_3_forme.save -Punivers=8
+tasks.register<JavaExec>("bulles") {
+    group = "application"
+    description = "Depuis une sauvegarde, la partie sans chaque bulle de l'arbre : ce que vaut chacune, univers par univers"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "AnalyseDurables"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(
+        providers.gradleProperty("sortie").orElse("sorties/bulles").get(),
+        "bulles",
+        providers.gradleProperty("depart").orElse("").get(),
+        providers.gradleProperty("univers").orElse("8").get(),
+    ) + listOfNotNull(providers.gradleProperty("ids").orNull)
 }
 
 // Version 0.166 : ce que vaut chaque amélioration durable du premier univers, mesuré par une partie sans elle.

@@ -213,7 +213,11 @@ final class HelpPane extends Overlay {
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ", et le temps qu'il reste avant la prochaine étape, au rythme des dix dernières minutes (rien quand l'avancée ne bouge pas assez pour l'estimer)"
                 + ". Dans les statistiques, la sous-page « Achats » garde vos achats de la session : leur prix, ce qu'ils "
-                + "multiplient et le temps qu'ils font gagner vers la prochaine étape (ceux des automatismes n'y sont pas)"
+                + "multiplient et le temps qu'ils font gagner vers la prochaine étape, puis jusqu'où ils tiennent et ce qu'ils font "
+                + "gagner sur toute leur durée de vie (ceux des automatismes n'y sont pas)"
+                + (game.universes() > 0 ? ". La sous-page « Chronologie » montre la courbe de la partie : la durée de chaque univers "
+                        + "formé et de ses phases, à la même échelle, puis le temps de chaque dimension (ouverte, jouée, seuil, palier final), "
+                        + "les paliers de la graine et le défi final" : "")
                 + ". Les annonces qui passent en haut de l'écran restent dans le journal, deuxième sous-onglet de l'onglet Profil. Les réglages, "
                 + "sous-onglet « Notifications et signes », coupent les annonces par catégorie, cachent les morceaux de "
                 + "l'objectif un par un et les pastilles ● des onglets par sorte."));

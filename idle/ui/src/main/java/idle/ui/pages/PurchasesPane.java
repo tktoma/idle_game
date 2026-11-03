@@ -16,7 +16,8 @@ import javafx.scene.layout.VBox;
 /**
  * Vos achats (version 0.165), comme le bot analyste les note : la prochaine étape et le temps qu'elle demande au rythme
  * des dix dernières minutes, ce qui a fait gagner le plus de temps pendant la session, puis les derniers achats, avec
- * ce qu'ils ont coûté, leur poids sur les grandeurs et le temps gagné. Seuls les achats du joueur comptent : ceux des
+ * ce qu'ils ont coûté, leur poids sur les grandeurs, le temps gagné et, depuis la version 0.168, leur valeur durable :
+ * jusqu'où ils tiennent et ce qu'ils font gagner sur toute leur durée de vie. Seuls les achats du joueur comptent : ceux des
  * automatismes passent pendant le temps de jeu, ils n'y sont pas. Recomposé deux fois par seconde au plus, et seulement
  * quand la sous-page est à l'écran.
  */
@@ -128,6 +129,21 @@ final class PurchasesPane extends VBox {
         text.append(e.poids());
         if (Double.isFinite(e.gainSecondes()) && e.gainSecondes() >= 1) {
             text.append("  ·  ").append(Format.wait(e.gainSecondes())).append(" gagnées vers « ").append(e.vers()).append(" »");
+        }
+        text.append(durable(e));
+        return text.toString();
+    }
+
+    /**
+     * Version 0.168 : la valeur durable, à côté du gain immédiat. « · Tient jusqu'à la prochaine explosion (25 min la
+     * dernière fois) : 6 min gagnées sur sa durée de vie », ou « · Tient toute la partie ».
+     */
+    static String durable(PurchaseHistory.Entry e) {
+        if (e.tenue().isEmpty()) return "";
+        StringBuilder text = new StringBuilder("  ·  Tient ").append(e.tenue());
+        if (Double.isFinite(e.dureeSecondes())) text.append(" (").append(Format.wait(e.dureeSecondes())).append(" la dernière fois)");
+        if (Double.isFinite(e.durableSecondes()) && e.durableSecondes() >= 1) {
+            text.append(" : ").append(Format.wait(e.durableSecondes())).append(" gagnées sur sa durée de vie");
         }
         return text.toString();
     }

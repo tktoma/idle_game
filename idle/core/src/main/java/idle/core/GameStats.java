@@ -91,11 +91,48 @@ public final class GameStats {
     // partie qui traverse les trois actes, pour que les délais, les records et la prochaine étape s'y rapportent.
     private final Map<Step, Double> universeSteps = new EnumMap<>(Step.class);
     private double universeStart = 0;
+    // Version 0.168 : chaque univers formé garde ses étapes (sa courbe pour le joueur), et la partie secondaire ses
+    // moments : dimension ouverte, premier automatisme, seuil, palier final, paliers de la graine, défi final.
+    private final List<UniverseRecord> universeLog = new ArrayList<>();
+    private final Map<String, Double> moments = new java.util.LinkedHashMap<>();
+    // Le temps passé la fenêtre de chaque dimension ouverte, en secondes (version 0.168), par numéro de dimension.
+    private final Map<String, Double> dimensionPlay = new java.util.LinkedHashMap<>();
+    // Vrai pour une sauvegarde d'avant la 0.168 : ce qui est déjà atteint au premier relevé n'a pas de date.
+    private boolean momentsUndated = false;
 
     // ----- Historique et mémoire des déblocages -----
     private final StatsHistory history = new StatsHistory();
     private final StatsHistory runHistory = new StatsHistory();
     private final Set<String> unlockedOnce = new HashSet<>();
+
+    /** Nombre maximal d'univers gardés dans le journal des univers : au-delà, les plus anciens sont oubliés. */
+    private static final int MAX_UNIVERSES_LOGGED = 200;
+
+    /**
+     * Un univers formé (version 0.168) : son numéro, son début (le lancement de sa partie), puis le temps de jeu de sa
+     * première explosion, de son premier Big Bang, de sa galaxie, de son amas et de sa formation. {@code NaN} pour une
+     * étape qu'il n'a pas notée (une sauvegarde d'avant la version 0.126, ou un univers formé par l'outil d'essai).
+     */
+    public record UniverseRecord(int number, double start, double firstExplosion, double firstBigBang, double galaxy,
+            double cluster, double formed) {
+
+        /** Les noms de ses cinq phases, dans l'ordre. */
+        public static final List<String> PHASES = List.of("Acte 1, jusqu'à la première explosion", "Acte 2, jusqu'au premier Big Bang",
+                "Big Bangs et astres, jusqu'à la galaxie", "Galaxie, jusqu'à l'amas", "Amas, jusqu'à l'univers");
+
+        /** Sa durée en secondes, du lancement à la formation. */
+        public double duration() {
+            return formed - start;
+        }
+
+        /** La durée de chacune de ses cinq phases ({@link #PHASES}), en secondes ; {@code NaN} si une borne manque. */
+        public double[] phases() {
+            double[] bounds = {start, firstExplosion, firstBigBang, galaxy, cluster, formed};
+            double[] out = new double[5];
+            for (int i = 0; i < 5; i++) out[i] = bounds[i + 1] - bounds[i];
+            return out;
+        }
+    }
 
     /** Nombre maximal de durées d'explosion gardées : au-delà, les plus anciennes sont oubliées. */
     private static final int MAX_EXPLOSION_TIMES = 60;
@@ -381,6 +418,31 @@ public final class GameStats {
         return universeStart;
     }
 
+    /** Les univers formés, du plus ancien au plus récent (version 0.168) : le journal commence à la version 0.168. */
+    public List<UniverseRecord> universeLog() {
+        return Collections.unmodifiableList(universeLog);
+    }
+
+    /**
+     * Le temps de jeu d'un moment de la partie secondaire (version 0.168) : {@code dimension.N.ouverte},
+     * {@code dimension.N.automatisme}, {@code dimension.N.seuil}, {@code dimension.N.final}, {@code graine.N},
+     * {@code defiFinal.ouvert}, {@code fin}. {@code NaN} pas encore atteint, ou atteint avant la version 0.168
+     * ({@link #momentKnown(String)} les distingue).
+     */
+    public double moment(String key) {
+        return moments.getOrDefault(key, Double.NaN);
+    }
+
+    /** Le temps passé la fenêtre de la dimension {@code number} ouverte, en secondes (version 0.168). */
+    public double dimensionPlayTime(int number) {
+        return dimensionPlay.getOrDefault(String.valueOf(number), 0.0);
+    }
+
+    /** Vrai si ce moment est atteint, daté ou non. */
+    public boolean momentKnown(String key) {
+        return moments.containsKey(key);
+    }
+
     /** L'historique du jeu entier : ses instants sont comptés en temps de jeu depuis le début. */
     public StatsHistory history() {
         return history;
@@ -450,6 +512,19 @@ public final class GameStats {
         writeSteps(data, prefix + "steps", steps);
         writeSteps(data, prefix + "universeSteps", universeSteps);
         data.put(prefix + "universeStart", universeStart);
+        List<Double> log = new ArrayList<>();
+        for (UniverseRecord r : universeLog) {
+            log.add((double) r.number());
+            log.add(r.start());
+            log.add(r.firstExplosion());
+            log.add(r.firstBigBang());
+            log.add(r.galaxy());
+            log.add(r.cluster());
+            log.add(r.formed());
+        }
+        data.putDoubleList(prefix + "universeLog", log);
+        data.putDoubles(prefix + "moments", moments);
+        data.putDoubles(prefix + "dimensionPlay", dimensionPlay);
         data.putList(prefix + "unlockedOnce", new java.util.TreeSet<>(unlockedOnce));
         data.put(prefix + "universeBigBangs", universeBigBangs);
         data.put(prefix + "universeMolecules", universeMolecules);
@@ -505,6 +580,18 @@ public final class GameStats {
         readSteps(data, prefix + "steps", steps);
         readSteps(data, prefix + "universeSteps", universeSteps);
         universeStart = data.real(prefix + "universeStart", 0);
+        universeLog.clear();
+        List<Double> log = data.doubleList(prefix + "universeLog");
+        for (int i = 0; i + 6 < log.size(); i += 7) {
+            universeLog.add(new UniverseRecord((int) Math.round(log.get(i)), log.get(i + 1), log.get(i + 2), log.get(i + 3),
+                    log.get(i + 4), log.get(i + 5), log.get(i + 6)));
+        }
+        moments.clear();
+        moments.putAll(data.doubles(prefix + "moments"));
+        // Une sauvegarde d'avant la 0.168 n'a pas ses moments : ce qui est déjà atteint restera sans date.
+        momentsUndated = !data.has(prefix + "moments");
+        dimensionPlay.clear();
+        dimensionPlay.putAll(data.doubles(prefix + "dimensionPlay"));
         unlockedOnce.clear();
         unlockedOnce.addAll(data.list(prefix + "unlockedOnce"));
         universeBigBangs = data.count(prefix + "universeBigBangs", 0);
@@ -552,6 +639,36 @@ public final class GameStats {
     void noteStep(Step step, double timePlayed) {
         steps.putIfAbsent(step, timePlayed);
         universeSteps.putIfAbsent(step, timePlayed);
+    }
+
+    /**
+     * L'univers {@code number} vient d'être formé (version 0.168) : ses étapes entrent au journal des univers, avant que
+     * {@link #startUniverseSteps(double)} les efface. Rien si la partie en cours n'a pas noté sa formation.
+     */
+    void archiveUniverse(int number, double timePlayed) {
+        if (!universeSteps.containsKey(Step.UNIVERSE)) return;
+        universeLog.add(new UniverseRecord(number, universeStart, reachedThisUniverseAt(Step.FIRST_EXPLOSION),
+                reachedThisUniverseAt(Step.FIRST_BIG_BANG), reachedThisUniverseAt(Step.GALAXY), reachedThisUniverseAt(Step.CLUSTER),
+                universeSteps.getOrDefault(Step.UNIVERSE, timePlayed)));
+        if (universeLog.size() > MAX_UNIVERSES_LOGGED) universeLog.remove(0);
+    }
+
+    /**
+     * Un moment de la partie secondaire est atteint (version 0.168) : seule la première fois compte. Pour une sauvegarde
+     * d'avant la 0.168, ce qui est atteint au premier relevé ({@link #endMomentsCatchUp()} le clôt) n'a pas de date.
+     */
+    void noteMoment(String key, double timePlayed) {
+        moments.putIfAbsent(key, momentsUndated ? Double.NaN : timePlayed);
+    }
+
+    /** La fenêtre de la dimension {@code number} est restée ouverte {@code seconds} secondes de plus. */
+    void addDimensionPlay(int number, double seconds) {
+        if (seconds > 0) dimensionPlay.merge(String.valueOf(number), seconds, Double::sum);
+    }
+
+    /** Le premier relevé des moments est fait : ce qui sera atteint ensuite aura sa date. */
+    void endMomentsCatchUp() {
+        momentsUndated = false;
     }
 
     /** Une nouvelle partie commence à ce temps de jeu (version 0.126) : ses étapes repartent de zéro. */

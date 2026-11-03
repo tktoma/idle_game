@@ -515,6 +515,19 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## Une partie en plusieurs tranches, les bulles et l'arbre « sans » (version 0.168)
+
+**La mémoire du bot à côté de chaque sauvegarde.** À chaque palier, et à la fin (`fin.save`), le bot écrit un fichier `.bot` du même nom : les champs de jeu du bot et de ses politiques, leurs compteurs, leurs hasards, et le hasard de la partie elle-même (`AnalyseMemoire`). Reparti de cette sauvegarde (`depart=…`), le bot les relit : la tranche suivante continue la même partie. Vérifié : une heure jouée d'un trait et deux demi-heures reprises donnent la même sauvegarde, champ pour champ. Ce qui sert à l'analyse (journal, relevés) n'en fait pas partie : chaque tranche écrit ses fichiers, à mettre bout à bout.
+
+**Ce que le journal note de plus.**
+- Les achats faits au pas d'une remise à zéro (l'univers lancé, une explosion, un Big Bang) : les bulles de l'arbre, souvent prises juste avant de lancer l'univers suivant, manquaient dans `achats.csv`. Leur poids s'écrit « poids non mesuré, remise à zéro au même pas ».
+- Le palier final de chaque dimension, un palier à lui (« Palier final de la dimension 3 atteint »), en plus du compte du défi final.
+- L'attente d'une seule condition de la galaxie, de l'amas ou de l'univers dit laquelle : l'astre qui n'est pas formé ou mûrit encore, les systèmes solaires, l'état de la matière qui manque (`Game.cosmosMissing`).
+
+**Les « sans » de l'arbre et des bulles.** `sans` accepte les cases de l'arbre de matière noire (déjà en 0.164) et maintenant les bulles de l'arbre : `bulle:LEAVES_LEFT`. `AnalyseDurables <sortie> arbre` mesure les huit cases les plus achetées dans l'univers 1 ; `AnalyseDurables <sortie> bulles <sauvegarde> <univers> [bulle:NOM,…]` mesure les bulles depuis une sauvegarde, univers formé par univers formé.
+
+**L'ordre des bulles imposé.** Un douzième argument du bot analyste, `meilleur` (l'ordre de l'expert) ou `moins-cher`, impose l'ordre des bulles à tous les profils : avec `AnalyseGraines` (plusieurs graines), de quoi mesurer la dispersion d'une partie à l'autre.
+
 ## La touche M tenue, l'achat en lot et la Persistance par niveaux (version 0.167)
 
 **La touche M.** Depuis la 0.167, les automatismes n'achètent qu'un niveau par action, ou leur lot. Le joueur attentif tient donc la touche M (« tout acheter avec les particules », que le jeu répète tant qu'elle est tenue). Les profils qui décident au moins toutes les 5 s et ne relâchent jamais leur attention la tiennent : le pas de jeu se coupe en morceaux d'une demi-seconde, avec un « tout acheter » après chacun (`IdleProfiles24.holdsBuyAll`). Les autres, comme le Régulier, l'appuient une fois à chaque décision.

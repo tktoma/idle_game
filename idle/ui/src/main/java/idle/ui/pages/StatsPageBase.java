@@ -81,6 +81,7 @@ public abstract class StatsPageBase extends VBox {
         darkMatter();
         bigBang();
         universe();
+        timeline();
         collider();
         records();
 
@@ -115,6 +116,7 @@ public abstract class StatsPageBase extends VBox {
     abstract void collider();
     abstract void multipliers();
     abstract void purchases();
+    abstract void timeline();
     abstract void records();
     abstract void page(String name, String color, BooleanSupplier unlocked, String howToUnlock);
     abstract void section(String title);

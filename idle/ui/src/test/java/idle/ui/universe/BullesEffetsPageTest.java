@@ -56,7 +56,9 @@ class BullesEffetsPageTest {
             }
             int left = game.treeBubblesShown().indexOf(TreeBubble.LEAVES_LEFT);
             assertEquals(SeedView.BubbleState.BUY, view.bubble(left).state(), "au niveau 1 sur 5, elle s'achète encore");
-            assertTrue(view.bubble(left).price().startsWith("Niveau 1 / 5. Prix : 4"), view.bubble(left).price());
+            // Version 0.166 : le deuxième niveau du bonsaï coûte 26 000 (les bulles au prix de l'énergie gardée), plus 4 000.
+            String prix = idle.ui.common.Format.count(idle.core.math.BigNum.of(game.treeBubbleCost(TreeBubble.LEAVES_LEFT)));
+            assertTrue(view.bubble(left).price().startsWith("Niveau 1 / 5. Prix : " + prix + " d'énergie du vide"), view.bubble(left).price());
             assertEquals("Achetée", view.bubble(game.treeBubblesShown().indexOf(TreeBubble.SEED)).price());
             double[] at = view.bubblePoint(left);
             for (int k = 0; k < 4; k++) view.clickBubble(at[0], at[1]);

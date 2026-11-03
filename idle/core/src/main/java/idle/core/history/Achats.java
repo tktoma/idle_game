@@ -28,7 +28,7 @@ public final class Achats {
      * inconnue).
      */
     public record Achat(String groupe, String chose, double quantite, String monnaie, String paye, double montantLog, String montant,
-            double part) {
+            double part, Tenue tenue) {
 
         /** « Amélioration — Couplage ». */
         public String quoi() {
@@ -36,7 +36,49 @@ public final class Achats {
         }
     }
 
-    private record Acquis(String groupe, String chose, double quantite, String monnaie, double coutLog) {}
+    /**
+     * Jusqu'où tient un achat (version 0.168) : la remise à zéro qui l'efface. Les améliorations en particules partent à
+     * la fusion (sauf la part que garde la Persistance), celles en atomes et les automatismes à l'explosion, l'arbre de
+     * matière noire au Big Bang, ce qui appartient à l'acte du Big Bang et au collisionneur à la formation de l'univers ;
+     * les bulles, la graine et les dimensions tiennent toute la partie.
+     */
+    public enum Tenue {
+        FUSION("jusqu'à la prochaine fusion"),
+        EXPLOSION("jusqu'à la prochaine explosion"),
+        BIG_BANG("jusqu'au prochain Big Bang"),
+        UNIVERS("jusqu'à la formation de l'univers"),
+        PARTIE("toute la partie"),
+        INCONNUE("");
+
+        private final String label;
+
+        Tenue(String label) {
+            this.label = label;
+        }
+
+        /** « jusqu'à la prochaine explosion ». */
+        public String label() {
+            return label;
+        }
+    }
+
+    /** Jusqu'où tient ce qui s'achète à cette clé (version 0.168). */
+    public static Tenue tenue(String key, String sub) {
+        if (key == null) return Tenue.INCONNUE;
+        if (key.equals("upgradeLevels")) return "particles".equals(monnaie(key, sub)) ? Tenue.FUSION : Tenue.EXPLOSION;
+        if (key.equals("ownedAutomations") || key.equals("automationSpeedLevels")) return Tenue.EXPLOSION;
+        if (key.equals("darkUpgradeLevels") || key.equals("tableWeightLevel")) return Tenue.BIG_BANG;
+        if (key.equals("treeBubbles") || key.startsWith("treeBubble") || key.equals("universeUpgrades") || key.equals("dimensionAutomations")
+                || key.startsWith("seedUpgrade") || key.equals("unlockedSkins") || key.startsWith("line")) return Tenue.PARTIE;
+        for (String d : new String[] {"planeLevel", "volumeLevel", "durationLevel", "loopLevel", "braneLevel", "clickerLevel", "gridLevel",
+            "mirrorLevel", "mixStageLevel"}) if (key.startsWith(d)) return Tenue.PARTIE;
+        if (key.equals("spaceUpgrades") || key.equals("boughtMilestones") || key.equals("probeUpgrades") || key.startsWith("collider")
+                || key.equals("hadrons") || key.equals("hadronsOpen") || key.equals("voidOpen") || key.startsWith("voidLevel")
+                || key.equals("automationBatchLevels")) return Tenue.UNIVERS;
+        return Tenue.INCONNUE;
+    }
+
+    private record Acquis(String groupe, String chose, double quantite, String monnaie, double coutLog, Tenue tenue) {}
 
     /** Les achats faits entre deux photos, avec leur prix : l'ordre des changements, une bulle et un niveau par achat. */
     public static List<Achat> lire(List<Photo.Changement> changes) {
@@ -54,17 +96,19 @@ public final class Achats {
             String key = c.cle();
             if (key.equals("treeBubbles") && c.monte()) {
                 for (String bubble : Noms.bulles((long) c.avant().toDouble(), (long) c.apres().toDouble())) {
-                    acquis.add(new Acquis("Bulle de l'arbre", bubble, 1, "voidSpent", Double.NaN));
+                    acquis.add(new Acquis("Bulle de l'arbre", bubble, 1, "voidSpent", Double.NaN, Tenue.PARTIE));
                 }
                 continue;
             }
             if (!achat(key)) continue;
             if (c.ajoute() != null) {
-                acquis.add(new Acquis(Noms.cle(key), Noms.chose(c.ajoute()), 1, monnaie(key, c.ajoute()), coutRelatif(key, c.ajoute(), 0, 1)));
+                acquis.add(new Acquis(Noms.cle(key), Noms.chose(c.ajoute()), 1, monnaie(key, c.ajoute()), coutRelatif(key, c.ajoute(), 0, 1),
+                        tenue(key, c.ajoute())));
             } else if (c.monte()) {
                 double from = c.avant().toDouble(), to = c.apres().toDouble();
                 String chose = c.sousCle() == null ? "" : Noms.chose(c.sousCle());
-                acquis.add(new Acquis(Noms.cle(key), chose, to - from, monnaie(key, c.sousCle()), coutRelatif(key, c.sousCle(), (int) from, (int) to)));
+                acquis.add(new Acquis(Noms.cle(key), chose, to - from, monnaie(key, c.sousCle()), coutRelatif(key, c.sousCle(), (int) from, (int) to),
+                        tenue(key, c.sousCle())));
             }
         }
         List<Achat> out = new ArrayList<>();
@@ -87,7 +131,7 @@ public final class Achats {
                 Photo.Nombre reserve = reserves.get(a.monnaie());
                 part = reserve == null || reserve.signe() <= 0 ? Double.NaN : Math.pow(10, montantLog - reserve.log10());
             }
-            out.add(new Achat(a.groupe(), a.chose(), a.quantite(), a.monnaie(), paye, montantLog, montant, part));
+            out.add(new Achat(a.groupe(), a.chose(), a.quantite(), a.monnaie(), paye, montantLog, montant, part, a.tenue()));
         }
         return out;
     }

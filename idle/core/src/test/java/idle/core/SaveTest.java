@@ -51,7 +51,9 @@ class SaveTest {
 
     /** Ce qui se recalcule et ne fait pas partie de la sauvegarde. */
     private static final Set<String> DERIVED = Set.of("elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
-            "assembliesSeen", "bodiesSeen", "moleculeLog");
+            "assembliesSeen", "bodiesSeen", "moleculeLog",
+            // Version 0.168 : vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
+            "momentsUndated");
 
     // ------------------------------------------------------------------
     // Une partie où tout a bougé
@@ -341,6 +343,11 @@ class SaveTest {
         stats.noteMoleculeCreation(1, 3, false);
         stats.noteStep(GameStats.Step.FIRST_MOLECULE, 5100.5);
         stats.noteStep(GameStats.Step.UNIVERSE, 245040);
+        // Version 0.168 : l'univers formé entre au journal, et la partie secondaire note ses moments.
+        stats.archiveUniverse(1, 245040);
+        stats.noteMoment("dimension.1.ouverte", 245040);
+        stats.noteMoment("graine.1", 246000.5);
+        stats.addDimensionPlay(1, 0.75);
         // Une nouvelle partie (version 0.126) : ses étapes à elle se datent à part.
         stats.startUniverseSteps(250_000.5);
         stats.noteStep(GameStats.Step.FIRST_FUSION, 250_300.25);
@@ -750,6 +757,32 @@ class SaveTest {
             StringBuilder none = new StringBuilder();
             for (String line : SaveCodec.write(state, 0).split("\n")) if (!line.startsWith("persistenceTiers=")) none.append(line).append('\n');
             assertEquals(0, SaveCodec.read(none.toString()).state().levelOf("atom_keep"), "pas de Persistance, rien à relever");
+        }
+
+        @Test
+        void laChronologieDesUniversEtDesDimensionsSeSauvegarde() throws Exception {
+            // Version 0.168 : le journal des univers, les moments de la partie secondaire et le temps passé dans chaque
+            // dimension s'écrivent ; une sauvegarde d'avant n'a pas de moments, et ce qui est déjà atteint reste sans date.
+            Game game = GameTestSupport.realGame();
+            game.state().setTimePlayed(3_600);
+            game.testFormUniverse();
+            game.noteDimensionPlayed(1, 0.5);
+            game.tick(2);
+            GameState back = copy(game.state());
+            assertEquals(1, back.stats().universeLog().size());
+            assertEquals(game.state().stats().universeLog().get(0), back.stats().universeLog().get(0));
+            assertEquals(game.state().stats().moment("dimension.1.ouverte"), back.stats().moment("dimension.1.ouverte"), 1e-9);
+            assertEquals(0.5, back.stats().dimensionPlayTime(1), 1e-9);
+            StringBuilder old = new StringBuilder();
+            for (String line : SaveCodec.write(game.state(), 0).split("\n")) {
+                if (!line.startsWith("stats.moments=") && !line.startsWith("stats.universeLog=")) old.append(line).append('\n');
+            }
+            Game legacy = new Game(SaveCodec.read(old.toString()).state(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
+                    Achievements.DEFAULT, new Random(1));
+            assertTrue(legacy.state().stats().universeLog().isEmpty());
+            legacy.tick(2);
+            assertTrue(legacy.state().stats().momentKnown("dimension.1.ouverte"));
+            assertTrue(Double.isNaN(legacy.state().stats().moment("dimension.1.ouverte")), "atteint avant la 0.168 : sans date");
         }
 
         @Test

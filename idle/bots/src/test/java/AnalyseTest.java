@@ -317,4 +317,54 @@ class AnalyseTest {
         assertEquals(9, AnalyseDurables.DURABLES.size());
         assertEquals(4, AnalyseDurables.PALIERS.size());
     }
+
+    @Test
+    void laMemoireDuBotSeRelitEtLaPartieContinueALIdentique(@TempDir Path dir) throws Exception {
+        // Version 0.168 : la mémoire du bot et le hasard de la partie s'écrivent à côté de la sauvegarde ; un bot neuf qui
+        // les relit joue la même suite que l'original.
+        BotAnalyste bot = new BotAnalyste(Bots.fresh(201), 201, 5, dir.resolve("a"), 30);
+        bot.targetUniverses = 1;
+        bot.etsi = false;
+        bot.joue(0.3);
+        Path save = dir.resolve("partie.save");
+        Files.writeString(save, idle.core.save.SaveCodec.write(bot.g.state(), 0));
+        AnalyseMemoire.ecrire(bot, save);
+        assertTrue(Files.exists(dir.resolve("partie.bot")));
+        java.util.Map<String, byte[]> memoire = AnalyseMemoire.relire(save);
+        assertTrue(memoire.containsKey(AnalyseMemoire.HASARD_DU_JEU), "le hasard de la partie est écrit");
+        assertTrue(memoire.size() > 20, "les champs du bot et de ses politiques : " + memoire.size());
+        BotAnalyste suite = new BotAnalyste(Bots.load(save, 201), 201, 5, dir.resolve("b"), 30);
+        int remis = AnalyseMemoire.remettre(suite, memoire);
+        assertTrue(remis >= memoire.size() * 9 / 10, remis + " champs remis sur " + memoire.size());
+        java.util.Map<String, byte[]> relue = AnalyseMemoire.lire(suite);
+        for (var e : memoire.entrySet()) {
+            assertTrue(java.util.Arrays.equals(e.getValue(), relue.get(e.getKey())), "le champ " + e.getKey());
+        }
+        assertEquals(AnalyseMemoire.fichier(Path.of("x/12-00-00_Univers_2.save")), Path.of("x/12-00-00_Univers_2.bot"));
+        assertTrue(AnalyseMemoire.relire(dir.resolve("absente.save")).isEmpty(), "sans fichier : une mémoire vide");
+    }
+
+    @Test
+    void sansRetireAussiDesBullesEtOrdreImposeLeurOrdre() {
+        java.util.Set<String> sans = BotAnalyste.sans("atom_keep,bulle:LEAVES_LEFT");
+        assertEquals(java.util.Set.of(Game.TreeBubble.LEAVES_LEFT), BotAnalyste.bullesSans(sans));
+        assertEquals(Game.TreeBubble.LEAVES_LEFT.label(), BotAnalyste.nomSans("bulle:LEAVES_LEFT"));
+        assertEquals("Persistance", BotAnalyste.nomSans("atom_keep"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.sans("bulle:INCONNUE"));
+        assertEquals(UniverseTreePolicy.Plan.CHEAPEST, BotAnalyste.ordre("moins-cher"));
+        assertEquals(UniverseTreePolicy.Plan.BEST, BotAnalyste.ordre("meilleur"));
+        assertEquals(null, BotAnalyste.ordre(""));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> BotAnalyste.ordre("au hasard"));
+        Game game = Bots.fresh(201);
+        try {
+            UniverseTreePolicy.withoutBubbles = java.util.Set.of(Game.TreeBubble.LEAVES_LEFT);
+            assertTrue(UniverseTreePolicy.skipped(game, Game.TreeBubble.LEAVES_LEFT));
+            assertFalse(UniverseTreePolicy.skipped(game, Game.TreeBubble.SEED));
+        } finally {
+            UniverseTreePolicy.withoutBubbles = java.util.Set.of();
+        }
+        assertEquals(List.of("Univers 4 formé (acte 3)", "Univers 5 formé (acte 3)"), AnalyseDurables.universFormes(3, 5));
+        assertEquals(8, AnalyseDurables.ARBRE.size());
+        assertEquals(java.util.Set.copyOf(AnalyseDurables.BULLES), BotAnalyste.sans(String.join(",", AnalyseDurables.BULLES)));
+    }
 }

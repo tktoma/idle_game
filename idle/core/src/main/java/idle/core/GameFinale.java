@@ -82,6 +82,43 @@ public abstract class GameFinale extends GameMix {
         return state.gameFinished();
     }
 
+    /** Le pas des relevés des moments de la partie secondaire (version 0.168), en secondes de jeu. */
+    static final double MOMENTS_EVERY = 1;
+    private double momentsTimer = MOMENTS_EVERY;
+
+    /**
+     * Relève, au plus une fois par seconde de jeu, les moments de la partie secondaire (version 0.168) : chaque dimension
+     * ouverte, son premier automatisme, son seuil, son palier final ; les paliers de la graine ; le défi final ouvert ; la
+     * fin. Ils ne servent qu'à l'onglet Statistiques.
+     */
+    void noteMoments(double dt) {
+        momentsTimer += dt;
+        if (momentsTimer < MOMENTS_EVERY) return;
+        momentsTimer = 0;
+        GameStats stats = state.stats();
+        double t = state.timePlayed();
+        for (int d = 1; d <= Math.min(MAX_DIMENSIONS, dimensionsUnlocked()); d++) {
+            stats.noteMoment("dimension." + d + ".ouverte", t);
+            if (isDimensionThresholdReached(d)) stats.noteMoment("dimension." + d + ".seuil", t);
+            if (isFinalTierReached(d)) stats.noteMoment("dimension." + d + ".final", t);
+        }
+        for (idle.core.universe.DimensionAutomation automation : idle.core.universe.DimensionAutomation.values()) {
+            if (ownsDimensionAutomation(automation)) stats.noteMoment("dimension." + automation.dimension() + ".automatisme", t);
+        }
+        for (int stage = 1; stage <= Math.min(SEED_STAGES, seedStage()); stage++) stats.noteMoment("graine." + stage, t);
+        if (isFinalChallengeOpen()) stats.noteMoment("defiFinal.ouvert", t);
+        if (isGameFinished()) stats.noteMoment("fin", t);
+        stats.endMomentsCatchUp();
+    }
+
+    /**
+     * La fenêtre de la dimension {@code number} est restée ouverte {@code seconds} secondes (version 0.168) : le temps où
+     * le joueur l'a jouée, pour l'onglet Statistiques.
+     */
+    public void noteDimensionPlayed(int number, double seconds) {
+        if (number >= 1 && number <= MAX_DIMENSIONS && Double.isFinite(seconds)) state.stats().addDimensionPlay(number, Math.min(seconds, 1));
+    }
+
     /** Note la fin de la partie, une fois. */
     void runFinale() {
         if (!state.gameFinished() && isFinalChallengeComplete()) state.setGameFinished(true);

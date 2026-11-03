@@ -1922,6 +1922,40 @@ public abstract class GameUniverse extends GameAtoms {
         return met;
     }
 
+    /**
+     * Ce qui manque encore à cette échelle du cosmos (version 0.168), en mots, une condition par ligne : pour la galaxie,
+     * chaque astre pas formé ou qui mûrit encore, et les systèmes solaires complets ; pour l'amas et l'univers, l'échelle
+     * d'avant, puis chaque état de la matière dont la quantité rassemblée ou la variété ne suffit pas. Vide si tout est
+     * réuni. Les nombres qui bougent (minutes de maturation, quantités) sont entre parenthèses, à la fin. Le délai de
+     * rassemblement n'en est pas une condition.
+     */
+    public java.util.List<String> cosmosMissing(Cosmos scale) {
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        if (scale == Cosmos.GALAXY) {
+            if (hasGalaxy()) return missing;
+            for (idle.core.sky.Body body : bodies.values()) {
+                if (isBodyMature(body.id())) continue;
+                missing.add(state.hasBody(body.id())
+                        ? body.name() + " : mûrit encore (" + Math.round(Math.ceil(state.maturingLeft(body.id()) / 60)) + " min)"
+                        : body.name() + " : pas encore formé");
+            }
+            if (solarSystemsComplete() < SYSTEMS_FOR_GALAXY) {
+                missing.add("Systèmes solaires complets (" + solarSystemsComplete() + " / " + SYSTEMS_FOR_GALAXY + ")");
+            }
+            return missing;
+        }
+        if (!hasCosmos(scale.previous())) missing.add(scale.previous().label() + " : pas encore formé");
+        for (Map.Entry<Molecule.State, Integer> need : cosmosMatter(scale).entrySet()) {
+            long have = gatheredInState(need.getKey());
+            if (have < need.getValue()) missing.add(need.getKey().label() + " rassemblé (" + have + " / " + need.getValue() + ")");
+        }
+        for (Map.Entry<Molecule.State, Integer> need : scale.sorts().entrySet()) {
+            int have = sortsInState(need.getKey());
+            if (have < need.getValue()) missing.add(need.getKey().label() + " : sortes de molécules (" + have + " / " + need.getValue() + ")");
+        }
+        return missing;
+    }
+
     /** Nombre de conditions de cette échelle : les astres du catalogue pour la galaxie ; sinon l'échelle d'avant, plus un état de la matière par ligne. */
     public int cosmosConditions(Cosmos scale) {
         return scale == Cosmos.GALAXY ? bodies.size() + 1 : 1 + scale.matter().size() + scale.sorts().size();
@@ -2577,6 +2611,8 @@ public abstract class GameUniverse extends GameAtoms {
             state.noteVoidHistory(String.valueOf(another ? 2 + state.extraUniverses() : 1), Math.max(0, stock - state.voidCarried()));
             state.setVoidCarried(hasBubble(TreeBubble.GIANT_LEFT_LOW) ? stock : 0);
         }
+        // Version 0.168 : l'univers formé entre au journal des univers, avec ses étapes, avant leur remise à zéro.
+        state.stats().archiveUniverse(another ? 2 + state.extraUniverses() : 1, state.timePlayed());
         state.startUniverse();
         if (another) state.setExtraUniverses(state.extraUniverses() + 1);
         state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));

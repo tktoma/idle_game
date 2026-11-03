@@ -23,6 +23,20 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.168", "La chronologie de la partie, la valeur durable des achats", List.of(
+                    "Une sous-page « Chronologie » dans les statistiques : la durée de chaque univers formé et de ses cinq phases, en "
+                            + "barres à la même échelle ; quand chaque dimension s'est ouverte, combien de temps sa fenêtre est restée "
+                            + "ouverte, son premier automatisme, son seuil, son palier final et sa part de la partie ; les paliers de la "
+                            + "graine et le défi final. Le journal commence avec cette version.",
+                    "Dans la sous-page « Achats », chaque achat dit jusqu'où il tient (la prochaine fusion, explosion, le prochain Big "
+                            + "Bang, l'univers, toute la partie) et ce qu'il fait gagner sur toute cette durée, estimée par la dernière "
+                            + "partie du même genre.",
+                    "Corrigé : deux tests de l'interface attendaient encore le prix du bonsaï d'avant la 0.166, et une bulle des "
+                            + "racines ouverte sans la graine à son dernier palier ni bulle voisine achetée.",
+                    "Le bot analyste garde sa mémoire et son hasard à côté de chaque sauvegarde : une partie jouée en plusieurs "
+                            + "tranches reste la même partie. Il note les achats faits au pas qui lance un univers, le palier final de "
+                            + "chaque dimension, la condition qui manque seule à la galaxie, et mesure aussi les cases de l'arbre et les "
+                            + "bulles « sans », avec un ordre des bulles imposé pour mesurer la dispersion.")),
             new Note("0.167", "Persistance par paliers, un espace à sa mesure", List.of(
                     "Persistance a cinq niveaux, de 8 à 118 atomes : la fusion garde 10 %, 25 %, 50 %, 75 % puis 100 % des "
                             + "niveaux de vitesse et de couplage. La bulle de l'arbuste, à droite, se rachète cinq fois : un niveau "

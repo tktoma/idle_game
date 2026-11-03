@@ -78,8 +78,17 @@ final class UniverseTreePolicy {
      * à droite, s'achète depuis la version 0.167 : sans elle, les automatismes n'achètent qu'un niveau par action.
      */
     static boolean skipped(Game game, TreeBubble bubble) {
-        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER;
+        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER || withoutBubbles.contains(bubble);
     }
+
+    /**
+     * Version 0.168 : les bulles qu'une mesure « sans » retire ({@code sans=bulle:NOM} du bot analyste) : aucun profil ne
+     * les achète. Une mesure par JVM : la valeur vaut pour la partie et ses copies d'essai.
+     */
+    static volatile java.util.Set<TreeBubble> withoutBubbles = java.util.Set.of();
+
+    /** Version 0.168 : l'ordre des bulles imposé à tous les profils pour une mesure ({@code null} : celui de chaque profil). */
+    static volatile Plan forcedPlan = null;
 
     /**
      * L'ordre d'achat de l'expert. D'abord l'économie (la base, puis ×2 sur l'énergie du vide), ce qui garde le plus
@@ -237,7 +246,7 @@ final class UniverseTreePolicy {
         int done = 0;
         for (int n = 0; n < 40; n++) {
             TreeBubble choice;
-            if (style.plan() == Plan.BEST) {
+            if ((forcedPlan != null ? forcedPlan : style.plan()) == Plan.BEST) {
                 // Version 0.163 : l'ordre de l'expert fini, les bulles qui restent (celle des racines), la moins chère d'abord.
                 Step next = nextBest(game);
                 choice = next == null ? (allBestDone(game) ? cheapestBubble(game) : null) : next.bubble();

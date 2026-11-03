@@ -1622,6 +1622,8 @@ public final class DimensionWindow extends BorderPane {
     /** Une image : la vue montrée, puis ce qui est écrit sous elle. */
     public void frame(double elapsed, boolean moving) {
         if (!isVisible()) return;
+        // Version 0.168 : le temps passé la fenêtre ouverte, que l'onglet Statistiques montre.
+        if (view.dimension() != null) game.noteDimensionPlayed(view.dimension().number(), elapsed);
         view.frame(elapsed, moving);
         refresh();
     }

@@ -399,6 +399,8 @@ public final class Game extends GameFinale {
         runMix(dt);
         // Le défi final (version 0.160).
         runFinale();
+        // Les moments de la partie secondaire, pour l'onglet Statistiques (version 0.168).
+        noteMoments(dt);
         // L'arrosoir (version 0.137) se tient à la souris : une absence le repose sur son étagère.
         if (away && isWatering()) setWatering(false);
         runWatering(dt);

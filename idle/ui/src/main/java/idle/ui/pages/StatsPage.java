@@ -133,7 +133,8 @@ public final class StatsPage extends StatsPageLines {
         page("Achats", "#9fd0ff", game::isStarted, "en créant le premier générateur");
         Label intro = new Label("Vos achats de la session, notés comme le bot analyste les note : ce qu'ils ont coûté, ce qu'ils "
                 + "multiplient, et le temps qu'ils font gagner vers la prochaine étape (une estimation haute, au rythme des dix "
-                + "dernières minutes). Ceux des automatismes n'y sont pas.");
+                + "dernières minutes). Leur valeur durable dit jusqu'où ils tiennent et ce qu'ils font gagner sur toute leur durée "
+                + "de vie, estimée par la dernière partie du même genre. Ceux des automatismes n'y sont pas.");
         intro.setStyle(NAME_STYLE);
         intro.setWrapText(true);
         intro.setMaxWidth(MAX_WIDTH);
@@ -143,7 +144,31 @@ public final class StatsPage extends StatsPageLines {
         building.updaters.add(purchasesPane::refresh);
     }
 
+    /**
+     * La chronologie (version 0.168) : la durée de chaque univers formé et de ses phases, le temps de chaque dimension,
+     * les paliers de la graine et le défi final ({@link TimelinePane}).
+     */
+    void timeline() {
+        page("Chronologie", "#ffd27f", () -> game.universes() > 0, "au premier univers formé");
+        Label intro = new Label("La courbe de votre partie : combien de temps chaque univers a pris, phase par phase, à la même "
+                + "échelle ; puis quand chaque dimension s'est ouverte, combien de temps vous l'avez jouée, son seuil et son palier "
+                + "final, et sa part de la partie. Ce journal commence à la version 0.168.");
+        intro.setStyle(NAME_STYLE);
+        intro.setWrapText(true);
+        intro.setMaxWidth(MAX_WIDTH);
+        building.content.getChildren().add(intro);
+        timelinePane = new TimelinePane(game);
+        building.content.getChildren().add(timelinePane);
+        building.updaters.add(timelinePane::refresh);
+    }
+
+    /** Les lignes de la chronologie au dernier dessin : pour les vérifications. */
+    public List<String> timelineLines() {
+        return timelinePane.shown();
+    }
+
     // Sans valeur de départ : ils sont posés pendant la construction de la page, appelée par le constructeur de la base.
+    private TimelinePane timelinePane;
     private PurchasesPane purchasesPane;
     private MultiplierPane multiplierPane;
     private SubPage multiplierPage;

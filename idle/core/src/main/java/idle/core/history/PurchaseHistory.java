@@ -18,8 +18,9 @@ import java.util.Map;
  * avant le pas de temps suivant ({@link #after}) : entre les deux, le temps ne passe pas, la différence est exactement
  * ce que le joueur a fait. Ce que les automatismes achètent pendant le temps de jeu n'y est pas. Le temps gagné vient du
  * compteur « prochaine étape dans… » ({@link Pace}) et de ce que l'achat multiplie la grandeur qui y mène :
- * reste × (1 − 10^−Δ), une estimation haute. L'historique vit le temps de la session : il ne s'écrit pas dans la
- * sauvegarde.
+ * reste × (1 − 10^−Δ), une estimation haute. Sa valeur durable (version 0.168) applique la même règle à sa durée de vie :
+ * jusqu'à la remise à zéro qui l'efface ({@link Achats.Tenue}), estimée par la durée de la dernière partie du même genre.
+ * L'historique vit le temps de la session : il ne s'écrit pas dans la sauvegarde.
  */
 public final class PurchaseHistory {
 
@@ -32,7 +33,7 @@ public final class PurchaseHistory {
      * estimation) et l'étape qu'il rapproche.
      */
     public record Entry(double t, String quoi, double quantite, String paye, String montant, double part, String poids, double poidsMax,
-            double gainSecondes, String vers) {}
+            double gainSecondes, String vers, String tenue, double dureeSecondes, double durableSecondes) {}
 
     /** Une chose achetée, sur toute la session : combien de fois, et le temps gagné en tout. */
     public record Total(String quoi, int achats, double gainSecondes) {}
@@ -84,8 +85,10 @@ public final class PurchaseHistory {
         List<Entry> added = new ArrayList<>();
         for (Achats.Achat a : achats) {
             String texte = (lot > 1 ? "(lot de " + lot + " achats) " : "") + (poids.length() == 0 ? "aucun effet mesuré sur les grandeurs" : poids);
+            double duree = dureeDeVie(game, a.tenue());
+            double durable = Double.isNaN(duree) ? Double.NaN : delta <= 0 ? 0 : duree * (1 - Math.pow(10, -delta)) / lot;
             Entry entry = new Entry(game.state().timePlayed(), a.quoi(), a.quantite(), a.paye(), a.montant(), a.part(), texte, poidsMax / lot,
-                    gain / lot, vers);
+                    gain / lot, vers, tenueTexte(game, a.tenue()), duree, durable);
             added.add(entry);
             entries.addLast(entry);
             if (entries.size() > KEPT) entries.removeFirst();
@@ -94,6 +97,30 @@ public final class PurchaseHistory {
             if (Double.isFinite(entry.gainSecondes())) sum[1] += entry.gainSecondes();
         }
         return added;
+    }
+
+    /**
+     * La durée de vie attendue d'un achat (version 0.168), en secondes : la durée de la dernière partie qui s'est finie par
+     * la même remise à zéro (fusion, explosion, Big Bang, univers). NaN sans mesure, ou pour ce qui tient toute la partie.
+     */
+    public static double dureeDeVie(Game game, Achats.Tenue tenue) {
+        var stats = game.state().stats();
+        double d = switch (tenue) {
+            case FUSION -> stats.lastFusionTime();
+            case EXPLOSION -> stats.lastExplosionTime();
+            case BIG_BANG -> stats.lastBigBangTime();
+            case UNIVERS -> stats.universeLog().isEmpty() ? Double.NaN : stats.universeLog().get(stats.universeLog().size() - 1).duration();
+            default -> Double.NaN;
+        };
+        return d > 0 ? d : Double.NaN;
+    }
+
+    /** « jusqu'à la prochaine fusion (la Persistance en garde 25 %) » : jusqu'où tient l'achat. */
+    static String tenueTexte(Game game, Achats.Tenue tenue) {
+        if (tenue == Achats.Tenue.FUSION && game.fusionKeepShare() > 0) {
+            return tenue.label() + String.format(Locale.FRANCE, " (la Persistance en garde %.0f %%)", 100 * game.fusionKeepShare());
+        }
+        return tenue.label();
     }
 
     /** Les derniers achats, du plus récent au plus ancien. */

@@ -13,7 +13,8 @@ import java.util.Map;
  * graines.html.
  *
  * <p>Usage : {@code AnalyseGraines <sortie> <univers ou fin> <graine> [graine…]}. Les parties se jouent l'une après
- * l'autre ; {@link #resumer} relit des dossiers déjà joués.
+ * l'autre ; {@link #resumer} relit des dossiers déjà joués. Version 0.168 : une graine peut porter l'ordre des bulles
+ * imposé ({@code 201:moins-cher}), pour mesurer ce qui tient à l'ordre des bulles et non au hasard.
  */
 final class AnalyseGraines {
 
@@ -80,9 +81,15 @@ final class AnalyseGraines {
         Path sortie = Path.of(args[0]);
         List<Path> dossiers = new ArrayList<>();
         for (int i = 2; i < args.length; i++) {
-            Path d = sortie.resolve("graine-" + args[i]);
+            // Version 0.168 : « 202 » ou « 201:moins-cher » (une graine et l'ordre des bulles imposé) ; une partie déjà
+            // jouée jusqu'au bout (son fin.save écrit) ne se rejoue pas.
+            String[] part = args[i].split(":", 2);
+            String ordre = part.length > 1 ? part[1] : "";
+            Path d = sortie.resolve("graine-" + part[0] + (ordre.isEmpty() ? "" : "-" + ordre));
             // Sans « et si », une estimation par heure : la même partie, plusieurs fois plus vite.
-            BotAnalyste.main(new String[] {d.toString(), args[1], "400", args[i], "5", "60", "false", "false"});
+            if (!Files.exists(d.resolve("fin.save"))) {
+                BotAnalyste.main(new String[] {d.toString(), args[1], "400", part[0], "5", "60", "false", "false", "", "", "", ordre});
+            }
             dossiers.add(d);
         }
         ecrire(resumer(dossiers), dossiers.size(), sortie);

@@ -284,6 +284,12 @@ class MelangePageTest {
             SeedUpgradesPane upgrades = page.seedUpgrades();
             upgrades.select(10);
             assertEquals("Fragments du mélange : 0", upgrades.resourceText().getText());
+            // La graine à son dernier palier et une bulle voisine achetée (la graine) : il ne manque que l'amélioration.
+            game.state().setSeedSprouted(true);
+            game.state().setSeedWaterings(Game.seedStageWaterings(11));
+            game.state().noteVoidHistory("10", 1e6);
+            assertTrue(game.buyTreeBubble(TreeBubble.SEED));
+            assertFalse(game.isTreeBubbleOpen(TreeBubble.ROOTS), "fermée sans l'amélioration de la graine");
             game.state().setMixShards(1e6);
             upgrades.refresh();
             upgrades.button(SeedUpgrade.ROOT_BUBBLE).fire();
