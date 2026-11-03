@@ -23,6 +23,22 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.169", "Des bulles qui agissent tout de suite, un vide plafonné, les racines liées", List.of(
+                    "Une bulle de l'arbre achetée après la formation de l'univers agit déjà sur celui qu'on lance : jusqu'au bouton "
+                            + "« univers suivant », le jeu garde en mémoire ce que l'univers formé laisse (collisionneur, vide, matière "
+                            + "noire, hadrons, défis du Big Bang), et chaque bulle achetée entre-temps en garde sa part. Avant, elle "
+                            + "n'agissait qu'à l'univers d'après.",
+                    "Le rassemblement plus court du vide retire 10 % par niveau (cinq niveaux), la maturation plus courte 5 % "
+                            + "(dix niveaux) : −50 % au plus chacun, au lieu de −80 % et −70 %.",
+                    "Les prix du vide suivent ceux des bulles : le premier niveau de chaque amélioration coûte de 500 à 5 000 "
+                            + "énergie du vide, comme les premières bulles, le dernier de 70 000 à 600 000, comme les dernières. Le "
+                            + "gain par paire s'arrête à quinze niveaux.",
+                    "Le jalon des racines : avec la bulle des racines, dix paliers de gluons, de 80 000 à 400 000, chacun abaisse "
+                            + "les paliers du défi final d'environ 7 %, de moitié avec les dix. Il s'affiche avec les paliers de "
+                            + "gluons, et les deux derniers sont longs à atteindre.",
+                    "La sous-page « Collisionneur » des statistiques dit ce que le collisionneur, les hadrons et le vide font au "
+                            + "reste du jeu : ce qu'ils multiplient, ce que le vide raccourcit, ce qu'il prend au collisionneur et à "
+                            + "l'espace, et ce qu'il a payé dans l'arbre.")),
             new Note("0.168", "La chronologie de la partie, la valeur durable des achats", List.of(
                     "Une sous-page « Chronologie » dans les statistiques : la durée de chaque univers formé et de ses cinq phases, en "
                             + "barres à la même échelle ; quand chaque dimension s'est ouverte, combien de temps sa fenêtre est restée "

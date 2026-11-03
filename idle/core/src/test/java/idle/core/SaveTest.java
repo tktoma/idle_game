@@ -261,6 +261,12 @@ class SaveTest {
         state.setHadronsPrice(2.5e9);
         state.setHadrons(idle.core.collider.Hadron.PROTON, 12);
         state.setHadrons(idle.core.collider.Hadron.J_PSI, 3);
+        // Version 0.169 : l'univers formé que le jeu garde jusqu'au lancement, et les bulles déjà achetées à la formation.
+        GameState held = new GameState();
+        held.setHadronsOpen(true);
+        held.setHadrons(idle.core.collider.Hadron.NEUTRON, 7);
+        state.bubbleKeep = held;
+        state.bubbleKeepMask = 0b1010_0000_0000;
         // Version 0.150 : deux automatismes des dimensions, dont un coupé.
         state.addDimensionAutomation("LINE_YIELD");
         state.addDimensionAutomation("PLANE_AIM");

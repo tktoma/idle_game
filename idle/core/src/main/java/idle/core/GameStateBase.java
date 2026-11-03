@@ -340,6 +340,13 @@ public abstract class GameStateBase {
      */
     boolean hadronsOpen = false;
     double hadronsPrice = 0;
+    /**
+     * Version 0.169 : ce que les bulles de l'arbre peuvent garder, relevé à la formation de l'univers, en attendant que le
+     * joueur lance le suivant ; et les bulles qui le gardaient déjà à la formation. Une bulle achetée entre les deux garde
+     * aussi sa part pour l'univers lancé. {@code null} hors de cette attente.
+     */
+    GameState bubbleKeep = null;
+    int bubbleKeepMask = 0;
     final java.util.EnumMap<idle.core.collider.Hadron, Long> hadrons = new java.util.EnumMap<>(idle.core.collider.Hadron.class);
     /** L'automatisation des dimensions (version 0.150) : les automatismes achetés, et ceux coupés à part. */
     final Set<String> dimensionAutomations = new java.util.TreeSet<>();

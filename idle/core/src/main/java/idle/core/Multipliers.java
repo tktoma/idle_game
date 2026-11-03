@@ -167,6 +167,31 @@ public final class Multipliers {
         return shares;
     }
 
+    /**
+     * Ce qu'un aspect fait à une grandeur (version 0.169) : ses ordres de grandeur (négatifs : il divise) et sa part de
+     * tout ce qui multiplie la grandeur.
+     */
+    public record Impact(Quantity quantity, double log10, double share) {}
+
+    /**
+     * Ce qu'un aspect fait aux grandeurs de la partie (version 0.169), sauf aux siennes ({@code own}) : pour dire, dans les
+     * statistiques, ce que le collisionneur et les hadrons apportent au reste du jeu. Les grandeurs où il ne compte pas
+     * n'y sont pas.
+     */
+    public static List<Impact> impactsOf(Game game, Aspect aspect, Quantity... own) {
+        List<Impact> impacts = new ArrayList<>();
+        for (Quantity quantity : Quantity.values()) {
+            if (List.of(own).contains(quantity) || !isAvailable(game, quantity)) continue;
+            List<Share> shares = byAspect(of(game, quantity));
+            for (Share share : shares) {
+                if (share.aspect() == aspect && Math.abs(share.log10()) > 1e-9) {
+                    impacts.add(new Impact(quantity, share.log10(), shareOf(share, shares)));
+                }
+            }
+        }
+        return impacts;
+    }
+
     /** Ce qu'un aspect pèse parmi tout ce qui multiplie, de 0 à 1 : sa part des ordres de grandeur gagnés. Les freins n'en ont pas. */
     public static double shareOf(Share share, List<Share> all) {
         if (share.log10() <= 0) return 0;

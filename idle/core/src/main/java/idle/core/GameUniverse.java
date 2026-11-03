@@ -119,15 +119,22 @@ public abstract class GameUniverse extends GameAtoms {
      * de prix (×3,7 à ×4,1 par niveau, au lieu de ×2,2 à ×2,6), pour que le vide ne se remplisse pas en une heure ; les
      * trois qui raccourcissent le troisième acte vont plus loin (maturation −70 %, rassemblement −80 %) et montent de
      * prix moins vite (×2) : elles se gagnent au fil de l'acte, mesurées sur le Speedrunner du troisième univers.
+     *
+     * <p>Version 0.169 : les prix suivent l'énergie du vide de la partie, comme les bulles de l'arbre. Le premier niveau
+     * coûte de l'ordre des premières bulles (500 à 5 000, la graine en vaut 5 200), le dernier de l'ordre des dernières
+     * (70 000 à 600 000, l'arbre-monde vaut 69 300 et les derniers rachats 400 000 à 840 000) ; chaque niveau entre les
+     * deux multiplie le prix d'autant. Le gain par paire n'a plus de niveau sans fin : quinze au plus. Le rassemblement et
+     * la maturation raccourcissent de moitié au plus.
      */
     public enum VoidUpgrade implements Priced {
-        GAIN(10, 3.7, Integer.MAX_VALUE), RATE(20, 3.9, 20), ENERGY(15, 4.0, 15), SPACE(15, 4.0, 15), DECAY(25, 4.1, 15),
-        LIGHTEN(300, 2.0, 10), MATURE(200, 2.0, 10), SETTLE(800, 2.0, 5);
+        GAIN(500, 400_000, 15), RATE(800, 500_000, 20), ENERGY(600, 300_000, 15), SPACE(600, 300_000, 15), DECAY(1_000, 600_000, 15),
+        LIGHTEN(2_000, 200_000, 10), MATURE(1_500, 150_000, 10), SETTLE(5_000, 70_000, 5);
 
         private final Price price;
 
-        VoidUpgrade(double cost, double growth, int max) {
-            price = new Price(cost, growth, max);
+        /** Du prix du premier niveau à celui du dernier, en {@code max} niveaux. */
+        VoidUpgrade(double first, double last, int max) {
+            price = new Price(first, Math.pow(last / first, 1.0 / (max - 1)), max);
         }
 
         @Override
@@ -173,8 +180,9 @@ public abstract class GameUniverse extends GameAtoms {
     /** Ce que chaque niveau d'allègement retire aux besoins des astres, de l'amas et de l'univers : 3 %, dix niveaux au plus. */
     public static final double VOID_LIGHTEN_STEP = 0.03;
 
+    /** Le niveau d'une amélioration du vide, jamais au-dessus de son plafond (version 0.169 : une sauvegarde d'avant peut le dépasser). */
     public int voidLevel(VoidUpgrade upgrade) {
-        return state.voidLevel(upgrade.ordinal());
+        return Math.min(upgrade.max(), state.voidLevel(upgrade.ordinal()));
     }
 
     /** La part des besoins du ciel qui reste avec l'allègement du vide : 1 sans lui, 0,7 au plus fort. */
@@ -182,8 +190,11 @@ public abstract class GameUniverse extends GameAtoms {
         return 1 - VOID_LIGHTEN_STEP * Math.min(VoidUpgrade.LIGHTEN.max(), voidLevel(VoidUpgrade.LIGHTEN));
     }
 
-    /** Ce que chaque niveau de rassemblement du vide retire au délai de l'amas et de l'univers (version 0.132) : 16 %, cinq niveaux, −80 % au plus. */
-    public static final double VOID_SETTLE_STEP = 0.16;
+    /**
+     * Ce que chaque niveau de rassemblement du vide retire au délai de l'amas et de l'univers : 10 % depuis la version 0.169
+     * (16 % depuis la 0.132), cinq niveaux, −50 % au plus.
+     */
+    public static final double VOID_SETTLE_STEP = 0.10;
 
     /** La part du délai de rassemblement qui reste avec le vide : 1 sans l'amélioration. */
     public double settleShare() {
@@ -1318,7 +1329,8 @@ public abstract class GameUniverse extends GameAtoms {
         GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 12_100, 1,
                 "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
         ROOTS(11, "Bulle des racines", 69_300, 1,
-                "Le défi final : un palier à atteindre dans chaque dimension ; les dix atteints, la partie est finie", 0, 13, 15),
+                "Le défi final : un palier à atteindre dans chaque dimension ; les dix atteints, la partie est finie. Les gluons "
+                        + "l'abaissent ensuite, jusqu'à moitié (le jalon des racines, dans les paliers des hadrons)", 0, 13, 15),
         HEART(11, "Bulle de l'arbre-monde, au cœur", 69_300, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 69_300, 1,
@@ -2038,7 +2050,8 @@ public abstract class GameUniverse extends GameAtoms {
         // univers, graine, dimensions, skins, succès et temps de jeu.
         boolean twig = isSeedTwig();
         boolean bySeed = canOpenNextUniverse();
-        state.startUniverse();
+        // Version 0.169 : une bulle qui garde, achetée depuis la formation, garde sa part pour cet univers-ci.
+        state.startUniverseKeeping();
         forgetDerived();
         state.setReplaying(true);
         if (twig) state.setTwigOpened(true);
@@ -2555,6 +2568,11 @@ public abstract class GameUniverse extends GameAtoms {
         if (hasBubble(TreeBubble.GIANT_RIGHT_LOW)) {
             kept.add("Les défis du Big Bang réussis (" + state.completedBangChallenges().size() + "), grâce à la bulle du géant de droite.");
         }
+        // Version 0.169 : ce que la formation a mis de côté attend les bulles qui gardent, jusqu'au lancement.
+        if (launching && state.isHoldingForBubbles()) {
+            kept.add("Mis de côté à la formation : une bulle qui garde (collisionneur, vide, matière noire, hadrons, défis du Big Bang), "
+                    + "achetée avant de lancer, garde encore sa part de l'univers formé.");
+        }
         java.util.List<String> gained = new java.util.ArrayList<>();
         if (launching) {
             gained.add("Une partie neuve, celle de l'univers suivant : les trois actes reviennent.");
@@ -2613,7 +2631,8 @@ public abstract class GameUniverse extends GameAtoms {
         }
         // Version 0.168 : l'univers formé entre au journal des univers, avec ses étapes, avant leur remise à zéro.
         state.stats().archiveUniverse(another ? 2 + state.extraUniverses() : 1, state.timePlayed());
-        state.startUniverse();
+        // Version 0.169 : ce que les bulles peuvent garder attend le lancement de l'univers suivant.
+        state.startUniverseHolding();
         if (another) state.setExtraUniverses(state.extraUniverses() + 1);
         state.setUniverseSeeds(state.universeSeeds().add(BigNum.of(SEEDS_PER_UNIVERSE)));
     }

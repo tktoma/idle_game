@@ -109,7 +109,7 @@ class VoidPageTest {
             Game game = open();
             VoidPage page = new VoidPage(game);
             assertFalse(VoidPage.ready(game));
-            game.state().setVoidEnergy(BigNum.of(10));
+            game.state().setVoidEnergy(BigNum.of(VoidUpgrade.GAIN.baseCost()));
             page.refresh();
             assertTrue(VoidPage.ready(game));
             Card gain = page.card(VoidUpgrade.GAIN);
@@ -234,7 +234,7 @@ class VoidPageTest {
             game.state().setVoidLevel(VoidUpgrade.MATURE.ordinal(), 7);
             game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 5);
             game.state().setVoidLevel(VoidUpgrade.GAIN.ordinal(), 3);
-            assertEquals("maturation −49 %, rassemblement −80 %", VoidPage.actThreeCuts(game));
+            assertEquals("maturation −35 %, rassemblement −50 %", VoidPage.actThreeCuts(game), "version 0.169 : −5 % et −10 % par niveau");
             assertEquals(15, VoidPage.levelsOwned(game));
             game.state().setVoidLevel(VoidUpgrade.LIGHTEN.ordinal(), 10);
             assertTrue(VoidPage.actThreeCuts(game).startsWith("besoins du ciel −30 %"), VoidPage.actThreeCuts(game));

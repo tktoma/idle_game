@@ -513,6 +513,46 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         restoreForBubbles(kept);
     }
 
+    /**
+     * La formation de l'univers (version 0.169) : comme {@link #startUniverse()}, mais ce que toutes les bulles qui gardent
+     * pourraient garder est d'abord mis de côté, avec les bulles déjà achetées. Tant que le joueur n'a pas lancé l'univers
+     * suivant ({@link #startUniverseKeeping()}), une bulle achetée garde encore sa part.
+     */
+    public void startUniverseHolding() {
+        GameState held = new GameState();
+        ((GameStateCollider) held).restoreForBubbles(this, true);
+        int mask = 0;
+        for (GameUniverse.TreeBubble bubble : KEEPING_BUBBLES) if (treeBubbleBought(bubble.ordinal())) mask |= 1 << bubble.ordinal();
+        startUniverse();
+        bubbleKeep = held;
+        bubbleKeepMask = mask;
+    }
+
+    /**
+     * Le lancement de l'univers suivant (version 0.169) : comme {@link #startUniverse()}, puis chaque bulle qui garde,
+     * achetée depuis la formation, rend la part mise de côté à la formation. Celles achetées avant gardent ce qu'elles
+     * ont déjà gardé, avec ce qui s'y est ajouté depuis.
+     */
+    public void startUniverseKeeping() {
+        GameState held = bubbleKeep;
+        int mask = bubbleKeepMask;
+        startUniverse();
+        bubbleKeep = null;
+        bubbleKeepMask = 0;
+        if (held == null) return;
+        for (GameUniverse.TreeBubble bubble : KEEPING_BUBBLES) {
+            if (!treeBubbleBought(bubble.ordinal()) || (mask & (1 << bubble.ordinal())) != 0) continue;
+            restorePart(bubble, held);
+            // L'énergie du vide rendue est déjà au cumul depuis la formation : la suivante ne la recomptera pas.
+            if (bubble == GameUniverse.TreeBubble.GIANT_LEFT_LOW) voidCarried = voidEnergy.toDouble();
+        }
+    }
+
+    /** Vrai entre la formation de l'univers et le lancement du suivant : ce que les bulles peuvent garder attend. */
+    public boolean isHoldingForBubbles() {
+        return bubbleKeep != null;
+    }
+
     /** Une copie de ce que les bulles achetées font traverser les univers ; {@code null} si aucune ne le fait. */
     private GameStateCollider copyForBubbles() {
         boolean any = false;
@@ -537,7 +577,14 @@ public abstract class GameStateCollider extends GameStateUnlocks {
      * celles que ce nouvel univers a encore achetées (les bulles traversent les univers : ce sont les mêmes).
      */
     private void restoreForBubbles(GameStateCollider from, boolean all) {
-        if (all || treeBubbleBought(GameUniverse.TreeBubble.MATURE_LEFT.ordinal())) {
+        for (GameUniverse.TreeBubble bubble : KEEPING_BUBBLES) {
+            if (all || treeBubbleBought(bubble.ordinal())) restorePart(bubble, from);
+        }
+    }
+
+    /** Recopie de {@code from} la part que cette bulle garde (version 0.169 : une bulle à la fois). */
+    private void restorePart(GameUniverse.TreeBubble bubble, GameStateCollider from) {
+        if (bubble == GameUniverse.TreeBubble.MATURE_LEFT) {
             // L'arbre mûr, à gauche : tout le collisionneur.
             colliderEnergy = from.colliderEnergy;
             colliderEnergyProduced = from.colliderEnergyProduced;
@@ -560,7 +607,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             topLeft = from.topLeft;
             overheatLeft = from.overheatLeft;
         }
-        if (all || treeBubbleBought(GameUniverse.TreeBubble.GIANT_LEFT_LOW.ordinal())) {
+        if (bubble == GameUniverse.TreeBubble.GIANT_LEFT_LOW) {
             // Le géant de gauche, en bas : le vide, ouvert, son énergie, son trou noir et ses améliorations.
             voidEnergy = from.voidEnergy;
             voidOpen = from.voidOpen;
@@ -570,7 +617,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             voidSacrificed = from.voidSacrificed;
             System.arraycopy(from.voidLevels, 0, voidLevels, 0, voidLevels.length);
         }
-        if (all || treeBubbleBought(GameUniverse.TreeBubble.MATURE_RIGHT.ordinal())) {
+        if (bubble == GameUniverse.TreeBubble.MATURE_RIGHT) {
             // L'arbre mûr, à droite : la matière noire, sa taille, son arbre, les explosions et les défis réussis.
             darkMatter = from.darkMatter;
             darkMatterSpent = from.darkMatterSpent;
@@ -586,14 +633,14 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             enabledDarkAutomations.clear();
             enabledDarkAutomations.addAll(from.enabledDarkAutomations);
         }
-        if (all || treeBubbleBought(GameUniverse.TreeBubble.ANCIENT_LEFT.ordinal())) {
+        if (bubble == GameUniverse.TreeBubble.ANCIENT_LEFT) {
             // L'arbre ancien, à gauche (version 0.149) : les hadrons, et l'onglet ouvert.
             hadronsOpen = from.hadronsOpen;
             hadronsPrice = from.hadronsPrice;
             hadrons.clear();
             hadrons.putAll(from.hadrons);
         }
-        if (all || treeBubbleBought(GameUniverse.TreeBubble.GIANT_RIGHT_LOW.ordinal())) {
+        if (bubble == GameUniverse.TreeBubble.GIANT_RIGHT_LOW) {
             // Le géant de droite, en bas : les défis du Big Bang réussis.
             completedBangChallenges.clear();
             completedBangChallenges.addAll(from.completedBangChallenges);

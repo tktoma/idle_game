@@ -456,7 +456,7 @@ public final class UniversePage extends VBox {
 
     /** « 3.2e6 / 2.5e7 », ou « Palier atteint : 2.5e7 » : l'avancée d'une dimension vers son palier. */
     private String finalText(int number) {
-        String goal = Format.darkMatter(Game.finalGoal(number));
+        String goal = Format.darkMatter(game.finalGoalFor(number));
         return game.isFinalTierReached(number) ? "Palier atteint : " + goal
                 : Format.darkMatter(game.dimensionEarned(number)) + " / " + goal;
     }

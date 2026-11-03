@@ -70,6 +70,8 @@ final class Notifier {
      * les fait redescendre : atteint de nouveau, il s'annonce de nouveau.
      */
     private final java.util.EnumSet<GluonMilestone> gluonMilestonesSeen = java.util.EnumSet.noneOf(GluonMilestone.class);
+    /** Les paliers du jalon des racines déjà annoncés (version 0.169). */
+    private int rootTiersSeen;
     /** Les succès du collisionneur déjà gagnés au dernier relevé. */
     private final java.util.EnumSet<ColliderAchievement> colliderAchievementsSeen = java.util.EnumSet.noneOf(ColliderAchievement.class);
     private final java.util.EnumSet<BangAchievement> bangAchievementsSeen = java.util.EnumSet.noneOf(BangAchievement.class);
@@ -183,6 +185,12 @@ final class Notifier {
                 add(news, Notice.COLLIDER, "Palier de gluons : " + milestone.label() + ". " + milestone.effect());
             }
         }
+        int rootTiers = game.rootTiersReached();
+        if (rootTiers > rootTiersSeen) {
+            add(news, Notice.COLLIDER, "Racines liées : palier " + rootTiers + " / " + Game.ROOT_GLUON_TIERS.length
+                    + ". Les paliers du défi final sont à " + Math.round(100 * Math.pow(Game.ROOT_TIER_FACTOR, rootTiers)) + " %.");
+        }
+        rootTiersSeen = rootTiers;
         boolean voidHole = game.isVoidHoleOpen();
         if (voidHole && !voidHoleSeen) add(news, Notice.VOID, "Vide : le trou noir s'ouvre. Les particules qu'on lui sacrifie raccourcissent la vie des paires.");
         voidHoleSeen = voidHole;
@@ -442,6 +450,7 @@ final class Notifier {
         hadronsOfferedSeen = game.isHadronsOffered();
         gluonMilestonesSeen.clear();
         for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) gluonMilestonesSeen.add(milestone);
+        rootTiersSeen = game.rootTiersReached();
         voidHoleSeen = game.isVoidHoleOpen();
         voidMaxedSeen.clear();
         for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) if (game.isVoidUnlocked() && game.voidLevel(upgrade) >= upgrade.max()) voidMaxedSeen.add(upgrade);

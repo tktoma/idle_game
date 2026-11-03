@@ -146,4 +146,21 @@ class NotificationsEtSignesTest {
         assertTrue(reloaded.poll().isEmpty());
         assertTrue(reloaded.poll().isEmpty(), "déjà atteint au chargement : rien");
     }
+
+    /** Version 0.169 : chaque palier du jalon des racines s'annonce une fois, avec la bulle des racines. */
+    @Test
+    void unPalierDesRacinesSAnnonceUneFois() {
+        Game game = new Game();
+        game.start();
+        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 28_000);
+        Notifier notifier = new Notifier(game);
+        assertTrue(notifier.poll().isEmpty(), "premier relevé : rien");
+        game.state().setTreeBubbleBought(Game.TreeBubble.ROOTS.ordinal(), true);
+        List<Notifier.News> news = notifier.poll();
+        assertTrue(news.stream().anyMatch(each -> each.text().equals("Racines liées : palier 1 / 10. Les paliers du défi final sont à 93 %.")),
+                news.toString());
+        assertTrue(notifier.poll().isEmpty(), "une seule fois");
+        Notifier reloaded = new Notifier(game);
+        assertTrue(reloaded.poll().isEmpty(), "déjà atteint au chargement : rien");
+    }
 }

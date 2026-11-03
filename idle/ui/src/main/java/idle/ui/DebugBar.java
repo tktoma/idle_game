@@ -385,7 +385,7 @@ final class DebugBar extends VBox {
                 tool("Atteindre tous les paliers", () -> {
                     openFinalChallenge();
                     for (int d = 1; d <= Game.MAX_DIMENSIONS; d++) {
-                        addDimensionShards(d, Math.max(0, Game.finalGoal(d) - game.dimensionEarned(d)));
+                        addDimensionShards(d, Math.max(0, game.finalGoalFor(d) - game.dimensionEarned(d)));
                     }
                 }),
                 tool("Jouer la fin", () -> {

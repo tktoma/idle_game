@@ -152,4 +152,32 @@ class HadronsPageTest {
             return null;
         });
     }
+
+    /** Version 0.169 : le jalon des racines, sous les paliers de gluons, fermé sans la bulle des racines. */
+    @Test
+    void leJalonDesRacinesSAfficheAvecLesPaliers() {
+        FxTestSupport.fx(() -> {
+            Game closed = open();
+            HadronsPage page = page(closed);
+            assertEquals(Card.State.WAITING, page.rootsCard().state());
+            assertTrue(page.rootsCard().text().contains("Ouvert par la bulle des racines"), page.rootsCard().text());
+            assertEquals(0, page.rootsGaugeShare(), 1e-9);
+            Game game = open(TreeBubble.ROOTS);
+            game.state().setHadrons(Hadron.PROTON, 28_000);
+            HadronsPage roots = page(game);
+            assertEquals(1, game.rootTiersReached(), "84 000 gluons : le premier palier");
+            assertEquals(Card.State.STARTED, roots.rootsCard().state());
+            String text = roots.rootsCard().text();
+            assertTrue(text.startsWith("1 / 10 paliers"), text);
+            assertTrue(text.contains("Racines liées"), text);
+            assertTrue(text.contains("88 000"), "le palier suivant : " + text);
+            assertTrue(text.contains("il en manque 4 000"), text);
+            assertEquals(84_000 / 88_000.0, roots.rootsGaugeShare(), 1e-6);
+            game.state().setHadrons(Hadron.PROTON, 140_000);
+            roots.refresh();
+            assertEquals(Card.State.DONE, roots.rootsCard().state());
+            assertEquals(1, roots.rootsGaugeShare(), 1e-9);
+            return null;
+        });
+    }
 }

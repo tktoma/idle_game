@@ -477,7 +477,7 @@ public abstract class StatsPageLines extends StatsPageBase {
             int number = d;
             row("Défi final, " + idle.ui.universe.Dimension.of(number).label().toLowerCase(java.util.Locale.ROOT),
                     () -> Math.round(game.finalProgress(number) * 100) + " % (" + Format.darkMatter(BigNum.of(game.dimensionEarned(number)))
-                            + " / " + Format.darkMatter(BigNum.of(Game.finalGoal(number))) + ")"
+                            + " / " + Format.darkMatter(BigNum.of(game.finalGoalFor(number))) + ")"
                             + (game.isFinalTierReached(number) ? ", palier atteint" : ""), game::isFinalChallengeOpen);
         }
         row("Fin de la partie", () -> "atteinte : les dix paliers du défi final", game::isGameFinished);
@@ -524,6 +524,10 @@ public abstract class StatsPageLines extends StatsPageBase {
             for (GluonMilestone milestone : GluonMilestone.values()) if (game.isGluonMilestoneReached(milestone)) reached++;
             return reached + " / " + GluonMilestone.values().length;
         }, game::isHadronsUnlocked);
+        // Version 0.169 : le jalon des racines, dix paliers de gluons qui abaissent les paliers du défi final.
+        row("Racines liées", () -> game.rootTiersReached() + " / " + Game.ROOT_GLUON_TIERS.length + " paliers, paliers du défi final "
+                + Format.multiplier(Math.pow(Game.ROOT_TIER_FACTOR, game.rootTiersReached())),
+                () -> game.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.ROOTS));
 
         // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
         section("L'automatisation des dimensions");

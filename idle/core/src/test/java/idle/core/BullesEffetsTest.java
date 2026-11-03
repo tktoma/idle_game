@@ -37,6 +37,16 @@ class BullesEffetsTest {
         return game;
     }
 
+    /**
+     * Forme l'univers, achète les bulles, puis lance le suivant (version 0.169) : ce qui était dans l'univers formé,
+     * avant la formation, est gardé par les bulles achetées entre la formation et le lancement.
+     */
+    private static boolean formThenLaunch(Game game, TreeBubble... bubbles) {
+        game.testFormUniverse();
+        for (TreeBubble bubble : bubbles) give(game, bubble);
+        return game.startNextUniverse();
+    }
+
     private static void give(Game game, TreeBubble bubble) {
         game.state().setTreeBubbleBought(bubble.ordinal(), true);
     }
@@ -134,10 +144,10 @@ class BullesEffetsTest {
 
     @Test
     void lArbreMurDeGaucheGardeLeCollisionneur() {
-        Game game = nextUniverseWith(TreeBubble.MATURE_LEFT);
+        Game game = GameTestSupport.realGame();
         game.state().setColliderEnergy(12_345);
         game.state().setColliderGenerators(ColliderGenerator.BEAM, 7);
-        assertTrue(game.startNextUniverse());
+        assertTrue(formThenLaunch(game, TreeBubble.MATURE_LEFT));
         assertTrue(game.isColliderUnlocked());
         assertEquals(12_345, game.state().colliderEnergy(), 1e-9);
         assertEquals(7, game.state().colliderGenerators(ColliderGenerator.BEAM), 1e-9);
@@ -198,21 +208,21 @@ class BullesEffetsTest {
 
     @Test
     void lArbreMurDeDroiteGardeLaMatiereNoireEtSesDefis() {
-        Game game = nextUniverseWith(TreeBubble.MATURE_RIGHT);
+        Game game = GameTestSupport.realGame();
         game.state().setDarkMatter(BigNum.of(777));
         game.state().setExplosions(4);
         game.state().setDarkLevel("dark_density", 3);
         game.state().addCompletedChallenge("challenge_rust");
-        assertTrue(game.startNextUniverse());
+        assertTrue(formThenLaunch(game, TreeBubble.MATURE_RIGHT));
         assertEquals(777, game.state().darkMatter().toDouble(), 1e-9);
         assertEquals(4, game.state().explosions());
         assertEquals(3, game.state().darkLevelOf("dark_density"));
         assertTrue(game.state().completedChallenges().contains("challenge_rust"));
         assertTrue(game.isDarkMatterUnlocked());
         // Sans la bulle, tout repart.
-        Game plain = nextUniverseWith();
+        Game plain = GameTestSupport.realGame();
         plain.state().setDarkMatter(BigNum.of(777));
-        assertTrue(plain.startNextUniverse());
+        assertTrue(formThenLaunch(plain));
         assertEquals(0, plain.state().darkMatter().toDouble(), 0);
     }
 
@@ -256,9 +266,14 @@ class BullesEffetsTest {
         give(game, TreeBubble.GIANT_LEFT_LOW);
         game.bubbleBought(TreeBubble.GIANT_LEFT_LOW);
         assertTrue(game.isVoidUnlocked() && game.state().voidOpen(), "ouvert sans le payer");
+        // Achetée depuis la formation, la bulle rend au lancement le vide de l'univers formé : ici, il n'était pas ouvert.
+        assertTrue(game.startNextUniverse());
+        assertTrue(game.isVoidUnlocked(), "la bulle l'ouvre quand même");
+        assertEquals(0, game.voidLevel(Game.VoidUpgrade.RATE));
+        // Achetée avant, elle garde ce qui s'y ajoute jusqu'au lancement.
         game.state().setVoidLevel(Game.VoidUpgrade.RATE.ordinal(), 3);
         game.state().setVoidEnergy(BigNum.of(5_000));
-        assertTrue(game.startNextUniverse());
+        assertTrue(formThenLaunch(game));
         assertTrue(game.isVoidUnlocked());
         assertEquals(3, game.voidLevel(Game.VoidUpgrade.RATE));
         assertEquals(5_000, game.voidEnergy().toDouble(), 1e-9);
@@ -282,18 +297,18 @@ class BullesEffetsTest {
 
     @Test
     void leGeantDeDroiteEnBasOuvreTousLesPaliersEtGardeLesDefisDuBigBang() {
-        Game game = nextUniverseWith(TreeBubble.GIANT_RIGHT_LOW);
+        Game game = GameTestSupport.realGame();
         game.state().addCompletedBangChallenge("VOID");
-        assertTrue(game.startNextUniverse());
+        assertTrue(formThenLaunch(game, TreeBubble.GIANT_RIGHT_LOW));
         assertEquals(0, game.bigBangs());
         for (BigBangMilestone milestone : game.bigBangMilestones()) {
             assertTrue(game.isBigBangMilestoneReached(milestone), milestone.name() + " : ouvert sans Big Bang ni prix");
         }
         assertTrue(game.isProbesUnlocked() && game.isExoticUnlocked());
         assertTrue(game.state().completedBangChallenges().contains("VOID"));
-        Game plain = nextUniverseWith();
+        Game plain = GameTestSupport.realGame();
         plain.state().addCompletedBangChallenge("VOID");
-        assertTrue(plain.startNextUniverse());
+        assertTrue(formThenLaunch(plain));
         assertFalse(plain.state().completedBangChallenges().contains("VOID"));
         assertFalse(plain.isProbesUnlocked());
     }

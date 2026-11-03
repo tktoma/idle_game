@@ -63,16 +63,17 @@ class VoidPolicyTest {
         expert.play(game);
         assertTrue(game.isVoidUnlocked());
         assertEquals(0.5, game.state().voidShare(), 1e-12);
-        game.state().setVoidEnergy(BigNum.of(1_000));
+        game.state().setVoidEnergy(BigNum.of(4_000));
         expert.play(game);
-        // 1 000 : maturation 200, allègement 300, maturation 400 ; il reste 100.
-        assertEquals(2, game.voidLevel(VoidUpgrade.MATURE), "le raccourci le moins cher, à chaque achat");
+        // 4 000 (prix de la version 0.169) : maturation 1 500, puis allègement 2 000 (la maturation suivante, 2 502, ne
+        // passe plus) ; il reste 500, le gain à 500, moins de la moitié du prochain raccourci (2 502).
+        assertEquals(1, game.voidLevel(VoidUpgrade.MATURE), "le raccourci le moins cher, à chaque achat");
         assertEquals(1, game.voidLevel(VoidUpgrade.LIGHTEN));
-        assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE), "800 : pas assez");
+        assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE), "5 000 : pas assez");
         int growth = 0;
         for (VoidUpgrade upgrade : VoidUpgrade.values()) if (!VoidPolicy.SHORTENERS.contains(upgrade)) growth += game.voidLevel(upgrade);
-        assertTrue(growth >= 1, "une croissance bon marché à côté du prochain raccourci (600)");
-        assertTrue(game.state().voidEnergy().toDouble() < 150, "plus rien à moins du quart de 600");
+        assertTrue(growth >= 1, "une croissance bon marché à côté du prochain raccourci (2 502)");
+        assertTrue(game.state().voidEnergy().toDouble() < 1, "tout est dépensé : " + game.state().voidEnergy());
     }
 
     @Test
@@ -178,7 +179,9 @@ class VoidPolicyTest {
         policy.play(game);
         assertTrue(policy.bought > 1);
         assertTrue(game.voidLevel(cheapest) >= 1, "le premier achat est le moins cher de tous");
-        assertTrue(game.state().voidEnergy().toDouble() < 1_000, "il dépense tant qu'il peut payer : " + game.state().voidEnergy());
+        for (VoidUpgrade upgrade : VoidUpgrade.values()) {
+            assertFalse(game.canBuyVoid(upgrade), "il dépense tant qu'il peut payer : " + upgrade + ", reste " + game.state().voidEnergy());
+        }
     }
 
     @Test

@@ -38,6 +38,31 @@ public abstract class GameFinale extends GameMix {
         return FINAL_GOALS[dimension - 1];
     }
 
+    /**
+     * Le jalon des racines (version 0.169) : dix paliers de gluons, comptés une fois la bulle des racines achetée. Chacun
+     * abaisse les paliers du défi final de 2^(1/10) (environ −7 %) : ÷2 avec les dix. Les huit premiers suivent les
+     * gluons de la fin de partie ; les deux derniers rejoignent les grands paliers de gluons (150 000 et 400 000), longs
+     * à atteindre. Un plus, jamais nécessaire : le défi final se finit sans lui.
+     */
+    public static final long[] ROOT_GLUON_TIERS = {80_000, 88_000, 97_000, 107_000, 118_000, 130_000, 145_000, 160_000, 250_000, 400_000};
+
+    /** Ce que chaque palier du jalon des racines laisse des paliers du défi final : 2^(−1/10). */
+    public static final double ROOT_TIER_FACTOR = Math.pow(2, -0.1);
+
+    /** Les paliers du jalon des racines atteints, de 0 à 10 : aucun sans la bulle des racines. */
+    public int rootTiersReached() {
+        if (!isTreeBubbleBought(TreeBubble.ROOTS)) return 0;
+        long gluons = gluons();
+        int reached = 0;
+        for (long tier : ROOT_GLUON_TIERS) if (gluons >= tier) reached++;
+        return reached;
+    }
+
+    /** Le palier de la dimension {@code dimension} pour cette partie : celui du défi final, abaissé par le jalon des racines. */
+    public double finalGoalFor(int dimension) {
+        return finalGoal(dimension) * Math.pow(ROOT_TIER_FACTOR, rootTiersReached());
+    }
+
     /** La ressource gagnée en tout dans la dimension {@code dimension} (1 à 10). */
     public double dimensionEarned(int dimension) {
         return switch (dimension) {
@@ -58,11 +83,11 @@ public abstract class GameFinale extends GameMix {
     /** La progression vers le palier, de 0 à 1, en puissances de dix : log10(1 + gagné) / log10(1 + palier). */
     public double finalProgress(int dimension) {
         double earned = Math.max(0, dimensionEarned(dimension));
-        return Math.min(1, Math.log10(1 + earned) / Math.log10(1 + finalGoal(dimension)));
+        return Math.min(1, Math.log10(1 + earned) / Math.log10(1 + finalGoalFor(dimension)));
     }
 
     public boolean isFinalTierReached(int dimension) {
-        return dimensionEarned(dimension) >= finalGoal(dimension) - 1e-9;
+        return dimensionEarned(dimension) >= finalGoalFor(dimension) - 1e-9;
     }
 
     /** Les paliers atteints, de 0 à 10. */

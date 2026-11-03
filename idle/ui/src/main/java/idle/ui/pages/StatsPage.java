@@ -2,6 +2,7 @@ package idle.ui.pages;
 
 import idle.core.Game;
 import idle.core.GameStats;
+import idle.core.Multipliers;
 import idle.core.StatsHistory;
 import idle.core.bigbang.BangChallenge;
 import idle.core.collider.ColliderAchievement;
@@ -108,6 +109,47 @@ public final class StatsPage extends StatsPageLines {
         section("Générateurs et succès");
         row("Générateurs achetés", () -> Format.whole(game.colliderGeneratorsBoughtTotal()));
         row("Succès du collisionneur", () -> game.colliderAchievements() + " / " + ColliderAchievement.values().length);
+        // Version 0.169 : ce que le collisionneur, les hadrons et le vide font au reste du jeu.
+        section("Ce qu'ils font au reste du jeu");
+        row("Le collisionneur", () -> impacts(game, Multipliers.Aspect.COLLIDER, Multipliers.Quantity.COLLIDER_ENERGY));
+        row("Les hadrons", () -> impacts(game, Multipliers.Aspect.HADRONS), game::isHadronsUnlocked);
+        row("Le vide raccourcit", () -> idle.ui.vacuum.VoidPage.actThreeCuts(game), game::isVoidUnlocked);
+        row("Le vide prend", () -> voidCosts(game), game::isVoidUnlocked);
+        row("Le vide a payé", () -> bubblesPaid(game), () -> game.state().voidAccumulated() > 0);
+    }
+
+    /**
+     * « particules par seconde ×3,2e4 (18 %) ; atomes par fusion ×12 (4 %) » : ce qu'un aspect multiplie hors de ses
+     * propres grandeurs, et sa part des ordres de grandeur de chacune ; « rien encore » sinon.
+     */
+    static String impacts(Game game, Multipliers.Aspect aspect, Multipliers.Quantity... own) {
+        List<String> parts = new ArrayList<>();
+        for (Multipliers.Impact impact : Multipliers.impactsOf(game, aspect, own)) {
+            String label = impact.quantity().label();
+            parts.add(Character.toLowerCase(label.charAt(0)) + label.substring(1) + " " + Format.multiplier(BigNum.pow10(impact.log10()))
+                    + (impact.share() > 0 ? " (" + Math.round(impact.share() * 100) + " %)" : ""));
+        }
+        return parts.isEmpty() ? "rien encore" : String.join(" ; ", parts);
+    }
+
+    /** « 12 % de l'énergie du collisionneur, 3 % de l'espace » : ce que les paires du vide prennent en ce moment. */
+    static String voidCosts(Game game) {
+        return percent(game.voidColliderShare()) + " de l'énergie du collisionneur, " + percent(game.voidSpaceShare()) + " de l'espace";
+    }
+
+    /** « 6 bulles, 41 000 énergie du vide gardée des univers formés » : ce que le vide a rapporté à l'arbre. */
+    static String bubblesPaid(Game game) {
+        int bought = 0;
+        for (Game.TreeBubble bubble : Game.TreeBubble.values()) bought += game.state().treeBubbleLevel(bubble.ordinal());
+        return bought + (bought > 1 ? " niveaux de bulles" : " niveau de bulle") + ", sur "
+                + Format.count(BigNum.of(game.state().voidAccumulated())) + " d'énergie du vide gardée des univers formés";
+    }
+
+    /** « 12 % », « 0,4 % » : une part, en pour cent. */
+    private static String percent(double share) {
+        double value = share * 100;
+        return (value >= 10 || value == 0 ? String.valueOf(Math.round(value))
+                : String.format(java.util.Locale.FRANCE, "%.1f", value)) + " %";
     }
 
     /** Le détail des multiplicateurs (version 0.123) : ce qui fait grandir chaque grandeur, aspect par aspect. */

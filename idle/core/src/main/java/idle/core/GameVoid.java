@@ -171,6 +171,22 @@ public abstract class GameVoid extends GameBigBang {
         return "rythme";
     }
 
+    /**
+     * La part de la production du collisionneur que les paires prennent en ce moment (version 0.169), de 0 à la part
+     * réglée : ce que le vide coûte au reste du jeu en énergie.
+     */
+    public double voidColliderShare() {
+        if (colliderEnergyPerSecond() <= 0) return 0;
+        return voidRate() * VOID_PAIR_ENERGY_SECONDS * Math.pow(VOID_COST_STEP, voidLevel(VoidUpgrade.ENERGY));
+    }
+
+    /** La part de l'espace que les paires vivantes tiennent en ce moment (version 0.169) : ce qu'il coûte en place. */
+    public double voidSpaceShare() {
+        BigNum held = voidHeldSpace();
+        if (held.sign() <= 0 || state.space().sign() <= 0) return 0;
+        return Math.min(1, held.divide(state.space()).toDouble());
+    }
+
     /** Les paires vivantes en ce moment. */
     public double voidPairs() {
         return voidPairs;

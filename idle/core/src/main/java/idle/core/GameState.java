@@ -315,6 +315,12 @@ public final class GameState extends GameStateResets {
         data.putList("automationOrder", automationOrder);
         data.put("automationOrdered", automationOrdered);
         data.put("space", space);
+        // Version 0.169 : ce que les bulles peuvent garder, mis de côté à la formation de l'univers jusqu'au lancement.
+        if (bubbleKeep != null) {
+            data.put("bubbleKeep", java.util.Base64.getEncoder().encodeToString(
+                    idle.core.save.SaveCodec.write(bubbleKeep, 0).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            data.put("bubbleKeepMask", bubbleKeepMask);
+        }
         if (withStats) stats.save(data, "stats.");
     }
 
@@ -663,6 +669,16 @@ public final class GameState extends GameStateResets {
         automationOrder.addAll(data.list("automationOrder"));
         automationOrdered = data.flag("automationOrdered", false);
         setSpace(data.big("space", BigNum.ZERO));
+        String keep = data.text("bubbleKeep", "");
+        if (!keep.isEmpty()) {
+            try {
+                bubbleKeep = idle.core.save.SaveCodec.read(new String(java.util.Base64.getDecoder().decode(keep),
+                        java.nio.charset.StandardCharsets.UTF_8)).state();
+                bubbleKeepMask = data.whole("bubbleKeepMask", 0);
+            } catch (idle.core.save.SaveCodec.Unreadable unreadable) {
+                throw new IllegalArgumentException("bubbleKeep illisible", unreadable);
+            }
+        }
         stats.load(data, "stats.");
         // Avant la version 0.126, seules les premières du jeu entier étaient datées.
         if (!data.has("stats.universeStart")) stats.adoptLegacySteps(!universeFormed);

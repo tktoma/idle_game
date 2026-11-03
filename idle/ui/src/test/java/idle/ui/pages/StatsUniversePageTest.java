@@ -111,4 +111,26 @@ class StatsUniversePageTest {
             return null;
         });
     }
+
+    /** Version 0.169 : la sous-page « Collisionneur » dit ce que le collisionneur, les hadrons et le vide font au reste. */
+    @Test
+    void leCollisionneurDitCeQuIlFaitAuReste() {
+        FxTestSupport.fx(() -> {
+            Game game = third();
+            game.state().setHadronsOpen(true);
+            game.state().setHadrons(idle.core.collider.Hadron.NEUTRON, 99);
+            StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
+            page.refresh();
+            assertTrue(page.openSubPage("Collisionneur"));
+            List<String> rows = page.shownRows();
+            assertTrue(rows.stream().anyMatch(row -> row.startsWith("Le collisionneur : ")), rows.toString());
+            assertTrue(rows.stream().anyMatch(row -> row.startsWith("Les hadrons : ") && row.contains("espace par seconde ×")), rows.toString());
+            assertTrue(rows.stream().anyMatch(row -> row.startsWith("Le vide raccourcit : ")), rows.toString());
+            assertTrue(rows.stream().anyMatch(row -> row.startsWith("Le vide prend : ") && row.contains("de l'énergie du collisionneur")),
+                    rows.toString());
+            assertFalse(StatsPage.impacts(game, Multipliers.Aspect.COLLIDER, Multipliers.Quantity.COLLIDER_ENERGY)
+                    .contains("Énergie du collisionneur"), "pas sa propre grandeur");
+            return null;
+        });
+    }
 }

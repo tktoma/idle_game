@@ -246,7 +246,7 @@ final class AnalyseSuivi {
             return new double[] {g.state().seedWaterings(), besoin};
         }
         int d = Integer.parseInt(cible);
-        double besoin = !g.isDimensionThresholdReached(d) ? seuil(d) : g.isFinalChallengeOpen() ? Game.finalGoal(d) : Double.NaN;
+        double besoin = !g.isDimensionThresholdReached(d) ? seuil(d) : g.isFinalChallengeOpen() ? g.finalGoalFor(d) : Double.NaN;
         return new double[] {g.dimensionEarned(d), besoin};
     }
 

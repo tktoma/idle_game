@@ -81,6 +81,9 @@ public final class HadronsPage extends VBox {
     private final Map<Hadron, Button> bindAll = new EnumMap<>(Hadron.class);
     private final Map<GluonMilestone, Card> milestoneCards = new EnumMap<>(GluonMilestone.class);
     private final Map<GluonMilestone, Region> gauges = new EnumMap<>(GluonMilestone.class);
+    /** Le jalon des racines (version 0.169) : dix paliers de gluons, sous les paliers, avec la bulle des racines. */
+    private Card rootsCard;
+    private final Region rootsGauge = new Region();
     private final Label milestonesNote = new Label();
     private final BindingView view;
     private final Map<Hadron, Button> bindHere = new EnumMap<>(Hadron.class);
@@ -129,6 +132,8 @@ public final class HadronsPage extends VBox {
         VBox milestones = new VBox(10, milestonesNote);
         milestones.setAlignment(Pos.TOP_CENTER);
         for (GluonMilestone milestone : GluonMilestone.values()) milestones.getChildren().add(buildMilestone(milestone));
+        rootsCard = gaugeCard(rootsGauge);
+        milestones.getChildren().add(rootsCard);
         panes[MILESTONES] = scrolled(milestones);
 
         // « Liaison » : la vue, et un bouton par hadron ouvert.
@@ -209,8 +214,16 @@ public final class HadronsPage extends VBox {
 
     /** La carte d'un palier de gluons, avec sa barre posée entre l'en-tête et le nom. */
     private Card buildMilestone(GluonMilestone milestone) {
-        Card card = new Card(COLOR);
         Region fill = new Region();
+        Card card = gaugeCard(fill);
+        milestoneCards.put(milestone, card);
+        gauges.put(milestone, fill);
+        return card;
+    }
+
+    /** Une carte avec sa barre {@code fill} posée entre l'en-tête et le nom. */
+    private Card gaugeCard(Region fill) {
+        Card card = new Card(COLOR);
         fill.setMinHeight(8);
         fill.setMaxHeight(8);
         fill.setStyle("-fx-background-color: " + COLOR + "; -fx-background-radius: 4;");
@@ -220,8 +233,6 @@ public final class HadronsPage extends VBox {
         track.setStyle("-fx-background-color: #24120f; -fx-background-radius: 4;");
         card.setPicture(track);
         card.setMaxWidth(640);
-        milestoneCards.put(milestone, card);
-        gauges.put(milestone, fill);
         return card;
     }
 
@@ -318,7 +329,8 @@ public final class HadronsPage extends VBox {
         gluonsTab.setText("Gluons" + Readiness.dot(Readiness.Kind.HADRONS, ready(game)));
         boolean exotic = game.isExoticHadronsUnlocked();
         boolean kept = game.isTreeBubbleBought(TreeBubble.ANCIENT_LEFT);
-        StringBuilder key = new StringBuilder().append(Detail.shown()).append(Card.signsShown()).append(exotic).append(kept);
+        StringBuilder key = new StringBuilder().append(Detail.shown()).append(Card.signsShown()).append(exotic).append(kept)
+                .append(game.isTreeBubbleBought(TreeBubble.ROOTS));
         for (Quark quark : KEPT) key.append('/').append(game.state().quarks(quark));
         for (Hadron hadron : Hadron.values()) key.append('/').append(game.hadrons(hadron)).append(':').append(game.hadronsBindable(hadron));
         if (key.toString().equals(shownKey)) return;
@@ -369,6 +381,33 @@ public final class HadronsPage extends VBox {
             gauges.get(milestone).setPrefWidth(share * GAUGE_WIDTH);
             gauges.get(milestone).setMinWidth(share * GAUGE_WIDTH);
         }
+        showRoots(gluons);
+    }
+
+    /**
+     * Le jalon des racines : fermé sans la bulle des racines, puis le palier suivant, sa barre, et ce que les paliers
+     * atteints retirent déjà aux paliers du défi final.
+     */
+    private void showRoots(long gluons) {
+        boolean open = game.isTreeBubbleBought(TreeBubble.ROOTS);
+        int reached = game.rootTiersReached();
+        int tiers = Game.ROOT_GLUON_TIERS.length;
+        boolean done = reached == tiers;
+        long next = done ? Game.ROOT_GLUON_TIERS[tiers - 1] : Game.ROOT_GLUON_TIERS[reached];
+        double share = !open ? 0 : done ? 1 : Math.min(1, gluons / (double) next);
+        Card.State state = !open ? Card.State.WAITING : done ? Card.State.DONE : Card.State.STARTED;
+        String effect = "Chaque palier abaisse les paliers du défi final d'environ 7 % : de moitié avec les dix. Un plus, "
+                + "jamais nécessaire. Les deux derniers demandent bien plus de gluons.";
+        String line = open ? "Paliers du défi final " + Format.multiplier(Math.pow(Game.ROOT_TIER_FACTOR, reached))
+                : "Abaisse les paliers du défi final, jusqu'à moitié";
+        long missing = Math.max(0, next - gluons);
+        String price = !open ? "Ouvert par la bulle des racines" : done ? ""
+                : "Palier suivant : " + Format.whole(next) + " gluons, il en manque " + Format.whole(missing);
+        rootsCard.show(state, open ? reached + " / " + tiers + " paliers" : "fermé",
+                done ? (Card.signsShown() ? "atteint" : "✓ atteint") : "", "Racines liées", line, effect, price,
+                !open || done ? "" : Math.round(share * 100) + " %");
+        rootsGauge.setPrefWidth(share * GAUGE_WIDTH);
+        rootsGauge.setMinWidth(share * GAUGE_WIDTH);
     }
 
     /** Les quarks d'une saveur en main, comme la page les écrit : pour les vérifications. */
@@ -424,6 +463,16 @@ public final class HadronsPage extends VBox {
 
     public Button bindAllButton(Hadron hadron) {
         return bindAll.get(hadron);
+    }
+
+    /** La carte du jalon des racines. */
+    public Card rootsCard() {
+        return rootsCard;
+    }
+
+    /** La largeur de la barre remplie du jalon des racines, sur {@link #GAUGE_WIDTH} : pour les vérifications. */
+    public double rootsGaugeShare() {
+        return rootsGauge.getPrefWidth() / GAUGE_WIDTH;
     }
 
     /** La carte d'un palier de gluons. */
