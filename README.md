@@ -23,7 +23,10 @@ Il faut un JDK 21. Depuis `idle/` :
 ./gradlew :app:run          # le jeu
 ./gradlew :app:runTest      # le jeu avec le profil de test (temps accéléré, outils, bots)
 ./gradlew toutTester        # tous les tests de tous les modules (ou tester-tout.sh / tester-tout.bat)
+./gradlew test              # seulement les modules où quelque chose a changé (ou tester-change.sh / .bat)
 ```
+
+Depuis la 0.172, les trois modules se testent en même temps, les campagnes des bots jouent leurs vingt-quatre profils en parallèle, et `./gradlew test` saute un module dont ni le code, ni les tests, ni les sauvegardes lues n'ont bougé depuis le dernier passage vert (le résultat gardé vient du cache de Gradle). « Tout tester » rejoue toujours tout.
 
 Sous Windows, `gradlew.bat` remplace `./gradlew`. Si `./gradlew` répond « permission denied », `sh ./gradlew` marche aussi.
 

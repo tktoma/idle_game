@@ -7,7 +7,7 @@
 
 // Le numéro de version du jeu, le même que Version.CURRENT dans l'interface (version 0.126 : avant, chaque module
 // déclarait « 1.0-SNAPSHOT »). Le test VersionTest de l'interface vérifie que les deux disent la même chose.
-version = "0.171"
+version = "0.172"
 
 val toutTester = tasks.register("toutTester") {
     group = "verification"
@@ -18,12 +18,16 @@ subprojects {
     tasks.withType<Test>().configureEach {
         // Version 0.170 : les classes de tests se répartissent sur plusieurs JVM, une par deux cœurs (au moins deux
         // dès quatre cœurs). Les tests des bots prennent une fois le plus long d'entre eux (ExpertPremierUniversTest,
-        // un quart d'heure) au lieu de la somme de tous ; pour le moteur et l'interface, c'est quelques secondes de moins.
+        // 150 s seul) au lieu de la somme de tous ; pour le moteur et l'interface, c'est quelques secondes de moins.
         // Chaque JVM a ses propres variables statiques et sa propre sortie standard : rien n'est partagé entre elles.
+        // Version 0.172 : les modules se testent aussi en même temps (org.gradle.parallel dans gradle.properties), et
+        // les campagnes des bots jouent leurs 24 profils en parallèle dans leur JVM (junit-platform.properties).
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
-        // « Tout tester » veut dire tout : les tests repartent même si rien n'a changé depuis la dernière fois.
+        // « Tout tester » veut dire tout : les tests repartent même si rien n'a changé depuis la dernière fois, et
+        // le cache de construction (version 0.172) ne les remplace pas par un résultat gardé.
         if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "toutTester" }) {
             outputs.upToDateWhen { false }
+            outputs.cacheIf { false }
         }
         // Le bilan de chaque module, une ligne à la fin de ses tests. Le nom du module est lu ici, à la
         // configuration : Gradle 10 refusera qu'une tâche touche à son projet pendant qu'elle s'exécute.

@@ -71,6 +71,13 @@ tasks.test {
     }
     // Les bots lisent leurs sauvegardes et écrivent leurs sorties en chemins relatifs à ce dossier.
     workingDir = projectDir
+    // Version 0.172 : les sauvegardes que lisent les tests sont une entrée de la tâche : une sauvegarde de référence
+    // modifiée relance les tests des bots, même quand aucune classe n'a changé (./gradlew test ne saute un module que
+    // si rien de ce qu'il lit n'a bougé).
+    inputs.dir("sauvegardes").withPathSensitivity(PathSensitivity.RELATIVE)
+    // Les campagnes des 24 profils jouent plusieurs parties en même temps (un test par profil, voir
+    // src/test/resources/junit-platform.properties) : de la place pour autant de parties avancées que de cœurs.
+    maxHeapSize = "2g"
 }
 
 // Lance un bot : -Pclasse=NomDeLaClasse et --args="…" (les arguments du main de cette classe).

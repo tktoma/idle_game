@@ -23,6 +23,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.172", "Des tests qui prennent le temps du plus long, pas la somme", List.of(
+                    "Rien ne change dans le jeu. Les tests : les trois modules se testent en même temps, les campagnes des "
+                            + "vingt-quatre profils de bots jouent un profil par cœur (un test par profil dans le rapport, les mêmes "
+                            + "parties), et « tester-change » ne rejoue que les modules où quelque chose a bougé ; « tout tester » "
+                            + "rejoue toujours tout.")),
             new Note("0.171", "Un vide qui se gagne d'un univers à l'autre, une maturation ×4", List.of(
                     "Les améliorations du vide repartent de zéro à chaque univers : leur premier niveau coûte maintenant dix fois "
                             + "moins (50 à 500 énergie du vide), à la portée d'un seul univers, et leur dernier trente fois plus (2,1 à "

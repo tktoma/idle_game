@@ -59,6 +59,7 @@ jobs:
 
   # Les 24 profils sont TOUS joués avec leur durée complète, graine inchangée,
   # sans état Java partagé. Chaque segment vérifie la couverture exacte des IDs.
+  # Version 0.172 : dans un segment, les profils se jouent en même temps, un par cœur du runner (un test par profil).
   # Les autres tests (dont expert et UI) tournent dans le job général ci-dessus.
   profiles:
     name: Campagne bots profils ${{ matrix.first }}-${{ matrix.last }}
