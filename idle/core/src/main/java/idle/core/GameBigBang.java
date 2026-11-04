@@ -464,7 +464,7 @@ public abstract class GameBigBang extends GameDarkMatter {
      */
     public int elementUncap(int atomicNumber) {
         refreshMoleculeBonuses();
-        return elementUncaps.getOrDefault(atomicNumber, 0);
+        return atomicNumber >= 0 && atomicNumber < elementUncaps.length ? elementUncaps[atomicNumber] : 0;
     }
 
     /**
@@ -477,7 +477,7 @@ public abstract class GameBigBang extends GameDarkMatter {
         if (moleculeBonusesVersion == state.moleculesVersion()) return;
         moleculeBonusesVersion = state.moleculesVersion();
         moleculeBoosts.clear();
-        elementUncaps.clear();
+        java.util.Arrays.fill(elementUncaps, 0);
         upgradeBoosts.clear();
         for (SpaceUpgrade upgrade : spaceUpgrades.values()) {
             if (upgrade.effect() instanceof SpaceUpgrade.Boost boost && state.ownsSpaceUpgrade(upgrade.id())) {
@@ -490,7 +490,9 @@ public abstract class GameBigBang extends GameDarkMatter {
             double count = effectiveMolecules(id);
             switch (molecule.bonus()) {
                 case Molecule.Boost boost -> moleculeBoosts.merge(boost.stat(), boost.perMolecule() * count, Double::sum);
-                case Molecule.Uncap uncap -> elementUncaps.merge(uncap.element(), (int) Math.floor(count + 1e-9), Integer::sum);
+                case Molecule.Uncap uncap -> {
+                    if (uncap.element() >= 0 && uncap.element() < elementUncaps.length) elementUncaps[uncap.element()] += (int) Math.floor(count + 1e-9);
+                }
                 case null -> { }
             }
             if (gatheredMolecules(id) > 0) {

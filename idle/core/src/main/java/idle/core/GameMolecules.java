@@ -35,7 +35,6 @@ public abstract class GameMolecules extends GameUniverse {
     public abstract double bigBangMilestoneBoost(Molecule.Stat stat);
     public abstract double accretionFactor();
     public abstract double collectionBoost(Molecule.Stat stat);
-    abstract void refreshMoleculeBonuses();
     abstract SpaceUpgrade spaceUpgrade(String spaceUpgradeId);
     public abstract boolean canBuySpaceUpgrade(String spaceUpgradeId);
     public abstract BigNum spacePerSecond();

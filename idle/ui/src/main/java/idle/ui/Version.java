@@ -23,6 +23,15 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.170", "Un moteur plus rapide au bit près, des simulations compressées", List.of(
+                    "Le tirage des éléments et le cumul de leurs bonus se calculent sans construire de listes ni rechercher dans "
+                            + "des tables : les mêmes nombres exactement, de 10 à 20 % de temps de calcul en moins quand le tableau se "
+                            + "remplit vite (synthèse sans délai, rattrapage d'absence). Vérifié sur des parties entières : événements "
+                            + "à la seconde et sauvegardes identiques.",
+                    "Les bots : les univers d'une partie de référence se rejouent en parallèle depuis des jalons (sauvegarde et "
+                            + "mémoire du bot à chaque univers lancé), la chaîne se vérifie octet pour octet et seule la partie "
+                            + "changée se rejoue ; l'analyste espace ses estimations selon le temps qu'elles annoncent (deux fois moins "
+                            + "de copies jouées au plus, la partie inchangée) ; les tests se répartissent sur plusieurs JVM.")),
             new Note("0.169", "Des bulles qui agissent tout de suite, un vide plafonné, les racines liées", List.of(
                     "Une bulle de l'arbre achetée après la formation de l'univers agit déjà sur celui qu'on lance : jusqu'au bouton "
                             + "« univers suivant », le jeu garde en mémoire ce que l'univers formé laisse (collisionneur, vide, matière "

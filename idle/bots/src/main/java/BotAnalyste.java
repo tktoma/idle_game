@@ -103,6 +103,14 @@ public final class BotAnalyste extends IdleProfiles24 {
     static final double HORIZON = 24 * 3600;
     /** Sans palier, achat ni dépense pendant ce temps, la partie est bloquée. */
     static final double IMMOBILE = 30 * 60;
+    /**
+     * Version 0.170 : la cadence des estimations suit le palier. Une estimation qui annonce le palier dans {@code d} fait
+     * attendre la suivante {@code d × PART_ESTIMATION} au moins (jamais moins que {@code estimationEvery}). Un palier à
+     * 20 h se mesure ainsi cinq ou six fois (à 0, 10, 15, 17 h 30…) au lieu de quarante, et les copies jouées pour
+     * l'estimer pèsent au plus deux fois le temps du palier au lieu de vingt fois. La partie elle-même ne change pas :
+     * une estimation ne décide rien, elle ne fait qu'annoncer et mesurer (vérifié : sauvegarde et mémoire du bot identiques).
+     */
+    static final double PART_ESTIMATION = 0.5;
 
     final AnalyseJournal journal = new AnalyseJournal();
     /** Version 0.162 : la façon de jouer du moment, et si le bot les compare à chaque palier principal. */
@@ -603,10 +611,12 @@ public final class BotAnalyste extends IdleProfiles24 {
         if (t + 1e-6 >= prochaineEstimation && blocage == null) {
             // Version 0.163 : pas deux fois de suite la même estimation (deux paliers dans la même minute).
             if (t - derniereEstimation >= 60 || !Objects.equals(viseeDuMoment(), annonceVisee)) {
+                prochaineEstimation = t + estimationEvery;
                 estimer();
                 derniereEstimation = t;
+            } else {
+                prochaineEstimation = t + estimationEvery;
             }
-            prochaineEstimation = t + estimationEvery;
         }
         String now = signature();
         if (!now.equals(signature)) {
@@ -1000,6 +1010,7 @@ public final class BotAnalyste extends IdleProfiles24 {
         annonceAbsolue = temps() + secondes;
         annonceAjustee = annonceAbsolue;
         annonceVisee = visee;
+        espacer(secondes);
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » dans " + AnalyseJournal.duree(secondes)
                 + " (vers " + AnalyseJournal.chrono(temps() + secondes) + ")", List.of("Goulot : " + goulot));
     }
@@ -1028,8 +1039,14 @@ public final class BotAnalyste extends IdleProfiles24 {
         annonceAbsolue = temps() + secondes;
         annonceAjustee = annonceAbsolue;
         annonceVisee = visee;
+        espacer(secondes);
         journal.ajoute(temps(), univers(), AnalyseJournal.Sorte.ESTIMATION, "Prochain palier « " + visee + " » dans " + AnalyseJournal.duree(secondes)
                 + " (vers " + AnalyseJournal.chrono(temps() + secondes) + ")", List.of("Goulot : " + goulot));
+    }
+
+    /** Version 0.170 : la prochaine estimation attend une part du temps annoncé ({@link #PART_ESTIMATION}). */
+    private void espacer(double secondes) {
+        if (secondes > 0) prochaineEstimation = Math.max(prochaineEstimation, temps() + secondes * PART_ESTIMATION);
     }
 
     /** Pour le défi final : la dimension la plus loin de son palier, en puissances de dix, et son avancée. */

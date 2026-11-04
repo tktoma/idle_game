@@ -47,10 +47,10 @@ def ensure():
     if any(p.stat().st_mtime>last for p in core+bots):
         print('Le jeu ou les bots ont changé : recompilation.');compile_bots()
 
-def execute(args,output=None):
+def execute(args,output=None,xmx='768m'):
     ensure()
     if output:output.mkdir(parents=True,exist_ok=True)
-    cmd=['java','-Xmx768m','-cp',CPS,*map(str,args)]
+    cmd=['java','-Xmx'+xmx,'-cp',CPS,*map(str,args)]
     print('Commande Java:', ' '.join(cmd[:7]), '...')
     return subprocess.run(cmd).returncode
 
@@ -80,6 +80,16 @@ def main():
     z=sub.add_parser('dimensions',help="un bot par dimension : le temps jusqu'au rond vert (DimensionBots)")
     z.add_argument('dimension',nargs='?',choices=['ligne','plan','volume','duree','toutes'],default='toutes')
     z.add_argument('--minutes',type=float,default=60)
+    # Version 0.170 : les univers d'une partie de référence en parallèle (UniversParalleles) : « jalons » joue d'un trait et
+    # écrit un jalon par univers lancé ; « paralleles » rejoue chaque univers depuis son jalon, tous en même temps, vérifie la
+    # chaîne octet pour octet et ne rejoue que ce qui a changé.
+    z=sub.add_parser('jalons',help="partie de référence d'un trait, un jalon (sauvegarde + mémoire du bot) par univers lancé (UniversParalleles)")
+    z.add_argument('--out',required=True);z.add_argument('--univers',type=int,choices=range(1,12),default=11);z.add_argument('--step',type=float,default=20)
+    z.add_argument('--seed',type=int,default=201);z.add_argument('--profil',type=int,choices=range(1,25),default=1);z.add_argument('--hours',type=float,default=2000)
+    z=sub.add_parser('paralleles',help="les univers rejoués en parallèle depuis les jalons d'une référence, chaîne vérifiée (UniversParalleles)")
+    z.add_argument('--reference',required=True);z.add_argument('--out',required=True);z.add_argument('--univers',type=int,choices=range(1,12),default=11)
+    z.add_argument('--step',type=float,default=20);z.add_argument('--seed',type=int,default=201);z.add_argument('--profil',type=int,choices=range(1,25),default=1)
+    z.add_argument('--hours',type=float,default=2000);z.add_argument('--workers',type=int,default=os.cpu_count() or 2)
     z=sub.add_parser('empreinte',help="joue les 4 parties de l'empreinte du moteur");z.add_argument('--out',required=True);z.add_argument('parties',nargs='*')
     z=sub.add_parser('comparer',help="compare deux dossiers d'empreintes (ou deux sauvegardes)");z.add_argument('a');z.add_argument('b')
     z=sub.add_parser('batch');z.add_argument('--tier',choices=['rapide','standard','approfondi'],required=True);z.add_argument('--workers',type=int,default=2);z.add_argument('--hours',type=float,default=None);z.add_argument('--step',type=float,default=20);z.add_argument('--seed-start',type=int,default=None);z.add_argument('--replay',action='store_true')
@@ -88,6 +98,12 @@ def main():
     if a.command=='verify':sys.exit(execute(['VerifyVictory',pathlib.Path(a.save).resolve()]))
     if a.command=='empreinte':
         out=pathlib.Path(a.out).resolve();os.chdir(R);sys.exit(execute(['Empreinte',out,*a.parties]))
+    if a.command=='jalons':
+        out=pathlib.Path(a.out).resolve();os.chdir(R);sys.exit(execute(['UniversParalleles','jalons',out,a.univers,a.step,a.seed,a.profil,a.hours]))
+    if a.command=='paralleles':
+        ref=pathlib.Path(a.reference).resolve();out=pathlib.Path(a.out).resolve();os.chdir(R)
+        # Une partie par fil dans la même JVM : la mémoire suit le nombre de fils.
+        sys.exit(execute(['UniversParalleles','parallele',ref,out,a.univers,a.step,a.seed,a.profil,a.hours,a.workers],xmx=f'{512+256*a.workers}m'))
     if a.command=='comparer':
         sys.exit(subprocess.run([sys.executable,str(R/'outils'/'comparer_sauvegardes.py'),a.a,a.b]).returncode)
     if a.command=='audit':

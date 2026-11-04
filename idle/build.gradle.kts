@@ -7,7 +7,7 @@
 
 // Le numéro de version du jeu, le même que Version.CURRENT dans l'interface (version 0.126 : avant, chaque module
 // déclarait « 1.0-SNAPSHOT »). Le test VersionTest de l'interface vérifie que les deux disent la même chose.
-version = "0.169"
+version = "0.170"
 
 val toutTester = tasks.register("toutTester") {
     group = "verification"
@@ -16,6 +16,11 @@ val toutTester = tasks.register("toutTester") {
 
 subprojects {
     tasks.withType<Test>().configureEach {
+        // Version 0.170 : les classes de tests se répartissent sur plusieurs JVM, une par deux cœurs (au moins deux
+        // dès quatre cœurs). Les tests des bots prennent une fois le plus long d'entre eux (ExpertPremierUniversTest,
+        // un quart d'heure) au lieu de la somme de tous ; pour le moteur et l'interface, c'est quelques secondes de moins.
+        // Chaque JVM a ses propres variables statiques et sa propre sortie standard : rien n'est partagé entre elles.
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
         // « Tout tester » veut dire tout : les tests repartent même si rien n'a changé depuis la dernière fois.
         if (gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "toutTester" }) {
             outputs.upToDateWhen { false }

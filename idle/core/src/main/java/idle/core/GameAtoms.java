@@ -40,6 +40,9 @@ public abstract class GameAtoms extends GamePlans {
     public abstract idle.core.universe.CycleChoice cycleChoice();
     public abstract ElementCategory preferredFamily();
     public abstract double preferenceMultiplier(ElementCategory category);
+
+    /** Met à jour ce que donnent les molécules (dont {@link GameBase#elementUncaps}), défini plus bas dans la chaîne. */
+    abstract void refreshMoleculeBonuses();
     public abstract boolean isDarkAutomationUnlocked(String darkAutomationId);
     public abstract boolean isDarkAutomationEnabled(String darkAutomationId);
     public abstract double generatorCostFactor();
@@ -533,7 +536,7 @@ public abstract class GameAtoms extends GamePlans {
      */
     public boolean isPeriodicTableComplete() {
         for (ElementCategory category : ElementCategory.values()) {
-            if (!availableElements(category).isEmpty()) return false;
+            if (anyAvailable(category)) return false;
         }
         return true;
     }
@@ -632,7 +635,7 @@ public abstract class GameAtoms extends GamePlans {
     public ElementCategory synthesisTarget() {
         ElementCategory target = state.synthesisTarget();
         if (target != null && !isTargetedSynthesisUnlocked()) return null;
-        if (target != null && availableElements(target).isEmpty()) {
+        if (target != null && !anyAvailable(target)) {
             state.setSynthesisTarget(null);
             return null;
         }
@@ -650,7 +653,7 @@ public abstract class GameAtoms extends GamePlans {
      */
     public boolean setSynthesisTarget(ElementCategory category) {
         if (category != null && (!isTargetedSynthesisUnlocked() || !isPeriodicTableUnlocked()
-                || availableElements(category).isEmpty())) return false;
+                || !anyAvailable(category))) return false;
         state.setSynthesisTarget(category);
         return true;
     }
@@ -689,10 +692,12 @@ public abstract class GameAtoms extends GamePlans {
      * ne possède pas encore s'il en reste, sinon un de ceux qui peuvent encore gagner un exemplaire.
      */
     private Element drawTargeted(ElementCategory target) {
-        List<Element> pool = availableElements(target);
-        List<Element> unknown = pool.stream().filter(element -> state.elementCount(element.number()) == 0).toList();
-        List<Element> from = unknown.isEmpty() ? pool : unknown;
-        Element element = from.get(random.nextInt(from.size()));
+        // Version 0.170 : le même tirage, sans construire les listes (la synthèse en fait des milliers par heure de jeu).
+        int cap = maxCopiesOf(target);
+        int unknown = availableCount(target, cap, true);
+        boolean among = unknown > 0;
+        int size = among ? unknown : availableCount(target, cap, false);
+        Element element = availableAt(target, cap, among, random.nextInt(size));
         state.setElementCount(element.number(), state.elementCount(element.number()) + 1);
         return element;
     }
@@ -719,24 +724,34 @@ public abstract class GameAtoms extends GamePlans {
      * ordinaire, parmi les familles qui en ont. S'il n'en reste aucun à découvrir, c'est un tirage ordinaire.
      */
     private Element drawUnknown() {
+        // Version 0.170 : les poids et les comptes se calculent une fois par famille, sans construire de listes ;
+        // les tirages au sort sont les mêmes qu'avant (une famille au poids, puis un élément parmi ses inconnus).
+        ElementCategory[] categories = ElementCategory.values();
+        double[] weights = new double[categories.length];
+        int[] unknown = new int[categories.length];
         double total = 0;
-        Map<ElementCategory, List<Element>> unknown = new java.util.EnumMap<>(ElementCategory.class);
-        for (ElementCategory category : ElementCategory.values()) {
-            if (drawWeight(category) <= 0) continue;
-            List<Element> pool = availableElements(category).stream().filter(element -> state.elementCount(element.number()) == 0).toList();
-            if (pool.isEmpty()) continue;
-            unknown.put(category, pool);
-            total += drawWeight(category);
+        int families = 0;
+        for (int i = 0; i < categories.length; i++) {
+            double weight = drawWeight(categories[i]);
+            if (weight <= 0) continue;
+            int count = availableCount(categories[i], maxCopiesOf(categories[i]), true);
+            if (count == 0) continue;
+            weights[i] = weight;
+            unknown[i] = count;
+            total += weight;
+            families++;
         }
-        if (unknown.isEmpty()) return drawElement(false);
+        if (families == 0) return drawElement(false);
         double roll = random.nextDouble() * total;
-        List<Element> chosen = null;
-        for (Map.Entry<ElementCategory, List<Element>> entry : unknown.entrySet()) {
-            chosen = entry.getValue();
-            roll -= drawWeight(entry.getKey());
+        int chosen = -1;
+        for (int i = 0; i < categories.length; i++) {
+            if (unknown[i] == 0) continue;
+            chosen = i;
+            roll -= weights[i];
             if (roll < 0) break;
         }
-        Element element = chosen.get(random.nextInt(chosen.size()));
+        ElementCategory category = categories[chosen];
+        Element element = availableAt(category, maxCopiesOf(category), true, random.nextInt(unknown[chosen]));
         state.setElementCount(element.number(), 1);
         return element;
     }
@@ -767,8 +782,8 @@ public abstract class GameAtoms extends GamePlans {
             roll -= weight;
             if (roll < 0) break;
         }
-        List<Element> pool = availableElements(chosen);
-        Element element = pool.get(random.nextInt(pool.size()));
+        int cap = maxCopiesOf(chosen);
+        Element element = availableAt(chosen, cap, false, random.nextInt(availableCount(chosen, cap, false)));
         state.setElementCount(element.number(), state.elementCount(element.number()) + 1);
         return element;
     }
@@ -810,17 +825,52 @@ public abstract class GameAtoms extends GamePlans {
         return bonuses().halfSets();
     }
 
-    /** Les éléments d'une famille qui peuvent encore sortir : ceux qui n'ont pas atteint leur maximum d'exemplaires. */
-    private List<Element> availableElements(ElementCategory category) {
-        return PeriodicTable.elements(category).stream()
-                .filter(element -> state.elementCount(element.number()) < maxCopiesOf(element))
-                .toList();
+    /** Les familles, dans l'ordre de l'énumération, chacune par numéro atomique croissant : lues à chaque tirage. */
+    private static final List<List<Element>> FAMILIES = java.util.Arrays.stream(ElementCategory.values())
+            .map(PeriodicTable::elements).toList();
+
+    /**
+     * Le maximum d'exemplaires d'un élément, comme {@link #maxCopiesOf(Element)}, quand celui de sa famille
+     * ({@code cap}) est déjà connu et que les bonus des molécules sont à jour : la lecture d'une case du tableau.
+     */
+    private int capOf(Element element, int cap) {
+        return element.category().unique() ? 1 : cap + elementUncaps[element.number()];
     }
 
-    /** Vrai si un élément de la famille peut encore sortir : comme {@link #availableElements}, sans construire la liste. */
+    /**
+     * Combien d'éléments d'une famille peuvent encore sortir (ceux qui n'ont pas atteint leur maximum d'exemplaires),
+     * ou, avec {@code unknownOnly}, combien le joueur n'en possède pas encore. Sans construire de liste : la synthèse
+     * automatique tire des milliers de fois par heure de jeu (version 0.170).
+     */
+    private int availableCount(ElementCategory category, int cap, boolean unknownOnly) {
+        refreshMoleculeBonuses();
+        int count = 0;
+        for (Element element : FAMILIES.get(category.ordinal())) {
+            int owned = state.elementCount(element.number());
+            if (unknownOnly ? owned == 0 : owned < capOf(element, cap)) count++;
+        }
+        return count;
+    }
+
+    /** Le {@code index}-ième (depuis 0) des éléments que compte {@link #availableCount}, par numéro atomique croissant. */
+    private Element availableAt(ElementCategory category, int cap, boolean unknownOnly, int index) {
+        refreshMoleculeBonuses();
+        for (Element element : FAMILIES.get(category.ordinal())) {
+            int owned = state.elementCount(element.number());
+            if (unknownOnly ? owned == 0 : owned < capOf(element, cap)) {
+                if (index == 0) return element;
+                index--;
+            }
+        }
+        throw new IllegalStateException("Plus d'élément disponible dans la famille " + category);
+    }
+
+    /** Vrai si un élément de la famille peut encore sortir : son nombre d'exemplaires est sous son maximum. */
     private boolean anyAvailable(ElementCategory category) {
-        for (Element element : PeriodicTable.elements(category)) {
-            if (state.elementCount(element.number()) < maxCopiesOf(element)) return true;
+        refreshMoleculeBonuses();
+        int cap = maxCopiesOf(category);
+        for (Element element : FAMILIES.get(category.ordinal())) {
+            if (state.elementCount(element.number()) < capOf(element, cap)) return true;
         }
         return false;
     }
@@ -858,7 +908,7 @@ public abstract class GameAtoms extends GamePlans {
         if (ruled(Challenge.Rule.INERT_ELEMENTS)) return NO_BONUSES;
         double strength = rewarded(Challenge.Reward.STRONGER_ELEMENTS) ? REWARD_ELEMENT_STRENGTH : 1;
         if (elementBonusesVersion != state.elementsVersion() || elementBonusesStrength != strength) {
-            elementBonuses = ElementBonuses.of(state.elements(), strength);
+            elementBonuses = ElementBonuses.of(state.elementCounts, strength);
             elementBonusesVersion = state.elementsVersion();
             elementBonusesStrength = strength;
         }

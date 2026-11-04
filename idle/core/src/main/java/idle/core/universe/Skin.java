@@ -37,15 +37,19 @@ public enum Skin {
     private final String label;
     private final String source;
 
+    /** L'identifiant, calculé une fois (version 0.170) : le jeu le demande à chaque pas pour chaque skin. */
+    private final String id;
+
     Skin(SkinVisual visual, String label, String source) {
         this.visual = visual;
         this.label = label;
         this.source = source;
+        this.id = name().toLowerCase(java.util.Locale.ROOT);
     }
 
     /** L'identifiant gardé dans la sauvegarde. */
     public String id() {
-        return name().toLowerCase(java.util.Locale.ROOT);
+        return id;
     }
 
     public SkinVisual visual() {

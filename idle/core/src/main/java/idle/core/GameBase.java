@@ -495,7 +495,8 @@ public abstract class GameBase {
     int reservedSpaceVersion = -1;
     /** Ce que donnent les molécules créées, recalculé seulement quand leur liste change. */
     final Map<Molecule.Stat, Double> moleculeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);
-    final Map<Integer, Integer> elementUncaps = new java.util.HashMap<>();
+    /** Les exemplaires de plus que les molécules accordent à chaque élément, par numéro atomique (version 0.170 : un tableau, lu à chaque tirage). */
+    final int[] elementUncaps = new int[idle.core.elements.PeriodicTable.ELEMENTS.size() + 1];
     int moleculeBonusesVersion = -1;
     /** Ce par quoi les améliorations d'espace acquises multiplient chaque grandeur, recalculé avec les bonus des molécules. */
     final Map<Molecule.Stat, Double> upgradeBoosts = new java.util.EnumMap<>(Molecule.Stat.class);

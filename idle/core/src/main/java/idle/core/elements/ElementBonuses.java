@@ -49,14 +49,27 @@ public final class ElementBonuses {
      * (1.15 = tous les éléments agissent 15 % plus fort). Les ensembles n'en profitent pas.
      */
     public static ElementBonuses of(Map<Integer, Integer> owned, double elementStrength) {
-        ElementBonuses bonuses = new ElementBonuses();
         // Les exemplaires rangés en tableau, une fois : les ensembles les consultent sans chercher dans la table.
         int[] counts = new int[PeriodicTable.ELEMENTS.size() + 1];
         for (Map.Entry<Integer, Integer> entry : owned.entrySet()) {
-            if (entry.getValue() <= 0) continue;
             int number = entry.getKey();
-            if (number >= 0 && number < counts.length) counts[number] = entry.getValue();
-            bonuses.apply(PeriodicTable.element(number).effect(), Math.sqrt(entry.getValue()) * elementStrength);
+            if (entry.getValue() > 0 && number >= 0 && number < counts.length) counts[number] = entry.getValue();
+        }
+        return of(counts, elementStrength);
+    }
+
+    /**
+     * Comme {@link #of(Map, double)}, pour une collection déjà rangée en tableau (exemplaires par numéro atomique), celui
+     * que le jeu tient à jour (version 0.170) : les mêmes opérations dans le même ordre, par numéro croissant, sans
+     * parcourir la table des éléments possédés. Le jeu recalcule ces bonus à chaque synthèse.
+     */
+    public static ElementBonuses of(int[] counts, double elementStrength) {
+        ElementBonuses bonuses = new ElementBonuses();
+        int last = Math.min(counts.length, PeriodicTable.ELEMENTS.size() + 1);
+        for (int number = 1; number < last; number++) {
+            int count = counts[number];
+            if (count <= 0) continue;
+            bonuses.apply(PeriodicTable.element(number).effect(), Math.sqrt(count) * elementStrength);
         }
         // Les ensembles : leur bonus s'ajoute à ceux des éléments, au quart de sa force dès la
         // moitié réunie, à pleine force une fois complets.
