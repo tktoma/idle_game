@@ -23,6 +23,13 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.173", "L'effet des racines tient dans sa bulle", List.of(
+                    "L'effet de la bulle des racines tient de nouveau sur deux lignes dans l'arbre : « Le défi final : un palier "
+                            + "par dimension, les dix finissent la partie ; les gluons l'abaissent jusqu'à moitié ». Depuis la 0.169, "
+                            + "le texte faisait plus de deux cents caractères et débordait de la bulle ; le détail du jalon des "
+                            + "racines reste dans les paliers des hadrons.",
+                    "Les tests de l'interface passent tous : la page Statistiques du collisionneur était vérifiée avec les "
+                            + "mauvais hadrons.")),
             new Note("0.172", "Des tests qui prennent le temps du plus long, pas la somme", List.of(
                     "Rien ne change dans le jeu. Les tests : les trois modules se testent en même temps, les campagnes des "
                             + "vingt-quatre profils de bots jouent un profil par cœur (un test par profil dans le rapport, les mêmes "

@@ -118,7 +118,9 @@ class StatsUniversePageTest {
         FxTestSupport.fx(() -> {
             Game game = third();
             game.state().setHadronsOpen(true);
-            game.state().setHadrons(idle.core.collider.Hadron.NEUTRON, 99);
+            // Les kaons renforcent l'espace par seconde (les neutrons, en 0.169, renforcent la matière noire par explosion :
+            // le test attendait l'espace de l'un et donnait l'autre).
+            game.state().setHadrons(idle.core.collider.Hadron.KAON, 99);
             StatsPage page = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             page.refresh();
             assertTrue(page.openSubPage("Collisionneur"));

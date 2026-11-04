@@ -1336,8 +1336,10 @@ public abstract class GameUniverse extends GameAtoms {
         GIANT_RIGHT_LOW(10, "Bulle de l'arbre géant, à droite, en bas", 12_100, 1,
                 "Un nouvel univers garde les défis du Big Bang réussis, et tous les paliers du Big Bang sont ouverts", 9, 14),
         ROOTS(11, "Bulle des racines", 69_300, 1,
-                "Le défi final : un palier à atteindre dans chaque dimension ; les dix atteints, la partie est finie. Les gluons "
-                        + "l'abaissent ensuite, jusqu'à moitié (le jalon des racines, dans les paliers des hadrons)", 0, 13, 15),
+                // Version 0.173 : deux lignes de 56 caractères au plus dans l'arbre (205 caractères en 0.169, qui débordaient) ;
+                // le jalon des racines est détaillé dans les paliers des hadrons.
+                "Le défi final : un palier par dimension, les dix finissent la partie ; les gluons l'abaissent jusqu'à moitié",
+                0, 13, 15),
         HEART(11, "Bulle de l'arbre-monde, au cœur", 69_300, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 69_300, 1,
