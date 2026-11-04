@@ -23,6 +23,14 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.171", "Un vide qui se gagne d'un univers à l'autre, une maturation ×4", List.of(
+                    "Les améliorations du vide repartent de zéro à chaque univers : leur premier niveau coûte maintenant dix fois "
+                            + "moins (50 à 500 énergie du vide), à la portée d'un seul univers, et leur dernier trente fois plus (2,1 à "
+                            + "18 millions), à la portée de l'équilibre du vide en fin de partie. Chaque niveau coûte de 1,9 à 8,1 fois "
+                            + "le précédent : les achats s'étalent sur toute la partie au lieu de tomber dans le même univers.",
+                    "Depuis le deuxième univers, chaque défi de Big Bang réussi fait mûrir les astres 1,26 fois plus vite (la racine "
+                            + "cubique de 2) au lieu de 1,36 : avec les trois défis et la barre haute, ×4 au lieu de ×5, et le trou noir "
+                            + "supermassif met 90 minutes au lieu de 72.")),
             new Note("0.170", "Un moteur plus rapide au bit près, des simulations compressées", List.of(
                     "Le tirage des éléments et le cumul de leurs bonus se calculent sans construire de listes ni rechercher dans "
                             + "des tables : les mêmes nombres exactement, de 10 à 20 % de temps de calcul en moins quand le tableau se "

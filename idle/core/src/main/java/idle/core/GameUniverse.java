@@ -125,10 +125,17 @@ public abstract class GameUniverse extends GameAtoms {
      * (70 000 à 600 000, l'arbre-monde vaut 69 300 et les derniers rachats 400 000 à 840 000) ; chaque niveau entre les
      * deux multiplie le prix d'autant. Le gain par paire n'a plus de niveau sans fin : quinze au plus. Le rassemblement et
      * la maturation raccourcissent de moitié au plus.
+     *
+     * <p>Version 0.171 : le premier niveau dix fois moins cher (50 à 500), à la portée de l'énergie d'un seul univers,
+     * puisque les améliorations du vide repartent de zéro à chaque univers ; le dernier trente fois plus cher (2,1 à
+     * 18 millions), à la portée de l'équilibre du vide en fin de partie. Le prix monte donc plus vite d'un niveau à
+     * l'autre (×1,9 à ×8,1), et les achats s'étalent d'un univers à l'autre au lieu de tous tomber dans le même : essayé
+     * sur le Speedrunner de la 0.169 (graine 201), l'allègement, la maturation et le rassemblement sont au plafond à
+     * l'univers 7, le gain, l'énergie et la fonte à deux ou trois niveaux du leur.
      */
     public enum VoidUpgrade implements Priced {
-        GAIN(500, 400_000, 15), RATE(800, 500_000, 20), ENERGY(600, 300_000, 15), SPACE(600, 300_000, 15), DECAY(1_000, 600_000, 15),
-        LIGHTEN(2_000, 200_000, 10), MATURE(1_500, 150_000, 10), SETTLE(5_000, 70_000, 5);
+        GAIN(50, 12_000_000, 15), RATE(80, 15_000_000, 20), ENERGY(60, 9_000_000, 15), SPACE(60, 9_000_000, 15),
+        DECAY(100, 18_000_000, 15), LIGHTEN(200, 6_000_000, 10), MATURE(150, 4_500_000, 10), SETTLE(500, 2_100_000, 5);
 
         private final Price price;
 

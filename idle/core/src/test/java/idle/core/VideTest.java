@@ -271,13 +271,13 @@ class VideTest {
     void lesAmeliorationsSePaientEnEnergieDuVide() {
         Game game = open();
         assertFalse(game.buyVoid(VoidUpgrade.GAIN), "rien en réserve");
-        game.state().setVoidEnergy(BigNum.of(600));
-        assertEquals(500, game.voidCost(VoidUpgrade.GAIN), 1e-9, "version 0.169 : le prix d'une première bulle");
+        game.state().setVoidEnergy(BigNum.of(60));
+        assertEquals(50, game.voidCost(VoidUpgrade.GAIN), 1e-9, "version 0.171 : à la portée d'un seul univers");
         assertTrue(game.buyVoid(VoidUpgrade.GAIN));
-        assertEquals(100, game.voidEnergy().toDouble(), 1e-9);
-        assertEquals(500 * VoidUpgrade.GAIN.growth(), game.voidCost(VoidUpgrade.GAIN), 1e-9);
-        assertEquals(400_000, 500 * Math.pow(VoidUpgrade.GAIN.growth(), VoidUpgrade.GAIN.max() - 1), 1e-3,
-                "le quinzième niveau, le prix des dernières bulles");
+        assertEquals(10, game.voidEnergy().toDouble(), 1e-9);
+        assertEquals(50 * VoidUpgrade.GAIN.growth(), game.voidCost(VoidUpgrade.GAIN), 1e-9);
+        assertEquals(12_000_000, 50 * Math.pow(VoidUpgrade.GAIN.growth(), VoidUpgrade.GAIN.max() - 1), 1e-3,
+                "le quinzième niveau, à la portée de l'équilibre de fin de partie");
         assertEquals(2, game.voidPairGain(), 1e-12);
         // Le rythme, le coût en énergie, l'espace, la fonte.
         game.state().setVoidLevel(VoidUpgrade.RATE.ordinal(), 2);
@@ -330,13 +330,13 @@ class VideTest {
         game.state().addBody("black_hole");
         game.state().setMaturing("black_hole", 1000);
         game.state().setVoidEnergy(BigNum.of(1e6));
-        assertEquals(1_500, game.voidCost(VoidUpgrade.MATURE), 1e-9);
+        assertEquals(150, game.voidCost(VoidUpgrade.MATURE), 1e-9);
         assertTrue(game.buyVoid(VoidUpgrade.MATURE));
         assertEquals(1, game.voidLevel(VoidUpgrade.MATURE));
         assertEquals(950, game.maturationLeft("black_hole"), 1e-6, "le reste raccourcit de 5 %");
         assertTrue(game.buyVoid(VoidUpgrade.MATURE));
         assertEquals(1000 * 0.90, game.maturationLeft("black_hole"), 1e-6, "deux niveaux : 90 % du reste de départ");
-        assertEquals(1_500 * Math.pow(VoidUpgrade.MATURE.growth(), 2), game.voidCost(VoidUpgrade.MATURE), 1e-6, "au troisième niveau");
+        assertEquals(150 * Math.pow(VoidUpgrade.MATURE.growth(), 2), game.voidCost(VoidUpgrade.MATURE), 1e-6, "au troisième niveau");
         // Les autres améliorations ne touchent pas à la maturation.
         assertTrue(game.buyVoid(VoidUpgrade.GAIN));
         assertEquals(900, game.maturationLeft("black_hole"), 1e-6);
@@ -439,11 +439,11 @@ class VideTest {
         Game game = open();
         assertEquals(1, game.settleShare(), 1e-12);
         assertEquals(5, VoidUpgrade.SETTLE.max());
-        assertEquals(5_000, game.voidCost(VoidUpgrade.SETTLE), 1e-9);
-        game.state().setVoidEnergy(BigNum.of(5_000));
+        assertEquals(500, game.voidCost(VoidUpgrade.SETTLE), 1e-9);
+        game.state().setVoidEnergy(BigNum.of(500));
         assertTrue(game.buyVoid(VoidUpgrade.SETTLE));
         assertEquals(0.9, game.settleShare(), 1e-12);
-        assertEquals(70_000, 5_000 * Math.pow(VoidUpgrade.SETTLE.growth(), 4), 1e-6, "le cinquième niveau, le prix des dernières bulles");
+        assertEquals(2_100_000, 500 * Math.pow(VoidUpgrade.SETTLE.growth(), 4), 1e-6, "le cinquième niveau (version 0.171)");
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 5);
         assertEquals(0.5, game.settleShare(), 1e-12, "cinq niveaux : −50 % (version 0.169)");
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 99);

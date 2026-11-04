@@ -143,15 +143,12 @@ class Reglages169Test {
         assertFalse(racines(0, true).isFinalTierReached(3));
     }
 
-    /** Les prix du vide : le premier niveau près des premières bulles, le dernier près des dernières. */
+    /**
+     * Les prix du vide : version 0.169, le premier niveau près des premières bulles, le dernier près des dernières ;
+     * version 0.171, le premier dix fois moins cher, le dernier trente fois plus ({@code Reglages171Test}).
+     */
     @Test
-    void lesPrixDuVideSuiventCeuxDesBulles() {
-        for (Game.VoidUpgrade upgrade : Game.VoidUpgrade.values()) {
-            double first = upgrade.baseCost();
-            double last = upgrade.baseCost() * Math.pow(upgrade.growth(), upgrade.max() - 1);
-            assertTrue(first >= 500 && first <= 5_200, upgrade + " : premier niveau " + first);
-            assertTrue(last >= 69_300 && last <= 835_938 * 1.001, upgrade + " : dernier niveau " + last);
-        }
+    void lesPrixDuVideOntLeursPlafonds() {
         assertEquals(5, Game.VoidUpgrade.SETTLE.max(), "5 × 10 % = −50 %");
         assertEquals(10, Game.VoidUpgrade.MATURE.max(), "10 × 5 % = −50 %");
     }

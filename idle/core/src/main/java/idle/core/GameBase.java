@@ -210,13 +210,13 @@ public abstract class GameBase {
             BANG_UNIVERSE_PROBE_SPEED = 2, BANG_UNIVERSE_PROBE_REWARDS = 2;
 
     /**
-     * La maturation, par défi de Big Bang réussi, depuis le deuxième univers : la racine cubique de 2,5 (version 0.166 ;
-     * 4 avant). Avec les trois défis que fait le Speedrunner et la récompense « maturation » de la barre haute (×2), les
-     * astres mûrissent cinq fois plus vite que dans le premier univers, et non plus cent vingt-huit : le trou noir
-     * supermassif y met 72 minutes au lieu de 2 min 49, la galaxie redevient une étape, et les autres bonus de maturation
-     * (le vide, les places, les impulsions) comptent de nouveau.
+     * La maturation, par défi de Big Bang réussi, depuis le deuxième univers : la racine cubique de 2 (version 0.171 ;
+     * racine cubique de 2,5 en 0.166, 4 avant). Avec les trois défis que fait le Speedrunner et la récompense
+     * « maturation » de la barre haute (×2), les astres mûrissent quatre fois plus vite que dans le premier univers (cinq
+     * en 0.166, cent vingt-huit avant) : le trou noir supermassif y met 90 minutes (72 en 0.166, 2 min 49 avant), la
+     * galaxie reste une étape, et les autres bonus de maturation (le vide, les places, les impulsions) comptent.
      */
-    public static final double BANG_UNIVERSE_MATURATION = Math.cbrt(2.5);
+    public static final double BANG_UNIVERSE_MATURATION = Math.cbrt(2);
 
     /** Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. */
     public int universeBangChallenges() {

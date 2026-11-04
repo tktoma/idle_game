@@ -10,13 +10,13 @@ import idle.core.sky.Body;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.166 : les réglages tirés du bilan des mesures. La maturation du deuxième univers ×5 au lieu de ×128, les
+ * Version 0.166 : les réglages tirés du bilan des mesures. La maturation du deuxième univers ×5 au lieu de ×128 (×4 depuis la 0.171), les
  * bulles qui se rachètent ×2,5 par niveau, et la réserve du tout premier Big Bang.
  */
 class ReglagesTest {
 
     @Test
-    void lesTroisDefisEtLaBarreHauteFontMurirCinqFoisPlusVite() {
+    void lesTroisDefisEtLaBarreHauteFontMurirQuatreFoisPlusVite() {
         Game game = DeuxiemeUniversTest.second();
         Body supermassif = null;
         for (Body b : Bodies.DEFAULT) if (supermassif == null || game.maturationSeconds(b) > game.maturationSeconds(supermassif)) supermassif = b;
@@ -25,8 +25,8 @@ class ReglagesTest {
         for (BangChallenge c : new BangChallenge[] {BangChallenge.VOID, BangChallenge.FORGOTTEN, BangChallenge.RAISED}) {
             game.state().addCompletedBangChallenge(c.name());
         }
-        // Trois défis réussis, dont la barre haute : (2,5^(1/3))^3 pour l'univers, ×2 pour sa récompense.
-        assertEquals(72 * 60, game.maturationSeconds(supermassif), 1e-6, "trois défis et la barre haute : ×5, 72 minutes");
+        // Trois défis réussis, dont la barre haute : (2^(1/3))^3 pour l'univers (version 0.171 ; 2,5^(1/3) en 0.166), ×2 pour sa récompense.
+        assertEquals(90 * 60, game.maturationSeconds(supermassif), 1e-6, "trois défis et la barre haute : ×4, 90 minutes");
         game.state().addCompletedBangChallenge(BangChallenge.BY_HAND.name());
         assertEquals(avant / Math.pow(Game.BANG_UNIVERSE_MATURATION, 4) / 2, game.maturationSeconds(supermassif), 1e-6, "un quatrième défi");
     }

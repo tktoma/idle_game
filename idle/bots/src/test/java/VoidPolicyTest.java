@@ -63,16 +63,16 @@ class VoidPolicyTest {
         expert.play(game);
         assertTrue(game.isVoidUnlocked());
         assertEquals(0.5, game.state().voidShare(), 1e-12);
-        game.state().setVoidEnergy(BigNum.of(4_000));
+        game.state().setVoidEnergy(BigNum.of(400));
         expert.play(game);
-        // 4 000 (prix de la version 0.169) : maturation 1 500, puis allègement 2 000 (la maturation suivante, 2 502, ne
-        // passe plus) ; il reste 500, le gain à 500, moins de la moitié du prochain raccourci (2 502).
+        // 400 (prix de la version 0.171) : maturation 150, puis allègement 200 (la maturation suivante, 472, ne passe
+        // plus) ; il reste 50, le gain à 50, moins du quart du prochain raccourci (472).
         assertEquals(1, game.voidLevel(VoidUpgrade.MATURE), "le raccourci le moins cher, à chaque achat");
         assertEquals(1, game.voidLevel(VoidUpgrade.LIGHTEN));
-        assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE), "5 000 : pas assez");
+        assertEquals(0, game.voidLevel(VoidUpgrade.SETTLE), "500 : pas assez");
         int growth = 0;
         for (VoidUpgrade upgrade : VoidUpgrade.values()) if (!VoidPolicy.SHORTENERS.contains(upgrade)) growth += game.voidLevel(upgrade);
-        assertTrue(growth >= 1, "une croissance bon marché à côté du prochain raccourci (2 502)");
+        assertTrue(growth >= 1, "une croissance bon marché à côté du prochain raccourci (472)");
         assertTrue(game.state().voidEnergy().toDouble() < 1, "tout est dépensé : " + game.state().voidEnergy());
     }
 
@@ -81,12 +81,14 @@ class VoidPolicyTest {
         Game game = thirdUniverse();
         game.testOpenVoid();
         game.setVoidShare(0.5);
-        // Les trois raccourcis coûtent déjà 9 600 et plus ; l'équilibre du vide est loin en dessous.
+        // Les trois raccourcis coûtent déjà 61 000 et plus (prix de la version 0.171) ; l'équilibre du vide est loin en dessous.
         game.state().setVoidLevel(VoidUpgrade.MATURE.ordinal(), 6);
         game.state().setVoidLevel(VoidUpgrade.LIGHTEN.ordinal(), 5);
         game.state().setVoidLevel(VoidUpgrade.SETTLE.ordinal(), 4);
         game.state().setVoidEnergy(BigNum.of(4_000));
-        assertTrue(game.voidEquilibrium() < 9_600);
+        double next = Double.POSITIVE_INFINITY;
+        for (VoidUpgrade shortener : VoidPolicy.SHORTENERS) next = Math.min(next, game.voidCost(shortener));
+        assertTrue(next > 60_000 && game.voidEquilibrium() < next, "prochain raccourci " + next + ", équilibre " + game.voidEquilibrium());
         VoidPolicy expert = new VoidPolicy(VoidPolicy.Style.EXPERT, new NoRandom());
         expert.buy(game);
         assertTrue(expert.bought > 0, "sans croissance, le prochain raccourci ne viendrait jamais");
