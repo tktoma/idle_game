@@ -45,6 +45,7 @@ public abstract class GameUniverse extends GameAtoms {
     public static final int MAX_DIMENSIONS = 10;
 
     /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après (créés pour l'instant par les outils d'essai). */
+    @Override
     public int universes() {
         return isUniverseFormed() ? 1 + state.extraUniverses() : 0;
     }
@@ -1319,8 +1320,9 @@ public abstract class GameUniverse extends GameAtoms {
                 "Les hadrons sont ouverts dès le début de l'univers, sans les payer", 3, 4),
         YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 32_100, 1,
                 "Plus de plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite", 4, 5),
+        // Version 0.175 : le collisionneur gagne aussi 20 % d'énergie et de hadrons par univers formé (GameCollider.crossingGain).
         MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 32_100, 1,
-                "Le collisionneur traverse les univers : toujours ouvert, jamais remis à zéro", 3, 6),
+                "Le collisionneur traverse les univers sans remise à zéro et gagne 20 % d'énergie et de hadrons par univers formé", 3, 6),
         MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 32_100, 1,
                 "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
         ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 7_900, 1,

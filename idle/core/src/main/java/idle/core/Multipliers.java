@@ -364,6 +364,8 @@ public final class Multipliers {
         add(factors, Aspect.ACHIEVEMENTS, "Succès « " + output.title() + " »", log(game.hasColliderAchievement(output) ? 2 : 1));
         add(factors, Aspect.ACHIEVEMENTS, "Succès « " + ColliderAchievement.QUARTER_THOUSAND.title() + " »",
                 log(game.hasColliderAchievement(ColliderAchievement.QUARTER_THOUSAND) ? 1.5 : 1));
+        // Version 0.175 : le gain de la traversée, avec la bulle de l'arbre mûr, à gauche.
+        add(factors, Aspect.UNIVERSE, "Arbre mûr, à gauche : " + game.universes() + " univers formés", log(game.crossingGain()));
         hadron(game, factors, idle.core.collider.Hadron.PION);
     }
 

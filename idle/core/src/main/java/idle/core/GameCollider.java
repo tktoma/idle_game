@@ -171,11 +171,28 @@ public abstract class GameCollider extends GameDarkTree {
         return count;
     }
 
-    /** Ce par quoi les améliorations multiplient l'énergie. */
+    /**
+     * Ce que gagnent l'énergie du collisionneur et les hadrons assemblés, par univers formé, avec la bulle de l'arbre
+     * mûr, à gauche (version 0.175) : le collisionneur qui traverse les univers prend de l'élan, et chaque univers va
+     * plus vite que le précédent.
+     */
+    public static final double CROSSING_GAIN_PER_UNIVERSE = 0.20;
+
+    /** Les univers formés ({@link GameUniverse#universes()}) : le gain de la traversée les compte. */
+    public abstract int universes();
+
+    /**
+     * Le gain de la traversée (version 0.175) : ×(1 + {@link #CROSSING_GAIN_PER_UNIVERSE} × univers formés) sur
+     * l'énergie du collisionneur et sur les hadrons assemblés, avec la bulle de l'arbre mûr, à gauche ; 1 sans elle.
+     */
+    public final double crossingGain() {
+        return hasBubble(GameUniverse.TreeBubble.MATURE_LEFT) ? 1 + CROSSING_GAIN_PER_UNIVERSE * universes() : 1;
+    }
+
+    /** Ce par quoi les améliorations, un succès et le gain de la traversée multiplient l'énergie. */
     private double colliderEnergyMultiplier() {
-        double multiplier = Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.ENERGY))
-                * (hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1);
-        return multiplier;
+        return Math.pow(2, colliderUpgradeLevel(ColliderUpgrade.ENERGY))
+                * (hasColliderAchievement(ColliderAchievement.HUNDRED) ? 1.5 : 1) * crossingGain();
     }
 
     /** Ce que produit un générateur du collisionneur par seconde : des exemplaires du précédent, ou de l'énergie pour le premier. */

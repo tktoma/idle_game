@@ -105,7 +105,11 @@ public abstract class GameHadrons extends GameVoid {
     /**
      * Assemble {@code count} hadrons de cette sorte, ou moins si les quarks manquent : chacun prend ses quarks.
      *
-     * @return combien ont été assemblés
+     * <p>Le gain de la traversée (version 0.175, {@link #crossingGain()}) en ajoute : ce qu'on a vaut les assemblés
+     * multipliés par le gain, arrondis vers le bas. Les assemblés d'avant se retrouvent depuis ce qu'on a ; un à un ou
+     * d'un coup, le même nombre vient, sans rien garder en mémoire.
+     *
+     * @return combien de hadrons sont venus, le gain compris
      */
     public long bindHadrons(Hadron hadron, long count) {
         long made = Math.min(Math.max(0, count), hadronsBindable(hadron));
@@ -113,13 +117,23 @@ public abstract class GameHadrons extends GameVoid {
         for (Map.Entry<Quark, Integer> need : hadron.recipe().entrySet()) {
             state.setQuarks(need.getKey(), (int) (state.quarks(need.getKey()) - made * need.getValue()));
         }
-        state.setHadrons(hadron, state.hadrons(hadron) + made);
-        return made;
+        long before = state.hadrons(hadron);
+        long after = Math.min(MAX_HADRONS, Math.max(before + made, withCrossingGain(before, made)));
+        state.setHadrons(hadron, after);
+        return after - before;
+    }
+
+    /** Ce qu'on a après avoir assemblé {@code made} hadrons quand on en avait {@code before}, avec le gain de la traversée. */
+    private long withCrossingGain(long before, long made) {
+        double gain = crossingGain();
+        if (gain <= 1) return before + made;
+        long bound = (long) Math.ceil(before / gain - 1e-9);
+        return (long) Math.floor((bound + made) * gain + 1e-9);
     }
 
     /** Assemble un hadron ; vrai si c'est fait. */
     public boolean bindHadron(Hadron hadron) {
-        return bindHadrons(hadron, 1) == 1;
+        return bindHadrons(hadron, 1) >= 1;
     }
 
     /** Assemble tous ceux que les quarks permettent ; combien. */

@@ -23,6 +23,17 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.175", "Le collisionneur traverse les univers et va plus vite à chacun", List.of(
+                    "La bulle de l'arbre mûr, à gauche (32 100) donne au collisionneur 20 % d'énergie et de hadrons de "
+                            + "plus par univers formé : ×2,2 au septième univers, ×3 au onzième. Chaque univers va plus vite "
+                            + "que le précédent.",
+                    "Les hadrons assemblés en reçoivent leur part : un à un ou d'un coup, le même nombre vient. Ceux "
+                            + "gardés d'un univers à l'autre prennent le gain du moment au prochain assemblage.",
+                    "La décomposition de l'énergie du collisionneur montre le gain, sous Univers.",
+                    "Mesuré depuis la formation de l'univers 6 : le Speedrunner forme son univers 7 à 79:55 au lieu de "
+                            + "80:57 (la galaxie attend 3 h 51 au lieu de 4 h 53), puis garde 1 h 03 d'avance (univers 10 "
+                            + "à 86:26 au lieu de 87:29). Ensuite, chaque univers dure 2 h, l'amas et la formation, comme "
+                            + "avant. Le Régulier, dont le collisionneur n'attendait plus, ne change pas.")),
             new Note("0.174", "Les nouveautés du deuxième univers s'ouvrent par des succès", List.of(
                     "Dix-sept succès du deuxième univers. Douze ouvrent chacun une nouveauté au moment logique de la remontée : "
                             + "le régime des générateurs au troisième générateur, la synergie des rangs au dixième, l'onglet "
