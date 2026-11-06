@@ -181,6 +181,12 @@ final class NextUniversePolicy {
             freeOccasion = freeNow;
             if (chance(style.freeCare())) done += claimFreeElements(game);
         }
+        // Version 0.174 : les deux recherches de l'onglet Skins (le noyau dense, payé en atomes, et le prisme, en
+        // particules), dès qu'elles se paient. Chaque skin donne +2 % ; avant, aucun bot ne les achetait.
+        if ((game.canBuyDenseTier() || game.canBuyPrismResearch()) && chance(style.freeCare())) {
+            while (game.canBuyDenseTier() && game.buyDenseTier()) done++;
+            if (game.canBuyPrismResearch() && game.buyPrismResearch()) done++;
+        }
         return done;
     }
 

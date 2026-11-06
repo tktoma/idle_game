@@ -68,6 +68,9 @@ public abstract class GameDarkMatter extends GameParticles {
      */
     public boolean isLeakChallengeShown() {
         if (!state.universeFormed() || !isDarkMatterUnlocked()) return false;
+        // Version 0.174 : elle s'ouvre par son succès, les dix défis réussis dans un nouvel univers.
+        if (!universeStep(idle.core.achievements.Achievements.UNIVERSE_LEAK)
+                && !state.completedChallenges().contains(Challenges.LEAK.id())) return false;
         return baseChallengesDone() || state.completedChallenges().contains(Challenges.LEAK.id())
                 || Challenges.LEAK.id().equals(state.activeChallenge());
     }

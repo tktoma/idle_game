@@ -563,9 +563,14 @@ class TroisiemeActeTest {
                 if (all.get(i).id().equals("step_first_molecule")) first = i;
             }
             assertEquals(50, first);                                   // à la suite des cinquante premiers
-            assertEquals(17, all.size() - first);                      // seize, plus « Grappe d'univers » (0.81)
-            assertEquals("step_universe", all.get(all.size() - 2).id());
-            assertEquals("step_universe_cluster", all.get(all.size() - 1).id());
+            // Seize jusqu'à l'univers, puis (version 0.174) les dix-sept du deuxième univers, « Grappe d'univers » (0.081)
+            // et les quinze de la fin de partie.
+            int universe = all.indexOf(Achievements.byId("step_universe"));
+            assertEquals(16, universe - first + 1);
+            assertEquals("univ_skins", all.get(universe + 1).id());
+            assertEquals("step_universe_cluster", all.get(universe + 18).id());
+            assertEquals("late_end", all.get(all.size() - 1).id());
+            assertEquals(99, all.size());
         }
 
         @Test

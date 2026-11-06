@@ -673,11 +673,21 @@ public abstract class GameParticles extends GameMatterAutomation {
         return POWER_COLLIDER * Math.min(1, Math.log10(1 + colliderEnergyProduced()) / COLLIDER_POWER_DECADES);
     }
 
-    /** La puissance des succès : au prorata des succès obtenus. */
+    /**
+     * Les succès qu'il faut pour la pleine puissance des succès (version 0.174) : les 67 du catalogue d'avant. Les 32
+     * succès ajoutés en 0.174 ne tombent pas dans le premier univers ; rapportée aux 99 du catalogue, la puissance y
+     * baissait d'un tiers, et le Speedrunner formait son premier univers 37 min plus tard (26:36 au lieu de 25:59).
+     */
+    public static final int POWER_ACHIEVEMENTS_FULL = 67;
+
+    /**
+     * La puissance des succès : au prorata des succès obtenus, pleine à {@link #POWER_ACHIEVEMENTS_FULL} succès (ou au
+     * catalogue entier s'il est plus petit). Les succès ajoutés en 0.174 y comptent, sans la dépasser.
+     */
     public double achievementPower() {
         if (powersOff) return 0;
-        int all = achievements().size();
-        return all == 0 ? 0 : POWER_ACHIEVEMENTS * achievementCount() / all;
+        int full = Math.min(achievements().size(), POWER_ACHIEVEMENTS_FULL);
+        return full == 0 ? 0 : POWER_ACHIEVEMENTS * Math.min(1, (double) achievementCount() / full);
     }
 
     /**

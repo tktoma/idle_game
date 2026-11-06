@@ -1,6 +1,7 @@
 package idle.core.achievements;
 
 import idle.core.Game;
+import idle.core.bigbang.BangChallenge;
 import idle.core.darkmatter.SizeScale;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
@@ -12,11 +13,16 @@ import idle.core.upgrades.Upgrade;
 import java.util.List;
 
 /**
- * Catalogue des succès : soixante-sept. Les cinquante premiers vont du premier générateur à la
+ * Catalogue des succès : quatre-vingt-dix-neuf. Les cinquante premiers vont du premier générateur à la
  * dixième explosion ; vingt et un d'entre eux récompensent une action précise et portent un petit
- * bonus à eux. Les seize derniers jalonnent le troisième acte, de la première molécule à l'univers,
- * et trois d'entre eux portent un bonus. Le dernier, « Grappe d'univers » (version 0.081), ouvre la
- * partie secondaire : cinq univers.
+ * bonus à eux. Les seize suivants jalonnent le troisième acte, de la première molécule à l'univers,
+ * et trois d'entre eux portent un bonus. Version 0.174 : dix-sept succès du deuxième univers. Douze
+ * ouvrent chacun une nouveauté de l'univers 2 au moment logique de la remontée (l'onglet Skins après
+ * cinq fusions, le noyau dense et les épreuves à la première explosion, le petit arbre du cycle au
+ * premier Big Bang…) ; cinq, un par défi de Big Bang, portent ses bonus d'univers. Leur bonus, c'est
+ * ce qu'ils ouvrent. Puis « Grappe d'univers » (version 0.081), qui
+ * ouvre la partie secondaire : cinq univers. Enfin quinze succès de fin de partie, du vide à la fin
+ * des temps, dont six portent un petit bonus.
  *
  * <p>Tous donnent en plus le bonus commun, +1 % de particules chacun. Les bonus propres sont
  * volontairement petits : réunis, ceux qu'on peut obtenir avant la première explosion valent
@@ -60,6 +66,20 @@ public final class Achievements {
     public static final int MASS_FUSION_GROUPS = 5;
     /** Prix minimal, en atomes, de l'achat qui doit vider exactement la réserve du joueur. */
     public static final double EXACT_CHANGE_COST = 20;
+
+    // Les succès du deuxième univers (version 0.174) : chacun ouvre une nouveauté ; Game les lit par ces identifiants.
+    public static final String UNIVERSE_SKINS = "univ_skins";
+    public static final String UNIVERSE_REGIME = "univ_regime";
+    public static final String UNIVERSE_SYNERGY = "univ_synergy";
+    public static final String UNIVERSE_PERFECT = "univ_perfect";
+    public static final String UNIVERSE_FREE = "univ_free";
+    public static final String UNIVERSE_TRIALS = "univ_trials";
+    public static final String UNIVERSE_DENSE = "univ_dense";
+    public static final String UNIVERSE_PREFERENCE = "univ_preference";
+    public static final String UNIVERSE_COLLIDER_TRIALS = "univ_collider_trials";
+    public static final String UNIVERSE_LEAK = "univ_leak";
+    public static final String UNIVERSE_CYCLE = "univ_cycle";
+    public static final String UNIVERSE_PLANETS = "univ_planets";
 
     public static final List<Achievement> DEFAULT = List.of(
             // ----- La première heure -----
@@ -264,10 +284,137 @@ public final class Achievements {
             Achievement.step("step_universe", "Tout ce qui est", "L'univers",
                     "Former l'univers.",
                     game -> game.hasCosmos(Cosmos.UNIVERSE)),
+            // ----- Le deuxième univers (version 0.174) : chaque nouveauté s'ouvre par son succès, dans l'ordre des actes -----
+            Achievement.step(UNIVERSE_SKINS, "Nouvelle donne", "5 fusions (univers 2+)",
+                    "Fusionner cinq fois dans un nouvel univers. Ouvre l'onglet Skins.",
+                    game -> game.isSecondUniverse() && (game.fusionsSinceUniverse() >= idle.core.GameUniverse.SKINS_FUSIONS
+                            || game.state().skinsOpen())),
+            Achievement.step(UNIVERSE_REGIME, "Plein régime", "3 générateurs (univers 2+)",
+                    "Avoir trois générateurs dans un nouvel univers. Ouvre le régime des générateurs, dans l'onglet Particules.",
+                    game -> game.isSecondUniverse() && (game.generatorCount() >= idle.core.GameUniverse.REGIME_GENERATORS
+                            || game.state().regimeOpen())),
+            Achievement.step(UNIVERSE_SYNERGY, "Rangs serrés", "10 générateurs (univers 2+)",
+                    "Avoir dix générateurs dans un nouvel univers. Ouvre la synergie des rangs.",
+                    game -> game.isSecondUniverse() && (game.generatorCount() >= idle.core.GameUniverse.SYNERGY_GENERATORS
+                            || game.state().synergyOpen())),
+            Achievement.step(UNIVERSE_PERFECT, "Sans accroc", "Persistance (univers 2+)",
+                    "Racheter la Persistance dans un nouvel univers. Ouvre la prime de cycle parfait.",
+                    game -> game.isSecondUniverse() && game.keepsUpgradesOnFusion()),
+            Achievement.step(UNIVERSE_FREE, "Collection reprise", "10 éléments (univers 2+)",
+                    "Découvrir dix éléments dans un nouvel univers. Ouvre les éléments gratuits : un tous les dix éléments découverts.",
+                    game -> game.isSecondUniverse() && game.discoveredElements() >= idle.core.GameUniverse.FREE_ELEMENT_EVERY),
+            Achievement.step(UNIVERSE_TRIALS, "Deuxième souffle", "1 explosion (univers 2+)",
+                    "Faire exploser le tableau dans un nouvel univers, l'onglet Skins ouvert. Ouvre les épreuves.",
+                    game -> game.isSkinsUnlocked() && game.state().explosions() > 0),
+            Achievement.step(UNIVERSE_DENSE, "Noyau dense", "1 M d'atomes et 1 explosion",
+                    "Avoir créé un million d'atomes et fait exploser le tableau dans un nouvel univers, l'onglet Skins ouvert. "
+                            + "Ouvre la recherche sur le noyau dense.",
+                    game -> game.isSkinsUnlocked() && game.state().explosions() > 0
+                            && game.state().stats().atomsCreated().gte(idle.core.GameUniverse.DENSE_UNLOCK_ATOMS)),
+            Achievement.step(UNIVERSE_PREFERENCE, "Tir groupé", "Synthèse ciblée (univers 2+)",
+                    "Ouvrir la synthèse ciblée dans un nouvel univers. Ouvre la famille préférée.",
+                    game -> game.isSecondUniverse() && game.isTargetedSynthesisUnlocked()),
+            Achievement.step(UNIVERSE_COLLIDER_TRIALS, "Banc d'essai", "Collisionneur (univers 2+)",
+                    "Rouvrir le collisionneur dans un nouvel univers, l'onglet Skins ouvert. Ouvre les épreuves du collisionneur.",
+                    game -> game.isSkinsUnlocked() && game.isColliderUnlocked()),
+            Achievement.step(UNIVERSE_LEAK, "Dix sur dix", "10 défis (univers 2+)",
+                    "Réussir les dix défis de matière noire dans un nouvel univers. Ouvre la fuite, un onzième défi.",
+                    game -> game.isSecondUniverse() && game.isDarkMatterUnlocked() && game.baseChallengesDone()),
+            Achievement.step(UNIVERSE_CYCLE, "Nouveau cycle", "1 Big Bang (univers 2+)",
+                    "Déclencher un Big Bang dans un nouvel univers. Ouvre le petit arbre du cycle et l'épreuve du Big Bang à froid.",
+                    game -> game.isSecondUniverse() && game.state().bigBangs() > 0),
+            universeBang(BangChallenge.VOID, "Rien n'y fait"),
+            universeBang(BangChallenge.FORGOTTEN, "Mémoire neuve"),
+            universeBang(BangChallenge.BY_HAND, "Fait main"),
+            universeBang(BangChallenge.RAISED, "Barre franchie"),
+            universeBang(BangChallenge.FROZEN, "Dégel"),
+            Achievement.step(UNIVERSE_PLANETS, "Double appartenance", "Les trois défis d'origine",
+                    "Réussir les défis de Big Bang « Univers vide », « Sans mémoire » et « À la main » une fois un univers formé. "
+                            + "Ouvre la double appartenance : tant qu'ils comptent, une planète peut entrer dans deux systèmes solaires.",
+                    game -> game.isSecondUniverse() && game.isBangChallengeCompleted(BangChallenge.VOID)
+                            && game.isBangChallengeCompleted(BangChallenge.FORGOTTEN) && game.isBangChallengeCompleted(BangChallenge.BY_HAND)),
             // ----- La partie secondaire (version 0.081) -----
             Achievement.step("step_universe_cluster", "Grappe d'univers", "5 univers",
                     "Créer cinq univers.",
-                    game -> game.universes() >= 5));
+                    game -> game.universes() >= 5),
+            // ----- Jusqu'à la fin de la partie (version 0.174) : quelques petits bonus, comme avant -----
+            Achievement.step("late_void", "Écume", "Le vide ouvert",
+                    "Ouvrir le vide dans le collisionneur.",
+                    Game::isVoidUnlocked),
+            Achievement.feat("late_void_hole", "Horizon", "Le trou noir du vide",
+                    "Former un trou noir le vide ouvert : son onglet s'ouvre.",
+                    Achievement.Bonus.EXPANSION, 0.02, Game::isVoidHoleOpen),
+            Achievement.step("late_bubble", "Bourgeon", "1 bulle de l'arbre",
+                    "Acheter une première bulle de l'arbre de la graine.",
+                    game -> game.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.SEED)),
+            Achievement.feat("late_void_max", "Vide comblé", "1 amélioration du vide finie",
+                    "Mener une amélioration du vide à son dernier niveau.",
+                    Achievement.Bonus.AUTOMATION, 0.02, Achievements::voidUpgradeMaxed),
+            Achievement.step("late_seed_half", "Jeune pousse", "Palier 6 de la graine",
+                    "Faire passer à la graine son sixième palier.",
+                    game -> game.seedStage() >= 6),
+            Achievement.feat("late_hadrons", "Hadronisation", "Les hadrons",
+                    "Ouvrir l'onglet des hadrons, dans le collisionneur.",
+                    Achievement.Bonus.ATOMS, 0.02, Game::isHadronsUnlocked),
+            Achievement.step("late_crossing", "Traversée", "Le collisionneur traverse",
+                    "Acheter la bulle de l'arbre mûr, à gauche : le collisionneur traverse les univers.",
+                    game -> game.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.MATURE_LEFT)),
+            Achievement.feat("late_ten_universes", "Dix univers", "10 univers",
+                    "Créer dix univers.",
+                    Achievement.Bonus.GENERATOR_COST, 0.02, game -> game.universes() >= 10),
+            Achievement.feat("late_world_tree", "Arbre-monde", "Le dernier palier de la graine",
+                    "Faire passer à la graine son dernier palier : l'arbre-monde.",
+                    Achievement.Bonus.PARTICLES, 0.02, game -> game.seedStage() >= idle.core.GameUniverse.SEED_STAGES),
+            Achievement.step("late_exotic", "Bestiaire exotique", "Les hadrons exotiques",
+                    "Ouvrir les particules exotiques : pions, kaons, mésons charmés…",
+                    Game::isExoticHadronsUnlocked),
+            Achievement.feat("late_dimension_pilot", "Les dimensions jouent seules", "Automatisation des dimensions",
+                    "Ouvrir l'automatisation des dimensions.",
+                    Achievement.Bonus.AUTOMATION, 0.02, Game::isDimensionAutomationUnlocked),
+            Achievement.step("late_first_final", "Premier sommet", "1 palier final de dimension",
+                    "Atteindre le palier final d'une dimension.",
+                    game -> game.finalTiersReached() >= 1),
+            Achievement.step("late_roots", "Les racines", "Le défi final ouvert",
+                    "Ouvrir le défi final, avec la bulle des racines.",
+                    Game::isFinalChallengeOpen),
+            Achievement.step("late_five_finals", "À mi-hauteur", "5 paliers finaux",
+                    "Atteindre le palier final de cinq dimensions.",
+                    game -> game.finalTiersReached() >= 5),
+            Achievement.step("late_end", "Fin des temps", "La partie finie",
+                    "Atteindre les dix paliers finaux du défi final : la partie est finie.",
+                    Game::isGameFinished));
+
+    /** L'identifiant du succès qui fait compter ce défi de Big Bang pour les bonus d'univers. */
+    public static String universeBangId(BangChallenge challenge) {
+        return "univ_bang_" + challenge.name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Le succès d'un défi de Big Bang réussi une fois un univers formé : ses bonus d'univers comptent tant qu'il est réussi. */
+    private static Achievement universeBang(BangChallenge challenge, String name) {
+        return Achievement.step(universeBangId(challenge), name, "« " + challenge.label() + " » univers 2+",
+                "Réussir le défi de Big Bang « " + challenge.label() + " » une fois un univers formé. Ouvre ses bonus d'univers : "
+                        + "tant qu'il est réussi, particules et molécules ×2, maturation des astres plus rapide, vitesse et "
+                        + "récompenses des sondes ×2.",
+                game -> game.isSecondUniverse() && game.isBangChallengeCompleted(challenge));
+    }
+
+    /** Vrai si une amélioration du vide est à son dernier niveau. */
+    private static boolean voidUpgradeMaxed(Game game) {
+        for (idle.core.GameUniverse.VoidUpgrade upgrade : idle.core.GameUniverse.VoidUpgrade.values()) {
+            if (game.voidLevel(upgrade) >= upgrade.max()) return true;
+        }
+        return false;
+    }
+
+    private static final java.util.Map<String, Achievement> BY_ID = new java.util.HashMap<>();
+    static {
+        for (Achievement achievement : DEFAULT) BY_ID.put(achievement.id(), achievement);
+    }
+
+    /** Le succès du catalogue qui porte cet identifiant, ou {@code null}. */
+    public static Achievement byId(String id) {
+        return BY_ID.get(id);
+    }
 
     /** Vrai si le joueur possède au moins {@code level} niveaux d'une amélioration de ce type. */
     private static boolean owns(Game game, Class<? extends Effect> type, int level) {

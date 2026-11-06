@@ -23,6 +23,25 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.174", "Les nouveautés du deuxième univers s'ouvrent par des succès", List.of(
+                    "Dix-sept succès du deuxième univers. Douze ouvrent chacun une nouveauté au moment logique de la remontée : "
+                            + "le régime des générateurs au troisième générateur, la synergie des rangs au dixième, l'onglet "
+                            + "Skins après cinq fusions, le noyau dense et les épreuves à la première explosion, le petit arbre du "
+                            + "cycle au premier Big Bang, la prime de cycle parfait, les éléments gratuits, la famille préférée, "
+                            + "les épreuves du collisionneur, la fuite, les planètes dans deux systèmes. Les cinq autres, un par défi de Big Bang, portent ses bonus d'univers. Rien ne "
+                            + "tombe avant la formation du premier univers ; une ancienne sauvegarde reçoit à la seconde les succès "
+                            + "de ce qu'elle avait déjà ouvert.",
+                    "Quinze succès jalonnent la suite jusqu'à la fin de la partie (le vide, les hadrons, dix univers, "
+                            + "l'arbre-monde, les sommets des dimensions, la fin des temps) ; six portent un petit bonus de 2 %. "
+                            + "Le catalogue passe de 67 à 99 succès, chacun +1 % de particules. La puissance des succès reste "
+                            + "pleine à 67 succès, comme avant : le premier univers se forme à la même seconde.",
+                    "Les bots (dès le deuxième univers ; le premier ne change pas) : la réserve pour le vide et les hadrons "
+                            + "ne gèle plus le collisionneur pour un prix à plus de dix minutes de production, et le vide reste "
+                            + "ouvert pendant que la galaxie attend le collisionneur. Le collisionneur s'achète par valeur : "
+                            + "énergie et puissance d'abord, puis les générateurs du haut vers le bas. L'expert achète ses bulles "
+                            + "dans un nouvel ordre, le moins utile en dernier. Mesuré depuis le troisième univers : l'univers 8 "
+                            + "se forme 5 h 17 plus tôt chez le Speedrunner (83:24 au lieu de 88:41) et 20 h 16 plus tôt chez le "
+                            + "Régulier (152:18 au lieu de 172:34), qui prend enfin la bulle qui garde le collisionneur.")),
             new Note("0.173", "L'effet des racines tient dans sa bulle", List.of(
                     "L'effet de la bulle des racines tient de nouveau sur deux lignes dans l'arbre : « Le défi final : un palier "
                             + "par dimension, les dix finissent la partie ; les gluons l'abaissent jusqu'à moitié ». Depuis la 0.169, "

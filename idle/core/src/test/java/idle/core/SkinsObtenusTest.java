@@ -59,9 +59,12 @@ class SkinsObtenusTest {
         assertTrue(game.buyPrismResearch());
         assertFalse(game.buyPrismResearch(), "une seule fois");
         assertTrue(game.hasSkin(Skin.FUSION_PRISM));
-        // Le noyau dense : un million d'atomes créés, puis quatre paliers payés en atomes.
+        // Le noyau dense : un million d'atomes créés et une explosion dans ce nouvel univers (version 0.174 : son succès),
+        // puis quatre paliers payés en atomes.
         assertFalse(game.isDenseResearchUnlocked());
         game.state().stats().noteFusion(Game.DENSE_UNLOCK_ATOMS, 1);
+        assertFalse(game.isDenseResearchUnlocked(), "sans explosion : pas encore");
+        game.state().setExplosions(1);
         assertTrue(game.isDenseResearchUnlocked());
         game.state().setAtoms(BigNum.of(1, 9));
         for (int tier = 0; tier < 4; tier++) assertTrue(game.buyDenseTier(), "palier " + (tier + 1));

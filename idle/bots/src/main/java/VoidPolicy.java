@@ -116,12 +116,32 @@ final class VoidPolicy {
      */
     boolean savingForVoid(Game game) {
         if (disabled() || style.open() <= 0 || !game.isVoidOffered()) return false;
+        // Version 0.174 : pas pour un prix trop loin ; la réserve n'attend que s'il vient en moins de RESERVE_REACH_SECONDS
+        // de production.
+        if (!nearPrice(game, game.voidPrice())) return false;
         if (offeredIn != game.universes()) {
             offeredIn = game.universes();
             offeredAt = game.state().timePlayed();
         }
         // Un prix hors d'atteinte ne bloque pas le collisionneur indéfiniment.
         return game.state().timePlayed() - offeredAt <= SAVING_MAX_SECONDS;
+    }
+
+    /**
+     * Version 0.174 : le temps de production du collisionneur au-delà duquel un prix d'ouverture (vide, hadrons) ne gèle
+     * plus ses achats. Mesuré sur le Speedrunner de la 0.171 (graine 201) : le gel de deux heures pour les 10⁹ du vide
+     * tombait sur un collisionneur à quelques milliers par seconde, et se terminait sans l'avoir ouvert (univers 5 à 7).
+     * Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionneur. La galaxie n'arrivait pas plus tôt,
+     * et le vide, moins acheté, allongeait le rassemblement : l'univers 8 du Speedrunner se formait 35 min plus tard.
+     */
+    static final double RESERVE_REACH_SECONDS = 600;
+
+    /** Vrai si ce prix vient en moins de {@link #RESERVE_REACH_SECONDS} de production du collisionneur. */
+    static boolean nearPrice(Game game, double price) {
+        double missing = price - game.colliderEnergy();
+        if (missing <= 0) return true;
+        double rate = game.colliderEnergyPerSecond();
+        return rate > 0 && missing / rate <= RESERVE_REACH_SECONDS;
     }
 
     /** Les gestes du vide, à chaque décision ; rien tant qu'il ne se propose pas. */

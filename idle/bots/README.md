@@ -86,6 +86,9 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.masseTrouNoir` | `VoidPolicy` | La masse du trou noir au-delà de laquelle on ne le nourrit plus (`0` : jamais). | `10` |
 | `idle.sansArbre` | `UniverseTreePolicy` | `true` : rien de l'univers 4 et suivants (ni graine, ni bulles, ni hadrons) ; l'univers suivant se lance dès l'univers formé, comme avant la 0.152. | `false` |
 | `idle.traceArbre` | `UniverseTreePolicy` | `true` : chaque bulle, ouverture des hadrons et automatisme des dimensions s'écrit (`ARBRE,…`). | `false` |
+| `idle.cheminBulles` | `UniverseTreePolicy` | `0173` : l'expert achète ses bulles dans l'ordre de la 0.173 (le jeune arbre à droite et la couronne du milieu tôt, l'arbre mûr à gauche et le sommet tard). | l'ordre de la 0.174 |
+| `idle.attenteBulles` | `UniverseTreePolicy` | `false` : l'expert achète la première bulle de sa liste qu'il peut payer au lieu d'attendre la suivante. | `true` |
+| `idle.collisionneur0173` | `RobotCosmosPlanner` | `true` : le collisionneur s'achète dans l'ordre de la 0.173 (générateurs du bas vers le haut). | `false` |
 | `idle.onzeUnivers.heures`, `idle.onzeUnivers.univers` | `ElevenUniversesLongTest` | Le plafond en heures simulées et le nombre d'univers visés du test long. | `1000` et `11` |
 | `idle.stage` | `IdleProfiles24` | Le suffixe du CSV d'un profil (`01_Speedrunner_<stage>.csv`) ; le 7e argument de `IdleProfiles24` le pose. | `late` |
 | `idle.lenteurDimension` | `DimensionBots` | Le joueur des dimensions est autant de fois plus lent à réagir, viser et revenir. | `1` |
@@ -514,6 +517,34 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 **Ce qui n'est pas un achat.** Seules les clés d'achat comptent comme achats : améliorations, automatismes, arbre, générateurs, bulles, dimensions, graine. Les compteurs d'actions (fusions, synthèses, impulsions, molécules) restent dans les grandeurs. Les réglages (part du vide, réserve des molécules, choix de cycle…) se notent comme des choix, et les éléments synthétisés comme des choses obtenues.
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
+
+## Le collisionneur, le vide et les bulles repensés (version 0.174)
+
+Un audit du bot, fait sur les sources, les journaux d'achats et les sauvegardes du Speedrunner 0.171 (graine 201), a cherché où partaient les 13 h 58 d'attente de la galaxie aux univers 4 à 7. Réponse : la galaxie attend les 10¹⁵ d'énergie produite du collisionneur, et le bot gérait mal ce collisionneur. Tout ce qui suit vaut dès le deuxième univers ; le premier ne change pas.
+
+- **Le collisionneur s'achète par valeur** (`RobotCosmosPlanner.colliderByValue`) : la production d'énergie et les générateurs renforcés d'abord (ils doublent tout), puis les générateurs du haut vers le bas. Avant, le premier achetable de la liste : 384 faisceaux croisés pour 42 collisionneurs de Planck. Depuis zéro, à l'univers 3, l'énergie produite en 2 h passe de 1,00 × 10¹⁰ à 1,27 × 10¹⁰ (+27 %) ; `CollisionneurParValeurTest` le garde.
+- **La réserve pour le vide et les hadrons n'attend qu'un prix proche** (`VoidPolicy.nearPrice`) : moins de 10 min de production. Avant, les achats du collisionneur gelaient jusqu'à 2 h pour les 10⁹ d'ouverture, et le gel finissait sans les avoir payés (univers 5 à 7).
+- **La réserve de quarks ne garde que pour une amélioration à portée** : avant, elle gardait 7 680 quarks u pour un seul niveau, et les protons et les neutrons restaient figés.
+- **Le quark top se joue dès qu'il arrive** : avant, il expirait sans servir.
+- **Les défis de Big Bang** : une fois la maturation supprimée par l'arbre ancien à droite, la barre haute ne passe plus en premier.
+- **Les recherches de l'onglet Skins** (noyau dense, prisme) s'achètent dès qu'elles se paient.
+- **Les bulles de l'expert suivent un nouvel ordre** (`UniverseTreePolicy.BEST_ORDER`), tiré du coût et de l'utilité mesurés : l'arbre mûr à gauche (le collisionneur traverse les univers) arrive tôt, par l'arbuste à gauche ; le jeune arbre à droite (plafond de générateurs que personne n'atteint) et l'arbre géant tout à gauche (5 % du vide vers les bulles, quand il n'en reste plus à acheter) passent en dernier.
+
+Trois variantes mesurées, depuis la formation de l'univers 3, avec les propriétés du tableau plus haut :
+
+| Univers formé | Régulier 0.171 | Vide fermé pendant l'attente (référence des variantes) | Ancien ordre (`idle.cheminBulles=0173`) | Sans attente (`idle.attenteBulles=false`) | Bot livré |
+|---|---|---|---|---|---|
+| 4 | 127:09 | 126:24 | 126:24 | 126:24 | 126:15 |
+| 6 | 150:00 | 148:13 | 146:47 | 148:13 | 146:41 |
+| 8 | 172:34 | 154:04 | 163:11 | 154:04 | 152:18 |
+
+Les deux variantes ont tourné avec le vide fermé pendant l'attente du collisionneur (voir plus bas) : elles se comparent à la troisième colonne. L'ancien ordre perd 9 h 07, parce qu'il ne prend jamais l'arbre mûr à gauche (8 bulles à l'univers 8, contre 15). Sans attente, la partie est identique à la seconde : le bot ne prend que deux bulles de plus, qui ne changent rien.
+
+Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionneur. La galaxie n'arrivait pas plus tôt, et le vide, moins acheté, allongeait le rassemblement. L'univers 8 se formait 35 min plus tard chez le Speedrunner et 1 h 46 plus tard chez le Régulier.
+
+Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre parenthèses, la 0.171) : univers 1 à 25:59 (25:59), 2 à 40:28 (40:38), 3 à 51:32 (52:12), 4 à 59:34 (60:59), 5 à 67:05 (70:02), 6 à 74:04 (78:04), 7 à 80:57 (85:57), 8 à 83:24 (88:41), soit 5 h 17 plus tôt. Les univers 4 à 8 sont repris de la formation de l'univers 3 de la 0.171, comme les variantes ; la galaxie y attend 4 h 53 à 5 h 07 au lieu de 5 h 53 à 7 h 03. Le Régulier forme son univers 8 à 152:18 au lieu de 172:34 (mesuré avant la correction de la puissance des succès : ses heures sont un peu pessimistes).
+
+Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
 
 ## Des tests qui prennent le temps du plus long (version 0.172)
 

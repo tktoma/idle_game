@@ -218,14 +218,29 @@ public abstract class GameBase {
      */
     public static final double BANG_UNIVERSE_MATURATION = Math.cbrt(2);
 
-    /** Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. */
+    /**
+     * Défis de Big Bang réussis qui comptent pour ces bonus : aucun avant le deuxième univers. Version 0.174 : chacun
+     * compte par son succès d'univers ({@link idle.core.achievements.Achievements#universeBangId}), tant qu'il est réussi.
+     */
     public int universeBangChallenges() {
         if (!state.universeFormed()) return 0;
         int done = 0;
         for (idle.core.bigbang.BangChallenge challenge : idle.core.bigbang.BangChallenge.values()) {
-            if (state.completedBangChallenges().contains(challenge.name())) done++;
+            if (state.completedBangChallenges().contains(challenge.name())
+                    && universeStep(idle.core.achievements.Achievements.universeBangId(challenge))) done++;
         }
         return done;
+    }
+
+    /**
+     * Vrai si la nouveauté du deuxième univers qu'ouvre ce succès est ouverte (version 0.174) : le succès est obtenu, ou
+     * sa condition est remplie et il le sera au pas suivant. Une nouveauté ne s'ouvre donc qu'avec son succès, et reste
+     * ouverte une fois le succès obtenu ; ce qu'elle demande à chaque partie (un Big Bang, la Persistance…) compte en plus.
+     */
+    public boolean universeStep(String achievementId) {
+        if (state.achievements().contains(achievementId)) return true;
+        Achievement achievement = idle.core.achievements.Achievements.byId(achievementId);
+        return achievement != null && achievement.condition() != null && achievement.condition().test(self());
     }
 
     /** Un bonus des défis de Big Bang : {@code base} à la puissance du nombre de défis réussis. */
@@ -236,7 +251,7 @@ public abstract class GameBase {
     /** Vrai une fois les trois défis de Big Bang réussis dans le deuxième univers : une planète peut entrer dans deux systèmes. */
     public boolean planetsTwice() {
         // Les trois défis d'origine (version 0.116) ; ceux de la 0.117 n'y entrent pas.
-        if (!state.universeFormed()) return false;
+        if (!state.universeFormed() || !universeStep(idle.core.achievements.Achievements.UNIVERSE_PLANETS)) return false;
         for (idle.core.bigbang.BangChallenge c : new idle.core.bigbang.BangChallenge[] {idle.core.bigbang.BangChallenge.VOID,
                 idle.core.bigbang.BangChallenge.FORGOTTEN, idle.core.bigbang.BangChallenge.BY_HAND})
             if (!state.completedBangChallenges().contains(c.name())) return false;
@@ -294,7 +309,10 @@ public abstract class GameBase {
         return raisedBar() ? need.multiply(idle.core.bigbang.BangChallenge.RAISED_DARK_MATTER) : need;
     }
 
-    /** Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les soixante-sept du jeu. */
+    /**
+     * Nombre de succès qu'il faut avoir obtenus pour le Big Bang, sur les quatre-vingt-dix-neuf du jeu (aucun des
+     * trente-deux ajoutés en 0.174 ne tombe dans le premier univers).
+     */
     public static final int BIG_BANG_ACHIEVEMENTS = 40;
 
     /** Espace que l'expansion de la matière ajoute chaque seconde, pour chaque Big Bang déclenché. */

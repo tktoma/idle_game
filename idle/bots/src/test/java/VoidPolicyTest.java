@@ -27,6 +27,30 @@ class VoidPolicyTest {
         return game;
     }
 
+    @Test
+    void leVideSOuvrePendantQueLaGalaxieAttendLeCollisionneur() {
+        // Version 0.174 : essayé puis écarté, le vide fermé pendant cette attente allongeait la partie du Speedrunner.
+        Game game = thirdUniverse();
+        game.state().setColliderEnergyProduced(1e12);
+        assertTrue(game.colliderEnergyProduced() < idle.core.GameCollider.SUPERMASSIVE_ENERGY, "la galaxie attend");
+        VoidPolicy expert = new VoidPolicy(VoidPolicy.Style.EXPERT, new NoRandom());
+        expert.play(game);
+        assertTrue(game.isVoidUnlocked(), "ouvert sans attendre le trou noir supermassif");
+        assertEquals(0.5, game.state().voidShare(), 1e-12, "la part du profil tout de suite");
+    }
+
+    @Test
+    void laReserveNAttendQuUnPrixProche() {
+        Game game = thirdUniverse();
+        game.state().setColliderEnergy(0);
+        double rate = game.colliderEnergyPerSecond();
+        assertTrue(rate > 0);
+        assertFalse(VoidPolicy.nearPrice(game, rate * (VoidPolicy.RESERVE_REACH_SECONDS + 60)), "plus de dix minutes de production");
+        assertTrue(VoidPolicy.nearPrice(game, rate * (VoidPolicy.RESERVE_REACH_SECONDS - 60)));
+        game.state().setColliderEnergy(1e15);
+        assertTrue(VoidPolicy.nearPrice(game, 1e9), "déjà payable");
+    }
+
     /** Un hasard qui refuse d'être tiré. */
     private static final class NoRandom extends Random {
         private static final long serialVersionUID = 1L;

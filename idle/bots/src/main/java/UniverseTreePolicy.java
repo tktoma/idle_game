@@ -91,12 +91,55 @@ final class UniverseTreePolicy {
     static volatile Plan forcedPlan = null;
 
     /**
-     * L'ordre d'achat de l'expert. D'abord l'économie (la base, puis ×2 sur l'énergie du vide), ce qui garde le plus
-     * d'un univers à l'autre (l'arbre mûr à droite : matière noire, arbre, explosions et défis ; l'arbre ancien à
-     * droite : plus de maturation), puis le reste, la bulle du sommet (l'automatisation des dimensions) en dernier
-     * avant les niveaux du géant tout à gauche. Les bulles de {@link #skipped} ne sont pas achetées.
+     * L'ordre d'achat de l'expert, depuis la version 0.174 : par utilité mesurée sur les parties de la 0.171 (graine 201),
+     * et par les liens de l'arbre qui y mènent.
+     * <ol>
+     *   <li>La base, puis le bonsaï à droite (l'acte 1 passe de 3 h 17 à 40 min) et ×2 sur l'énergie du vide.</li>
+     *   <li>L'arbuste à gauche et à droite : presque rien par eux-mêmes, mais ce sont les liens vers l'arbre mûr.</li>
+     *   <li>L'arbre mûr à gauche (le collisionneur gardé : la galaxie vient une à deux minutes après le dernier Big Bang
+     *   au lieu de 2 h 42 à 5 h 04), à droite (la matière noire gardée), l'arbre ancien à droite (plus de maturation),
+     *   les deux bulles du bas de l'arbre géant (le vide et les défis de Big Bang gardés).</li>
+     *   <li>Les liens vers l'arbre-monde, le sommet (l'automatisation des dimensions) avant le cœur, puis les rachats.</li>
+     *   <li>En dernier, ce qui ne change rien de mesurable : le jeune arbre à droite (aucun bot ne dépasse dix générateurs,
+     *   l'arbre de matière noire en permet déjà cent) et l'arbre géant tout à gauche (le cumul des bulles vaut déjà cent
+     *   fois ce qui reste à acheter quand elle naît).</li>
+     * </ol>
+     * L'ordre de la 0.173 ({@link #ORDER_0173}) reste pour les mesures : {@code -Didle.cheminBulles=0173}.
      */
     static final List<Step> BEST_ORDER = List.of(
+            new Step(TreeBubble.SEED, 1),
+            new Step(TreeBubble.LEAVES_RIGHT, 1),
+            new Step(TreeBubble.LEAVES_LEFT, 1),
+            new Step(TreeBubble.CROWN_LEFT, 1),
+            new Step(TreeBubble.CROWN_RIGHT, 1),
+            new Step(TreeBubble.MATURE_LEFT, 1),
+            new Step(TreeBubble.MATURE_RIGHT, 1),
+            new Step(TreeBubble.ANCIENT_RIGHT, 1),
+            new Step(TreeBubble.GIANT_LEFT_LOW, 1),
+            new Step(TreeBubble.GIANT_RIGHT_LOW, 1),
+            new Step(TreeBubble.LEAVES_LEFT, 2),
+            new Step(TreeBubble.CROWN_MIDDLE, 1),
+            new Step(TreeBubble.YOUNG_LEFT, 1),
+            new Step(TreeBubble.ANCIENT_LEFT, 1),
+            new Step(TreeBubble.SUMMIT, 1),
+            new Step(TreeBubble.HEART, 1),
+            new Step(TreeBubble.LEAVES_LEFT, 3),
+            new Step(TreeBubble.CROWN_RIGHT, 2),
+            new Step(TreeBubble.LEAVES_LEFT, 4),
+            new Step(TreeBubble.LEAVES_LEFT, 5),
+            new Step(TreeBubble.CROWN_RIGHT, 3),
+            new Step(TreeBubble.CROWN_RIGHT, 4),
+            new Step(TreeBubble.CROWN_RIGHT, 5),
+            new Step(TreeBubble.GIANT_RIGHT_HIGH, 1),
+            new Step(TreeBubble.YOUNG_RIGHT, 1),
+            new Step(TreeBubble.GIANT_LEFT_HIGH, 1),
+            new Step(TreeBubble.GIANT_LEFT_HIGH, 2),
+            new Step(TreeBubble.GIANT_LEFT_HIGH, 3),
+            new Step(TreeBubble.GIANT_LEFT_HIGH, 4),
+            new Step(TreeBubble.GIANT_LEFT_HIGH, 5));
+
+    /** L'ordre de l'expert jusqu'à la version 0.173, gardé pour les mesures ({@code -Didle.cheminBulles=0173}). */
+    static final List<Step> ORDER_0173 = List.of(
             new Step(TreeBubble.SEED, 1),
             new Step(TreeBubble.LEAVES_LEFT, 1),
             new Step(TreeBubble.LEAVES_RIGHT, 1),
@@ -127,6 +170,17 @@ final class UniverseTreePolicy {
             new Step(TreeBubble.GIANT_LEFT_HIGH, 3),
             new Step(TreeBubble.GIANT_LEFT_HIGH, 4),
             new Step(TreeBubble.GIANT_LEFT_HIGH, 5));
+
+    /** L'ordre que suit l'expert : celui de la 0.174, ou celui d'avant pour une mesure. */
+    static List<Step> order() {
+        return "0173".equals(System.getProperty("idle.cheminBulles")) ? ORDER_0173 : BEST_ORDER;
+    }
+
+    /**
+     * Version 0.174 : {@code -Didle.attenteBulles=false} fait acheter à l'expert la première bulle de son ordre qu'il peut
+     * payer, sans économiser pour celle qui la précède (par défaut, il attend la suivante de la liste).
+     */
+    static final boolean WAIT_FOR_NEXT = !"false".equals(System.getProperty("idle.attenteBulles"));
 
     private final Style style;
     private final Random random;
@@ -216,9 +270,10 @@ final class UniverseTreePolicy {
 
     /** La prochaine bulle de l'expert : la première de la liste pas encore au niveau voulu et ouverte, ou {@code null}. */
     static Step nextBest(Game game) {
-        for (Step step : BEST_ORDER) {
+        for (Step step : order()) {
             if (skipped(game, step.bubble()) || game.treeBubbleLevel(step.bubble()) >= step.level()) continue;
             if (!game.isTreeBubbleOpen(step.bubble())) continue;
+            if (!WAIT_FOR_NEXT && !game.canBuyTreeBubble(step.bubble())) continue;
             return step;
         }
         return null;
@@ -226,7 +281,7 @@ final class UniverseTreePolicy {
 
     /** Vrai quand toutes les bulles de l'ordre de l'expert (hors celles qu'on saute) sont au niveau voulu. */
     static boolean allBestDone(Game game) {
-        for (Step step : BEST_ORDER) {
+        for (Step step : order()) {
             if (!skipped(game, step.bubble()) && game.treeBubbleLevel(step.bubble()) < step.level()) return false;
         }
         return true;
@@ -270,6 +325,8 @@ final class UniverseTreePolicy {
     /** Vrai tant que le joueur garde l'énergie du collisionneur pour ouvrir l'onglet des hadrons (deux heures au plus). */
     boolean savingForHadrons(Game game) {
         if (!active(game) || !game.isHadronsOffered()) return false;
+        // Version 0.174 : comme pour le vide, pas pour un prix trop loin de la production du collisionneur.
+        if (!VoidPolicy.nearPrice(game, game.hadronsPrice())) return false;
         if (offeredIn != game.universes()) {
             offeredIn = game.universes();
             offeredAt = game.state().timePlayed();
@@ -277,15 +334,25 @@ final class UniverseTreePolicy {
         return game.state().timePlayed() - offeredAt <= SAVING_MAX_SECONDS;
     }
 
-    /** Les quarks de chaque saveur que demandent les prochaines améliorations du collisionneur : ils restent. */
+    /**
+     * Les quarks de chaque saveur que demandent les prochaines améliorations du collisionneur : ils restent. Version
+     * 0.174 : seulement pour une amélioration à portée, qui demande au plus {@link #QUARK_REACH} fois les quarks qu'on a.
+     * Avant, la réserve gardait aussi les niveaux hors d'atteinte (7 680 quarks u pour les particules niveau 9) : mesuré
+     * sur le Speedrunner de la 0.171, les protons et les neutrons restaient figés des heures avec des milliers de quarks.
+     */
     static Map<Quark, Integer> reserve(Game game) {
         Map<Quark, Integer> keep = new EnumMap<>(Quark.class);
         for (ColliderUpgrade upgrade : ColliderUpgrade.values()) {
             if (upgrade.quark() == null || game.state().colliderUpgradeLevel(upgrade) >= upgrade.maxLevel()) continue;
-            keep.merge(upgrade.quark(), game.colliderUpgradeQuarks(upgrade), Math::max);
+            int need = game.colliderUpgradeQuarks(upgrade);
+            if (need > QUARK_REACH * Math.max(1, game.state().quarks(upgrade.quark()))) continue;
+            keep.merge(upgrade.quark(), need, Math::max);
         }
         return keep;
     }
+
+    /** Version 0.174 : une amélioration du collisionneur est « à portée » si elle demande au plus deux fois les quarks qu'on a. */
+    static final int QUARK_REACH = 2;
 
     /** Combien de ce hadron se lient sans entamer la réserve du collisionneur. */
     static long spare(Game game, Hadron hadron, Map<Quark, Integer> keep) {

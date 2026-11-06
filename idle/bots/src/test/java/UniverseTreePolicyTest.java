@@ -10,6 +10,7 @@ import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;
 import java.util.Map;
 import java.util.Random;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -101,26 +102,39 @@ class UniverseTreePolicyTest {
         Game game = universes(3, true);
         worldTree(game);
         // Version 0.166 : les prix suivent l'énergie gardée ; le test se règle sur eux.
-        game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_LEFT.costAt(0) + TreeBubble.LEAVES_RIGHT.cost()
-                + TreeBubble.LEAVES_LEFT.costAt(1) + 500);
+        game.state().noteVoidHistory("3", TreeBubble.SEED.cost() + TreeBubble.LEAVES_RIGHT.cost() + TreeBubble.LEAVES_LEFT.costAt(0)
+                + TreeBubble.CROWN_LEFT.cost() + 500);
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
         expert.play(game);
-        // La base, ×2 sur le vide, la bulle sans délai (version 0.167), un second ×2 ; l'arbuste au milieu attend.
+        // Version 0.174 : la base, la bulle sans délai, ×2 sur le vide, puis l'arbuste à gauche (le lien vers l'arbre mûr).
         assertTrue(game.isTreeBubbleBought(TreeBubble.SEED));
-        assertEquals(2, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
-        assertTrue(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT), "la bulle sans délai, troisième de la liste");
-        assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_MIDDLE));
-        assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_LEFT), "il garde pour la suivante de sa liste, pas pour une autre");
+        assertTrue(game.isTreeBubbleBought(TreeBubble.LEAVES_RIGHT));
+        assertEquals(1, game.treeBubbleLevel(TreeBubble.LEAVES_LEFT));
+        assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_LEFT));
+        assertFalse(game.isTreeBubbleBought(TreeBubble.CROWN_RIGHT), "500 : pas assez");
+        assertFalse(game.isTreeBubbleBought(TreeBubble.ANCIENT_RIGHT), "il garde pour la suivante de sa liste, pas pour une autre");
         assertEquals(500, game.voidAvailable(), 1e-9);
-        // La bulle sans délai ouvre l'arbuste à droite, qui passe en tête.
         assertEquals(TreeBubble.CROWN_RIGHT, UniverseTreePolicy.nextBest(game).bubble());
-        game.state().noteVoidHistory("4", TreeBubble.CROWN_RIGHT.cost() + TreeBubble.CROWN_MIDDLE.cost() + TreeBubble.YOUNG_RIGHT.cost() - 500);
+        game.state().noteVoidHistory("4", TreeBubble.CROWN_RIGHT.cost() + TreeBubble.MATURE_LEFT.cost() + TreeBubble.MATURE_RIGHT.cost() - 500);
         expert.play(game);
-        // L'arbuste à droite, celui du milieu, puis le jeune arbre à droite.
+        // L'arbuste à droite, puis l'arbre mûr à gauche et à droite.
         assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_RIGHT));
-        assertTrue(game.isTreeBubbleBought(TreeBubble.CROWN_MIDDLE));
-        assertTrue(game.isTreeBubbleBought(TreeBubble.YOUNG_RIGHT));
+        assertTrue(game.isTreeBubbleBought(TreeBubble.MATURE_LEFT));
+        assertTrue(game.isTreeBubbleBought(TreeBubble.MATURE_RIGHT));
         assertEquals(7, expert.bubbles);
+    }
+
+    @Test
+    void lOrdreDeLExpertMetEnDernierCeQuiNeChangeRien() {
+        List<TreeBubble> order = new java.util.ArrayList<>();
+        for (UniverseTreePolicy.Step step : UniverseTreePolicy.BEST_ORDER) order.add(step.bubble());
+        int youngRight = order.indexOf(TreeBubble.YOUNG_RIGHT);
+        assertTrue(youngRight > order.indexOf(TreeBubble.SUMMIT) && youngRight > order.lastIndexOf(TreeBubble.CROWN_RIGHT));
+        assertTrue(order.indexOf(TreeBubble.GIANT_LEFT_HIGH) > youngRight);
+        assertTrue(order.indexOf(TreeBubble.MATURE_LEFT) < order.indexOf(TreeBubble.CROWN_MIDDLE), "l'arbre mûr à gauche tôt");
+        // Les mêmes bulles et niveaux que l'ordre d'avant, gardé pour les mesures.
+        assertEquals(UniverseTreePolicy.ORDER_0173.size(), UniverseTreePolicy.BEST_ORDER.size());
+        assertTrue(UniverseTreePolicy.BEST_ORDER.containsAll(UniverseTreePolicy.ORDER_0173));
     }
 
     @Test
@@ -162,6 +176,8 @@ class UniverseTreePolicyTest {
         own(game, TreeBubble.SEED, TreeBubble.LEAVES_LEFT, TreeBubble.CROWN_LEFT, TreeBubble.CROWN_MIDDLE);
         assertTrue(game.isColliderUnlocked() && game.isHadronsOffered());
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
+        assertFalse(expert.savingForHadrons(game), "0.174 : pas pour un prix loin de la production");
+        game.state().setColliderEnergy(game.hadronsPrice());
         assertTrue(expert.savingForHadrons(game), "le collisionneur se garde pour l'onglet");
         game.state().setColliderEnergy(2e9);
         game.state().setQuarks(Quark.UP, 3_000);

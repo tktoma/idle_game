@@ -2148,9 +2148,9 @@ public abstract class GameUniverse extends GameAtoms {
         return 1 + SYNERGY_MAX * Math.min(1, others / (double) (SYNERGY_GENERATORS - 1));
     }
 
-    /** Vrai une fois la prime de cycle parfait ouverte : Persistance achetée, dans le deuxième univers. */
+    /** Vrai une fois la prime de cycle parfait ouverte : son succès (version 0.174), et la Persistance achetée. */
     public boolean isPerfectCycleUnlocked() {
-        return isSecondUniverse() && keepsUpgradesOnFusion();
+        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_PERFECT) && keepsUpgradesOnFusion();
     }
 
     /** Ce que la prime de cycle parfait multiplie dans les particules, pendant qu'elle dure : elle ne se cumule pas. */
@@ -2171,8 +2171,9 @@ public abstract class GameUniverse extends GameAtoms {
         }
     }
 
+    /** Vrai une fois le petit arbre du cycle ouvert : son succès (version 0.174), et un Big Bang dans cette partie. */
     public boolean isCycleChoiceUnlocked() {
-        return isSecondUniverse() && state.bigBangs() > 0;
+        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
     }
 
     /** Le choix du petit arbre pour ce cycle, ou {@code null}. */
@@ -2192,8 +2193,9 @@ public abstract class GameUniverse extends GameAtoms {
         return true;
     }
 
+    /** Vrai une fois la famille préférée ouverte : son succès (version 0.174), et la synthèse ciblée. */
     public boolean isFamilyPreferenceUnlocked() {
-        return isSecondUniverse() && isTargetedSynthesisUnlocked();
+        return isSecondUniverse() && universeStep(idle.core.achievements.Achievements.UNIVERSE_PREFERENCE) && isTargetedSynthesisUnlocked();
     }
 
     /** La famille préférée, ou {@code null}. */
@@ -2223,7 +2225,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Éléments gratuits à choisir maintenant : un tous les dix éléments découverts, dans le deuxième univers. */
     public int freeElementsAvailable() {
-        if (!isSecondUniverse()) return 0;
+        // Version 0.174 : ils s'ouvrent par leur succès, dix éléments découverts dans un nouvel univers.
+        if (!isSecondUniverse() || !universeStep(idle.core.achievements.Achievements.UNIVERSE_FREE)) return 0;
         return Math.max(0, discoveredElements() / FREE_ELEMENT_EVERY - state.freeElementsUsed());
     }
 
@@ -2259,9 +2262,10 @@ public abstract class GameUniverse extends GameAtoms {
     /** Ce qui s'ouvre et s'écoule dans le deuxième univers, à chaque instant. */
     void runSecondUniverse(double dt) {
         if (!isSecondUniverse()) return;
-        if (!state.skinsOpen() && fusionsSinceUniverse() >= SKINS_FUSIONS) state.setSkinsOpen(true);
-        if (!state.regimeOpen() && generatorCount() >= REGIME_GENERATORS) state.setRegimeOpen(true);
-        if (!state.synergyOpen() && generatorCount() >= SYNERGY_GENERATORS) state.setSynergyOpen(true);
+        // Version 0.174 : chacune s'ouvre par son succès du deuxième univers (cinq fusions, trois et dix générateurs).
+        if (!state.skinsOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_SKINS)) state.setSkinsOpen(true);
+        if (!state.regimeOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_REGIME)) state.setRegimeOpen(true);
+        if (!state.synergyOpen() && universeStep(idle.core.achievements.Achievements.UNIVERSE_SYNERGY)) state.setSynergyOpen(true);
         if (dt <= 0) return;
         // Le régime rapide et la prime de cycle parfait s'écoulent avec la production qu'ils multiplient :
         // voir Game#runTimedBonuses (version 0.126).
@@ -2341,9 +2345,12 @@ public abstract class GameUniverse extends GameAtoms {
         return true;
     }
 
-    /** Vrai une fois la recherche sur le noyau dense ouverte : un million d'atomes créés, dans le deuxième univers. */
+    /**
+     * Vrai une fois la recherche sur le noyau dense ouverte : son succès (version 0.174 : un million d'atomes créés et une
+     * explosion dans un nouvel univers ; avant, le million suffisait, et elle s'ouvrait avec l'onglet Skins).
+     */
     public boolean isDenseResearchUnlocked() {
-        return isSkinsUnlocked() && state.stats().atomsCreated().gte(DENSE_UNLOCK_ATOMS);
+        return isSkinsUnlocked() && universeStep(idle.core.achievements.Achievements.UNIVERSE_DENSE);
     }
 
     /** Paliers de la recherche sur le noyau dense déjà faits, de 0 à 4. */
@@ -2392,12 +2399,15 @@ public abstract class GameUniverse extends GameAtoms {
     /** Vrai si cette épreuve est ouverte : l'onglet Skins, et ce qu'elle demande. */
     public boolean isTrialUnlocked(idle.core.universe.Trial trial) {
         if (!isSkinsUnlocked()) return false;
+        // Version 0.174 : les épreuves s'ouvrent par les succès du deuxième univers (la première explosion, le
+        // collisionneur rouvert, le premier Big Bang), puis selon ce qu'elles demandent dans la partie.
         return switch (trial) {
-            case LONE_GENERATOR -> state.explosions() > 0;
-            case SOFT_CONTRACTION -> isDarkMatterUnlocked();
-            case COLD_BANG -> state.bigBangs() > 0;
-            case DETECTOR -> isColliderUnlocked() && colliderUpgradeLevel(ColliderUpgrade.WINDOW) >= 3;
-            case NO_OVERHEAT, FULL_CHARGE, LONE_COLLIDER -> isColliderUnlocked();
+            case LONE_GENERATOR -> universeStep(idle.core.achievements.Achievements.UNIVERSE_TRIALS) && state.explosions() > 0;
+            case SOFT_CONTRACTION -> universeStep(idle.core.achievements.Achievements.UNIVERSE_TRIALS) && isDarkMatterUnlocked();
+            case COLD_BANG -> universeStep(idle.core.achievements.Achievements.UNIVERSE_CYCLE) && state.bigBangs() > 0;
+            case DETECTOR -> universeStep(idle.core.achievements.Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked()
+                    && colliderUpgradeLevel(ColliderUpgrade.WINDOW) >= 3;
+            case NO_OVERHEAT, FULL_CHARGE, LONE_COLLIDER -> universeStep(idle.core.achievements.Achievements.UNIVERSE_COLLIDER_TRIALS) && isColliderUnlocked();
         };
     }
 

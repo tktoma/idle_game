@@ -194,19 +194,50 @@ public class RobotCosmosPlanner {
       for(ColliderUpgrade auto:pausedForVoid)if(g.state().isColliderPaused(auto))g.toggleColliderAutomation(auto);
       pausedForVoid.clear();
     }
-    for(int i=0;i<70;i++){
-      boolean bought=false;
-      for(ColliderGenerator gen:ColliderGenerator.values()){
-        if(g.canBuyColliderGenerator(gen)){g.buyColliderGenerator(gen);bought=true;break;}
+    if(g.isSecondUniverse() && !COLLIDER_0173)colliderByValue();
+    else{
+      for(int i=0;i<70;i++){
+        boolean bought=false;
+        for(ColliderGenerator gen:ColliderGenerator.values()){
+          if(g.canBuyColliderGenerator(gen)){g.buyColliderGenerator(gen);bought=true;break;}
+        }
+        if(!bought)break;
       }
-      if(!bought)break;
+      buyColliderUpgrades(ColliderUpgrade.values());
     }
+    // Version 0.174 : le quark top se joue dès qu'il est là (la surchauffe : particules ×10) ; avant, il expirait.
+    if(g.isSecondUniverse() && g.hasTop())g.useTop();
+    if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
+  }
+  /**
+   * Version 0.174 : {@code -Didle.collisionneur0173=true} garde l'ordre d'achat d'avant (le premier achetable de la liste,
+   * générateurs d'abord), pour les mesures. Le premier univers le garde toujours : c'est la référence de l'équilibrage.
+   */
+  static final boolean COLLIDER_0173=Boolean.getBoolean("idle.collisionneur0173");
+  /** Les améliorations du collisionneur qui doublent sa production : elles passent avant tout le reste. */
+  static final ColliderUpgrade[] COLLIDER_FIRST={ColliderUpgrade.ENERGY,ColliderUpgrade.GENERATOR_POWER};
+  /**
+   * Version 0.174 : le collisionneur acheté comme une chaîne de générateurs. D'abord ce qui double la production
+   * (production d'énergie, générateurs renforcés), puis les générateurs du plus haut au plus bas, autant que possible
+   * (chacun produit celui d'en dessous : le plus haut fait grandir toute la chaîne), puis le reste dans l'ordre du jeu.
+   * Avant, le premier achetable de la liste passait d'abord : sur le Speedrunner de la 0.171, 384 faisceaux croisés pour
+   * 42 collisionneurs de Planck, et la première production d'énergie vingt minutes après la reprise des achats.
+   */
+  void colliderByValue(){
+    buyColliderUpgrades(COLLIDER_FIRST);
+    ColliderGenerator[] gens=ColliderGenerator.values();
+    for(int k=gens.length-1;k>=0;k--){
+      for(int n=0;n<10_000 && g.canBuyColliderGenerator(gens[k]);n++)g.buyColliderGenerator(gens[k]);
+    }
+    buyColliderUpgrades(ColliderUpgrade.values());
+  }
+  /** Achète des améliorations du collisionneur, la première payable de la liste à chaque tour, quarante au plus. */
+  void buyColliderUpgrades(ColliderUpgrade[] list){
     for(int i=0;i<40;i++){
       boolean bought=false;
-      for(ColliderUpgrade up:ColliderUpgrade.values())if(g.canBuyColliderUpgrade(up)){g.buyColliderUpgrade(up);bought=true;break;}
+      for(ColliderUpgrade up:list)if(g.canBuyColliderUpgrade(up)){g.buyColliderUpgrade(up);bought=true;break;}
       if(!bought)break;
     }
-    if(g.isCrossing() && g.canCatchCrossing())g.catchCrossing();
   }
   /** Exploite les retours de sondes avant d'engager les prochaines missions.
    * L'onde chimique d'urgence est particulièrement utile quand un astre attend des éléments.
@@ -474,7 +505,13 @@ public class RobotCosmosPlanner {
     if(!later)return g.bangChallenges();
     List<BangChallenge> order=new ArrayList<>();
     order.add(BangChallenge.FROZEN);
-    if(bangChallengesSetting().equals("maturation"))order.add(BangChallenge.RAISED);
+    // Version 0.174 : plus de barre haute d'abord une fois la maturation supprimée (l'arbre ancien, à droite) : sa
+    // récompense ne sert plus, et les trois défis d'origine passent avant (ils ouvrent la double appartenance des
+    // planètes). Mesuré sur le Speedrunner de la 0.171 : barre haute rejouée aux univers 8 et 9, les deux autres
+    // seulement à l'univers 10.
+    boolean maturationGone=g.isTreeBubbleBought(idle.core.GameUniverse.TreeBubble.ANCIENT_RIGHT);
+    if(bangChallengesSetting().equals("maturation") && !maturationGone)order.add(BangChallenge.RAISED);
+    if(maturationGone){order.add(BangChallenge.VOID);order.add(BangChallenge.FORGOTTEN);order.add(BangChallenge.BY_HAND);}
     for(BangChallenge c:g.bangChallenges())if(!order.contains(c))order.add(c);
     return order;
   }

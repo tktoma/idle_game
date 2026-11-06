@@ -231,6 +231,15 @@ final class HelpPane extends Overlay {
                         + "moins une fois, molécules, sortes rassemblées, assemblages et astres, avec le temps de jeu de la "
                         + "première fois ; ce qui manque reste un « ??? »." : "")
                 + " Nom, avatar, titres et albums restent pour de bon, même après « Recommencer de zéro »."));
+        // Les succès du deuxième univers (version 0.174) : chaque nouveauté s'ouvre par le sien.
+        if (game.isSecondUniverse()) sections.add(new Section("Succès d'univers", "Une fois un univers formé, chaque "
+                + "nouveauté s'ouvre par un succès, dans l'ordre des actes : l'onglet Skins à cinq fusions, le régime à trois "
+                + "générateurs, la synergie à dix, la prime de cycle parfait avec la Persistance, les éléments gratuits à dix "
+                + "éléments ; à la première explosion, les épreuves et la recherche du noyau dense ; puis la famille préférée, "
+                + "les épreuves du collisionneur, la fuite après les dix défis, le petit arbre du cycle au premier Big Bang. "
+                + "Chaque défi de Big Bang réussi a aussi le sien : il ouvre les bonus d'univers de ce défi, qui comptent tant "
+                + "qu'il est réussi. Un succès obtenu le reste ; ce que la nouveauté demande à chaque partie (un Big Bang, "
+                + "la Persistance…) compte en plus. D'autres succès jalonnent la suite, du vide jusqu'à la fin de la partie."));
         if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
                 + "explosion, que ni l'explosion ni le Big Bang ne remettent à zéro. Les faisceaux croisés donnent de l'énergie, et "
                 + "huit générateurs se produisent l'un l'autre, de l'aimant supraconducteur au collisionneur de Planck : comptez "
