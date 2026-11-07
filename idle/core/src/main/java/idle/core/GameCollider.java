@@ -172,21 +172,27 @@ public abstract class GameCollider extends GameDarkTree {
     }
 
     /**
-     * Ce que gagnent l'énergie du collisionneur et les hadrons assemblés, par univers formé, avec la bulle de l'arbre
-     * mûr, à gauche (version 0.175) : le collisionneur qui traverse les univers prend de l'élan, et chaque univers va
-     * plus vite que le précédent.
+     * Ce que gagnent l'énergie du collisionneur et les hadrons assemblés, par univers formé, avec la bulle de l'arbuste,
+     * à gauche (version 0.175, sur l'arbre mûr ; version 0.176, sur l'arbuste) : chaque univers remplit plus vite son
+     * énergie pour le trou noir supermassif, et va plus vite que le précédent.
      */
     public static final double CROSSING_GAIN_PER_UNIVERSE = 0.20;
+    /** Le premier univers formé que le gain de la traversée compte (version 0.177) : le deuxième. */
+    public static final int CROSSING_FIRST_UNIVERSE = 2;
 
-    /** Les univers formés ({@link GameUniverse#universes()}) : le gain de la traversée les compte. */
-    public abstract int universes();
+    /** Les univers formés que le gain de la traversée compte : ceux à partir du deuxième (version 0.177). */
+    public final int crossingUniverses() {
+        return Math.max(0, universes() - (CROSSING_FIRST_UNIVERSE - 1));
+    }
 
     /**
-     * Le gain de la traversée (version 0.175) : ×(1 + {@link #CROSSING_GAIN_PER_UNIVERSE} × univers formés) sur
-     * l'énergie du collisionneur et sur les hadrons assemblés, avec la bulle de l'arbre mûr, à gauche ; 1 sans elle.
+     * Le gain de la traversée : ×(1 + {@link #CROSSING_GAIN_PER_UNIVERSE} × univers comptés,
+     * {@link #crossingUniverses()}) sur l'énergie du collisionneur et sur les hadrons assemblés, avec la bulle de
+     * l'arbuste, à gauche (version 0.176 ; l'arbre mûr, à gauche, en 0.175) ; 1 sans elle. Version 0.177 : le premier
+     * univers ne compte plus, ×1,6 quand quatre sont formés.
      */
     public final double crossingGain() {
-        return hasBubble(GameUniverse.TreeBubble.MATURE_LEFT) ? 1 + CROSSING_GAIN_PER_UNIVERSE * universes() : 1;
+        return hasBubble(GameUniverse.TreeBubble.CROWN_LEFT) ? 1 + CROSSING_GAIN_PER_UNIVERSE * crossingUniverses() : 1;
     }
 
     /** Ce par quoi les améliorations, un succès et le gain de la traversée multiplient l'énergie. */

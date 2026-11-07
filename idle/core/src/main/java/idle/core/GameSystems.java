@@ -44,6 +44,10 @@ public abstract class GameSystems extends GameBase {
     public abstract BigNum steadySpacePerSecond();
     public abstract int colliderUpgradeLevel(ColliderUpgrade upgrade);
     public abstract int dimensionsUnlocked();
+    /** Les univers formés ({@link GameUniverse#universes()}) : le gain de la traversée et le trou noir du vide les comptent. */
+    public abstract int universes();
+    /** Ce que le trou noir du vide divise la maturation des trous noirs (version 0.177, {@link GameVoid#voidHoleMaturationFactor()}). */
+    public abstract double voidHoleMaturationFactor();
 
     // ------------------------------------------------------------------
     // Les sondes (version 0.052) : des voyages dont le butin se réclame d'un clic
@@ -442,8 +446,15 @@ public abstract class GameSystems extends GameBase {
         // La bulle de l'arbre ancien, à droite (version 0.148) : plus de maturation du tout.
         if (hasBubble(GameUniverse.TreeBubble.ANCIENT_RIGHT)) return 0;
         // Version 0.126 : la valeur du catalogue des récompenses (BANG_REWARDS), et non un 2 écrit ici.
-        return minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION) / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION)
-                * maturationShare();
+        double seconds = minutes * 60 / universeBangFactor(BANG_UNIVERSE_MATURATION)
+                / bangReward(idle.core.bigbang.BangChallenge.Reward.MATURATION) * maturationShare();
+        // Version 0.177 : le trou noir du vide, ouvert, raccourcit la maturation des deux trous noirs.
+        return isBlackHole(body) ? seconds / voidHoleMaturationFactor() : seconds;
+    }
+
+    /** Vrai pour les deux trous noirs (version 0.177) : le trou noir et le trou noir supermassif. */
+    public static boolean isBlackHole(Body body) {
+        return body.tier() == Body.Tier.BLACK_HOLE || body.tier() == Body.Tier.CORE;
     }
 
     /**

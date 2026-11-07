@@ -1309,8 +1309,10 @@ public abstract class GameUniverse extends GameAtoms {
                 "×2 sur l'énergie du vide gagnée, par niveau", 0),
         LEAVES_RIGHT(5, "Bulle du bonsaï, à droite", 10_400, 1,
                 "Les automatismes agissent sans délai et achètent tout ce qu'ils peuvent", 0),
+        // Version 0.176 : le gain de la 0.175 passe de l'arbre mûr à l'arbuste, à gauche (GameCollider.crossingGain) ;
+        // version 0.177 : le premier univers formé ne compte plus.
         CROWN_LEFT(6, "Bulle de l'arbuste, à gauche", 21_400, 1,
-                "Le collisionneur est ouvert dès le début de l'univers", 1),
+                "Collisionneur ouvert dès le début de l'univers ; il gagne 20 % d'énergie et de hadrons par univers formé après le premier", 1),
         CROWN_MIDDLE(6, "Bulle de l'arbuste, au milieu", 21_400, 1,
                 "L'onglet des hadrons se propose dans le collisionneur, comme le vide", 1, 2),
         // Version 0.167 : elle se rachète cinq fois, un niveau de Persistance offert par niveau.
@@ -1320,9 +1322,8 @@ public abstract class GameUniverse extends GameAtoms {
                 "Les hadrons sont ouverts dès le début de l'univers, sans les payer", 3, 4),
         YOUNG_RIGHT(7, "Bulle du jeune arbre, à droite", 32_100, 1,
                 "Plus de plafond de générateurs, mais au-delà de l'ancien, leur prix grimpe très vite", 4, 5),
-        // Version 0.175 : le collisionneur gagne aussi 20 % d'énergie et de hadrons par univers formé (GameCollider.crossingGain).
         MATURE_LEFT(8, "Bulle de l'arbre mûr, à gauche", 32_100, 1,
-                "Le collisionneur traverse les univers sans remise à zéro et gagne 20 % d'énergie et de hadrons par univers formé", 3, 6),
+                "Le collisionneur traverse les univers : toujours ouvert, jamais remis à zéro", 3, 6),
         MATURE_RIGHT(8, "Bulle de l'arbre mûr, à droite", 32_100, 1,
                 "Un nouvel univers garde la matière noire, son arbre, les explosions et les défis réussis", 5, 7),
         ANCIENT_LEFT(9, "Bulle de l'arbre ancien, à gauche", 7_900, 1,

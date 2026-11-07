@@ -270,9 +270,9 @@ final class HelpPane extends Overlay {
                 + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
                 + "(la base d'abord) ; au survol, chacune dit ce qu'elle fait, et son effet vaut pour tous les univers suivants, et déjà pour celui qu'on "
                 + "lance : jusqu'au bouton « univers suivant », le jeu garde en mémoire ce que l'univers formé laisse, et une bulle "
-                + "achetée entre-temps en garde sa part (le collisionneur, le vide, les hadrons…). Celle de l'arbre mûr, à "
-                + "gauche, fait traverser les univers au collisionneur et lui donne 20 % d'énergie et de hadrons de plus par "
-                + "univers formé : chaque univers va plus vite que le précédent. Trois "
+                + "achetée entre-temps en garde sa part (le collisionneur, le vide, les hadrons…). Celle de l'arbuste, à "
+                + "gauche, ouvre le collisionneur dès le début de l'univers et lui donne 20 % d'énergie et de hadrons de plus "
+                + "par univers formé après le premier : chaque univers remplit plus vite l'énergie du trou noir supermassif. Trois "
                 + "se rachètent cinq fois, 2,5 fois plus cher à chaque niveau ; celle des racines ouvre le défi final, "
                 + "et le jalon des racines dans les paliers des hadrons. La ligne avance seule : chaque trait "
                 + "que touche une boule donne des éclats. Le plan se joue au clavier, Z Q S D ou les flèches : on y ramasse les "
@@ -445,7 +445,8 @@ final class HelpPane extends Overlay {
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
                 + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")
-                + ". En attendant, il donne "
+                + ". Le trou noir du vide, ouvert, raccourcit aussi celle des deux trous noirs : ÷ (1 + "
+                + Math.round(Game.VOID_HOLE_MATURATION_STEP * 100) + " % par univers formé à partir du quatrième). En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "
                 + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "

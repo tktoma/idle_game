@@ -105,7 +105,7 @@ public abstract class GameHadrons extends GameVoid {
     /**
      * Assemble {@code count} hadrons de cette sorte, ou moins si les quarks manquent : chacun prend ses quarks.
      *
-     * <p>Le gain de la traversée (version 0.175, {@link #crossingGain()}) en ajoute : ce qu'on a vaut les assemblés
+     * <p>Le gain de la traversée (version 0.175, avec l'arbuste, à gauche depuis la 0.176, {@link #crossingGain()}) en ajoute : ce qu'on a vaut les assemblés
      * multipliés par le gain, arrondis vers le bas. Les assemblés d'avant se retrouvent depuis ce qu'on a ; un à un ou
      * d'un coup, le même nombre vient, sans rien garder en mémoire.
      *

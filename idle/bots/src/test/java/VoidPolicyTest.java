@@ -245,4 +245,12 @@ class VoidPolicyTest {
             System.clearProperty("idle.sansVide");
         }
     }
+
+    /** Version 0.177 : sans amas formé, rien ne presse ; la garde de la dernière ligne droite vaut un quart d'heure. */
+    @Test
+    void laDerniereLigneDroiteNeTouchePasAuxDebutsDUnivers() {
+        Game game = thirdUniverse();
+        assertFalse(VoidPolicy.formingSoon(game), "pas d'amas : pas de formation proche");
+        assertEquals(15 * 60, VoidPolicy.SAVING_LAST_SECONDS, 0);
+    }
 }

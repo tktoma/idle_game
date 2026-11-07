@@ -47,6 +47,11 @@ class HadronsPageTest {
         return game;
     }
 
+    /** Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée. */
+    private static long withGain(Game game, long made) {
+        return (long) Math.floor(made * game.crossingGain() + 1e-9);
+    }
+
     private static HadronsPage page(Game game) {
         HadronsPage page = new HadronsPage(game);
         new Scene(page, 1200, 760);
@@ -111,13 +116,14 @@ class HadronsPageTest {
             assertEquals("Lier tout (14)", page.bindAllButton(Hadron.PROTON).getText());
 
             page.bindAllButton(Hadron.PROTON).fire();
-            assertEquals(15, game.hadrons(Hadron.PROTON));
+            long protons = withGain(game, 15);
+            assertEquals(protons, game.hadrons(Hadron.PROTON));
             assertEquals(0, game.state().quarks(Quark.UP));
             assertTrue(page.bindOneButton(Hadron.PROTON).isDisable(), "plus de quark haut");
             assertTrue(page.bindAllButton(Hadron.PROTON).isDisable());
             assertTrue(page.bindOneButton(Hadron.NEUTRON).isDisable());
             assertEquals(Card.State.STARTED, proton.state());
-            assertTrue(proton.text().contains("15 possédés"), proton.text());
+            assertTrue(proton.text().contains(protons + " possédés"), proton.text());
             assertFalse(HadronsPage.ready(game), "plus rien à lier");
             return null;
         });
@@ -146,7 +152,7 @@ class HadronsPageTest {
             assertEquals(1, game.hadrons(Hadron.OMEGA));
             assertEquals(27, game.state().quarks(Quark.STRANGE));
             page.bindAllButton(Hadron.J_PSI).fire();
-            assertEquals(15, game.hadrons(Hadron.J_PSI));
+            assertEquals(withGain(game, 15), game.hadrons(Hadron.J_PSI));
             assertEquals(0, game.state().quarks(Quark.CHARM));
             assertTrue(page.bindOneButton(Hadron.D_MESON).isDisable(), "plus de quark charmé");
             return null;

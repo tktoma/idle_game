@@ -32,6 +32,11 @@ class HadronsTest {
         return game;
     }
 
+    /** Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée. */
+    private static long withGain(Game game, long made) {
+        return (long) Math.floor(made * game.crossingGain() + 1e-9);
+    }
+
     @Test
     void lesRecettesSuiventLesQuarks() {
         assertEquals(Map.of(Quark.UP, 2, Quark.DOWN, 1), Hadron.PROTON.recipe());
@@ -101,9 +106,9 @@ class HadronsTest {
         Game game = with(TreeBubble.YOUNG_LEFT, TreeBubble.HEART);
         assertTrue(game.isExoticHadronsUnlocked());
         for (Hadron hadron : Hadron.values()) assertTrue(game.isHadronAvailable(hadron), hadron.toString());
-        assertEquals(10, game.bindAllHadrons(Hadron.OMEGA), "trente quarks étranges, trois chacun");
+        assertEquals(withGain(game, 10), game.bindAllHadrons(Hadron.OMEGA), "trente quarks étranges, trois chacun");
         assertEquals(0, game.state().quarks(Quark.STRANGE));
-        assertEquals(15, game.bindAllHadrons(Hadron.J_PSI));
+        assertEquals(withGain(game, 15), game.bindAllHadrons(Hadron.J_PSI));
         game.tick(1);
         assertTrue(game.hasTitle(Title.EXOTIC_HUNTER));
     }
@@ -138,7 +143,7 @@ class HadronsTest {
         GameState back = GameTestSupport.reread(game.state());
         assertTrue(back.hadronsOpen());
         assertEquals(game.state().hadronsPrice(), back.hadronsPrice(), 0);
-        assertEquals(15, back.hadrons(Hadron.NEUTRON), "trente quarks bas, deux chacun");
+        assertEquals(withGain(game, 15), back.hadrons(Hadron.NEUTRON), "trente quarks bas, deux chacun");
         StringBuilder old = new StringBuilder();
         for (String line : SaveCodec.write(game.state(), 0).split("\n")) if (!line.startsWith("hadrons")) old.append(line).append('\n');
         GameState older = SaveCodec.read(old.toString()).state();

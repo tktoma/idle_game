@@ -518,6 +518,22 @@ Ce qu'il écrit dans le dossier (`sorties/analyste` par défaut) :
 
 **Quand il s'arrête.** Il s'arrête si l'estimation dépasse 24 h, si plus rien ne bouge pendant 30 minutes (ni palier, ni achat, ni compteur, ni grandeur qui monte) ou si le garde-fou des profils juge la partie bloquée. Il note alors le diagnostic : le palier visé, le goulot (conditions du Big Bang manquantes, échelle du cosmos, grandeur qui fait avancer) et les grandeurs du moment.
 
+## L'énergie du vide gardée jusqu'à la formation (version 0.177)
+
+`VoidPolicy.formingSoon` : quand l'énergie du vide se garde pour les bulles (`savingForBubbles`) et que l'univers se forme dans moins de `SAVING_LAST_SECONDS` (15 minutes, l'amas formé et le délai de l'univers en cours), le bot n'achète plus de raccourci du vide. Un niveau d'assise acheté là ne raccourcit que ce qui reste du délai, une minute ou deux, et prend l'énergie qui paie les bulles à la formation.
+
+Trouvé en mesurant la 0.177 : le Régulier achetait l'assise (260 860 d'énergie du vide) à 154:51, une minute avant la formation de son univers 7, et n'achetait alors aucune bulle ; la galaxie de l'univers 8 attendait 6 h 17. Le même achat de dernière minute se voit dans les mesures 0.174 et 0.176 (assise à 146:26 et 146:45 chez le Régulier).
+
+| Moment | Étape (Régulier 0.177, repris de son univers 4 à 126:15 ; entre parenthèses, sans la règle) |
+|---|---|
+| 136:12 | Univers 5 formé (136:12) |
+| 146:15 | Univers 6 formé (146:15) : neuf bulles d'un coup, de l'arbre mûr à l'arbre-monde (une seule) |
+| 146:44 | Galaxie de l'univers 7 (152:16) |
+| 149:08 | Univers 7 formé (154:52) |
+| 151:49 | Univers 8 formé (163:46) : 11 h 57 plus tôt |
+
+Le Speedrunner ne fait jamais cet achat de dernière minute entre ses univers 4 et 8 : sa partie est identique à la seconde jusqu'à la galaxie de l'univers 8 (78:37).
+
 ## Le collisionneur, le vide et les bulles repensés (version 0.174)
 
 Un audit du bot, fait sur les sources, les journaux d'achats et les sauvegardes du Speedrunner 0.171 (graine 201), a cherché où partaient les 13 h 58 d'attente de la galaxie aux univers 4 à 7. Réponse : la galaxie attend les 10¹⁵ d'énergie produite du collisionneur, et le bot gérait mal ce collisionneur. Tout ce qui suit vaut dès le deuxième univers ; le premier ne change pas.

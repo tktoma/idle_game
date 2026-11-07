@@ -23,6 +23,31 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.177", "Le trou noir du vide fait mûrir les trous noirs plus vite", List.of(
+                    "Le trou noir du vide, ouvert, raccourcit la maturation du trou noir et du trou noir supermassif : "
+                            + "÷ (1 + 10 % par univers formé à partir du quatrième). ÷1,1 quand quatre univers sont formés, "
+                            + "÷1,5 quand huit le sont ; les trous noirs qui mûrissent déjà à son ouverture voient leur reste "
+                            + "raccourci d'autant.",
+                    "Le gain du collisionneur (l'arbuste, à gauche) ne compte plus le premier univers formé : ×1,6 quand "
+                            + "quatre sont formés, puis ×1,8, ×2, ×2,2.",
+                    "Le trou noir du vide le dit dans l'onglet Vide, et l'aide de la maturation aussi.",
+                    "Les bots gardent l'énergie du vide pour les bulles dans le dernier quart d'heure avant la formation "
+                            + "de l'univers : le Régulier achetait l'assise une minute avant et n'avait plus de quoi payer ses bulles.",
+                    "Mesuré depuis la formation du quatrième univers : le Speedrunner forme ses univers 5 à 8 à 66:18, "
+                            + "72:24, 78:22 et 80:49 (66:28, 73:06, 79:16 et 81:42 en 0.176), soit 53 min de mieux à "
+                            + "l'univers 8. Le Régulier forme son huitième univers à 151:49 au lieu de 160:00 : il prend neuf "
+                            + "bulles d'un coup dès la formation du sixième.")),
+            new Note("0.176", "Le gain du collisionneur passe à l'arbuste, à gauche", List.of(
+                    "Les 20 % d'énergie et de hadrons par univers formé de la 0.175 passent de l'arbre mûr à l'arbuste, à "
+                            + "gauche (21 400), la bulle qui ouvre le collisionneur dès le début de l'univers : ×1,8 à "
+                            + "l'achat, à la formation du quatrième univers, puis ×2, ×2,2, ×2,4.",
+                    "Chaque univers doit encore remplir l'énergie du trou noir supermassif : le gain l'accélère dans "
+                            + "chacun. L'arbre mûr, à gauche, garde le collisionneur d'un univers à l'autre, comme avant la 0.175.",
+                    "La décomposition de l'énergie du collisionneur montre « Arbuste, à gauche : N univers formés ».",
+                    "Mesuré depuis la formation du quatrième univers : le Speedrunner forme ses univers 5 à 8 à 66:28, "
+                            + "73:06, 79:16 et 81:42, au lieu de 67:05, 74:04, 80:57 et 83:24 (1 h 42 d'avance, 39 min de "
+                            + "plus qu'avec l'arbre mûr). Le Régulier forme son huitième univers à 160:00 au lieu de 159:38 : "
+                            + "son collisionneur plus rapide change l'ordre de ses achats, et les écarts se compensent.")),
             new Note("0.175", "Le collisionneur traverse les univers et va plus vite à chacun", List.of(
                     "La bulle de l'arbre mûr, à gauche (32 100) donne au collisionneur 20 % d'énergie et de hadrons de "
                             + "plus par univers formé : ×2,2 au septième univers, ×3 au onzième. Chaque univers va plus vite "

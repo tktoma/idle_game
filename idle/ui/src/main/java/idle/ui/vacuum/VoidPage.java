@@ -213,9 +213,11 @@ public final class VoidPage extends VBox {
             holeLine.setText("Trou noir : masse " + decimal(mass) + " (" + Format.count(game.state().voidSacrificed())
                     + " particules sacrifiées). Les paires vivent " + decimal(game.voidPairLife()) + " s au lieu de "
                     + decimal(Game.VOID_PAIR_LIFE) + " et rendent leur espace plus vite ; la fonte est divisée par "
-                    + decimal(1 + mass / 5) + "."
+                    + decimal(1 + mass / 5) + "." + maturationText(game)
                     + Detail.only(" Masse : 2 × log₁₀(1 + log₁₀(1 + particules sacrifiées)), au plus "
-                    + (int) Game.VOID_MAX_MASS + ". Vie des paires : 6 ÷ (1 + masse/10) ; fonte ÷ (1 + masse/5)."));
+                    + (int) Game.VOID_MAX_MASS + ". Vie des paires : 6 ÷ (1 + masse/10) ; fonte ÷ (1 + masse/5). Maturation des "
+                    + "trous noirs ÷ (1 + " + percent(Game.VOID_HOLE_MATURATION_STEP) + " × univers formés à partir du "
+                    + "quatrième)."));
             sacrifice.setDisable(!game.canSacrificeParticles());
             sacrifice.setText(mass >= Game.VOID_MAX_MASS ? "Le trou noir a sa masse la plus grande"
                     : "Sacrifier toutes les particules (" + Format.count(game.state().particles()) + ") : masse "
@@ -247,6 +249,18 @@ public final class VoidPage extends VBox {
                     + "le vide, ses améliorations et son trou noir repartent de zéro dans l'univers suivant."
                     + (hole ? "" : " Le premier trou noir formé dans le ciel ouvre le trou noir du vide."));
         }
+    }
+
+    /**
+     * Ce que le trou noir du vide retire à la maturation des deux trous noirs (version 0.177) : « La maturation du trou
+     * noir et du trou noir supermassif dure 17 % de moins (2 univers comptés). » ; avant le quatrième univers formé, ce
+     * qu'il fera.
+     */
+    public static String maturationText(Game game) {
+        int counted = game.voidHoleUniverses();
+        if (counted <= 0) return " Dès le quatrième univers formé, il raccourcira la maturation des trous noirs.";
+        return " La maturation du trou noir et du trou noir supermassif dure " + Math.round((1 - 1 / game.voidHoleMaturationFactor()) * 100)
+                + " % de moins (" + counted + (counted > 1 ? " univers comptés)." : " univers compté).");
     }
 
     private static String limitText(String limit) {

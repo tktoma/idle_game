@@ -240,7 +240,7 @@ public abstract class GameVoid extends GameBigBang {
     void runVoid(double dt) {
         // Le prix se fixe la première fois que le vide se propose : il ne monte plus ensuite avec le collisionneur.
         if (isVoidOffered() && state.voidPrice() <= 0) state.setVoidPrice(voidPrice());
-        if (isVoidUnlocked() && !state.voidHoleOpen() && hasBody("black_hole")) state.setVoidHoleOpen(true);
+        if (isVoidUnlocked() && !state.voidHoleOpen() && hasBody("black_hole")) openVoidHole();
         if (!isVoidUnlocked() || !state.started() || dt <= 0) {
             voidPairs = 0;
             return;
@@ -268,6 +268,36 @@ public abstract class GameVoid extends GameBigBang {
     // ------------------------------------------------------------------
     // Le trou noir
     // ------------------------------------------------------------------
+
+    /** Ce que le trou noir du vide retire à la maturation des deux trous noirs, par univers compté (version 0.177) : 10 %. */
+    public static final double VOID_HOLE_MATURATION_STEP = 0.10;
+    /** Le premier univers formé que le trou noir du vide compte (version 0.177) : le quatrième. */
+    public static final int VOID_HOLE_FIRST_UNIVERSE = 4;
+
+    /** Les univers formés que le trou noir du vide compte : ceux à partir du quatrième (version 0.177). */
+    public int voidHoleUniverses() {
+        return Math.max(0, universes() - (VOID_HOLE_FIRST_UNIVERSE - 1));
+    }
+
+    /**
+     * Ce par quoi le trou noir du vide divise la maturation du trou noir et du trou noir supermassif (version 0.177) :
+     * 1 + {@link #VOID_HOLE_MATURATION_STEP} × univers comptés ({@link #voidHoleUniverses()}), tant qu'il est ouvert
+     * dans cet univers ; 1 sinon. ×1,1 quand quatre univers sont formés, ×1,5 quand huit le sont.
+     */
+    @Override
+    public double voidHoleMaturationFactor() {
+        return isVoidHoleOpen() ? 1 + VOID_HOLE_MATURATION_STEP * voidHoleUniverses() : 1;
+    }
+
+    /** Ouvre le trou noir du vide : les trous noirs qui mûrissent déjà voient leur reste raccourci d'autant (version 0.177). */
+    private void openVoidHole() {
+        state.setVoidHoleOpen(true);
+        double factor = voidHoleMaturationFactor();
+        if (factor <= 1) return;
+        for (String id : List.copyOf(state.maturing().keySet())) {
+            if (state.maturingLeft(id) > 0 && GameSystems.isBlackHole(body(id))) state.setMaturing(id, state.maturingLeft(id) / factor);
+        }
+    }
 
     /** La masse du trou noir : 2 × log₁₀(1 + log₁₀(1 + S)), S les particules sacrifiées, au plus {@link #VOID_MAX_MASS}. */
     public double voidMass() {

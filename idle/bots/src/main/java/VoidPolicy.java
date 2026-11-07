@@ -1,6 +1,7 @@
 import idle.core.Game;
 import idle.core.GameUniverse;
 import idle.core.GameUniverse.VoidUpgrade;
+import idle.core.sky.Cosmos;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -238,10 +239,26 @@ final class VoidPolicy {
                 && RobotCosmosPlanner.cosmosStage(game) >= 1;
     }
 
+    /**
+     * Version 0.177 : à moins de ce temps de la formation de l'univers, l'énergie gardée pour les bulles ne paie plus de
+     * raccourci. Mesuré en 0.177 : le Régulier achetait l'assise (260 860 d'énergie du vide) une minute avant la
+     * formation de son univers 7, n'y gagnait qu'une minute, et n'avait plus de quoi payer ses bulles ; la galaxie de
+     * l'univers 8 attendait alors 6 h 17 au lieu de 27 min.
+     */
+    static final double SAVING_LAST_SECONDS = 15 * 60;
+
+    /** Vrai quand l'univers se forme dans moins de {@link #SAVING_LAST_SECONDS} : il n'attend plus que son délai. */
+    static boolean formingSoon(Game game) {
+        if (!game.hasCosmos(Cosmos.CLUSTER) || game.hasCosmos(Cosmos.UNIVERSE)) return false;
+        double left = game.cosmosSettleRemaining(Cosmos.UNIVERSE);
+        return left > 0 && left < SAVING_LAST_SECONDS;
+    }
+
     /** Les achats d'une décision, selon le plan du joueur. */
     int buy(Game game) {
         int done = 0;
         boolean saving = savingForBubbles(game);
+        if (saving && formingSoon(game)) return 0;
         for (int n = 0; n < 50; n++) {
             VoidUpgrade choice = saving ? cheapest(game, SHORTENERS) : switch (style.plan()) {
                 case BEST -> best(game);

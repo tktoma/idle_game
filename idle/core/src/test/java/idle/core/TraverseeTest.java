@@ -11,8 +11,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Version 0.175 : la bulle de l'arbre mûr, à gauche, fait traverser les univers au collisionneur, et lui donne 20 %
- * d'énergie et de hadrons de plus par univers formé. Chaque univers va plus vite que le précédent.
+ * Version 0.175 : le collisionneur gagne 20 % d'énergie et de hadrons de plus par univers formé. Version 0.176 : avec la
+ * bulle de l'arbuste, à gauche (qui l'ouvre dès le début de l'univers), et non plus celle de l'arbre mûr. Chaque univers
+ * remplit plus vite l'énergie du trou noir supermassif.
  */
 class TraverseeTest {
 
@@ -27,7 +28,7 @@ class TraverseeTest {
     }
 
     private static void acheteLaBulle(Game game) {
-        game.state().setTreeBubbleLevel(TreeBubble.MATURE_LEFT.ordinal(), 1);
+        game.state().setTreeBubbleLevel(TreeBubble.CROWN_LEFT.ordinal(), 1);
     }
 
     @Test
@@ -36,7 +37,7 @@ class TraverseeTest {
         assertEquals(1, game.crossingGain(), 0);
         assertEquals(100, game.bindHadrons(Hadron.PROTON, 100), "100 assemblés, 100 venus");
         assertTrue(Multipliers.of(game, Multipliers.Quantity.COLLIDER_ENERGY).stream()
-                .noneMatch(factor -> factor.label().startsWith("Arbre mûr")), "pas de facteur sans la bulle");
+                .noneMatch(factor -> factor.label().startsWith("Arbuste")), "pas de facteur sans la bulle");
     }
 
     @Test
@@ -46,10 +47,13 @@ class TraverseeTest {
         acheteLaBulle(game);
         int universes = game.universes();
         assertTrue(universes >= 2, "au moins deux univers formés : " + universes);
-        assertEquals(1 + 0.2 * universes, game.crossingGain(), 1e-12);
-        assertEquals(before * (1 + 0.2 * universes), game.colliderEnergyPerSecond(), before * 1e-12);
+        // Version 0.177 : le premier univers formé ne compte pas.
+        int counted = universes - 1;
+        assertEquals(counted, game.crossingUniverses());
+        assertEquals(1 + 0.2 * counted, game.crossingGain(), 1e-12);
+        assertEquals(before * (1 + 0.2 * counted), game.colliderEnergyPerSecond(), before * 1e-12);
         assertTrue(game.testAddUniverse());
-        assertEquals(1 + 0.2 * (universes + 1), game.crossingGain(), 1e-12, "un univers de plus, 20 % de plus");
+        assertEquals(1 + 0.2 * (counted + 1), game.crossingGain(), 1e-12, "un univers de plus, 20 % de plus");
     }
 
     /** Le garde-fou du rythme : à production égale, le même seuil d'énergie produite vient de plus en plus vite. */
@@ -69,7 +73,7 @@ class TraverseeTest {
         }
         // Six univers de plus : +120 %, et le même seuil prend d'autant moins de temps.
         assertEquals(start + 6, game.universes());
-        assertEquals(1 + 0.2 * (start + 6), game.crossingGain(), 1e-12);
+        assertEquals(1 + 0.2 * (start + 6 - 1), game.crossingGain(), 1e-12, "le premier univers formé ne compte pas");
     }
 
     @Test
@@ -114,15 +118,30 @@ class TraverseeTest {
         game.tick(1);
         MultipliersTest.assertAddsUp(game);
         List<Multipliers.Factor> collider = Multipliers.of(game, Multipliers.Quantity.COLLIDER_ENERGY);
-        assertTrue(collider.stream().anyMatch(factor -> factor.label().equals("Arbre mûr, à gauche : " + game.universes() + " univers formés")
+        assertTrue(collider.stream().anyMatch(factor -> factor.label().equals("Arbuste, à gauche : " + game.crossingUniverses() + " univers comptés")
                 && factor.aspect() == Multipliers.Aspect.UNIVERSE
                 && Math.abs(factor.log10() - Math.log10(game.crossingGain())) < 1e-12), collider.toString());
     }
 
+    /** Version 0.177 : un seul univers formé, rien n'est compté ; le deuxième compte, 20 %. */
+    @Test
+    void lePremierUniversNeComptePas() {
+        Game game = VideTest.open();
+        acheteLaBulle(game);
+        assertEquals(game.universes() - 1, game.crossingUniverses());
+        assertEquals(2, Game.CROSSING_FIRST_UNIVERSE);
+        Game fresh = new Game();
+        fresh.start();
+        acheteLaBulle(fresh);
+        assertEquals(0, fresh.crossingUniverses(), "aucun univers formé");
+        assertEquals(1, fresh.crossingGain(), 0);
+    }
+
     @Test
     void leTexteDeLaBulleDitLeGain() {
-        assertTrue(TreeBubble.MATURE_LEFT.effect().contains("20 % d'énergie et de hadrons par univers formé"),
-                TreeBubble.MATURE_LEFT.effect());
+        assertTrue(TreeBubble.CROWN_LEFT.effect().contains("20 % d'énergie et de hadrons par univers formé après le premier"),
+                TreeBubble.CROWN_LEFT.effect());
+        assertTrue(!TreeBubble.MATURE_LEFT.effect().contains("%"), "l'arbre mûr, à gauche, ne le dit plus : " + TreeBubble.MATURE_LEFT.effect());
         assertEquals(0.20, Game.CROSSING_GAIN_PER_UNIVERSE, 0);
     }
 }

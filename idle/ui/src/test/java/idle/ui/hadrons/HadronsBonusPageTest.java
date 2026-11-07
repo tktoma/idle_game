@@ -66,7 +66,9 @@ class HadronsBonusPageTest {
             assertTrue(page.bonusText(Hadron.PROTON).startsWith("Atomes par fusion : ×1,08 → ×1,12"), page.bonusText(Hadron.PROTON));
             assertEquals(game.hadronBoost(Hadron.PROTON), 1 + Game.HADRON_BOOST_STEP * Math.log10(2), 1e-12);
             page.bindAllButton(Hadron.PROTON).fire();
-            assertTrue(page.gluonsLine().getText().startsWith("Gluons : 45 "), page.gluonsLine().getText());
+            // Version 0.176 : l'arbuste, à gauche, qui ouvre ici le collisionneur, donne aussi le gain de la traversée.
+            long protons = (long) Math.floor(15 * game.crossingGain() + 1e-9);
+            assertTrue(page.gluonsLine().getText().startsWith("Gluons : " + protons * 3 + " "), page.gluonsLine().getText());
             assertFalse(page.bonusText(Hadron.PROTON).contains("Lier tout"), "plus rien à lier : " + page.bonusText(Hadron.PROTON));
             return null;
         });
