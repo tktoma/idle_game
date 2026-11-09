@@ -19,6 +19,11 @@ import javafx.util.Duration;
  *
  * <p>À la fusion, tous les générateurs glissent vers le centre en rétrécissant,
  * puis disparaissent : le générateur suivant naît à cet endroit.
+ *
+ * <p>Version 0.192 : la fusion a un skin ({@link #setFusionSkin}). « Tourbillon » : les générateurs font un tour
+ * autour du centre en s'y enroulant ; « Aspiration » : ils s'étirent vers le centre comme de la pâte, hauts et
+ * étroits, avant de s'y engouffrer ; « Éclat » : ils se brisent, sautent chacun de son côté en tournant, puis les
+ * morceaux se rassemblent au centre. Le fond a le sien aussi ({@link #setDustSkin}).
  */
 public final class GeneratorPane extends Pane {
 
@@ -33,6 +38,28 @@ public final class GeneratorPane extends Pane {
     private final AmbientView ambient = new AmbientView();
     private final List<ParticleView> views = new ArrayList<>();
     private boolean fusing = false;
+    /** Le skin de la fusion (version 0.192), ou {@code null} pour le glissement classique. */
+    private idle.core.universe.Skin fusionSkin = null;
+
+    /** Change le skin de la fusion ; la prochaine fusion le joue. Un skin d'un autre visuel vaut le Classique. */
+    public void setFusionSkin(idle.core.universe.Skin chosen) {
+        fusionSkin = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.GENERATOR_FUSION ? chosen : null;
+    }
+
+    /** Le skin de la fusion, ou {@code null} : pour les vérifications. */
+    public idle.core.universe.Skin fusionSkin() {
+        return fusionSkin;
+    }
+
+    /** Change le skin du fond animé (version 0.192) : il le prend à sa prochaine image. */
+    public void setDustSkin(idle.core.universe.Skin chosen) {
+        ambient.setSkin(chosen);
+    }
+
+    /** Le fond animé : pour les vérifications. */
+    AmbientView ambient() {
+        return ambient;
+    }
 
     public GeneratorPane() {
         setMinSize(0, 0);       // la zone peut rétrécir librement avec la fenêtre
@@ -77,21 +104,30 @@ public final class GeneratorPane extends Pane {
         double centerX = getWidth() / 2;
         double centerY = getHeight() / 2;
         ParallelTransition all = new ParallelTransition();
-        for (ParticleView view : views) {
-            TranslateTransition move = new TranslateTransition(Duration.seconds(FUSION_SECONDS), view);
-            move.setToX(centerX - (view.getLayoutX() + view.getWidth() / 2));
-            move.setToY(centerY - (view.getLayoutY() + view.getHeight() / 2));
-            move.setInterpolator(Interpolator.EASE_IN); // départ lent, arrivée rapide
+        if (fusionSkin != null) {
+            GeneratorFusionArt.animate(fusionSkin, all, views, centerX, centerY, FUSION_SECONDS, FUSION_SCALE);
+        } else {
+            for (ParticleView view : views) {
+                TranslateTransition move = new TranslateTransition(Duration.seconds(FUSION_SECONDS), view);
+                move.setToX(centerX - (view.getLayoutX() + view.getWidth() / 2));
+                move.setToY(centerY - (view.getLayoutY() + view.getHeight() / 2));
+                move.setInterpolator(Interpolator.EASE_IN); // départ lent, arrivée rapide
 
-            ScaleTransition shrink = new ScaleTransition(Duration.seconds(FUSION_SECONDS), view);
-            shrink.setToX(FUSION_SCALE);
-            shrink.setToY(FUSION_SCALE);
-            shrink.setInterpolator(Interpolator.EASE_IN);
+                ScaleTransition shrink = new ScaleTransition(Duration.seconds(FUSION_SECONDS), view);
+                shrink.setToX(FUSION_SCALE);
+                shrink.setToY(FUSION_SCALE);
+                shrink.setInterpolator(Interpolator.EASE_IN);
 
-            all.getChildren().add(move);
-            all.getChildren().add(shrink);
+                all.getChildren().add(move);
+                all.getChildren().add(shrink);
+            }
         }
         all.setOnFinished(event -> {
+            // Un skin a pu tourner ou étirer les vues : elles sont retirées, mais une vue réutilisée repartirait droite.
+            for (ParticleView view : views) {
+                view.setRotate(0);
+                view.setOpacity(1);
+            }
             getChildren().removeAll(views);
             views.clear();
             fusing = false;

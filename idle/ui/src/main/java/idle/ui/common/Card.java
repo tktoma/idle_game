@@ -98,13 +98,68 @@ public final class Card extends VBox {
         return signs;
     }
 
+    /** Le skin des signes d'état (version 0.192), commun à toutes les cartes, ou {@code null} pour les signes de toujours. */
+    private static volatile Skin signSkin = null;
+
+    /** Change la famille des signes d'état de toutes les cartes ; chacune la prend à son prochain remplissage. */
+    public static void setSignSkin(Skin chosen) {
+        signSkin = chosen;
+    }
+
+    /** Le skin des signes d'état, ou {@code null} pour les signes de toujours : pour les vérifications. */
+    public static Skin signSkin() {
+        return signSkin;
+    }
+
     /**
      * Le signe d'un état, pour le reconnaître sans la couleur : un rond plein pour ce qui est à
      * portée, un rond vide pour ce qui attend, un demi-rond pour ce qui est entamé, une flèche
      * pour ce qui est en marche, un carré vide pour ce qui est coupé, une coche pour ce qui est
      * acquis, une croix pour ce qui est fermé, un point d'exclamation pour ce qui attend un second clic.
+     *
+     * <p>Version 0.192 : le skin des signes en change la famille, dans le même ordre. « Runes » : le soleil (à portée),
+     * la glace (en attente), l'année (entamée), le voyage (en marche), la grêle (coupée), l'héritage (acquise), le besoin
+     * (fermée), l'épine (second clic). « Formes pleines » : triangle haut, triangle bas, demi-disque, flèche pleine, carré
+     * plein, étoile, croix pleine, losange. « Lettres » : P, A, E, M, C, F, V, A.
      */
     public static String sign(State state) {
+        Skin skin = signSkin;
+        if (skin == Skin.SIGNS_RUNES) {
+            return switch (state) {
+                case READY -> "ᛊ";
+                case WAITING -> "ᛁ";
+                case STARTED -> "ᛃ";
+                case ON -> "ᚱ";
+                case OFF -> "ᚺ";
+                case DONE -> "ᛟ";
+                case LOCKED -> "ᚾ";
+                case ARMED -> "ᚦ";
+            };
+        }
+        if (skin == Skin.SIGNS_SHAPES) {
+            return switch (state) {
+                case READY -> "▲";
+                case WAITING -> "▼";
+                case STARTED -> "◖";
+                case ON -> "►";
+                case OFF -> "■";
+                case DONE -> "★";
+                case LOCKED -> "✖";
+                case ARMED -> "◆";
+            };
+        }
+        if (skin == Skin.SIGNS_LETTERS) {
+            return switch (state) {
+                case READY -> "P";
+                case WAITING -> "A";
+                case STARTED -> "E";
+                case ON -> "M";
+                case OFF -> "C";
+                case DONE -> "F";
+                case LOCKED -> "V";
+                case ARMED -> "A";
+            };
+        }
         return switch (state) {
             case READY -> "●";
             case WAITING -> "○";

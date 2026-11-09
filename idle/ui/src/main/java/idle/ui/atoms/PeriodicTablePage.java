@@ -69,6 +69,17 @@ public final class PeriodicTablePage extends VBox {
     private idle.core.universe.Skin tableSkin;
     /** La famille visée au dernier affichage : sur la carte au trésor, en changer repeint les îles marquées (version 0.191). */
     private ElementCategory shownTarget;
+    /**
+     * Le skin de la page hors cases (version 0.192) : « Médailles » sur les tuiles des ensembles, « Creuset » sur la carte
+     * de synthèse, « Spectre » sur la légende des familles ; dessins dans {@link TablePageSkinArt}. {@code null} : le classique.
+     */
+    private idle.core.universe.Skin pageSkin;
+    /** Les médailles des tuiles, faites à la première demande puis gardées. */
+    private final Map<ElementSet, javafx.scene.canvas.Canvas> medals = new LinkedHashMap<>();
+    /** Le creuset de la carte de synthèse, fait à la première demande ; {@code null} avant. */
+    private javafx.scene.canvas.Canvas crucible = null;
+    /** Le temps de la fumée du creuset. */
+    private double time = 0;
 
     /** Le tableau fait 18 cases de large, séparées par un petit espace. */
     private static final int COLUMNS = 18;
@@ -301,6 +312,12 @@ public final class PeriodicTablePage extends VBox {
             table.setVgap(gap);
             sizeCells();
         }
+        // Le skin de la page hors cases (version 0.192) : ses ornements se posent ou se retirent quand il change.
+        idle.core.universe.Skin page = game.chosenSkin(idle.core.universe.SkinVisual.TABLE_PAGE);
+        if (page != pageSkin) {
+            pageSkin = page;
+            dressPage();
+        }
         ElementCategory target = game.synthesisTarget();
         // Sur la carte au trésor, les îles de la famille visée portent une croix : changer de cible les repeint.
         if (tableSkin == idle.core.universe.Skin.TABLE_MAP && target != shownTarget) repaint = true;
@@ -330,6 +347,59 @@ public final class PeriodicTablePage extends VBox {
             legendHint.setManaged(Detail.shown());
         }
         refreshTable();
+    }
+
+    /**
+     * Pose ou retire les ornements du skin de la page (version 0.192) : les médailles des tuiles, le creuset de la carte de
+     * synthèse, les bandes de spectre de la légende. Sans skin, la légende reprend son style de toujours, au caractère près.
+     */
+    private void dressPage() {
+        boolean medalled = pageSkin == idle.core.universe.Skin.PAGE_MEDALS;
+        setCards.forEach((set, tile) -> {
+            if (medalled && !medals.containsKey(set)) medals.put(set, new javafx.scene.canvas.Canvas(TablePageSkinArt.MEDAL_SIZE, TablePageSkinArt.MEDAL_SIZE));
+            tile.setInlinePicture(medalled ? medals.get(set) : null);
+        });
+        if (medalled) paintMedals();
+        boolean fuming = pageSkin == idle.core.universe.Skin.PAGE_CRUCIBLE;
+        if (fuming && crucible == null) crucible = new javafx.scene.canvas.Canvas(TablePageSkinArt.CRUCIBLE_WIDTH, TablePageSkinArt.CRUCIBLE_HEIGHT);
+        synthesizeCard.setPicture(fuming ? crucible : null);
+        if (fuming) TablePageSkinArt.drawCrucible(crucible, time, game.canSynthesize());
+        boolean spectrum = pageSkin == idle.core.universe.Skin.PAGE_SPECTRUM;
+        legend.forEach((category, entry) -> entry.setStyle(spectrum ? TablePageSkinArt.spectrumStyle(COLORS.get(category))
+                : "-fx-font-size: 12px; -fx-text-fill: " + COLORS.get(category) + ";"));
+    }
+
+    /** Dessine la médaille de chaque tuile d'après l'avancement de son ensemble. */
+    private void paintMedals() {
+        medals.forEach((set, medal) -> TablePageSkinArt.drawMedal(medal, medalTier(set)));
+    }
+
+    /** Le palier de la médaille d'un ensemble : 0 rien, 1 bronze dès un élément, 2 argent à la moitié, 3 or complet. */
+    int medalTier(ElementSet set) {
+        double strength = game.setStrength(set);
+        return strength >= 1 ? 3 : strength > 0 ? 2 : game.setProgress(set) > 0 ? 1 : 0;
+    }
+
+    /** Fait fumer le creuset (version 0.192) : à appeler à chaque image quand la page est à l'écran ; rien sous les autres skins. */
+    public void frame(double dt) {
+        if (pageSkin != idle.core.universe.Skin.PAGE_CRUCIBLE || crucible == null) return;
+        time += Math.min(dt, 0.1);
+        TablePageSkinArt.drawCrucible(crucible, time, game.canSynthesize());
+    }
+
+    /** Le creuset de la carte de synthèse, ou {@code null} hors du skin « Creuset » : pour les vérifications. */
+    javafx.scene.Node crucible() {
+        return pageSkin == idle.core.universe.Skin.PAGE_CRUCIBLE ? crucible : null;
+    }
+
+    /** Vrai si les tuiles portent une médaille : pour les vérifications. */
+    boolean medalled() {
+        return pageSkin == idle.core.universe.Skin.PAGE_MEDALS;
+    }
+
+    /** Le style de la ligne de la légende de cette famille : pour les vérifications. */
+    String legendStyle(ElementCategory category) {
+        return legend.get(category).getStyle();
     }
 
     /** La carte de synthèse et la rangée de la synthèse ciblée : ce qui se recopie à chaque image. */
@@ -434,6 +504,7 @@ public final class PeriodicTablePage extends VBox {
         showDetail();
         bonusLabel.setText(bonusSummary());
         refreshSets();
+        if (pageSkin == idle.core.universe.Skin.PAGE_MEDALS) paintMedals();
         for (ElementCategory category : ElementCategory.values()) {
             double chance = game.categoryChance(category);
             legend.get(category).setText("■ " + category.label() + " ("

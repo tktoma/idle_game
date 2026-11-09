@@ -23,6 +23,21 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.192", "Vingt-huit skins pour le chrome et les particules : icônes, signes, bulles, fond, fusion, page du tableau", List.of(
+                    "Sept visuels de plus dans l'onglet Skins. Les icônes d'onglet, l'atome compris : Trait de craie (50 atomes créés), "
+                            + "Pixel art (une reconstruction en moins d'une minute), Constellation (la galaxie formée), Emoji (la bulle du "
+                            + "bonsaï de droite), et Figées, libre, qui les arrête comme le réglage. Les signes d'état des cartes : Runes "
+                            + "(succès Cent fusions), Formes pleines (succès Ensemble complet), Lettres (succès Dix explosions). Les signes "
+                            + "des états de la matière : Lettres (20 sortes rassemblées), Gouttes et grains (50), Alchimie (toutes). Les "
+                            + "info-bulles des compteurs : Parchemin (une heure de jeu), Post-it (cinq), Terminal (dix).",
+                    "Le fond de poussières des particules : Neige, Pluie, Pollen, Lucioles, Bulles, Poussière d'or, Cendres, un palier de "
+                            + "particules créées chacun (1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24), et Silence, libre, qui le laisse vide "
+                            + "comme le réglage. La fusion des générateurs : Tourbillon (100 fusions), Aspiration (1 000), Éclat (le skin "
+                            + "Éclair). La page du tableau périodique hors cases : Médailles sur les tuiles des ensembles (un ensemble "
+                            + "complet), Creuset sur la carte de synthèse (100 synthèses), Spectre sur la légende des familles (toutes les "
+                            + "familles possédées).",
+                    "Le bonus des skins s'arrête à cent skins comptés (×3 au plus) ; les skins libres ne comptent pas.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.191", "Quarante skins de plus pour les huit visuels d'origine", List.of(
                     "La fusion des particules : Braise (100 fusions), Encre (1 000), Essaim (100 générateurs), Horloge (10 000 "
                             + "fusions), Verre soufflé (le skin Prisme), Pixel (une reconstruction en moins de 30 s). L'atome : "

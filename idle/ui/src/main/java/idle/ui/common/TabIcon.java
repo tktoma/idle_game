@@ -11,6 +11,10 @@ import javafx.scene.shape.StrokeLineCap;
  * éclair de Big Bang, trois quarks liés qui tournent, un buste et l'étoile de son titre, une étoile qui scintille, des barres qui
  * montent, des curseurs qui glissent.
  * Elle ne bouge que si les effets sont permis ; immobile, elle reste lisible.
+ *
+ * <p>Version 0.192 : les icônes ont un skin, commun à toutes ({@link #setSkin}) et à l'atome de l'onglet Atomes :
+ * trait de craie, pixel art, constellation, emoji, dessinés dans {@link TabIconSkinArt} ; « Figées » garde le dessin
+ * classique et arrête le temps, comme le réglage des icônes animées, qui garde la main quand il est coupé.
  */
 public final class TabIcon extends Canvas {
 
@@ -23,6 +27,23 @@ public final class TabIcon extends Canvas {
     private boolean bright;
     /** La vitesse de l'animation : 1 d'habitude, plus quand ce que montre l'onglet s'accélère (version 0.061). */
     private double speed = 1;
+    /** Le skin des icônes (version 0.192), commun à toutes, ou {@code null} pour le Classique ; lu à chaque image. */
+    private static volatile idle.core.universe.Skin skin = null;
+
+    /** Change le skin de toutes les icônes d'onglet, et de l'atome de l'onglet Atomes ; chacune le prend à sa prochaine image. */
+    public static void setSkin(idle.core.universe.Skin chosen) {
+        skin = chosen;
+    }
+
+    /** Le skin des icônes, ou {@code null} pour le Classique. */
+    public static idle.core.universe.Skin skin() {
+        return skin;
+    }
+
+    /** Vrai si les icônes sont figées par leur skin (version 0.192) : « Figées » arrête le temps, le réglage coupé aussi. */
+    public static boolean frozen() {
+        return skin == idle.core.universe.Skin.ICONS_STILL;
+    }
 
     public void setSpeed(double speed) {
         this.speed = Double.isFinite(speed) ? Math.max(0.2, Math.min(speed, 8)) : 1;
@@ -54,7 +75,7 @@ public final class TabIcon extends Canvas {
 
     /** Fait avancer l'animation ; {@code moving} faux (effets coupés) la laisse immobile. */
     public void frame(double elapsed, boolean moving) {
-        if (moving) time += elapsed * speed;
+        if (moving && !frozen()) time += elapsed * speed;
         draw();
     }
 
@@ -62,6 +83,14 @@ public final class TabIcon extends Canvas {
         double s = getWidth();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, s, s);
+        idle.core.universe.Skin look = skin;
+        if (TabIconSkinArt.draws(look)) {
+            // Le pixel art n'a que deux images : le temps du modèle alterne entre deux instants.
+            double shown = look == idle.core.universe.Skin.ICONS_PIXEL
+                    ? TabIconSkinArt.PIXEL_STEP * (Math.floor(time / TabIconSkinArt.PIXEL_STEP) % 2) : time;
+            TabIconSkinArt.draw(look, g, TabIconSkinArt.model(kind, shown), s, color, bright ? 1 : 0.7, time);
+            return;
+        }
         g.setGlobalAlpha(bright ? 1 : 0.7);
         g.setStroke(color);
         g.setFill(color);

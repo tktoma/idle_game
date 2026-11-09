@@ -9,6 +9,7 @@ import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeTrip;
 import idle.core.profile.Title;
 import idle.core.universe.DimensionAutomation;
+import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
@@ -113,7 +114,14 @@ final class HelpPane extends Overlay {
         sections.add(new Section("Particules", "Un générateur crée des particules. Elles paient trois améliorations : la "
                 + "vitesse de création, le couplage (chaque générateur renforce les autres) et un générateur de plus. "
                 + "Réunis, les " + generators + " générateurs fusionnent en atomes : il n'en reste qu'un, et les "
-                + "particules repartent de zéro."));
+                + "particules repartent de zéro."
+                // Le fond des particules et la fusion des générateurs (version 0.192) : des skins, par les particules créées et les fusions.
+                + (game.isSkinsUnlocked() ? " Le fond de poussières derrière les générateurs a ses skins, choisis dans l'onglet Skins, un "
+                        + "par palier de particules créées (neige à un million, puis pluie, pollen, lucioles, bulles, poussière d'or, cendres, "
+                        + "mille fois plus chacun), et Silence, libre, qui le laisse vide ; le glissement des générateurs qui fusionnent a les "
+                        + "siens : Tourbillon à 100 fusions, Aspiration à 1 000, Éclat avec le skin Éclair. Les icônes des onglets aussi : "
+                        + "trait de craie à 50 atomes créés, pixel art pour une reconstruction en moins d'une minute, constellation à la "
+                        + "galaxie formée, emoji avec la bulle du bonsaï de droite, et Figées, libre, qui les arrête." : "")));
         boolean atoms = game.state().totalAtoms().sign() > 0 || game.isDarkMatterUnlocked() || game.isBigBangUnlocked();
         if (atoms) {
             sections.add(new Section("Atomes", "Les atomes paient des améliorations que la fusion ne reprend pas (onglet "
@@ -149,7 +157,11 @@ final class HelpPane extends Overlay {
                             + "." : "")));
             sections.add(new Section("Tableau périodique", "Une synthèse coûte des atomes et donne un élément. Chaque "
                     + "élément apporte un bonus, ses exemplaires le renforcent, et une famille réunie forme un ensemble. "
-                    + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."));
+                    + "Quand les " + PeriodicTable.ELEMENTS.size() + " éléments sont découverts, le tableau peut exploser."
+                    // La page hors cases (version 0.192) : trois skins de plus, à côté de ceux des cases.
+                    + (game.isSkinsUnlocked() ? " La page a ses skins hors cases, dans l'onglet Skins : Médailles sur les tuiles des "
+                            + "ensembles (un ensemble complet), Creuset sur la carte de synthèse (100 synthèses), Spectre sur la légende "
+                            + "des familles (toutes les familles possédées)." : "")));
         }
         if (game.isDarkMatterUnlocked() || game.isBigBangUnlocked()) {
             sections.add(new Section("Matière noire", "L'explosion remet toute la matière à zéro et laisse de la matière "
@@ -220,10 +232,20 @@ final class HelpPane extends Overlay {
         sections.add(new Section("Lire une carte", "Une carte dit l'essentiel : son niveau en haut, ce qu'elle fait, son "
                 + "prix en bas. Tenez la touche " + Detail.keyName(settings.detailKey()) + " pour lire les explications "
                 + "complètes, partout dans le jeu."
-                + (settings.stateSigns() ? " Devant son nom, un signe dit son état sans la couleur : ● à portée, ○ en "
-                        + "attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée." : "")));
+                + (settings.stateSigns() ? " Devant son nom, un signe dit son état sans la couleur : " + Card.sign(Card.State.READY) + " à portée, "
+                        + Card.sign(Card.State.WAITING) + " en attente, " + Card.sign(Card.State.STARTED) + " entamée, " + Card.sign(Card.State.ON)
+                        + " en marche, " + Card.sign(Card.State.OFF) + " coupée, " + Card.sign(Card.State.DONE) + " acquise, "
+                        + Card.sign(Card.State.LOCKED) + " fermée." : "")
+                // Les signes (version 0.192) : ceux des cartes et ceux des états de la matière ont leurs skins.
+                + (game.isSkinsUnlocked() ? " Ces signes ont leurs skins, dans l'onglet Skins : Runes, Formes pleines, Lettres, un succès "
+                        + "d'un onglet différent chacun (Cent fusions, Ensemble complet, Dix explosions) ; les signes des états de la matière "
+                        + "(gaz, liquides, cristaux) aussi : Lettres à 20 sortes rassemblées, Gouttes et grains à 50, Alchimie quand toutes "
+                        + "le sont." : "")));
         sections.add(new Section("Lire un nombre", "Laissez la souris sur la production, les atomes par fusion, la matière "
-                + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne. Sous "
+                + "noire ou l'espace par seconde : une bulle dit de quoi le nombre est fait, un facteur par ligne"
+                // Les info-bulles (version 0.192) : trois skins, par les heures de jeu.
+                + (game.isSkinsUnlocked() ? " (elle a ses skins, dans l'onglet Skins : Parchemin à une heure de jeu, Post-it à cinq, Terminal à dix)" : "")
+                + ". Sous "
                 + "les onglets, l'objectif rappelle le prochain pas"
                 + (game.isDarkMatterUnlocked() ? ", puis ce qu'il manque au prochain Big Bang" : "")
                 + ", et le temps qu'il reste avant la prochaine étape, au rythme des dix dernières minutes (rien quand l'avancée ne bouge pas assez pour l'estimer)"

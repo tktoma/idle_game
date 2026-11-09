@@ -86,38 +86,38 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Rubans — **fait en 0.190** : bandes verticales à gauche, la couleur de l'onglet en pleine hauteur ; l'univers 2 formé.
 
 ### Les icônes d'onglet (`TabIcon`, 13 icônes animées, et `AtomView`)
-- Jeu complet « trait de craie » — toutes les icônes redessinées en un seul trait blanc tremblé ; cinquante atomes.
-- Jeu « pixel art » — icônes en 12×12 pixels, animation en deux images ; un record de reconstruction en moins d'une minute.
-- Jeu « constellation » — chaque icône est un groupe d'étoiles reliées ; la galaxie formée.
-- Jeu « emoji » — icônes pleines et rondes, couleurs vives ; la bulle du bonsaï à droite.
-- Immobiles — les mêmes icônes sans animation, pour les écrans lents : c'est déjà un réglage (TAB_ICONS), il pourrait devenir un skin « Figées ».
+- Jeu complet « trait de craie » — **fait en 0.192** (condition retenue : 50 atomes créés) : toutes les icônes redessinées en un seul trait blanc tremblé ; cinquante atomes.
+- Jeu « pixel art » — **fait en 0.192** (condition retenue : un record de reconstruction en moins d'une minute) : icônes en 12×12 pixels, animation en deux images ; un record de reconstruction en moins d'une minute.
+- Jeu « constellation » — **fait en 0.192** (condition retenue : la galaxie formée) : chaque icône est un groupe d'étoiles reliées ; la galaxie formée.
+- Jeu « emoji » — **fait en 0.192** (condition retenue : la bulle du bonsaï à droite achetée) : icônes pleines et rondes, couleurs vives ; la bulle du bonsaï à droite.
+- Immobiles — **fait en 0.192** (skin libre « Figées », sans condition ; le réglage garde la main) : les mêmes icônes sans animation, pour les écrans lents : c'est déjà un réglage (TAB_ICONS), il pourrait devenir un skin « Figées ».
 
 ### Les cartes (`Card`, le bouton universel du jeu)
 - Fiche cartonnée — **fait en 0.190** (visuel « Les cartes ») : fond crème, coins écornés, texte à la machine à écrire ; cent fusions.
 - Tuile de verre — **fait en 0.190** : fond translucide, bord lumineux à l'état prêt ; le skin Cristal du Big Bang débloqué.
 - Carte à jouer — **fait en 0.190** : bord blanc, coin avec le signe d'état comme une valeur, dos rouge quand fermée ; les dix défis réussis.
 - Étiquette — **fait en 0.190** : un rectangle avec un œillet et un trou, pendu à un fil, qui se balance au survol ; dix sondes revenues.
-- Signes d'état — le jeu ● ○ ◐ ▶ □ ✓ × ! peut changer de famille : « runes », « formes géométriques pleines », « lettres » (P, A, E, M, C, F, V, A) ; chacun un skin, un succès de chaque onglet.
+- Signes d'état — **fait en 0.192** (visuel « Les signes d'état des cartes » ; conditions retenues : les succès Cent fusions, Ensemble complet, Dix explosions) : le jeu ● ○ ◐ ▶ □ ✓ × ! peut changer de famille : « runes », « formes géométriques pleines », « lettres » (P, A, E, M, C, F, V, A) ; chacun un skin, un succès de chaque onglet.
 
 ### Les briques communes (`SubTabs`, `BuyAmountRow`, `FilterBar`, `OrderPane`, `PlanBar`, `Breakdown`, `MatterText`)
-- Signes des états de la matière (`MatterText` : ∴ ≈ ◆) — « lettres » (G L C), « gouttes et grains » (nuage, goutte, cube), « alchimie » (symboles alchimiques de l'air, de l'eau, de la terre) ; cent sortes rassemblées.
-- Info-bulles (`Breakdown`) en parchemin, en post-it jaune `#f9eeda`, en terminal ; dix heures de jeu.
+- Signes des états de la matière (`MatterText` : ∴ ≈ ◆) — **fait en 0.192** (visuel « Les signes des états de la matière » ; conditions retenues : 20, 50 et toutes les 73 sortes rassemblées, le catalogue n'en ayant pas cent) : « lettres » (G L C), « gouttes et grains » (nuage, goutte, cube), « alchimie » (symboles alchimiques de l'air, de l'eau, de la terre) ; cent sortes rassemblées.
+- Info-bulles (`Breakdown`) — **fait en 0.192** (visuel « Les info-bulles » ; conditions retenues : 1 h, 5 h, 10 h de jeu) : en parchemin, en post-it jaune `#f9eeda`, en terminal ; dix heures de jeu.
 
 ## 3. Particules et atomes
 
 ### Le fond animé des particules (`AmbientView`, 90 poussières)
-- Neige, pluie, pollen (grains jaunes), lucioles, bulles qui montent, poussière d'or, cendres : sept skins du fond seulement, chacun un palier de particules (1e6, 1e9, 1e12…).
-- Vide — aucun fond : pour les écrans lents, aujourd'hui un réglage (AMBIENT), pourrait devenir le skin « Silence ».
+- Neige, pluie, pollen (grains jaunes), lucioles, bulles qui montent, poussière d'or, cendres — **fait en 0.192** (visuel « Le fond animé des particules » ; conditions retenues : 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24 particules créées) : sept skins du fond seulement, chacun un palier de particules (1e6, 1e9, 1e12…).
+- Vide — **fait en 0.192** (skin libre « Silence », sans condition ; le réglage garde la main) : aucun fond : pour les écrans lents, aujourd'hui un réglage (AMBIENT), pourrait devenir le skin « Silence ».
 
 ### Le rangement et la fusion des générateurs (`GeneratorPane`)
-- Fusion en tourbillon — les générateurs tournent autour du centre avant de se confondre ; cent fusions.
-- Fusion en aspiration — ils s'étirent vers le centre comme de la pâte ; mille fusions.
-- Fusion en éclat — ils se brisent et les morceaux se rassemblent ; le skin Éclair choisi.
+- Fusion en tourbillon — **fait en 0.192** (visuel « La fusion des générateurs » ; condition retenue : 100 fusions) : les générateurs tournent autour du centre avant de se confondre ; cent fusions.
+- Fusion en aspiration — **fait en 0.192** (condition retenue : 1 000 fusions) : ils s'étirent vers le centre comme de la pâte ; mille fusions.
+- Fusion en éclat — **fait en 0.192** (condition retenue : le skin Éclair débloqué) : ils se brisent et les morceaux se rassemblent ; le skin Éclair choisi.
 
 ### La page du tableau périodique, hors cases (légende, synthèse, ensembles)
-- Les tuiles des ensembles d'éléments en médailles de bronze, d'argent et d'or selon l'avancée ; un ensemble complet.
-- La carte de synthèse en creuset d'alchimiste qui fume ; cent synthèses.
-- La légende des familles en bandes de spectre (raies d'émission) ; toutes les familles possédées.
+- Les tuiles des ensembles d'éléments — **fait en 0.192** (visuel « La page du tableau périodique », skin « Médailles » ; condition retenue : un ensemble complet) : en médailles de bronze, d'argent et d'or selon l'avancée ; un ensemble complet.
+- La carte de synthèse — **fait en 0.192** (skin « Creuset » ; condition retenue : 100 synthèses) : en creuset d'alchimiste qui fume ; cent synthèses.
+- La légende des familles — **fait en 0.192** (skin « Spectre » ; condition retenue : toutes les familles possédées) : en bandes de spectre (raies d'émission) ; toutes les familles possédées.
 
 ## 4. La matière noire
 

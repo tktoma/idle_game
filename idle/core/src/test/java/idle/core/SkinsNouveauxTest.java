@@ -35,7 +35,8 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(103, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, quarante de la 0.191");
+        assertEquals(131, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+                + "quarante de la 0.191, vingt-huit de la 0.192");
     }
 
     /** Version 0.186 : les skins des astres, à 10, 20 et 35 astres formés dans un univers ; acquis, ils restent. */
@@ -164,5 +165,106 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.BIG_BANG, Skin.BANG_NEON.visual());
         assertEquals(SkinVisual.COLLIDER_BEAM, Skin.BEAM_LASER.visual());
         assertEquals(SkinVisual.COLLIDER, Skin.COLLIDER_STADIUM.visual());
+    }
+
+    /** Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
+    @Test
+    void lesIconesLesSignesLesBullesLeFondLaFusionEtLaPageOntLeursConditions() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        game.tick(1);
+        // Les skins libres sont là d'office, et ne comptent pas pour le bonus.
+        assertTrue(Skin.ICONS_STILL.isFree() && Skin.DUST_SILENCE.isFree());
+        assertTrue(game.hasSkin(Skin.ICONS_STILL) && game.hasSkin(Skin.DUST_SILENCE));
+        for (Skin skin : new Skin[] {Skin.ICONS_CHALK, Skin.ICONS_PIXEL, Skin.ICONS_CONSTELLATION, Skin.ICONS_EMOJI, Skin.SIGNS_RUNES,
+            Skin.SIGNS_SHAPES, Skin.SIGNS_LETTERS, Skin.MATTER_LETTERS, Skin.TOOLTIP_PARCHMENT, Skin.DUST_SNOW, Skin.GENERATORS_SWIRL,
+            Skin.GENERATORS_SHATTER, Skin.PAGE_MEDALS, Skin.PAGE_CRUCIBLE, Skin.PAGE_SPECTRUM}) {
+            assertFalse(game.hasSkin(skin), "pas avant sa condition : " + skin);
+        }
+        // Les icônes d'onglet.
+        game.state().setTotalAtoms(idle.core.math.BigNum.of(50));
+        game.state().setRebuildRecord(45);
+        game.state().setGalaxy(true);
+        game.state().setTreeBubbleBought(GameUniverse.TreeBubble.LEAVES_RIGHT.ordinal(), true);
+        // Les signes d'état : un succès d'un onglet différent chacun ; les signes de la matière : les sortes rassemblées.
+        game.state().addAchievement("step_fusions_100");
+        int gathered = 0;
+        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+            if (gathered++ < 20) game.state().addSubstance(molecule.id());
+        }
+        // Les info-bulles : les heures de jeu ; le fond : les particules créées ; la fusion : les fusions.
+        game.state().setTimePlayed(5 * 3600);
+        game.state().stats().addParticles(idle.core.math.BigNum.of(1, 12));
+        for (int i = 0; i < 100; i++) game.state().stats().noteFusion(idle.core.math.BigNum.of(1), 1);
+        // La page du tableau : un ensemble complet (les gaz nobles), cent synthèses.
+        for (idle.core.elements.Element noble : idle.core.elements.PeriodicTable.elements(idle.core.elements.ElementCategory.NOBLE_GAS)) {
+            game.state().setElementCount(noble.number(), 1);
+        }
+        game.state().setSynthesisCount(100);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.ICONS_CHALK), "50 atomes");
+        assertTrue(game.hasSkin(Skin.ICONS_PIXEL), "record sous la minute");
+        assertTrue(game.hasSkin(Skin.ICONS_CONSTELLATION), "la galaxie");
+        assertTrue(game.hasSkin(Skin.ICONS_EMOJI), "la bulle du bonsaï à droite");
+        assertTrue(game.hasSkin(Skin.SIGNS_RUNES), "le succès des cent fusions");
+        assertFalse(game.hasSkin(Skin.SIGNS_SHAPES) || game.hasSkin(Skin.SIGNS_LETTERS), "pas les deux autres succès");
+        assertTrue(game.hasSkin(Skin.MATTER_LETTERS), "20 sortes rassemblées");
+        assertFalse(game.hasSkin(Skin.MATTER_DROPS), "pas 50");
+        assertTrue(game.hasSkin(Skin.TOOLTIP_PARCHMENT) && game.hasSkin(Skin.TOOLTIP_POSTIT), "cinq heures : parchemin et post-it");
+        assertFalse(game.hasSkin(Skin.TOOLTIP_TERMINAL), "pas dix heures");
+        assertTrue(game.hasSkin(Skin.DUST_SNOW) && game.hasSkin(Skin.DUST_RAIN) && game.hasSkin(Skin.DUST_POLLEN), "1e12 particules : trois paliers");
+        assertFalse(game.hasSkin(Skin.DUST_FIREFLIES), "pas 1e15");
+        assertTrue(game.hasSkin(Skin.GENERATORS_SWIRL), "cent fusions");
+        assertFalse(game.hasSkin(Skin.GENERATORS_SUCTION), "pas mille");
+        assertTrue(game.hasSkin(Skin.PAGE_MEDALS), "un ensemble complet");
+        assertTrue(game.hasSkin(Skin.PAGE_CRUCIBLE), "cent synthèses");
+        assertFalse(game.hasSkin(Skin.PAGE_SPECTRUM), "une seule famille possédée");
+        // La suite : les autres succès, toutes les sortes, dix heures, toutes les familles, l'Éclair.
+        game.state().addAchievement("step_set");
+        game.state().addAchievement("step_explosions");
+        for (idle.core.molecules.Molecule molecule : game.molecules()) game.state().addSubstance(molecule.id());
+        game.state().setTimePlayed(10 * 3600);
+        for (idle.core.elements.ElementCategory family : idle.core.elements.ElementCategory.values()) {
+            game.state().setElementCount(idle.core.elements.PeriodicTable.elements(family).get(0).number(), 1);
+        }
+        game.state().unlockSkin(Skin.FUSION_FLASH.id());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.SIGNS_SHAPES) && game.hasSkin(Skin.SIGNS_LETTERS));
+        assertTrue(game.hasSkin(Skin.MATTER_DROPS) && game.hasSkin(Skin.MATTER_ALCHEMY), "toutes les sortes rassemblées");
+        assertTrue(game.hasSkin(Skin.TOOLTIP_TERMINAL));
+        assertEquals(idle.core.elements.ElementCategory.values().length, game.familiesOwned());
+        assertTrue(game.hasSkin(Skin.PAGE_SPECTRUM), "toutes les familles");
+        assertTrue(game.hasSkin(Skin.GENERATORS_SHATTER), "l'Éclat suit l'Éclair");
+        game.state().setRebuildRecord(0);
+        assertEquals(7, Skin.DUSTS.length);
+        assertEquals(SkinVisual.TAB_ICONS, Skin.ICONS_EMOJI.visual());
+        assertEquals(SkinVisual.CARD_SIGNS, Skin.SIGNS_RUNES.visual());
+        assertEquals(SkinVisual.MATTER_SIGNS, Skin.MATTER_ALCHEMY.visual());
+        assertEquals(SkinVisual.TOOLTIP, Skin.TOOLTIP_POSTIT.visual());
+        assertEquals(SkinVisual.AMBIENT_DUST, Skin.DUST_ASH.visual());
+        assertEquals(SkinVisual.GENERATOR_FUSION, Skin.GENERATORS_SUCTION.visual());
+        assertEquals(SkinVisual.TABLE_PAGE, Skin.PAGE_SPECTRUM.visual());
+    }
+
+    /** Version 0.192 : le bonus s'arrête à cent skins comptés, et les skins libres ne comptent pas. */
+    @Test
+    void leBonusSArreteACentSkinsEtIgnoreLesSkinsLibres() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        int counted = 0;
+        for (Skin skin : Skin.values()) {
+            if (skin.isFree()) {
+                assertTrue(game.hasSkin(skin), "un skin libre est là d'office : " + skin);
+                continue;
+            }
+            game.state().unlockSkin(skin.id());
+            counted++;
+            assertEquals(1 + Skin.BONUS * Math.min(counted, Skin.MAX_COUNTED), game.skinBoost(), 1e-9, "après " + skin);
+        }
+        assertTrue(counted > Skin.MAX_COUNTED, "assez de skins pour atteindre le plafond");
+        assertEquals(Skin.MAX_COUNTED, game.skinsCounted());
+        assertEquals(Skin.values().length, game.skinsUnlocked());
+        assertEquals(3.0, game.skinBoost(), 1e-9);
     }
 }

@@ -188,6 +188,7 @@ public final class AtomsPage extends VBox {
     /** Fait avancer l'animation de l'atome, quand il est visible ; figé si le joueur a coupé son effet. */
     public void frame(double dt) {
         if (selected == 0) atomView.frame(settings.effect(Settings.Effect.ATOM_MODEL) ? dt : 0);
+        if (selected == 2) tablePage.frame(dt);     // la fumée du creuset (version 0.192)
     }
 
     /** Recopie l'état du jeu dans les textes et les boutons. */

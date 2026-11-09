@@ -10,6 +10,10 @@ import javafx.scene.paint.Color;
  * C'est la matière brute, visible dès l'écran de démarrage, que les générateurs attirent ensuite.
  * Depuis la version 0.061, elles suivent la production : plus elle est forte, plus elles filent
  * vite, en traînées, et se teintent comme les générateurs.
+ *
+ * <p>Version 0.192 : le fond a un skin ({@link #setSkin}) : neige, pluie, pollen, lucioles, bulles, poussière d'or,
+ * cendres, dessinés dans {@link AmbientSkinArt} ; « Silence » le laisse vide, comme le réglage du fond animé, qui
+ * garde la main quand il est coupé.
  */
 public final class AmbientView extends Canvas {
 
@@ -27,6 +31,23 @@ public final class AmbientView extends Canvas {
     /** La production ramenée de 0 à 1, adoucie. */
     private double intensity = 0;
     private double wanted = 0;
+    /** Le skin du fond (version 0.192), ou {@code null} pour les poussières classiques. */
+    private idle.core.universe.Skin skin = null;
+
+    /** Change le skin du fond ; un skin d'un autre visuel vaut le Classique. */
+    void setSkin(idle.core.universe.Skin chosen) {
+        skin = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.AMBIENT_DUST ? chosen : null;
+    }
+
+    /** Le skin du fond, ou {@code null} : pour les vérifications. */
+    idle.core.universe.Skin skin() {
+        return skin;
+    }
+
+    /** Le temps de l'animation : pour les vérifications. */
+    double time() {
+        return time;
+    }
 
     /** La production du moment, de 0 à 1 ({@link ParticleView#intensity(double)}). */
     void setIntensity(double intensity) {
@@ -56,6 +77,11 @@ public final class AmbientView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
         g.clearRect(0, 0, getWidth(), getHeight());
+        if (skin == idle.core.universe.Skin.DUST_SILENCE) return;     // le silence : rien
+        if (AmbientSkinArt.draws(skin)) {
+            AmbientSkinArt.frame(skin, g, getWidth(), getHeight(), x, y, dx, dy, size, phase, time, dt * speed, intensity);
+            return;
+        }
         Color color = MOTE.interpolate(ParticleView.heat(intensity), 0.7);
         g.setFill(color);
         g.setStroke(color);

@@ -119,7 +119,43 @@ public enum Skin {
     COLLIDER_WOOD(SkinVisual.COLLIDER, "Bois et cuivre", "10 générateurs du collisionneur achetés"),
     COLLIDER_CIRCUIT(SkinVisual.COLLIDER, "Circuit imprimé", "100 générateurs du collisionneur achetés"),
     COLLIDER_STADIUM(SkinVisual.COLLIDER, "Stade", "1 000 générateurs du collisionneur achetés"),
-    COLLIDER_MOBIUS(SkinVisual.COLLIDER, "Ruban de Möbius", "Skin « Glace » du collisionneur débloqué");
+    COLLIDER_MOBIUS(SkinVisual.COLLIDER, "Ruban de Möbius", "Skin « Glace » du collisionneur débloqué"),
+    // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau
+    // (SKINS.md, sections 2 et 3). « Figées » et « Silence » sont libres : des réglages déguisés en skins.
+    ICONS_CHALK(SkinVisual.TAB_ICONS, "Trait de craie", "50 atomes créés"),
+    ICONS_PIXEL(SkinVisual.TAB_ICONS, "Pixel art", "Record de reconstruction en moins d'une minute"),
+    ICONS_CONSTELLATION(SkinVisual.TAB_ICONS, "Constellation", "La galaxie formée"),
+    ICONS_EMOJI(SkinVisual.TAB_ICONS, "Emoji", "La bulle du bonsaï, à droite, achetée"),
+    ICONS_STILL(SkinVisual.TAB_ICONS, "Figées", "Libre : les mêmes icônes, sans animation", true),
+    SIGNS_RUNES(SkinVisual.CARD_SIGNS, "Runes", "Succès « Cent fusions »"),
+    SIGNS_SHAPES(SkinVisual.CARD_SIGNS, "Formes pleines", "Succès « Ensemble complet »"),
+    SIGNS_LETTERS(SkinVisual.CARD_SIGNS, "Lettres", "Succès « Dix explosions »"),
+    MATTER_LETTERS(SkinVisual.MATTER_SIGNS, "Lettres", "20 sortes rassemblées"),
+    MATTER_DROPS(SkinVisual.MATTER_SIGNS, "Gouttes et grains", "50 sortes rassemblées"),
+    MATTER_ALCHEMY(SkinVisual.MATTER_SIGNS, "Alchimie", "Toutes les sortes de molécules rassemblées"),
+    TOOLTIP_PARCHMENT(SkinVisual.TOOLTIP, "Parchemin", "Une heure de jeu"),
+    TOOLTIP_POSTIT(SkinVisual.TOOLTIP, "Post-it", "Cinq heures de jeu"),
+    TOOLTIP_TERMINAL(SkinVisual.TOOLTIP, "Terminal", "Dix heures de jeu"),
+    DUST_SNOW(SkinVisual.AMBIENT_DUST, "Neige", "1e6 particules créées"),
+    DUST_RAIN(SkinVisual.AMBIENT_DUST, "Pluie", "1e9 particules créées"),
+    DUST_POLLEN(SkinVisual.AMBIENT_DUST, "Pollen", "1e12 particules créées"),
+    DUST_FIREFLIES(SkinVisual.AMBIENT_DUST, "Lucioles", "1e15 particules créées"),
+    DUST_BUBBLES(SkinVisual.AMBIENT_DUST, "Bulles", "1e18 particules créées"),
+    DUST_GOLD(SkinVisual.AMBIENT_DUST, "Poussière d'or", "1e21 particules créées"),
+    DUST_ASH(SkinVisual.AMBIENT_DUST, "Cendres", "1e24 particules créées"),
+    DUST_SILENCE(SkinVisual.AMBIENT_DUST, "Silence", "Libre : aucun fond", true),
+    GENERATORS_SWIRL(SkinVisual.GENERATOR_FUSION, "Tourbillon", "100 fusions"),
+    GENERATORS_SUCTION(SkinVisual.GENERATOR_FUSION, "Aspiration", "1 000 fusions"),
+    GENERATORS_SHATTER(SkinVisual.GENERATOR_FUSION, "Éclat", "Skin « Éclair » débloqué"),
+    PAGE_MEDALS(SkinVisual.TABLE_PAGE, "Médailles", "Un ensemble complet"),
+    PAGE_CRUCIBLE(SkinVisual.TABLE_PAGE, "Creuset", "100 synthèses"),
+    PAGE_SPECTRUM(SkinVisual.TABLE_PAGE, "Spectre", "Toutes les familles possédées");
+
+    /** Les skins du fond des particules (version 0.192), dans l'ordre des paliers de particules créées qui les débloquent : 1e6, 1e9… 1e24. */
+    public static final Skin[] DUSTS = {DUST_SNOW, DUST_RAIN, DUST_POLLEN, DUST_FIREFLIES, DUST_BUBBLES, DUST_GOLD, DUST_ASH};
+    /** L'exposant du premier palier de {@link #DUSTS}, et l'écart entre deux paliers. */
+    public static final int FIRST_DUST_EXPONENT = 6;
+    public static final int DUST_EXPONENT_STEP = 3;
 
     /** Les skins des dix dimensions (version 0.187), dans l'ordre : {@code DIMENSION_SKINS[n - 1]} pour la dimension n. */
     public static final Skin[] DIMENSION_SKINS = {LINE_RAILS, PLANE_NOTEBOOK, VOLUME_AQUARIUM, DURATION_VINYL, LOOP_ARCHERY, BRANE_WEB,
@@ -137,18 +173,36 @@ public enum Skin {
     /** Ce qu'ajoute chaque skin débloqué à toutes les ressources d'en dessous de l'univers : +2 %. */
     public static final double BONUS = 0.02;
 
+    /**
+     * Version 0.192 : le bonus des skins s'arrête à cent skins comptés (×3 au plus), pour que les centaines de skins
+     * ajoutés depuis la 0.185 ne déséquilibrent pas la partie ; les skins libres ({@link #isFree()}) ne comptent pas.
+     */
+    public static final int MAX_COUNTED = 100;
+
     private final SkinVisual visual;
     private final String label;
     private final String source;
+    private final boolean free;
 
     /** L'identifiant, calculé une fois (version 0.170) : le jeu le demande à chaque pas pour chaque skin. */
     private final String id;
 
     Skin(SkinVisual visual, String label, String source) {
+        this(visual, label, source, false);
+    }
+
+    /** Version 0.192 : {@code free} vrai pour un skin libre, dès le début et sans bonus (un réglage déguisé en skin). */
+    Skin(SkinVisual visual, String label, String source, boolean free) {
         this.visual = visual;
         this.label = label;
         this.source = source;
+        this.free = free;
         this.id = name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Vrai pour un skin libre (version 0.192) : ouvert dès l'onglet Skins, sans bonus (palettes d'accessibilité, versions figées ou silencieuses). */
+    public boolean isFree() {
+        return free;
     }
 
     /** L'identifiant gardé dans la sauvegarde. */

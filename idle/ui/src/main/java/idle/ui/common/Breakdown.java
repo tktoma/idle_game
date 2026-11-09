@@ -6,6 +6,7 @@ import idle.core.bigbang.BangChallenge;
 import idle.core.elements.ElementEffect;
 import idle.core.math.BigNum;
 import idle.core.molecules.Molecule;
+import idle.core.universe.Skin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -20,6 +21,11 @@ import javafx.util.Duration;
  * <p>Quatre compteurs en ont une : les particules par seconde, les atomes par fusion, la matière
  * noire par explosion, l'espace par seconde. Un facteur qui vaut 1 n'est pas listé : la bulle ne
  * montre que ce qui agit. Rien n'est calculé ici que {@link Game} n'expose déjà.
+ *
+ * <p>Version 0.192 : les bulles ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochaine remise à jour :
+ * « Parchemin » (papier brun clair, encre brune, police à empattements, bord sombre), « Post-it » (jaune pâle
+ * {@code #f9eeda}, sans bord, une ombre portée, un peu penché par l'italique), « Terminal » (noir, texte vert à chasse
+ * fixe, bord vert, coins carrés).
  */
 public final class Breakdown {
 
@@ -28,9 +34,18 @@ public final class Breakdown {
 
     private static final long EVERY_NANOS = 500_000_000L;
 
+    /** Le style des bulles sans skin : celui de toujours. */
+    static final String CLASSIC_STYLE = "-fx-font-size: 12px; -fx-padding: 8 10; -fx-text-fill: #e8f4ff;"
+            + " -fx-background-color: #16202e; -fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #3a4a5e;";
+
+    /** Le skin des bulles (version 0.192), commun à toutes, ou {@code null} pour le Classique. */
+    private static volatile Skin skin = null;
+
     private final Tooltip tooltip = new Tooltip();
     private final Supplier<String> text;
     private long writtenAt = 0;
+    /** Le skin dont la bulle porte le style, ou {@code null} ; comparé au skin commun à chaque remise à jour. */
+    private Skin styled = null;
 
     private Breakdown(Node node, Supplier<String> text) {
         this.text = text;
@@ -38,9 +53,39 @@ public final class Breakdown {
         tooltip.setMaxWidth(380);
         tooltip.setShowDelay(Duration.millis(250));
         tooltip.setShowDuration(Duration.seconds(60));
-        tooltip.setStyle("-fx-font-size: 12px; -fx-padding: 8 10; -fx-text-fill: #e8f4ff;"
-                + " -fx-background-color: #16202e; -fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: #3a4a5e;");
+        tooltip.setStyle(CLASSIC_STYLE);
         Tooltip.install(node, tooltip);
+    }
+
+    /** Change le skin de toutes les bulles ; chacune le prend à sa prochaine remise à jour. */
+    public static void setSkin(Skin chosen) {
+        skin = chosen;
+    }
+
+    /** Le skin des bulles, ou {@code null} pour le Classique : pour les vérifications. */
+    public static Skin skin() {
+        return skin;
+    }
+
+    /** Le style d'une bulle sous ce skin ; {@code null} ou un skin d'un autre visuel donnent le style de toujours. */
+    public static String style(Skin skin) {
+        if (skin == null) return CLASSIC_STYLE;
+        return switch (skin) {
+            case TOOLTIP_PARCHMENT -> "-fx-font-size: 12px; -fx-font-family: serif; -fx-padding: 9 12; -fx-text-fill: #3a2a14;"
+                    + " -fx-background-color: #d8c49a; -fx-background-radius: 2; -fx-border-radius: 2; -fx-border-color: #8a6a3a;"
+                    + " -fx-border-width: 1.5;";
+            case TOOLTIP_POSTIT -> "-fx-font-size: 12px; -fx-font-style: italic; -fx-padding: 10 12; -fx-text-fill: #2a2218;"
+                    + " -fx-background-color: #f9eeda; -fx-background-radius: 0; -fx-border-color: transparent;"
+                    + " -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 10, 0.2, 3, 4);";
+            case TOOLTIP_TERMINAL -> "-fx-font-size: 12px; -fx-font-family: Monospaced; -fx-padding: 8 10; -fx-text-fill: #6dff8f;"
+                    + " -fx-background-color: #000000; -fx-background-radius: 0; -fx-border-radius: 0; -fx-border-color: #6dff8f;";
+            default -> CLASSIC_STYLE;
+        };
+    }
+
+    /** Le style de la bulle en ce moment : pour les vérifications. */
+    public String tooltipStyle() {
+        return tooltip.getStyle();
     }
 
     /** Pose sur {@code node} l'info-bulle d'un compteur. Appeler {@link #refresh()} quand sa page se recopie. */
@@ -50,6 +95,11 @@ public final class Breakdown {
 
     /** Remet la bulle à jour ; son texte n'est recomposé que deux fois par seconde. */
     public void refresh() {
+        Skin look = skin;
+        if (look != styled) {
+            styled = look;
+            tooltip.setStyle(style(look));
+        }
         long now = System.nanoTime();
         if (writtenAt != 0 && now - writtenAt < EVERY_NANOS) return;
         writtenAt = now;

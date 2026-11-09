@@ -217,7 +217,7 @@ final class Notifier {
         slowSeen = slow;
         // Un skin débloqué (version 0.089) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
-            if (skinsSeen.contains(skin) || !game.hasSkin(skin)) continue;
+            if (skinsSeen.contains(skin) || skin.isFree() || !game.hasSkin(skin)) continue;
             skinsSeen.add(skin);
             add(news, Notice.COSMETICS, "Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
                     + ElementText.percent(idle.core.universe.Skin.BONUS) + " à toutes les ressources, soit +"

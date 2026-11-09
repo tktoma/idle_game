@@ -2157,14 +2157,21 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Vrai si ce skin est débloqué. */
     public boolean hasSkin(idle.core.universe.Skin skin) {
-        return state.unlockedSkins().contains(skin.id());
+        return skin.isFree() || state.unlockedSkins().contains(skin.id());
     }
 
-    /** Nombre de skins débloqués. */
+    /** Nombre de skins débloqués, les skins libres compris (version 0.192). */
     public int skinsUnlocked() {
         int count = 0;
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (hasSkin(skin)) count++;
         return count;
+    }
+
+    /** Version 0.192 : les skins débloqués qui comptent pour le bonus : sans les libres, {@link idle.core.universe.Skin#MAX_COUNTED} au plus. */
+    public int skinsCounted() {
+        int count = 0;
+        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (!skin.isFree() && hasSkin(skin)) count++;
+        return Math.min(count, idle.core.universe.Skin.MAX_COUNTED);
     }
 
     /** Débloque un skin ; vrai s'il ne l'était pas. */
@@ -2188,9 +2195,9 @@ public abstract class GameUniverse extends GameAtoms {
         return true;
     }
 
-    /** Ce que les skins débloqués multiplient, sur toutes les ressources d'en dessous de l'univers. */
+    /** Ce que les skins débloqués multiplient, sur toutes les ressources d'en dessous de l'univers : +2 % par skin compté ({@link #skinsCounted()}). */
     public double skinBoost() {
-        return 1 + idle.core.universe.Skin.BONUS * skinsUnlocked();
+        return 1 + idle.core.universe.Skin.BONUS * skinsCounted();
     }
 
     public boolean isRegimeUnlocked() {
@@ -2470,6 +2477,33 @@ public abstract class GameUniverse extends GameAtoms {
         if (colliderGeneratorsBoughtTotal() >= 100) unlockSkin(idle.core.universe.Skin.COLLIDER_CIRCUIT);
         if (colliderGeneratorsBoughtTotal() >= 1_000) unlockSkin(idle.core.universe.Skin.COLLIDER_STADIUM);
         if (hasSkin(idle.core.universe.Skin.COLLIDER_ICE)) unlockSkin(idle.core.universe.Skin.COLLIDER_MOBIUS);
+        // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion, la page du tableau.
+        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(idle.core.universe.Skin.ICONS_CHALK);
+        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.ICONS_PIXEL);
+        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.ICONS_CONSTELLATION);
+        if (hasBubble(TreeBubble.LEAVES_RIGHT)) unlockSkin(idle.core.universe.Skin.ICONS_EMOJI);
+        if (hasAchievement("step_fusions_100")) unlockSkin(idle.core.universe.Skin.SIGNS_RUNES);
+        if (hasAchievement("step_set")) unlockSkin(idle.core.universe.Skin.SIGNS_SHAPES);
+        if (hasAchievement("step_explosions")) unlockSkin(idle.core.universe.Skin.SIGNS_LETTERS);
+        int substances = substancesFormed();
+        if (substances >= 20) unlockSkin(idle.core.universe.Skin.MATTER_LETTERS);
+        if (substances >= 50) unlockSkin(idle.core.universe.Skin.MATTER_DROPS);
+        if (substances >= molecules().size()) unlockSkin(idle.core.universe.Skin.MATTER_ALCHEMY);
+        double played = state.timePlayed();
+        if (played >= 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_PARCHMENT);
+        if (played >= 5 * 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_POSTIT);
+        if (played >= 10 * 3600) unlockSkin(idle.core.universe.Skin.TOOLTIP_TERMINAL);
+        BigNum particlesCreated = state.stats().particlesCreated();
+        for (int i = 0; i < idle.core.universe.Skin.DUSTS.length; i++) {
+            int exponent = idle.core.universe.Skin.FIRST_DUST_EXPONENT + i * idle.core.universe.Skin.DUST_EXPONENT_STEP;
+            if (particlesCreated.gte(BigNum.of(1, exponent))) unlockSkin(idle.core.universe.Skin.DUSTS[i]);
+        }
+        if (fusions >= 100) unlockSkin(idle.core.universe.Skin.GENERATORS_SWIRL);
+        if (fusions >= 1_000) unlockSkin(idle.core.universe.Skin.GENERATORS_SUCTION);
+        if (hasSkin(idle.core.universe.Skin.FUSION_FLASH)) unlockSkin(idle.core.universe.Skin.GENERATORS_SHATTER);
+        if (completedSets() >= 1) unlockSkin(idle.core.universe.Skin.PAGE_MEDALS);
+        if (state.synthesisCount() >= 100) unlockSkin(idle.core.universe.Skin.PAGE_CRUCIBLE);
+        if (familiesOwned() >= idle.core.elements.ElementCategory.values().length) unlockSkin(idle.core.universe.Skin.PAGE_SPECTRUM);
         // Version 0.186 : les skins des astres, par le nombre d'astres formés dans l'univers en cours.
         for (int i = 0; i < idle.core.universe.Skin.BODIES.length; i++) {
             if (bodiesFormed() >= idle.core.universe.Skin.BODIES_FORMED[i]) unlockSkin(idle.core.universe.Skin.BODIES[i]);

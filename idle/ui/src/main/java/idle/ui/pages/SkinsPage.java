@@ -123,7 +123,8 @@ public final class SkinsPage extends VBox {
         int unlocked = game.skinsUnlocked();
         summary.setText(unlocked + " / " + Skin.values().length + " skins débloqués"
                 + (unlocked > 0 ? " : +" + ElementText.percent(game.skinBoost() - 1) + " à toutes les ressources d'en dessous de l'univers" : "")
-                + ". Choisir un skin ne change que l'apparence ; le bonus vient de chaque skin débloqué, choisi ou non.");
+                + ". Choisir un skin ne change que l'apparence ; le bonus vient de chaque skin débloqué, choisi ou non, "
+                + "jusqu'à " + Skin.MAX_COUNTED + " skins (les skins libres, ouverts d'office, n'en donnent pas).");
         double best = game.rebuildRecord();
         record.setText("Record de reconstruction (de la fusion à " + game.generatorsPerAtom() + " générateurs) : "
                 + (best > 0 ? Format.duration(best) : "aucun encore") + " — en " + (int) Game.REBUILD_FAST_SECONDS
@@ -175,7 +176,7 @@ public final class SkinsPage extends VBox {
             boolean chosen = game.chosenSkin(skin.visual()) == skin;
             entry.getValue().show(chosen ? Card.State.ON : has ? Card.State.READY : Card.State.LOCKED, "",
                     chosen ? "choisi" : has ? "débloqué" : "", skin.label(),
-                    has ? "+" + ElementText.percent(Skin.BONUS) + " à toutes les ressources" : skin.source(), "",
+                    has ? skin.isFree() ? skin.source() : "+" + ElementText.percent(Skin.BONUS) + " à toutes les ressources" : skin.source(), "",
                     chosen ? "" : has ? "Choisir" : "Verrouillé", "");
         }
     }

@@ -35,7 +35,15 @@ public enum SkinVisual {
     /** Version 0.190 : le chrome de la fenêtre, en trois visuels. */
     AMBIENT("Le fond de la fenêtre"),
     TABS("Les onglets"),
-    CARD("Les cartes");
+    CARD("Les cartes"),
+    /** Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules, leur fusion et la page du tableau. */
+    TAB_ICONS("Les icônes d'onglet"),
+    CARD_SIGNS("Les signes d'état des cartes"),
+    MATTER_SIGNS("Les signes des états de la matière"),
+    TOOLTIP("Les info-bulles"),
+    AMBIENT_DUST("Le fond animé des particules"),
+    GENERATOR_FUSION("La fusion des générateurs"),
+    TABLE_PAGE("La page du tableau périodique");
 
     /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
     public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};

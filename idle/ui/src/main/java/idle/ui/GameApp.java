@@ -95,6 +95,13 @@ public final class GameApp extends GameAppTabs {
             styleTabs();
         }
         Card.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.CARD));
+        // Version 0.192 : les icônes d'onglet, les signes, les info-bulles, le fond des particules et leur fusion.
+        idle.ui.common.TabIcon.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TAB_ICONS));
+        Card.setSignSkin(game.chosenSkin(idle.core.universe.SkinVisual.CARD_SIGNS));
+        idle.ui.common.MatterText.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.MATTER_SIGNS));
+        idle.ui.common.Breakdown.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOOLTIP));
+        generators.setDustSkin(game.chosenSkin(idle.core.universe.SkinVisual.AMBIENT_DUST));
+        generators.setFusionSkin(game.chosenSkin(idle.core.universe.SkinVisual.GENERATOR_FUSION));
         if (debugBar != null) debugBar.refresh();
 
         // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.

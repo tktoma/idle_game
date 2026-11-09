@@ -904,6 +904,20 @@ public abstract class GameAtoms extends GamePlans {
         return state.elements().size();
     }
 
+    /** Nombre de familles dont le joueur possède au moins un élément, sur dix (version 0.192 : le skin « Spectre »). */
+    public int familiesOwned() {
+        int owned = 0;
+        for (List<Element> family : FAMILIES) {
+            for (Element element : family) {
+                if (state.elementCount(element.number()) > 0) {
+                    owned++;
+                    break;
+                }
+            }
+        }
+        return owned;
+    }
+
     /** Le cumul des effets des éléments possédés, recalculé seulement quand la collection change. */
     ElementBonuses bonuses() {
         if (ruled(Challenge.Rule.INERT_ELEMENTS)) return NO_BONUSES;
