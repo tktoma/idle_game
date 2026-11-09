@@ -111,62 +111,74 @@ public abstract class GameMatterAutomation extends GameMolecules {
         return state.automatedMolecules().size();
     }
 
-    /** Vrai si la création automatique agit en ce moment : acquise, en marche, et au moins un amas lui est confié. */
+    /**
+     * Vrai si la création automatique agit en ce moment : acquise, en marche, et ni en pause ni interdite par un
+     * défi. Depuis la version 0.178, elle suit toujours le prochain pas : il n'y a plus de réglage à part pour la
+     * liste de courses ou la matière.
+     */
     public boolean isAutoCreatingMolecules() {
         return isMoleculeAutomationUnlocked() && state.autoMolecules()
-                && (!state.automatedMolecules().isEmpty() || state.autoFollowList() || state.autoFollowMatter())
                 && !state.automationPaused() && !bangRuled(BangChallenge.BY_HAND);
     }
 
-    /** Vrai si la création automatique suit la liste de courses (le réglage par défaut). */
-    public boolean isAutoFollowingList() {
-        return state.autoFollowList();
-    }
-
-    /** Fait suivre la liste de courses à la création automatique, ou non ; faux tant qu'elle n'est pas acquise. */
-    public boolean setAutoFollowList(boolean follow) {
-        if (!isMoleculeAutomationUnlocked()) return false;
-        state.setAutoFollowList(follow);
-        return true;
-    }
-
-    /** Mode facultatif, éteint par défaut : entretient les substances utiles aux besoins de matière. */
-    public boolean isAutoFollowingMatter() { return state.autoFollowMatter(); }
-
-    public boolean setAutoFollowMatter(boolean enabled) {
-        if (!isMoleculeAutomationUnlocked() || !isStatesUnlocked()) return false;
-        state.setAutoFollowMatter(enabled);
-        return true;
-    }
-
     /**
-     * Pour chaque état dont le prochain objectif demande plus de matière rassemblée, sélectionne
-     * une substance existante peu encombrante. Ne découvre ni élément ni nouvelle substance ;
-     * les choix manuels et la liste de courses restent prioritaires.
+     * Pour chaque état dont le prochain pas demande plus de matière rassemblée, la substance déjà
+     * rassemblée la moins encombrante de cet état : c'est elle que la création automatique grossit.
+     * Vide tant que les états ne sont pas ouverts.
      */
     public List<String> autoMatterTargets() {
         if (!isStatesUnlocked() || !isMoleculeAutomationUnlocked()) return List.of();
         List<String> selected = new ArrayList<>();
         for (Map.Entry<Molecule.State, Integer> need : shoppingList().matter().entrySet()) {
             if (need.getValue() <= 0) continue;
-            Molecule best = null;
-            BigNum least = null;
-            for (Molecule candidate : moleculeList) {
-                if (!candidate.hasState() || candidate.state() != need.getKey()
-                        || !state.hasSubstance(candidate.id()) || !isMoleculeKindUnlocked(candidate.kind())) continue;
-                BigNum volume = moleculeVolume(candidate.id());
-                if (best == null || volume.lt(least)) { best = candidate; least = volume; }
-            }
+            Molecule best = smallestOfState(need.getKey(), true);
             if (best != null) selected.add(best.id());
         }
         return selected;
     }
 
     /**
+     * Pour chaque état dont le prochain pas (l'amas de galaxies, l'univers) demande plus de sortes
+     * rassemblées, la sorte pas encore rassemblée la moins encombrante de cet état, parmi les rayons
+     * ouverts : la création automatique la crée jusqu'à ce qu'elle puisse se rassembler (version 0.178). Une sorte
+     * qui a déjà ses {@link #SUBSTANCE_MOLECULES} molécules n'attend plus que son rassemblement : c'est la suivante
+     * qui est proposée.
+     */
+    public List<String> autoSortTargets() {
+        if (!isStatesUnlocked() || !isMoleculeAutomationUnlocked()) return List.of();
+        List<String> selected = new ArrayList<>();
+        for (Map.Entry<Molecule.State, Integer> need : shoppingList().sorts().entrySet()) {
+            if (need.getValue() <= 0) continue;
+            Molecule best = smallestOfState(need.getKey(), false);
+            if (best != null) selected.add(best.id());
+        }
+        return selected;
+    }
+
+    /** La molécule de cet état la moins encombrante, rassemblée ou non selon {@code gathered}, dans un rayon ouvert ; {@code null} sans. */
+    private Molecule smallestOfState(Molecule.State matter, boolean gathered) {
+        Molecule best = null;
+        BigNum least = null;
+        for (Molecule candidate : moleculeList) {
+            if (!candidate.hasState() || candidate.state() != matter || state.hasSubstance(candidate.id()) != gathered
+                    || !isMoleculeKindUnlocked(candidate.kind()) || !isMoleculeWithinReach(candidate.id())) continue;
+            if (!gathered && state.moleculeCount(candidate.id()) >= SUBSTANCE_MOLECULES) continue;
+            BigNum volume = moleculeVolume(candidate.id());
+            if (best == null || volume.lt(least)) {
+                best = candidate;
+                least = volume;
+            }
+        }
+        return best;
+    }
+
+    /**
      * Fait passer le temps de la création automatique : toutes les {@link #MOLECULE_AUTOMATION_SECONDS}
-     * secondes, une création dans chaque amas choisi qui peut en recevoir une, au même prix qu'à la
-     * main ({@link #createMolecule(String)}). Quand l'espace manque pour tous, le premier servi
-     * change à chaque passage : aucun amas n'est oublié.
+     * secondes, au même prix qu'à la main ({@link #createMolecule(String)}), dans l'ordre : une création
+     * par sorte que la liste de courses demande encore, puis une par état qui manque de matière
+     * ({@link #autoMatterTargets()}) ou de variété ({@link #autoSortTargets()}), puis une dans chaque amas
+     * confié. Quand l'espace manque pour tous, le premier amas servi change à chaque passage : aucun
+     * n'est oublié.
      */
     void runMoleculeAutomation(double dt) {
         if (dt <= 0 || !state.started() || !isAutoCreatingMolecules()) {
@@ -183,23 +195,21 @@ public abstract class GameMatterAutomation extends GameMolecules {
         for (int round = 0; round < rounds; round++) {
             boolean created = false;
             // D'abord ce que demande le prochain pas : une création par sorte qui manque, dans l'ordre de la liste.
-            if (state.autoFollowList()) {
-                for (ShoppingList.Item item : shoppingList().items()) {
-                    if (item.missing() <= 0) continue;
-                    String id = item.molecule().id();
-                    if (reserve > 0 && !leavesReserve(id, reserve)) continue;
-                    if (!withinStateCap(id)) continue;
-                    created |= createMolecule(id, true);
-                }
+            for (ShoppingList.Item item : shoppingList().items()) {
+                if (item.missing() <= 0) continue;
+                String id = item.molecule().id();
+                if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                if (!withinStateCap(id)) continue;
+                created |= createMolecule(id, true);
             }
-            // Répare les besoins de matière sans monopoliser les amas manuels, et sans les doubler.
-            if (state.autoFollowMatter()) {
-                for (String id : autoMatterTargets()) {
-                    if (chosen.contains(id)) continue; // le joueur gère déjà cette substance lui-même
-                    if (reserve > 0 && !leavesReserve(id, reserve)) continue;
-                    if (!withinStateCap(id)) continue;
-                    created |= createMolecule(id, true);
-                }
+            // Puis la matière et la variété qui manquent par état, sans doubler les amas que le joueur gère lui-même.
+            List<String> targets = new ArrayList<>(autoMatterTargets());
+            targets.addAll(autoSortTargets());
+            for (String id : targets) {
+                if (chosen.contains(id)) continue;
+                if (reserve > 0 && !leavesReserve(id, reserve)) continue;
+                if (!withinStateCap(id)) continue;
+                created |= createMolecule(id, true);
             }
             if (chosen.isEmpty()) {
                 if (!created) break;
@@ -414,20 +424,6 @@ public abstract class GameMatterAutomation extends GameMolecules {
         return after.lte(state.space().multiply(cap));
     }
 
-    /** Vrai une fois le premier assemblage formé : la réservation par recette s'ouvre. */
-    public boolean isRecipeReservationUnlocked() {
-        return assembliesFormed() > 0;
-    }
-
-    /** Vrai si la réservation par recette est ouverte et allumée. */
-    public boolean isRecipeReservationOn() {
-        return isRecipeReservationUnlocked() && state.recipeReservation();
-    }
-
-    public void setRecipeReservation(boolean on) {
-        state.setRecipeReservation(on);
-    }
-
     /**
      * Le prochain assemblage à former : le premier de l'astre visé ({@link #nextBody()}) qui ne l'est
      * pas encore, ou celui de la liste de courses avant les astres. {@code null} s'il n'y en a pas.
@@ -467,16 +463,6 @@ public abstract class GameMatterAutomation extends GameMolecules {
         Integer count = next.ingredients().get(moleculeId);
         if (count == null) return -1;
         return Math.max(0, assembledMolecules(moleculeId) + count - state.moleculeCount(moleculeId));
-    }
-
-    /**
-     * Vrai si créer cette sorte maintenant serait une production saturante inutile : la réservation
-     * par recette est allumée, la sorte a déjà ce qu'il faut au prochain assemblage, et l'espace libre
-     * ne suffirait plus à ce que demande encore la liste de courses.
-     */
-    public boolean isSaturating(String moleculeId) {
-        if (!isRecipeReservationOn() || recipeRemaining(moleculeId) != 0) return false;
-        return freeSpace().subtract(moleculeNextSpace(moleculeId)).lt(shoppingSpace());
     }
 
     /** Vrai une fois le premier Big Bang fait : le filtre « utiles au prochain astre » du tableau s'ouvre. */

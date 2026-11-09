@@ -654,20 +654,20 @@ public abstract class GameStateCollider extends GameStateUnlocks {
      * lancée par le joueur ({@link #reset()}) les remet comme au premier lancement.
      */
     private record PlayerSettings(boolean automationPaused, boolean autoGather, boolean autoForm, boolean autoHold,
-                                  boolean autoMolecules, boolean autoFollowList, boolean autoFollowMatter,
+                                  boolean autoMolecules,
                                   double autoMoleculeReserve, int fusionThreshold, boolean holdLocked,
                                   List<String> automatedMolecules, List<String> favoriteMolecules,
-                                  Map<String, Double> stateCaps, boolean recipeReservation,
+                                  Map<String, Double> stateCaps,
                                   List<String> atomUpgradeOrder, boolean atomUpgradeOrdered,
                                   List<String> automationOrder, boolean automationOrdered,
                                   List<String> enabledDarkAutomations, java.util.EnumSet<ColliderUpgrade> colliderPaused) {
 
         PlayerSettings(GameStateCollider state) {
             this(state.automationPaused, state.autoGather, state.autoForm, state.autoHold,
-                    state.autoMolecules, state.autoFollowList, state.autoFollowMatter,
+                    state.autoMolecules,
                     state.autoMoleculeReserve, state.fusionThreshold, state.holdLocked,
                     new ArrayList<>(state.automatedMolecules), new ArrayList<>(state.favoriteMolecules),
-                    new TreeMap<>(state.stateCaps), state.recipeReservation,
+                    new TreeMap<>(state.stateCaps),
                     new ArrayList<>(state.atomUpgradeOrder), state.atomUpgradeOrdered,
                     new ArrayList<>(state.automationOrder), state.automationOrdered,
                     new ArrayList<>(state.enabledDarkAutomations), state.colliderPaused.clone());
@@ -679,8 +679,6 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             state.autoForm = autoForm;
             state.autoHold = autoHold;
             state.autoMolecules = autoMolecules;
-            state.autoFollowList = autoFollowList;
-            state.autoFollowMatter = autoFollowMatter;
             state.autoMoleculeReserve = autoMoleculeReserve;
             state.fusionThreshold = fusionThreshold;
             state.holdLocked = holdLocked;
@@ -690,7 +688,6 @@ public abstract class GameStateCollider extends GameStateUnlocks {
             state.favoriteMolecules.addAll(favoriteMolecules);
             state.stateCaps.clear();
             state.stateCaps.putAll(stateCaps);
-            state.recipeReservation = recipeReservation;
             state.atomUpgradeOrder.clear();
             state.atomUpgradeOrder.addAll(atomUpgradeOrder);
             state.atomUpgradeOrdered = atomUpgradeOrdered;

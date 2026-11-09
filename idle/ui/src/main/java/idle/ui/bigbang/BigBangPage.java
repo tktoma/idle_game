@@ -27,14 +27,16 @@ import javafx.scene.control.Button;
  * <p>En haut, le nombre de Big Bangs déclenchés. En dessous, dix sous-pages ; à partir des états,
  * chacune n'apparaît qu'une fois ouverte par une amélioration ou un Big Bang :
  * <ul>
- *   <li>« Molécules » : le catalogue ({@link Game#molecules()}), un rayon à la fois
- *       ({@link Molecule.Kind}). Seuls les rayons ouverts sont proposés : les petites molécules
- *       d'abord, puis un rayon de plus à chaque amélioration d'espace ; une ligne annonce le prochain. Chaque molécule est une {@link Card} qui porte son dessin
- *       ({@link MoleculeArt}), sa formule, l'espace qu'elle occupe, combien ont été créées et ce
- *       que demande la suivante ; un clic la crée, avec des exemplaires du tableau périodique. Une
+ *   <li>« Molécules » : le catalogue ({@link Game#molecules()}, 73 molécules), un rayon à la fois
+ *       ({@link Molecule.Kind}, quatre rayons). Seuls les rayons ouverts sont proposés : les petites molécules
+ *       d'abord, puis un rayon de plus à chaque amélioration d'espace. Chaque molécule est une {@link Card}
+ *       basse (version 0.178) : son petit dessin ({@link MoleculeArt}), sa formule, son nom et combien ont
+ *       été créées sur la première ligne, son bonus et ce que demande la suivante ensuite, et une ligne de
+ *       plus seulement si le prochain pas la demande ; l'espace occupé, le rendement et la formule détaillée
+ *       sont dans l'info-bulle. Un clic la crée, avec des exemplaires du tableau périodique. Une
  *       fois la création continue acquise, tenir le clic répète la création. Son étoile l'épingle
- *       parmi les favorites, qui ont leur pastille devant les rayons. Trois rangées de filtres :
- *       par état, par ce qu'elle donne, et par usage (créable maintenant, utile au prochain astre) ;</li>
+ *       parmi les favorites, qui ont leur pastille devant les rayons. Deux filtres, avec la recherche :
+ *       par état, et par usage (créable maintenant, utile au prochain pas) ;</li>
  *   <li>« Expansion de la matière » : l'espace créé, ce qu'il gagne par seconde, ce que les
  *       molécules en occupent, et une vue de cet espace ({@link SpaceView}) où l'on peut
  *       s'approcher des molécules ou reculer jusqu'à tout voir ;</li>
@@ -42,13 +44,13 @@ import javafx.scene.control.Button;
  *       rayons de molécules, un à un, le rassemblement, les gestes de confort. Rien ne s'y dépense
  *       ni ne s'y clique : chacune est acquise d'elle-même quand son seuil est atteint. Une
  *       amélioration n'est montrée que lorsque celle dont elle dépend est acquise ;</li>
- *   <li>« États de la matière » : le rassemblement des molécules en gaz, liquides, solides, cristaux et métaux
+ *   <li>« États de la matière » : le rassemblement des molécules en gaz, liquides et cristaux
  *       ({@link Game#formSubstance(String)}), un achat unique par sorte de molécule. La sous-page
  *       a un lieu par état, où se rangent les cartes de ses molécules ; une molécule n'y apparaît
  *       que lorsque le joueur en a créé au moins une ;</li>
  *   <li>« Assemblages » : les roches, minerais, pierres précieuses, eaux, gaz et hydrocarbures faits de
- *       plusieurs sortes de molécules ({@link Game#formAssembly(String)}), une section par famille.
- *       Un assemblage n'y apparaît que lorsque le joueur a créé au moins un de ses ingrédients ;</li>
+ *       plusieurs sortes de molécules ({@link Game#formAssembly(String)}, un par astre : trente), une section
+ *       par famille. Un assemblage n'y apparaît que lorsque le joueur a créé au moins un de ses ingrédients ;</li>
  *   <li>« Astres » : le ciel et les corps qu'on y forme, de l'amas de roches à la planète
  *       ({@link BodiesPane}) ;</li>
  *   <li>« Univers » : la galaxie, l'amas de galaxies et l'univers ({@link GalaxyPane}) ;</li>
@@ -61,8 +63,7 @@ import javafx.scene.control.Button;
  * fait d'un coup tout ce qui est possible. Un sous-onglet où quelque chose est prêt porte une
  * pastille ({@link Readiness}).
  *
- * <p>Les cartes d'un rayon ne sont construites que la première fois qu'on l'ouvre : le catalogue
- * compte plusieurs centaines de molécules.
+ * <p>Les cartes d'un rayon ne sont construites que la première fois qu'on l'ouvre.
  *
  * <p>Le code est rangé en parties (version 0.098) : une chaîne de classes abstraites, une par thème, dont
  * celle-ci est le bout ; le reste du programme ne voit que {@code BigBangPage}. De la base au bout :
@@ -81,17 +82,12 @@ public final class BigBangPage extends BigBangPageRefresh {
         moleculesIntro.setText("Une molécule se crée avec des exemplaires du tableau périodique et de l'espace libre ("
                 + Format.count(game.freeSpace()) + " en ce moment), et reste pour toujours."
                 + Detail.only(" Les exemplaires quittent le tableau avec ce qu'ils y apportaient ; un exemplaire de "
-                        + "chaque élément y reste, pour que le tableau puisse toujours exploser. Une création demande "
-                        + "toujours la formule, une fois : il suffit de regarnir le tableau pour recommencer. Une molécule "
-                        + "occupe " + ElementText.number(Game.SPACE_PER_PROTON) + " unités d'espace par proton, que "
-                        + "l'expansion de la matière doit avoir créées : plus elle est complexe ou faite d'éléments lourds, "
-                        + "plus elle en prend ; un liquide en prend le double, un gaz "
-                        + ElementText.number(Molecule.State.GAS.spaceFactor()) + " fois plus. Ni l'explosion ni le Big Bang "
-                        + "ne reprennent une molécule. Chaque sorte donne quelque chose : un léger bonus, ou un exemplaire "
-                        + "de plus au maximum d'un de ses éléments. Elle le donne à la première molécule, puis chaque fois "
-                        + "que leur nombre double (3, 7, 15…) : mieux vaut beaucoup de sortes qu'une seule énorme. Une sorte "
-                        + "rassemblée (États de la matière) attire la matière : chaque création y ajoute plusieurs "
-                        + "molécules d'un coup."));
+                        + "chaque élément y reste, pour que le tableau puisse toujours exploser. Une molécule occupe "
+                        + ElementText.number(Game.SPACE_PER_PROTON) + " unités d'espace par proton ; un liquide en prend le "
+                        + "double, un gaz " + ElementText.number(Molecule.State.GAS.spaceFactor()) + " fois plus. Chaque sorte "
+                        + "donne quelque chose à la première molécule, puis chaque fois que leur nombre double (3, 7, 15…) : "
+                        + "mieux vaut beaucoup de sortes qu'une seule énorme. Une sorte rassemblée (États de la matière) "
+                        + "attire la matière : chaque création y ajoute plusieurs molécules d'un coup."));
         // Les rayons : combien de leurs molécules ont été créées au moins une fois.
         boolean filtered = moleculeFilter.active();
         Map<Molecule.Kind, int[]> totals = new EnumMap<>(Molecule.Kind.class);
@@ -109,7 +105,7 @@ public final class BigBangPage extends BigBangPageRefresh {
         bestButton.setDisable(best == null);
         if (best == null) {
             bestLabel.setText("Meilleur achat : aucune création possible pour l'instant");
-            bestButton.setText("Créer");
+            bestButton.setText("Créer le meilleur achat");
         } else {
             int lot = game.moleculesNextCreation(best.id());
             bestLabel.setText("Meilleur achat : " + best.name() + " " + best.formula()
@@ -117,44 +113,27 @@ public final class BigBangPage extends BigBangPageRefresh {
                     + " pour " + Format.count(game.moleculeNextSpace(best.id())) + " d'espace"
                     + Detail.only(". C'est la création possible maintenant qui rapporte le plus par unité d'espace : son bonus "
                             + "et ce que son état ajoute, rapportés à ce que valent déjà ces grandeurs."));
-            bestButton.setText(lot > 1 ? "Créer ×" + lot : "Créer");
+            bestButton.setText(lot > 1 ? "Créer le meilleur achat ×" + lot : "Créer le meilleur achat");
         }
         sortButton.setText(sortedByYield ? "Ordre : meilleur rendement d'abord" : "Ordre : catalogue");
-        boolean reservation = game.isRecipeReservationUnlocked();
-        reservationBar.setVisible(reservation);
-        reservationBar.setManaged(reservation);
-        if (reservation) {
-            idle.core.sky.Assembly next = game.nextAssembly();
-            reservationButton.setText(game.isRecipeReservationOn()
-                    ? "Réservation par recette : oui" + (next == null ? "" : ", pour " + next.name()) : "Réservation par recette : non");
-        }
-        collectionLabel.setText(favoritesShown ? "" : collectionText(kind));
-        collectionLabel.setVisible(!collectionLabel.getText().isEmpty());
-        collectionLabel.setManaged(!collectionLabel.getText().isEmpty());
         // Les favorites : leur pastille n'existe que s'il y en a ; la dernière retirée, on revient au rayon.
-        java.util.List<Molecule> pinned = game.favoriteMolecules();
+        List<Molecule> pinned = game.favoriteMolecules();
         if (favoritesShown && pinned.isEmpty()) selectKind(kind);
-        favoritesChip.setText("★ Favorites  " + pinned.size());
+        favoritesChip.setText("★ Favorites " + pinned.size());
         favoritesChip.setVisible(!pinned.isEmpty());
         favoritesChip.setManaged(!pinned.isEmpty());
-        Map<Molecule.Kind, Integer> missing = game.missingByKind();
-        needsLabel.setText(needs(missing));
+        ShoppingList shopping = game.shoppingList();
+        needsLabel.setText(needs(shopping, game.missingByKind()));
         needsLabel.setVisible(!needsLabel.getText().isEmpty());
         needsLabel.setManaged(needsLabel.isVisible());
-        randomButton.setDisable(favoritesShown || !game.canCreateInKind(kind));
         kindChips.forEach((each, chip) -> {
             int[] total = totals.getOrDefault(each, new int[3]);
             // Pendant une recherche, chaque rayon dit combien de ses molécules correspondent.
-            int wanted = missing.getOrDefault(each, 0);
-            chip.setText(each.label() + "  " + (filtered ? total[2] + " sur " + total[1] : total[0] + "/" + total[1])
-                    + (wanted > 0 ? "  · " + wanted + " à créer" : ""));
+            chip.setText(each.label() + " " + (filtered ? total[2] + " sur " + total[1] : total[0] + "/" + total[1]));
             boolean open = game.isMoleculeKindUnlocked(each);
             chip.setVisible(open);
             chip.setManaged(open);
         });
-        nextKindLabel.setText(nextKind());
-        nextKindLabel.setVisible(!nextKindLabel.getText().isEmpty());
-        nextKindLabel.setManaged(!nextKindLabel.getText().isEmpty());
         int[] here = totals.getOrDefault(kind, new int[3]);
         if (favoritesShown) {
             // Parmi les favorites, le compte porte sur elles, tous rayons confondus.
@@ -178,10 +157,12 @@ public final class BigBangPage extends BigBangPageRefresh {
             createShownButton.setDisable(!possible);
             createShownButton.setText(possible ? "Créer le maximum de celles-ci" : "Rien à créer pour l'instant");
         }
+        // Ce que le prochain pas demande de chaque sorte : la troisième ligne des cartes concernées.
+        Map<String, ShoppingList.Item> wanted = new java.util.HashMap<>();
+        for (ShoppingList.Item item : shopping.items()) wanted.put(item.molecule().id(), item);
         if (favoritesShown) {
             // Les favorites : une carte par molécule épinglée, dans l'ordre où elles l'ont été ; les autres se retirent.
-            java.util.List<Molecule> favorites = game.favoriteMolecules();
-            for (Molecule molecule : favorites) {
+            for (Molecule molecule : pinned) {
                 Card card = favoriteCards.computeIfAbsent(molecule, each -> {
                     Card built = moleculeCard(each);
                     favoriteGrid.add(built);
@@ -189,10 +170,10 @@ public final class BigBangPage extends BigBangPageRefresh {
                 });
                 boolean match = game.isMoleculeKindUnlocked(molecule.kind()) && (!filtered || shown(molecule));
                 favoriteGrid.show(card, match);
-                if (match) fill(molecule, card);
+                if (match) fill(molecule, card, shopping, wanted.get(molecule.id()));
             }
             favoriteCards.forEach((molecule, card) -> {
-                if (!favorites.contains(molecule)) favoriteGrid.show(card, false);
+                if (!pinned.contains(molecule)) favoriteGrid.show(card, false);
             });
             return;
         }
@@ -201,16 +182,15 @@ public final class BigBangPage extends BigBangPageRefresh {
             if (molecule.kind() != kind) return;      // seul le rayon affiché se met à jour
             boolean match = !filtered || shown(molecule);
             grid.show(card, match);
-            if (match) fill(molecule, card);
+            if (match) fill(molecule, card, shopping, wanted.get(molecule.id()));
         });
     }
 
     /**
      * Le prochain pas en une ligne : ce qu'il manque, par rayon et par état. « Pour Amas rocheux : 3 à créer
-     * en Sels, 2 en Minéraux · 4 solides à rassembler. » Vide quand il n'y a rien à viser.
+     * en Acides et sels, 2 en Minéraux et matériaux · 4 cristaux à rassembler. » Vide quand il n'y a rien à viser.
      */
-    private String needs(Map<Molecule.Kind, Integer> missing) {
-        ShoppingList shopping = game.shoppingList();
+    private String needs(ShoppingList shopping, Map<Molecule.Kind, Integer> missing) {
         if (shopping.kind() == ShoppingList.Kind.NONE) return "";
         if (shopping.ready()) return "Pour " + shopping.target() + " : tout est réuni, il n'y a plus qu'à le former.";
         List<String> parts = new ArrayList<>();
@@ -225,8 +205,6 @@ public final class BigBangPage extends BigBangPageRefresh {
         if (parts.isEmpty() && matter.isEmpty()) text.append("il reste à rassembler ou à assembler ce qui est déjà créé");
         return text.append(".").toString();
     }
-
-    static final double RANDOM_BUTTON_WIDTH = 190;
 
     /** Les molécules à l'écran : les favorites ou le rayon affiché, filtres appliqués. */
     public List<Molecule> shownMolecules() {
@@ -269,8 +247,13 @@ public final class BigBangPage extends BigBangPageRefresh {
     /** Garde-fou : le plus grand nombre de créations d'un seul clic sur « Créer le maximum ». */
     static final int MAX_BATCH_CREATIONS = 5_000;
 
-    /** Remplit la carte d'une molécule : ce qu'elle donne, ce qu'elle occupe, combien il y en a, ce que demande la suivante. */
-    private void fill(Molecule molecule, Card card) {
+    /**
+     * Remplit la carte d'une molécule (version 0.178, allégée) : en tête son dessin, sa formule et son
+     * compte ; son nom ; son bonus, et dessous ce que demande la prochaine création ou pourquoi elle
+     * attend ; une ligne de plus seulement si le prochain pas la demande ({@code wanted}). L'espace
+     * qu'elle occupe, son rendement et sa formule détaillée sont dans l'info-bulle.
+     */
+    private void fill(Molecule molecule, Card card, ShoppingList shopping, ShoppingList.Item wanted) {
         card.showPin(game.isMoleculeFavorite(molecule.id()));
         card.setRepeats(game.isHoldCreateUnlocked());
         int count = game.moleculeCount(molecule.id());
@@ -284,36 +267,30 @@ public final class BigBangPage extends BigBangPageRefresh {
         int next = ready ? game.moleculesNextCreation(molecule.id()) : drawn;
         // Ce que la prochaine création ajouterait aux grandeurs du jeu, en proportion de ce qu'elles valent.
         double gain = reachable ? game.moleculeGain(molecule.id()) : 0;
-        // L'explication n'est composée que si elle va s'afficher.
-        String detail = !Detail.shown() ? "" : molecule.atoms() + (molecule.atoms() > 1 ? " atomes, " : " atome, ") + molecule.protons()
-                + " protons. Formule : " + recipe(molecule.recipe(), false) + "."
-                + (drawn > 1 ? " Rassemblée : une création en ajoute " + drawn + " d'un coup, pour le prix d'une seule"
-                        + (next < drawn ? " (" + next + " seulement, faute de place)." : ".") : "")
-                + given(molecule, count);
         boolean full = game.isMoleculeKindFull(molecule.id());
         String price = ready ? (next > 1 ? "Créer ×" + Format.count(BigNum.of(next)) + " : " : "Créer : ") + recipe(cost, false)
                 : full ? "Pleine : un milliard au plus par sorte"
                 : !reachable ? "Hors de portée : " + recipe(cost, false)
                 : !elements ? "Il faut " + recipe(cost, true)
                 : "Il manque " + Format.count(volume.subtract(game.freeSpace()).max(BigNum.ONE)) + " d'espace";
-        // La réservation par recette (version 0.085) : ce qu'il reste à créer pour le prochain assemblage, et l'alerte.
-        int remaining = game.isRecipeReservationOn() ? game.recipeRemaining(molecule.id()) : -1;
-        String recipe = remaining < 0 ? "" : remaining > 0 ? "\nRecette : encore " + Format.count(BigNum.of(remaining))
-                : "\nRecette : assez";
-        boolean saturating = game.isSaturating(molecule.id());
+        // La troisième ligne : « Pour l'assemblage Granite : 120 / 200 », seulement quand le prochain pas la demande.
+        String purpose = wanted == null ? "" : "\nPour " + (wanted.purpose().isEmpty() ? shopping.target() : "l'assemblage " + wanted.purpose())
+                + " : " + Format.count(BigNum.of(Math.min(wanted.owned(), wanted.needed()))) + " / " + Format.count(BigNum.of(wanted.needed()))
+                + (wanted.gather() && wanted.missing() == 0 ? ", à rassembler" : "");
+        card.setHint(molecule.name() + " " + molecule.formula() + " : " + molecule.atoms() + (molecule.atoms() > 1 ? " atomes, " : " atome, ")
+                + molecule.protons() + " protons (" + recipe(molecule.recipe(), false) + "). Occupe " + Format.count(volume) + " d'espace"
+                + (molecule.hasState() ? ", " + MatterText.plural(molecule.state()).toLowerCase(java.util.Locale.ROOT) : "") + "."
+                + (gain > 0 ? " Rapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) + " d'espace." : "")
+                + (drawn > 1 ? " Rassemblée : une création en ajoute " + drawn + " d'un coup, pour le prix d'une seule"
+                        + (next < drawn ? " (" + next + " seulement, faute de place)." : ".") : ""));
         card.show(ready ? Card.State.READY : full ? Card.State.DONE : !reachable ? Card.State.LOCKED
                         : count > 0 ? Card.State.STARTED : Card.State.WAITING,
-                count > 0 ? "×" + Format.count(BigNum.of(count)) : "", molecule.formula(), molecule.name(),
-                (molecule.hasBonus() ? bonus(molecule) + "\n" : "") + "Occupe " + Format.count(volume) + " d'espace"
-                        + (gain > 0 ? "\nRapporte " + gainText(gain) + " pour " + Format.count(game.moleculeNextSpace(molecule.id())) : "")
-                        + recipe,
-                detail + (saturating ? " La recette en a assez, et l'espace manque déjà pour le reste de la liste : une création "
-                        + "de plus le prendrait à ce qu'il faut encore." : ""),
-                price, saturating ? "⚠ inutile : la recette en a assez" : molecule == best ? "★ meilleur achat"
-                        : molecule == bestHere ? "meilleur du rayon" : "");
+                molecule.formula(), count > 0 ? "×" + Format.count(BigNum.of(count)) : "", molecule.name(),
+                bonus(molecule) + purpose, Detail.shown() ? given(molecule, count).trim() : "",
+                price, molecule == best ? "★ meilleur achat" : molecule == bestHere ? "meilleur du rayon" : "");
     }
 
-    /** « Prochain rayon : Sels, dans les améliorations (à 10 000 d'espace créé, dans 2 h 10). » Vide quand tous les rayons sont ouverts. */
+    /** « Prochain rayon : Acides et sels, à 2 000 d'espace créé, dans 2 h 10. » Vide quand tous les rayons sont ouverts. */
     private String nextKind() {
         Molecule.Kind next = game.nextMoleculeKind();
         if (next == null) return "";
@@ -419,7 +396,7 @@ public final class BigBangPage extends BigBangPageRefresh {
                         + "L'espace libre sert aux molécules et à leurs lieux de rassemblement ; les améliorations, "
                         + "elles, ne regardent que l'espace créé en tout. Dans la vue, le cercle clair est le bord de "
                         + "l'espace créé, le cercle sombre le cœur utilisé ; les molécules rassemblées s'y rangent par "
-                        + "état, les plus serrés au plus près du centre : métaux, cristaux, solides, liquides, gaz. "
+                        + "état, les plus serrés au plus près du centre : cristaux, liquides, gaz. "
                         + "Celles d'une même sorte partagent un amas de leur couleur, cerné de celle de son état ; les "
                         + "amas se touchent sans se chevaucher. De très loin, la matière se fond en nuages de gaz. "
                         + "La molette ou les boutons rapprochent et éloignent : on ne recule pas plus loin que l'espace "

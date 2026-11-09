@@ -34,8 +34,11 @@ import java.util.Map;
  */
 public record Assembly(String id, String name, Family family, String tint, Map<String, Integer> ingredients) {
 
-    /** Nombre de molécules d'un assemblage qui valent un bonus de 100 %. */
-    public static final double MOLECULES_PER_WHOLE = 200;
+    /**
+     * Nombre de molécules d'un assemblage qui valent un bonus de 100 % : 100 depuis la version 0.178 (200 avant),
+     * parce que les astres n'ont plus qu'un assemblage chacun et que les collections de rayon ont disparu.
+     */
+    public static final double MOLECULES_PER_WHOLE = 100;
 
     /** Les familles d'assemblages, chacune avec la grandeur qu'elle augmente. */
     public enum Family {

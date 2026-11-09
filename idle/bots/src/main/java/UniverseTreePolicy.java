@@ -224,11 +224,76 @@ final class UniverseTreePolicy {
         return random.nextDouble() < p;
     }
 
-    /** Le palier de la graine que vise le joueur : celui qui ouvre l'univers suivant. */
+    /**
+     * Le palier de la graine que vise le joueur. Version 0.179 : l'arbre-monde, toujours. Les paliers demandent maintenant
+     * des heures d'arrosoir, et chacun ouvre des bulles : un joueur présent tient l'arrosoir tant que la graine grandit,
+     * dès l'univers 1 formé. Avant (0.152 à 0.178), le palier de l'univers suivant, trente arrosages plus loin.
+     */
     static int wantedStage(Game game) {
-        // Univers formés n : la partie en cours (rejouée) mène à l'univers n + 1, que le palier n + 1 a ouvert ; elle
-        // vise le palier n + 2, celui de l'univers d'après. Sans partie en cours, l'univers n + 1 attend le palier n + 1.
-        return Math.min(Game.SEED_STAGES, game.universes() + (game.isReplaying() ? 2 : 1));
+        return Game.SEED_STAGES;
+    }
+
+    /** Vrai dès qu'il y a une graine à arroser : l'univers 1 formé. La politique des bulles attend {@link #FROM_UNIVERSES}. */
+    static boolean watering(Game game) {
+        return !disabled() && game.isUniverseFormed();
+    }
+
+    // ------------------------------------------------------------------
+    // Les dimensions jouées à la main pendant les attentes (version 0.179)
+    // ------------------------------------------------------------------
+
+    /** Le joueur appliqué de la dimension en cours, ou {@code null} ; sa dimension est reconsidérée toutes les {@link #DIMENSION_RETHINK_SECONDS} secondes. */
+    private DimensionBots.Player dimensionPlayer;
+    private int dimensionPlayed;
+    private double dimensionRethink;
+    /** Le temps de jeu entre deux choix de dimension. */
+    static final double DIMENSION_RETHINK_SECONDS = 60;
+    /** Les dimensions jouées à la main : le plan, le volume et la durée ; la ligne tourne seule. */
+    static final int FIRST_PLAYED = 2, LAST_PLAYED = 4;
+
+    /**
+     * Avant chaque pas du jeu, le joueur présent joue une dimension à la main (version 0.179), celle dont les éclats
+     * manquent le plus à la prochaine amélioration de la graine : les attentes de l'amas, de la formation et de la
+     * maturation se passent dans les dimensions, et ce qu'elles rapportent paie la graine. Rien si la politique est
+     * coupée, avant l'univers 1 formé, ou pour un joueur qui ne s'occupe pas de l'arbre à chaque décision ({@link Style#care}).
+     */
+    void tick(Game game, double dt) {
+        if (!watering(game) || style.care() < 1 || dt <= 0) return;
+        dimensionRethink -= dt;
+        if (dimensionPlayer == null || dimensionRethink <= 0) {
+            dimensionRethink = DIMENSION_RETHINK_SECONDS;
+            int best = bestDimension(game);
+            if (best != dimensionPlayed || dimensionPlayer == null) {
+                dimensionPlayer = best == 0 ? null : DimensionBots.player(game, DimensionBots.name(best));
+                dimensionPlayed = best;
+            }
+        }
+        if (dimensionPlayer != null) dimensionPlayer.decide(dt);
+    }
+
+    /** La dimension à jouer : parmi celles ouvertes de {@link #FIRST_PLAYED} à {@link #LAST_PLAYED}, celle dont la réserve couvre le moins sa prochaine amélioration de la graine ; 0 sans. */
+    static int bestDimension(Game game) {
+        int best = 0;
+        double worst = Double.POSITIVE_INFINITY;
+        for (int dimension = FIRST_PLAYED; dimension <= Math.min(LAST_PLAYED, game.dimensionsUnlocked()); dimension++) {
+            double cost = cheapestSeedUpgrade(game, dimension);
+            double cover = cost == Double.POSITIVE_INFINITY ? Double.POSITIVE_INFINITY : game.dimensionResource(dimension) / cost;
+            if (cover < worst) {
+                worst = cover;
+                best = dimension;
+            }
+        }
+        return best;
+    }
+
+    /** Le prix de la moins chère des améliorations de la graine ouvertes et pas au plus haut que paie cette dimension ; infini sans. */
+    static double cheapestSeedUpgrade(Game game, int dimension) {
+        double cheapest = Double.POSITIVE_INFINITY;
+        for (SeedUpgrade upgrade : SeedUpgrade.values()) {
+            if (upgrade.dimension() != dimension || !game.isSeedUpgradeOpen(upgrade) || game.seedUpgradeLevel(upgrade) >= upgrade.max()) continue;
+            cheapest = Math.min(cheapest, game.seedUpgradeCost(upgrade));
+        }
+        return cheapest;
     }
 
     /**
@@ -245,6 +310,7 @@ final class UniverseTreePolicy {
     /** L'arrosoir : débloqué, puis penché tant que la graine n'a pas le palier voulu, repris ensuite. */
     int water(Game game) {
         int done = 0;
+        if (!watering(game)) return 0;
         if (game.canUnlockWateringCan() && game.unlockWateringCan()) done++;
         boolean wanted = game.canTendSeed() && game.seedStage() < wantedStage(game);
         if (game.isWatering() != wanted) {
@@ -256,8 +322,9 @@ final class UniverseTreePolicy {
 
     /** Les gestes de l'arbre, à chaque décision ; rien avant l'univers 4. */
     int play(Game game) {
-        if (!active(game) || !chance(style.care())) return 0;
+        if (!watering(game) || !chance(style.care())) return 0;
         int done = water(game);
+        if (!active(game)) return done;
         done += buyBubbles(game);
         done += hadrons(game);
         done += line(game);
@@ -457,8 +524,8 @@ final class UniverseTreePolicy {
     /** Le bilan, pour les diagnostics. */
     String summary(Game game) {
         return String.format(Locale.ROOT, "graine palier %d, %d bulles (%s), énergie du vide à dépenser %.0f, hadrons ouverts %d"
-                + " fois, %d liés (gluons %d), ligne %d achats, graine %d achats, %d automatismes des dimensions ; façon de jouer %s",
+                + " fois, %d liés (gluons %d), ligne %d achats, graine %d achats, %d automatismes des dimensions, dimension jouée %d ; façon de jouer %s",
                 game.seedStage(), bubbles, String.join(" ; ", journal), game.voidAvailable(), hadronsOpened, hadronsBound,
-                game.gluons(), lineBought, seedBought, automations, style);
+                game.gluons(), lineBought, seedBought, automations, dimensionPlayed, style);
     }
 }

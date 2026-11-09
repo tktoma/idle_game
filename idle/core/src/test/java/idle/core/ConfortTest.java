@@ -287,9 +287,9 @@ class ConfortTest {
         @Test
         void laCoupureArreteLaCreationAutomatique() {
             Game game = openGame();
-            game.state().setAutoFollowList(false);
             GameTestSupport.bangs(game, 2);
-            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
+            // Assez d'exemplaires pour la liste de courses, que la création automatique sert d'abord (0.178), et pour l'amas confié.
+            for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 200);
             give(game, "H2O", 3);
             assertTrue(game.setMoleculeAutomated("H2O", true));
             game.setAutomationPaused(true);

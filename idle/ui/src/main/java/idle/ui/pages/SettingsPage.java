@@ -381,7 +381,7 @@ public final class SettingsPage extends VBox {
 
         block("Signes d'état", "Chaque carte porte devant son nom le signe de son état, pour le reconnaître sans la "
                 + "couleur : ● à portée, ○ en attente, ◐ entamée, ▶ en marche, □ coupée, ✓ acquise, × fermée. Les "
-                + "états de la matière ont aussi le leur, toujours écrits : ∴ gaz, ≈ liquides, ■ solides, ◆ cristaux, ▲ métaux.");
+                + "états de la matière ont aussi le leur, toujours écrits : ∴ gaz, ≈ liquides, ◆ cristaux.");
         signsButton.setOnAction(event -> {
             settings.setStateSigns(!settings.stateSigns());
             refresh();

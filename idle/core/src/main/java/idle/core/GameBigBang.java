@@ -9,8 +9,6 @@ import idle.core.bigbang.BigBangMilestones;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.KindCollection;
-import idle.core.molecules.KindCollections;
 import idle.core.molecules.Molecule;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
@@ -384,7 +382,7 @@ public abstract class GameBigBang extends GameDarkMatter {
     }
 
     // ------------------------------------------------------------------
-    // Les collections : la moitié d'un rayon, puis le rayon entier
+    // Les rayons : ce qui est créé dans chacun (version 0.178 : les collections de rayon ont disparu)
     // ------------------------------------------------------------------
 
     private final Map<Molecule.Kind, int[]> kindCounts = new java.util.EnumMap<>(Molecule.Kind.class);
@@ -403,11 +401,6 @@ public abstract class GameBigBang extends GameDarkMatter {
         return kindCounts.getOrDefault(kind, new int[2]);
     }
 
-    /** Les collections des rayons, dans l'ordre du catalogue ({@link KindCollections}). */
-    public List<KindCollection> collections() {
-        return KindCollections.DEFAULT;
-    }
-
     /** Nombre de sortes de ce rayon dont le joueur a créé au moins une molécule. */
     public int kindCreated(Molecule.Kind kind) {
         return kindCount(kind)[0];
@@ -416,37 +409,6 @@ public abstract class GameBigBang extends GameDarkMatter {
     /** Nombre de sortes de ce rayon dans le catalogue. */
     public int kindSize(Molecule.Kind kind) {
         return kindCount(kind)[1];
-    }
-
-    /** Nombre de sortes à créer pour la moitié de la collection de ce rayon : la moitié du rayon, arrondie au-dessus. */
-    public int collectionHalf(Molecule.Kind kind) {
-        return (kindSize(kind) + 1) / 2;
-    }
-
-    /** Où en est la collection d'un rayon : 0 tant que la moitié n'y est pas, 1 à la moitié, 2 une fois complète. */
-    public int collectionLevel(Molecule.Kind kind) {
-        int size = kindSize(kind);
-        int created = kindCreated(kind);
-        if (size == 0 || !isBigBangUnlocked()) return 0;
-        return created >= size ? 2 : created >= collectionHalf(kind) ? 1 : 0;
-    }
-
-    /** Nombre de collections au moins à moitié réunies, et nombre de collections complètes. */
-    public int collectionsAt(int level) {
-        int count = 0;
-        for (KindCollection collection : KindCollections.DEFAULT) {
-            if (collectionLevel(collection.kind()) >= level) count++;
-        }
-        return count;
-    }
-
-    /** Ce par quoi les collections réunies multiplient une grandeur : leurs facteurs se multiplient entre eux. Vaut 1 sans aucune. */
-    public double collectionBoost(Molecule.Stat stat) {
-        double factor = 1;
-        for (KindCollection collection : KindCollections.DEFAULT) {
-            if (collection.stat() == stat) factor *= collection.factor(collectionLevel(collection.kind()));
-        }
-        return factor;
     }
 
     /**

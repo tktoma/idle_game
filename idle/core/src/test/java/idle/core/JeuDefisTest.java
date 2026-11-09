@@ -445,10 +445,11 @@ class JeuDefisTest extends GameTestSupport {
 
         @Test
         void leCatalogueCompteCinquanteSuccesDontAuMoinsVingtAvecUnBonusPropre() {
-            // Version 0.174 : 99, avec les dix-sept succès du deuxième univers et les quinze de la fin de partie.
-            assertEquals(99, Achievements.DEFAULT.size());
-            assertEquals(99, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
-            assertEquals(99, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
+            // Version 0.174 : 99, avec les dix-sept succès du deuxième univers et les quinze de la fin de partie ;
+            // 0.178 : 97, les deux succès de collection sont partis avec les collections.
+            assertEquals(97, Achievements.DEFAULT.size());
+            assertEquals(97, Achievements.DEFAULT.stream().map(Achievement::id).distinct().count());
+            assertEquals(97, Achievements.DEFAULT.stream().map(Achievement::name).distinct().count());
             long withBonus = Achievements.DEFAULT.stream().filter(Achievement::hasBonus).count();
             assertTrue(withBonus >= 20, "succès d'action : " + withBonus);
             for (Achievement achievement : Achievements.DEFAULT) {
@@ -733,7 +734,7 @@ class JeuDefisTest extends GameTestSupport {
         @Test
         void leJeuCompletASesSucces() {
             Game game = new Game(42L);
-            assertEquals(99, game.achievements().size());
+            assertEquals(97, game.achievements().size());
         }
     }
 

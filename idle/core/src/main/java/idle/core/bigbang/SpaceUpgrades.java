@@ -68,13 +68,11 @@ public final class SpaceUpgrades {
                     new SpaceUpgrade.AutoForm()),
             new SpaceUpgrade("space_creation_pace_2", "Cadence de création II", BigNum.of(20_000_000), "space_creation_pace",
                     new SpaceUpgrade.CreationPace(1)),
+            // Version 0.178 : trois rayons à ouvrir au lieu de sept, aux seuils des anciens acides, minéraux et
+            // chimie organique.
             shelf("space_acid", Molecule.Kind.ACID, 2_000, null),
-            shelf("space_salt", Molecule.Kind.SALT, 10_000, "space_acid"),
-            shelf("space_mineral", Molecule.Kind.MINERAL, 20_000, "space_salt"),
-            shelf("space_material", Molecule.Kind.MATERIAL, 80_000, "space_mineral"),
-            shelf("space_organic", Molecule.Kind.ORGANIC, 200_000, "space_material"),
-            shelf("space_life", Molecule.Kind.LIFE, 500_000, "space_organic"),
-            shelf("space_rare", Molecule.Kind.RARE, 1_000_000, "space_life"));
+            shelf("space_mineral", Molecule.Kind.MINERAL, 20_000, "space_acid"),
+            shelf("space_organic", Molecule.Kind.ORGANIC, 200_000, "space_mineral"));
 
     private static SpaceUpgrade shelf(String id, Molecule.Kind kind, double space, String requires) {
         return new SpaceUpgrade(id, kind.label(), BigNum.of(space), requires, new SpaceUpgrade.OpenKind(kind));

@@ -286,6 +286,7 @@ class MelangePageTest {
             assertEquals("Fragments du mélange : 0", upgrades.resourceText().getText());
             // La graine à son dernier palier et une bulle voisine achetée (la graine) : il ne manque que l'amélioration.
             game.state().setSeedSprouted(true);
+            while (game.universes() + Game.SEED_STAGES_AHEAD < 11) game.testAddUniverse();
             game.state().setSeedWaterings(Game.seedStageWaterings(11));
             game.state().noteVoidHistory("10", 1e6);
             assertTrue(game.buyTreeBubble(TreeBubble.SEED));

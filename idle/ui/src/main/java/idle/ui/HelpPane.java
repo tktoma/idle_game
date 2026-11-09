@@ -5,6 +5,7 @@ import idle.core.Game;
 import idle.core.collider.Hadron;
 import idle.core.elements.PeriodicTable;
 import idle.core.math.BigNum;
+import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeTrip;
 import idle.core.profile.Title;
 import idle.core.universe.DimensionAutomation;
@@ -132,7 +133,9 @@ final class HelpPane extends Overlay {
                                     + "d'abord, ou l'ordre que vous leur donnez sous leurs cartes." : "")
                     + (game.isBigBangUnlocked()
                             ? " L'espace et les Big Bangs en apportent d'autres : l'appui, la création, le rassemblement "
-                                    + "et la formation automatiques." : "")
+                                    + "et la formation automatiques. La création automatique suit la liste de courses, puis la "
+                                    + "matière et la variété qui manquent par état, puis les amas que vous lui confiez ; sa "
+                                    + "réserve d'espace et ses plafonds par état se règlent dans l'onglet Automatisation." : "")
                     // Version 0.126 : où les réglages tiennent, sans rien dire de ce qui vient après le Big Bang.
                     + " Vos réglages (la coupure générale, les ordres d'achat, le seuil de fusion, le verrou de l'appui, la "
                     + "part d'espace laissée libre, les molécules favorites, les automatismes de matière noire allumés, les "
@@ -175,9 +178,12 @@ final class HelpPane extends Overlay {
                     + "records, le collisionneur et ce que l'onglet Big Bang a construit : molécules, astres, espace. Il ouvre l'expansion : l'espace grandit seul, de "
                     + "moins en moins vite au-delà de " + ElementText.number(Game.SPACE_DAMPING_START) + " par seconde, où les "
                     + "bonus ne comptent plus qu'à la racine cubique. Une molécule se crée avec des "
-                    + "exemplaires du tableau périodique et de l'espace libre, et reste d'un Big Bang à l'autre. À partir de "
-                    + Game.SUBSTANCE_MOLECULES + " molécules, une sorte se rassemble ; les sortes rassemblées forment des "
-                    + "assemblages, puis des astres, jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
+                    + "exemplaires du tableau périodique et de l'espace libre, et reste d'un Big Bang à l'autre : le catalogue en "
+                    + "compte " + game.molecules().size() + ", en " + Molecule.Kind.values().length + " rayons que l'espace ouvre l'un "
+                    + "après l'autre, chacune dans l'un des " + Molecule.State.values().length + " états de la matière (gaz, liquide, "
+                    + "cristal). À partir de " + Game.SUBSTANCE_MOLECULES + " molécules, une sorte se rassemble ; les sortes "
+                    + "rassemblées forment des assemblages, un par astre (" + game.assemblies().size() + "), puis des astres, "
+                    + "jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
                     + "paliers, " + game.bigBangMilestones().size() + " en tout : une fois ouvert, un palier se paie en "
                     + "particules ou en atomes, d'un clic sur sa carte, et agit dès lors."));
         } else {
@@ -188,8 +194,7 @@ final class HelpPane extends Overlay {
                     + "l'univers, la liste de courses dit ce qu'il manque pour le prochain pas, avec un bouton sur chaque "
                     + "ligne. Sur la page des molécules, la ligne « Meilleur achat » nomme la création qui rapporte le plus "
                     + "pour l'espace qu'elle prend, et un bouton range les cartes par rendement."));
-            sections.add(new Section("Collections, comètes et défis", "Créer au moins une molécule de la moitié des sortes "
-                    + "d'un rayon, puis de toutes, multiplie une grandeur pour de bon. De temps en temps une comète traverse "
+            sections.add(new Section("Comètes et défis", "De temps en temps une comète traverse "
                     + "l'expansion de la matière : la saisir double l'espace créé pendant "
                     + (int) (Game.COMET_BOOST_SECONDS / 60) + " minutes ; la manquer ne coûte rien. D'autres petites "
                     + "anomalies passent aussi, facultatives : un vent de particules (particules ×" + (int) Game.WIND_FACTOR
@@ -261,9 +266,13 @@ final class HelpPane extends Overlay {
                 + "de jeu environ, qui marque la dimension d'un rond vert. Ces éclats ont leur nom : les segments de la ligne, les facettes du plan, "
                 + "les sphères du volume, les instants de la durée, les nœuds de la boucle, les ondes de la brane, les étincelles "
                 + "du clicker, les repères de la grille, les reflets du miroir, les fragments du mélange ; ils paient aussi les améliorations de la graine (débit de l'arrosoir, tuyau d'arrosage, terre "
-                + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo, graine profonde, saisons, bulle des racines). La graine s'arrose à l'arrosoir : "
+                + "fertile, étage du chrono et ses réglages, durée et force du rond de croissance, lumière astrale, météo, graine profonde, saisons, bulle des racines) : "
+                + "chacune coûte au premier niveau trois minutes de jeu de sa dimension (un cinquième du seuil), puis ×1,6 par niveau. La graine s'arrose à l'arrosoir : "
                 + "débloqué sur son étagère, on le glisse sur elle, il se penche et verse. Chaque palier de la graine ouvre un "
-                + "univers. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
+                + "univers, et demande de plus en plus d'arrosages : un quart d'heure d'arrosoir pour le bonsaï, trois heures pour le jeune arbre, douze pour "
+                + "l'arbre-monde, ce que les améliorations de la graine raccourcissent d'autant ; les attentes de l'amas et de la formation sont faites pour jouer les "
+                + "dimensions et arroser. La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir "
+                + "la prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "

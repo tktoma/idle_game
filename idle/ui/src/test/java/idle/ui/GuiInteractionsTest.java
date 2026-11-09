@@ -20,27 +20,39 @@ class GuiInteractionsTest {
     // Version 0.137 : plus de Platform.exit() après ces tests. Le toolkit est partagé (FxTestSupport) et ne redémarre
     // pas : toute classe de test JavaFX lancée ensuite attendait 20 s et échouait (ArrosoirPageTest l'a montré).
 
-    @Test void suiviMatiereEstFacultatifEtReversible() {
+    /**
+     * Version 0.178 : la création automatique n'a plus de réglage à part pour la liste ou la matière ; sa carte dit ce
+     * qu'elle suit, un clic la coupe et la relance, et les amas confiés se retirent d'une pastille.
+     */
+    @Test void creationAutomatiqueSeCoupeEtRendSesAmas() {
         Game g = new Game(new GameState(), Upgrades.DEFAULT, Automations.DEFAULT, DarkUpgrades.DEFAULT,
                 Achievements.DEFAULT, new Random(42));
         g.start();g.state().setBigBangs(8);
         // Version 0.124 : un palier de Big Bang ne compte qu'une fois payé (création automatique des molécules au 2e).
-        // Remis en 0.126 : la copie de la 0.125 avait effacé ce correctif du 22 octobre (2b1a1f7).
         for(idle.core.bigbang.BigBangMilestone milestone:idle.core.bigbang.BigBangMilestones.DEFAULT)
             g.state().addBoughtMilestone(milestone.name());
         for(SpaceUpgrade upgrade:g.spaceUpgrades())
             if(!(upgrade.effect() instanceof SpaceUpgrade.Boost))g.state().addSpaceUpgrade(upgrade.id());
         assertTrue(g.isStateCapUnlocked());
+        // Un amas confié : de l'eau rassemblée.
+        g.state().setSpace(idle.core.math.BigNum.of(1e9));
+        g.state().addMolecules("H2O",Game.SUBSTANCE_MOLECULES);
+        assertTrue(g.formSubstance("H2O"));
+        assertTrue(g.setMoleculeAutomated("H2O",true));
         FxTestSupport.fx(() -> {
             AutomationPage page = new AutomationPage(g);
             page.refresh();
-            assertFalse(g.isAutoFollowingMatter());
-            assertTrue(page.followMatterButton().getText().contains("désactivé"));
-            page.followMatterButton().fire();
-            assertTrue(g.isAutoFollowingMatter());
-            assertTrue(page.followMatterButton().getText().contains("activé"));
-            page.followMatterButton().fire();
-            assertFalse(g.isAutoFollowingMatter());
+            assertTrue(g.isMoleculeAutomationEnabled());
+            assertTrue(page.moleculesCard().text().contains("liste de courses"));
+            assertTrue(page.moleculesCard().text().contains("l'amas confié"));
+            page.moleculesCard().click();
+            assertFalse(g.isMoleculeAutomationEnabled());
+            page.moleculesCard().click();
+            assertTrue(g.isMoleculeAutomationEnabled());
+            assertTrue(page.entrustedChips().containsKey("H2O"));
+            page.entrustedChips().get("H2O").fire();
+            assertFalse(g.isMoleculeAutomated("H2O"));
+            assertEquals(0, g.automatedMolecules());
             return null;
         });
     }

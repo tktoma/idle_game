@@ -65,7 +65,7 @@ final class Sound {
         if (text.startsWith("Palier du collisionneur")) return Cue.ACHIEVEMENT;
         if (text.startsWith("Astre mûr") || text.contains("astres mûrs")) return Cue.ELEMENT;
         if (text.startsWith("Sonde") || text.contains("sondes revenues")) return Cue.COMET;
-        if (text.startsWith("Palier de vitesse") || text.startsWith("Collection") || text.startsWith("Collision")) return Cue.LEVEL;
+        if (text.startsWith("Palier de vitesse") || text.startsWith("Collision")) return Cue.LEVEL;
         return null;
     }
 

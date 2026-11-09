@@ -201,6 +201,17 @@ final class DimensionBots {
     // ------------------------------------------------------------------
 
     /** Le numéro de la dimension d'un bot : 1 pour la ligne, 2 le plan, 3 le volume, 4 la durée. */
+    /** Le nom d'une dimension jouable, de 1 à 4 : l'inverse de {@link #number(String)}. */
+    static String name(int number) {
+        return switch (number) {
+            case 1 -> "ligne";
+            case 2 -> "plan";
+            case 3 -> "volume";
+            case 4 -> "duree";
+            default -> throw new IllegalArgumentException("dimension jouable 1 à 4 : " + number);
+        };
+    }
+
     static int number(String name) {
         return switch (name) {
             case "ligne" -> 1;

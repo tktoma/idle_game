@@ -49,6 +49,8 @@ python run.py batch --tier rapide --workers 2
 
 - Les résultats vont dans `sorties/`, que git ignore.
 - `TEST_RAPIDE.sh` et `TEST_RAPIDE.ps1` font une vérification rapide du kit.
+- Depuis la 0.179, le Speedrunner tient l'arrosoir dès l'univers 1 formé (les paliers de la graine demandent des heures) et joue une dimension à la main avant chaque pas du jeu (`UniverseTreePolicy.tick`) : le plan, le volume ou la durée, celle dont les éclats manquent le plus à la prochaine amélioration de la graine, avec le joueur appliqué de `DimensionBots`. Le Régulier, qui ne tient pas la touche M, ne les joue pas.
+- Depuis la 0.178, la création automatique du jeu suit toujours la liste de courses, puis la matière et la variété qui manquent, puis les amas confiés : `SANS_LISTE` la laisse coupée, et `RobotCosmosPlanner.automateMatter` confie en plus l'amas qu'il juge le meilleur.
 - Les modes V2 sont : `EXPERT_COMPLET`, `DEPENDANCES`, `ECONOMISTE`, `PLAN_PRESTIGE`, `ADAPTATIF`, `DEBUTANT_APPRENANT`, `GUIDE_UI`, `RECUPERATION`, `SANS_IMPULSIONS`, `SANS_COMETES`, `SANS_TECH`, `SANS_LISTE`.
 - Les 24 profils sont décrits dans `PROFILS_24.md`.
 

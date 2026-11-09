@@ -145,18 +145,18 @@ class LisibiliteTest {
             game.state().setCosmosLevel(1);                           // la galaxie est formée
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
-            // L'amas de galaxies demande sa matière dans les cinq états, et de la variété dans chacun.
-            assertEquals(java.util.Map.of(Molecule.State.GAS, 100_000_000, Molecule.State.LIQUID, 10_000_000, Molecule.State.SOLID, 2_000_000,
-                    Molecule.State.CRYSTAL, 20_000_000, Molecule.State.METAL, 1_000_000), list.matter());
-            assertEquals(java.util.Map.of(Molecule.State.GAS, 25, Molecule.State.LIQUID, 35, Molecule.State.SOLID, 30,
-                    Molecule.State.CRYSTAL, 120, Molecule.State.METAL, 4), list.sorts());
-            // Chaque unité de matière compte pour la plus petite molécule de son état, chaque sorte pour ses trois premières
-            // molécules et son lieu (six fois la plus petite) : 43 605 192 360 en tout.
-            assertEquals(4.360519236e10, game.shoppingSpace().toDouble(), 1);
-            // Sans espace libre, il faut attendre toute cette place : 7 160,4 unités par seconde, soit 70 jours et demi.
+            // L'amas de galaxies demande sa matière dans les trois états (version 0.178), et de la variété dans chacun.
+            assertEquals(java.util.Map.of(Molecule.State.GAS, 60_000_000, Molecule.State.LIQUID, 6_000_000,
+                    Molecule.State.CRYSTAL, 13_750_000), list.matter());
+            assertEquals(java.util.Map.of(Molecule.State.GAS, 12, Molecule.State.LIQUID, 10, Molecule.State.CRYSTAL, 26), list.sorts());
+            // Chaque unité de matière compte pour la plus petite molécule de son état (le dihydrogène à 400, l'eau à 200,
+            // l'hydrure de lithium à 40), chaque sorte pour ses trois premières molécules et son lieu (six fois la plus
+            // petite) : 25 750 047 040 en tout (version 0.179 : 60 % de la matière d'avant).
+            assertEquals(2.575004704e10, game.shoppingSpace().toDouble(), 1);
+            // Sans espace libre, il faut attendre toute cette place : 7 160,4 unités par seconde, soit 41 jours et demi.
             game.state().setSpace(game.usedSpace());
             assertEquals(7_160.4, game.spacePerSecond().toDouble(), 1e-6);
-            assertEquals(6_089_770.45, game.secondsUntilShopping(), 0.01);
+            assertEquals(3_596_174.38, game.secondsUntilShopping(), 0.01);
         }
     }
 
@@ -217,7 +217,7 @@ class LisibiliteTest {
                 uncaps++;
                 assertEquals(0, game.moleculeGain(molecule.id()), 0, molecule.id());
             }
-            assertEquals(153, uncaps, "le dihydrogène, le quartz… : 153 molécules relèvent un plafond");
+            assertEquals(22, uncaps, "le dihydrogène, le quartz… : 22 molécules relèvent un plafond (0.178)");
             assertTrue(game.molecule("H2").bonus() instanceof Molecule.Uncap);
         }
 

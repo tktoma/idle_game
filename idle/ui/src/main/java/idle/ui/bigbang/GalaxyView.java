@@ -37,8 +37,7 @@ public final class GalaxyView extends Canvas {
     private static final Color STAR = Color.web("#c9d6ea");
     private static final Color TEXT = Color.web("#8fa3b8");
     /** Les couleurs des points tant que le joueur n'a créé aucune molécule : celles des états de la matière. */
-    private static final Color[] PALE = {Color.web("#bfe6f2"), Color.web("#4d8fe0"), Color.web("#d9b36c"),
-            Color.web("#b48cf2"), Color.web("#aeb6c4")};
+    private static final Color[] PALE = {Color.web("#bfe6f2"), Color.web("#4d8fe0"), Color.web("#b48cf2")};
     private static final Stop[] GLOW = {new Stop(0, Color.web("#fff4d8", 0.9)), new Stop(0.08, Color.web("#ffe2a8", 0.6)),
             new Stop(0.25, Color.web("#ffcf90", 0.25)), new Stop(0.6, Color.web("#8fa8ff", 0.1)), new Stop(1, Color.web("#8fa8ff", 0))};
     /** Où va chaque point : sa distance au centre, en parts du rayon, et le cosinus et le sinus de son angle dans les bras. */

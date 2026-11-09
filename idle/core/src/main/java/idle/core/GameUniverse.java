@@ -356,6 +356,26 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /** Vrai si la dimension {@code number} (1 la ligne, 2 le plan, 3 le volume, 4 la durée, 5 la boucle, 6 la brane, 7 le clicker, 8 la grille, 9 le miroir, 10 le mélange) a atteint son seuil ; faux pour celles qui n'existent pas encore. */
+    /**
+     * Le seuil d'une dimension, en éclats gagnés : un quart d'heure de jeu appliqué (version 0.179 : c'est aussi la
+     * mesure qui fixe les prix de la graine, {@link SeedUpgrade}).
+     */
+    public static double dimensionThreshold(int number) {
+        return switch (number) {
+            case 1 -> LINE_THRESHOLD;
+            case 2 -> PLANE_THRESHOLD;
+            case 3 -> VOLUME_THRESHOLD;
+            case 4 -> DURATION_THRESHOLD;
+            case 5 -> LOOP_THRESHOLD;
+            case 6 -> BRANE_THRESHOLD;
+            case 7 -> CLICKER_THRESHOLD;
+            case 8 -> GRID_THRESHOLD;
+            case 9 -> MIRROR_THRESHOLD;
+            case 10 -> MIX_THRESHOLD;
+            default -> Double.POSITIVE_INFINITY;
+        };
+    }
+
     public boolean isDimensionThresholdReached(int number) {
         return switch (number) {
             case 1 -> isLineThresholdReached();
@@ -1134,28 +1154,55 @@ public abstract class GameUniverse extends GameAtoms {
     public static final long SEED_TWIG_WATERINGS = 30;
 
     /**
-     * Les paliers de la graine (version 0.120), de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N. Chacun
-     * demande {@link #SEED_TWIG_WATERINGS} arrosages de plus que le précédent (version 0.139 : seulement des arrosages ;
-     * avant, aussi le seuil de la dimension du palier d'avant).
+     * Les paliers de la graine (version 0.120), de 1 à {@link #SEED_STAGES} : le palier N ouvre l'univers N, et dès le
+     * quatrième des bulles naissent dans l'arbre. Version 0.179 : chaque palier demande ses propres arrosages
+     * ({@link #SEED_STAGE_STEPS}), de plus en plus, au lieu de trente de plus à chaque fois (300 en tout : l'arbre-monde
+     * venait en cinq minutes d'arrosoir, et rien de ce qui se gagne dans les dimensions ne servait à y arriver). À
+     * l'arrosoir seul (un arrosage par seconde), le bonsaï demande un quart d'heure, le jeune arbre trois heures et
+     * l'arbre-monde douze : ce sont les améliorations de la graine, payées avec les éclats des dimensions, qui
+     * raccourcissent le chemin, et les attentes de l'amas et de la formation (deux heures par univers) qui le paient.
      */
     public static final int SEED_STAGES = 11;
+
+    /** Arrosages que demande chaque palier de 2 à 11, en plus du précédent (version 0.179). */
+    static final long[] SEED_STAGE_STEPS = {30, 60, 900, 2_700, 5_400, 10_800, 16_200, 21_600, 32_400, 43_200};
 
     /** Le nom de chaque palier, du premier au onzième. */
     public static final java.util.List<String> SEED_STAGE_NAMES = java.util.List.of("la graine", "la tige", "la graine craquelée",
             "la graine brisée", "le bonsaï", "l'arbuste", "le jeune arbre", "l'arbre mûr", "l'arbre ancien", "l'arbre géant",
             "l'arbre-monde");
 
-    /** Arrosages qu'il faut en tout pour ce palier (2 à 11) : trente de plus à chaque palier. */
+    /** Arrosages qu'il faut en tout pour ce palier (2 à 11) : la somme de {@link #SEED_STAGE_STEPS} jusqu'à lui. */
     public static long seedStageWaterings(int stage) {
-        return SEED_TWIG_WATERINGS * Math.max(0, stage - 1);
+        long total = 0;
+        for (int each = 2; each <= Math.min(stage, SEED_STAGES); each++) total += SEED_STAGE_STEPS[each - 2];
+        return total;
     }
 
     /** Le palier atteint par la graine, de 1 (pas encore de tige) à {@link #SEED_STAGES}. */
     public int seedStage() {
         if (!state.seedSprouted()) return 1;
         int stage = 1;
-        while (stage < SEED_STAGES && state.seedWaterings() >= seedStageWaterings(stage + 1)) stage++;
+        while (stage < seedStageCap() && state.seedWaterings() >= seedStageWaterings(stage + 1)) stage++;
         return stage;
+    }
+
+    /** Paliers d'avance que la graine peut prendre sur les univers formés (version 0.179). */
+    public static final int SEED_STAGES_AHEAD = 2;
+
+    /**
+     * Le palier le plus haut que la graine peut atteindre : deux de plus que les univers formés (version 0.179). Les
+     * arrosages font venir la prochaine phase de l'arbre plus tôt, pas plus loin : la mesure de la 0.179 sans ce plafond
+     * donnait toutes les bulles au Speedrunner dès l'univers 4, et des univers de 2 h 26 à partir du cinquième. Les
+     * arrosages versés au-delà restent comptés pour les paliers suivants.
+     */
+    public int seedStageCap() {
+        return Math.min(SEED_STAGES, universes() + SEED_STAGES_AHEAD);
+    }
+
+    /** Vrai si la graine a atteint le palier que les univers formés lui permettent : elle attend l'univers suivant. */
+    public boolean isSeedStageCapped() {
+        return state.seedSprouted() && seedStage() >= seedStageCap() && seedStage() < SEED_STAGES;
     }
 
     /** Vrai une fois le germe devenu brindille : la graine a au moins son deuxième palier. */
@@ -1542,55 +1589,71 @@ public abstract class GameUniverse extends GameAtoms {
     /**
      * Les améliorations de la graine, payées avec la ressource d'une dimension : quatre pour l'arrosage et l'étagère,
      * quatre pour le chrono, une par dimension dans chaque groupe. Dans l'ordre de la sauvegarde.
+     *
+     * <p>Les prix (version 0.179) se mesurent en temps de jeu de leur dimension : le seuil d'une dimension vaut un quart
+     * d'heure de jeu appliqué ({@link #dimensionThreshold(int)}), et chaque amélioration coûte au premier niveau
+     * {@link #SEED_PRICE_SHARE} de ce seuil (trois minutes), puis {@link #SEED_PRICE_GROWTH} fois plus à chaque niveau ;
+     * un achat unique (l'étage du chrono, la bulle des racines) coûte {@link #SEED_SINGLE_SHARE} du seuil. Avant, les
+     * prix allaient de 350 à 1 500 000 sans rapport entre eux ni avec ce que rapporte la dimension, et grandissaient de
+     * ×2,5 à ×4 par niveau : au-delà du troisième niveau, plus rien ne s'achetait avant les automatismes des dimensions.
      */
     public enum SeedUpgrade implements Priced {
         /** Segments de la ligne : +1 arrosage par seconde de l'arrosoir tenu, par niveau. */
-        WATERING(1, "Débit de l'arrosoir", 25_000, 3, 20, false),
+        WATERING(1, "Débit de l'arrosoir", 20, false),
         /** Facettes du plan : le tuyau d'arrosage, qui verse seul 10 % de ce que verse l'arrosoir, +10 % par niveau. */
-        HOSE(2, "Tuyau d'arrosage", 350, 2.5, 10, false),
-        /** Sphères du volume : la terre fertile, chaque arrosage compte double, ×2 encore par niveau. */
-        SOIL(3, "Terre fertile", 800, 3, 10, false),
+        HOSE(2, "Tuyau d'arrosage", 10, false),
+        /** Sphères du volume : la terre fertile, chaque arrosage compte pour un de plus par niveau ({@link #seedSoilFactor()}). */
+        SOIL(3, "Terre fertile", 10, false),
         /** Instants de la durée : un étage de plus à l'étagère, avec le chrono. */
-        CHRONO(4, "Étage du chrono", 1_500_000, 1, 1, false),
+        CHRONO(4, "Étage du chrono", 1, false),
         /** Segments : le chrono se remplit plus vite. */
-        CHRONO_FILL(1, "Remplissage du chrono", 50_000, 3, 20, true),
+        CHRONO_FILL(1, "Remplissage du chrono", 20, true),
         /** Facettes : il garde plus de temps. */
-        CHRONO_CAPACITY(2, "Réserve du chrono", 500, 2.5, 20, true),
+        CHRONO_CAPACITY(2, "Réserve du chrono", 20, true),
         /** Sphères : il accélère davantage. */
-        CHRONO_SPEED(3, "Accélération du chrono", 1_000, 3, 8, true),
+        CHRONO_SPEED(3, "Accélération du chrono", 8, true),
         /** Instants : il perd moins à grande vitesse. */
-        CHRONO_LOSS(4, "Pertes du chrono", 2_000_000, 4, 15, true),
+        CHRONO_LOSS(4, "Pertes du chrono", 15, true),
         /** Nœuds de la boucle (version 0.153) : le rond de croissance dure plus longtemps, +10 s par niveau. */
-        BLOOM_DURATION(5, "Durée du rond de croissance", 200, 2.5, 15, false),
+        BLOOM_DURATION(5, "Durée du rond de croissance", 15, false),
         /** Nœuds : le rond de croissance accélère davantage l'arrosage, +10 points par niveau. */
-        BLOOM_POWER(5, "Force du rond de croissance", 300, 2.7, 20, false),
+        BLOOM_POWER(5, "Force du rond de croissance", 20, false),
         /** Ondes de la brane (version 0.154) : la lumière astrale, +20 % d'arrosage par seconde de l'arrosoir et du tuyau, par niveau. */
-        ASTRAL_LIGHT(6, "Lumière astrale", 400, 2.8, 20, false),
+        ASTRAL_LIGHT(6, "Lumière astrale", 20, false),
         /** Étincelles du clicker (version 0.155) : le beau temps dure plus longtemps, +10 s par niveau. */
-        WEATHER_SUN(7, "Beau temps plus long", 500, 2.6, 15, false),
+        WEATHER_SUN(7, "Beau temps plus long", 15, false),
         /** Étincelles : les orages passent plus vite, −3 s par niveau. */
-        WEATHER_STORM(7, "Orages plus courts", 400, 2.5, 8, false),
+        WEATHER_STORM(7, "Orages plus courts", 8, false),
         /** Étincelles : le beau temps arrose davantage, +10 points par niveau. */
-        WEATHER_POWER(7, "Soleil plus fort", 600, 2.8, 20, false),
+        WEATHER_POWER(7, "Soleil plus fort", 20, false),
         /**
          * Repères de la grille (version 0.156) : la graine profonde, qui multiplie tout l'arrosage par √(log10 E), E
          * l'énergie du vide récupérée ; un dixième de l'effet par niveau.
          */
-        DEEP_SEED(8, "Graine profonde", 300, 3, 10, false),
+        DEEP_SEED(8, "Graine profonde", 10, false),
         /** Reflets du miroir (version 0.157) : les saisons, chaque arrosage remplit le chrono de 0,2 s par niveau, selon la saison. */
-        SEASONS(9, "Saisons", 300, 2.8, 15, true),
+        SEASONS(9, "Saisons", 15, true),
         /** Fragments du mélange (version 0.158) : ouvre la bulle des racines, sous la graine. Une fois. */
-        ROOT_BUBBLE(10, "Bulle des racines", 1_000, 1, 1, false);
+        ROOT_BUBBLE(10, "Bulle des racines", 1, false);
+
+        /** Le premier niveau d'une amélioration : un cinquième du seuil de sa dimension, trois minutes de jeu (version 0.179). */
+        public static final double SEED_PRICE_SHARE = 0.2;
+        /** Ce par quoi le prix est multiplié à chaque niveau (version 0.179). */
+        public static final double SEED_PRICE_GROWTH = 1.6;
+        /** Un achat unique : un tiers du seuil de sa dimension, cinq minutes de jeu (version 0.179). */
+        public static final double SEED_SINGLE_SHARE = 1.0 / 3;
 
         private final int dimension;
         private final String label;
         private final Price price;
         private final boolean chrono;
 
-        SeedUpgrade(int dimension, String label, double cost, double growth, int max, boolean chrono) {
+        SeedUpgrade(int dimension, String label, int max, boolean chrono) {
             this.dimension = dimension;
             this.label = label;
-            this.price = new Price(cost, growth, max);
+            double threshold = dimensionThreshold(dimension);
+            this.price = max == 1 ? new Price(threshold * SEED_SINGLE_SHARE, 1, 1)
+                    : new Price(threshold * SEED_PRICE_SHARE, SEED_PRICE_GROWTH, max);
             this.chrono = chrono;
         }
 
@@ -1693,9 +1756,9 @@ public abstract class GameUniverse extends GameAtoms {
         return seedUpgradeLevel(SeedUpgrade.HOSE) > 0;
     }
 
-    /** Ce que compte chaque arrosage grâce à la terre fertile : 1, puis ×2 par niveau. */
+    /** Ce que compte chaque arrosage grâce à la terre fertile : 1, puis un de plus par niveau (version 0.179 : ×2 par niveau avant). */
     public long seedSoilFactor() {
-        return 1L << Math.min(40, seedUpgradeLevel(SeedUpgrade.SOIL));
+        return 1L + seedUpgradeLevel(SeedUpgrade.SOIL);
     }
 
     /** Le tuyau verse seul : la part déjà versée de son prochain arrosage, qui ne se sauvegarde pas. */

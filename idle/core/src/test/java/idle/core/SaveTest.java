@@ -85,7 +85,6 @@ class SaveTest {
         state.setDrySyntheses(1);
         state.setPulseCharges(12.5);
         state.setPulses(33);
-        state.setAutoFollowList(false);
         state.setColliderEnergy(1234.5);
         state.setColliderGenerators(ColliderGenerator.BEAM, 12.25);
         state.setColliderGeneratorsBought(ColliderGenerator.MAGNET, 3);
@@ -97,7 +96,7 @@ class SaveTest {
         state.setQuarks(Quark.UP, 7);
         state.setQuarks(Quark.CHARM, 2);
         state.setColliderEnergyProduced(4.5e9);
-        state.setProbes(List.of(new Probe(ProbeDestination.COMET, ProbeTrip.HOUR, 1200.5, 3240, 8)));
+        state.setProbes(List.of(new Probe(ProbeDestination.SALT_MOON, ProbeTrip.HOUR, 1200.5, 3240, 8)));
         state.setProbeRewards(List.of(new ProbeReward(ProbeReward.Type.ELEMENTS, "26", 6.25, ProbeDestination.ASTEROIDS, 7),
                 new ProbeReward(ProbeReward.Type.SPACE, "", 1, ProbeDestination.VOID)));
         state.setProbeUpgradeLevel(ProbeUpgrade.LOOT, 3);
@@ -174,7 +173,6 @@ class SaveTest {
         state.setSystemPlan(List.of(new idle.core.sky.SolarSystem("etoile", List.of("p1", "p2"), List.of("l1"))));
         state.setSavedSystemPlan("systemes:etoile|p1,p2|l1;autre||");
         state.setForkResetArmed(true);
-        state.setAutoFollowMatter(true);
         state.setReplaying(true);
         state.setFusionsAtUniverse(42);
         state.setExplosionsAtUniverse(17);
@@ -203,7 +201,6 @@ class SaveTest {
         state.addResearch("dense2");
         state.setPlannedBodies(List.of("icy_comet", "rocky_moon"));
         state.setStateCap("GAS", 0.7);
-        state.setRecipeReservation(true);
         state.stats().noteUniverseTally(8, 5_000, 300, 12);
         state.setUniverseSeeds(BigNum.of(7.5, 12));
         state.setDimensionShards(12.3);

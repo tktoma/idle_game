@@ -47,8 +47,8 @@ class SondesTest {
         Game game = third();
         assertTrue(game.isProbeDestinationOpen(ProbeDestination.VOID));
         assertTrue(game.isProbeDestinationOpen(ProbeDestination.GAS_CLOUD));
-        assertFalse(game.isProbeDestinationOpen(ProbeDestination.SUPERNOVA));
-        assertFalse(game.launchProbe(ProbeDestination.SUPERNOVA, ProbeTrip.SHORT));
+        assertFalse(game.isProbeDestinationOpen(ProbeDestination.NEBULA));
+        assertFalse(game.launchProbe(ProbeDestination.NEBULA, ProbeTrip.SHORT));
     }
 
     @Test

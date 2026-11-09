@@ -23,6 +23,48 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.180", "Les skins à venir : la liste", List.of(
+                    "SKINS.md, à la racine du dépôt : tout ce que le jeu dessine ou joue et qui pourrait changer d'apparence, "
+                            + "des huit visuels déjà skinnés au chrome de la fenêtre, aux astres, aux arbres, aux dix mini-jeux, "
+                            + "aux avatars, aux sons et aux thèmes ; pour chacun, des idées de skins, ce qu'ils changeraient et "
+                            + "comment on les obtiendrait. Une liste de travail : rien dans le jeu ne change.")),
+            new Note("0.179", "La graine se paie en temps de jeu des dimensions", List.of(
+                    "Les prix de la graine se mesurent en temps de jeu : chaque amélioration coûte au premier niveau trois "
+                            + "minutes de jeu de sa dimension (un cinquième de son seuil, qui vaut un quart d'heure), puis "
+                            + "×1,6 par niveau ; l'étage du chrono et la bulle des racines coûtent cinq minutes. Avant, les prix "
+                            + "allaient de 350 à 1 500 000 sans rapport entre eux et grandissaient de ×2,5 à ×4 par niveau : "
+                            + "au-delà du troisième niveau, plus rien ne s'achetait avant les automatismes des dimensions.",
+                    "Les paliers de la graine demandent de plus en plus d'arrosages (30, 60, 900, 2 700, 5 400, 10 800, "
+                            + "16 200, 21 600, 32 400, 43 200 de plus à chaque palier ; 300 en tout avant) : à l'arrosoir seul, le "
+                            + "bonsaï vient en un quart d'heure, le jeune arbre en trois heures, l'arbre-monde en douze. Les "
+                            + "éclats gagnés dans les dimensions pendant les attentes de l'amas et de la formation paient les "
+                            + "améliorations qui raccourcissent ce chemin : c'est la prochaine phase de l'arbre qu'on accélère.",
+                    "La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir la "
+                            + "prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante.",
+                    "La terre fertile compte un arrosage de plus par niveau (×2 par niveau avant : ×1 024 au dixième).",
+                    "L'amas de galaxies et l'univers demandent 60 % de la matière rassemblée d'avant (60 / 6 / 13,75 et 240 / 24 / 55 "
+                            + "millions de gaz, de liquide et de cristal) : sans les collections de rayon, qui triplaient l'espace à la "
+                            + "fin du premier univers, la formation attendait la matière plus d'une heure de plus.",
+                    "Les sauvegardes d'avant chargent telles quelles : les niveaux et les arrosages sont gardés, et un palier déjà "
+                            + "atteint peut redescendre si ses arrosages ne suffisent plus ; les bulles achetées restent.")),
+            new Note("0.178", "Catalogue resserré : 73 molécules, 4 rayons, 3 états", List.of(
+                    "Catalogue resserré : 73 molécules en 4 rayons (petites molécules, acides et sels, minéraux et "
+                            + "matériaux, chimie du carbone), 30 assemblages (un par astre), 3 états de la matière (gaz, "
+                            + "liquide, cristal). Les sels ont rejoint les acides, les matériaux les minéraux ; le vivant, "
+                            + "les terres rares, le solide et le métal disparaissent.",
+                    "Les collections de rayon disparaissent, et les assemblages comptent double : 100 % par 100 molécules. "
+                            + "« Chimiste » demande 30 sortes. Trois rayons à ouvrir dans les améliorations d'espace, à 2 000, "
+                            + "20 000 et 200 000 ; les sondes ont une destination par rayon.",
+                    "Page des molécules allégée : une phrase, la recherche et deux filtres (état, usage), le prochain pas, les "
+                            + "rayons, l'impulsion, le meilleur achat et le tri, les cartes. Chaque carte tient en trois lignes au "
+                            + "plus : dessin, formule, nom et compte ; bonus et prix ; ce que le prochain pas en demande. L'espace "
+                            + "occupé, le rendement et la formule détaillée sont dans l'info-bulle. Finis « Au hasard dans ce "
+                            + "rayon », la réservation par recette et le badge « inutile ».",
+                    "Création automatique refaite : elle suit la liste de courses, puis la matière et la variété qui manquent "
+                            + "par état, puis les amas confiés ; plus rien à régler à part sa réserve d'espace et ses trois "
+                            + "plafonds par état. L'onglet Automatisation nomme les amas confiés, et un clic en retire un.",
+                    "Les sauvegardes d'avant chargent, ce qui a disparu est écarté : les solides et les métaux rejoignent les "
+                            + "cristaux, les molécules et les assemblages retirés ne comptent plus.")),
             new Note("0.177", "Le trou noir du vide fait mûrir les trous noirs plus vite", List.of(
                     "Le trou noir du vide, ouvert, raccourcit la maturation du trou noir et du trou noir supermassif : "
                             + "÷ (1 + 10 % par univers formé à partir du quatrième). ÷1,1 quand quatre univers sont formés, "

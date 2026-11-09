@@ -15,7 +15,7 @@ public enum Notice {
     CHALLENGES("Défis de matière noire", "Un défi qui s'ouvre, un défi réussi."),
     COLLIDER("Collisionneur", "Le quark top, les améliorations qui s'ouvrent, l'énergie des trous noirs, les hadrons qui se proposent, les paliers de gluons."),
     BIG_BANG("Big Bang et ses défis", "Chaque Big Bang, et les défis de Big Bang commencés ou réussis."),
-    MOLECULES("Molécules, espace et collections", "Un rayon de molécules qui s'ouvre, une amélioration d'espace, une collection."),
+    MOLECULES("Molécules et espace", "Un rayon de molécules qui s'ouvre, une amélioration d'espace."),
     SKY("Astres et jalons", "Les astres qui mûrissent, les jalons du cosmos."),
     AUTO_SKY("Rassemblement et formation automatiques", "Ce que le rassemblement et la formation automatiques font sans vous."),
     COMETS("Comètes", "Une comète qui traverse l'expansion, quelques secondes pour la saisir."),

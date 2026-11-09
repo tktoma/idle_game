@@ -181,15 +181,14 @@ class RetoursTest {
         @Test
         void unRayonFermeOuSansRienDeCreableNeDonneRien() {
             Game game = afterBigBangs(1);
-            assertFalse(game.canCreateInKind(Molecule.Kind.RARE));
-            assertEquals(null, game.createRandomMolecule(Molecule.Kind.RARE));
+            assertFalse(game.canCreateInKind(Molecule.Kind.ORGANIC));
+            assertEquals(null, game.createRandomMolecule(Molecule.Kind.ORGANIC));
         }
 
         @Test
         void laCreationAutomatiqueSuitLaListeDeCoursesSansRienAvoirAConfier() {
             Game game = afterBigBangs(2);
             for (String id : new String[] {"space_states", "space_assemblies"}) game.state().addSpaceUpgrade(id);
-            assertTrue(game.isAutoFollowingList());
             assertEquals(0, game.automatedMolecules());
             assertTrue(game.isAutoCreatingMolecules());
             ShoppingList first = game.shoppingList();
@@ -197,8 +196,9 @@ class RetoursTest {
             game.tick(game.moleculeAutomationInterval() + 0.01);              // un passage
             assertTrue(game.stats().autoMoleculeCreations() > 0, "rien n'a été créé");
             assertTrue(game.moleculeCount(wanted.molecule().id()) > wanted.owned(), wanted.molecule().name() + " était demandée");
-            assertTrue(game.setAutoFollowList(false));
-            assertFalse(game.isAutoCreatingMolecules());                // sans amas confié, elle attend
+            // Version 0.178 : plus de réglage à part ; coupée, elle ne fait plus rien du tout.
+            assertTrue(game.setMoleculeAutomationEnabled(false));
+            assertFalse(game.isAutoCreatingMolecules());
         }
     }
 

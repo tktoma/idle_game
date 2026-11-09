@@ -50,7 +50,7 @@ class JeuAstresTest extends GameTestSupport {
         }
 
         @Test
-        void leCatalogueEstFaitDeMoleculesQuiExistentEtRienDeVivant() {
+        void leCatalogueEstFaitDeMoleculesQuiExistent() {
             java.util.Set<String> ids = new java.util.HashSet<>();
             Map<Assembly.Family, Integer> families = new EnumMap<>(Assembly.Family.class);
             for (Assembly assembly : Assemblies.DEFAULT) {
@@ -61,15 +61,18 @@ class JeuAstresTest extends GameTestSupport {
                     Molecule molecule = Molecules.DEFAULT.stream().filter(each -> each.id().equals(ingredient)).findFirst()
                             .orElseThrow(() -> new AssertionError(assembly.id() + " : molecule inconnue " + ingredient));
                     assertTrue(molecule.hasState(), assembly.id() + " : " + ingredient);
-                    assertTrue(molecule.kind() != Molecule.Kind.LIFE, assembly.id() + " contient du vivant : " + ingredient);
                 }
             }
-            assertEquals(58, Assemblies.DEFAULT.size());
+            // Version 0.178 : trente assemblages, un par astre qui en a (cinquante-huit avant).
+            assertEquals(30, Assemblies.DEFAULT.size());
             assertEquals(Assembly.Family.values().length, families.size());
-            assertEquals(14, families.get(Assembly.Family.STELLAR));
-            assertEquals(10, families.get(Assembly.Family.ROCK));
-            assertEquals(8, families.get(Assembly.Family.ORE));
-            assertEquals(9, families.get(Assembly.Family.WATER));
+            assertEquals(9, families.get(Assembly.Family.STELLAR));
+            assertEquals(8, families.get(Assembly.Family.ROCK));
+            assertEquals(2, families.get(Assembly.Family.ORE));
+            assertEquals(1, families.get(Assembly.Family.GEM));
+            assertEquals(4, families.get(Assembly.Family.WATER));
+            assertEquals(3, families.get(Assembly.Family.AIR));
+            assertEquals(3, families.get(Assembly.Family.FUEL));
         }
 
         @Test
@@ -83,11 +86,12 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals("Roche granitique", granite.name());
             assertEquals(Map.of("SiO2", 120, "KAlSi3O8", 90, "NaAlSi3O8", 60), granite.ingredients());
             assertEquals(270, granite.size());
-            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 1.35), granite.boost());      // 270 molécules : +135 %
+            assertEquals(100, Assembly.MOLECULES_PER_WHOLE, 0);                                   // version 0.178 : 200 avant
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 2.7), granite.boost());       // 270 molécules : +270 %
             // Des pierres précieuses : presque rien que leur cristal, et les traces qui les colorent.
-            Assembly gems = new Game(42L).assembly("corundum_gems");
-            assertEquals(300, gems.ingredients().get("Al2O3"));
-            assertEquals(4, gems.ingredients().get("Cr2O3"));
+            Assembly gems = new Game(42L).assembly("peridot_gems");
+            assertEquals(240, gems.ingredients().get("Mg2SiO4"));
+            assertEquals(2, gems.ingredients().get("NiO"));
             assertEquals(Molecule.Stat.DARK_GROWTH, gems.boost().stat());
         }
 
@@ -167,25 +171,24 @@ class JeuAstresTest extends GameTestSupport {
         @Test
         void deuxAssemblagesNeSePartagentPasLesMemesMolecules() {
             Game game = game();
-            // Les rubis et saphirs demandent 300 corindons, le minerai d'aluminium 30 : il en faut 330 pour les deux.
-            for (Map.Entry<String, Integer> ingredient : game.assembly("corundum_gems").ingredients().entrySet()) {
+            // Les péridots demandent 240 olivines, la roche des profondeurs 180 : il en faut 420 pour les deux.
+            for (Map.Entry<String, Integer> ingredient : game.assembly("peridot_gems").ingredients().entrySet()) {
                 give(game, ingredient.getKey(), ingredient.getValue());
             }
-            for (Map.Entry<String, Integer> ingredient : game.assembly("aluminium_ore").ingredients().entrySet()) {
-                if (!ingredient.getKey().equals("Al2O3") && !ingredient.getKey().equals("TiO2")) give(game, ingredient.getKey(), ingredient.getValue());
+            for (Map.Entry<String, Integer> ingredient : game.assembly("mantle_rock").ingredients().entrySet()) {
+                if (!ingredient.getKey().equals("Mg2SiO4")) give(game, ingredient.getKey(), ingredient.getValue());
             }
-            give(game, "TiO2", 12);                                   // deux pour les pierres, dix pour le minerai
-            assertTrue(game.canFormAssembly("corundum_gems"));
-            assertTrue(game.canFormAssembly("aluminium_ore"));
-            assertTrue(game.formAssembly("corundum_gems"));
-            assertEquals(0, game.spareMolecules("Al2O3"));
-            assertFalse(game.canFormAssembly("aluminium_ore"));
-            game.state().setMoleculeCount("Al2O3", 329);
-            assertFalse(game.canFormAssembly("aluminium_ore"));
-            game.state().setMoleculeCount("Al2O3", 330);
-            assertTrue(game.formAssembly("aluminium_ore"));
-            assertEquals(330, game.assembledMolecules("Al2O3"));
-            assertEquals(12, game.assembledMolecules("TiO2"));
+            assertTrue(game.canFormAssembly("peridot_gems"));
+            assertTrue(game.canFormAssembly("mantle_rock"));
+            assertTrue(game.formAssembly("peridot_gems"));
+            assertEquals(0, game.spareMolecules("Mg2SiO4"));
+            assertFalse(game.canFormAssembly("mantle_rock"));
+            game.state().setMoleculeCount("Mg2SiO4", 419);
+            assertFalse(game.canFormAssembly("mantle_rock"));
+            game.state().setMoleculeCount("Mg2SiO4", 420);
+            assertTrue(game.formAssembly("mantle_rock"));
+            assertEquals(420, game.assembledMolecules("Mg2SiO4"));
+            assertEquals(0, game.spareMolecules("Mg2SiO4"));
             assertEquals(2, game.assembliesFormed());
         }
 
@@ -196,15 +199,11 @@ class JeuAstresTest extends GameTestSupport {
             for (Assembly assembly : game.assemblies()) {
                 ids.add(assembly.id());
                 assertTrue(assembly.ingredients().size() >= 3 && assembly.ingredients().size() <= 8, assembly.id());
-                // Un alliage ou un carbure conducteur ne se trouve pas dans la nature : aucun métal dans un assemblage.
-                for (String ingredient : assembly.ingredients().keySet()) {
-                    assertTrue(game.molecule(ingredient).state() != Molecule.State.METAL, assembly.id() + " : " + ingredient);
-                }
             }
             for (String made : List.of("batteries", "glass", "concrete", "alloys", "magnets", "plastics", "medicines", "solvents")) {
                 assertFalse(ids.contains(made), made + " est fabrique");
             }
-            assertTrue(ids.containsAll(List.of("granitic_rock", "copper_ore", "corundum_gems", "salt_water", "air", "petroleum")));
+            assertTrue(ids.containsAll(List.of("granitic_rock", "iron_ore", "peridot_gems", "salt_lake", "air", "petroleum")));
         }
 
         @Test
@@ -217,7 +216,7 @@ class JeuAstresTest extends GameTestSupport {
             double atoms = game.moleculeBoost(Molecule.Stat.ATOMS);
             BigNum rate = game.spacePerSecond();
             assertTrue(game.formAssembly("air"));
-            assertEquals(before + 2.0, game.moleculeBoost(Molecule.Stat.SPACE), 1e-9);     // 400 molécules : +200 %
+            assertEquals(before + 4.0, game.moleculeBoost(Molecule.Stat.SPACE), 1e-9);     // 400 molécules : +400 % (0.178 : un entier par centaine)
             assertEquals(atoms, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
             assertTrue(game.spacePerSecond().gt(rate));
         }
@@ -337,8 +336,8 @@ class JeuAstresTest extends GameTestSupport {
             assertFalse(game.isCosmosUnlocked(Cosmos.CLUSTER));
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
-            assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));    // la matière et la variété y sont, pas la galaxie
-            assertEquals(11, game.cosmosConditions(Cosmos.CLUSTER));       // la galaxie, cinq quantités, cinq nombres de sortes
+            assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la matière et la variété y sont, pas la galaxie
+            assertEquals(7, game.cosmosConditions(Cosmos.CLUSTER));        // la galaxie, trois quantités, trois nombres de sortes
             assertEquals(game.bodies().size() + 1, game.cosmosConditions(Cosmos.GALAXY));   // les astres, et les systèmes solaires
 
             // La galaxie formée, l'amas de galaxies s'ouvre ; il lui faut chaque état en nombre.
@@ -348,23 +347,23 @@ class JeuAstresTest extends GameTestSupport {
             assertTrue(game.hasCosmos(Cosmos.GALAXY));
             assertEquals(Cosmos.CLUSTER, game.nextCosmos());
             assertTrue(game.isCosmosUnlocked(Cosmos.CLUSTER) && !game.isCosmosUnlocked(Cosmos.UNIVERSE));
-            assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la galaxie et les sortes ; la moitié de la matière ne suffit pas
+            assertEquals(4, game.cosmosConditionsMet(Cosmos.CLUSTER));     // la galaxie et les sortes ; la moitié de la matière ne suffit pas
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
             assertEquals(0, game.cosmosMilestones());                      // aucun état réuni : aucun jalon
             gather(game, Cosmos.CLUSTER, 1);
             Molecule gas = game.molecules().stream().filter(each -> each.state() == Molecule.State.GAS).findFirst().orElseThrow();
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS) - 1);    // il en manque une
-            assertEquals(10, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));
             // Les jalons (0.068) : un par état réuni, +10 % à toutes les grandeurs chacun.
-            assertEquals(4, game.cosmosMilestones());
+            assertEquals(2, game.cosmosMilestones());
             assertFalse(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.GAS));
             assertTrue(game.isCosmosMilestoneMet(Cosmos.CLUSTER, Molecule.State.LIQUID));
-            double withFour = game.matterBoost(Molecule.Stat.ATOMS);
+            double withTwo = game.matterBoost(Molecule.Stat.ATOMS);
             assertFalse(game.formCosmos(Cosmos.CLUSTER));
             game.state().setMoleculeCount(gas.id(), Cosmos.CLUSTER.matter().get(Molecule.State.GAS));
-            assertEquals(5, game.cosmosMilestones());
-            assertEquals(withFour * 1.1, game.matterBoost(Molecule.Stat.ATOMS), withFour * 0.02);   // le gaz ajoute aussi un peu de matière lui-même
-            assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withFour * 1.1 - 1e-9);
+            assertEquals(3, game.cosmosMilestones());
+            assertEquals(withTwo * 1.1, game.matterBoost(Molecule.Stat.ATOMS), withTwo * 0.02);   // le gaz ajoute aussi un peu de matière lui-même
+            assertTrue(game.matterBoost(Molecule.Stat.ATOMS) >= withTwo * 1.1 - 1e-9);
             // Le délai de rassemblement (0.073) : deux heures après la galaxie depuis la 0.125.
             double galaxyAt = game.stats().reachedAt(GameStats.Step.GALAXY);
             assertEquals(Game.COSMOS_SETTLE_SECONDS, game.cosmosSettleRemaining(Cosmos.CLUSTER), 1e-6);
@@ -390,7 +389,7 @@ class JeuAstresTest extends GameTestSupport {
 
             // L'univers : quatre fois plus, et c'est la fin.
             assertEquals(Cosmos.UNIVERSE, game.nextCosmos());
-            assertEquals(6, game.cosmosConditionsMet(Cosmos.UNIVERSE));    // l'amas et les sortes, réunies plus haut
+            assertEquals(4, game.cosmosConditionsMet(Cosmos.UNIVERSE));    // l'amas et les sortes, réunies plus haut
             gather(game, Cosmos.UNIVERSE, 1);
             for (Molecule.Stat stat : Molecule.Stat.values()) before[stat.ordinal()] = game.matterBoost(stat);
             game.state().setTimePlayed(universeAt - 800);
@@ -401,8 +400,8 @@ class JeuAstresTest extends GameTestSupport {
             game.state().setCosmosLevel(3);
             assertEquals(3, game.cosmosFormed());
             assertTrue(game.nextCosmos() == null);
-            assertEquals(11, game.cosmosConditionsMet(Cosmos.UNIVERSE));
-            assertEquals(10, game.cosmosMilestones());
+            assertEquals(7, game.cosmosConditionsMet(Cosmos.UNIVERSE));
+            assertEquals(6, game.cosmosMilestones());
             for (Molecule.Stat stat : Molecule.Stat.values()) {
                 assertEquals(before[stat.ordinal()] * 2, game.matterBoost(stat), before[stat.ordinal()] * 1e-9, stat.name());
             }
@@ -754,7 +753,7 @@ class JeuAstresTest extends GameTestSupport {
             assertTrue(game.bodies() == game.bodies() && game.assemblies() == game.assemblies()
                     && game.spaceUpgrades() == game.spaceUpgrades());
             assertEquals(35, game.bodies().size());
-            assertEquals(58, game.assemblies().size());
+            assertEquals(30, game.assemblies().size());
             assertThrows(UnsupportedOperationException.class, () -> game.bodies().remove(0));
             assertThrows(UnsupportedOperationException.class, () -> game.assemblies().remove(0));
             assertThrows(UnsupportedOperationException.class, () -> game.spaceUpgrades().remove(0));
@@ -769,21 +768,14 @@ class JeuAstresTest extends GameTestSupport {
                     assertTrue(user.put(assembly, body.id()) == null, assembly + " sert a deux astres");
                     assertEquals(body, game.bodyOf(assembly));
                 }
-                // Un pour un amas, deux pour une comète, un astéroïde ou une lune, trois pour une planète.
-                int expected = switch (body.tier()) {
-                    case RUBBLE -> 1;
-                    case STAR -> 1;
-                    case COMET, ASTEROID, MOON, REMNANT, BLACK_HOLE -> 2;
-                    case PLANET, CORE -> 3;
-                    case EXOTIC -> 0;                                       // les matières exotiques : sans assemblage
-                };
-                assertEquals(expected, body.assemblies().size(), body.id());
+                // Version 0.178 : un seul assemblage par astre, quelle que soit son échelle ; aucun pour les matières exotiques.
+                assertEquals(body.tier() == Body.Tier.EXOTIC ? 0 : 1, body.assemblies().size(), body.id());
             }
-            // Les 58 assemblages du catalogue ont tous leur astre.
+            // Les 30 assemblages du catalogue ont tous leur astre.
             assertEquals(Assemblies.DEFAULT.size(), user.size());
             for (Assembly assembly : game.assemblies()) assertTrue(user.containsKey(assembly.id()), assembly.id());
             assertEquals("rocky_rubble", game.bodyOf("sandy_rock").id());
-            assertEquals("ocean_planet", game.bodyOf("salt_water").id());
+            assertEquals("ocean_planet", game.bodyOf("air").id());
             assertThrows(IllegalArgumentException.class, () -> game.bodyOf("phlogistique"));
         }
 

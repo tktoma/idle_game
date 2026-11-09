@@ -169,13 +169,13 @@ class SuccesUniversTest {
         GameParticles.powersOff = false;
         try {
             Game game = GameTestSupport.realGame();
-            assertEquals(99, game.achievements().size());
-            // Un tiers des 67 succès d'avant : la même puissance qu'en 0.173, pas un tiers de 99.
+            assertEquals(97, game.achievements().size());                 // 0.178 : les deux succès de collection sont partis
+            // Un tiers des 67 succès d'avant : la même puissance qu'en 0.173, pas un tiers de 97.
             for (int i = 0; i < 22; i++) game.state().addAchievement(Achievements.DEFAULT.get(i).id());
             assertEquals(Game.POWER_ACHIEVEMENTS * 22 / 67.0, game.achievementPower(), 1e-12);
             // Pleine à 67, et pas au-delà avec les succès de la 0.174.
             for (Achievement achievement : Achievements.DEFAULT) game.state().addAchievement(achievement.id());
-            assertEquals(99, game.achievementCount());
+            assertEquals(97, game.achievementCount());
             assertEquals(Game.POWER_ACHIEVEMENTS, game.achievementPower(), 1e-12);
         } finally {
             GameParticles.powersOff = off;

@@ -39,8 +39,8 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void leCatalogueOuvreChaqueRayonEtLaFusion() {
             List<SpaceUpgrade> upgrades = SpaceUpgrades.DEFAULT;
-            assertEquals(23, upgrades.size());
-            assertEquals(23, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
+            assertEquals(19, upgrades.size());                       // version 0.178 : trois rayons payants au lieu de sept
+            assertEquals(19, upgrades.stream().map(SpaceUpgrade::id).distinct().count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoGather).count());
             assertEquals(1, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.AutoForm).count());
             assertEquals(2, upgrades.stream().filter(upgrade -> upgrade.effect() instanceof SpaceUpgrade.CreationPace).count());
@@ -222,9 +222,9 @@ class JeuEspaceTest extends GameTestSupport {
 
         @Test
         void lesCreationsDeMoleculesSeComptent() {
-            // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
-            Game game = game(90_000);
-            game.state().setAutoFollowList(false);         // seulement les amas confiés : la liste de courses a son propre essai
+            // Assez d'espace pour créer, pas assez pour les assemblages (40 000) : sans liste de courses, la création
+            // automatique n'a que les amas confiés à servir (la liste de courses a son propre essai).
+            Game game = game(30_000);
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             GameStats stats = game.stats();
@@ -293,16 +293,16 @@ class JeuEspaceTest extends GameTestSupport {
 
         @Test
         void leDeuxiemeBigBangDonneLaCreationAutomatique() {
-            // Assez d'espace pour créer, pas assez pour l'amélioration qui accélère la création automatique.
-            Game game = game(90_000);
-            game.state().setAutoFollowList(false);         // seulement les amas confiés : la liste de courses a son propre essai
+            // Assez d'espace pour créer, pas assez pour les assemblages (40 000) : sans liste de courses, la création
+            // automatique n'a que les amas confiés à servir (la liste de courses a son propre essai).
+            Game game = game(30_000);
             game.state().addSpaceUpgrade("space_states");
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 9);
             game.state().setMoleculeCount("H2O", 3);
-            game.state().setMoleculeCount("H2O2", 3);
+            game.state().setMoleculeCount("HCN", 3);
             game.state().setMoleculeCount("CO2", 1);
             assertTrue(game.formSubstance("H2O"));
-            assertTrue(game.formSubstance("H2O2"));
+            assertTrue(game.formSubstance("HCN"));
             // Un seul Big Bang : pas d'automatisme, rien ne se règle.
             assertFalse(game.isMoleculeAutomationUnlocked());
             assertFalse(game.setMoleculeAutomated("H2O", true));
@@ -310,13 +310,13 @@ class JeuEspaceTest extends GameTestSupport {
             GameTestSupport.bangs(game, 2);
             assertTrue(game.isMoleculeAutomationUnlocked());
             assertTrue(game.isMoleculeAutomationEnabled());
-            assertFalse(game.isAutoCreatingMolecules());              // aucun amas ne lui est confié
+            assertTrue(game.isAutoCreatingMolecules());               // version 0.178 : en marche dès qu'acquise, même sans amas confié
             game.tick(60);
-            assertEquals(3, game.moleculeCount("H2O"));
+            assertEquals(3, game.moleculeCount("H2O"));               // mais rien à faire : ni liste de courses, ni amas confié
             // Seul un amas peut lui être confié.
             assertFalse(game.setMoleculeAutomated("CO2", true));
             assertTrue(game.setMoleculeAutomated("H2O", true));
-            assertTrue(game.isMoleculeAutomated("H2O") && !game.isMoleculeAutomated("H2O2"));
+            assertTrue(game.isMoleculeAutomated("H2O") && !game.isMoleculeAutomated("HCN"));
             assertEquals(1, game.automatedMolecules());
             assertTrue(game.isAutoCreatingMolecules());
             // Rien avant cinq secondes ; à cinq, une création, au prix et avec l'attraction d'une création à la main.
@@ -326,7 +326,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertEquals(5, game.moleculeCount("H2O"));               // 1 + √3 : deux d'un coup
             assertEquals(7, game.state().elementCount(1));
             assertEquals(8, game.state().elementCount(8));
-            assertEquals(3, game.moleculeCount("H2O2"));
+            assertEquals(3, game.moleculeCount("HCN"));
             // Elle laisse toujours un exemplaire de chaque élément : sans hydrogène, elle attend.
             game.state().setElementCount(1, 2);
             game.tick(30);
@@ -338,10 +338,10 @@ class JeuEspaceTest extends GameTestSupport {
             game.tick(30);
             assertEquals(5, game.moleculeCount("H2O"));
             assertTrue(game.setMoleculeAutomationEnabled(true));
-            assertTrue(game.setMoleculeAutomated("H2O2", true));
+            assertTrue(game.setMoleculeAutomated("HCN", true));
             game.tick(5);
             assertEquals(8, game.moleculeCount("H2O"));               // 1 + √5 : trois de plus
-            assertEquals(5, game.moleculeCount("H2O2"));
+            assertEquals(5, game.moleculeCount("HCN"));
             for (Element element : PeriodicTable.ELEMENTS) game.state().setElementCount(element.number(), 1);
             assertTrue(game.explode());
             assertTrue(game.isMoleculeAutomated("H2O") && game.isMoleculeAutomationEnabled());
@@ -357,7 +357,7 @@ class JeuEspaceTest extends GameTestSupport {
         void quandLEspaceManqueLaCreationAutomatiqueSertLesAmasATourDeRole() {
             Game game = game(1e9);
             GameTestSupport.bangs(game, 2);
-            for (String id : new String[] {"space_states", "space_acid", "space_salt"}) game.state().addSpaceUpgrade(id);
+            for (String id : new String[] {"space_states", "space_acid"}) game.state().addSpaceUpgrade(id);
             game.state().setMoleculeCount("NaCl", 3);
             game.state().setMoleculeCount("KCl", 3);
             assertTrue(game.formSubstance("NaCl"));
@@ -419,7 +419,7 @@ class JeuEspaceTest extends GameTestSupport {
             assertValue(2_500, game.freeSpace());               // tout l'espace reste libre
             assertValue(2_500, game.state().space());
             assertTrue(game.isMoleculeKindUnlocked(Molecule.Kind.ACID));
-            assertEquals(Molecule.Kind.SALT, game.nextMoleculeKind());
+            assertEquals(Molecule.Kind.MINERAL, game.nextMoleculeKind());
             // Elle ne se prend qu'une fois.
             assertFalse(game.canBuySpaceUpgrade("space_acid"));
             assertFalse(game.buySpaceUpgrade("space_acid"));
@@ -450,29 +450,30 @@ class JeuEspaceTest extends GameTestSupport {
             Game game = game(1e9);
             assertTrue(game.isSpaceUpgradeAvailable("space_acid"));
             assertTrue(game.isSpaceUpgradeAvailable("space_states"));
-            assertFalse(game.isSpaceUpgradeAvailable("space_salt"));
-            assertFalse(game.buySpaceUpgrade("space_salt"));
+            assertFalse(game.isSpaceUpgradeAvailable("space_mineral"));
+            assertFalse(game.buySpaceUpgrade("space_mineral"));
             assertTrue(game.buySpaceUpgrade("space_acid"));
-            assertTrue(game.buySpaceUpgrade("space_salt"));
+            assertTrue(game.buySpaceUpgrade("space_mineral"));
             assertEquals(3, game.moleculeKindsUnlocked());
             assertTrue(game.reservedSpace().isZero());
         }
 
         @Test
-        void unMillionDEspaceGagneOuvreToutLeCatalogue() {
-            Game game = game(999_999);
-            assertFalse(game.isSpaceUpgradeAvailable("space_rare"));
+        void deuxCentMilleDEspaceGagneOuvreToutLeCatalogue() {
+            // Version 0.178 : le dernier rayon, la chimie du carbone, s'ouvre à 200 000 (le million des terres rares avant).
+            Game game = game(199_999);
+            assertFalse(game.isSpaceUpgradeAvailable("space_organic"));
             for (SpaceUpgrade upgrade : game.spaceUpgrades()) {
-                // Les améliorations de fin de partie (au-delà du million) attendent bien plus d'espace.
-                if (upgrade.space().gt(BigNum.of(1_000_000))) continue;
-                if (!upgrade.id().equals("space_rare")) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
+                // Les améliorations de fin de partie attendent bien plus d'espace.
+                if (upgrade.space().gt(BigNum.of(200_000))) continue;
+                if (!upgrade.id().equals("space_organic")) assertTrue(game.buySpaceUpgrade(upgrade.id()), upgrade.id());
             }
-            assertFalse(game.buySpaceUpgrade("space_rare"));
-            assertEquals(Molecule.Kind.RARE, game.nextMoleculeKind());
-            game.state().setSpace(BigNum.of(1_000_000));
-            assertTrue(game.buySpaceUpgrade("space_rare"));
+            assertFalse(game.buySpaceUpgrade("space_organic"));
+            assertEquals(Molecule.Kind.ORGANIC, game.nextMoleculeKind());
+            game.state().setSpace(BigNum.of(200_000));
+            assertTrue(game.buySpaceUpgrade("space_organic"));
             assertTrue(game.reservedSpace().isZero());
-            assertValue(1_000_000, game.freeSpace());
+            assertValue(200_000, game.freeSpace());
         }
 
         @Test
@@ -553,23 +554,19 @@ class JeuEspaceTest extends GameTestSupport {
                 assertTrue(molecule.hasState(), molecule.id());
                 all.merge(molecule.state(), 1, Integer::sum);
                 if (molecule.kind() == Molecule.Kind.SIMPLE) small.merge(molecule.state(), 1, Integer::sum);
-                // Les minéraux sont tous des cristaux, et rien de vivant n'est un métal.
+                // Les minéraux sont tous des cristaux.
                 if (molecule.kind() == Molecule.Kind.MINERAL) assertEquals(Molecule.State.CRYSTAL, molecule.state(), molecule.id());
-                if (molecule.kind() == Molecule.Kind.LIFE || molecule.kind() == Molecule.Kind.ORGANIC) {
-                    assertTrue(molecule.state() != Molecule.State.METAL && molecule.state() != Molecule.State.CRYSTAL, molecule.id());
-                }
             }
-            assertEquals(Map.of(Molecule.State.GAS, 27, Molecule.State.LIQUID, 8, Molecule.State.SOLID, 6), small);
-            assertEquals(Map.of(Molecule.State.GAS, 45, Molecule.State.LIQUID, 61, Molecule.State.SOLID, 85,
-                    Molecule.State.CRYSTAL, 227, Molecule.State.METAL, 12), all);
+            // Version 0.178 : trois états (le solide et le métal ont rejoint le cristal) sur 73 molécules.
+            assertEquals(Map.of(Molecule.State.GAS, 11, Molecule.State.LIQUID, 2, Molecule.State.CRYSTAL, 1), small);
+            assertEquals(Map.of(Molecule.State.GAS, 18, Molecule.State.LIQUID, 15, Molecule.State.CRYSTAL, 40), all);
             assertEquals(Molecule.State.LIQUID, state(WATER));
             assertEquals(Molecule.State.GAS, state("C3H8"));
             assertEquals(Molecule.State.LIQUID, state("C2H5OH"));
-            assertEquals(Molecule.State.SOLID, state("C6H12O6"));
+            assertEquals(Molecule.State.CRYSTAL, state("S8"));             // un ancien solide
+            assertEquals(Molecule.State.CRYSTAL, state("C10H8"));          // un autre
             assertEquals(Molecule.State.CRYSTAL, state("NaCl"));
             assertEquals(Molecule.State.CRYSTAL, state("SiO2"));
-            assertEquals(Molecule.State.METAL, state("NiTi"));
-            assertEquals(Molecule.State.METAL, state("Nd2Fe14B"));
         }
 
         private Molecule.State state(String id) {
@@ -577,23 +574,22 @@ class JeuEspaceTest extends GameTestSupport {
         }
 
         @Test
-        void unCristalEtUnMetalSeRassemblentCommeLesAutres() {
-            Game game = game(7, "NaCl", "NiTi");
+        void deuxCristauxSeRassemblentCommeLesAutres() {
+            Game game = game(7, "NaCl", "Fe2O3");
             assertValue(3 * 280, game.substanceSpace("NaCl"));               // cristal : juste la place de ses molécules
-            assertValue(3 * 500 * 0.75, game.substanceSpace("NiTi"));        // métal : les trois quarts
+            assertValue(3 * 760, game.substanceSpace("Fe2O3"));              // l'hématite aussi, 76 protons
             assertTrue(game.formSubstance("NaCl"));
-            assertTrue(game.formSubstance("NiTi"));
+            assertTrue(game.formSubstance("Fe2O3"));
             double crystal = Math.pow(3, 1.40);                               // sept molécules : trois doublements
-            double metal = Math.pow(3, 1.45);
             assertEquals(crystal, game.effectiveMolecules("NaCl"), 1e-12);
-            assertEquals(metal, game.effectiveMolecules("NiTi"), 1e-12);
+            assertEquals(crystal, game.effectiveMolecules("Fe2O3"), 1e-12);
             // Le sel relève le plafond du sodium : 3^1,4 = 4,65, donc quatre exemplaires au lieu de trois.
             assertEquals(4, game.elementUncap(11));
-            assertEquals(4, game.elementUncap(28));                          // nitinol : 3^1,45 = 4,92
-            // Un cristal : 3 % de particules et 5 % d'atomes ; un métal : 8 % d'atomes.
-            assertEquals(1 + 0.03 * crystal, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
-            assertEquals(1 + 0.05 * crystal + 0.08 * metal, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
-            assertEquals(List.of("NaCl", "NiTi"), game.state().substances());
+            assertEquals(4, game.elementUncap(26));                          // l'hématite, celui du fer
+            // Un cristal : 3 % de particules et 5 % d'atomes.
+            assertEquals(1 + 2 * 0.03 * crystal, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 2 * 0.05 * crystal, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            assertEquals(List.of("NaCl", "Fe2O3"), game.state().substances());
         }
 
         @Test
@@ -602,10 +598,8 @@ class JeuEspaceTest extends GameTestSupport {
                 assertTrue(matter.exponent() > 1 && matter.exponent() <= 1.5, matter + " : " + matter.exponent());
                 assertTrue(matter.particles() + matter.atoms() > 0, matter + " n'ajoute ni particules ni atomes");
             }
-            assertTrue(Molecule.State.METAL.exponent() > Molecule.State.CRYSTAL.exponent());
-            assertTrue(Molecule.State.CRYSTAL.exponent() > Molecule.State.SOLID.exponent());
-            assertTrue(Molecule.State.METAL.spaceFactor() < Molecule.State.CRYSTAL.spaceFactor());
-            assertTrue(Molecule.State.SOLID.exponent() > Molecule.State.LIQUID.exponent());
+            assertEquals(3, Molecule.State.values().length);                 // version 0.178 : gaz, liquide, cristal
+            assertTrue(Molecule.State.CRYSTAL.exponent() > Molecule.State.LIQUID.exponent());
             assertTrue(Molecule.State.LIQUID.exponent() > Molecule.State.GAS.exponent());
             assertTrue(Molecule.State.GAS.spaceFactor() > Molecule.State.LIQUID.spaceFactor());
         }
@@ -687,22 +681,20 @@ class JeuEspaceTest extends GameTestSupport {
         }
 
         @Test
-        void unGazDemandeUnLieuPlusVasteQuUnSolide() {
+        void unGazDemandeUnLieuPlusVasteQuUnCristal() {
             Game game = game(3, "H2", "S8", WATER);
             assertValue(3 * 20 * 20, game.substanceSpace("H2"));             // gaz : vingt fois la place de ses protons
-            assertValue(3 * 1_280, game.substanceSpace("S8"));               // solide : juste leur place
+            assertValue(3 * 1_280, game.substanceSpace("S8"));               // cristal (un ancien solide) : juste leur place
             assertValue(3 * 100 * 2, game.substanceSpace(WATER));            // liquide : deux fois
             assertTrue(game.formSubstance("H2"));
             assertTrue(game.formSubstance("S8"));
             assertTrue(game.formSubstance(WATER));
             assertValue(1_200 + 3_840 + 600, game.reservedSpace());
             assertEquals(List.of("H2", "S8", WATER), game.state().substances());
-            // À poids égal, un gaz prend vingt fois la place d'un cristal, un liquide deux fois, un métal les trois quarts.
+            // À poids égal, un gaz prend vingt fois la place d'un cristal, un liquide deux fois.
             assertEquals(20, Molecule.State.GAS.spaceFactor(), 0);
             assertEquals(2, Molecule.State.LIQUID.spaceFactor(), 0);
-            assertEquals(1, Molecule.State.SOLID.spaceFactor(), 0);
             assertEquals(1, Molecule.State.CRYSTAL.spaceFactor(), 0);
-            assertEquals(0.75, Molecule.State.METAL.spaceFactor(), 0);
         }
 
         @Test
@@ -790,7 +782,7 @@ class JeuEspaceTest extends GameTestSupport {
             game.state().setMoleculeCount(WATER, 1_023);
             assertEquals(1.50, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
             // Deux sortes à sept molécules valent donc mieux qu'une seule à quatorze.
-            Game two = game(7, WATER, "H2O2");
+            Game two = game(7, WATER, "SO2");
             Game one = game(14, WATER);
             assertTrue(two.moleculeBoost(Molecule.Stat.PARTICLES) > one.moleculeBoost(Molecule.Stat.PARTICLES));
         }
@@ -827,16 +819,16 @@ class JeuEspaceTest extends GameTestSupport {
 
         @Test
         void seulesLesMoleculesRassembleesProfitentDeLExposant() {
-            Game game = game(5, WATER, "H2O2");
+            Game game = game(5, WATER, "HCN");
             assertTrue(game.formSubstance(WATER));
             assertEquals(Math.pow(Game.doublings(5), 1.25), game.effectiveMolecules(WATER), 1e-12);
-            assertEquals(Game.doublings(5), game.effectiveMolecules("H2O2"), 0);
+            assertEquals(Game.doublings(5), game.effectiveMolecules("HCN"), 0);
             assertEquals(5, game.gatheredMolecules(WATER));
-            assertEquals(0, game.gatheredMolecules("H2O2"));
+            assertEquals(0, game.gatheredMolecules("HCN"));
         }
 
         @Test
-        void unGazAjouteDesParticulesUnSolideDesAtomes() {
+        void unGazAjouteDesParticulesUnCristalDesAtomes() {
             Game gas = game(3, "CO2");
             assertTrue(gas.formSubstance("CO2"));
             double counted = Math.pow(2, 1.15);                       // trois molécules : deux doublements, à l'exposant du gaz
@@ -844,11 +836,11 @@ class JeuEspaceTest extends GameTestSupport {
             assertEquals(1 + 0.08 * counted, gas.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
             assertEquals(1.0, gas.moleculeBoost(Molecule.Stat.ATOMS), 0);
 
-            Game solid = game(3, "P4O10");
-            assertTrue(solid.formSubstance("P4O10"));
-            counted = Math.pow(2, 1.35);
-            assertEquals(1 + 0.10 * counted, solid.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
-            assertEquals(1 + 0.05 * counted, solid.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            Game crystal = game(3, "S8");                              // le soufre, un ancien solide : un cristal depuis la 0.178
+            assertTrue(crystal.formSubstance("S8"));
+            counted = Math.pow(2, 1.40);
+            assertEquals(1 + 0.03 * counted, crystal.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(1 + 0.05 * counted, crystal.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
         }
 
         @Test
@@ -895,10 +887,12 @@ class JeuEspaceTest extends GameTestSupport {
         @Test
         void uneMoleculeSansEtatNeSeRassemblePas() {
             // Toutes celles du catalogue en ont un ; une molécule décrite sans état n'en a pas.
-            Molecule bare = Molecule.of(Molecule.Kind.SALT, "Sel de table", "NaCl");
+            Molecule bare = Molecule.of(Molecule.Kind.ACID, "Sel de table", "NaCl");
             assertFalse(bare.hasState());
             assertTrue(bare.crystal().hasState());
-            assertEquals(Molecule.State.METAL, bare.metal().state());
+            assertEquals(Molecule.State.CRYSTAL, bare.crystal().state());
+            assertEquals(Molecule.State.GAS, bare.gas().state());
+            assertEquals(Molecule.State.LIQUID, bare.liquid().state());
             Game game = game(3, "NaCl");
             assertThrows(IllegalArgumentException.class, () -> game.formSubstance("phlogistique"));
             assertThrows(IllegalArgumentException.class, () -> game.hasSubstance("phlogistique"));

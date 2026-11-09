@@ -30,16 +30,17 @@ class GraineAmeliorationsTest {
         Game game = rich();
         double segments = game.dimensionResource(1);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.WATERING));
-        assertEquals(segments - 25_000, game.dimensionResource(1), 1e-3, "le débit se paie en segments");
+        // Version 0.179 : un cinquième du seuil de la dimension au premier niveau, ×1,6 par niveau.
+        assertEquals(segments - 50_000, game.dimensionResource(1), 1e-3, "le débit se paie en segments : 250 000 / 5");
         double facettes = game.dimensionResource(2);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertEquals(facettes - 350, game.dimensionResource(2), 1e-3, "le tuyau, en facettes");
-        assertEquals(350 * 2.5, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9);
+        assertEquals(facettes - 700, game.dimensionResource(2), 1e-3, "le tuyau, en facettes : 3 500 / 5");
+        assertEquals(700 * 1.6, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertEquals(2188, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9, "350 × 2,5² = 2 187,5, arrondi au-dessus");
+        assertEquals(1792, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9, "700 × 1,6² = 1 792");
         double spheres = game.dimensionResource(3);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));
-        assertEquals(spheres - 800, game.dimensionResource(3), 1e-3, "la terre fertile, en sphères");
+        assertEquals(spheres - 1_600, game.dimensionResource(3), 1e-3, "la terre fertile, en sphères : 8 000 / 5");
         assertTrue(game.buySeedUpgrade(SeedUpgrade.CHRONO));
         assertFalse(game.canBuySeedUpgrade(SeedUpgrade.CHRONO), "un seul étage");
         assertEquals("segments", Game.dimensionResourceName(1));
@@ -76,12 +77,12 @@ class GraineAmeliorationsTest {
         assertEquals(0.2, game.hoseRate(), 1e-12);
         game.tick(10);
         assertEquals(8, game.state().seedWaterings(), "10 s de tuyau à 0,2 par seconde : 2 arrosages, sans tenir l'arrosoir");
-        // La terre fertile : chaque arrosage compte double, puis ×2 encore.
+        // La terre fertile : chaque arrosage compte un de plus par niveau (version 0.179 : ×2 par niveau avant).
         assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));
         assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));
-        assertEquals(4, game.seedSoilFactor());
+        assertEquals(3, game.seedSoilFactor());
         assertTrue(game.tendSeed());
-        assertEquals(12, game.state().seedWaterings());
+        assertEquals(11, game.state().seedWaterings());
     }
 
     @Test

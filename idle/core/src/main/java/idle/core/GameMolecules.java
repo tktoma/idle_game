@@ -34,7 +34,6 @@ public abstract class GameMolecules extends GameUniverse {
     abstract boolean bangRuled(BangChallenge challenge);
     public abstract double bigBangMilestoneBoost(Molecule.Stat stat);
     public abstract double accretionFactor();
-    public abstract double collectionBoost(Molecule.Stat stat);
     abstract SpaceUpgrade spaceUpgrade(String spaceUpgradeId);
     public abstract boolean canBuySpaceUpgrade(String spaceUpgradeId);
     public abstract BigNum spacePerSecond();
@@ -398,8 +397,7 @@ public abstract class GameMolecules extends GameUniverse {
      */
     public double moleculeBoost(Molecule.Stat stat) {
         refreshMoleculeBonuses();
-        return matterBoost(stat) * upgradeBoosts.getOrDefault(stat, 1.0) * bigBangMilestoneBoost(stat) * collectionBoost(stat)
-                * skinBoost();
+        return matterBoost(stat) * upgradeBoosts.getOrDefault(stat, 1.0) * bigBangMilestoneBoost(stat) * skinBoost();
     }
 
     /**

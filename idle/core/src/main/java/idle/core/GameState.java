@@ -121,8 +121,6 @@ public final class GameState extends GameStateResets {
         data.put("cosmos", cosmos);
         data.put("autoHold", autoHold);
         data.put("autoMolecules", autoMolecules);
-        data.put("autoFollowList", autoFollowList);
-        data.put("autoFollowMatter", autoFollowMatter);
         data.putList("automatedMolecules", automatedMolecules);
         data.putList("spaceUpgrades", spaceUpgrades);
         data.putList("darkPlan", darkPlan);
@@ -134,7 +132,6 @@ public final class GameState extends GameStateResets {
         data.put("forkResetArmed", forkResetArmed);
         data.putList("plannedBodies", plannedBodies);
         data.putDoubles("stateCaps", new TreeMap<>(stateCaps));
-        data.put("recipeReservation", recipeReservation);
         data.put("replaying", replaying);
         data.put("fusionsAtUniverse", fusionsAtUniverse);
         data.put("explosionsAtUniverse", explosionsAtUniverse);
@@ -199,6 +196,9 @@ public final class GameState extends GameStateResets {
         data.put("twigOpened", twigOpened);
         data.put("seedUniversesOpened", seedUniversesOpened);
         data.put("seedWaterings", seedWaterings);
+        // Version 0.179 : les paliers de la graine demandent bien plus d'arrosages ; une sauvegarde sans cette marque
+        // comptait trente arrosages par palier, et garde son palier au chargement.
+        data.put("seedStages179", true);
         data.put("planeShards", planeShards);
         data.put("planeShardsEarned", planeShardsEarned);
         for (int i = 0; i < PLANE_UPGRADES; i++) data.put("planeLevel" + i, planeLevel(i));
@@ -409,8 +409,6 @@ public final class GameState extends GameStateResets {
         setCosmosLevel(data.whole("cosmos", 0));
         autoHold = data.flag("autoHold", true);
         autoMolecules = data.flag("autoMolecules", true);
-        autoFollowList = data.flag("autoFollowList", true);
-        autoFollowMatter = data.flag("autoFollowMatter", false);
         automatedMolecules.addAll(data.list("automatedMolecules"));
         spaceUpgrades.addAll(data.list("spaceUpgrades"));
         setDarkPlan(data.list("darkPlan"));
@@ -425,7 +423,6 @@ public final class GameState extends GameStateResets {
         setPlannedBodies(data.list("plannedBodies"));
         stateCaps.clear();
         data.doubles("stateCaps").forEach(this::setStateCap);
-        recipeReservation = data.flag("recipeReservation", false);
         replaying = data.flag("replaying", false);
         fusionsAtUniverse = data.count("fusionsAtUniverse", 0);
         explosionsAtUniverse = data.count("explosionsAtUniverse", 0);
@@ -507,6 +504,16 @@ public final class GameState extends GameStateResets {
         // Version 0.137 : une partie d'avant n'a pas d'arrosoir ; il se débloque d'un clic sur l'étagère.
         setWateringCan(data.flag("wateringCan", false));
         setSeedWaterings(data.count("seedWaterings", 0));
+        // Avant la version 0.179, chaque palier demandait trente arrosages : le palier atteint est gardé, les arrosages
+        // deviennent ceux que ce palier demande maintenant (et ceux versés vers le palier suivant sont gardés en proportion).
+        if (!data.has("seedStages179") && seedSprouted && seedWaterings > 0) {
+            long oldStep = GameUniverse.SEED_TWIG_WATERINGS;
+            int stage = (int) Math.min(GameUniverse.SEED_STAGES, 1 + seedWaterings / oldStep);
+            long base = GameUniverse.seedStageWaterings(stage);
+            long next = stage < GameUniverse.SEED_STAGES ? GameUniverse.seedStageWaterings(stage + 1) : base;
+            long part = seedWaterings - oldStep * (stage - 1);
+            setSeedWaterings(base + (next - base) * Math.min(part, oldStep) / oldStep);
+        }
         // Une partie d'avant la 0.109 déjà dans l'univers 2 ouvert par la brindille : elle ne le rouvrira pas.
         setTwigOpened(data.flag("twigOpened", data.flag("replaying", false) && seedSprouted && seedWaterings >= GameUniverse.SEED_TWIG_WATERINGS));
         setSeedUniversesOpened(data.whole("seedUniversesOpened", twigOpened ? 1 : 0));

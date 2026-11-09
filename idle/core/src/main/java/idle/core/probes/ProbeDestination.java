@@ -9,14 +9,12 @@ import idle.core.molecules.Molecule;
  */
 public enum ProbeDestination {
     VOID("Vide intersidéral", null),
+    // Version 0.178 : une destination par rayon, quatre rayons ; la lune salée, le reste d'étoile, la planète
+    // océan et le reste de supernova sont partis avec leurs rayons.
     GAS_CLOUD("Nuage de gaz", Molecule.Kind.SIMPLE),
-    COMET("Comète", Molecule.Kind.ACID),
-    SALT_MOON("Lune aux lacs salés", Molecule.Kind.SALT),
+    SALT_MOON("Lune aux lacs salés", Molecule.Kind.ACID),
     ASTEROIDS("Ceinture d'astéroïdes", Molecule.Kind.MINERAL),
-    DEAD_STAR("Reste d'étoile", Molecule.Kind.MATERIAL),
-    NEBULA("Nébuleuse moléculaire", Molecule.Kind.ORGANIC),
-    OCEAN_WORLD("Planète océan", Molecule.Kind.LIFE),
-    SUPERNOVA("Reste de supernova", Molecule.Kind.RARE);
+    NEBULA("Nébuleuse moléculaire", Molecule.Kind.ORGANIC);
 
     private final String label;
     private final Molecule.Kind kind;

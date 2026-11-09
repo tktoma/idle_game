@@ -348,8 +348,8 @@ class DeuxiemeUniversTest {
 
     @Test
     void lesPaliersDeLaGraineOuvrentLesUnivers() {
-        // Version 0.120 : le palier N de la graine ouvre l'univers N. Version 0.139 : trente arrosages par palier suffisent,
-        // sans les seuils des dimensions.
+        // Version 0.120 : le palier N de la graine ouvre l'univers N. Version 0.139 : des arrosages seulement, sans les
+        // seuils des dimensions. Version 0.179 : trente pour la tige, soixante de plus pour la graine craquelée, puis bien plus.
         Game game = GameTestSupport.universe(1);
         assertEquals(1, game.seedStage());
         assertTrue(game.tendSeed(), "elle germe");
@@ -363,15 +363,15 @@ class DeuxiemeUniversTest {
         assertEquals(2, game.universes());
         assertFalse(game.canOpenNextUniverse(), "l'univers 3 attend le palier 3");
         assertFalse(game.isPlaneThresholdReached(), "le plan n'a pas son seuil : la graine ne l'attend plus");
-        for (long k = 1; k < Game.SEED_TWIG_WATERINGS; k++) assertTrue(game.tendSeed());
-        assertEquals(2, game.seedStage(), "29 arrosages de plus : pas encore");
+        for (long k = 1; k < 60; k++) assertTrue(game.tendSeed());
+        assertEquals(2, game.seedStage(), "59 arrosages de plus : pas encore");
         assertTrue(game.tendSeed());
-        assertEquals(3, game.seedStage(), "trente de plus : la graine craquelée");
+        assertEquals(3, game.seedStage(), "soixante de plus : la graine craquelée");
         assertEquals("la graine craquelée", Game.SEED_STAGE_NAMES.get(2));
         assertTrue(game.canOpenNextUniverse(), "le palier 3 ouvre l'univers 3");
         assertTrue(game.tendSeed(), "la dimension 3 n'existe pas encore, la graine boit quand même");
         assertEquals(11, Game.SEED_STAGE_NAMES.size());
-        assertEquals(300, Game.seedStageWaterings(11));
+        assertEquals(133_290, Game.seedStageWaterings(11), "version 0.179 : douze heures d'arrosoir pour l'arbre-monde");
     }
 
     @Test
@@ -395,7 +395,7 @@ class DeuxiemeUniversTest {
             assertEquals(stage - 1, game.state().seedUniversesOpened());
         }
         assertEquals(11, game.universes());
-        assertEquals(300, game.state().seedWaterings(), "trente arrosages par palier : 300 pour l'arbre-monde");
+        assertEquals(133_290, game.state().seedWaterings(), "les arrosages de l'arbre-monde (version 0.179)");
         assertEquals(Game.SEED_STAGES, game.nextUniverseStage(), "au-delà de l'arbre-monde, il n'y a plus de palier à attendre");
         assertFalse(game.canTendSeed(), "l'arbre-monde ne boit plus");
     }

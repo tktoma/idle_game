@@ -101,8 +101,10 @@ public final class Card extends VBox {
     /** Vrai si la carte se clique encore une fois acquise (un défi réussi se rejoue). */
     private boolean doneClickable = false;
     private Tooltip tooltip = null;
-    /** Un dessin posé entre l'en-tête et le titre, ou {@code null}. */
+    /** Un dessin posé entre l'en-tête et le titre, ou au début de l'en-tête ({@link #setInlinePicture}), ou {@code null}. */
     private javafx.scene.Node picture = null;
+    /** Vrai si le dessin est dans l'en-tête, à gauche du coin, plutôt que sur sa propre ligne. */
+    private boolean inlinePicture = false;
     /** L'apparence déjà appliquée (état, survol, cliquable), pour ne pas la recalculer à chaque image. */
     private int painted = 0;
     /** La clé du dernier remplissage ({@link #filledWith(long)}). */
@@ -203,11 +205,32 @@ public final class Card extends VBox {
      * molécule. Il s'estompe avec la carte quand elle est hors de portée.
      */
     public void setPicture(javafx.scene.Node picture) {
-        if (this.picture != null) getChildren().remove(this.picture);
+        removePicture();
         this.picture = picture;
         if (picture != null) getChildren().add(1, picture);
         painted = 0;
         paint();
+    }
+
+    /**
+     * Pose un petit dessin au début de l'en-tête, à gauche du coin, sur la même ligne que lui : la
+     * carte reste basse (version 0.178, les cartes des molécules). Il s'estompe comme l'autre.
+     */
+    public void setInlinePicture(javafx.scene.Node picture) {
+        removePicture();
+        this.picture = picture;
+        inlinePicture = picture != null;
+        if (picture != null) head.getChildren().add(0, picture);
+        painted = 0;
+        paint();
+    }
+
+    private void removePicture() {
+        if (picture == null) return;
+        getChildren().remove(picture);
+        head.getChildren().remove(picture);
+        picture = null;
+        inlinePicture = false;
     }
 
     private Runnable look;
@@ -381,7 +404,7 @@ public final class Card extends VBox {
         set(this.detail, Detail.shown() ? detail : "");
         set(this.price, price);
         set(this.aside, aside);
-        visible(head, !empty(corner) || !empty(mark) || pinAction != null);
+        visible(head, !empty(corner) || !empty(mark) || pinAction != null || inlinePicture);
         visible(foot, !empty(price) || !empty(aside));
         paint();
     }

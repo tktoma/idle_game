@@ -275,9 +275,7 @@ public abstract class StatsPageLines extends StatsPageBase {
             row(step.label(), () -> reached(step), () -> stats().reached(step));
         }
 
-        section("Collections, comètes et défis");
-        row("Collections à moitié réunies", () -> game.collectionsAt(1) + " / " + game.collections().size());
-        row("Collections complètes", () -> game.collectionsAt(2) + " / " + game.collections().size());
+        section("Comètes et défis");
         row("Comètes saisies", () -> Format.whole(game.cometsCaught()));
         row("Sillage de comète", () -> "espace " + Format.multiplier(game.cometBoost()) + ", encore " + Format.wait(game.cometBoostLeft()),
                 () -> game.cometBoost() > 1);
@@ -306,7 +304,6 @@ public abstract class StatsPageLines extends StatsPageBase {
         row("Améliorations d'espace", () -> Format.multiplier(game.spaceUpgradeBoost(Molecule.Stat.SPACE)));
         row("Paliers", () -> Format.multiplier(game.bigBangMilestoneBoost(Molecule.Stat.SPACE)));
         row("Matière noire en réserve", () -> Format.multiplier(game.darkMatterSpaceBoost()), this::darkSpace);
-        row("Collections", () -> Format.multiplier(game.collectionBoost(Molecule.Stat.SPACE)), () -> game.collectionBoost(Molecule.Stat.SPACE) > 1);
         row("Défis de Big Bang", () -> Format.multiplier(game.bangReward(BangChallenge.Reward.SPACE)),
                 () -> game.bangReward(BangChallenge.Reward.SPACE) > 1);
 

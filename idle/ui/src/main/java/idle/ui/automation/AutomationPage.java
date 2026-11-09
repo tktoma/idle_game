@@ -122,12 +122,6 @@ public final class AutomationPage extends VBox {
     private final Button lessReserve = new Button("−");
     private final Button moreReserve = new Button("+");
     private final Label reserveLabel = new Label();
-    /** La création automatique suit la liste de courses, ou seulement les amas confiés. */
-    private final Button followButton = new Button();
-    /** Entretien facultatif des états de matière nécessaires au prochain astre ou au cosmos. */
-    private final Button followMatterButton = new Button();
-    private final Label followMatterHint = new Label("N'entretient que les substances déjà rassemblées. Respecte votre réserve d'espace et vos plafonds par état. N'est jamais activé sans votre choix.");
-    private final VBox followMatterBox = new VBox(5, followMatterButton, followMatterHint);
     private final HBox reserveRow = new HBox(8, lessReserve, reserveLabel, moreReserve);
     /** Les réserves proposées, en atomes ; au-delà (plafond d'atomes levé), elles doublent. */
     private static final double[] RESERVES = {0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100};
@@ -164,6 +158,11 @@ public final class AutomationPage extends VBox {
     private final HBox spaceReserveRow = new HBox(8, lessSpace, spaceReserveLabel, moreSpace);
     /** Les parts d'espace proposées à la réserve de la création automatique. */
     private static final double[] SPACE_RESERVES = {0, 0.10, 0.25, 0.50, 0.75, 0.90};
+    /** Les amas confiés à la création automatique (version 0.178) : une ligne qui les nomme, et une pastille par amas qui le retire. */
+    private final Label entrustedTitle = new Label();
+    private final javafx.scene.layout.FlowPane entrustedRow = new javafx.scene.layout.FlowPane(6, 6);
+    private final VBox entrustedBox = new VBox(6, entrustedTitle, entrustedRow);
+    private final Map<String, Button> entrustedChips = new LinkedHashMap<>();
     // L'ordre d'achat des deux automatismes de matière noire qui achètent : le moins cher d'abord, ou celui du joueur.
     private final OrderPane upgradeOrder;
     private final OrderPane automationOrder;
@@ -366,27 +365,7 @@ public final class AutomationPage extends VBox {
             refresh();
         });
         ordinary.getChildren().add(spaceReserveRow);
-        followButton.setStyle(spaceStyle);
-        followButton.setFocusTraversable(false);
-        followButton.setOnAction(event -> {
-            game.setAutoFollowList(!game.isAutoFollowingList());
-            refresh();
-        });
-        HBox followRow = new HBox(followButton);
-        followRow.setAlignment(Pos.CENTER);
-        this.followRow = followRow;
-        ordinary.getChildren().add(followRow);
-        followMatterBox.setAlignment(Pos.CENTER);
-        followMatterButton.setStyle(spaceStyle);
-        followMatterButton.setFocusTraversable(false);
-        followMatterButton.setOnAction(event -> {
-            game.setAutoFollowMatter(!game.isAutoFollowingMatter());
-            refresh();
-        });
-        wrapped(followMatterHint, "-fx-font-size: 11px; -fx-text-fill: #93b4c8;");
-        followMatterHint.setMaxWidth(690);
-        ordinary.getChildren().add(followMatterBox);
-        // Les plafonds par état (version 0.085) : une liste par état de la matière.
+        // Les plafonds par état (version 0.085) : une liste par état de la matière, trois depuis la 0.178.
         capsTitle.setStyle("-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
         capsTitle.setWrapText(true);
         capsTitle.setMaxWidth(760);
@@ -414,6 +393,13 @@ public final class AutomationPage extends VBox {
         caps.setAlignment(Pos.CENTER);
         capsBox = caps;
         ordinary.getChildren().add(caps);
+        // Les amas confiés : nommés ici, retirés d'un clic ; ils se confient dans les États de la matière du Big Bang.
+        wrapped(entrustedTitle, "-fx-font-size: 13px; -fx-text-fill: #cfe8ff;");
+        entrustedTitle.setMaxWidth(760);
+        entrustedRow.setAlignment(Pos.CENTER);
+        entrustedRow.setMaxWidth(780);
+        entrustedBox.setAlignment(Pos.CENTER);
+        ordinary.getChildren().add(entrustedBox);
 
         // Les automates du collisionneur : une carte chacun, qui l'achète puis le met en pause ou le relance.
         colliderTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 16 0 0 0; -fx-text-fill: "
@@ -552,10 +538,10 @@ public final class AutomationPage extends VBox {
         return capChoices.get(matter);
     }
 
-    private HBox followRow;
-
-    /** Le contrôle de suivi de la matière : pour les tests d'interface. */
-    public Button followMatterButton() { return followMatterButton; }
+    /** Les pastilles des amas confiés, par identifiant de molécule : pour les vérifications. */
+    public Map<String, Button> entrustedChips() {
+        return java.util.Collections.unmodifiableMap(entrustedChips);
+    }
 
     /** La carte du rassemblement automatique : pour les vérifications. */
     public Card gatherCard() {
@@ -835,12 +821,6 @@ public final class AutomationPage extends VBox {
         spaceGrid.show(gatherCard, gather);
         spaceGrid.show(formCard, form);
         show(spaceReserveRow, creation);
-        show(followRow, creation);
-        show(followMatterBox, creation && game.isStatesUnlocked());
-        followMatterBox.setOpacity(shade);
-        followMatterButton.setText(game.isAutoFollowingMatter()
-                ? "Besoins de matière : suivi activé" : "Besoins de matière : suivi désactivé");
-        followMatterButton.setDisable(!creation || paused);
         boolean caps = game.isStateCapUnlocked();
         show(capsBox, caps);
         if (caps) {
@@ -855,8 +835,9 @@ public final class AutomationPage extends VBox {
                         + ElementText.percent(game.stateShare(matter)) + ")");
             }
         }
-        if (creation) followButton.setText(game.isAutoFollowingList()
-                ? "Suit la liste de courses : oui" : "Suit la liste de courses : non, seulement les amas confiés");
+        show(entrustedBox, creation && game.isStatesUnlocked());
+        entrustedBox.setOpacity(shade);
+        if (creation && game.isStatesUnlocked()) refreshEntrusted();
         if (creation) {
             double share = game.autoMoleculeReserve();
             spaceReserveLabel.setText(share <= 0
@@ -890,23 +871,21 @@ public final class AutomationPage extends VBox {
         if (creation) {
             boolean on = game.isMoleculeAutomationEnabled();
             int chosen = game.automatedMolecules();
-            boolean follow = game.isAutoFollowingList();
-            boolean matter = game.isAutoFollowingMatter();
-            boolean waiting = on && chosen == 0 && !follow && (!matter || game.autoMatterTargets().isEmpty());
-            moleculesCard.show(on ? Card.State.ON : Card.State.OFF, "", waiting ? "en attente" : on ? "en marche" : "coupé",
-                    "Création automatique", (follow ? "Suit la liste de courses" + (chosen > 0 ? ", et " : "") : "")
-                            + (matter ? " + besoins de matière" : "")
-                            + (chosen == 0 ? (follow ? "" : "Aucun amas ne lui est confié")
-                            : chosen + (chosen > 1 ? " amas confiés" : " amas confié")),
-                    (follow ? "D'abord une création de chaque sorte que demande le prochain pas (la liste de courses), "
-                            + "sans rien avoir à choisir. Ensuite " : "")
-                            + "Une création dans chaque amas confié, au même prix qu'à la main : la formule, prise dans le tableau "
-                            + "périodique, où il reste toujours un exemplaire de chaque élément. Quand l'espace manque pour "
-                            + "tous, le premier servi change à chaque passage. Les amas se confient d'un clic sur leur "
-                            + "carte, ou tous d'un coup, dans la sous-page États de la matière du Big Bang. Sa réserve "
-                            + "d'espace se règle sous ces cartes. Acquis au deuxième Big Bang, "
-                            + "il traverse les explosions et les Big Bangs."
-                            + (waiting ? " Il attend qu'un amas lui soit confié." : "")
+            // Rien à faire en ce moment : la liste est vide ou prête, rien ne manque par état, aucun amas confié.
+            boolean idle = game.shoppingList().items().isEmpty() && game.autoMatterTargets().isEmpty()
+                    && game.autoSortTargets().isEmpty() && chosen == 0;
+            moleculesCard.show(on ? Card.State.ON : Card.State.OFF, "", on && idle ? "en attente" : on ? "en marche" : "coupé",
+                    "Création automatique", "Suit la liste de courses, puis la matière et la variété qui manquent, puis "
+                            + (chosen == 0 ? "les amas confiés (aucun)" : chosen > 1 ? "les " + chosen + " amas confiés" : "l'amas confié"),
+                    "À chaque passage, dans l'ordre : une création de chaque sorte que demande le prochain pas (la liste de "
+                            + "courses), puis une dans la sorte la moins encombrante de chaque état où la matière rassemblée ou "
+                            + "le nombre de sortes manque encore, puis une dans chaque amas que vous lui avez confié. Au même prix "
+                            + "qu'à la main : la formule, prise dans le tableau périodique, où il reste toujours un exemplaire de "
+                            + "chaque élément. Quand l'espace manque pour tous, le premier amas servi change à chaque passage. "
+                            + "Les amas se confient d'un clic sur leur carte, ou tous d'un coup, dans la sous-page États de la "
+                            + "matière du Big Bang, et se retirent ici. Sa réserve d'espace et ses plafonds par état se règlent "
+                            + "sous ces cartes. Acquis au deuxième Big Bang, il traverse les explosions et les Big Bangs."
+                            + (on && idle ? " Rien à créer en ce moment : il attend." : "")
                             + " Un clic " + (on ? "le coupe." : "le remet en marche."),
                     "", "toutes les " + seconds(game.moleculeAutomationInterval()));
         }
@@ -932,6 +911,42 @@ public final class AutomationPage extends VBox {
                     + Format.count(next.darkMatter()) + " matières noires gagnées (vous : "
                     + Format.darkMatter(game.darkMatterEarned()) + ").");
         }
+    }
+
+    /**
+     * Les amas confiés à la création automatique (version 0.178) : une pastille par amas, dans l'ordre où ils ont été
+     * confiés, qui le retire d'un clic. Les pastilles d'amas retirés disparaissent ; celles des autres restent en place.
+     */
+    private void refreshEntrusted() {
+        java.util.List<String> chosen = game.state().automatedMolecules();
+        entrustedTitle.setText(chosen.isEmpty()
+                ? "Aucun amas confié : un clic sur un amas, dans les États de la matière du Big Bang, le confie à la création automatique."
+                : "Amas confiés (" + chosen.size() + ") : un clic sur l'un d'eux le retire à la création automatique."
+                        + Detail.only(" La liste de courses, la matière et la variété qui manquent passent avant eux."));
+        for (String id : chosen) {
+            if (entrustedChips.containsKey(id) || !known(id)) continue;      // une sorte d'une autre version : ignorée
+            idle.core.molecules.Molecule molecule = game.molecule(id);
+            Button chip = new Button(molecule.name() + " " + molecule.formula() + "  ×");
+            chip.setFocusTraversable(false);
+            chip.setStyle("-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand; -fx-background-radius: 12; -fx-border-radius: 12;"
+                    + " -fx-text-fill: " + GameApp.BIG_BANG_COLOR + "; -fx-background-color: #121923; -fx-border-color: "
+                    + GameApp.BIG_BANG_COLOR + "66;");
+            chip.setOnAction(event -> {
+                game.setMoleculeAutomated(id, false);
+                refresh();
+            });
+            entrustedChips.put(id, chip);
+            entrustedRow.getChildren().add(chip);
+        }
+        entrustedChips.forEach((id, chip) -> show(chip, chosen.contains(id)));
+    }
+
+    /** Vrai si le catalogue connaît cette sorte de molécule. */
+    private boolean known(String moleculeId) {
+        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+            if (molecule.id().equals(moleculeId)) return true;
+        }
+        return false;
     }
 
     /**

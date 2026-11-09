@@ -11,7 +11,6 @@ import idle.core.bigbang.BangChallenge;
 import idle.core.darkmatter.Challenge;
 import idle.core.bigbang.SpaceUpgrade;
 import idle.core.math.BigNum;
-import idle.core.molecules.KindCollection;
 import idle.core.molecules.Molecule;
 import idle.core.molecules.Molecules;
 import idle.core.molecules.ShoppingList;
@@ -25,7 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Le troisième acte et ce qui vient après : la prime de vitesse, les collections de molécules, la
+ * Le troisième acte et ce qui vient après : la prime de vitesse, la
  * variété que demandent l'amas de galaxies et l'univers, la comète, les améliorations d'espace de
  * fin de partie, les records par étape, les succès du troisième acte et les défis de Big Bang.
  */
@@ -158,83 +157,6 @@ class TroisiemeActeTest {
     }
 
     @Nested
-    class Collections {
-
-        @Test
-        void chaqueRayonASaCollection() {
-            Game game = afterBigBangs(1, 1e9);
-            assertEquals(Molecule.Kind.values().length, game.collections().size());
-            int total = 0;
-            for (KindCollection collection : game.collections()) {
-                assertTrue(game.kindSize(collection.kind()) > 0, collection.kind().name());
-                assertEquals(0, game.kindCreated(collection.kind()));
-                assertEquals(0, game.collectionLevel(collection.kind()));
-                assertTrue(collection.half() > 1 && collection.full() > collection.half());
-                total += game.kindSize(collection.kind());
-            }
-            assertEquals(game.molecules().size(), total);
-            for (Molecule.Stat stat : Molecule.Stat.values()) assertEquals(1, game.collectionBoost(stat), 0);
-        }
-
-        @Test
-        void laMoitiePuisLeRayonEntier() {
-            Game game = afterBigBangs(1, 1e9);
-            KindCollection simple = game.collections().get(0);
-            Molecule.Kind kind = simple.kind();
-            int half = game.collectionHalf(kind);
-            assertEquals((game.kindSize(kind) + 1) / 2, half);
-            int created = 0;
-            for (Molecule molecule : game.molecules()) {
-                if (molecule.kind() != kind) continue;
-                game.state().setMoleculeCount(molecule.id(), 1);
-                created++;
-                assertEquals(created, game.kindCreated(kind));
-                int expected = created >= game.kindSize(kind) ? 2 : created >= half ? 1 : 0;
-                assertEquals(expected, game.collectionLevel(kind), "après " + created + " sortes");
-                assertEquals(simple.factor(expected), game.collectionBoost(simple.stat()), 1e-12);
-            }
-            assertEquals(1, game.collectionsAt(2));
-            assertEquals(1, game.collectionsAt(1));
-        }
-
-        @Test
-        void lesCollectionsDUneMemeGrandeurSeMultiplient() {
-            Game game = afterBigBangs(1, 1e9);
-            double expected = 1;
-            for (KindCollection collection : game.collections()) {
-                if (collection.stat() != Molecule.Stat.SPACE) continue;
-                for (Molecule molecule : game.molecules()) {
-                    if (molecule.kind() == collection.kind()) game.state().setMoleculeCount(molecule.id(), 1);
-                }
-                expected *= collection.full();
-            }
-            assertEquals(expected, game.collectionBoost(Molecule.Stat.SPACE), 1e-12);
-            assertTrue(expected > 3);
-        }
-
-        @Test
-        void laCollectionMultiplieLaGrandeurACoteDesAmeliorationsEtDesPaliers() {
-            Game game = afterBigBangs(2, 1e9);
-            game.state().addSpaceUpgrade("space_inflation_1");
-            for (Molecule molecule : game.molecules()) {
-                if (molecule.kind() == Molecule.Kind.SIMPLE) game.state().setMoleculeCount(molecule.id(), 1);
-            }
-            for (Molecule.Stat stat : Molecule.Stat.values()) {
-                assertEquals(game.matterBoost(stat) * game.spaceUpgradeBoost(stat) * game.bigBangMilestoneBoost(stat)
-                        * game.collectionBoost(stat), game.moleculeBoost(stat), 1e-9, stat.name());
-            }
-            assertEquals(1.25, game.collectionBoost(Molecule.Stat.SPACE), 1e-12);
-        }
-
-        @Test
-        void rienAvantLeBigBang() {
-            Game game = newGame();
-            for (Molecule molecule : game.molecules()) game.state().setMoleculeCount(molecule.id(), 1);
-            for (KindCollection collection : game.collections()) assertEquals(0, game.collectionLevel(collection.kind()));
-        }
-    }
-
-    @Nested
     class VarieteDuCosmos {
 
         @Test
@@ -272,7 +194,7 @@ class TroisiemeActeTest {
                 game.state().addSubstance(molecule.id());
                 game.state().setMoleculeCount(molecule.id(), need.getValue());
             }
-            assertEquals(6, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertEquals(4, game.cosmosConditionsMet(Cosmos.CLUSTER), "l'échelle d'avant et la matière des trois états");
             assertFalse(game.canFormCosmos(Cosmos.CLUSTER));
             ShoppingList list = game.shoppingList();
             assertEquals(ShoppingList.Kind.COSMOS, list.kind());
@@ -287,7 +209,7 @@ class TroisiemeActeTest {
                 game.molecules().stream().filter(each -> each.state() == need.getKey()).limit(need.getValue())
                         .forEach(each -> game.state().addSubstance(each.id()));
             }
-            assertEquals(11, game.cosmosConditionsMet(Cosmos.CLUSTER));
+            assertEquals(7, game.cosmosConditionsMet(Cosmos.CLUSTER));
             assertTrue(game.canFormCosmos(Cosmos.CLUSTER));
             assertTrue(game.shoppingList().ready());
             assertTrue(game.shoppingList().sorts().isEmpty());
@@ -556,21 +478,21 @@ class TroisiemeActeTest {
     class SuccesDuTroisiemeActe {
 
         @Test
-        void seizeSuccesDeLaPremiereMoleculeALUnivers() {
+        void quatorzeSuccesDeLaPremiereMoleculeALUnivers() {
             List<Achievement> all = Achievements.DEFAULT;
             int first = -1;
             for (int i = 0; i < all.size(); i++) {
                 if (all.get(i).id().equals("step_first_molecule")) first = i;
             }
             assertEquals(50, first);                                   // à la suite des cinquante premiers
-            // Seize jusqu'à l'univers, puis (version 0.174) les dix-sept du deuxième univers, « Grappe d'univers » (0.081)
-            // et les quinze de la fin de partie.
+            // Quatorze jusqu'à l'univers (seize avant la 0.178 : les deux succès de collection sont partis), puis
+            // (version 0.174) les dix-sept du deuxième univers, « Grappe d'univers » (0.081) et les quinze de la fin de partie.
             int universe = all.indexOf(Achievements.byId("step_universe"));
-            assertEquals(16, universe - first + 1);
+            assertEquals(14, universe - first + 1);
             assertEquals("univ_skins", all.get(universe + 1).id());
             assertEquals("step_universe_cluster", all.get(universe + 18).id());
             assertEquals("late_end", all.get(all.size() - 1).id());
-            assertEquals(99, all.size());
+            assertEquals(97, all.size());
         }
 
         @Test

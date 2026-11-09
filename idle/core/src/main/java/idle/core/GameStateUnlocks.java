@@ -26,9 +26,11 @@ public abstract class GameStateUnlocks extends GameStateBase {
         return stateCaps.getOrDefault(matter, 1.0);
     }
 
-    /** Règle un plafond ; 1 ou plus l'efface. */
+    /** Règle un plafond ; 1 ou plus l'efface. Un état que le jeu ne connaît plus (le solide, le métal d'avant la 0.178) est ignoré. */
     public void setStateCap(String matter, double cap) {
-        if (Double.isNaN(cap) || cap >= 1) stateCaps.remove(matter);
+        boolean known = false;
+        for (idle.core.molecules.Molecule.State each : idle.core.molecules.Molecule.State.values()) known |= each.name().equals(matter);
+        if (!known || Double.isNaN(cap) || cap >= 1) stateCaps.remove(matter);
         else stateCaps.put(matter, Math.max(0, cap));
     }
 
@@ -276,15 +278,6 @@ public abstract class GameStateUnlocks extends GameStateBase {
         if (research != null && !research.isBlank()) researches.add(research);
     }
 
-    /** Vrai si la réservation par recette est allumée (version 0.085). */
-    public boolean recipeReservation() {
-        return recipeReservation;
-    }
-
-    public void setRecipeReservation(boolean on) {
-        recipeReservation = on;
-    }
-
     /** Vrai si les bifurcations se rouvriront à la prochaine explosion (version 0.084). */
     public boolean forkResetArmed() {
         return forkResetArmed;
@@ -336,18 +329,6 @@ public abstract class GameStateUnlocks extends GameStateBase {
     public void setAutoHold(boolean enabled) {
         autoHold = enabled;
     }
-
-    /** Vrai si la création automatique suit aussi la liste de courses : elle crée ce que le prochain pas demande. */
-    public boolean autoFollowList() {
-        return autoFollowList;
-    }
-
-    public void setAutoFollowList(boolean follow) {
-        autoFollowList = follow;
-    }
-
-    public boolean autoFollowMatter() { return autoFollowMatter; }
-    public void setAutoFollowMatter(boolean enabled) { autoFollowMatter = enabled; }
 
     /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
     public boolean autoMolecules() {

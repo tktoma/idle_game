@@ -121,7 +121,10 @@ class PlanifierTest {
 
     @Test
     void lePlafondDUnEtatRetientLaCreationAutomatique() {
-        Game game = game();
+        // Ni assemblages ni astres : sans liste de courses, la création automatique (0.178 : elle la sert d'abord) n'a que
+        // l'amas confié à grossir, et l'espace mesuré ne sert qu'à lui.
+        Game game = GameTestSupport.realGame();
+        game.state().addSpaceUpgrade("space_states");
         GameTestSupport.bangs(game, 8);     // la création automatique vient d'un palier de Big Bang
         Molecule gas = game.molecules().stream().filter(m -> m.state() == Molecule.State.GAS && game.isMoleculeKindUnlocked(m.kind()))
                 .findFirst().orElseThrow();
@@ -144,7 +147,6 @@ class PlanifierTest {
         // L'automatisme réglé sur cette seule sorte : il ne la crée pas au-delà du plafond.
         game.state().addSubstance(gas.id());
         game.state().setMoleculeAutomated(gas.id(), true);
-        game.state().setAutoFollowList(false);
         assertTrue(game.isAutoCreatingMolecules(), "la création automatique tourne");
         {
             for (int i = 0; i < 20; i++) game.tick(1);
@@ -153,39 +155,6 @@ class PlanifierTest {
             for (int i = 0; i < 20; i++) game.tick(1);
             assertTrue(game.stateShare(Molecule.State.GAS) > 0.05, "sans plafond, elle remplit plus : " + game.stateShare(Molecule.State.GAS));
         }
-    }
-
-    @Test
-    void laReservationParRecetteDitCeQuIlManqueEtPrevientDeLaSaturation() {
-        Game game = game();
-        assertFalse(game.isRecipeReservationUnlocked());
-        Body body = game.nextBody();
-        Assembly next = game.nextAssembly();
-        assertTrue(body != null && next != null);
-        assertEquals(game.assembly(body.assemblies().get(0)), next, "le premier assemblage de l'astre visé");
-        // Un assemblage formé ailleurs ouvre la réservation.
-        Assembly elsewhere = null;
-        for (Assembly assembly : game.assemblies()) if (!body.assemblies().contains(assembly.id()) && elsewhere == null) elsewhere = assembly;
-        game.state().addAssembly(elsewhere.id());
-        assertTrue(game.isRecipeReservationUnlocked());
-        assertFalse(game.isRecipeReservationOn());
-        game.setRecipeReservation(true);
-        assertTrue(game.isRecipeReservationOn());
-        Map.Entry<String, Integer> ingredient = next.ingredients().entrySet().iterator().next();
-        int already = game.assembledMolecules(ingredient.getKey());
-        assertEquals(already + ingredient.getValue(), game.recipeRemaining(ingredient.getKey()) + game.moleculeCount(ingredient.getKey()));
-        String other = game.molecules().stream().map(Molecule::id).filter(id -> !next.ingredients().containsKey(id)).findFirst().orElseThrow();
-        assertEquals(-1, game.recipeRemaining(other), "pas un ingrédient");
-        game.state().setMoleculeCount(ingredient.getKey(), already + ingredient.getValue());
-        assertEquals(0, game.recipeRemaining(ingredient.getKey()));
-        // Assez pour la recette, et plus de place pour le reste : la création de plus est saturante.
-        game.state().setSpace(game.usedSpace());
-        assertTrue(game.isSaturating(ingredient.getKey()));
-        game.state().setSpace(BigNum.of(1, 30));
-        assertFalse(game.isSaturating(ingredient.getKey()), "la place ne manque pas");
-        game.setRecipeReservation(false);
-        game.state().setSpace(game.usedSpace());
-        assertFalse(game.isSaturating(ingredient.getKey()), "éteinte, elle ne prévient pas");
     }
 
     @Test

@@ -1,12 +1,10 @@
 package idle.ui.bigbang;
 
 import idle.core.Game;
-import idle.core.molecules.KindCollection;
 import idle.core.molecules.Molecule;
 import idle.ui.GameApp;
 import idle.ui.Readiness;
 import idle.ui.common.Card;
-import idle.ui.common.Detail;
 import idle.ui.common.ElementText;
 import idle.ui.common.FilterBar;
 import idle.ui.common.Labels;
@@ -162,31 +160,15 @@ public abstract class BigBangPageControls extends BigBangPageBase {
                         + GameApp.BIG_BANG_COLOR + "66;");
     }
 
-    /** Vrai si cette molécule passe les filtres : son état, ce qu'elle donne, et le texte cherché. */
+    /** Vrai si cette molécule passe les filtres : son état, son usage, et le texte cherché. */
     public boolean shown(Molecule molecule) {
         Molecule.State state = stateFilter.selected();
         if (state != null && molecule.state() != state) return false;
-        Gives gives = givesFilter.selected();
-        if (gives != null && gives != gives(molecule)) return false;
         Use use = useFilter.selected();
         if (use == Use.CREATABLE && !game.canCreateMolecule(molecule.id())) return false;
         if (use == Use.WANTED && !game.shoppingList().wants(molecule)) return false;
         return moleculeFilter.matches(searchTexts.computeIfAbsent(molecule,
                 each -> FilterBar.normalized(each.name() + " " + each.formula() + " " + each.id())));
-    }
-
-    /** Ce que donne une molécule, pour le filtre ; {@code null} si elle ne donne rien. */
-    private static Gives gives(Molecule molecule) {
-        return switch (molecule.bonus()) {
-            case Molecule.Boost boost -> switch (boost.stat()) {
-                case SPACE -> Gives.SPACE;
-                case PARTICLES -> Gives.PARTICLES;
-                case ATOMS -> Gives.ATOMS;
-                case DARK_GROWTH -> Gives.DARK_GROWTH;
-            };
-            case Molecule.Uncap uncap -> Gives.UNCAP;
-            case null -> null;
-        };
     }
 
     /** Nombre de molécules d'un rayon qui passent les filtres. */
@@ -262,16 +244,12 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return sortedByYield;
     }
 
-    /** Le bouton du tri et celui qui crée le meilleur achat : pour les vérifications. */
-    /** Le bouton de la réservation par recette : pour les vérifications. */
-    public Button reservationButton() {
-        return reservationButton;
-    }
-
+    /** Le bouton du tri : pour les vérifications. */
     public Button sortButton() {
         return sortButton;
     }
 
+    /** Le bouton qui crée le meilleur achat : pour les vérifications. */
     public Button bestButton() {
         return bestButton;
     }
@@ -338,47 +316,15 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return bangChallenges;
     }
 
-    /** La ligne de la collection du rayon affiché, ou un texte vide : pour les vérifications. */
-    public String collectionText() {
-        return collectionLabel.isVisible() ? collectionLabel.getText() : "";
-    }
-
-    /**
-     * Où en est la collection d'un rayon, et ce qu'elle rapporte : « Collection Sels : 25/61 sortes
-     * créées. À 31 : espace ×1.1 ; complète : ×1.25. »
-     */
-    public String collectionText(Molecule.Kind shelf) {
-        for (KindCollection collection : game.collections()) {
-            if (collection.kind() != shelf) continue;
-            int level = game.collectionLevel(shelf);
-            int created = game.kindCreated(shelf);
-            int size = game.kindSize(shelf);
-            String what = lower(BigBangPage.what(collection.stat()));
-            String head = "Collection " + shelf.label() + " : " + created + "/" + size + " sortes créées";
-            String text = level >= 2 ? head + ", complète : " + what + " ×" + ElementText.number(collection.full()) + "."
-                    : level == 1 ? head + ". Moitié réunie : " + what + " ×" + ElementText.number(collection.half()) + " ; complète : ×"
-                            + ElementText.number(collection.full()) + "."
-                    : head + ". À " + game.collectionHalf(shelf) + " : " + what + " ×" + ElementText.number(collection.half())
-                            + " ; complète : ×" + ElementText.number(collection.full()) + ".";
-            return text + Detail.only(" Une sorte compte dès sa première molécule. Les collections d'une même grandeur se "
-                    + "multiplient entre elles, à côté des améliorations d'espace et des paliers.");
-        }
-        return "";
-    }
-
-    private static String lower(String text) {
-        return text.isEmpty() ? text : Character.toLowerCase(text.charAt(0)) + text.substring(1);
-    }
-
     /** « +0.42 % » : ce qu'une création ajoute, en proportion ; « moins de 0.01 % » quand c'est trop peu pour s'écrire. */
     static String gainText(double gain) {
         return gain * 100 < 0.005 ? "moins de 0.01 %" : "+" + ElementText.percent(gain);
     }
 
-    /** Une carte de molécule : son dessin, le clic qui la crée, et l'épingle qui la range parmi les favorites. */
+    /** Une carte de molécule : son petit dessin dans l'en-tête, le clic qui la crée, et l'épingle qui la range parmi les favorites. */
     Card moleculeCard(Molecule molecule) {
         Card card = new Card(GameApp.BIG_BANG_COLOR);
-        card.setPicture(picture(molecule));
+        card.setInlinePicture(smallPicture(molecule));
         card.setOnAction(() -> {
             game.createMolecule(molecule.id());
             refresh();
@@ -395,7 +341,24 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return favoriteCards.get(molecule);
     }
 
-    /** Le dessin d'une molécule, fait une fois pour toutes, centré dans la largeur de sa carte. */
+    /**
+     * Le petit dessin d'une molécule pour l'en-tête de sa carte d'achat (version 0.178) : un carré de
+     * {@link #SMALL_PICTURE} pixels, fait une fois pour toutes.
+     */
+    static HBox smallPicture(Molecule molecule) {
+        Canvas canvas = new Canvas(SMALL_PICTURE, SMALL_PICTURE);
+        GraphicsContext g = canvas.getGraphicsContext2D();
+        g.clearRect(0, 0, SMALL_PICTURE, SMALL_PICTURE);
+        MoleculeArt.Shape shape = MoleculeArt.of(molecule);
+        double radius = Math.min(SMALL_PICTURE / 2 - 2, shape.extent() * 11);
+        shape.draw(g, SMALL_PICTURE / 2, SMALL_PICTURE / 2, radius, -Math.PI / 6);
+        HBox box = new HBox(canvas);
+        box.setAlignment(Pos.CENTER);
+        box.setMouseTransparent(true);     // le clic va à la carte
+        return box;
+    }
+
+    /** Le dessin d'une molécule, fait une fois pour toutes, centré dans la largeur de sa carte (états de la matière). */
     static HBox picture(Molecule molecule) {
         Canvas canvas = new Canvas(PICTURE_WIDTH, PICTURE_HEIGHT);
         GraphicsContext g = canvas.getGraphicsContext2D();

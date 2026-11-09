@@ -26,6 +26,8 @@ class BullesEffetsPageTest {
         game.start();
         game.testFormUniverse();
         game.state().setSeedSprouted(true);
+        // Version 0.179 : la graine ne dépasse pas deux paliers d'avance sur les univers formés.
+        while (game.universes() + Game.SEED_STAGES_AHEAD < stage) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(stage));
         if (accumulated > 0) game.state().noteVoidHistory("3", accumulated);
         return game;

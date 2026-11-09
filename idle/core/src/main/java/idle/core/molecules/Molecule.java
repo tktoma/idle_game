@@ -82,14 +82,12 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
      * créé assez d'espace ({@link SpaceUpgrades}), dans l'ordre de l'énumération.
      */
     public enum Kind {
+        // Version 0.178 : quatre rayons au lieu de huit. Les sels ont rejoint les acides, les matériaux les
+        // minéraux ; le vivant et les terres rares, qu'aucun astre ne demandait, ont disparu.
         SIMPLE("Petites molécules"),
-        ACID("Acides et bases"),
-        SALT("Sels"),
-        MINERAL("Minéraux"),
-        MATERIAL("Matériaux"),
-        ORGANIC("Chimie organique"),
-        LIFE("Vivant"),
-        RARE("Terres rares et éléments lourds");
+        ACID("Acides et sels"),
+        MINERAL("Minéraux et matériaux"),
+        ORGANIC("Chimie du carbone");
 
         private final String label;
 
@@ -118,22 +116,18 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
      * molécule de cristal du même poids, un liquide deux fois plus, un métal les trois quarts
      * ({@link #spaceFactor()}). C'est ce qui rend les étoiles, faites de gaz, si vastes.
      *
-     * <p>Les trois états solides se distinguent par ce qui tient la matière ensemble : des
-     * molécules entières posées les unes contre les autres (solide : le sucre, l'iode), un réseau
-     * d'ions ou d'atomes liés de proche en proche (cristal : le sel, le quartz), ou des électrons
-     * mis en commun (métal : les alliages, les carbures conducteurs).
+     * <p>Trois états depuis la version 0.178 : le gaz, le liquide et le cristal, qui réunit tout ce qui
+     * est solide (le sel et le quartz comme le soufre ou le naphtalène). Le solide et le métal, qui
+     * n'entraient dans aucun assemblage, ont disparu : une sauvegarde qui en parlait les range dans
+     * le cristal.
      */
     public enum State {
         /** Le plus vaste : vingt fois la place d'un cristal du même poids. Ajoute des particules. */
         GAS("Gaz", 1.15, 20, 0.08, 0),
         /** Entre les deux : deux fois la place d'un cristal, un peu de particules, un peu d'atomes. */
         LIQUID("Liquide", 1.25, 2, 0.05, 0.02),
-        /** Un solide fait de molécules entières : il ajoute des atomes. */
-        SOLID("Solide", 1.35, 1, 0, 0.05),
-        /** Un réseau d'ions ou d'atomes : il ajoute des atomes et un peu de particules. */
-        CRYSTAL("Cristal", 1.40, 1, 0.03, 0.05),
-        /** Le plus serré : les trois quarts de la place d'un cristal, et le plus d'atomes. */
-        METAL("Métal", 1.45, 0.75, 0, 0.08);
+        /** Le plus serré : tout ce qui est solide. Il ajoute des atomes et un peu de particules. */
+        CRYSTAL("Cristal", 1.40, 1, 0.03, 0.05);
 
         private final String label;
         private final double exponent;
@@ -234,19 +228,9 @@ public record Molecule(String id, String name, String formula, Map<Integer, Inte
         return new Molecule(id, name, formula, recipe, kind, bonus, State.LIQUID);
     }
 
-    /** La même molécule, dont la substance est un solide fait de molécules entières à température ambiante. */
-    public Molecule solid() {
-        return new Molecule(id, name, formula, recipe, kind, bonus, State.SOLID);
-    }
-
     /** La même molécule, dont la substance est un cristal : un réseau d'ions ou d'atomes, comme le sel ou le quartz. */
     public Molecule crystal() {
         return new Molecule(id, name, formula, recipe, kind, bonus, State.CRYSTAL);
-    }
-
-    /** La même molécule, dont la substance est un métal : un alliage ou un composé qui conduit comme un métal. */
-    public Molecule metal() {
-        return new Molecule(id, name, formula, recipe, kind, bonus, State.METAL);
     }
 
     /** Vrai si ces molécules peuvent se rassembler en une substance. */

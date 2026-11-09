@@ -282,8 +282,6 @@ public abstract class GameStateResets extends GameStateCollider {
         logKinds.clear();
         autoHold = true;
         autoMolecules = true;
-        autoFollowList = true;
-        autoFollowMatter = false;
         automationPaused = false;
         autoGather = true;
         autoForm = true;
@@ -300,7 +298,6 @@ public abstract class GameStateResets extends GameStateCollider {
         java.util.Collections.fill(savedSystemPlans, "");
         forkResetArmed = false;
         stateCaps.clear();
-        recipeReservation = false;
         replaying = false;
         fusionsAtUniverse = 0;
         explosionsAtUniverse = 0;

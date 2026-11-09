@@ -63,10 +63,9 @@ class BotsExtendedValidationTest {
                 assertEquals(0, bot.probeRuns);
             }
             if (mode.equals("SANS_LISTE")) {
-                assertFalse(game.isAutoFollowingList(),
-                        "SANS_LISTE ne doit pas utiliser le suivi automatique de liste");
-                assertFalse(game.isAutoFollowingMatter(),
-                        "SANS_LISTE ne doit pas contourner la restriction via le suivi de matiere");
+                // Depuis la 0.178, la création automatique suit toujours la liste : SANS_LISTE la laisse coupée.
+                assertFalse(game.isAutoCreatingMolecules(),
+                        "SANS_LISTE ne doit pas laisser la création automatique suivre la liste");
             }
         }
     }

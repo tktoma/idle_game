@@ -341,12 +341,14 @@ public class RobotCosmosPlanner {
     }
     return bodyId;
   }
-  /** Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. */
+  /**
+   * Confie à la création automatique la matière que demande le prochain pas ; vrai s'il y en a à réunir. Depuis la
+   * 0.178, la création automatique entretient elle-même la matière et la variété par état ({@code autoMatterTargets},
+   * {@code autoSortTargets}) ; le robot confie en plus l'amas qu'il juge le meilleur, comme un joueur attentif.
+   */
   boolean automateMatter(){
-    // Quand le suivi des besoins de matière du moteur est actif (option du jeu), il gère lui-même les états.
-    if(g.isAutoFollowingMatter()) return !g.autoMatterTargets().isEmpty();
     Set<String> chosen=new HashSet<>();
-    // Les cinq états ont des exigences indépendantes pour le cosmos.
+    // Les trois états ont des exigences indépendantes pour le cosmos.
     // Leurs automatismes doivent progresser simultanément : le ciblage
     // d'un état unique sous-utilisait les matières disponibles.
     for(var need:g.shoppingList().matter().entrySet()){
@@ -359,7 +361,6 @@ public class RobotCosmosPlanner {
   }
   void cosmos(){
     for(SpaceUpgrade up:g.spaceUpgrades())if(g.canBuySpaceUpgrade(up.id()))g.buySpaceUpgrade(up.id());
-    g.setAutoFollowList(true);
     g.setAutoMoleculeReserve(0.10);
     // Correctif du 19/10/2026. Avant : création automatique toujours coupée (« elle mange tout l'espace »), si bien
     // que la matière des astres et du cosmos ne se créait qu'aux décisions du robot, jamais en son absence.

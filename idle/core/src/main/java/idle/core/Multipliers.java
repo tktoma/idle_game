@@ -226,10 +226,9 @@ public final class Multipliers {
         return value > 0 ? Math.log10(value) : 0;
     }
 
-    /** Ce que la matière apporte à une grandeur, en ses cinq parts : {@link Game#moleculeBoost(Molecule.Stat)}. */
+    /** Ce que la matière apporte à une grandeur, en ses quatre parts : {@link Game#moleculeBoost(Molecule.Stat)}. */
     private static void matter(Game game, List<Factor> factors, Molecule.Stat stat) {
         add(factors, Aspect.MATTER, "Molécules, astres et cosmos", log(game.matterBoost(stat)));
-        add(factors, Aspect.MATTER, "Collections de rayon", log(game.collectionBoost(stat)));
         add(factors, Aspect.BIG_BANG, "Améliorations d'espace", log(game.spaceUpgradeBoost(stat)));
         add(factors, Aspect.BIG_BANG, "Paliers de Big Bang", log(game.bigBangMilestoneBoost(stat)));
         add(factors, Aspect.UNIVERSE, "Skins", log(game.skinBoost()));

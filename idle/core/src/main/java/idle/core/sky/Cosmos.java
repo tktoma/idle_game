@@ -26,11 +26,14 @@ import java.util.Map;
  * arrive à la galaxie avec une grosse réserve d'espace, que les astres ne lui demandaient plus.
  */
 public enum Cosmos {
-    GALAXY("Galaxie", "la galaxie", 4, matter(0, 0, 0, 0, 0), matter(0, 0, 0, 0, 0)),
-    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2, matter(100_000_000, 10_000_000, 2_000_000, 20_000_000, 1_000_000),
-            matter(25, 35, 30, 120, 4)),
-    UNIVERSE("Univers", "l'univers", 2, matter(400_000_000, 40_000_000, 8_000_000, 80_000_000, 4_000_000),
-            matter(32, 45, 45, 150, 8));
+    // Version 0.178 : trois états au lieu de cinq (le solide et le métal rejoignent le cristal), et les sortes
+    // demandées suivent le catalogue de 73 molécules (18 gaz, 15 liquides, 40 cristaux) : les deux tiers pour
+    // l'amas, les six septièmes pour l'univers. La matière demandée vaut 60 % de celle de la 0.177 (100 / 10 / 23 et
+    // 400 / 40 / 92 millions) : sans les collections de rayon, qui triplaient l'espace à la fin du premier univers, la
+    // formation de l'univers 1 attendait la matière 5 h 19 après l'amas au lieu de 4 h 04 (mesuré, graine 201).
+    GALAXY("Galaxie", "la galaxie", 4, matter(0, 0, 0), matter(0, 0, 0)),
+    CLUSTER("Amas de galaxies", "l'amas de galaxies", 2, matter(60_000_000, 6_000_000, 13_750_000), matter(12, 10, 26)),
+    UNIVERSE("Univers", "l'univers", 2, matter(240_000_000, 24_000_000, 55_000_000), matter(15, 13, 34));
 
     private final String label;
     private final String phrase;
@@ -46,13 +49,11 @@ public enum Cosmos {
         this.matter = matter;
     }
 
-    private static Map<Molecule.State, Integer> matter(int gas, int liquid, int solid, int crystal, int metal) {
+    private static Map<Molecule.State, Integer> matter(int gas, int liquid, int crystal) {
         Map<Molecule.State, Integer> needs = new EnumMap<>(Molecule.State.class);
         if (gas > 0) needs.put(Molecule.State.GAS, gas);
         if (liquid > 0) needs.put(Molecule.State.LIQUID, liquid);
-        if (solid > 0) needs.put(Molecule.State.SOLID, solid);
         if (crystal > 0) needs.put(Molecule.State.CRYSTAL, crystal);
-        if (metal > 0) needs.put(Molecule.State.METAL, metal);
         return Collections.unmodifiableMap(needs);
     }
 
@@ -78,9 +79,8 @@ public enum Cosmos {
 
     /**
      * Le nombre de sortes rassemblées qu'elle demande dans chaque état ({@link Game#sortsInState}) :
-     * la variété, à côté de la quantité. Vide pour la galaxie. À la galaxie, un joueur qui n'a créé
-     * que ce que demandaient les astres a rassemblé 22 gaz, 29 liquides, 20 solides, 109 cristaux et
-     * 2 métaux : l'amas de galaxies en demande un peu plus, l'univers nettement plus.
+     * la variété, à côté de la quantité. Vide pour la galaxie. Le catalogue compte 18 gaz, 15 liquides
+     * et 40 cristaux (version 0.178) : l'amas de galaxies en demande les deux tiers, l'univers presque tout.
      */
     public Map<Molecule.State, Integer> sorts() {
         return sorts;

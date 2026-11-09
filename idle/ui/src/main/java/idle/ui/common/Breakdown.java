@@ -135,7 +135,6 @@ public final class Breakdown {
                 times(lines, "améliorations d'espace", game.spaceUpgradeBoost(Molecule.Stat.SPACE));
                 times(lines, "paliers de Big Bang", game.bigBangMilestoneBoost(Molecule.Stat.SPACE));
                 times(lines, "matière noire en réserve", game.darkMatterSpaceBoost());
-                times(lines, "collections de molécules", game.collectionBoost(Molecule.Stat.SPACE));
                 times(lines, "défis de Big Bang", game.bangReward(BangChallenge.Reward.SPACE));
                 times(lines, "sillage de comète", game.cometBoost());
                 // Version 0.167 : l'amorti au-delà de 10 000 par seconde (les autres bonus ne sont pas tous listés ici).

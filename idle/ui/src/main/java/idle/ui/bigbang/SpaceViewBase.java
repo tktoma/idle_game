@@ -82,8 +82,7 @@ public abstract class SpaceViewBase extends Canvas {
     /** Largeur d'un bloc à l'écran, en pixels, à partir de laquelle son nom est écrit dessus. */
     static final double NAME_FROM = 70;
     /** Les états de la matière, du plus serré au plus lâche : l'ordre dans lequel leurs amas prennent place depuis le centre. */
-    static final Molecule.State[] PLACES = {Molecule.State.METAL, Molecule.State.CRYSTAL, Molecule.State.SOLID,
-            Molecule.State.LIQUID, Molecule.State.GAS};
+    static final Molecule.State[] PLACES = {Molecule.State.CRYSTAL, Molecule.State.LIQUID, Molecule.State.GAS};
     /** Part de la couleur d'un état dans le fond d'un amas, avant que la couleur de la molécule s'y ajoute. */
     static final double PLACE_TINT = 0.16;
     /** Épaisseur du liseré qui cerne un amas de la couleur de son état, en rayons de place. */

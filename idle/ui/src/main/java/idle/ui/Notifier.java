@@ -16,12 +16,10 @@ import idle.core.darkmatter.SizeScale;
 import idle.core.elements.Element;
 import idle.core.elements.ElementSet;
 import idle.core.elements.PeriodicTable;
-import idle.core.molecules.KindCollection;
 import idle.core.molecules.Molecule;
 import idle.core.probes.ProbeReward;
 import idle.core.profile.Title;
 import idle.core.upgrades.Automation;
-import idle.ui.bigbang.BigBangPage;
 import idle.ui.common.AchievementText;
 import idle.ui.common.ElementText;
 import idle.ui.common.Format;
@@ -95,7 +93,6 @@ final class Notifier {
     private int weightLevel;
     private int bigBangs;
     private int moleculeKinds;
-    private final Map<Molecule.Kind, Integer> collections = new java.util.EnumMap<>(Molecule.Kind.class);
     private int bangChallengesDone;
     private BangChallenge bangChallenge;
     /** Les skins débloqués au dernier relevé (version 0.089) : chacun s'annonce avec le bonus cumulé. */
@@ -306,15 +303,6 @@ final class Notifier {
                     + " pour en profiter, si vous voulez (Big Bang, Expansion de la matière)");
         }
         for (GameStats.Step step : records) add(news, Notice.RECORDS, "Record battu : " + step.label());
-        // Une collection vient de passer la moitié de son rayon, ou d'être complétée.
-        for (KindCollection collection : game.collections()) {
-            int level = game.collectionLevel(collection.kind());
-            if (level > collections.getOrDefault(collection.kind(), 0)) {
-                add(news, Notice.MOLECULES, "Collection " + collection.kind().label() + (level >= 2 ? " complète : " : " à moitié réunie : ")
-                        + lower(BigBangPage.what(collection.stat())) + " ×" + ElementText.number(collection.factor(level)));
-            }
-            collections.put(collection.kind(), level);
-        }
 
         // Ce que le rassemblement et la formation automatiques viennent de faire sans le joueur.
         if (gathered > 0) {
@@ -495,9 +483,6 @@ final class Notifier {
         weightLevel = game.state().tableWeightLevel();
         bigBangs = game.bigBangs();
         moleculeKinds = game.moleculeKindsUnlocked();
-        for (KindCollection collection : game.collections()) {
-            collections.put(collection.kind(), game.collectionLevel(collection.kind()));
-        }
         bangChallengesDone = game.completedBangChallenges();
         bangChallenge = game.activeBangChallenge();
     }

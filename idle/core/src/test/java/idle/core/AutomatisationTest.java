@@ -394,11 +394,11 @@ class AutomatisationTest {
             Game game = game(1e9);
             give(game, "H2O", 3);
             give(game, "CO2", 3);
-            game.state().setMoleculeCount("H2O2", 5);                  // créée, pas rassemblée
+            game.state().setMoleculeCount("HCN", 5);                  // créée, pas rassemblée
             assertTrue(game.setMoleculeAutomated("H2O", true));
             assertEquals(1, game.setAllMoleculesAutomated(true));      // il n'en restait qu'une à confier
             assertTrue(game.isMoleculeAutomated("CO2"));
-            assertFalse(game.isMoleculeAutomated("H2O2"));
+            assertFalse(game.isMoleculeAutomated("HCN"));
             assertEquals(2, game.automatedMolecules());
             assertEquals(0, game.setAllMoleculesAutomated(true));
             assertEquals(2, game.setAllMoleculesAutomated(false));

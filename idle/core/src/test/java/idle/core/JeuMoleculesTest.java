@@ -31,7 +31,7 @@ class JeuMoleculesTest extends GameTestSupport {
         private static final int O = 8;
         private static final String WATER = "H2O";
         private static final String SALT = "NaCl";
-        private static final String GLUCOSE = "C6H12O6";
+        private static final String NAPHTHALENE = "C10H8";
 
         /**
          * Le vrai jeu, après un premier Big Bang, tableau plein, de l'espace à revendre, et toutes les
@@ -72,12 +72,12 @@ class JeuMoleculesTest extends GameTestSupport {
 
         @Test
         void lesParenthesesMultiplientCeQuEllesContiennent() {
-            assertEquals(Map.of(20, 3, 15, 2, O, 8), Molecule.of(Molecule.Kind.SALT, "x", "Ca3(PO4)2").recipe());
-            assertEquals("Ca₃(PO₄)₂", Molecule.of(Molecule.Kind.SALT, "x", "Ca3(PO4)2").formula());
+            assertEquals(Map.of(20, 3, 15, 2, O, 8), Molecule.of(Molecule.Kind.ACID, "x", "Ca3(PO4)2").recipe());
+            assertEquals("Ca₃(PO₄)₂", Molecule.of(Molecule.Kind.ACID, "x", "Ca3(PO4)2").formula());
             assertEquals(Map.of(29, 3, C, 2, O, 8, H, 2), Molecule.of(Molecule.Kind.MINERAL, "x", "Cu3(CO3)2(OH)2").recipe());
             assertEquals(Map.of(26, 1, O, 2, H, 1), Molecule.of(Molecule.Kind.MINERAL, "x", "FeO(OH)").recipe());
-            assertEquals(Map.of(26, 7, C, 18, 7, 18), Molecule.of(Molecule.Kind.MATERIAL, "x", "Fe7(CN)18").recipe());
-            assertEquals(Map.of(82, 1, C, 8, H, 20), Molecule.of(Molecule.Kind.MATERIAL, "x", "Pb(C2H5)4").recipe());
+            assertEquals(Map.of(26, 7, C, 18, 7, 18), Molecule.of(Molecule.Kind.MINERAL, "x", "Fe7(CN)18").recipe());
+            assertEquals(Map.of(82, 1, C, 8, H, 20), Molecule.of(Molecule.Kind.MINERAL, "x", "Pb(C2H5)4").recipe());
         }
 
         @Test
@@ -100,9 +100,9 @@ class JeuMoleculesTest extends GameTestSupport {
         @Test
         void leCatalogueTientDebout() {
             List<Molecule> molecules = Molecules.DEFAULT;
-            assertEquals(430, molecules.size());
-            assertEquals(430, molecules.stream().map(Molecule::id).distinct().count());
-            assertEquals(430, molecules.stream().map(Molecule::name).distinct().count());
+            assertEquals(73, molecules.size());
+            assertEquals(73, molecules.stream().map(Molecule::id).distinct().count());
+            assertEquals(73, molecules.stream().map(Molecule::name).distinct().count());
             for (Molecule.Kind kind : Molecule.Kind.values()) {
                 assertTrue(molecules.stream().anyMatch(molecule -> molecule.kind() == kind), "rayon vide : " + kind);
             }
@@ -121,11 +121,12 @@ class JeuMoleculesTest extends GameTestSupport {
             for (Molecule molecule : game.molecules()) {
                 assertTrue(game.isMoleculeWithinReach(molecule.id()), molecule.id() + " demande trop d'exemplaires");
             }
-            // Et une bonne moitié du catalogue l'est sans les Isotopes, avec neuf exemplaires par élément.
+            // Et presque tout le catalogue l'est sans les Isotopes, avec neuf exemplaires par élément : seules les onze
+            // molécules qui demandent neuf exemplaires ou plus d'un même élément (silicates hydratés, grands hydrocarbures) attendent.
             game.state().setDarkLevel("dark_isotopes", 0);
             long reachable = game.molecules().stream().filter(molecule -> game.isMoleculeWithinReach(molecule.id())).count();
-            assertTrue(reachable > 300 && reachable < 430, "a portee sans Isotopes : " + reachable);
-            assertFalse(game.isMoleculeWithinReach(GLUCOSE));
+            assertEquals(73 - 11, reachable, "a portee sans Isotopes : " + reachable);
+            assertFalse(game.isMoleculeWithinReach(NAPHTHALENE));
         }
 
         @Test
@@ -158,9 +159,10 @@ class JeuMoleculesTest extends GameTestSupport {
             assertFalse(game.createMolecule(SALT));
             assertTrue(game.canCreateMolecule(WATER));
             game.state().addSpaceUpgrade("space_acid");
-            assertFalse(game.canCreateMolecule(SALT));     // les acides ne sont pas les sels
-            game.state().addSpaceUpgrade("space_salt");
-            assertTrue(game.createMolecule(SALT));
+            assertFalse(game.canCreateMolecule("SiO2"));   // le quartz est un minéral, pas un sel
+            assertTrue(game.createMolecule(SALT));         // version 0.178 : les sels sont au rayon des acides
+            game.state().addSpaceUpgrade("space_mineral");
+            assertTrue(game.createMolecule("SiO2"));
         }
 
         @Test
@@ -285,50 +287,50 @@ class JeuMoleculesTest extends GameTestSupport {
         }
 
         @Test
-        void leGlucoseAttendLesIsotopes() {
+        void leNaphtaleneAttendLesIsotopes() {
+            // Dix carbones, plus celui qui reste : hors de portée avec neuf exemplaires.
             Game game = gameAfterBigBang();
-            assertFalse(game.isMoleculeWithinReach(GLUCOSE));
+            assertFalse(game.isMoleculeWithinReach(NAPHTHALENE));
             game.state().setDarkLevel("dark_isotopes", 1);     // seize exemplaires par élément commun
-            assertTrue(game.isMoleculeWithinReach(GLUCOSE));
-            assertFalse(game.canCreateMolecule(GLUCOSE));      // le tableau n'en a encore que neuf
+            assertTrue(game.isMoleculeWithinReach(NAPHTHALENE));
+            assertFalse(game.canCreateMolecule(NAPHTHALENE));  // le tableau n'en a encore que neuf
             refill(game);
-            assertTrue(game.createMolecule(GLUCOSE));
-            assertEquals(4, game.elementCount(H));
-            assertEquals(10, game.elementCount(C));
-            assertEquals(10, game.elementCount(O));
+            assertTrue(game.createMolecule(NAPHTHALENE));
+            assertEquals(8, game.elementCount(H));
+            assertEquals(6, game.elementCount(C));
+            assertEquals(16, game.elementCount(O));
             // La deuxième demande la même chose : il suffit de regarnir le tableau.
-            assertTrue(game.isMoleculeWithinReach(GLUCOSE));
-            assertFalse(game.canCreateMolecule(GLUCOSE));
+            assertTrue(game.isMoleculeWithinReach(NAPHTHALENE));
+            assertFalse(game.canCreateMolecule(NAPHTHALENE));
             refill(game);
-            assertTrue(game.createMolecule(GLUCOSE));
-            assertEquals(2, game.moleculeCount(GLUCOSE));
+            assertTrue(game.createMolecule(NAPHTHALENE));
+            assertEquals(2, game.moleculeCount(NAPHTHALENE));
         }
 
         @Test
         void uneMoleculeOccupeDixUnitesDEspaceParProtonSelonSonEtat() {
             Game game = gameAfterBigBang();
             assertValue(280, game.moleculeVolume(SALT));          // un cristal : dix par proton
-            assertValue(960, game.moleculeVolume(GLUCOSE));       // un solide : pareil
+            assertValue(1280, game.moleculeVolume("S8"));         // un ancien solide (version 0.178) : un cristal, pareil
             assertValue(200, game.moleculeVolume(WATER));         // un liquide : le double
             assertValue(400, game.moleculeVolume("H2"));          // un gaz : vingt fois plus
-            assertValue(375, game.moleculeVolume("NiTi"));        // un métal : les trois quarts
         }
 
         @Test
         void plusUneMoleculeEstComplexeOuLourdePlusElleDemande() {
             Game game = gameAfterBigBang();
-            // Des solides et des cristaux, du plus léger au plus lourd.
-            String[] growing = {"LiH", SALT, GLUCOSE, "C20H24N2O2", "Pb5(VO4)3Cl"};
+            // Des cristaux, du plus léger au plus lourd.
+            String[] growing = {"LiH", SALT, "SiO2", "CaCO3", "Fe2O3", "CaWO4"};
             for (int index = 1; index < growing.length; index++) {
                 assertTrue(game.moleculeVolume(growing[index]).gt(game.moleculeVolume(growing[index - 1])),
                         growing[index] + " devrait occuper plus que " + growing[index - 1]);
             }
             // À nombre d'atomes égal, des éléments plus lourds prennent plus de place.
-            assertEquals(game.molecule("PbS").atoms(), game.molecule(SALT).atoms());
-            assertTrue(game.moleculeVolume("PbS").gt(game.moleculeVolume(SALT)));
+            assertEquals(game.molecule("MgO").atoms(), game.molecule(SALT).atoms());
+            assertTrue(game.moleculeVolume(SALT).gt(game.moleculeVolume("MgO")));
             // Et un gaz en prend bien plus qu'un cristal : le dihydrogène, deux protons, plus que le sel.
             assertTrue(game.moleculeVolume("H2").gt(game.moleculeVolume(SALT)));
-            assertTrue(game.moleculeVolume("CO").gt(game.moleculeVolume("PbS")));
+            assertTrue(game.moleculeVolume("CO").gt(game.moleculeVolume("Fe2O3")));
         }
 
         @Test
@@ -366,9 +368,9 @@ class JeuMoleculesTest extends GameTestSupport {
         @Test
         void lEspaceLibreNEstJamaisNegatif() {
             Game game = gameAfterBigBang();
-            game.state().setMoleculeCount(GLUCOSE, 3);
+            game.state().setMoleculeCount(SALT, 3);
             game.state().setSpace(BigNum.of(50));
-            assertValue(2880, game.occupiedSpace());
+            assertValue(840, game.occupiedSpace());
             assertTrue(game.freeSpace().isZero());
         }
 
@@ -380,18 +382,18 @@ class JeuMoleculesTest extends GameTestSupport {
                 if (molecule.bonus() instanceof Molecule.Boost) boosts++;
                 else uncaps++;
             }
-            assertEquals(26 + 251, boosts);
-            assertEquals(15 + 138, uncaps);
+            assertEquals(51, boosts);
+            assertEquals(22, uncaps);
         }
 
         @Test
         void unBonusGranditAvecLaTailleDeLaMolecule() {
-            // Dans un même rayon : 4 % sous 30 protons, puis 6, 8, 10, 12 et 15 %, plus un point par rayon.
+            // Dans un même rayon : 4 % sous 30 protons, puis 6, 8, 10, 12 et 14 % (bonus de la version 0.166, inchangés).
             assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.04), molecule("HCl").bonus());       // 18 protons
             assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.06), molecule("H2SO4").bonus());     // 50
-            assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.10), molecule("C6H8O7").bonus());    // 100
-            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.17), molecule("C20H24N2O2").bonus());    // 174, au rayon du vivant
-            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.20), molecule("C10H16N5O13P3").bonus()); // 260
+            assertEquals(new Molecule.Boost(Molecule.Stat.PARTICLES, 0.10), molecule("FeTiO3").bonus());    // 72
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.12), molecule("Fe3O4").bonus());         // 110
+            assertEquals(new Molecule.Boost(Molecule.Stat.ATOMS, 0.14), molecule("Mg3Si4O10(OH)2").bonus()); // 192
         }
 
         private Molecule molecule(String id) {
@@ -426,9 +428,7 @@ class JeuMoleculesTest extends GameTestSupport {
                 if (molecule.bonus() instanceof Molecule.Uncap uncap) {
                     assertTrue(molecule.recipe().containsKey(uncap.element()), molecule.id());
                     assertFalse(PeriodicTable.element(uncap.element()).category().unique(), molecule.id());
-                    // Dans un rayon, un élément n'a qu'une molécule qui relève son plafond.
-                    assertTrue(raised.computeIfAbsent(molecule.kind(), each -> new java.util.HashSet<>()).add(uncap.element()),
-                            molecule.kind() + " : deux molecules relevent le plafond de l'element " + uncap.element());
+                    raised.computeIfAbsent(molecule.kind(), each -> new java.util.HashSet<>()).add(uncap.element());
                     // Hors des petites molécules, c'est toujours un métal ou un métalloïde.
                     if (molecule.kind() != Molecule.Kind.SIMPLE) {
                         ElementCategory family = PeriodicTable.element(uncap.element()).category();
@@ -437,13 +437,15 @@ class JeuMoleculesTest extends GameTestSupport {
                 }
             }
             java.util.Set<Integer> simple = raised.get(Molecule.Kind.SIMPLE);
-            assertEquals(15, simple.size());
+            assertEquals(6, simple.size());                                // H, O, N, S, C, Si
             assertTrue(simple.contains(H) && simple.contains(C) && simple.contains(O));
-            // La chimie du carbone et le vivant n'ont pas de métal : aucun plafond relevé.
+            // La chimie du carbone n'a pas de métal : aucun plafond relevé.
             assertFalse(raised.containsKey(Molecule.Kind.ORGANIC));
-            assertFalse(raised.containsKey(Molecule.Kind.LIFE));
-            assertEquals(8, raised.get(Molecule.Kind.ACID).size());
+            assertEquals(5, raised.get(Molecule.Kind.ACID).size());        // Na, K, Li, Ca, Mg : les sels
             assertTrue(raised.get(Molecule.Kind.MINERAL).contains(24));    // la chromite, pour le chrome
+            // Version 0.178 : les matériaux ont rejoint les minéraux, et deux molécules d'un même rayon peuvent relever le
+            // même plafond (le quartz et le carbure de silicium, la chromite et l'oxyde de chrome) : leurs relèvements s'ajoutent.
+            assertEquals(9, raised.get(Molecule.Kind.MINERAL).size());     // Si, Fe, Ca, Mg, Ti, Cr, W, Zr, K
         }
 
         @Test
@@ -469,10 +471,10 @@ class JeuMoleculesTest extends GameTestSupport {
             Game game = gameAfterBigBang();
             double before = game.particlesPerCreation().log10();
             game.state().setMoleculeCount(WATER, 1);       // +5 %
-            game.state().setMoleculeCount("H2O2", 1);      // +5 %
-            game.state().setMoleculeCount("SO3", 1);       // +8 %
-            assertEquals(1.18, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
-            assertEquals(before + Math.log10(1.18), game.particlesPerCreation().log10(), 1e-9);
+            game.state().setMoleculeCount("SO2", 1);       // +5 %
+            game.state().setMoleculeCount("HCl", 1);       // +4 %
+            assertEquals(1.14, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
+            assertEquals(before + Math.log10(1.14), game.particlesPerCreation().log10(), 1e-9);
             assertEquals(1.0, game.moleculeBoost(Molecule.Stat.ATOMS), 0);
         }
 
@@ -482,11 +484,11 @@ class JeuMoleculesTest extends GameTestSupport {
             assertValue(1, game.spacePerSecond());
             game.state().setMoleculeCount("CO2", 1);                  // +1,5 %
             assertValue(1.015, game.spacePerSecond());
-            game.state().setMoleculeCount("SF6", 3);                  // deux doublements, à 3 % chacun
-            assertValue(1.075, game.spacePerSecond());
+            game.state().setMoleculeCount("C3H8", 3);                 // deux doublements, à 2,5 % chacun
+            assertValue(1.065, game.spacePerSecond());
             BigNum space = game.state().space();
             game.tick(100);
-            assertValue(space.toDouble() + 107.5, game.state().space());
+            assertValue(space.toDouble() + 106.5, game.state().space());
         }
 
         @Test
@@ -500,12 +502,12 @@ class JeuMoleculesTest extends GameTestSupport {
         }
 
         @Test
-        void leProtoxydeDAzoteFaitGrossirLaMatiereNoireUnPeuPlusVite() {
+        void laPhosphineFaitGrossirLaMatiereNoireUnPeuPlusVite() {
             Game game = gameAfterBigBang();
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(3));
             double before = game.darkMatterMomentum();
-            game.state().setMoleculeCount("N2O", 3);                  // deux doublements, à 5 % chacun
+            game.state().setMoleculeCount("PH3", 3);                  // deux doublements, à 5 % chacun
             assertEquals(before * 1.10, game.darkMatterMomentum(), before * 1e-9);
         }
 
@@ -515,14 +517,14 @@ class JeuMoleculesTest extends GameTestSupport {
             int copies = game.maxTotalCopies();
             game.state().setMoleculeCount("H2SO4", 3);                // deux doublements
             assertEquals(1 + 2 * 0.06, game.moleculeBoost(Molecule.Stat.PARTICLES), 1e-12);
-            game.state().setMoleculeCount("C20H24N2O2", 1);
-            assertEquals(1 + 0.17, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
-            // Le sel de table et la soude relèvent tous deux le plafond du sodium, chacun dans son rayon.
-            game.state().setMoleculeCount("NaCl", 1);
-            assertEquals(1, game.elementUncap(11));
-            game.state().setMoleculeCount("NaOH", 3);
-            assertEquals(3, game.elementUncap(11));
-            assertEquals(12, game.maxCopiesOf(PeriodicTable.element(11)));
+            game.state().setMoleculeCount("Mg3Si4O10(OH)2", 1);
+            assertEquals(1 + 0.14, game.moleculeBoost(Molecule.Stat.ATOMS), 1e-12);
+            // Le quartz et le carbure de silicium relèvent tous deux le plafond du silicium : leurs relèvements s'ajoutent.
+            game.state().setMoleculeCount("SiO2", 1);
+            assertEquals(1, game.elementUncap(14));
+            game.state().setMoleculeCount("SiC", 3);
+            assertEquals(3, game.elementUncap(14));
+            assertEquals(12, game.maxCopiesOf(PeriodicTable.element(14)));
             assertEquals(copies + 3, game.maxTotalCopies());
             assertValue(1, game.spacePerSecond());
         }

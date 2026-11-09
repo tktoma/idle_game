@@ -28,8 +28,8 @@ import javafx.scene.text.TextAlignment;
  * <p>Les molécules rassemblées ({@link Game#formSubstance(String)}) occupent le centre, et celles
  * d'une même sorte y forment un seul amas : une surface pleine, sans fente ni trou entre ses
  * molécules, de la couleur de la molécule et cernée de la couleur de son état. Les états les plus serrés sont servis les premiers,
- * donc au plus près du centre : les métaux, puis les cristaux, les solides, les liquides, et les
- * gaz au bord, comme une planète de son noyau à son atmosphère. Les amas se cognent sans se
+ * donc au plus près du centre : les cristaux, puis les liquides, et les gaz au bord, comme une
+ * planète de son noyau à son atmosphère. Les amas se cognent sans se
  * chevaucher : chacun s'arrête là où il touche son voisin, comme des bulles serrées les unes
  * contre les autres. Les molécules qui ne sont pas rassemblées restent au-delà, dans l'ordre de
  * leur création.
@@ -580,8 +580,8 @@ public final class SpaceView extends SpaceViewPacking {
 
     /**
      * La forme d'un état dans la légende, centrée en ({@code x}, {@code y}) : trois points pour un
-     * gaz, deux vagues pour un liquide, un carré pour un solide, un losange pour un cristal, un
-     * triangle pour un métal ({@link MatterText#sign}). La couleur est celle du remplissage en cours.
+     * gaz, deux vagues pour un liquide, un losange pour un cristal ({@link MatterText#sign}). La
+     * couleur est celle du remplissage en cours.
      */
     static void stateShape(GraphicsContext g, Molecule.State state, double x, double y) {
         switch (state) {
@@ -594,9 +594,7 @@ public final class SpaceView extends SpaceViewPacking {
                 g.fillRect(x - 5, y - 3, 10, 2);
                 g.fillRect(x - 5, y + 1, 10, 2);
             }
-            case SOLID -> g.fillRect(x - 4, y - 4, 8, 8);
             case CRYSTAL -> g.fillPolygon(new double[] {x, x + 5, x, x - 5}, new double[] {y - 5, y, y + 5, y}, 4);
-            case METAL -> g.fillPolygon(new double[] {x, x + 5, x - 5}, new double[] {y - 5, y + 4, y + 4}, 3);
         }
     }
 

@@ -262,11 +262,11 @@ class BotsTest {
     void laMatiereLaPlusEnRetardProportionnellementPasseEnPremier() {
         var absent = java.util.Map.of(
                 idle.core.molecules.Molecule.State.GAS, 5_000_000,
-                idle.core.molecules.Molecule.State.METAL, 3_000_000);
+                idle.core.molecules.Molecule.State.LIQUID, 3_000_000);
         var cible = java.util.Map.of(
                 idle.core.molecules.Molecule.State.GAS, 400_000_000,
-                idle.core.molecules.Molecule.State.METAL, 4_000_000);
-        assertEquals(idle.core.molecules.Molecule.State.METAL,
+                idle.core.molecules.Molecule.State.LIQUID, 4_000_000);
+        assertEquals(idle.core.molecules.Molecule.State.LIQUID,
                 FirstUniversePolicy.focusMatterState(absent,cible));
     }
 

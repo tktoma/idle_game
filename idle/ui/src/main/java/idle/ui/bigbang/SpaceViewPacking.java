@@ -475,9 +475,7 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
         double share = switch (state) {
             case GAS -> 0.18;
             case LIQUID -> 0.34;
-            case SOLID -> 0.5;
             case CRYSTAL -> 0.6;
-            case METAL -> 0.7;
         };
         return SPACE.interpolate(placeColor(state), PLACE_TINT).interpolate(shape.dominant(), share);
     }
@@ -492,21 +490,17 @@ public abstract class SpaceViewPacking extends SpaceViewPlacement {
 
     /**
      * La couleur d'un état, celle du liseré de ses amas : pâle pour les gaz, bleue pour les liquides,
-     * sable pour les solides, violette pour les cristaux, acier pour les métaux.
+     * violette pour les cristaux.
      */
     static Color placeColor(Molecule.State place) {
         return switch (place) {
             case GAS -> GAS_COLOR;
             case LIQUID -> LIQUID_COLOR;
-            case SOLID -> SOLID_COLOR;
             case CRYSTAL -> CRYSTAL_COLOR;
-            case METAL -> METAL_COLOR;
         };
     }
 
     private static final Color GAS_COLOR = Color.web("#bfe6f2");
     private static final Color LIQUID_COLOR = Color.web("#4d8fe0");
-    private static final Color SOLID_COLOR = Color.web("#d9b36c");
     private static final Color CRYSTAL_COLOR = Color.web("#b48cf2");
-    private static final Color METAL_COLOR = Color.web("#aeb6c4");
 }

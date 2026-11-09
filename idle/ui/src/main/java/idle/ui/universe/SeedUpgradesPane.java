@@ -226,7 +226,7 @@ public final class SeedUpgradesPane extends VBox {
                     : "Tuyau d'arrosage (niveau " + level + ") : " + percent(game.hoseShare()) + " → " + percent(game.hoseShare() + 0.1)
                             + " de l'arrosoir, versés seul";
             case SOIL -> "Terre fertile (niveau " + level + ") : chaque arrosage compte pour " + game.seedSoilFactor() + " → "
-                    + game.seedSoilFactor() * 2;
+                    + (game.seedSoilFactor() + 1);
             case CHRONO -> "Étage du chrono : un étage de plus à l'étagère, et un chrono qui se remplit de temps tout seul ;"
                     + " ce temps fait passer tout le jeu plus vite";
             case CHRONO_FILL -> "Remplissage du chrono (niveau " + level + ") : " + Format.darkMatter(game.chronoFillRate()) + " → "

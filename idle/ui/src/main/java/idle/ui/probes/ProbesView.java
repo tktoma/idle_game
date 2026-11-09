@@ -228,21 +228,11 @@ public final class ProbesView extends Canvas {
                 }
                 g.setGlobalAlpha(1);
             }
-            case GAS_CLOUD, NEBULA, SUPERNOVA -> {
+            case GAS_CLOUD, NEBULA -> {
                 for (int k = 0; k < 5; k++) {
                     double a = k * 1.3 + time * 0.15;
                     glow(g, x + 8 * Math.cos(a), y + 5 * Math.sin(a), 16, colors[k % 2], 0.45);
                 }
-            }
-            case COMET -> {
-                g.setStroke(colors[1]);
-                g.setGlobalAlpha(0.5);
-                g.setLineWidth(5);
-                g.strokeLine(x, y, x + 26, y - 10);
-                g.setGlobalAlpha(1);
-                glow(g, x, y, 10, colors[0], 0.8);
-                g.setFill(Color.WHITE);
-                g.fillOval(x - 3, y - 3, 6, 6);
             }
             case ASTEROIDS -> {
                 g.setFill(colors[0]);
@@ -252,7 +242,7 @@ public final class ProbesView extends Canvas {
                     g.fillOval(x + 16 * Math.cos(a) - size / 2, y + 6 * Math.sin(a) - size / 2, size, size);
                 }
             }
-            default -> {
+            case SALT_MOON -> {
                 glow(g, x, y, 18, colors[1], 0.35);
                 g.setFill(new RadialGradient(0, 0, x - 4, y - 4, 14, false, CycleMethod.NO_CYCLE,
                         new Stop(0, colors[1]), new Stop(1, colors[0])));
@@ -271,13 +261,9 @@ public final class ProbesView extends Canvas {
         return switch (where) {
             case VOID -> new Color[] {Color.web("#cfd8ff"), Color.web("#ffe9c2")};
             case GAS_CLOUD -> new Color[] {Color.web("#8ac8ff"), Color.web("#d0ecff")};
-            case COMET -> new Color[] {Color.web("#bfe8ff"), Color.web("#8ad0ff")};
             case SALT_MOON -> new Color[] {Color.web("#7a7a8a"), Color.web("#f0f0ff")};
             case ASTEROIDS -> new Color[] {Color.web("#9a8a7a"), Color.web("#d0c0a0")};
-            case DEAD_STAR -> new Color[] {Color.web("#5a5a7a"), Color.web("#e6f0ff")};
             case NEBULA -> new Color[] {Color.web("#e08ad0"), Color.web("#7ad8c8")};
-            case OCEAN_WORLD -> new Color[] {Color.web("#1a4a9a"), Color.web("#7ac8ff")};
-            case SUPERNOVA -> new Color[] {Color.web("#ff7a5a"), Color.web("#ffd27f")};
         };
     }
 

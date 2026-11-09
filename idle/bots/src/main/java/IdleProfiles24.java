@@ -272,7 +272,8 @@ boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && 
 private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
 double left=dt;
-while(left>1e-9){double part=Math.min(HOLD_STEP,left);g.tick(part);left-=part;g.buyAllWithParticles();}
+// Version 0.179 : le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
+while(left>1e-9){double part=Math.min(HOLD_STEP,left);tree.tick(g,part);g.tick(part);left-=part;g.buyAllWithParticles();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){

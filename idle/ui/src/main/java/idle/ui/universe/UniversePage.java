@@ -442,6 +442,10 @@ public final class UniversePage extends VBox {
                 // La graine profonde (version 0.156) : ce qu'elle multiplie, une fois achetée.
                 + (game.deepSeed() > 1 + 1e-9 ? ", graine profonde " + Format.multiplier(BigNum.of(game.deepSeed())) : "") + ")";
         seedStatus.setText(stage >= Game.SEED_STAGES ? "L'arbre-monde : la graine a fini de grandir"
+                : game.isSeedStageCapped()
+                ? can + Game.SEED_STAGE_NAMES.get(stage - 1).substring(0, 1).toUpperCase() + Game.SEED_STAGE_NAMES.get(stage - 1).substring(1)
+                        + " attend l'univers " + (game.universes() + 1) + " pour passer au palier " + (stage + 1) + " ; "
+                        + waterings + " sur " + nextWaterings + " arrosages déjà versés" + pace
                 : stage >= 2
                 ? can + "Arroser " + Game.SEED_STAGE_NAMES.get(stage - 1) + " : " + waterings + " sur " + nextWaterings + " arrosages, palier "
                         + (stage + 1) + " : " + Game.SEED_STAGE_NAMES.get(stage) + pace
@@ -507,17 +511,15 @@ public final class UniversePage extends VBox {
         return dimensionsLine.getText();
     }
 
-    /** Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120). */
+    /**
+     * Ce qui manque à la graine pour ouvrir l'univers {@code number} : son palier, et ce qu'il demande (version 0.120 ;
+     * version 0.179 : seulement des arrosages, le seuil de la dimension ne retient plus la graine depuis la 0.139).
+     */
     private String nextStageLine(int number) {
         int stage = Math.min(number, Game.SEED_STAGES);
         String name = Game.SEED_STAGE_NAMES.get(stage - 1);
-        int dimension = stage - 1;
-        boolean threshold = game.isDimensionThresholdReached(dimension);
         long need = Game.seedStageWaterings(stage);
         return "L'univers " + number + " s'ouvre quand la graine atteint son palier " + stage + ", " + name + " : "
-                + (!threshold ? "il faut d'abord le seuil de la dimension " + dimension
-                        + (dimension <= Dimension.PLAYABLE ? "" : ", qui n'existe pas encore") + ", puis "
-                        : "")
                 + Math.min(game.state().seedWaterings(), need) + " / " + need + " arrosages"
                 + (game.state().seedSprouted() ? "." : ", une fois la graine germée.");
     }

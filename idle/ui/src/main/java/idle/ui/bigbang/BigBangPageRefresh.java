@@ -218,9 +218,10 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                     + ". L'arbre fini, chaque explosion de plus sert donc encore ; dépenser la matière noire ralentit "
                     + "l'expansion, et un Big Bang la reprend : ce bonus repart alors de rien, le temps qu'elle revienne.";
             case BigBangMilestone.AutoMolecules auto -> "Donne l'automatisme « Création automatique », à régler dans l'onglet "
-                    + "Automatisation. Dans la sous-page États de la matière, un clic sur un amas le lui confie : toutes les "
-                    + ElementText.number(game.moleculeAutomationInterval()) + " secondes, il y fait une création, au même prix "
-                    + "qu'à la main, tant que le tableau périodique et l'espace le permettent.";
+                    + "Automatisation. Toutes les " + ElementText.number(game.moleculeAutomationInterval()) + " secondes, il crée ce "
+                    + "que demande le prochain pas (la liste de courses), puis la matière et la variété qui manquent par état, puis "
+                    + "une molécule dans chaque amas que vous lui confiez d'un clic dans la sous-page États de la matière ; au même "
+                    + "prix qu'à la main, tant que le tableau périodique et l'espace le permettent.";
             case BigBangMilestone.SolarSystems systems -> "Une sous-page « Systèmes solaires » s'ouvre : autour d'une étoile mûre, "
                     + "on range des planètes, de la plus proche à la plus lointaine, et des lunes. Un système est complet à "
                     + Game.SYSTEM_MIN_PLANETS + " planètes, et la galaxie en demande " + Game.SYSTEMS_FOR_GALAXY + ". Chaque point "
@@ -278,16 +279,16 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
             String detail = switch (upgrade.effect()) {
                 case SpaceUpgrade.OpenKind open -> "Le rayon « " + open.kind().label() + " » apparaît dans la sous-page "
                         + "Molécules. Chacune de ses molécules donne un léger bonus ou relève le plafond d'un de ses "
-                        + "éléments, et a son état : gaz, liquide, solide, cristal ou métal.";
+                        + "éléments, et a son état : gaz, liquide ou cristal.";
                 case SpaceUpgrade.OpenStates states -> "Ouvre la sous-page « États de la matière » : à partir de "
                         + Game.SUBSTANCE_MOLECULES + " molécules d'une même sorte, un achat unique les rassemble dans le "
-                        + "lieu de leur état : gaz, liquides, solides, cristaux ou métaux. Aucune n'est consommée ; leur bonus est "
+                        + "lieu de leur état : gaz, liquides ou cristaux. Aucune n'est consommée ; leur bonus est "
                         + "renforcé, la sorte ajoute des particules ou des atomes, et surtout son amas attire la matière : "
                         + "chaque création y ajoute plusieurs molécules d'un coup, de plus en plus.";
                 case SpaceUpgrade.OpenAssemblies assemblies -> "Ouvre la sous-page « Assemblages » : plusieurs sortes de "
                         + "molécules rassemblées, par centaines, forment une matière de la nature : une roche, un minerai, "
-                        + "une pierre précieuse, une eau, un gaz ou un hydrocarbure. Rien de vivant, rien de fabriqué. "
-                        + "Aucune molécule n'est consommée.";
+                        + "une pierre précieuse, une eau, un gaz ou un hydrocarbure, un par astre. Rien de vivant, rien de "
+                        + "fabriqué. Aucune molécule n'est consommée.";
                 case SpaceUpgrade.OpenBodies bodies -> "Ouvre la sous-page « Astres » : des assemblages, de la matière rassemblée et "
                         + "des molécules se cumulent pour former un amas de roches, puis une comète, un astéroïde, une lune, une "
                         + "planète, puis des étoiles et des trous noirs, chacun de plusieurs types et chacun parti des plus petits.";
@@ -307,7 +308,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                 case SpaceUpgrade.AutoForm form -> "Donne l'automatisme « Formation automatique », à régler dans l'onglet "
                         + "Automatisation : tout assemblage et tout astre dont les conditions sont réunies se forme de "
                         + "lui-même, et une notification l'annonce. La galaxie, l'amas de galaxies et l'univers restent à vous.";
-                case SpaceUpgrade.CreationPace pace -> "La création automatique passe sur les amas confiés toutes les "
+                case SpaceUpgrade.CreationPace pace -> "La création automatique passe toutes les "
                         + ElementText.number(pace.seconds()) + " secondes au lieu de toutes les "
                         + ElementText.number(Game.MOLECULE_AUTOMATION_SECONDS) + ". Elle ne sert qu'une fois la création "
                         + "automatique acquise, au deuxième Big Bang.";
@@ -441,14 +442,15 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
                                 + (game.isMoleculeAutomationEnabled() ? ")." : ", automatisme coupé)."))
                         + Detail.only(" Aucune molécule n'est consommée : elles se rangent toutes dans le lieu de leur état, "
                                 + "visible dans l'expansion de la matière, les plus serrés au plus près du centre : les "
-                                + "métaux, les cristaux, les solides, les liquides, puis les gaz. Le lieu réserve de l'espace une fois "
+                                + "cristaux, les liquides, puis les gaz. Le lieu réserve de l'espace une fois "
                                 + "pour toutes : la place de " + Game.SUBSTANCE_MOLECULES + " de ses molécules. Une molécule de "
                                 + "gaz occupe " + ElementText.number(Molecule.State.GAS.spaceFactor()) + " fois la place d'un "
                                 + "cristal du même poids, un liquide " + ElementText.number(Molecule.State.LIQUID.spaceFactor())
-                                + " fois, un métal les trois quarts. Une sorte compte pour ses doublements (1 molécule, puis "
+                                + " fois. Une sorte compte pour ses doublements (1 molécule, puis "
                                 + "3, 7, 15…), et rassemblée ce compte est élevé à la puissance de son état : "
                                 + ElementText.number(Molecule.State.GAS.exponent()) + " pour un gaz, "
-                                + ElementText.number(Molecule.State.METAL.exponent()) + " pour un métal. C'est surtout par "
+                                + ElementText.number(Molecule.State.LIQUID.exponent()) + " pour un liquide, "
+                                + ElementText.number(Molecule.State.CRYSTAL.exponent()) + " pour un cristal. C'est surtout par "
                                 + "l'amas que viennent les grands nombres : chaque création y ajoute une molécule, plus la "
                                 + "racine carrée de celles qu'il contient. Seules les molécules que vous avez déjà créées "
                                 + "sont montrées."));
@@ -456,8 +458,8 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
 
     /**
      * La carte d'une molécule dans le lieu de son état, construite la première fois qu'on en a
-     * besoin : le catalogue compte plusieurs centaines de molécules, et le joueur n'en possède
-     * jamais qu'une partie. Les cartes d'un lieu sont donc dans l'ordre où leurs molécules ont été créées.
+     * besoin : le joueur ne possède jamais qu'une partie du catalogue. Les cartes d'un lieu sont donc
+     * dans l'ordre où leurs molécules ont été créées.
      */
     private Card stateCard(Molecule molecule) {
         return stateCards.computeIfAbsent(molecule, each -> {
@@ -619,9 +621,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         return switch (matter) {
             case GAS -> "le lieu des gaz";
             case LIQUID -> "le lieu des liquides";
-            case SOLID -> "le lieu des solides";
             case CRYSTAL -> "le lieu des cristaux";
-            case METAL -> "le lieu des métaux";
         };
     }
 

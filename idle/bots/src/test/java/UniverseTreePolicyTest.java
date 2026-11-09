@@ -46,6 +46,8 @@ class UniverseTreePolicyTest {
     /** La graine à son dernier palier, l'arbre-monde : toutes les bulles sont nées. */
     private static void worldTree(Game game) {
         game.state().setSeedSprouted(true);
+        // Version 0.179 : l'arbre-monde demande neuf univers formés (deux paliers d'avance au plus).
+        while (game.universes() + Game.SEED_STAGES_AHEAD < Game.SEED_STAGES) game.testAddUniverse();
         game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
         assertEquals(Game.SEED_STAGES, game.seedStage());
     }
@@ -55,20 +57,26 @@ class UniverseTreePolicyTest {
     }
 
     @Test
-    void rienAvantLUniversQuatre() {
+    void rienAvantLUniversQuatreSaufLArrosoir() {
         UniverseTreePolicy policy = new UniverseTreePolicy(new UniverseTreePolicy.Style(0.5, UniverseTreePolicy.Plan.CHEAPEST), new NoRandom());
-        for (int formed = 0; formed < UniverseTreePolicy.FROM_UNIVERSES; formed++) {
-            Game game = formed == 0 ? Bots.fresh(42) : universes(formed, true);
+        // Avant le premier univers formé, rien du tout : pas de graine à arroser, et aucun hasard tiré.
+        Game fresh = Bots.fresh(42);
+        assertEquals(0, policy.play(fresh), "aucun univers formé : aucun geste");
+        assertFalse(fresh.isWateringCanUnlocked());
+        // Version 0.179 : dès l'univers 1 formé, l'arrosoir est débloqué et tenu (les paliers demandent des heures) ; les
+        // bulles et les hadrons attendent toujours trois univers formés, et les univers 2 et 3 se lancent sans attendre.
+        UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new java.util.Random(1));
+        for (int formed = 1; formed < UniverseTreePolicy.FROM_UNIVERSES; formed++) {
+            Game game = universes(formed, true);
             game.state().noteVoidHistory("1", 1e6);
-            assertEquals(0, policy.play(game), formed + " univers formés : aucun geste");
-            assertTrue(policy.readyToLaunch(game), "les univers 2 et 3 se lancent sans attendre la graine, comme avant");
-            assertFalse(policy.savingForHadrons(game));
-            assertFalse(game.isWateringCanUnlocked());
+            assertTrue(expert.play(game) > 0, formed + " univers formés : l'arrosoir");
+            assertTrue(game.isWateringCanUnlocked() && game.isWatering(), "l'arrosoir est débloqué et penché");
+            assertTrue(expert.readyToLaunch(game), "les univers 2 et 3 se lancent sans attendre la graine, comme avant");
+            assertFalse(expert.savingForHadrons(game));
             assertEquals(0, game.treeBubblesShown().stream().filter(game::isTreeBubbleBought).count());
         }
         Game third = universes(2, false);
-        assertTrue(policy.readyToLaunch(third), "l'univers 3 se lance dès l'univers 2 formé");
-        assertFalse(third.isWatering());
+        assertTrue(expert.readyToLaunch(third), "l'univers 3 se lance dès l'univers 2 formé");
     }
 
     @Test
@@ -79,22 +87,26 @@ class UniverseTreePolicyTest {
         assertFalse(bot.universeProgress(), "trois univers sur cinq");
         assertFalse(bot.launchedNextUniverse, "la graine n'a pas son palier 4 : l'univers 4 attend");
         assertTrue(game.isWateringCanUnlocked() && game.isWatering(), "l'arrosoir est débloqué et penché");
-        // Le palier 4 : 90 arrosages, plus celui qui fait germer, à un par seconde.
-        game.tick(60);
+        // Le palier 4 (version 0.179) : 990 arrosages, plus celui qui fait germer, à un par seconde.
+        game.tick(600);
         bot.universeProgress();
         assertFalse(bot.launchedNextUniverse);
-        game.tick(40);
+        game.tick(400);
         assertEquals(4, game.seedStage());
         bot.universeProgress();
         assertTrue(bot.launchedNextUniverse, "le palier 4 ouvre l'univers 4");
         assertTrue(game.isReplaying());
-        // Dans la partie de l'univers 4, il vise le palier 5, celui de l'univers suivant, et pas au-delà.
+        // Dans la partie de l'univers 4, il garde l'arrosoir penché : il vise l'arbre-monde (version 0.179), et la graine
+        // boit même au plafond de deux paliers d'avance (les arrosages comptent pour la suite).
         bot.tree.play(game);
         assertTrue(game.isWatering());
-        game.tick(40);
-        assertEquals(5, game.seedStage());
+        game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
+        assertEquals(5, game.seedStage(), "trois univers formés : le palier 5 au plus");
         bot.tree.play(game);
-        assertFalse(game.isWatering(), "le palier 5 atteint, l'arrosoir est repris");
+        assertTrue(game.isWatering(), "il arrose encore : l'arbre-monde n'est pas là");
+        while (game.universes() + Game.SEED_STAGES_AHEAD < Game.SEED_STAGES) game.testAddUniverse();
+        bot.tree.play(game);
+        assertFalse(game.isWatering(), "l'arbre-monde atteint, l'arrosoir est repris");
     }
 
     @Test

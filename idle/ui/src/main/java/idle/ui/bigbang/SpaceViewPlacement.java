@@ -31,7 +31,7 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
      * touchent, et y mêle les molécules de ses ingrédients. Les molécules rassemblées qui restent
      * choisissent ensuite. Chaque sorte prend des places qui se touchent, en partant de la place
      * libre la plus proche du centre ({@link Growth#gather}) ; les sortes passent dans l'ordre des
-     * états, du plus serré au plus lâche, et les métaux se retrouvent donc près du cœur, les gaz
+     * états, du plus serré au plus lâche, et les cristaux se retrouvent donc près du cœur, les gaz
      * vers le bord. Les autres molécules prennent les places qui
      * restent, du centre vers le bord, dans l'ordre de leur création. Les ronds des amas sont
      * ensuite taillés pour ne pas se chevaucher ({@link #collide}).

@@ -123,10 +123,6 @@ public abstract class GameStateBase {
     boolean autoHold = true;
     /** Vrai tant que la création automatique des molécules est en marche, une fois acquise ({@link Game#isAutoCreatingMolecules()}). */
     boolean autoMolecules = true;
-    /** La création automatique suit aussi la liste de courses : elle crée ce que le prochain pas demande. */
-    boolean autoFollowList = true;
-    /** Option facultative : entretien des substances utiles aux besoins de matière du prochain objectif. */
-    boolean autoFollowMatter = false;
     /** Les sortes de molécules que la création automatique entretient, dans l'ordre où le joueur les a choisies. */
     final Set<String> automatedMolecules = new java.util.LinkedHashSet<>();
     /**
@@ -187,7 +183,6 @@ public abstract class GameStateBase {
     // Planifier la matière (version 0.085).
     final List<String> plannedBodies = new ArrayList<>();
     final Map<String, Double> stateCaps = new TreeMap<>();
-    boolean recipeReservation = false;
     // Le deuxième univers (version 0.087).
     boolean replaying = false;
     long fusionsAtUniverse = 0;

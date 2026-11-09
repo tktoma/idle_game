@@ -93,7 +93,8 @@ public abstract class BigBangPageBase extends VBox {
         subTabs = new FlowPane(0, 0, moleculesTab, expansionTab, upgradesTab, milestonesTab, probesTab, statesTab, assembliesTab, bodiesTab, systemsTab, galaxyTab);
         subTabs.setAlignment(Pos.CENTER);
 
-        // Les molécules : une phrase, les rayons du catalogue, puis les cartes du rayon choisi.
+        // Les molécules (allégées en 0.178) : une phrase, la recherche et ses filtres, le prochain pas, les rayons du
+        // catalogue, l'impulsion, le meilleur achat et le tri, puis les cartes du rayon choisi.
         moleculesPane.setAlignment(Pos.TOP_CENTER);
         moleculesPane.setPadding(new Insets(10, 0, 10, 0));
         Labels.note(moleculesIntro, 760);
@@ -116,21 +117,12 @@ public abstract class BigBangPageBase extends VBox {
         moleculeFilter = new FilterBar("Rechercher une molécule : nom ou formule", GameApp.BIG_BANG_COLOR, self(), this::moleculeFilterChanged);
         Map<Molecule.State, String> stateNames = new LinkedHashMap<>();
         for (Molecule.State state : Molecule.State.values()) stateNames.put(state, MatterText.signed(state));
-        stateFilter = moleculeFilter.group("Tous les types", stateNames);
-        Map<Gives, String> givesNames = new LinkedHashMap<>();
-        givesNames.put(Gives.SPACE, "Espace");
-        givesNames.put(Gives.PARTICLES, "Particules");
-        givesNames.put(Gives.ATOMS, "Atomes");
-        givesNames.put(Gives.DARK_GROWTH, "Matière noire");
-        givesNames.put(Gives.UNCAP, "Plafond d'un élément");
-        givesFilter = moleculeFilter.group("Toutes les améliorations", givesNames);
+        stateFilter = moleculeFilter.group("Tous les états", stateNames);
         Map<Use, String> useNames = new LinkedHashMap<>();
         useNames.put(Use.CREATABLE, "Créables maintenant");
-        useNames.put(Use.WANTED, "Utiles au prochain astre");
+        useNames.put(Use.WANTED, "Utiles au prochain pas");
         useFilter = moleculeFilter.group("Toutes", useNames);
         Labels.note(moleculesFound, 760);
-        Labels.centered(nextKindLabel, "-fx-font-size: 12px; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";");
-        nextKindLabel.setMaxWidth(760);
         gridHolder.setMaxWidth(900);
         moleculesPane.getChildren().add(moleculesIntro);
         moleculesPane.getChildren().add(moleculeFilter);
@@ -143,14 +135,6 @@ public abstract class BigBangPageBase extends VBox {
         bestButton.setFocusTraversable(false);
         bestButton.setOnAction(event -> {
             if (best != null) game.createMolecule(best.id());
-            bestAt = 0;
-            refresh();
-        });
-        randomButton.setStyle(ZOOM_STYLE);
-        randomButton.setFocusTraversable(false);
-        randomButton.setMinWidth(BigBangPage.RANDOM_BUTTON_WIDTH);
-        randomButton.setOnAction(event -> {
-            game.createRandomMolecule(kind);
             bestAt = 0;
             refresh();
         });
@@ -168,19 +152,9 @@ public abstract class BigBangPageBase extends VBox {
         bestLabel.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(bestLabel, Priority.ALWAYS);
         StableHeight.of(bestBar);
-        Labels.note(collectionLabel, 760);
-        moleculesPane.getChildren().add(collectionLabel);
         pulseBar.setAlignment(Pos.CENTER);
         moleculesPane.getChildren().add(pulseBar);
         moleculesPane.getChildren().add(bestBar);
-        reservationButton.setStyle(ZOOM_STYLE);
-        reservationButton.setFocusTraversable(false);
-        reservationButton.setOnAction(event -> {
-            game.setRecipeReservation(!game.state().recipeReservation());
-            refresh();
-        });
-        reservationBar.setAlignment(Pos.CENTER);
-        moleculesPane.getChildren().add(reservationBar);
         createShownButton.setStyle(ZOOM_STYLE);
         createShownButton.setFocusTraversable(false);
         createShownButton.setOnAction(event -> {
@@ -189,7 +163,6 @@ public abstract class BigBangPageBase extends VBox {
         });
         foundRow.setAlignment(Pos.CENTER);
         moleculesPane.getChildren().add(foundRow);
-        moleculesPane.getChildren().add(nextKindLabel);
         moleculesPane.getChildren().add(gridHolder);
         Labels.transparent(moleculesScroll);
 
@@ -386,9 +359,11 @@ public abstract class BigBangPageBase extends VBox {
     static final String ZOOM_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
             + " -fx-background-radius: 4; -fx-border-radius: 4; -fx-text-fill: " + GameApp.BIG_BANG_COLOR + ";"
             + " -fx-background-color: #121923; -fx-border-color: " + GameApp.BIG_BANG_COLOR + "66;";
-    /** Taille du dessin d'une molécule sur sa carte. */
+    /** Taille du dessin d'une molécule sur sa carte, dans les états de la matière. */
     static final double PICTURE_WIDTH = 150;
     static final double PICTURE_HEIGHT = 80;
+    /** Taille du petit dessin d'une molécule dans l'en-tête de sa carte d'achat (version 0.178). */
+    static final double SMALL_PICTURE = 36;
 
     final Game game;
     final Label countLabel = new Label();
@@ -423,7 +398,6 @@ public abstract class BigBangPageBase extends VBox {
     private final VBox moleculesPane = new VBox(10);
     final ScrollPane moleculesScroll = new ScrollPane(moleculesPane);
     final Label moleculesIntro = new Label();
-    final Label nextKindLabel = new Label();
     final Map<Molecule.Kind, Button> kindChips = new EnumMap<>(Molecule.Kind.class);
     final Map<Molecule.Kind, TileGrid> grids = new EnumMap<>(Molecule.Kind.class);
     final Map<Molecule, Card> cards = new LinkedHashMap<>();
@@ -434,21 +408,16 @@ public abstract class BigBangPageBase extends VBox {
     final TileGrid favoriteGrid = new TileGrid(200, 4, 8);
     final Map<Molecule, Card> favoriteCards = new LinkedHashMap<>();
     boolean favoritesShown = false;
-    /** Ce qu'on peut faire d'une molécule tout de suite, pour le filtre. */
+    /** Ce qu'on peut faire d'une molécule tout de suite, pour le filtre : la créer, ou s'en servir au prochain pas. */
     public enum Use { CREATABLE, WANTED }
-    /** Ce que donne une molécule, pour le filtre : une des quatre grandeurs, ou un plafond relevé. */
-    public enum Gives { SPACE, PARTICLES, ATOMS, DARK_GROWTH, UNCAP }
-    /** La recherche et les filtres des molécules : par état, et par ce qu'elles donnent. */
+    /** La recherche et les filtres des molécules : par état (trois), et par usage. */
     final FilterBar moleculeFilter;
     final FilterBar.Group<Molecule.State> stateFilter;
-    final FilterBar.Group<Gives> givesFilter;
     final FilterBar.Group<Use> useFilter;
     final Label moleculesFound = new Label();
     /** Crée le plus possible de chaque molécule que montrent les filtres (ou les favorites). */
     final Button createShownButton = new Button("Créer le maximum");
     final HBox foundRow = new HBox(10, moleculesFound, createShownButton);
-    /** La collection du rayon affiché : où elle en est, et ce qu'elle rapporte. */
-    final Label collectionLabel = new Label();
     /** Les défis de Big Bang, sous les paliers. */
     final BangChallengesPane bangChallenges;
     /** La comète : le bouton qui la saisit, montré le temps qu'elle traverse l'expansion. */
@@ -468,12 +437,7 @@ public abstract class BigBangPageBase extends VBox {
     final Button sortButton = new Button();
     // Les boutons d'abord, le texte ensuite : le bouton « Créer » ne bouge plus quand le texte change de longueur,
     // et peut se cliquer à la chaîne.
-    /** L'achat simple : une molécule du rayon affiché, tirée au hasard, utile au prochain pas d'abord. */
-    final Button randomButton = new Button("Au hasard dans ce rayon");
-    private final HBox bestBar = new HBox(8, bestButton, randomButton, sortButton, bestLabel);
-    /** La réservation par recette (version 0.085) : ce qu'il faut encore au prochain assemblage, sur chaque carte. */
-    final Button reservationButton = new Button();
-    final HBox reservationBar = new HBox(reservationButton);
+    private final HBox bestBar = new HBox(8, bestButton, sortButton, bestLabel);
     /** Ce que demande le prochain pas, rayon par rayon et état par état. */
     final Label needsLabel = new Label();
     private final HBox pulseBar = new HBox(moleculesPulseButton);
