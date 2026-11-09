@@ -30,6 +30,8 @@ import javafx.scene.text.TextAlignment;
  * saveurs) et {@link #MAX_BINDINGS} liaisons à la fois (une de plus fait finir la plus ancienne). Elle n'avance qu'à
  * {@link #frame}, que la page n'appelle que lorsque le sous-onglet est à l'écran : une liaison faite ailleurs attend
  * donc qu'on vienne la voir. Sans animation, les liaisons finissent d'un coup et les quarks restent figés.
+ *
+ * <p>Version 0.195 : les quarks, les gluons et le fond ont leurs skins, dessinés par {@link HadronSkinArt}.
  */
 public final class BindingView extends Canvas {
 
@@ -83,6 +85,8 @@ public final class BindingView extends Canvas {
     private final List<Hadron> slots = new ArrayList<>();
     private final double[] springX = new double[SPRING_POINTS], springY = new double[SPRING_POINTS];
     private double time;
+    /** Les skins des quarks et des gluons de la dernière image (version 0.195) ; {@code null} pour le Classique. */
+    private idle.core.universe.Skin quarkSkin, gluonSkin;
 
     BindingView(Game game) {
         super(780, 340);
@@ -209,13 +213,20 @@ public final class BindingView extends Canvas {
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
         double fieldH = Math.max(1, h - ROW_HEIGHT);
-        double r = Math.max(w, fieldH) * 0.6;
-        g.setFill(new RadialGradient(0, 0, w / 2, fieldH / 2, r, false, CycleMethod.NO_CYCLE,
-                new Stop(0, tint(GLOW, 0.07)), new Stop(1, Color.TRANSPARENT)));
-        g.fillRect(0, 0, w, fieldH);
+        quarkSkin = game.chosenSkin(idle.core.universe.SkinVisual.QUARKS);
+        gluonSkin = game.chosenSkin(idle.core.universe.SkinVisual.GLUONS);
+        idle.core.universe.Skin background = game.chosenSkin(idle.core.universe.SkinVisual.HADRON_BACKGROUND);
+        if (HadronSkinArt.drawsBackground(background)) {
+            HadronSkinArt.background(g, background, w, h, fieldH, time);
+        } else {
+            g.setFill(BACK);
+            g.fillRect(0, 0, w, h);
+            double r = Math.max(w, fieldH) * 0.6;
+            g.setFill(new RadialGradient(0, 0, w / 2, fieldH / 2, r, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, tint(GLOW, 0.07)), new Stop(1, Color.TRANSPARENT)));
+            g.fillRect(0, 0, w, fieldH);
+        }
         for (Floating quark : floating) {
             double x = quark.x * w + 3 * Math.sin(time * 0.9 + quark.phase), y = quark.y * fieldH + 3 * Math.cos(time * 0.7 + quark.phase);
             quarkDot(g, x, y, 4, COLORS.get(quark.quark), false, Math.min(1, quark.age * 2) * 0.85);
@@ -277,11 +288,16 @@ public final class BindingView extends Canvas {
         if (springs > 0) {
             g.setStroke(tint(GLOW, 0.75 * springs));
             g.setLineWidth(1.4);
+            // Les gluons d'un skin ont leurs couleurs : c'est l'alpha global qui les fait paraître et s'effacer.
+            if (HadronSkinArt.drawsGluons(gluonSkin)) g.setGlobalAlpha(springs);
             for (int i = 0; i < (k == 2 ? 1 : k); i++) spring(g, qx[i], qy[i], qx[(i + 1) % k], qy[(i + 1) % k], 3 + 1.5 * Math.sin(time * 9 + i));
+            g.setGlobalAlpha(1);
         }
         // L'éclat : le hadron qui naît brille, d'autant plus fort que la liaison en fait beaucoup.
         double shine = Math.sin(Math.PI * clamp((t - 0.5) / 0.3));
         if (shine > 0) halo(g, cx, cy, 22 + 26 * shine, Color.WHITE, 0.35 * shine);
+        // Sous les notes de musique (version 0.195), la liaison joue un accord : trois petites notes montent.
+        if (shine > 0 && quarkSkin == idle.core.universe.Skin.QUARKS_NOTES) HadronSkinArt.chord(g, cx, cy, shine, GLOW);
         if (fade > 0) {
             g.setFont(LETTER);
             g.setTextAlign(TextAlignment.CENTER);
@@ -309,8 +325,12 @@ public final class BindingView extends Canvas {
         }
     }
 
-    /** Un ressort de gluon : un trait ondulé d'un quark à l'autre. */
+    /** Un ressort de gluon : un trait ondulé d'un quark à l'autre ; sous un skin des gluons (version 0.195), ce que dessine {@link HadronSkinArt}. */
     private void spring(GraphicsContext g, double x1, double y1, double x2, double y2, double amplitude) {
+        if (HadronSkinArt.drawsGluons(gluonSkin)) {
+            HadronSkinArt.gluon(g, gluonSkin, x1, y1, x2, y2, amplitude, time, springX, springY);
+            return;
+        }
         double dx = x2 - x1, dy = y2 - y1, length = Math.hypot(dx, dy);
         if (length < 1) return;
         double nx = -dy / length, ny = dx / length;
@@ -323,9 +343,13 @@ public final class BindingView extends Canvas {
         g.strokePolyline(springX, springY, SPRING_POINTS);
     }
 
-    /** Un quark : un rond plein, ou un anneau pour un antiquark, dans un halo de sa couleur. */
-    private static void quarkDot(GraphicsContext g, double x, double y, double r, Color color, boolean anti, double alpha) {
+    /** Un quark : un rond plein, ou un anneau pour un antiquark, dans un halo de sa couleur ; sous un skin des quarks (version 0.195), ce que dessine {@link HadronSkinArt}. */
+    private void quarkDot(GraphicsContext g, double x, double y, double r, Color color, boolean anti, double alpha) {
         if (alpha <= 0) return;
+        if (HadronSkinArt.drawsQuarks(quarkSkin)) {
+            HadronSkinArt.quark(g, quarkSkin, x, y, r, color, anti, alpha, time);
+            return;
+        }
         g.setFill(tint(color, 0.22 * alpha));
         g.fillOval(x - r * 2, y - r * 2, r * 4, r * 4);
         if (anti) {

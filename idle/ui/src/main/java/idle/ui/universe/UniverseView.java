@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.core.universe.Skin;
 import idle.ui.common.CanvasPane;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,8 +67,18 @@ public final class UniverseView extends Canvas {
     private double layoutHeight = -1;
     private List<int[]> links = List.of();
 
+    /** Les skins choisis (version 0.196) pour les bulles, la naissance et les liens ; {@code null} pour le Classique. */
+    private Skin bubbleSkin, birthSkin, linksSkin;
+
     public UniverseView() {
         super(800, 440);
+    }
+
+    /** Les skins des bulles, de la naissance et des liens (version 0.196), {@code null} chacun pour le Classique ; {@link UniverseSkinArt} les dessine. */
+    public void setSkins(Skin bubble, Skin birth, Skin links) {
+        bubbleSkin = bubble;
+        birthSkin = birth;
+        linksSkin = links;
     }
 
     /** Le nombre d'univers à montrer (au moins un). */
@@ -254,6 +265,10 @@ public final class UniverseView extends Canvas {
                 Bubble a = all.get(link[0]), b = all.get(link[1]);
                 double lit = Math.min(reveal(a), reveal(b));
                 if (lit <= 0) continue;
+                if (linksSkin != null) {
+                    UniverseSkinArt.link(g, a.x(), a.y(), b.x(), b.y(), lit, time, link[1] * 7 + link[0], linksSkin);
+                    continue;
+                }
                 g.setStroke(LINK);
                 g.setLineWidth(3);
                 g.setGlobalAlpha(0.07 * lit);
@@ -288,6 +303,10 @@ public final class UniverseView extends Canvas {
     private void bubble(GraphicsContext g, Bubble bubble, double r, double lit) {
         double x = bubble.x(), y = bubble.y();
         int seed = bubble.seed();
+        if (bubbleSkin != null) {
+            UniverseSkinArt.bubble(g, x, y, r, seed, lit, time, bubbleSkin);
+            return;
+        }
         Color tint = CLOUD[seed % CLOUD.length];
         glow(g, x, y, r * 1.35, tint, 0.18 * lit);
         // La sphère : sombre au centre, bleutée au bord.
@@ -348,6 +367,11 @@ public final class UniverseView extends Canvas {
     /** L'éclair de la naissance : le point qui grossit, l'écran blanc, l'onde, les traînées, puis les mots. */
     private void drawBirth(GraphicsContext g, double w, double h, double cx, double cy, double half) {
         double t = birth;
+        if (birthSkin != null) {
+            UniverseSkinArt.birth(g, w, h, cx, cy, half, t, front(), birthSkin);
+            drawBirthWords(g, w, h, cx, cy);
+            return;
+        }
         if (t < 1.0) {
             double grow = t / 1.0;
             glow(g, cx, cy, 8 + 120 * grow * grow, Color.WHITE, 0.6 + 0.4 * grow);
@@ -383,6 +407,12 @@ public final class UniverseView extends Canvas {
                 g.strokeLine(cx + tail * Math.cos(a), cy + tail * Math.sin(a) * 0.8, cx + head * Math.cos(a), cy + head * Math.sin(a) * 0.8);
             }
         }
+        drawBirthWords(g, w, h, cx, cy);
+    }
+
+    /** Les mots de la naissance, à la fin, quel que soit le skin. */
+    private void drawBirthWords(GraphicsContext g, double w, double h, double cx, double cy) {
+        double t = birth;
         if (t >= BIRTH_SECONDS - 3.2) {
             double in = Math.min(1, (t - (BIRTH_SECONDS - 3.2)) / 0.8);
             double out = Math.min(1, (BIRTH_SECONDS - t) / 0.8);

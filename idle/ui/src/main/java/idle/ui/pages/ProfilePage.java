@@ -10,6 +10,7 @@ import idle.core.universe.SkinVisual;
 import idle.ui.EventLog;
 import idle.ui.GameApp;
 import idle.ui.Readiness;
+import idle.ui.bigbang.CatalogArt;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
 import idle.ui.common.Format;
@@ -100,6 +101,8 @@ public final class ProfilePage extends VBox {
 
     // La galerie.
     private final Map<Avatar, Card> avatarCards = new EnumMap<>(Avatar.class);
+    /** Les dessins de la galerie, pour leur donner le style des avatars (version 0.198). */
+    private final Map<Avatar, AvatarView> avatarPictures = new EnumMap<>(Avatar.class);
     private final Card customCard = new Card(COLOR);
     private final AvatarView customPreview = new AvatarView(56);
     private final Button importButton = new Button("Choisir une image…");
@@ -222,6 +225,7 @@ public final class ProfilePage extends VBox {
             Card card = new Card(COLOR);
             AvatarView picture = new AvatarView(56);
             picture.show(avatar);
+            avatarPictures.put(avatar, picture);
             card.setPicture(picture);
             card.setOnAction(() -> {
                 if (!avatar.isOpen(game)) return;
@@ -278,7 +282,9 @@ public final class ProfilePage extends VBox {
 
     private List<AlbumPane.Entry> moleculeEntries() {
         List<AlbumPane.Entry> entries = new ArrayList<>();
-        for (Molecule molecule : game.molecules()) entries.add(new AlbumPane.Entry(molecule.id(), molecule.name(), molecule.formula(), molecule.kind()));
+        for (Molecule molecule : game.molecules()) {
+            entries.add(new AlbumPane.Entry(molecule.id(), molecule.name(), molecule.formula(), molecule.kind(), moleculePicture(molecule)));
+        }
         return entries;
     }
 
@@ -287,21 +293,38 @@ public final class ProfilePage extends VBox {
         for (Molecule molecule : game.molecules()) {
             if (!molecule.hasState()) continue;
             entries.add(new AlbumPane.Entry(molecule.id(), molecule.name(),
-                    MatterText.sign(molecule.state()) + " " + molecule.state().label(), null));
+                    MatterText.sign(molecule.state()) + " " + molecule.state().label(), null, moleculePicture(molecule)));
         }
         return entries;
     }
 
     private List<AlbumPane.Entry> assemblyEntries() {
         List<AlbumPane.Entry> entries = new ArrayList<>();
-        for (Assembly assembly : game.assemblies()) entries.add(new AlbumPane.Entry(assembly.id(), assembly.name(), assembly.family().label(), null));
+        for (Assembly assembly : game.assemblies()) {
+            entries.add(new AlbumPane.Entry(assembly.id(), assembly.name(), assembly.family().label(), null,
+                    (g, w, h) -> CatalogArt.drawAssembly(g, assembly, w, h, game.chosenSkin(SkinVisual.BLOCKS))));
+        }
         return entries;
     }
 
     private List<AlbumPane.Entry> bodyEntries() {
         List<AlbumPane.Entry> entries = new ArrayList<>();
-        for (Body body : game.bodies()) entries.add(new AlbumPane.Entry(body.id(), body.name(), body.tier().label(), null));
+        for (Body body : game.bodies()) {
+            entries.add(new AlbumPane.Entry(body.id(), body.name(), body.tier().label(), null,
+                    (g, w, h) -> CatalogArt.drawBody(g, body, w, h, game.chosenSkin(SkinVisual.BODY))));
+        }
         return entries;
+    }
+
+    /** Le dessin d'une molécule pour son album (version 0.198), dans le skin et la palette des molécules du moment. */
+    private AlbumPane.Picture moleculePicture(Molecule molecule) {
+        return (g, w, h) -> CatalogArt.drawMolecule(g, molecule, w, h, game.chosenSkin(SkinVisual.MOLECULE), game.chosenSkin(SkinVisual.MOLECULE_PALETTE));
+    }
+
+    /** La clé des skins dans lesquels les albums dessinent (version 0.198) : un album se remplit de nouveau si elle change. */
+    private String pictureKey() {
+        return game.chosenSkin(SkinVisual.MOLECULE) + "/" + game.chosenSkin(SkinVisual.MOLECULE_PALETTE) + "/"
+                + game.chosenSkin(SkinVisual.BODY) + "/" + game.chosenSkin(SkinVisual.BLOCKS);
     }
 
     // ------------------------------------------------------------------
@@ -399,6 +422,7 @@ public final class ProfilePage extends VBox {
             case JOURNAL -> refreshJournal();
             default -> {
                 albumIntros[selected - MOLECULES].setText(ALBUM_INTROS[selected - MOLECULES] + Detail.only(ALBUM_DETAIL));
+                albums[selected - MOLECULES].setLook(game.chosenSkin(SkinVisual.ALBUM), pictureKey());
                 albums[selected - MOLECULES].refresh();
             }
         }
@@ -428,6 +452,11 @@ public final class ProfilePage extends VBox {
             framed.setStampValue(game.state().earnedTitles().size());
             framed.setFrame(frame);
         }
+        // Version 0.198 : le style des avatars, sur l'en-tête, l'aperçu et toute la galerie ; l'image importée n'en change pas.
+        Skin style = game.chosenSkin(SkinVisual.AVATAR_STYLE);
+        avatarView.setAvatarStyle(style);
+        customPreview.setAvatarStyle(style);
+        for (AvatarView picture : avatarPictures.values()) picture.setAvatarStyle(style);
 
         String key = avatar + "/" + game.state().earnedTitles().size() + "/" + (custom != null) + "/" + Detail.shown() + "/" + Card.signsShown()
                 + "/" + (folder.get() != null);
@@ -439,8 +468,8 @@ public final class ProfilePage extends VBox {
                 boolean wearing = open && shown.id().equals(avatar);
                 each.getValue().show(!open ? Card.State.LOCKED : wearing ? Card.State.ON : Card.State.READY, "",
                         wearing ? "porté" : "", shown.label(),
-                        open ? "" : "avec le titre « " + shown.unlock().label() + " »",
-                        open ? "" : shown.unlock().condition() + ".", "", "");
+                        open ? "" : shown.how(),
+                        open ? "" : shown.condition() + ".", "", "");
             }
             customPreview.show(custom);
             boolean wearing = Avatar.CUSTOM.equals(avatar);
@@ -657,6 +686,13 @@ public final class ProfilePage extends VBox {
         return customPreview.frame();
     }
 
+    /** Le style des avatars de l'en-tête et de la galerie (version 0.198), ou {@code null} pour le Classique. */
+    public Skin avatarStyle() {
+        Skin style = avatarView.avatarStyle();
+        for (AvatarView picture : avatarPictures.values()) if (picture.avatarStyle() != style) return null;
+        return style;
+    }
+
     /** La carte d'un avatar de la galerie. */
     public Card avatarCard(Avatar avatar) {
         return avatarCards.get(avatar);
@@ -680,6 +716,13 @@ public final class ProfilePage extends VBox {
     /** Le bouton « Porter le plus récent ». */
     public Button wearLatestButton() {
         return wearLatest;
+    }
+
+    /** Le skin d'un album après l'avoir recopié (version 0.198), ou {@code null} pour le Classique : pour les vérifications. */
+    public Skin albumSkin(int index) {
+        albums[index - MOLECULES].setLook(game.chosenSkin(SkinVisual.ALBUM), pictureKey());
+        albums[index - MOLECULES].refresh();
+        return albums[index - MOLECULES].skin();
     }
 
     /** Le compte d'un album ({@link #MOLECULES} à {@link #BODIES}), « 3 / 120 », après l'avoir recopié. */

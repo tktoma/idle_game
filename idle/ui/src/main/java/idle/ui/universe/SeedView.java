@@ -2,6 +2,7 @@ package idle.ui.universe;
 
 import idle.core.Game;
 import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.common.CanvasPane;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -315,19 +316,24 @@ public final class SeedView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         double[] at = bloomPoint();
         double beat = 0.5 + 0.5 * Math.sin(time * 5), r = bloomRadius() * (1 + 0.12 * beat);
-        UniverseView.glow(g, at[0], at[1], r * (2.2 + 0.6 * beat), BLOOM, 0.5 + 0.3 * beat);
-        g.setGlobalAlpha(1);
-        g.setFill(new javafx.scene.paint.RadialGradient(0, 0, at[0] - r * 0.3, at[1] - r * 0.3, r * 1.3, false,
-                javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, BLOOM_LIGHT), new javafx.scene.paint.Stop(1, BLOOM)));
-        g.fillOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
         double ring = r + 6, share = Math.min(1, bloomLeft / bloomTotal);
-        g.setStroke(BLOOM);
-        g.setLineWidth(1.5);
-        g.setGlobalAlpha(0.3);
-        g.strokeOval(at[0] - ring, at[1] - ring, ring * 2, ring * 2);
-        g.setGlobalAlpha(0.95);
-        g.setLineWidth(3);
-        g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
+        Skin ringSkin = skins.get(SkinVisual.GROWTH_RING);
+        if (ringSkin != null) SeedSkinArt.bloom(g, at[0], at[1], r, share, time, ringSkin);
+        else {
+            UniverseView.glow(g, at[0], at[1], r * (2.2 + 0.6 * beat), BLOOM, 0.5 + 0.3 * beat);
+            g.setGlobalAlpha(1);
+            g.setFill(new javafx.scene.paint.RadialGradient(0, 0, at[0] - r * 0.3, at[1] - r * 0.3, r * 1.3, false,
+                    javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, BLOOM_LIGHT), new javafx.scene.paint.Stop(1, BLOOM)));
+            g.fillOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
+            g.setStroke(BLOOM);
+            g.setLineWidth(1.5);
+            g.setGlobalAlpha(0.3);
+            g.strokeOval(at[0] - ring, at[1] - ring, ring * 2, ring * 2);
+            g.setGlobalAlpha(0.95);
+            g.setLineWidth(3);
+            g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
+        }
+        g.setGlobalAlpha(1);
         g.setFill(Color.WHITE);
         g.setFont(javafx.scene.text.Font.font(12));
         g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
@@ -342,6 +348,32 @@ public final class SeedView extends Canvas {
     /** L'essence de l'arbre : le skin choisi pour le visuel de l'arbre, {@code null} pour le Classique. */
     public void setSkin(Skin skin) {
         this.skin = skin;
+    }
+
+    // L'établi de la graine (version 0.196) : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
+    /** Les skins choisis par visuel ; absent pour le Classique. {@link SeedSkinArt} et {@link ToolsSkinArt} les dessinent. */
+    private final java.util.EnumMap<SkinVisual, Skin> skins = new java.util.EnumMap<>(SkinVisual.class);
+
+    /** Les visuels de l'établi (version 0.196), ceux que {@link #setVisualSkin} habille. */
+    public static final SkinVisual[] ESTABLISHMENT = {SkinVisual.SEED, SkinVisual.WATERING_CAN, SkinVisual.SHELF, SkinVisual.HOSE,
+        SkinVisual.CHRONO, SkinVisual.GROWTH_RING, SkinVisual.WEATHER, SkinVisual.SEASONS};
+
+    /**
+     * Les visuels de l'arbre au-delà de son essence et de ses bulles (version 0.197), que {@link #setVisualSkin} habille
+     * aussi : la saison figée, la fantaisie, le sol ({@link TreeSkinArt}), les bulles et leurs liens ({@link TreeBubbleSkinArt}).
+     */
+    public static final SkinVisual[] TREE_LOOKS = {SkinVisual.TREE_SEASON, SkinVisual.TREE_FANTASY, SkinVisual.TREE_GROUND,
+        SkinVisual.TREE_BUBBLES, SkinVisual.TREE_BUBBLE_LINKS};
+
+    /** Le skin choisi pour un visuel de l'établi (version 0.196) ou de l'arbre (version 0.197), {@code null} pour le Classique. */
+    public void setVisualSkin(SkinVisual visual, Skin skin) {
+        if (skin == null) skins.remove(visual);
+        else skins.put(visual, skin);
+    }
+
+    /** Le skin choisi pour ce visuel, {@code null} pour le Classique. */
+    public Skin visualSkin(SkinVisual visual) {
+        return skins.get(visual);
     }
 
     // La météo (version 0.155).
@@ -376,7 +408,9 @@ public final class SeedView extends Canvas {
         if (weather == null || getWidth() <= 0 || getHeight() <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         double w = getWidth(), h = getHeight(), r = Math.max(12, Math.min(w, h) * 0.04), x = r * 2.4, y = r * 2.4;
-        switch (weather) {
+        Skin weatherSkin = skins.get(SkinVisual.WEATHER);
+        if (weatherSkin != null) SeedSkinArt.weather(g, w, h, x, y, r, weather, time, weatherSkin);
+        else switch (weather) {
             case SUN -> {
                 UniverseView.glow(g, x, y, Math.min(w, h) * 0.5, SUN, 0.12);
                 sun(g, x, y, r);
@@ -844,7 +878,9 @@ public final class SeedView extends Canvas {
             g.setStroke(SHELL);
             g.setGlobalAlpha(0.35);
             g.setLineWidth(1.5);
-            seedPath(g, cx, cy, size, 0, false);
+            Skin hollow = skins.get(SkinVisual.SEED);
+            if (hollow != null) SeedSkinArt.seed(g, cx, cy, size, 0, hollow);
+            else seedPath(g, cx, cy, size, 0, false);
             g.setGlobalAlpha(1);
             return;
         }
@@ -866,6 +902,8 @@ public final class SeedView extends Canvas {
         UniverseView.glow(g, cx, cy, size * 1.2 * breath, SEAM, 0.25);
 
         // Les graines de plus, en orbite : derrière (en haut) plus petites et plus pâles, devant plus grandes.
+        // La graine habillée (version 0.196) : chaque amande, grande ou petite, entière ou brisée, prend la forme du skin.
+        Skin seedSkin = skins.get(SkinVisual.SEED);
         int count = orbiting();
         for (int k = 0; k < count; k++) {
             double angle = 2 * Math.PI * k / Math.max(1, count) + time * (0.12 + 0.05 * (k % 3));
@@ -877,7 +915,8 @@ public final class SeedView extends Canvas {
             UniverseView.glow(g, x, y, s * 2.2, HALO, 0.25 + 0.2 * depth);
             g.setGlobalAlpha(0.55 + 0.45 * depth);
             g.setFill(FLESH);
-            seedPath(g, x, y, s, angle * 0.7, true);
+            if (seedSkin != null) SeedSkinArt.seed(g, x, y, s, angle * 0.7, seedSkin);
+            else seedPath(g, x, y, s, angle * 0.7, true);
         }
         g.setGlobalAlpha(1);
 
@@ -887,7 +926,8 @@ public final class SeedView extends Canvas {
         double topX = tipX, topY = tipY;
         // Du bonsaï à l'arbre-monde (version 0.120) : un arbre dessiné de la graine brisée.
         if (stage >= 5) {
-            double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time, skin);
+            double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time, skin,
+                    skins.get(SkinVisual.TREE_SEASON), skins.get(SkinVisual.TREE_FANTASY), skins.get(SkinVisual.TREE_GROUND));
             topX = top[0];
             topY = top[1];
             crownX = top[0];
@@ -986,6 +1026,10 @@ public final class SeedView extends Canvas {
             double apart = size * (0.35 + 0.25 * growth());
             for (int side = -1; side <= 1; side += 2) {
                 double hx = cx + side * apart, tilt = -0.35 + side * 0.9;
+                if (seedSkin != null) {
+                    SeedSkinArt.seed(g, hx, cy + size * 0.15, s * 0.75, tilt, seedSkin);
+                    continue;
+                }
                 g.setFill(SHELL);
                 seedPath(g, hx, cy + size * 0.15, s * 0.75, tilt, true);
                 g.setFill(FLESH);
@@ -997,10 +1041,13 @@ public final class SeedView extends Canvas {
             if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge);
             return;
         }
-        g.setFill(SHELL);
-        seedPath(g, cx, cy, s * 1.06, -0.35, true);
-        g.setFill(FLESH);
-        seedPath(g, cx, cy, s, -0.35, true);
+        if (seedSkin != null) SeedSkinArt.seed(g, cx, cy, s, -0.35, seedSkin);
+        else {
+            g.setFill(SHELL);
+            seedPath(g, cx, cy, s * 1.06, -0.35, true);
+            g.setFill(FLESH);
+            seedPath(g, cx, cy, s, -0.35, true);
+        }
         if (stage >= 3) {
             // Les fissures : elles partent de la pointe, et brillent un instant quand la graine craque.
             double bright = evolveAge >= 0 && evolveAge < 1.2 ? 1 - evolveAge / 1.2 : 0;
@@ -1020,13 +1067,16 @@ public final class SeedView extends Canvas {
             g.setGlobalAlpha(1);
             if (bright > 0) UniverseView.glow(g, cx, cy - s * 0.4, s * 1.4, SEAM, 0.6 * bright);
         }
-        g.setStroke(SEAM);
-        g.setLineWidth(Math.max(1, size * 0.03));
-        g.setGlobalAlpha(0.8);
-        double ax = Math.sin(-0.35), ay = -Math.cos(-0.35);
-        g.strokeLine(cx - ax * s * 0.75, cy - ay * s * 0.75, cx + ax * s * 0.85, cy + ay * s * 0.85);
-        g.setGlobalAlpha(1);
-        UniverseView.glow(g, cx - s * 0.25, cy - s * 0.15, s * 0.45, SEAM, 0.45);
+        if (seedSkin == null) {
+            // La couture et le reflet de l'amande : le skin a les siens.
+            g.setStroke(SEAM);
+            g.setLineWidth(Math.max(1, size * 0.03));
+            g.setGlobalAlpha(0.8);
+            double ax = Math.sin(-0.35), ay = -Math.cos(-0.35);
+            g.strokeLine(cx - ax * s * 0.75, cy - ay * s * 0.75, cx + ax * s * 0.85, cy + ay * s * 0.85);
+            g.setGlobalAlpha(1);
+            UniverseView.glow(g, cx - s * 0.25, cy - s * 0.15, s * 0.45, SEAM, 0.45);
+        }
         if (evolveAge >= 0) SeedTree.evolveBurst(g, w, h, cx, cy, stage, evolveAge);
     }
 
@@ -1045,28 +1095,43 @@ public final class SeedView extends Canvas {
         double level = s * 1.35, mid = top - level, high = top - level * (chronoShown ? 2 : 1);
         double left = x - plank / 2, right = x + plank / 2, post = Math.max(4, s * 0.1);
         drawHose(g, s);
-        g.setGlobalAlpha(0.55);
-        g.setFill(SHELF_EDGE);
-        g.fillRect(left + post, high, plank - 2 * post, top - high);
-        g.setGlobalAlpha(1);
-        g.setFill(SHELF);
-        g.fillRect(left, high - thick, post, top + thick * 2 - high);
-        g.fillRect(right - post, high - thick, post, top + thick * 2 - high);
-        for (double board : chronoShown ? new double[] {top, mid, high - thick} : new double[] {top, high - thick}) {
-            g.setFill(SHELF);
-            g.fillRoundRect(left - thick * 0.4, board, plank + thick * 0.8, thick, 3, 3);
+        // L'étagère habillée (version 0.196) : ToolsSkinArt la dessine à la même place, montants, planches et étage du chrono.
+        Skin shelfSkin = skins.get(SkinVisual.SHELF);
+        if (shelfSkin != null) ToolsSkinArt.shelf(g, left, right, top, mid, high, thick, post, chronoShown, shelfSkin);
+        else {
+            g.setGlobalAlpha(0.55);
             g.setFill(SHELF_EDGE);
-            g.fillRect(left - thick * 0.4, board + thick * 0.65, plank + thick * 0.8, thick * 0.35);
+            g.fillRect(left + post, high, plank - 2 * post, top - high);
+            g.setGlobalAlpha(1);
+            g.setFill(SHELF);
+            g.fillRect(left, high - thick, post, top + thick * 2 - high);
+            g.fillRect(right - post, high - thick, post, top + thick * 2 - high);
+            for (double board : chronoShown ? new double[] {top, mid, high - thick} : new double[] {top, high - thick}) {
+                g.setFill(SHELF);
+                g.fillRoundRect(left - thick * 0.4, board, plank + thick * 0.8, thick, 3, 3);
+                g.setFill(SHELF_EDGE);
+                g.fillRect(left - thick * 0.4, board + thick * 0.65, plank + thick * 0.8, thick * 0.35);
+            }
         }
-        if (chronoShown) drawChrono(g, x, mid - level / 2, s * 0.45);
+        if (chronoShown) {
+            Skin chronoSkin = skins.get(SkinVisual.CHRONO);
+            if (chronoSkin != null) ToolsSkinArt.chrono(g, x, mid - level / 2, s * 0.45, chronoFill, chronoRunning, chronoHand, time, chronoSkin);
+            else drawChrono(g, x, mid - level / 2, s * 0.45);
+        }
         // La saison (version 0.157), au-dessus de l'étagère, près du chrono qu'elle remplit.
         String season = seasonText();
         if (!season.isEmpty()) {
+            double textX = Math.min(w - plank * 0.6, x), textY = high - thick - 28;
+            // L'emblème de la saison (version 0.196), au-dessus de sa ligne, quand un skin des saisons est choisi.
+            Skin seasonSkin = skins.get(SkinVisual.SEASONS);
+            if (seasonSkin != null) {
+                SeedSkinArt.season(g, textX, textY - 30, 14, this.season, seasonLeft / Game.SEASON_SECONDS, seasonSkin);
+            }
             g.setFont(javafx.scene.text.Font.font(12));
             g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
             g.setGlobalAlpha(0.95);
             g.setFill(SEASON_COLORS[this.season.ordinal()]);
-            g.fillText(season, Math.min(w - plank * 0.6, x), high - thick - 28);
+            g.fillText(season, textX, textY);
             g.setGlobalAlpha(1);
         }
         // L'effet du rond de croissance (version 0.153), au-dessus de l'étagère : l'arrosage va plus vite.
@@ -1080,12 +1145,14 @@ public final class SeedView extends Canvas {
             g.setGlobalAlpha(1);
         }
         // Le fil du bois.
-        g.setStroke(SHELF_EDGE);
-        g.setGlobalAlpha(0.35);
-        g.setLineWidth(1);
-        g.strokeLine(left + plank * 0.05, top + thick * 0.35, x + plank * 0.1, top + thick * 0.3);
-        g.strokeLine(x - plank * 0.1, high - thick * 0.6, right - plank * 0.05, high - thick * 0.65);
-        g.setGlobalAlpha(1);
+        if (shelfSkin == null) {
+            g.setStroke(SHELF_EDGE);
+            g.setGlobalAlpha(0.35);
+            g.setLineWidth(1);
+            g.strokeLine(left + plank * 0.05, top + thick * 0.35, x + plank * 0.1, top + thick * 0.3);
+            g.strokeLine(x - plank * 0.1, high - thick * 0.6, right - plank * 0.05, high - thick * 0.65);
+            g.setGlobalAlpha(1);
+        }
 
         // L'eau qui coule du bec, puis éclabousse.
         for (Stream drop : stream) {
@@ -1120,11 +1187,18 @@ public final class SeedView extends Canvas {
         if (!canUnlocked) {
             // Une ombre sur l'étagère : ce que le bouton débloque.
             g.setGlobalAlpha(0.22);
-            drawCan(g, homeX(), homeY(), s, 0, true);
+            paintCan(g, homeX(), homeY(), s, 0, true);
             g.setGlobalAlpha(1);
             return;
         }
-        drawCan(g, canX(), canY(), s, CAN_TILT_DEGREES * tilt, false);
+        paintCan(g, canX(), canY(), s, CAN_TILT_DEGREES * tilt, false);
+    }
+
+    /** L'arrosoir, Classique ou habillé du skin choisi (version 0.196), à la même place et penché de même. */
+    private void paintCan(GraphicsContext g, double x, double y, double s, double degrees, boolean ghost) {
+        Skin canSkin = skins.get(SkinVisual.WATERING_CAN);
+        if (canSkin != null) ToolsSkinArt.can(g, x, y, s, degrees, ghost, canSkin);
+        else drawCan(g, x, y, s, degrees, ghost);
     }
 
     /** La lance du tuyau : près du pied de la plante, à droite, tournée vers elle. */
@@ -1223,6 +1297,7 @@ public final class SeedView extends Canvas {
         placeBubbles();
         for (int i = 0; i < n; i++) bubbleY[i] += Math.sin(time * 1.3 + i * 2.1) * bubbleR * 0.12;
         // Les liens d'abord, derrière : de bord à bord, allumés quand les deux bulles sont achetées.
+        Skin linkSkin = skins.get(SkinVisual.TREE_BUBBLE_LINKS), bubbleSkin = skins.get(SkinVisual.TREE_BUBBLES);
         for (int i = 0; i < n; i++) {
             for (int j : bubbles.get(i).below()) {
                 if (j < 0 || j >= n) continue;
@@ -1232,6 +1307,12 @@ public final class SeedView extends Canvas {
                 boolean lit = bubbles.get(i).state() == BubbleState.BOUGHT && bubbles.get(j).state() == BubbleState.BOUGHT;
                 // Un lien vaut dans les deux sens (version 0.143) : plein dès qu'un de ses bouts est acheté.
                 boolean open = bubbles.get(j).state() == BubbleState.BOUGHT || bubbles.get(i).state() == BubbleState.BOUGHT;
+                if (TreeBubbleSkinArt.links(linkSkin)) {
+                    // Version 0.197 : les liens en branches, fils de lumière ou racines.
+                    TreeBubbleSkinArt.link(g, bubbleX[j] + ux * bubbleR, bubbleY[j] + uy * bubbleR, bubbleX[i] - ux * bubbleR, bubbleY[i] - uy * bubbleR,
+                            bubbleR, lit, open, time, i * 7 + j, linkSkin);
+                    continue;
+                }
                 g.setStroke(BUBBLE);
                 g.setLineWidth(lit ? 2.4 : 1.5);
                 g.setGlobalAlpha(lit ? 0.9 : open ? 0.55 : 0.25);
@@ -1259,6 +1340,11 @@ public final class SeedView extends Canvas {
             g.setFill(Color.web("#06121a"));
             g.setGlobalAlpha(0.6);
             g.fillOval(x - r * 1.08, y - r * 1.08, r * 2.16, r * 2.16);
+            if (TreeBubbleSkinArt.bubbles(bubbleSkin)) {
+                // Version 0.197 : les bulles en fruits, lanternes, gouttes, pierres ou graines.
+                TreeBubbleSkinArt.bubble(g, x, y, r, bubble.state(), pulse, time, i, bubbleSkin);
+                continue;
+            }
             switch (bubble.state()) {
                 case BOUGHT -> {
                     UniverseView.glow(g, x, y, r * 2.4, BUBBLE, 0.55);
@@ -1351,6 +1437,11 @@ public final class SeedView extends Canvas {
         double h = getHeight();
         double[] tip = hoseNozzle();
         double floor = h - s * 0.12;
+        Skin hoseSkin = skins.get(SkinVisual.HOSE);
+        if (hoseSkin != null) {
+            ToolsSkinArt.hose(g, s, tip, floor, hoseSkin);
+            return;
+        }
         g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
         for (int pass = 0; pass < 2; pass++) {
             g.setStroke(pass == 0 ? HOSE : HOSE_LIGHT);

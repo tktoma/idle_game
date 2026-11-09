@@ -178,54 +178,54 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ## 6. Collisionneur, hadrons, vide
 
 ### Le reste du collisionneur (détecteur, injecteur, éclairs, flammes, étincelles, quarks)
-- Détecteur en œil, en lanterne, en cloche, en appareil photo ancien (le flash au croisement) ; cent captures.
-- Éclairs en fils d'or, en fissures de glace, en racines ; mille croisements.
-- Étincelles en pétales, en confettis, en braises ; le défi du détecteur.
-- Quarks qui s'envolent en ballons, en papillons, en lettres de scrabble (la saveur) ; dix hadrons liés.
+- Détecteur — **fait en 0.195** (condition retenue : 100, 250, 500, 1 000 collisions ; le jeu ne compte pas les captures à part) : en œil, en lanterne, en cloche, en appareil photo ancien (le flash au croisement) ; cent captures.
+- Éclairs — **fait en 0.195** (condition retenue : 1 000, 2 500, 5 000 croisements des faisceaux) : en fils d'or, en fissures de glace, en racines ; mille croisements.
+- Étincelles — **fait en 0.195** (condition retenue : le défi du détecteur, puis les épreuves « Sans surchauffe » et « Pleine charge ») : en pétales, en confettis, en braises ; le défi du détecteur.
+- Quarks qui s'envolent — **fait en 0.195** (condition retenue : 10, 25, 50 hadrons liés) : en ballons, en papillons, en lettres de scrabble (la saveur) ; dix hadrons liés.
 
 ### Les hadrons (`BindingView`)
-- Quarks en billes de verre, en fruits (la saveur en couleur de fruit), en notes de musique (la liaison joue un accord), en pièces de puzzle qui s'emboîtent ; dix, cinquante, cent, tous les hadrons.
-- Gluons en ressorts de métal, en élastiques, en fils de laine, en éclairs ; cent gluons.
-- Fond en tableau noir, en table de laboratoire, en ciel d'orage ; chacun un palier des hadrons.
+- Quarks — **fait en 0.195** (condition retenue : 10, 50, 100 hadrons liés, puis chaque sorte de hadron liée au moins une fois ; l'accord est dessiné, pas joué) : en billes de verre, en fruits (la saveur en couleur de fruit), en notes de musique (la liaison joue un accord), en pièces de puzzle qui s'emboîtent ; dix, cinquante, cent, tous les hadrons.
+- Gluons — **fait en 0.195** (condition retenue : 100, 250, 500, 1 000 gluons) : en ressorts de métal, en élastiques, en fils de laine, en éclairs ; cent gluons.
+- Fond — **fait en 0.195** (condition retenue : les paliers de gluons « Mémoire des liaisons », « Automatismes liés », « Éléments liés ») : en tableau noir, en table de laboratoire, en ciel d'orage ; chacun un palier des hadrons.
 
 ### Le vide (`VoidView`, le trou noir du vide)
-- Écume quantique en bulles de savon, en mousse de bière, en crépitement de pellicule, en neige de télévision ; le vide ouvert, puis chaque niveau d'amélioration du vide.
-- Paires matière-antimatière en jumeaux qui se tiennent la main, en aimants, en yin et yang ; cent paires annulées.
-- Le trou noir du vide en bouche d'égout, en puits de pierre, en iris, en nœud de bois, en tourbillon de thé ; chaque fois qu'il est nourri d'un trou noir.
+- Écume quantique — **fait en 0.195** (condition retenue : le vide ouvert, puis une amélioration du vide au niveau 1, 2, 3) : en bulles de savon, en mousse de bière, en crépitement de pellicule, en neige de télévision ; le vide ouvert, puis chaque niveau d'amélioration du vide.
+- Paires matière-antimatière — **fait en 0.195** (condition retenue : 100, 1 000, 10 000 paires nées depuis l'ouverture de la fenêtre ; ce compte n'est pas sauvegardé, les skins le sont) : en jumeaux qui se tiennent la main, en aimants, en yin et yang ; cent paires annulées.
+- Le trou noir du vide — **fait en 0.195** (condition retenue : le trou noir du vide ouvert quand il compte 1 à 5 univers, soit les univers 4 à 8 formés ; le jeu ne compte pas les trous noirs qui l'ont nourri) : en bouche d'égout, en puits de pierre, en iris, en nœud de bois, en tourbillon de thé ; chaque fois qu'il est nourri d'un trou noir.
 
 ## 7. L'univers
 
 ### Les univers en bulles (`UniverseView`, la naissance)
-- Bulles de savon réalistes (irisation), ballons de baudruche noués, boules à neige, globes en verre d'un orrery, planètes-fruits, œufs ; chaque univers formé en débloque un.
-- La naissance en éclosion, en bourgeon qui s'ouvre, en feu d'artifice, en page qui se tourne ; cinq univers.
-- Les liens entre bulles en fil, en lierre, en circuit, en constellation ; dix univers.
+- Bulles de savon réalistes (irisation), ballons de baudruche noués, boules à neige, globes en verre d'un orrery, planètes-fruits, œufs — **fait en 0.196** (condition retenue : un par univers formé, du premier au sixième) : chaque univers formé en débloque un.
+- La naissance en éclosion, en bourgeon qui s'ouvre, en feu d'artifice, en page qui se tourne — **fait en 0.196** (condition retenue : les univers 5, 6, 7, 8 formés) : cinq univers.
+- Les liens entre bulles en fil, en lierre, en circuit, en constellation — **fait en 0.196** (condition retenue : les univers 7, 8, 9, 10 formés) : dix univers.
 
 ### Le lancement de l'univers suivant (`LaunchView`)
-- Fusée de papier, graine qui germe, pierre jetée dans l'eau (ondes), lampe qu'on allume, rideau de théâtre ; chaque univers lancé après le cinquième.
+- Fusée de papier, graine qui germe, pierre jetée dans l'eau (ondes), lampe qu'on allume, rideau de théâtre — **fait en 0.196** (condition retenue : les univers 5 à 9 formés, le jeu ne comptant pas les lancements) : chaque univers lancé après le cinquième.
 
 ### La graine et son établi (`SeedView` : graine, germe, arrosoir, étagère, tuyau, chrono, rond, météo, saisons)
-- La graine en noix, en gland, en noyau d'avocat, en pépin de pomme, en graine de tournesol, en œuf (fantaisie), en pierre précieuse brute ; chaque palier de la graine en débloque un.
-- L'arrosoir en théière, en pichet, en nuage qu'on presse, en bec d'oiseau, en coquillage ; dix, cent, mille arrosages, le tuyau, la terre fertile.
-- L'étagère en pierre, en métal d'atelier, en bambou, en nuage ; l'étage du chrono.
-- Le tuyau en liane, en fontaine, en rigole creusée, en pipette de laboratoire ; dix niveaux du tuyau.
-- Le chrono en sablier, en montre à gousset, en cadran solaire, en métronome ; le chrono plein une fois.
-- Le rond de croissance en anneau de fée (champignons), en halo doré, en soleil levant ; vingt ronds attrapés.
-- La météo en pictogrammes de bulletin télévisé, en gravure japonaise (pluie en traits), en pastel ; dix orages.
-- Les saisons en cartes à jouer, en roue de couleurs, en vitrail ; un cycle complet des saisons.
+- La graine en noix, en gland, en noyau d'avocat, en pépin de pomme, en graine de tournesol, en œuf (fantaisie), en pierre précieuse brute — **fait en 0.196** (condition retenue : la graine aux paliers 1 à 7, l'univers formé) : chaque palier de la graine en débloque un.
+- L'arrosoir en théière, en pichet, en nuage qu'on presse, en bec d'oiseau, en coquillage — **fait en 0.196** (condition retenue : 10, 100, 1 000 arrosages de la graine en cours, qui repartent de zéro à chaque univers ; le tuyau acheté ; la terre fertile achetée) : dix, cent, mille arrosages, le tuyau, la terre fertile.
+- L'étagère en pierre, en métal d'atelier, en bambou, en nuage — **fait en 0.196** (condition retenue : l'étage du chrono acheté, avec 3, 4, 5, 6 univers formés) : l'étage du chrono.
+- Le tuyau en liane, en fontaine, en rigole creusée, en pipette de laboratoire — **fait en 0.196** (condition retenue : le tuyau aux niveaux 2, 4, 6 et 10, son maximum) : dix niveaux du tuyau.
+- Le chrono en sablier, en montre à gousset, en cadran solaire, en métronome — **fait en 0.196** (condition retenue : le chrono plein, puis le chrono plein avec 3, 4, 5 univers formés) : le chrono plein une fois.
+- Le rond de croissance en anneau de fée (champignons), en halo doré, en soleil levant — **fait en 0.196** (condition retenue : 5, 20, 50 ronds cueillis depuis l'ouverture de la fenêtre ; ce compte n'est pas sauvegardé, les skins le sont) : vingt ronds attrapés.
+- La météo en pictogrammes de bulletin télévisé, en gravure japonaise (pluie en traits), en pastel — **fait en 0.196** (condition retenue : 1, 5, 10 orages depuis l'ouverture de la fenêtre ; ce compte n'est pas sauvegardé) : dix orages.
+- Les saisons en cartes à jouer, en roue de couleurs, en vitrail — **fait en 0.196** (condition retenue : 1, 2, 3 cycles complets des saisons depuis l'ouverture de la fenêtre ; ce compte n'est pas sauvegardé) : un cycle complet des saisons.
 
 ### Les arbres, du bonsaï à l'arbre-monde (`SeedTree`)
 - Essences — **fait en 0.185** (visuel « L'arbre ») : bouleau (écorce blanche), saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, palmier ; chaque essence un skin, débloqué par un univers formé à partir du quatrième (4 à 11). Le chêne est le Classique.
-- Saisons figées — l'arbre toujours en automne (roux), en hiver (nu, givré), au printemps (fleurs) ; les saisons débloquées.
-- Fantaisie — arbre de cristal, arbre de corail, arbre en circuit lumineux, arbre de nuages, arbre inversé (les racines en haut), arbre en pixel art ; chaque bulle d'un palier différent.
-- Le sol — herbe, sable, neige, mousse, dallage, eau (l'arbre pousse sur une île) ; chaque sol par un palier de la graine.
+- Saisons figées — **fait en 0.197** (condition retenue : les saisons débloquées, soit le miroir ouvert à 9 univers, puis 10 et 11 univers formés) : l'arbre toujours en automne (roux), en hiver (nu, givré), au printemps (fleurs) ; les saisons débloquées.
+- Fantaisie — **fait en 0.197** (condition retenue : des bulles de l'arbre de 1 à 6 paliers différents de la graine achetées) : arbre de cristal, arbre de corail, arbre en circuit lumineux, arbre de nuages, arbre inversé (les racines en haut), arbre en pixel art ; chaque bulle d'un palier différent.
+- Le sol — **fait en 0.197** (condition retenue : la graine aux paliers 2 à 7, l'univers formé) : herbe, sable, neige, mousse, dallage, eau (l'arbre pousse sur une île) ; chaque sol par un palier de la graine.
 
 ### Les bulles de l'arbre (`SeedView`, arbre d'améliorations)
-- Bulles en fruits (achetée : mûre ; trop chère : verte ; fermée : bourgeon), en lanternes, en gouttes de rosée, en pierres précieuses, en graines ; cinq, dix, quinze, toutes les bulles.
-- Les liens entre bulles en branches, en fils de lumière, en racines ; dix bulles.
+- Bulles — **fait en 0.197** (condition retenue : 5, 10, 15, 18 bulles achetées, puis les dix-neuf ; l'arbre n'a que dix-neuf bulles) : en fruits (achetée : mûre ; trop chère : verte ; fermée : bourgeon), en lanternes, en gouttes de rosée, en pierres précieuses, en graines ; cinq, dix, quinze, toutes les bulles.
+- Les liens entre bulles — **fait en 0.197** (condition retenue : 10, 15 bulles achetées, puis les dix-neuf) : en branches, en fils de lumière, en racines ; dix bulles.
 
 ### La carte des dimensions et le défi final (`DimensionsView`)
-- Les onze points en planètes d'un système, en perles d'un collier, en pierres d'un cercle de menhirs, en fenêtres d'une tour, en cases d'un cadran ; chaque dimension ouverte en débloque un.
-- Le remplissage vert du défi final en eau qui monte, en sable, en lumière, en lierre qui grimpe ; le défi final fini.
+- Les onze points — **fait en 0.197** (condition retenue : 2, 4, 6, 8, 10 dimensions ouvertes) : en planètes d'un système, en perles d'un collier, en pierres d'un cercle de menhirs, en fenêtres d'une tour, en cases d'un cadran ; chaque dimension ouverte en débloque un.
+- Le remplissage vert du défi final — **fait en 0.197** (condition retenue : le défi final fini, puis fini avec 9, 10, 11 univers formés) : en eau qui monte, en sable, en lumière, en lierre qui grimpe ; le défi final fini.
 
 ### Les dix mini-jeux (`DimensionView`, `DimensionWindow`, `VolumeCamera`)
 - La ligne — **rails et wagons, fait en 0.187** (visuel « La ligne », au seuil) ; restent à faire : cordes de guitare et médiator, fil et perles d'abaque, piste d'athlétisme, portée musicale et notes ; le seuil, puis chaque niveau d'amélioration en débloque un.
@@ -238,28 +238,28 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - La grille — **démineur, fait en 0.187** (au seuil) ; restent à faire : bataille navale, mots croisés, de jardin potager, de ruche ; le seuil de la grille.
 - Le miroir — **vitrail symétrique, fait en 0.187** (au seuil) ; restent à faire : miroir de bal, lac au reflet, test de Rorschach, papillon ; le seuil du miroir.
 - Le mélange — **kaléidoscope, fait en 0.187** (au seuil) ; restent à faire : cuisine (chaque dimension un ingrédient), orchestre, atelier d'alchimiste, carte du monde ; le seuil du mélange.
-- Les cadres (`DimensionWindow`) — bordure de hublot, de cadre doré, d'écran cathodique, de livre ouvert ; dix dimensions ouvertes.
-- La palette des dix dimensions (PALETTE) en bloc : « pastel », « daltonien sûr », « monochrome », « arc-en-ciel saturé », « sépia » ; options d'accessibilité, sans condition.
+- Les cadres (`DimensionWindow`) — **fait en 0.197** (condition retenue : 4, 6, 8, 10 dimensions ouvertes) : bordure de hublot, de cadre doré, d'écran cathodique, de livre ouvert ; dix dimensions ouvertes.
+- La palette des dix dimensions (PALETTE) — **fait en 0.197** (libres ; la palette suit dans l'arène, la fenêtre et la carte skinnée) : en bloc : « pastel », « daltonien sûr », « monochrome », « arc-en-ciel saturé », « sépia » ; options d'accessibilité, sans condition.
 
 ## 8. Profil, succès, statistiques, réglages
 
 ### Les avatars (`Avatar`, `AvatarView`, 12 avatars + 1 importé)
 - Cadres — **fait en 0.189** (visuel « Le cadre de l'avatar ») : rond (Alchimiste), hexagone (Lecteur du tableau), écusson (Briseur de défis), cadre doré baroque (Faiseur de Big Bang), timbre-poste dentelé (Chasseur de comètes), polaroid (Créateur d'univers).
-- Styles — chaque avatar en version « trait », « pixel », « craie », « vitrail » ; un jeu complet par palier de succès (25, 50, 75, tous).
-- Nouveaux avatars à gagner — l'arrosoir, le chrono, la sonde, le hadron, la bulle, le miroir, le kaléidoscope, la toile de l'univers ; chacun par le titre correspondant.
+- Styles — **fait en 0.198** (condition retenue : 25, 50, 75 succès obtenus, puis tous ceux du catalogue ; visuel « Le style des avatars », sur l'en-tête et la galerie, pas l'image importée) : chaque avatar en version « trait », « pixel », « craie », « vitrail » ; un jeu complet par palier de succès (25, 50, 75, tous).
+- Nouveaux avatars à gagner — **fait en 0.198** (condition retenue : le titre quand il existe : hadron « Tisseur de gluons », bulle « Tisseur de multivers », miroir « Gardien du miroir », kaléidoscope « Maître du mélange », toile « Créateur d'univers » ; sinon : sonde 10 voyages de sondes, arrosoir le tuyau d'arrosage acheté, chrono le chrono acheté) : l'arrosoir, le chrono, la sonde, le hadron, la bulle, le miroir, le kaléidoscope, la toile de l'univers ; chacun par le titre correspondant.
 
 ### Les albums (`AlbumPane`, aujourd'hui du texte)
-- Les cases d'album avec le dessin de la molécule (`MoleculeArt`), de l'astre (`BodyArt`), de l'assemblage (son bloc) ; cinquante entrées.
-- Styles d'album : vignettes autocollantes de collection, timbres, cartes de collection avec dos, fiches de herbier ; chaque album complet.
+- Les cases d'album — **fait en 0.198** (condition retenue : 50 entrées trouvées dans les quatre albums ensemble ; visuel « Les albums », skin « Illustré ») : avec le dessin de la molécule (`MoleculeArt`), de l'astre (`BodyArt`), de l'assemblage (son bloc) ; cinquante entrées.
+- Styles d'album — **fait en 0.198** (condition retenue : 1, 2, 3 albums complets, puis les 4 ; chaque style inclut l'illustration) : vignettes autocollantes de collection, timbres, cartes de collection avec dos, fiches de herbier ; chaque album complet.
 
 ### Les succès (`AchievementsPage`)
-- Tuiles en médailles (bronze, argent, or selon la rareté), en badges de scout brodés, en étoiles, en trophées, en timbres ; vingt-cinq, cinquante, soixante-quinze, tous.
-- Le succès non obtenu en silhouette grise, en « ? », en pièce de puzzle manquante ; dix succès.
+- Tuiles — **fait en 0.198** (condition retenue : 25, 50, 75, 90 succès obtenus, puis tous ceux du catalogue ; visuel « Les tuiles des succès », un insigne en tête de tuile ; le métal suit le palier du succès dans sa liste, or pour les succès à bonus propre) : en médailles (bronze, argent, or selon la rareté), en badges de scout brodés, en étoiles, en trophées, en timbres ; vingt-cinq, cinquante, soixante-quinze, tous.
+- Le succès non obtenu — **fait en 0.198** (condition retenue : 10, 20, 30 succès obtenus ; visuel « Les succès non obtenus ») : en silhouette grise, en « ? », en pièce de puzzle manquante ; dix succès.
 
 ### Les statistiques et graphiques (`ChartPane`, `TimelinePane`, `MultiplierPane`)
-- Courbes en « papier millimétré », en « oscilloscope » (vert sur noir, rémanence), en « crayon », en « aquarelle » (aires lavées) ; dix heures de jeu.
-- Palette des séries : « daltonien sûr » (l'actuelle), « pastel », « néon », « niveaux de gris » ; sans condition.
-- La frise des univers en frise chronologique de musée, en pellicule de film, en train avec un wagon par univers ; cinq univers.
+- Courbes — **fait en 0.198** (condition retenue : 1, 5, 10, 20 h de jeu ; visuel « Les courbes des statistiques », tous les graphiques) : en « papier millimétré », en « oscilloscope » (vert sur noir, rémanence), en « crayon », en « aquarelle » (aires lavées) ; dix heures de jeu.
+- Palette des séries — **fait en 0.198** (libres ; visuel « La palette des courbes » ; la daltonien-sûre reste le Classique) : « daltonien sûr » (l'actuelle), « pastel », « néon », « niveaux de gris » ; sans condition.
+- La frise des univers — **fait en 0.198** (condition retenue : 3, 5, 7 univers formés ; visuel « La frise des univers ») : en frise chronologique de musée, en pellicule de film, en train avec un wagon par univers ; cinq univers.
 
 ### Notifications, panneaux, transitions (`ToastPane`, `Overlay`, `TransitionPane`, `EndPane`, `FinalePane`)
 - Toasts en post-it, en télégramme, en bulle de bande dessinée, en ticket de caisse, en parchemin déroulé ; cent notifications.

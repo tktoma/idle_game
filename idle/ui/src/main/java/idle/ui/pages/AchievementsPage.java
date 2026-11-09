@@ -36,6 +36,10 @@ import javafx.scene.layout.VBox;
  *
  * <p>Il n'y a pas de courbe ici : celle des succès obtenus est avec les autres, dans l'onglet
  * « Statistiques ».
+ *
+ * <p>Version 0.198 : les skins des tuiles ({@link idle.core.universe.SkinVisual#ACHIEVEMENT_TILE}) et des succès non
+ * obtenus ({@link idle.core.universe.SkinVisual#ACHIEVEMENT_LOCKED}) mettent un insigne en tête de chaque tuile
+ * ({@link AchievementSkinArt}), refait seulement quand le skin ou l'état du succès change.
  */
 public final class AchievementsPage extends VBox {
 
@@ -51,6 +55,9 @@ public final class AchievementsPage extends VBox {
     private final Label bangTitle = new Label();
     private final TileGrid bangGrid = new TileGrid(150, 5, 6);
     private final Map<BangAchievement, Card> bangTiles = new java.util.EnumMap<>(BangAchievement.class);
+    /** Les skins des insignes au dernier dessin (version 0.198), et pour chaque tuile si son insigne est celui d'un succès obtenu. */
+    private idle.core.universe.Skin drawnTiles, drawnLocked;
+    private final Map<Card, Boolean> drawnOwned = new java.util.HashMap<>();
 
     public AchievementsPage(Game game) {
         super(8);
@@ -102,6 +109,36 @@ public final class AchievementsPage extends VBox {
         return tiles.get(achievement);
     }
 
+    /** Les skins des insignes en place (version 0.198), ou {@code null} pour le Classique : pour les vérifications. */
+    idle.core.universe.Skin tileSkin() {
+        return drawnTiles;
+    }
+
+    idle.core.universe.Skin lockedSkin() {
+        return drawnLocked;
+    }
+
+    /** Vrai si cette tuile porte un insigne (version 0.198) : pour les vérifications. */
+    boolean hasIcon(Card tile) {
+        return drawnOwned.containsKey(tile);
+    }
+
+    /**
+     * Pose, retire ou garde l'insigne d'une tuile (version 0.198) : il est refait quand un skin a changé ou que le succès
+     * vient d'être obtenu, jamais à chaque image.
+     */
+    private void icon(Card tile, boolean owned, int rank, int total, String accent) {
+        Boolean before = drawnOwned.get(tile);
+        if (before != null && before == owned && drawnTiles == game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE)
+                && drawnLocked == game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED)) return;
+        javafx.scene.Node icon = AchievementSkinArt.icon(game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE),
+                game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED), owned, AchievementSkinArt.tier(rank, total), accent);
+        if (icon == null && before == null) return;
+        tile.setInlinePicture(icon);
+        if (icon == null) drawnOwned.remove(tile);
+        else drawnOwned.put(tile, owned);
+    }
+
     /** Recopie l'état des succès dans le compte, le bilan des bonus et les tuiles. */
     public void refresh() {
         refreshCollider();
@@ -118,6 +155,9 @@ public final class AchievementsPage extends VBox {
             Card tile = entry.getValue();
             boolean owned = game.hasAchievement(achievement.id());
             String own = AchievementText.bonus(achievement);
+            // Un succès à bonus propre est d'or quel que soit son rang ; les étapes vont du bronze à l'or dans l'ordre.
+            icon(tile, owned, achievement.hasBonus() ? tiles.size() : rank + 1, tiles.size(),
+                    achievement.hasBonus() ? GameApp.ATOMS_COLOR : GameApp.ACHIEVEMENTS_COLOR);
             tile.show(owned ? Card.State.STARTED : Card.State.LOCKED, String.valueOf(++rank), owned ? "obtenu" : "",
                     achievement.name(), achievement.summary(), achievement.description(),
                     AchievementText.shortBonus(achievement), "");
@@ -126,6 +166,8 @@ public final class AchievementsPage extends VBox {
                     + (own.isEmpty() ? "Bonus : " + AchievementText.common() + ", comme chaque succès."
                             : "Bonus propre : " + own + ".\nEn plus : " + AchievementText.common() + ", comme chaque succès."));
         }
+        drawnTiles = game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_TILE);
+        drawnLocked = game.chosenSkin(idle.core.universe.SkinVisual.ACHIEVEMENT_LOCKED);
     }
 
     /** Les succès du collisionneur : avec la matière noire, comme le collisionneur. */
@@ -142,6 +184,7 @@ public final class AchievementsPage extends VBox {
             ColliderAchievement achievement = entry.getKey();
             boolean owned = game.hasColliderAchievement(achievement);
             String progress = owned ? "" : game.colliderAchievementProgress(achievement) + "/" + achievement.threshold();
+            icon(entry.getValue(), owned, rank + 1, colliderTiles.size(), ColliderPane.COLOR);
             entry.getValue().show(owned ? Card.State.STARTED : Card.State.LOCKED, String.valueOf(++rank), owned ? "obtenu" : progress,
                     achievement.title(), achievement.condition(), "", achievement.reward(), "");
             entry.getValue().setHint(achievement.title() + (owned ? "  (obtenu)" : "  (" + progress + ")") + "\n"
@@ -166,6 +209,7 @@ public final class AchievementsPage extends VBox {
             String condition = Format.whole(achievement.threshold()) + " " + achievement.stat().label();
             if (achievement.stat() == BangAchievement.Stat.GALAXY) condition = "Former la galaxie";
             String reward = "+" + ElementText.percent(achievement.amount()) + " " + achievement.reward().label();
+            icon(entry.getValue(), owned, rank + 1, bangTiles.size(), GameApp.BIG_BANG_COLOR);
             entry.getValue().show(owned ? Card.State.STARTED : Card.State.LOCKED, String.valueOf(++rank), owned ? "obtenu" : progress,
                     achievement.title(), condition, "", reward, "");
             entry.getValue().setHint(achievement.title() + (owned ? "  (obtenu)" : "  (" + progress + ")") + "\n" + condition + " : " + reward + ".");

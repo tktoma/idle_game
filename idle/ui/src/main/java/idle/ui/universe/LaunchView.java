@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.core.universe.Skin;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -27,6 +28,8 @@ public final class LaunchView extends Canvas {
     private double age = -1;
     private Runnable onLaunch = () -> { };
     private boolean launched;
+    /** Le skin choisi (version 0.196), {@code null} pour le Classique : {@link LaunchSkinArt} le dessine. */
+    private Skin skin;
 
     public LaunchView() {
         super(800, 400);
@@ -38,6 +41,11 @@ public final class LaunchView extends Canvas {
         onLaunch = launch == null ? () -> { } : launch;
         launched = false;
         age = 0;
+    }
+
+    /** Le skin du lancement (version 0.196), {@code null} pour le Classique. */
+    public void setSkin(Skin skin) {
+        this.skin = skin;
     }
 
     /** Vrai tant que l'animation se joue. */
@@ -62,6 +70,10 @@ public final class LaunchView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         if (age < 0) return;
+        if (skin != null) {
+            LaunchSkinArt.draw(g, w, h, age, skin);
+            return;
+        }
         double cx = w / 2, cy = h / 2, size = Math.min(w, h);
         if (age < LAUNCH_AT) {
             // Le point de lumière gonfle, de plus en plus vite.

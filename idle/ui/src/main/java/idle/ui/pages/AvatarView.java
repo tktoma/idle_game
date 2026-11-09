@@ -24,10 +24,14 @@ import javafx.scene.text.TextAlignment;
  * {@link SkinVisual#AVATAR_FRAME} (version 0.189) : le Classique est le rond d'origine ; les six autres (rond cerné,
  * hexagone, écusson, cadre doré baroque, timbre-poste, polaroid) réduisent l'image pour se loger dans le même carré.
  * La vue ne se redessine que lorsqu'on lui donne autre chose à montrer, ou un autre cadre.
+ *
+ * <p>Version 0.198 : le style des avatars ({@link SkinVisual#AVATAR_STYLE}, {@link #setAvatarStyle}) redessine l'avatar du jeu
+ * en trait, en pixels, à la craie ou en vitrail ({@link AvatarSkinArt}) ; une image importée reste telle quelle. Les
+ * huit avatars de la 0.198 se dessinent dans {@link AvatarArt}.
  */
 public final class AvatarView extends Canvas {
 
-    private static final String BACKGROUND = "#0e1420";
+    static final String BACKGROUND = "#0e1420";
     /** Le bord d'une image importée, là où un avatar du jeu prend sa propre couleur. */
     private static final String IMAGE_EDGE = "#d6dde6";
     private static final String GOLD = "#c9a24a", GOLD_LIGHT = "#fff2c8", GOLD_DARK = "#6e5218";
@@ -48,6 +52,8 @@ public final class AvatarView extends Canvas {
     private Image image;
     /** Le cadre ; {@code null} pour le Classique. */
     private Skin frame;
+    /** Le style des avatars du jeu (version 0.198) ; {@code null} pour le Classique. */
+    private Skin style;
     /** La « valeur » du timbre-poste : le nombre de titres obtenus. */
     private int stampValue;
 
@@ -68,6 +74,19 @@ public final class AvatarView extends Canvas {
     /** Le cadre en place, ou {@code null} pour le Classique. */
     public Skin frame() {
         return frame;
+    }
+
+    /** Dessine les avatars du jeu dans ce style (version 0.198) ; {@code null}, ou un skin d'un autre visuel, remet le Classique. */
+    public void setAvatarStyle(Skin skin) {
+        Skin wanted = skin != null && skin.visual() == SkinVisual.AVATAR_STYLE ? skin : null;
+        if (wanted == style) return;
+        style = wanted;
+        if (image == null) draw();
+    }
+
+    /** Le style des avatars en place, ou {@code null} pour le Classique. */
+    public Skin avatarStyle() {
+        return style;
     }
 
     /** La valeur écrite en bas à droite du timbre-poste : le nombre de titres obtenus. */
@@ -341,7 +360,8 @@ public final class AvatarView extends Canvas {
         } else {
             g.save();
             g.translate(x, y);
-            paint(g, avatar, side);
+            if (style == null) paint(g, avatar, side);
+            else AvatarSkinArt.paint(g, avatar, side, style);
             g.restore();
         }
     }
@@ -558,12 +578,13 @@ public final class AvatarView extends Canvas {
                 g.setFill(Color.web("#fff1c9"));
                 for (double[] leaf : leaves) dot(g, c + s * leaf[0] + s * 0.03, c + s * leaf[1] - s * 0.02, s * 0.018);
             }
+            default -> AvatarArt.paint(g, avatar, s, color);
         }
         g.setGlobalAlpha(1);
     }
 
     /** Un rond plein de rayon {@code r} centré en ({@code x}, {@code y}). */
-    private static void dot(GraphicsContext g, double x, double y, double r) {
+    static void dot(GraphicsContext g, double x, double y, double r) {
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
     }
 

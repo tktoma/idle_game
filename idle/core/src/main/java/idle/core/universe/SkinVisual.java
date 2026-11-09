@@ -58,7 +58,49 @@ public enum SkinVisual {
     GALAXY_CLUSTER("L'amas de galaxies"),
     COSMIC_WEB("La toile de l'univers"),
     SYSTEM("Les systèmes solaires"),
-    PROBE("Les sondes");
+    PROBE("Les sondes"),
+    /** Version 0.195 : le reste du collisionneur, les hadrons et le vide. */
+    DETECTOR("Le détecteur"),
+    LIGHTNING("Les éclairs du croisement"),
+    SPARKS("Les étincelles"),
+    QUARK_FLIGHT("Les quarks qui s'envolent"),
+    QUARKS("Les quarks de la liaison"),
+    GLUONS("Les gluons"),
+    HADRON_BACKGROUND("Le fond des hadrons"),
+    VOID_FOAM("L'écume du vide"),
+    VOID_PAIRS("Les paires du vide"),
+    VOID_HOLE("Le trou noir du vide"),
+    /** Version 0.196 : l'univers : ses bulles, leur naissance et leurs liens, le lancement, la graine et son établi. */
+    UNIVERSE_BUBBLE("Les bulles des univers"),
+    UNIVERSE_BIRTH("La naissance d'un univers"),
+    UNIVERSE_LINKS("Les liens entre les univers"),
+    LAUNCH("Le lancement de l'univers suivant"),
+    SEED("La graine"),
+    WATERING_CAN("L'arrosoir"),
+    SHELF("L'étagère"),
+    HOSE("Le tuyau d'arrosage"),
+    CHRONO("Le chrono"),
+    GROWTH_RING("Le rond de croissance"),
+    WEATHER("La météo de la graine"),
+    SEASONS("Les saisons"),
+    /** Version 0.197 : l'arbre au-delà de ses essences, ses bulles, la carte des dimensions, le défi final, les cadres et la palette des mini-jeux. */
+    TREE_SEASON("La saison de l'arbre"),
+    TREE_FANTASY("L'arbre de fantaisie"),
+    TREE_GROUND("Le sol de l'arbre"),
+    TREE_BUBBLES("Les bulles de l'arbre"),
+    TREE_BUBBLE_LINKS("Les liens des bulles de l'arbre"),
+    DIMENSIONS_MAP("La carte des dimensions"),
+    FINALE_FILL("Le remplissage du défi final"),
+    DIMENSION_FRAME("Le cadre des mini-jeux"),
+    DIMENSION_PALETTE("La palette des dimensions"),
+    /** Version 0.198 : le profil, les succès et les statistiques : le style des avatars, les albums, les tuiles des succès, les courbes, la frise. */
+    AVATAR_STYLE("Le style des avatars"),
+    ALBUM("Les albums"),
+    ACHIEVEMENT_TILE("Les tuiles des succès"),
+    ACHIEVEMENT_LOCKED("Les succès non obtenus"),
+    CHART("Les courbes des statistiques"),
+    CHART_PALETTE("La palette des courbes"),
+    TIMELINE("La frise des univers");
 
     /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
     public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};

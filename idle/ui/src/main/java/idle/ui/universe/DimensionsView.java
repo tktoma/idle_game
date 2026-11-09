@@ -20,6 +20,10 @@ import javafx.scene.text.TextAlignment;
  * les paliers atteints (« 7 / 10 paliers »). Les dix paliers atteints, la fin se joue ({@link #playFinale()}) : les
  * traits deviennent verts en vague, avec une aura dorée, puis le point du milieu grandit jusqu'à couvrir la vue ; au
  * bout, l'écran de fin ({@link #setOnFinale}). La partie finie, les traits restent verts et dorés.
+ *
+ * <p>Version 0.197 : les skins de la carte ({@link idle.core.universe.SkinVisual#DIMENSIONS_MAP}) et du remplissage du
+ * défi final ({@link idle.core.universe.SkinVisual#FINALE_FILL}), dessinés par {@link DimensionsMapSkinArt} ; les points
+ * de la carte skinnée prennent la couleur de leur dimension ({@link DimensionPalette}). Sans skin, rien ne change.
  */
 public final class DimensionsView extends Canvas {
 
@@ -49,6 +53,8 @@ public final class DimensionsView extends Canvas {
     /** Le temps de la fin qui se joue, en secondes ; négatif quand elle ne se joue pas. */
     private double finale = -1;
     private Runnable onFinale = () -> { };
+    /** Les skins de la carte et du remplissage (version 0.197), {@code null} pour le Classique. */
+    private idle.core.universe.Skin mapSkin, fillSkin;
 
     public DimensionsView() {
         super(800, 440);
@@ -57,6 +63,12 @@ public final class DimensionsView extends Canvas {
             int number = dimensionAt(event.getX(), event.getY());
             if (number > 0 && number <= unlocked) onOpen.accept(number);
         });
+    }
+
+    /** Les skins de la carte et du remplissage du défi final (version 0.197) ; {@code null} ou un autre visuel : le Classique. */
+    public void setSkins(idle.core.universe.Skin map, idle.core.universe.Skin fill) {
+        mapSkin = DimensionsMapSkinArt.maps(map) ? map : null;
+        fillSkin = DimensionsMapSkinArt.fills(fill) ? fill : null;
     }
 
     /** Ce que fait un clic sur une dimension ouverte : son numéro, de 1 à 10. */
@@ -262,6 +274,7 @@ public final class DimensionsView extends Canvas {
         }
         int count = Dimension.values().length;
         double dot = dot();
+        if (mapSkin != null) DimensionsMapSkinArt.ring(g, cx(), cy(), radius(), dot, count, mapSkin);
         // Le cercle, d'un point au suivant, et les rayons du milieu vers chacun ; verts et dorés quand la fin les a passés.
         int green = greenLinks();
         for (int number = 1; number <= count; number++) {
@@ -291,10 +304,14 @@ public final class DimensionsView extends Canvas {
             }
         }
         // Le point du milieu, qui les relie tous.
-        UniverseView.glow(g, cx(), cy(), dot * 3.2, CENTER, 0.35 + 0.1 * Math.sin(time * 2));
-        g.setGlobalAlpha(1);
-        g.setFill(CENTER);
-        g.fillOval(cx() - dot * 0.9, cy() - dot * 0.9, dot * 1.8, dot * 1.8);
+        if (mapSkin != null) {
+            DimensionsMapSkinArt.center(g, cx(), cy(), dot, time, mapSkin);
+        } else {
+            UniverseView.glow(g, cx(), cy(), dot * 3.2, CENTER, 0.35 + 0.1 * Math.sin(time * 2));
+            g.setGlobalAlpha(1);
+            g.setFill(CENTER);
+            g.fillOval(cx() - dot * 0.9, cy() - dot * 0.9, dot * 1.8, dot * 1.8);
+        }
         if (finalOpen) {
             g.setTextAlign(TextAlignment.CENTER);
             g.setFill(Color.web("#e8f4ff"));
@@ -306,11 +323,19 @@ public final class DimensionsView extends Canvas {
         for (int number = 1; number <= count; number++) {
             double x = x(number), y = y(number);
             boolean open = number <= unlocked;
-            if (open) UniverseView.glow(g, x, y, dot * 2.4, ON, 0.4 + 0.15 * Math.sin(time * 2 + number));
-            g.setGlobalAlpha(1);
-            g.setFill(open ? ON : OFF);
-            g.fillOval(x - dot, y - dot, 2 * dot, 2 * dot);
-            if (open && finalOpen) fill(g, x, y, dot, filled(number));
+            Color numberColor = open ? Color.web("#1a1430") : Color.web("#8a91b0");
+            if (mapSkin != null) {
+                numberColor = DimensionsMapSkinArt.point(g, x, y, dot, number, open, angle(number), time, DimensionPalette.color(number), mapSkin);
+            } else {
+                if (open) UniverseView.glow(g, x, y, dot * 2.4, ON, 0.4 + 0.15 * Math.sin(time * 2 + number));
+                g.setGlobalAlpha(1);
+                g.setFill(open ? ON : OFF);
+                g.fillOval(x - dot, y - dot, 2 * dot, 2 * dot);
+            }
+            if (open && finalOpen) {
+                if (fillSkin != null) DimensionsMapSkinArt.fill(g, x, y, dot, filled(number), time, number, fillSkin);
+                else fill(g, x, y, dot, filled(number));
+            }
             if (open && marked[number]) {
                 // Le seuil atteint : un rond vert dans le point, autour du numéro ; avec le défi final, un anneau autour
                 // du point, que le remplissage laisse voir.
@@ -321,7 +346,7 @@ public final class DimensionsView extends Canvas {
                 g.strokeOval(x - dot * ring, y - dot * ring, dot * 2 * ring, dot * 2 * ring);
                 g.setGlobalAlpha(1);
             }
-            g.setFill(open ? Color.web("#1a1430") : Color.web("#8a91b0"));
+            g.setFill(numberColor);
             g.setFont(Font.font(dot * 1.05));
             g.fillText(open ? String.valueOf(number) : "?", x, y + dot * 0.38);
             // Le nom, à l'extérieur du cercle.

@@ -437,6 +437,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
         return Math.max(0, bloomActiveLeft);
     }
 
+    @Override
     public long bloomsCaught() {
         return bloomsCaught;
     }

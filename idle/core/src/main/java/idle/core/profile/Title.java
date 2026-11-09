@@ -55,7 +55,8 @@ public enum Title {
     SEED_GARDENER("Jardinier cosmique", "Faire monter la graine d'univers au palier 5", game -> game.seedStage() >= 5),
     WORLD_TREE_KEEPER("Gardien de l'arbre-monde", "Faire monter la graine au dernier palier",
             game -> game.seedStage() >= Game.SEED_STAGES),
-    SKIN_COLLECTOR("Collectionneur d'apparences", "Débloquer dix skins", game -> game.skinsUnlocked() >= 10),
+    // Version 0.197 : les skins gagnés seulement, sans les libres (dix palettes libres existent désormais dès le début).
+    SKIN_COLLECTOR("Collectionneur d'apparences", "Débloquer dix skins", game -> game.skinsCounted() >= 10),
     PATIENT_SPIRIT("Esprit patient", "Jouer vingt-quatre heures", game -> game.state().timePlayed() >= 24 * 3600),
     COSMIC_VETERAN("Vétéran du cosmos", "Jouer cent heures", game -> game.state().timePlayed() >= 100 * 3600),
     ETERNAL("Éternel", "Jouer mille heures", game -> game.state().timePlayed() >= 1_000 * 3600);

@@ -1,5 +1,7 @@
 package idle.ui.pages;
 
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import java.util.List;
 import java.util.function.DoubleFunction;
 import javafx.scene.canvas.Canvas;
@@ -31,6 +33,10 @@ import javafx.scene.text.TextAlignment;
  * <p>Les couleurs des séries ont été vérifiées sur le fond du graphique : contraste suffisant, et
  * deux séries d'un même graphique restent distinctes pour les daltoniens. Le texte, lui, n'est
  * jamais dans la couleur d'une série.
+ *
+ * <p>Version 0.198 : les graphiques ont deux skins, communs à tous ({@link #setSkins}) : celui des courbes (fond,
+ * quadrillage, trait : papier millimétré, oscilloscope, crayon, aquarelle) et la palette des séries (pastel, néon,
+ * niveaux de gris), dessinés par {@link ChartSkinStyles} ; un dessin déjà à l'écran est refait quand ils changent.
  */
 public final class ChartPane extends Pane {
 
@@ -44,10 +50,25 @@ public final class ChartPane extends Pane {
     static final String MAGENTA = "#d55181";
     static final String AQUA = "#199e70";
 
-    private static final String SURFACE = "#121821";
-    private static final String GRID = "#232d3b";
-    private static final String TEXT = "#e8f4ff";
-    private static final String TEXT_MUTED = "#8fa3b8";
+    /** Le skin des courbes et la palette des séries (version 0.198), communs à tous les graphiques ; {@code null} : le Classique. */
+    private static volatile Skin skin = null;
+    private static volatile Skin palette = null;
+
+    /** Change les skins de tous les graphiques ; chacun les prend à son prochain dessin. */
+    static void setSkins(Skin chart, Skin colors) {
+        skin = chart != null && chart.visual() == SkinVisual.CHART ? chart : null;
+        palette = colors != null && colors.visual() == SkinVisual.CHART_PALETTE ? colors : null;
+    }
+
+    /** Le skin des courbes, ou {@code null} : pour les vérifications. */
+    static Skin skin() {
+        return skin;
+    }
+
+    /** La palette des séries, ou {@code null} : pour les vérifications. */
+    static Skin palette() {
+        return palette;
+    }
     private static final double HEIGHT = 210;
     private static final double MAX_WIDTH = 640;
     private static final double LEFT = 62, RIGHT = 78, BOTTOM = 26;
@@ -159,6 +180,8 @@ public final class ChartPane extends Pane {
     private double drawnHeight = -1;
     private String drawnLabels = null;
     private int draws = 0;
+    /** Les skins du dernier dessin (version 0.198). */
+    private Skin drawnSkin = null, drawnPalette = null;
 
     /** Nombre de fois que le graphique a vraiment été redessiné : pour les vérifications. */
     int draws() {
@@ -168,7 +191,7 @@ public final class ChartPane extends Pane {
     /** Vrai si ce dessin serait exactement celui déjà à l'écran. */
     private boolean unchanged(double width, String labels) {
         if (width != drawnWidth || height != drawnHeight || !labels.equals(drawnLabels) || drawnSeries == null
-                || drawnSeries.size() != series.size()) return false;
+                || drawnSeries.size() != series.size() || skin != drawnSkin || palette != drawnPalette) return false;
         for (int i = 0; i < series.size(); i++) {
             Series now = series.get(i), before = drawnSeries.get(i);
             if (!now.name().equals(before.name()) || !now.color().equals(before.color())
@@ -203,18 +226,22 @@ public final class ChartPane extends Pane {
         drawnWidth = width;
         drawnHeight = height;
         drawnLabels = labels;
+        Skin skin = ChartPane.skin, palette = ChartPane.palette;
+        drawnSkin = skin;
+        drawnPalette = palette;
+        ChartSkinStyles.Look look = ChartSkinStyles.look(skin);
         draws++;
         GraphicsContext g = canvas.getGraphicsContext2D();
         g.clearRect(0, 0, width, height);
-        g.setFill(Color.web(SURFACE));
+        g.setFill(look.surface());
         g.fillRect(0, 0, width, height);
 
         g.setTextAlign(TextAlignment.LEFT);
-        g.setFill(Color.web(TEXT));
+        g.setFill(look.text());
         g.setFont(Font.font("System", FontWeight.BOLD, 13));
         g.fillText(title, 12, 19);
         g.setFont(Font.font(11));
-        g.setFill(Color.web(TEXT_MUTED));
+        g.setFill(look.muted());
         if (!subtitle.isEmpty()) g.fillText(subtitle, 12, 34);
 
         double top = series.size() > 1 ? TOP_WITH_LEGEND : TOP_PLAIN;
@@ -268,11 +295,13 @@ public final class ChartPane extends Pane {
         }
 
         // Le quadrillage, discret, et les graduations.
+        ChartSkinStyles.underGrid(g, skin, LEFT, top, plotWidth, plotHeight);
         g.setLineWidth(1);
-        g.setStroke(Color.web(GRID));
-        g.setFill(Color.web(TEXT_MUTED));
+        g.setStroke(look.grid());
+        g.setFill(look.muted());
         g.setFont(Font.font(11));
         g.setTextAlign(TextAlignment.RIGHT);
+        ChartSkinStyles.dashedGrid(g, skin);
         for (double value : marks) {
             double y = Math.floor(top + plotHeight - (value - yMin) / (yMax - yMin) * plotHeight) + 0.5;
             g.strokeLine(LEFT, y, LEFT + plotWidth, y);
@@ -285,16 +314,19 @@ public final class ChartPane extends Pane {
             g.strokeLine(x, top + plotHeight, x, top + plotHeight + 4);
             g.fillText(xLabel.apply(value), x, height - 8);
         }
+        ChartSkinStyles.plainGrid(g);
+        ChartSkinStyles.overGrid(g, skin, LEFT, top, plotWidth, plotHeight);
 
         // La légende, seulement quand il y a plusieurs séries : sinon le titre suffit.
         if (series.size() > 1) {
             g.setTextAlign(TextAlignment.LEFT);
             double x = LEFT;
+            int index = 0;
             for (Series each : series) {
-                g.setStroke(Color.web(each.color()));
+                g.setStroke(ChartSkinStyles.strokeColor(skin, ChartSkinStyles.seriesColor(palette, each.color()), index++));
                 g.setLineWidth(2);
                 g.strokeLine(x, top - 13.5, x + 14, top - 13.5);
-                g.setFill(Color.web(TEXT_MUTED));
+                g.setFill(look.muted());
                 g.fillText(each.name(), x + 19, top - 10);
                 x += 30 + each.name().length() * 6.2;
             }
@@ -305,38 +337,50 @@ public final class ChartPane extends Pane {
         g.setLineJoin(StrokeLineJoin.ROUND);
         List<double[]> ends = new java.util.ArrayList<>();
         List<String> endTexts = new java.util.ArrayList<>();
+        int index = 0;
         for (Series each : series) {
-            g.setStroke(Color.web(each.color()));
-            g.setLineWidth(2);
-            g.beginPath();
-            boolean drawing = false;
+            String color = ChartSkinStyles.seriesColor(palette, each.color());
+            Color stroke = ChartSkinStyles.strokeColor(skin, color, index++);
+            // Les points à l'écran ; un point manquant interrompt le trait.
+            int count = each.x().length;
+            double[] xs = new double[count], ys = new double[count];
+            boolean[] ok = new boolean[count];
             int last = -1;
-            for (int i = 0; i < each.x().length; i++) {
+            for (int i = 0; i < count; i++) {
                 double value = each.y()[i];
-                if (!isFinite(value)) {
-                    drawing = false;
-                    continue;
-                }
-                double x = LEFT + (each.x()[i] - x0) / (x1 - x0) * plotWidth;
-                double y = top + plotHeight - (clamp(value, yMin, yMax) - yMin) / (yMax - yMin) * plotHeight;
-                if (drawing) g.lineTo(x, y);
-                else g.moveTo(x, y);
-                drawing = true;
+                ok[i] = isFinite(value);
+                if (!ok[i]) continue;
+                xs[i] = LEFT + (each.x()[i] - x0) / (x1 - x0) * plotWidth;
+                ys[i] = top + plotHeight - (clamp(value, yMin, yMax) - yMin) / (yMax - yMin) * plotHeight;
                 last = i;
             }
-            g.stroke();
+            if (skin == null) {
+                g.setStroke(stroke);
+                g.setLineWidth(2);
+                g.beginPath();
+                boolean drawing = false;
+                for (int i = 0; i < count; i++) {
+                    if (!ok[i]) {
+                        drawing = false;
+                        continue;
+                    }
+                    if (drawing) g.lineTo(xs[i], ys[i]);
+                    else g.moveTo(xs[i], ys[i]);
+                    drawing = true;
+                }
+                g.stroke();
+            } else {
+                ChartSkinStyles.series(g, skin, stroke, xs, ys, ok, top + plotHeight);
+            }
             if (last < 0) continue;
             if (markers && each.x().length <= 40) {
                 for (int i = 0; i < last; i++) {
-                    if (!isFinite(each.y()[i])) continue;
-                    dot(g, LEFT + (each.x()[i] - x0) / (x1 - x0) * plotWidth,
-                            top + plotHeight - (clamp(each.y()[i], yMin, yMax) - yMin) / (yMax - yMin) * plotHeight, each.color());
+                    if (!ok[i]) continue;
+                    dot(g, xs[i], ys[i], stroke, look);
                 }
             }
-            double x = LEFT + (each.x()[last] - x0) / (x1 - x0) * plotWidth;
-            double y = top + plotHeight - (clamp(each.y()[last], yMin, yMax) - yMin) / (yMax - yMin) * plotHeight;
-            dot(g, x, y, each.color());
-            ends.add(new double[] {x + 9, y + 4});
+            dot(g, xs[last], ys[last], stroke, look);
+            ends.add(new double[] {xs[last] + 9, ys[last] + 4});
             endTexts.add(yLabel.apply(each.y()[last]));
         }
         g.setLineCap(StrokeLineCap.BUTT);
@@ -355,16 +399,16 @@ public final class ChartPane extends Pane {
             if (here[1] > floor) here[1] = floor;
             floor = here[1] - 13;
         }
-        g.setFill(Color.web(TEXT));
+        g.setFill(look.text());
         g.setTextAlign(TextAlignment.LEFT);
         for (int i = 0; i < ends.size(); i++) g.fillText(endTexts.get(i), ends.get(i)[0], ends.get(i)[1]);
 
-        if (isFinite(hover)) drawHover(g, x0, x1, yMin, yMax, top, plotWidth, plotHeight);
+        if (isFinite(hover)) drawHover(g, x0, x1, yMin, yMax, top, plotWidth, plotHeight, skin, palette, look);
     }
 
     /** Le repère du survol : un trait vertical sur le relevé le plus proche de la souris, et ses valeurs. */
     private void drawHover(GraphicsContext g, double x0, double x1, double yMin, double yMax,
-                           double top, double plotWidth, double plotHeight) {
+                           double top, double plotWidth, double plotHeight, Skin skin, Skin palette, ChartSkinStyles.Look look) {
         if (hover < LEFT - 6 || hover > LEFT + plotWidth + 6) return;
         double wanted = x0 + (hover - LEFT) / plotWidth * (x1 - x0);
         // Le relevé le plus proche, sur la première série ; les autres séries partagent ses abscisses.
@@ -376,14 +420,16 @@ public final class ChartPane extends Pane {
         if (nearest < 0) return;
         double x = Math.floor(LEFT + (first.x()[nearest] - x0) / (x1 - x0) * plotWidth) + 0.5;
         g.setLineWidth(1);
-        g.setStroke(Color.web(TEXT_MUTED));
+        g.setStroke(look.muted());
         g.strokeLine(x, top, x, top + plotHeight);
 
         int lines = 1;
+        int index = 0;
         for (Series each : series) {
+            Color stroke = ChartSkinStyles.strokeColor(skin, ChartSkinStyles.seriesColor(palette, each.color()), index++);
             if (nearest < each.y().length && isFinite(each.y()[nearest])) {
                 double y = top + plotHeight - (clamp(each.y()[nearest], yMin, yMax) - yMin) / (yMax - yMin) * plotHeight;
-                dot(g, x, y, each.color());
+                dot(g, x, y, stroke, look);
                 lines++;
             }
         }
@@ -391,33 +437,35 @@ public final class ChartPane extends Pane {
         double boxWidth = Math.min(series.size() > 1 ? 186 : 130, plotWidth - 4), boxHeight = 8 + 15 * lines;
         double boxX = x + 10 + boxWidth <= LEFT + plotWidth ? x + 10 : x - 10 - boxWidth;
         boxX = clamp(boxX, LEFT + 2, LEFT + plotWidth - boxWidth - 2);
-        g.setFill(Color.web("#0b0e14"));
+        g.setFill(look.box());
         g.fillRect(boxX, top + 2, boxWidth, boxHeight);
-        g.setStroke(Color.web(GRID));
+        g.setStroke(look.grid());
         g.strokeLine(boxX, top + 2.5, boxX + boxWidth, top + 2.5);
         g.strokeLine(boxX, top + 1.5 + boxHeight, boxX + boxWidth, top + 1.5 + boxHeight);
         g.setTextAlign(TextAlignment.LEFT);
         g.setFont(Font.font(11));
-        g.setFill(Color.web(TEXT_MUTED));
+        g.setFill(look.muted());
         double textY = top + 16;
         g.fillText(xLabel.apply(first.x()[nearest]), boxX + 8, textY);
+        index = 0;
         for (Series each : series) {
+            Color stroke = ChartSkinStyles.strokeColor(skin, ChartSkinStyles.seriesColor(palette, each.color()), index++);
             if (nearest >= each.y().length || !isFinite(each.y()[nearest])) continue;
             textY += 15;
             // Une touche de couleur à côté du texte : c'est elle qui dit de quelle série il s'agit.
-            g.setStroke(Color.web(each.color()));
+            g.setStroke(stroke);
             g.setLineWidth(2);
             g.strokeLine(boxX + 8, textY - 4, boxX + 18, textY - 4);
-            g.setFill(Color.web(TEXT));
+            g.setFill(look.text());
             g.fillText(yLabel.apply(each.y()[nearest]) + (series.size() > 1 ? "  " + each.name() : ""), boxX + 24, textY);
         }
     }
 
     /** Un point de 8 px dans la couleur de la série, cerclé de la couleur du fond pour rester lisible sur le trait. */
-    private static void dot(GraphicsContext g, double x, double y, String color) {
-        g.setFill(Color.web(SURFACE));
+    private static void dot(GraphicsContext g, double x, double y, Color color, ChartSkinStyles.Look look) {
+        g.setFill(look.surface());
         g.fillOval(x - 6, y - 6, 12, 12);
-        g.setFill(Color.web(color));
+        g.setFill(color);
         g.fillOval(x - 4, y - 4, 8, 8);
     }
 

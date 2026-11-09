@@ -372,6 +372,8 @@ public final class VoidPage extends VBox {
 
     /** Une image de l'écume : les paires de la partie, figées si les animations de l'univers sont coupées. */
     public void frame(double elapsed, boolean motion) {
+        view.skins(game.chosenSkin(idle.core.universe.SkinVisual.VOID_FOAM), game.chosenSkin(idle.core.universe.SkinVisual.VOID_PAIRS),
+                game.chosenSkin(idle.core.universe.SkinVisual.VOID_HOLE));
         view.follow(game.voidPairsBorn(), game.voidPairs(), game.voidPairLife(), game.isVoidHoleOpen() ? game.voidMass() : -1);
         view.frame(elapsed, motion);
     }

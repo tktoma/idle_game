@@ -15,6 +15,8 @@ import javafx.scene.paint.Stop;
  * point, s'écartent un instant, puis se rejoignent et s'annulent dans un petit éclair. Depuis la 0.129, ce sont les
  * paires de la partie : elles naissent au rythme du jeu ({@link #follow}) et vivent ce que vit une paire ; le trou
  * noir, une fois ouvert, se dessine au centre, d'autant plus gros que sa masse l'est. Derrière, le champ ondule.
+ *
+ * <p>Version 0.195 : l'écume, les paires et le trou noir ont leurs skins ({@link #skins}), dessinés par {@link VoidSkinArt}.
  */
 public final class VoidView extends Canvas {
 
@@ -42,6 +44,15 @@ public final class VoidView extends Canvas {
     private double life = 6, mass = -1;
     /** Combien de paires de la partie chaque paire dessinée représente. */
     private double scale = 1;
+    /** Les skins choisis (version 0.195) ; {@code null} pour le Classique. */
+    private idle.core.universe.Skin foamSkin, pairSkin, holeSkin;
+
+    /** Les skins de l'écume, des paires et du trou noir (version 0.195) : la page les donne avant chaque image. */
+    public void skins(idle.core.universe.Skin foam, idle.core.universe.Skin pairs, idle.core.universe.Skin hole) {
+        foamSkin = foam;
+        pairSkin = pairs;
+        holeSkin = hole;
+    }
 
     VoidView() {
         super(780, 360);
@@ -112,6 +123,44 @@ public final class VoidView extends Canvas {
         double w = getWidth(), h = getHeight();
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
+        if (VoidSkinArt.drawsFoam(foamSkin)) {
+            VoidSkinArt.foam(g, foamSkin, w, h, time);
+        } else {
+            field(g, w, h);
+        }
+        if (mass >= 0) {
+            if (VoidSkinArt.drawsHole(holeSkin)) VoidSkinArt.hole(g, holeSkin, w / 2, h / 2, 10 + 3 * mass, time);
+            else hole(g, w / 2, h / 2);
+        }
+        // Les paires : elles s'écartent jusqu'à mi-vie, puis se rejoignent ; à la fin, un éclair.
+        Color line = VoidSkinArt.drawsFoam(foamSkin) ? VoidSkinArt.pairLine(foamSkin) : null;
+        for (Pair pair : pairs) {
+            double t = pair.age / pair.life;
+            double open = Math.sin(Math.PI * Math.min(1, t / 0.92));
+            double cx = pair.x * w, cy = pair.y * h;
+            double dx = Math.cos(pair.angle) * pair.reach * open, dy = Math.sin(pair.angle) * pair.reach * open;
+            double alpha = Math.min(1, t * 6) * 0.9;
+            if (VoidSkinArt.drawsPairs(pairSkin)) {
+                VoidSkinArt.pair(g, pairSkin, cx + dx, cy + dy, cx - dx, cy - dy, alpha, time);
+            } else {
+                g.setStroke(line != null ? Color.color(line.getRed(), line.getGreen(), line.getBlue(), line.getOpacity() * alpha)
+                        : Color.color(GLOW.getRed(), GLOW.getGreen(), GLOW.getBlue(), 0.18 * alpha));
+                g.setLineWidth(1);
+                g.strokeLine(cx - dx, cy - dy, cx + dx, cy + dy);
+                dot(g, cx + dx, cy + dy, 2.2, MATTER, alpha);
+                dot(g, cx - dx, cy - dy, 2.2, ANTIMATTER, alpha);
+            }
+            if (t > 0.9) {
+                double flash = (t - 0.9) / 0.1, r = 3 + 9 * flash;
+                g.setFill(new RadialGradient(0, 0, cx, cy, r, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.color(1, 1, 1, 0.8 * (1 - flash))), new Stop(1, Color.TRANSPARENT)));
+                g.fillOval(cx - r, cy - r, r * 2, r * 2);
+            }
+        }
+    }
+
+    /** Le fond classique : la nuit, le champ et sa trame. */
+    private void field(GraphicsContext g, double w, double h) {
         g.setFill(BACK);
         g.fillRect(0, 0, w, h);
         // Le champ : quelques halos très pâles qui respirent.
@@ -130,26 +179,6 @@ public final class VoidView extends Canvas {
             for (double y = 12; y < h; y += 24) {
                 double shift = 2 * Math.sin(time * 0.8 + x * 0.03 + y * 0.05);
                 g.fillOval(x + shift - 0.8, y - shift - 0.8, 1.6, 1.6);
-            }
-        }
-        if (mass >= 0) hole(g, w / 2, h / 2);
-        // Les paires : elles s'écartent jusqu'à mi-vie, puis se rejoignent ; à la fin, un éclair.
-        for (Pair pair : pairs) {
-            double t = pair.age / pair.life;
-            double open = Math.sin(Math.PI * Math.min(1, t / 0.92));
-            double cx = pair.x * w, cy = pair.y * h;
-            double dx = Math.cos(pair.angle) * pair.reach * open, dy = Math.sin(pair.angle) * pair.reach * open;
-            double alpha = Math.min(1, t * 6) * 0.9;
-            g.setStroke(Color.color(GLOW.getRed(), GLOW.getGreen(), GLOW.getBlue(), 0.18 * alpha));
-            g.setLineWidth(1);
-            g.strokeLine(cx - dx, cy - dy, cx + dx, cy + dy);
-            dot(g, cx + dx, cy + dy, 2.2, MATTER, alpha);
-            dot(g, cx - dx, cy - dy, 2.2, ANTIMATTER, alpha);
-            if (t > 0.9) {
-                double flash = (t - 0.9) / 0.1, r = 3 + 9 * flash;
-                g.setFill(new RadialGradient(0, 0, cx, cy, r, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, Color.color(1, 1, 1, 0.8 * (1 - flash))), new Stop(1, Color.TRANSPARENT)));
-                g.fillOval(cx - r, cy - r, r * 2, r * 2);
             }
         }
     }

@@ -29,6 +29,9 @@ import javafx.scene.text.TextAlignment;
  * <p>Version 0.191 : les quatre anneaux de plus (bois et cuivre, circuit imprimé, stade, ruban de Möbius)
  * sont dessinés par {@link ColliderSkinArt}, les quatre faisceaux de plus (comète, encre, laser,
  * lucioles) par {@link BeamSkinArt}.
+ *
+ * <p>Version 0.195 : le détecteur, les éclairs du croisement, les étincelles et les quarks qui s'envolent ont leurs
+ * skins, dessinés par {@link DetectorSkinArt}.
  */
 public final class EnergyView extends Canvas {
 
@@ -182,6 +185,14 @@ public final class EnergyView extends Canvas {
         return beamArt.remains();
     }
 
+    /** Le détecteur, les éclairs, les étincelles et les quarks de la version 0.195. */
+    private final DetectorSkinArt detectorArt = new DetectorSkinArt(this);
+
+    /** Le flash de l'appareil photo encore visible (version 0.195) : pour les vérifications. */
+    boolean flashing() {
+        return detectorArt.flashing();
+    }
+
     public void frame(double elapsed) {
         lastElapsed = Math.min(elapsed, 0.1);
         if (motion) time += elapsed;
@@ -195,13 +206,20 @@ public final class EnergyView extends Canvas {
         // Un effet coupé l'est tout de suite : les ondes et les étincelles déjà lancées disparaissent (version 0.067).
         if (!motion) waves.clear();
         if (!sparksOn) sparks.removeIf(spark -> spark.quark == null && spark.text == null);
+        // Version 0.195 : les étincelles et les quarks tombent ou montent selon leur skin.
+        idle.core.universe.Skin sparkSkin = game.chosenSkin(idle.core.universe.SkinVisual.SPARKS);
+        idle.core.universe.Skin flight = game.chosenSkin(idle.core.universe.SkinVisual.QUARK_FLIGHT);
+        double sparkGravity = DetectorSkinArt.drawsSparks(sparkSkin) ? DetectorSkinArt.sparkGravity(sparkSkin) : 60;
+        double quarkGravity = DetectorSkinArt.drawsQuarks(flight) ? DetectorSkinArt.quarkGravity(flight) : 18;
         for (Spark spark : sparks) {
             spark.age += elapsed;
             // Sans animation, un quark ou un gain reste au détecteur le temps de se lire, sans s'envoler.
             if (!motion) continue;
             spark.x += spark.vx * elapsed;
             spark.y += spark.vy * elapsed;
-            spark.vy += (spark.quark != null ? 18 : spark.text == null ? 60 : -10) * elapsed;
+            spark.vy += (spark.quark != null ? quarkGravity : spark.text == null ? sparkGravity : -10) * elapsed;
+            // Les papillons voletent de droite à gauche.
+            if (spark.quark != null && flight == idle.core.universe.Skin.QUARK_FLIGHT_BUTTERFLIES) spark.x += Math.sin(spark.age * 6) * 40 * elapsed;
         }
         sparks.removeIf(spark -> spark.age >= spark.life);
         draw();
@@ -245,7 +263,9 @@ public final class EnergyView extends Canvas {
     private void burst(boolean caught, double gain) {
         double x = px(Math.PI), y = py(Math.PI);
         int count = !sparksOn ? 0 : caught ? 34 : 10;
-        Color[] palette = caught ? new Color[] {GOLD, Color.WHITE, BEAM_A, BEAM_B} : new Color[] {BEAM_A, BEAM_B};
+        idle.core.universe.Skin sparkSkin = game.chosenSkin(idle.core.universe.SkinVisual.SPARKS);
+        Color[] palette = DetectorSkinArt.drawsSparks(sparkSkin) ? DetectorSkinArt.sparkPalette(sparkSkin, caught)
+                : caught ? new Color[] {GOLD, Color.WHITE, BEAM_A, BEAM_B} : new Color[] {BEAM_A, BEAM_B};
         for (int k = 0; k < count; k++) {
             Spark spark = new Spark();
             double seed = Math.sin((k + 1) * 12.9898 + time * 78.233) * 43758.5453;
@@ -342,8 +362,13 @@ public final class EnergyView extends Canvas {
         // L'injecteur et le détecteur.
         g.setFill(Color.web("#2c4866"));
         g.fillRoundRect(px(0) - 9, py(0) - 6, 18, 12, 3, 3);
-        g.setFill(catchable ? GOLD : Color.web("#3b5578"));
-        g.fillRoundRect(px(Math.PI) - 13, py(Math.PI) - 7, 26, 14, 4, 4);
+        idle.core.universe.Skin detector = game.chosenSkin(idle.core.universe.SkinVisual.DETECTOR);
+        if (DetectorSkinArt.drawsDetector(detector)) {
+            detectorArt.detector(g, detector, catchable, crossing, lastElapsed);
+        } else {
+            g.setFill(catchable ? GOLD : Color.web("#3b5578"));
+            g.fillRoundRect(px(Math.PI) - 13, py(Math.PI) - 7, 26, 14, 4, 4);
+        }
         // Les deux faisceaux : partis ensemble de l'injecteur, ils se croisent dans le détecteur.
         drawBeams(g, angle, beam, crossing, mobius, false);
         if (gold) drawGoldDust(g, lastElapsed);
@@ -351,7 +376,11 @@ public final class EnergyView extends Canvas {
         // Quand les boules se croisent dans le détecteur, de l'électricité saute entre elles.
         arcs = 0;
         lightningColor = gold ? Color.web("#ffcf4a") : BeamSkinArt.draws(beam) ? BeamSkinArt.lightningColor(beam) : LIGHT;
-        if (crossing && sparksOn) lightning(g, angle);
+        idle.core.universe.Skin bolts = game.chosenSkin(idle.core.universe.SkinVisual.LIGHTNING);
+        if (crossing && sparksOn) {
+            if (DetectorSkinArt.drawsLightning(bolts)) arcs = detectorArt.lightning(g, bolts, angle, flameHeat());
+            else lightning(g, angle);
+        }
         if (catchable) glow(g, px(Math.PI), py(Math.PI), 46, GOLD, 0.5);
         // Les ondes des collisions.
         for (Wave wave : waves) {
@@ -364,10 +393,16 @@ public final class EnergyView extends Canvas {
         }
         g.setGlobalAlpha(1);
         // Les étincelles, et les gains qui montent.
+        idle.core.universe.Skin sparkSkin = game.chosenSkin(idle.core.universe.SkinVisual.SPARKS);
+        idle.core.universe.Skin flight = game.chosenSkin(idle.core.universe.SkinVisual.QUARK_FLIGHT);
+        int index = 0;
         for (Spark spark : sparks) {
             double fade = 1 - spark.age / spark.life;
             g.setGlobalAlpha(Math.max(0, fade));
-            if (spark.quark != null) {
+            index++;
+            if (spark.quark != null && DetectorSkinArt.drawsQuarks(flight)) {
+                DetectorSkinArt.quark(g, flight, spark.x, spark.y, spark.size, spark.color, spark.quark, spark.text, time);
+            } else if (spark.quark != null) {
                 double s = spark.size;
                 glow(g, spark.x, spark.y, s * 1.3, spark.color, 0.45);
                 g.setFill(spark.color);
@@ -388,6 +423,8 @@ public final class EnergyView extends Canvas {
                 g.setFill(spark.color);
                 g.fillText(spark.text, spark.x, spark.y);
                 g.setTextAlign(TextAlignment.LEFT);
+            } else if (DetectorSkinArt.drawsSparks(sparkSkin)) {
+                DetectorSkinArt.spark(g, sparkSkin, spark.x, spark.y, spark.color, fade, time, index);
             } else if (beam == idle.core.universe.Skin.BEAM_LASER) {
                 // Des pixels sous le laser (version 0.191).
                 g.setFill(spark.color);
@@ -416,6 +453,8 @@ public final class EnergyView extends Canvas {
         g.setFill(dim);
         g.fillText("un croisement toutes les " + seconds(game.colliderPeriod()) + " s", 12, 34);
         g.setTextAlign(TextAlignment.LEFT);
+        // Le flash de l'appareil photo (version 0.195), par-dessus tout.
+        detectorArt.flash(g, detector, w, h);
     }
 
     /**

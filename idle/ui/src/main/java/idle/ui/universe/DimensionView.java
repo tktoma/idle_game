@@ -88,9 +88,6 @@ import javafx.scene.text.TextAlignment;
 public final class DimensionView extends Canvas {
 
     private static final Color BACK = Color.web("#05060e");
-    private static final Color[] PALETTE = {
-            Color.web("#9fd0ff"), Color.web("#ffd27f"), Color.web("#c9a6ff"), Color.web("#9be7a8"), Color.web("#ff9eb5"),
-            Color.web("#7fe0d4"), Color.web("#ffb36b"), Color.web("#a8b8ff"), Color.web("#ff7ad9"), Color.web("#fff1c9")};
 
     // ------------------------------------------------------------------
     // Les skins des dix mini-jeux (version 0.187) : fonds, décors et couleurs, en cache
@@ -1055,12 +1052,14 @@ public final class DimensionView extends Canvas {
     }
 
     private Color color() {
-        return PALETTE[dimension.ordinal()];
+        return DimensionPalette.color(dimension.number());
     }
 
     private void draw() {
         double w = getWidth(), h = getHeight();
         skinned = game.chosenSkin(idle.core.universe.SkinVisual.DIMENSIONS[dimension.ordinal()]) != null;
+        // La palette des dimensions (version 0.197) : le skin choisi, lu à chaque image, vaut pour toutes les couleurs.
+        DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
         GraphicsContext g = CanvasPane.begin(this, skinned ? SKIN_BACKS[dimension.ordinal()] : BACK);
         if (g == null) return;
         double cx = w / 2, cy = h / 2, u = Math.min(w, h);
@@ -3868,7 +3867,7 @@ public final class DimensionView extends Canvas {
         // Le miroir : son axe, au milieu.
         if (game.isMixing(9)) {
             double mx = left + side / 2;
-            for (int k = 0; k < 5; k++) UniverseView.glow(g, mx, top + (k + 0.5) * side / 5, side * 0.06, full ? PALETTE[8] : c, (0.3 + 0.1 * Math.sin(time * 2 + k)) * fade);
+            for (int k = 0; k < 5; k++) UniverseView.glow(g, mx, top + (k + 0.5) * side / 5, side * 0.06, full ? DimensionPalette.color(9) : c, (0.3 + 0.1 * Math.sin(time * 2 + k)) * fade);
             g.setStroke(Color.WHITE);
             g.setLineWidth(2);
             g.setGlobalAlpha(0.8 * fade);
@@ -3950,7 +3949,7 @@ public final class DimensionView extends Canvas {
         if (game.isMixing(9)) {
             java.util.Map<Long, Game.MixShard> byId = new java.util.HashMap<>();
             for (Game.MixShard shard : shards) byId.put(shard.id(), shard);
-            g.setStroke(tint == null ? PALETTE[8] : tint);
+            g.setStroke(tint == null ? DimensionPalette.color(9) : tint);
             g.setLineWidth(1);
             g.setGlobalAlpha(0.4 * fade);
             for (Game.MixShard shard : shards) {
@@ -4002,11 +4001,11 @@ public final class DimensionView extends Canvas {
             double top = 1 + 1 + Game.MIX_CHARGE_STEP * game.mixLevel(Game.MixUpgrade.CHARGE);
             double share = (game.mixChargeMultiplier() - 1) / (top - 1);
             double r = reach + 6 + 14 * share;
-            g.setStroke(PALETTE[3]);
+            g.setStroke(DimensionPalette.color(4));
             g.setLineWidth(3);
             g.setGlobalAlpha(0.9);
             g.strokeOval(at[0] - r, at[1] - r, 2 * r, 2 * r);
-            g.setFill(PALETTE[3]);
+            g.setFill(DimensionPalette.color(4));
             g.setFont(Font.font(13));
             g.setTextAlign(TextAlignment.CENTER);
             g.fillText(mixChargeText(), at[0], at[1] + r + 16);
@@ -4066,7 +4065,7 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(0.9);
         g.strokeOval(x - r, y - r, 2 * r, 2 * r);
         double half = game.mixRingHalfWidth(), zone = game.mixRingZone();
-        g.setStroke(PALETTE[4]);
+        g.setStroke(DimensionPalette.color(5));
         g.setLineWidth(6);
         g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + half), 720 * half, javafx.scene.shape.ArcType.OPEN);
         g.setStroke(Color.WHITE);
@@ -4074,13 +4073,13 @@ public final class DimensionView extends Canvas {
         g.strokeArc(x - r, y - r, 2 * r, 2 * r, 90 - 360 * (zone + 0.2 * half), 144 * half, javafx.scene.shape.ArcType.OPEN);
         double angle = 2 * Math.PI * game.mixRingPhase();
         double px = x + r * Math.sin(angle), py = y - r * Math.cos(angle);
-        UniverseView.glow(g, px, py, 16, PALETTE[4], 0.8);
+        UniverseView.glow(g, px, py, 16, DimensionPalette.color(5), 0.8);
         g.setGlobalAlpha(1);
         g.setFill(Color.WHITE);
         g.fillOval(px - 5, py - 5, 10, 10);
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 13));
-        g.setFill(PALETTE[4]);
+        g.setFill(DimensionPalette.color(5));
         g.fillText(rhythmWord(game.mixRhythmNow()), x, y + r + 20);
         if (game.mixLastRhythm() != Game.MixRhythm.NONE) {
             g.setFont(Font.font(11));
@@ -4127,7 +4126,7 @@ public final class DimensionView extends Canvas {
     private void point(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         for (int k = 0; k < 48; k++) {
             double a = 2 * Math.PI * k / 48 + time * 0.05;
-            g.setStroke(PALETTE[k % PALETTE.length]);
+            g.setStroke(DimensionPalette.color(k % 10 + 1));
             g.setLineWidth(1);
             g.setGlobalAlpha(0.15 + 0.1 * Math.sin(time * 2 + k));
             g.strokeLine(cx, cy, cx + Math.cos(a) * Math.max(w, h), cy + Math.sin(a) * Math.max(w, h));
@@ -4137,7 +4136,7 @@ public final class DimensionView extends Canvas {
             double r = u * 0.42 * (1 - phase);
             double a = 2 * Math.PI * k / 9 + time * 0.4 + phase * 3;
             double x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-            Color c = PALETTE[k];
+            Color c = DimensionPalette.color(k + 1);
             if (k == 2) cube(g, x, y, u * 0.025 * (1 - phase) + 2, time, time * 0.7, c, 1 - phase * 0.5);
             else UniverseView.glow(g, x, y, u * 0.03 * (1 - phase) + 3, c, 0.9 * (1 - phase * 0.5));
         }

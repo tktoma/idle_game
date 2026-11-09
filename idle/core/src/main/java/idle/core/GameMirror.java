@@ -389,6 +389,8 @@ public abstract class GameMirror extends GameGrid {
 
     private double seasonClock;
     private double seasonFilled;
+    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre (version 0.196) : les skins des saisons les comptent. */
+    private int seasonCycles;
 
     /** Vrai une fois les saisons là : le miroir ouvert, l'univers formé (elles passent sur la graine). */
     public boolean areSeasonsUnlocked() {
@@ -430,7 +432,15 @@ public abstract class GameMirror extends GameGrid {
 
     void runSeasons(double dt) {
         if (!areSeasonsUnlocked() || dt <= 0) return;
-        seasonClock = (seasonClock + dt) % (SEASON_SECONDS * Season.values().length);
+        double cycle = SEASON_SECONDS * Season.values().length, advanced = seasonClock + dt;
+        seasonCycles += (int) Math.floor(advanced / cycle);
+        seasonClock = advanced % cycle;
+    }
+
+    /** Les cycles complets des saisons depuis l'ouverture de la fenêtre (version 0.196). */
+    @Override
+    public int seasonCycles() {
+        return seasonCycles;
     }
 
     /** Outil d'essai : passe à la saison choisie, à son début. */

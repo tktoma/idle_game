@@ -23,6 +23,77 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.198", "Vingt-sept skins et huit avatars pour le profil, les succès et les statistiques", List.of(
+                    "Sept visuels de plus dans l'onglet Skins. Le style des avatars du jeu, qui redessine l'en-tête du profil et toute la "
+                            + "galerie, pas l'image importée : Trait (les contours à l'encre sur du papier), Pixel, Craie (sur une ardoise), "
+                            + "Vitrail (des panneaux de verre entre des plombs), à 25, 50, 75 succès obtenus, puis tous.",
+                    "Huit avatars de plus dans la galerie : le hadron (titre « Tisseur de gluons »), la sonde (dix voyages de sondes), la "
+                            + "toile de l'univers (« Créateur d'univers »), la bulle d'univers (« Tisseur de multivers »), l'arrosoir (le "
+                            + "tuyau d'arrosage acheté), le chrono (le chrono acheté), le miroir (« Gardien du miroir »), le kaléidoscope "
+                            + "(« Maître du mélange »).",
+                    "Les albums du profil : Illustré met sur chaque case trouvée le dessin de la molécule, de l'astre ou du bloc de "
+                            + "l'assemblage, dans les skins du Big Bang choisis (50 entrées dans les albums, tous ensemble) ; Vignettes "
+                            + "autocollantes, Timbres, Cartes de collection (avec leur dos sur les cases vides) et Herbier l'habillent (un, "
+                            + "deux, trois albums complets, puis les quatre).",
+                    "Les tuiles des succès obtenus portent un insigne : Médailles (bronze, argent, or selon le palier du succès dans sa "
+                            + "liste ; or pour les succès à bonus propre), Badges brodés, Étoiles, Trophées, Timbres (25, 50, 75, 90 succès "
+                            + "obtenus, puis tous) ; les succès non obtenus le leur : Silhouette grise, Point d'interrogation, Pièce manquante "
+                            + "(10, 20, 30 succès).",
+                    "Les courbes des statistiques : Papier millimétré, Oscilloscope (vert sur noir, un réticule, la rémanence du trait), "
+                            + "Crayon (graphite à main levée), Aquarelle (l'aire sous la courbe lavée), à 1, 5, 10 et 20 heures de jeu ; la "
+                            + "palette des séries, libre et sans bonus : Pastel, Néon, Niveaux de gris, la daltonien-sûre restant celle "
+                            + "d'origine ; la frise des univers de la chronologie : Musée, Pellicule, Train (une locomotive, un wagon par "
+                            + "univers), à 3, 5 et 7 univers formés.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.197", "Quarante-un skins pour l'arbre, ses bulles, la carte des dimensions, le défi final et les mini-jeux", List.of(
+                    "Neuf visuels de plus dans l'onglet Skins, qui se combinent avec l'essence de l'arbre. La saison de l'arbre, figée quel "
+                            + "que soit le temps : Automne figé (les saisons débloquées), Hiver figé (les saisons débloquées, 10 univers formés), "
+                            + "Printemps figé (11 univers formés) ; l'arbre de fantaisie, qui remplace le feuillage et le bois : Cristal, Corail, "
+                            + "Circuit lumineux, Nuages, Inversé (les racines en haut), Pixel art (des bulles de l'arbre de 1 à 6 paliers "
+                            + "différents achetées) ; le sol de l'arbre : Herbe, Sable, Neige, Mousse, Dallage, Eau (l'arbre sur une île), par "
+                            + "la graine aux paliers 2 à 7.",
+                    "Les bulles de l'arbre : Fruits (achetée : mûre ; verte sinon ; fermée : un bourgeon), Lanternes, Gouttes de rosée, "
+                            + "Pierres précieuses, Graines (5, 10, 15, 18 bulles achetées, puis toutes les dix-neuf) ; leurs liens : Branches, "
+                            + "Fils de lumière, Racines (10, 15 bulles, puis toutes).",
+                    "La carte des dimensions : Planètes, Perles, Menhirs, Fenêtres d'une tour, Cadran (2, 4, 6, 8, 10 dimensions ouvertes) ; "
+                            + "le remplissage du défi final : Eau, Sable, Lumière, Lierre (le défi final fini, puis avec 9, 10, 11 univers formés) ; "
+                            + "le cadre des mini-jeux : Hublot, Cadre doré, Écran cathodique, Livre ouvert (4, 6, 8, 10 dimensions ouvertes) ; la "
+                            + "palette des dix dimensions, en bloc et partout (arène, fenêtre, carte skinnée) : Pastel, Daltonien sûr (Okabe et "
+                            + "Ito), Monochrome, Arc-en-ciel saturé, Sépia, cinq options libres, sans condition ni bonus.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.196", "Cinquante-deux skins pour les univers en bulles, le lancement, la graine et son établi", List.of(
+                    "Douze visuels de plus dans l'onglet Skins. Les bulles des univers : Bulle de savon, Ballon noué, Boule à neige, Globe "
+                            + "d'orrery, Planète-fruit, Œuf (un par univers formé, du premier au sixième) ; la naissance d'un univers : Éclosion, "
+                            + "Bourgeon, Feu d'artifice, Page tournée (les univers 5 à 8 formés) ; les liens entre les univers : Fil, Lierre, "
+                            + "Circuit, Constellation (les univers 7 à 10 formés) ; le lancement de l'univers suivant : Fusée de papier, Graine "
+                            + "qui germe, Pierre dans l'eau, Lampe, Rideau de théâtre (les univers 5 à 9 formés).",
+                    "La graine : Noix, Gland, Noyau d'avocat, Pépin, Tournesol, Œuf, Pierre brute (ses paliers 1 à 7) ; l'arrosoir : Théière "
+                            + "(10 arrosages de la graine en cours), Pichet (100), Nuage (1 000), Bec d'oiseau (le tuyau acheté), Coquillage (la "
+                            + "terre fertile achetée) ; l'étagère : Pierre, Atelier, Bambou, Nuage (l'étage du chrono acheté, avec 3 à 6 univers "
+                            + "formés) ; le tuyau : Liane, Fontaine, Rigole, Pipette (le tuyau aux niveaux 2, 4, 6, 10) ; le chrono : Sablier (le "
+                            + "chrono plein), Montre à gousset, Cadran solaire, Métronome (le chrono plein avec 3, 4, 5 univers formés).",
+                    "Le rond de croissance : Anneau de fée, Halo doré, Soleil levant (5, 20, 50 ronds cueillis depuis l'ouverture de la "
+                            + "fenêtre) ; la météo : Bulletin télé, Gravure japonaise, Pastel (1, 5, 10 orages depuis l'ouverture) ; les saisons : "
+                            + "Cartes à jouer, Roue de couleurs, Vitrail (1, 2, 3 cycles complets des saisons depuis l'ouverture). Ces trois "
+                            + "comptes ne sont pas sauvegardés ; les skins gagnés le sont.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.195", "Trente-six skins pour le reste du collisionneur, les hadrons et le vide", List.of(
+                    "Dix visuels de plus dans l'onglet Skins. Dans le collisionneur, le détecteur : Œil (100 collisions), Lanterne (250), "
+                            + "Cloche (500), Appareil photo (1 000 ; le flash au croisement) ; les éclairs du croisement : Fils d'or (1 000 "
+                            + "croisements des faisceaux), Fissures de glace (2 500), Racines (5 000) ; les étincelles : Pétales (le défi du "
+                            + "détecteur), Confettis (l'épreuve « Sans surchauffe »), Braises (« Pleine charge ») ; les quarks qui s'envolent : "
+                            + "Ballons (10 hadrons liés), Papillons (25), Lettres de Scrabble (50, la saveur en lettre et sa valeur).",
+                    "Dans la liaison des hadrons, les quarks : Billes de verre (10 hadrons liés), Fruits (50, la saveur en couleur de fruit), "
+                            + "Notes de musique (100 ; la liaison fait monter un accord de notes, dessiné et non joué), Puzzle (chaque sorte de "
+                            + "hadron liée au moins une fois) ; les gluons : Ressorts (100 gluons), Élastiques (250), Laine (500), Éclairs "
+                            + "(1 000) ; le fond : Tableau noir, Table de laboratoire, Ciel d'orage (les paliers de gluons « Mémoire des "
+                            + "liaisons », « Automatismes liés », « Éléments liés »).",
+                    "Dans le vide, l'écume : Bulles de savon (le vide ouvert), Mousse de bière, Pellicule, Neige de télévision (une "
+                            + "amélioration du vide au niveau 1, 2, 3) ; les paires : Jumeaux (100 paires nées depuis l'ouverture de la "
+                            + "fenêtre), Aimants (1 000), Yin et yang (10 000) ; le trou noir du vide : Bouche d'égout, Puits de pierre, Iris, "
+                            + "Nœud de bois, Tourbillon de thé (le trou noir du vide ouvert quand il compte 1 à 5 univers, soit les univers 4 à 8 "
+                            + "formés).",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.194", "Trente-cinq skins pour le Big Bang au-delà des molécules : palette, amas, blocs, gaz, ciel, cosmos, systèmes, sondes", List.of(
                     "Dix visuels de plus dans l'onglet Skins. La palette des molécules, à côté de leur forme et combinée avec elle : Pastel, "
                             + "Daltonien sûr (la palette d'Okabe et Ito) et Monochrome par rayon, trois skins libres, sans bonus ; la couleur "

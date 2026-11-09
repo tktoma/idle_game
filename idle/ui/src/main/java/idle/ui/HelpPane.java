@@ -281,7 +281,18 @@ final class HelpPane extends Overlay {
                 // Les cadres de l'avatar (version 0.189) : des skins, un par titre.
                 + (game.isSkinsUnlocked() ? " L'avatar a aussi ses cadres, un par titre (rond cerné, hexagone, écusson, cadre doré "
                         + "baroque, timbre-poste, polaroid), choisis dans l'onglet Skins : ils entourent l'avatar de l'en-tête et "
-                        + "l'aperçu de votre image, pas les cartes de la galerie." : "")
+                        + "l'aperçu de votre image, pas les cartes de la galerie."
+                        // Version 0.198 : le style des avatars, les albums, les tuiles des succès, les courbes et la frise.
+                        + " Les avatars du jeu ont leur style, Trait, Pixel, Craie, Vitrail (25, 50, 75 succès, puis tous), qui "
+                        + "redessine l'en-tête et la galerie, pas votre image. Les albums ont les leurs : Illustré met le dessin de "
+                        + "chaque chose trouvée sur sa case (50 entrées dans les albums), puis Vignettes autocollantes, Timbres, "
+                        + "Cartes de collection et Herbier l'habillent (un, deux, trois albums complets, puis les quatre). Les tuiles "
+                        + "des succès obtenus deviennent Médailles (bronze, argent, or selon le palier), Badges brodés, Étoiles, "
+                        + "Trophées, Timbres (25, 50, 75, 90 succès, puis tous), et les succès non obtenus Silhouette grise, Point "
+                        + "d'interrogation, Pièce manquante (10, 20, 30 succès). Les courbes des statistiques se tracent sur Papier "
+                        + "millimétré, à l'Oscilloscope, au Crayon, à l'Aquarelle (1, 5, 10, 20 heures de jeu), dans une palette "
+                        + "libre (Pastel, Néon, Niveaux de gris), et la frise des univers de la chronologie devient Musée, "
+                        + "Pellicule ou Train (3, 5, 7 univers formés)." : "")
                 + " Nom, avatar, titres et albums restent pour de bon, même après « Recommencer de zéro »."));
         // Les succès du deuxième univers (version 0.174) : chaque nouveauté s'ouvre par le sien.
         if (game.isSecondUniverse()) sections.add(new Section("Succès d'univers", "Une fois un univers formé, chaque "
@@ -304,7 +315,10 @@ final class HelpPane extends Overlay {
                 + "trous noirs : " + Format.count(BigNum.of(Game.BLACK_HOLE_ENERGY)) + " pour le trou noir, "
                 + Format.count(BigNum.of(Game.SUPERMASSIVE_ENERGY)) + " pour le trou noir supermassif, donc pour la galaxie. Les "
                 + "succès du collisionneur, dans l'onglet « Succès », se gagnent en achetant des générateurs : chacun double une "
-                + "production ou divise des prix par deux."));
+                + "production ou divise des prix par deux."
+                + (game.isSkinsUnlocked() ? " Le détecteur, les éclairs du croisement, les étincelles et les quarks qui s'envolent ont "
+                + "leurs skins, dans l'onglet Skins : les collisions, les croisements, les épreuves du collisionneur et les hadrons liés "
+                + "les débloquent." : "")));
         // Les dimensions (version 0.128) : une par univers, et ce que font les sept qui se jouent (la boucle, version 0.153 ;
         // la brane, version 0.154 ; le clicker, version 0.155 ; la grille, version 0.156 ; le miroir, version 0.157 ; le
         // mélange, version 0.158, refait à la 0.159).
@@ -328,7 +342,21 @@ final class HelpPane extends Overlay {
                         + " Chaque mini-jeu a aussi son skin (rails et wagons pour la ligne, feuille de cahier pour le plan, aquarium, "
                         + "vinyle, cible de tir à l'arc, toile d'araignée, bulles de savon, démineur, vitrail, kaléidoscope), débloqué "
                         + "quand sa dimension atteint son seuil et choisi dans l'onglet Skins, dans la section de sa dimension : il change le "
-                        + "décor et l'habillage du jeu, jamais sa règle ni la place de ce qu'on clique." : "")
+                        + "décor et l'habillage du jeu, jamais sa règle ni la place de ce qu'on clique."
+                        // L'univers et l'établi de la graine (version 0.196) : douze visuels de plus dans l'onglet Skins.
+                        + " Les univers en bulles, leur naissance, leurs liens et le lancement de l'univers suivant ont leurs skins par "
+                        + "univers formés ; la graine (noix, gland, noyau d'avocat, pépin, tournesol, œuf, pierre brute) par ses paliers ; "
+                        + "l'arrosoir par ses arrosages, le tuyau et la terre fertile ; l'étagère et le chrono par l'étage du chrono, le chrono "
+                        + "plein et les univers ; le tuyau par ses niveaux ; le rond de croissance, la météo et les saisons par les ronds "
+                        + "cueillis, les orages et les cycles des saisons depuis l'ouverture de la fenêtre."
+                        // L'arbre au-delà de ses essences, ses bulles, la carte, le défi final, les mini-jeux (version 0.197).
+                        + " L'arbre a aussi sa saison figée (automne, hiver, printemps, par les saisons débloquées puis les univers), "
+                        + "sa fantaisie (cristal, corail, circuit lumineux, nuages, inversé, pixel art, par les paliers de la graine dont une "
+                        + "bulle est achetée) et son sol (herbe, sable, neige, mousse, dallage, eau, par les paliers de la graine), qui se "
+                        + "combinent avec l'essence ; ses bulles et leurs liens ont leurs skins par le nombre de bulles achetées ; la carte "
+                        + "des dimensions et les cadres des mini-jeux par les dimensions ouvertes, le remplissage du défi final par le défi "
+                        + "fini et les univers ; la palette des dix dimensions (pastel, daltonien sûr, monochrome, arc-en-ciel saturé, "
+                        + "sépia) est libre et change leurs couleurs partout d'un coup." : "")
                 + " Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite ; son étage se paie en facettes du plan, dès le deuxième univers (le tuyau en sphères du "
                 + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis le coin bas gauche de la fenêtre, "
@@ -495,7 +523,9 @@ final class HelpPane extends Overlay {
                 + "le dernier à peu près une des dernières bulles. Le premier trou noir formé ouvre le trou noir du vide : les particules qu'on lui sacrifie lui donnent "
                 + "une masse qui raccourcit la vie des paires et ralentit la fonte. À la formation de l'univers, l'énergie du vide qui "
                 + "reste rejoint le cumul, affiché dans le sous-onglet Graine de l'onglet Univers, où il paie les bulles de l'arbre ; "
-                + "le vide, son trou noir et ses améliorations repartent de zéro dans l'univers suivant."));
+                + "le vide, son trou noir et ses améliorations repartent de zéro dans l'univers suivant."
+                + (game.isSkinsUnlocked() ? " L'écume, les paires et le trou noir du vide ont leurs skins, dans l'onglet Skins : le vide "
+                + "ouvert et ses améliorations, les paires nées, les univers que compte le trou noir du vide les débloquent." : "")));
         // Les hadrons (version 0.149) : dès qu'ils se proposent, et tant que leur onglet est ouvert.
         if (game.isHadronsOffered() || game.isHadronsUnlocked()) sections.add(new Section("Hadrons",
                 "Avec la bulle de l'arbuste, au milieu, les hadrons se proposent dans l'onglet Collisionneur : leur onglet "
@@ -514,7 +544,9 @@ final class HelpPane extends Overlay {
                 + Game.ROOT_GLUON_TIERS.length + " paliers, de " + Format.whole(Game.ROOT_GLUON_TIERS[0]) + " à "
                 + Format.whole(Game.ROOT_GLUON_TIERS[Game.ROOT_GLUON_TIERS.length - 1]) + " gluons : chacun abaisse les paliers du "
                 + "défi final d'environ 7 %, de moitié avec les dix. Le sous-onglet « Liaison » montre les quarks se lier. Un nouvel "
-                + "univers reprend les hadrons, et leurs gluons avec, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde."));
+                + "univers reprend les hadrons, et leurs gluons avec, sauf avec la bulle de l'arbre ancien, à gauche, qui les garde."
+                + (game.isSkinsUnlocked() ? " Dans la liaison, les quarks, les gluons et le fond ont leurs skins, dans l'onglet Skins : les "
+                + "hadrons liés, les gluons et leurs paliers les débloquent." : "")));
         if (game.bodiesFormed() > 0) sections.add(new Section("Maturation des astres", "Un astre formé mûrit avant de compter "
                 + "en entier : de 12 minutes pour un amas de roches à 6 heures pour le trou noir supermassif"
                 + (game.maturationShare() < 1 ? ", " + Math.round((1 - game.maturationShare()) * 100) + " % de moins avec le vide" : "")

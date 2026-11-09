@@ -436,6 +436,7 @@ public abstract class GameClicker extends GameBrane {
         return sunnySpells;
     }
 
+    @Override
     public long storms() {
         return storms;
     }

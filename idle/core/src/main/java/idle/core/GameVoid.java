@@ -370,4 +370,9 @@ public abstract class GameVoid extends GameBigBang {
         state.setVoidOpen(true);
         state.setVoidHoleOpen(true);
     }
+
+    /** Outil d'essai (version 0.195) : des paires nées en plus, pour les skins des paires du vide. */
+    public void testAddVoidPairsBorn(double count) {
+        voidBorn += Math.max(0, count);
+    }
 }

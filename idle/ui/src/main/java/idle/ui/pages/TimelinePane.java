@@ -19,6 +19,10 @@ import javafx.scene.layout.VBox;
  * même échelle pour que le joueur voie sa courbe ; puis le temps de chaque dimension (ouverte, jouée, premier
  * automatisme, seuil, palier final) et sa part de la partie, à côté des paliers de la graine et du défi final.
  * Recomposée deux fois par seconde au plus, et seulement quand la sous-page est à l'écran.
+ *
+ * <p>Version 0.198 : le skin de la frise ({@link idle.core.universe.SkinVisual#TIMELINE}, {@link #setSkin}) redessine
+ * les lignes des univers en frise de musée, en pellicule de film ou en train ({@link TimelineSkinArt}) ; le reste de la
+ * sous-page ne change pas.
  */
 final class TimelinePane extends VBox {
 
@@ -43,6 +47,8 @@ final class TimelinePane extends VBox {
     private long writtenAt = 0;
     /** Le texte des lignes au dernier dessin : pour les vérifications. */
     private final List<String> shown = new ArrayList<>();
+    /** Le skin de la frise (version 0.198), ou {@code null} pour le Classique. */
+    private idle.core.universe.Skin skin;
 
     TimelinePane(Game game) {
         super(8);
@@ -99,6 +105,24 @@ final class TimelinePane extends VBox {
         return String.format(Locale.FRANCE, "%.1f %%", 100 * part);
     }
 
+    /** Dessine les univers dans ce skin (version 0.198) ; {@code null}, ou un skin d'un autre visuel, remet le Classique ; un changement redessine tout de suite. */
+    void setSkin(idle.core.universe.Skin chosen) {
+        idle.core.universe.Skin wanted = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.TIMELINE ? chosen : null;
+        if (wanted == skin) return;
+        skin = wanted;
+        writtenAt = 0;
+    }
+
+    /** Le skin de la frise en place, ou {@code null} : pour les vérifications. */
+    idle.core.universe.Skin skin() {
+        return skin;
+    }
+
+    /** Le nombre de lignes d'univers dessinées : pour les vérifications. */
+    int universeNodes() {
+        return universes.getChildren().size();
+    }
+
     /** Recompose la sous-page, deux fois par seconde au plus. */
     void refresh() {
         long now = System.nanoTime();
@@ -115,9 +139,11 @@ final class TimelinePane extends VBox {
         universesEmpty.setManaged(log.isEmpty());
         double longest = 0;
         for (GameStats.UniverseRecord r : last) if (Double.isFinite(r.duration())) longest = Math.max(longest, r.duration());
+        boolean first = true;
         for (GameStats.UniverseRecord r : last) {
             String title = "Univers " + r.number() + " — " + span(r.duration());
-            universes.getChildren().add(universeRow(r, title, longest));
+            universes.getChildren().add(skin == null ? universeRow(r, title, longest) : TimelineSkinArt.row(skin, r, title, longest, first));
+            first = false;
             shown.add(title + " : " + phases(r));
         }
         current.setText(currentText(stats, played));

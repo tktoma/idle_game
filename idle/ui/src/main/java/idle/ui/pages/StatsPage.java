@@ -209,6 +209,16 @@ public final class StatsPage extends StatsPageLines {
         return timelinePane.shown();
     }
 
+    /** Le skin de la frise des univers en place (version 0.198), ou {@code null} : pour les vérifications. */
+    public idle.core.universe.Skin timelineSkin() {
+        return timelinePane.skin();
+    }
+
+    /** Le nombre de nœuds dans les lignes des univers de la frise (version 0.198) : pour les vérifications. */
+    public int timelineUniverseNodes() {
+        return timelinePane.universeNodes();
+    }
+
     // Sans valeur de départ : ils sont posés pendant la construction de la page, appelée par le constructeur de la base.
     private TimelinePane timelinePane;
     private PurchasesPane purchasesPane;
@@ -546,6 +556,9 @@ public final class StatsPage extends StatsPageLines {
     /** Affiche les sous-pages débloquées et met à jour la courbe et les lignes de celle qui est à l'écran. */
     public void refresh() {
         current = game.stats();   // relève au passage le record de production
+        // Version 0.198 : les skins des graphiques et de la frise, communs à tous, pris au prochain dessin.
+        ChartPane.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.CHART), game.chosenSkin(idle.core.universe.SkinVisual.CHART_PALETTE));
+        timelinePane.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TIMELINE));
         SubPage nextLocked = null;
         for (SubPage page : pages) {
             boolean unlocked = page.unlocked.getAsBoolean();

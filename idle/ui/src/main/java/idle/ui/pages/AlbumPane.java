@@ -1,6 +1,8 @@
 package idle.ui.pages;
 
 import idle.core.molecules.Molecule;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.common.Card;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
@@ -23,18 +25,32 @@ import javafx.scene.layout.VBox;
  *
  * <p>Les cases ne sont créées qu'à la première visite, et ne se remplissent de nouveau que lorsque le nombre de
  * découvertes change : un album ne coûte rien tant que rien de neuf n'arrive. L'album des molécules se filtre par rayon.
+ *
+ * <p>Version 0.198 : le skin des albums ({@link idle.core.universe.SkinVisual#ALBUM}, {@link #setLook}) met sur chaque
+ * case le dessin de ce qu'elle garde ({@link Entry#picture()}), nu pour « Illustré », ou sur une vignette autocollante,
+ * un timbre, une carte de collection, une fiche d'herbier ({@link AlbumSkinArt}) ; ce qui n'est pas trouvé reste une
+ * case vide dans la même manière. Le Classique n'a pas de dessin.
  */
 final class AlbumPane extends VBox {
+
+    /** Ce qui dessine une entrée dans un cadre donné (version 0.198), dans les skins du moment. */
+    interface Picture {
+        void draw(javafx.scene.canvas.GraphicsContext g, double width, double height);
+    }
 
     /**
      * Une case de l'album.
      *
-     * @param id   l'identifiant du catalogue, celui des maps de découvertes
-     * @param name le nom, montré une fois découvert
-     * @param line ce qui le décrit en quelques mots : formule, état, famille ou échelle
-     * @param kind le rayon d'une molécule, pour le filtre ; {@code null} ailleurs
+     * @param id      l'identifiant du catalogue, celui des maps de découvertes
+     * @param name    le nom, montré une fois découvert
+     * @param line    ce qui le décrit en quelques mots : formule, état, famille ou échelle
+     * @param kind    le rayon d'une molécule, pour le filtre ; {@code null} ailleurs
+     * @param picture son dessin (version 0.198), ou {@code null} pour une case sans dessin
      */
-    record Entry(String id, String name, String line, Molecule.Kind kind) {
+    record Entry(String id, String name, String line, Molecule.Kind kind, Picture picture) {
+        Entry(String id, String name, String line, Molecule.Kind kind) {
+            this(id, name, line, kind, null);
+        }
     }
 
     private static final String FILTER_STYLE = "-fx-font-size: 12px; -fx-padding: 3 10; -fx-cursor: hand;"
@@ -56,6 +72,11 @@ final class AlbumPane extends VBox {
     /** Le nombre de découvertes au dernier remplissage, et si les cartes écrivaient leur signe ; −1 : à refaire. */
     private int filledWith = -1;
     private boolean filledSigns;
+    /** Le skin des albums (version 0.198), {@code null} pour le Classique, et la clé des skins des dessins ; ceux du dernier remplissage. */
+    private Skin skin;
+    private String pictureKey = "";
+    private Skin filledSkin;
+    private String filledPictureKey = "";
     /** Le rayon montré, ou {@code null} pour tous. */
     private Molecule.Kind shownKind;
 
@@ -102,19 +123,36 @@ final class AlbumPane extends VBox {
         filledWith = -1;
     }
 
+    /**
+     * Le skin des albums (version 0.198) et la clé des skins dans lesquels les dessins se font (molécules, palette,
+     * astres, blocs) : l'album se remplit de nouveau au prochain {@link #refresh()} si l'un des deux a changé.
+     */
+    void setLook(Skin chosen, String key) {
+        skin = chosen != null && chosen.visual() == SkinVisual.ALBUM ? chosen : null;
+        pictureKey = key == null ? "" : key;
+    }
+
+    /** Le skin des albums en place, ou {@code null} pour le Classique : pour les vérifications. */
+    Skin skin() {
+        return skin;
+    }
+
     /** Recopie l'album, s'il a changé depuis la dernière fois. */
     void refresh() {
         if (entries == null) build();
         Map<String, Double> seen = found.get();
-        if (seen.size() == filledWith && filledSigns == Card.signsShown()) return;
+        if (seen.size() == filledWith && filledSigns == Card.signsShown() && skin == filledSkin && pictureKey.equals(filledPictureKey)) return;
         filledWith = seen.size();
         filledSigns = Card.signsShown();
+        filledSkin = skin;
+        filledPictureKey = pictureKey;
         int known = 0;
         int number = 0;
         for (Map.Entry<Entry, Card> each : cards.entrySet()) {
             Entry entry = each.getKey();
             number++;
             Double at = seen.get(entry.id());
+            each.getValue().setPicture(skin == null ? null : AlbumSkinArt.picture(entry, at != null, number, skin, color));
             if (at == null) {
                 each.getValue().show(Card.State.LOCKED, "n° " + number, "", "???", "", "", "", "");
             } else {

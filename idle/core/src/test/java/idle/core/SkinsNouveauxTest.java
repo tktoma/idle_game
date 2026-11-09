@@ -35,8 +35,9 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(176, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
-                + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194");
+        assertEquals(332, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+                + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194, trente-six de la 0.195, cinquante-deux de la 0.196, "
+                + "quarante-un de la 0.197, vingt-sept de la 0.198");
     }
 
     /** Version 0.186 : les skins des astres, à 10, 20 et 35 astres formés dans un univers ; acquis, ils restent. */
@@ -384,7 +385,7 @@ class SkinsNouveauxTest {
         assertEquals(3, game.solarSystemsComplete());
         assertEquals(5, game.universes());
         for (Skin skin : Skin.values()) {
-            if (skin.ordinal() >= Skin.PALETTE_PASTEL.ordinal()) assertTrue(game.hasSkin(skin), "tout est là : " + skin);
+            if (skin.ordinal() >= Skin.PALETTE_PASTEL.ordinal() && skin.ordinal() < Skin.DETECTOR_EYE.ordinal()) assertTrue(game.hasSkin(skin), "tout est là : " + skin);
         }
         assertEquals(SkinVisual.CLUMPS, Skin.CLUMPS_NEON.visual());
         assertEquals(SkinVisual.BLOCKS, Skin.BLOCKS_ICE.visual());
@@ -395,6 +396,147 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.COSMIC_WEB, Skin.WEB_METRO.visual());
         assertEquals(SkinVisual.SYSTEM, Skin.SYSTEM_RADAR.visual());
         assertEquals(SkinVisual.PROBE, Skin.PROBE_PIGEON.visual());
+    }
+
+    /**
+     * Version 0.195 : le reste du collisionneur, les hadrons et le vide. Chaque skin vient à sa condition, pas avant : les
+     * collisions, les croisements, trois épreuves, les hadrons liés et chaque sorte, les gluons et leurs paliers, le vide ouvert
+     * et le plus haut niveau d'une amélioration, les paires nées, le trou noir du vide et les univers qu'il compte.
+     */
+    @Test
+    void leCollisionneurLesHadronsEtLeVideOntLeursConditions() {
+        Game game = GameTestSupport.universe(3);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        game.tick(1);
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() >= Skin.DETECTOR_EYE.ordinal() && skin.ordinal() < Skin.BUBBLE_SOAP.ordinal()) assertFalse(game.hasSkin(skin), "pas avant sa condition : " + skin);
+        }
+        // Le détecteur et les éclairs : collisions et croisements, palier par palier.
+        for (int i = 0; i < Skin.DETECTORS.length; i++) {
+            game.state().setCollisionRuns(Skin.DETECTOR_COLLISIONS[i] - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.DETECTORS[i]), "une collision de moins : " + Skin.DETECTORS[i]);
+            game.state().setCollisionRuns(Skin.DETECTOR_COLLISIONS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.DETECTORS[i]), Skin.DETECTORS[i].label());
+        }
+        for (int i = 0; i < Skin.LIGHTNINGS.length; i++) {
+            // Le collisionneur tourne pendant le pas : une marge de cinquante croisements.
+            game.state().setColliderCrossings(Skin.LIGHTNING_CROSSINGS[i] - 50);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.LIGHTNINGS[i]), "des croisements de moins : " + Skin.LIGHTNINGS[i]);
+            game.state().setColliderCrossings(Skin.LIGHTNING_CROSSINGS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.LIGHTNINGS[i]), Skin.LIGHTNINGS[i].label());
+        }
+        // Les étincelles : une épreuve chacune.
+        game.state().addCompletedTrial(idle.core.universe.Trial.DETECTOR.name());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.SPARKS_PETALS));
+        assertFalse(game.hasSkin(Skin.SPARKS_CONFETTI) || game.hasSkin(Skin.SPARKS_EMBERS));
+        game.state().addCompletedTrial(idle.core.universe.Trial.NO_OVERHEAT.name());
+        game.state().addCompletedTrial(idle.core.universe.Trial.FULL_CHARGE.name());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.SPARKS_CONFETTI) && game.hasSkin(Skin.SPARKS_EMBERS));
+        // Les hadrons liés : l'envol des quarks et les quarks de la liaison ; les gluons (deux ou trois par hadron) et leurs paliers.
+        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 9);
+        game.tick(1);
+        assertEquals(9, game.hadronsMade());
+        assertEquals(27, game.gluons());
+        assertFalse(game.hasSkin(Skin.QUARK_FLIGHT_BALLOONS) || game.hasSkin(Skin.QUARKS_MARBLES) || game.hasSkin(Skin.GLUONS_SPRINGS), "neuf hadrons : rien");
+        game.state().setHadrons(idle.core.collider.Hadron.PROTON, 10);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.QUARK_FLIGHT_BALLOONS) && game.hasSkin(Skin.QUARKS_MARBLES), "dix hadrons");
+        assertFalse(game.hasSkin(Skin.QUARK_FLIGHT_BUTTERFLIES) || game.hasSkin(Skin.QUARKS_FRUITS) || game.hasSkin(Skin.GLUONS_SPRINGS), "trente gluons");
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 24);       // 34 hadrons, 78 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.QUARK_FLIGHT_BUTTERFLIES), "vingt-cinq hadrons");
+        assertFalse(game.hasSkin(Skin.QUARK_FLIGHT_SCRABBLE) || game.hasSkin(Skin.QUARKS_FRUITS) || game.hasSkin(Skin.GLUONS_SPRINGS));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 40);       // 50 hadrons, 110 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.QUARK_FLIGHT_SCRABBLE) && game.hasSkin(Skin.QUARKS_FRUITS) && game.hasSkin(Skin.GLUONS_SPRINGS));
+        assertFalse(game.hasSkin(Skin.QUARKS_NOTES) || game.hasSkin(Skin.GLUONS_RUBBER) || game.hasSkin(Skin.QUARKS_PUZZLE));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 90);       // 100 hadrons, 210 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.QUARKS_NOTES), "cent hadrons");
+        assertFalse(game.hasSkin(Skin.GLUONS_RUBBER), "210 gluons");
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 110);      // 250 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.GLUONS_RUBBER));
+        assertFalse(game.hasSkin(Skin.GLUONS_WOOL));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 235);      // 500 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.GLUONS_WOOL));
+        assertFalse(game.hasSkin(Skin.GLUONS_LIGHTNING) || game.hasSkin(Skin.HADRON_BACK_BLACKBOARD));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 485);      // 1 000 gluons : le palier « Mémoire des liaisons »
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.GLUONS_LIGHTNING) && game.hasSkin(Skin.HADRON_BACK_BLACKBOARD));
+        assertFalse(game.hasSkin(Skin.HADRON_BACK_LAB));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 4_985);    // 10 000 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.HADRON_BACK_LAB));
+        assertFalse(game.hasSkin(Skin.HADRON_BACK_STORM));
+        game.state().setHadrons(idle.core.collider.Hadron.PION, 24_985);   // 50 000 gluons
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.HADRON_BACK_STORM));
+        assertFalse(game.hasSkin(Skin.QUARKS_PUZZLE), "deux sortes seulement");
+        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) game.state().setHadrons(hadron, 1);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.QUARKS_PUZZLE), "chaque sorte liée");
+        // Le vide : ouvert, puis une amélioration au niveau 1, 2, 3.
+        for (Skin skin : Skin.FOAMS) assertFalse(game.hasSkin(skin), "le vide fermé : " + skin);
+        game.testOpenVoid();
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.FOAM_SOAP));
+        assertFalse(game.hasSkin(Skin.FOAM_BEER));
+        for (int level = 1; level <= 3; level++) {
+            game.state().setVoidLevel(GameUniverse.VoidUpgrade.GAIN.ordinal(), level);
+            game.tick(1);
+            for (int i = 1; i < Skin.FOAMS.length; i++) assertEquals(i <= level, game.hasSkin(Skin.FOAMS[i]), Skin.FOAMS[i] + " au niveau " + level);
+        }
+        // Les paires nées depuis l'ouverture de la fenêtre : cent, mille, dix mille (l'outil d'essai les ajoute).
+        for (Skin skin : Skin.PAIR_SKINS) assertFalse(game.hasSkin(skin), skin.label());
+        game.testAddVoidPairsBorn(99);
+        game.tick(1);
+        assertFalse(game.hasSkin(Skin.PAIRS_TWINS), "99 paires");
+        game.testAddVoidPairsBorn(1);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.PAIRS_TWINS), "cent paires");
+        assertFalse(game.hasSkin(Skin.PAIRS_MAGNETS));
+        game.testAddVoidPairsBorn(900);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.PAIRS_MAGNETS), "mille paires");
+        assertFalse(game.hasSkin(Skin.PAIRS_YINYANG));
+        game.testAddVoidPairsBorn(9_000);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.PAIRS_YINYANG), "dix mille paires");
+        // Le trou noir du vide : ouvert, il compte les univers à partir du quatrième.
+        assertEquals(0, game.voidHoleUniverses(), "trois univers : rien à compter");
+        for (int n = 1; n <= Skin.VOID_HOLES.length; n++) {
+            assertTrue(game.testAddUniverse());
+            game.state().setVoidOpen(true);
+            game.state().setVoidHoleOpen(false);
+            game.tick(1);
+            assertEquals(n, game.voidHoleUniverses());
+            assertFalse(game.hasSkin(Skin.VOID_HOLES[n - 1]), "le trou noir du vide fermé : " + Skin.VOID_HOLES[n - 1]);
+            game.testOpenVoidHole();
+            game.tick(1);
+            for (int i = 0; i < Skin.VOID_HOLES.length; i++) assertEquals(i < n, game.hasSkin(Skin.VOID_HOLES[i]), Skin.VOID_HOLES[i] + " à " + n + " univers comptés");
+        }
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() >= Skin.DETECTOR_EYE.ordinal() && skin.ordinal() < Skin.BUBBLE_SOAP.ordinal()) assertTrue(game.hasSkin(skin), "tout est là : " + skin);
+        }
+        assertEquals(SkinVisual.DETECTOR, Skin.DETECTOR_CAMERA.visual());
+        assertEquals(SkinVisual.LIGHTNING, Skin.LIGHTNING_ROOTS.visual());
+        assertEquals(SkinVisual.SPARKS, Skin.SPARKS_EMBERS.visual());
+        assertEquals(SkinVisual.QUARK_FLIGHT, Skin.QUARK_FLIGHT_SCRABBLE.visual());
+        assertEquals(SkinVisual.QUARKS, Skin.QUARKS_PUZZLE.visual());
+        assertEquals(SkinVisual.GLUONS, Skin.GLUONS_LIGHTNING.visual());
+        assertEquals(SkinVisual.HADRON_BACKGROUND, Skin.HADRON_BACK_STORM.visual());
+        assertEquals(SkinVisual.VOID_FOAM, Skin.FOAM_TV.visual());
+        assertEquals(SkinVisual.VOID_PAIRS, Skin.PAIRS_YINYANG.visual());
+        assertEquals(SkinVisual.VOID_HOLE, Skin.VOID_HOLE_TEA.visual());
     }
 
     /** Version 0.192 : le bonus s'arrête à cent skins comptés, et les skins libres ne comptent pas. */
@@ -416,5 +558,288 @@ class SkinsNouveauxTest {
         assertEquals(Skin.MAX_COUNTED, game.skinsCounted());
         assertEquals(Skin.values().length, game.skinsUnlocked());
         assertEquals(3.0, game.skinBoost(), 1e-9);
+    }
+
+    /**
+     * Version 0.196 : l'univers. Les bulles, la naissance, les liens et le lancement suivent les univers formés ; la graine ses
+     * paliers ; l'arrosoir les arrosages, le tuyau et la terre fertile ; l'étagère et le chrono l'étage du chrono, le chrono
+     * plein et les univers ; le tuyau ses niveaux ; le rond, la météo et les saisons leurs comptes depuis l'ouverture.
+     */
+    @Test
+    void lUniversLaGraineEtSonEtabliOntLeursConditions() {
+        Game game = GameTestSupport.universe(1);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        game.tick(1);
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() < Skin.BUBBLE_SOAP.ordinal() || skin.ordinal() >= Skin.TREE_AUTUMN.ordinal()) continue;
+            boolean first = skin == Skin.BUBBLE_SOAP || skin == Skin.SEED_WALNUT;
+            assertEquals(first, game.hasSkin(skin), "un univers formé, la graine au palier 1 : " + skin);
+        }
+        // L'arrosoir : les arrosages de la graine en cours, puis le tuyau et la terre fertile.
+        for (int i = 0; i < Skin.CANS.length; i++) {
+            game.state().setSeedWaterings(Skin.CAN_WATERINGS[i] - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.CANS[i]), "un arrosage de moins : " + Skin.CANS[i]);
+            game.state().setSeedWaterings(Skin.CAN_WATERINGS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.CANS[i]), Skin.CANS[i].label());
+        }
+        game.state().setSeedWaterings(0);
+        // La graine : un skin par palier ; la graine ne prend pas plus de deux paliers d'avance sur les univers.
+        game.state().setSeedSprouted(true);
+        for (int stage = 2; stage <= Skin.SEEDS.length; stage++) {
+            while (game.seedStageCap() < stage) assertTrue(game.testAddUniverse());
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage) - 1);
+            game.tick(1);
+            assertEquals(stage - 1, game.seedStage());
+            assertFalse(game.hasSkin(Skin.SEEDS[stage - 1]), "un arrosage avant le palier : " + Skin.SEEDS[stage - 1]);
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage));
+            game.tick(1);
+            assertEquals(stage, game.seedStage());
+            assertTrue(game.hasSkin(Skin.SEEDS[stage - 1]), Skin.SEEDS[stage - 1].label());
+        }
+        assertEquals(5, game.universes(), "le palier 7 demande cinq univers");
+        // Les bulles, la naissance, le lancement, les liens : par les univers formés, de cinq à dix.
+        for (int universes = 5; universes <= 10; universes++) {
+            if (game.universes() < universes) assertTrue(game.testAddUniverse());
+            game.tick(1);
+            for (int i = 0; i < Skin.UNIVERSE_BUBBLES.length; i++) assertEquals(universes >= i + 1, game.hasSkin(Skin.UNIVERSE_BUBBLES[i]), Skin.UNIVERSE_BUBBLES[i] + " à " + universes);
+            for (int i = 0; i < Skin.BIRTHS.length; i++) assertEquals(universes >= Skin.FIRST_BIRTH_UNIVERSE + i, game.hasSkin(Skin.BIRTHS[i]), Skin.BIRTHS[i] + " à " + universes);
+            for (int i = 0; i < Skin.LAUNCHES.length; i++) assertEquals(universes >= Skin.FIRST_LAUNCH_UNIVERSE + i, game.hasSkin(Skin.LAUNCHES[i]), Skin.LAUNCHES[i] + " à " + universes);
+            for (int i = 0; i < Skin.LINKS.length; i++) assertEquals(universes >= Skin.FIRST_LINKS_UNIVERSE + i, game.hasSkin(Skin.LINKS[i]), Skin.LINKS[i] + " à " + universes);
+            // Sans l'étage du chrono, ni étagère ni chrono, quel que soit le nombre d'univers.
+            for (Skin skin : Skin.SHELVES) assertFalse(game.hasSkin(skin), skin.label());
+            for (Skin skin : Skin.CHRONOS) assertFalse(game.hasSkin(skin), skin.label());
+        }
+        // Le tuyau et la terre fertile : l'arrosoir, puis les niveaux du tuyau.
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.HOSE.ordinal(), 1);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.CAN_BEAK));
+        assertFalse(game.hasSkin(Skin.CAN_SHELL) || game.hasSkin(Skin.HOSE_VINE));
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.SOIL.ordinal(), 1);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.CAN_SHELL));
+        for (int i = 0; i < Skin.HOSES.length; i++) {
+            game.state().setSeedUpgradeLevel(Game.SeedUpgrade.HOSE.ordinal(), Skin.HOSE_LEVELS[i] - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.HOSES[i]), "un niveau de moins : " + Skin.HOSES[i]);
+            game.state().setSeedUpgradeLevel(Game.SeedUpgrade.HOSE.ordinal(), Skin.HOSE_LEVELS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.HOSES[i]), Skin.HOSES[i].label());
+        }
+        assertEquals(Game.SeedUpgrade.HOSE.max(), Skin.HOSE_LEVELS[Skin.HOSE_LEVELS.length - 1], "le dernier au plus haut niveau du tuyau");
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.HOSE.ordinal(), 0);
+        // L'étagère : l'étage du chrono acheté, avec dix univers formés, tous ses skins ; le chrono, plein seulement.
+        game.state().setSeedUpgradeLevel(Game.SeedUpgrade.CHRONO.ordinal(), 1);
+        game.state().setChronoStored(game.chronoCapacity() - 1);
+        game.tick(1);
+        for (Skin skin : Skin.SHELVES) assertTrue(game.hasSkin(skin), skin.label());
+        assertTrue(game.chronoStored() < game.chronoCapacity() - 0.5, "le chrono n'est pas plein");
+        for (Skin skin : Skin.CHRONOS) assertFalse(game.hasSkin(skin), "pas plein : " + skin);
+        game.state().setChronoStored(game.chronoCapacity());
+        game.tick(1);
+        for (Skin skin : Skin.CHRONOS) assertTrue(game.hasSkin(skin), skin.label());
+        // Le rond de croissance : les ronds cueillis depuis l'ouverture.
+        assertTrue(game.isBloomUnlocked());
+        for (long caught = 1; caught <= Skin.RING_CAUGHT[Skin.RING_CAUGHT.length - 1]; caught++) {
+            game.testShowBloom();
+            assertTrue(game.catchBloom());
+            assertEquals(caught, game.bloomsCaught());
+            game.tick(1);
+            for (int i = 0; i < Skin.RINGS.length; i++) assertEquals(caught >= Skin.RING_CAUGHT[i], game.hasSkin(Skin.RINGS[i]), Skin.RINGS[i] + " à " + caught);
+        }
+        // Les saisons : chaque cycle complet depuis l'ouverture, huit minutes.
+        assertTrue(game.areSeasonsUnlocked());
+        game.testSetSeason(Game.Season.WINTER);
+        game.tick(Game.SEASON_SECONDS - 1);
+        assertEquals(0, game.seasonCycles());
+        for (Skin skin : Skin.SEASON_SKINS) assertFalse(game.hasSkin(skin), skin.label());
+        for (int cycle = 1; cycle <= Skin.SEASON_SKINS.length; cycle++) {
+            game.tick(cycle == 1 ? 1 : Game.SEASON_SECONDS * Game.Season.values().length);
+            assertEquals(cycle, game.seasonCycles());
+            // Les saisons avancent après les skins dans le pas : le skin vient au pas suivant.
+            game.tick(1);
+            for (int i = 0; i < Skin.SEASON_SKINS.length; i++) assertEquals(cycle >= i + 1, game.hasSkin(Skin.SEASON_SKINS[i]), Skin.SEASON_SKINS[i] + " au cycle " + cycle);
+        }
+        // La météo : les orages depuis l'ouverture ; le temps variable tourne au beau temps ou à l'orage au bout d'une minute.
+        assertTrue(game.isWeatherUnlocked());
+        for (int turn = 0; turn < 400 && game.storms() < Skin.WEATHER_STORMS[Skin.WEATHER_STORMS.length - 1]; turn++) {
+            game.testSetWeather(Game.Weather.VARIABLE);
+            game.tick(Game.WEATHER_VARIABLE_SECONDS + 1);
+            // La météo tourne après les skins dans le pas : le skin vient au pas suivant.
+            game.tick(1);
+            for (int i = 0; i < Skin.WEATHERS.length; i++) assertEquals(game.storms() >= Skin.WEATHER_STORMS[i], game.hasSkin(Skin.WEATHERS[i]), Skin.WEATHERS[i] + " à " + game.storms());
+        }
+        assertTrue(game.hasSkin(Skin.WEATHER_PASTEL), "dix orages en quatre cents tours");
+        assertEquals(SkinVisual.UNIVERSE_BUBBLE, Skin.BUBBLE_EGG.visual());
+        assertEquals(SkinVisual.LAUNCH, Skin.LAUNCH_CURTAIN.visual());
+        assertEquals(SkinVisual.SEASONS, Skin.SEASONS_STAINED.visual());
+    }
+
+    /**
+     * Version 0.197 : l'arbre au-delà de ses essences (saisons figées, fantaisie, sol), ses bulles et leurs liens, la carte
+     * des dimensions, le remplissage du défi final, les cadres des mini-jeux ; la palette des dimensions est libre.
+     */
+    @Test
+    void lArbreSesBullesLaCarteLeDefiFinalEtLesCadresOntLeursConditions() {
+        Game game = GameTestSupport.universe(1);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        game.tick(1);
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() < Skin.TREE_AUTUMN.ordinal() || skin.ordinal() >= Skin.AVATAR_LINE.ordinal()) continue;
+            assertEquals(skin.isFree(), game.hasSkin(skin), "un univers formé, rien d'acheté : " + skin);
+        }
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() >= Skin.TREE_AUTUMN.ordinal() && skin.ordinal() < Skin.AVATAR_LINE.ordinal()) {
+                assertEquals(skin.visual() == SkinVisual.DIMENSION_PALETTE, skin.isFree(), "libre : " + skin);
+            }
+        }
+        // Le sol : un skin par palier de la graine, du deuxième au septième.
+        game.state().setSeedSprouted(true);
+        for (int stage = Skin.FIRST_GROUND_STAGE; stage < Skin.FIRST_GROUND_STAGE + Skin.GROUNDS.length; stage++) {
+            while (game.seedStageCap() < stage) assertTrue(game.testAddUniverse());
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage) - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.GROUNDS[stage - Skin.FIRST_GROUND_STAGE]), "un arrosage avant le palier : " + stage);
+            game.state().setSeedWaterings(Game.seedStageWaterings(stage));
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.GROUNDS[stage - Skin.FIRST_GROUND_STAGE]), Skin.GROUNDS[stage - Skin.FIRST_GROUND_STAGE].label());
+        }
+        // La carte et les cadres : les dimensions ouvertes, une par univers.
+        for (int universes = game.universes(); universes <= 10; universes++) {
+            while (game.universes() < universes) assertTrue(game.testAddUniverse());
+            game.tick(1);
+            assertEquals(universes, game.dimensionsUnlocked());
+            for (int i = 0; i < Skin.MAPS.length; i++) assertEquals(universes >= Skin.MAP_DIMENSIONS[i], game.hasSkin(Skin.MAPS[i]), Skin.MAPS[i] + " à " + universes);
+            for (int i = 0; i < Skin.FRAMES.length; i++) assertEquals(universes >= Skin.FRAME_DIMENSIONS[i], game.hasSkin(Skin.FRAMES[i]), Skin.FRAMES[i] + " à " + universes);
+            // Les saisons figées : les saisons débloquées au neuvième univers, puis un univers de plus chacune.
+            assertEquals(universes >= 9, game.areSeasonsUnlocked());
+            for (int i = 0; i < Skin.TREE_SEASONS.length; i++) assertEquals(universes >= Skin.FIRST_TREE_SEASON_UNIVERSE + i, game.hasSkin(Skin.TREE_SEASONS[i]), Skin.TREE_SEASONS[i] + " à " + universes);
+            // Sans le défi fini, aucun remplissage.
+            for (Skin skin : Skin.FINALES) assertFalse(game.hasSkin(skin), skin.label());
+        }
+        assertTrue(game.testAddUniverse());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.TREE_SPRING), "onze univers");
+        // Les bulles : les paliers différents pour la fantaisie, le nombre acheté pour les bulles et leurs liens.
+        assertEquals(19, GameUniverse.TreeBubble.values().length, "les skins des bulles comptent sur dix-neuf bulles");
+        assertEquals(Skin.TREE_BUBBLE_COUNTS[Skin.TREE_BUBBLE_COUNTS.length - 1], GameUniverse.TreeBubble.values().length);
+        assertEquals(Skin.BUBBLE_LINK_COUNTS[Skin.BUBBLE_LINK_COUNTS.length - 1], GameUniverse.TreeBubble.values().length);
+        int bought = 0;
+        for (GameUniverse.TreeBubble bubble : GameUniverse.TreeBubble.values()) {
+            game.state().setTreeBubbleBought(bubble.ordinal(), true);
+            bought++;
+            game.tick(1);
+            assertEquals(bought, game.treeBubblesBought());
+            int stages = game.treeBubbleStagesBought();
+            for (int i = 0; i < Skin.TREE_FANTASIES.length; i++) assertEquals(stages >= i + 1, game.hasSkin(Skin.TREE_FANTASIES[i]), Skin.TREE_FANTASIES[i] + " à " + stages + " paliers");
+            for (int i = 0; i < Skin.TREE_BUBBLE_SKINS.length; i++) assertEquals(bought >= Skin.TREE_BUBBLE_COUNTS[i], game.hasSkin(Skin.TREE_BUBBLE_SKINS[i]), Skin.TREE_BUBBLE_SKINS[i] + " à " + bought);
+            for (int i = 0; i < Skin.BUBBLE_LINK_SKINS.length; i++) assertEquals(bought >= Skin.BUBBLE_LINK_COUNTS[i], game.hasSkin(Skin.BUBBLE_LINK_SKINS[i]), Skin.BUBBLE_LINK_SKINS[i] + " à " + bought);
+        }
+        assertEquals(8, game.treeBubbleStagesBought(), "huit paliers portent des bulles");
+        for (Skin skin : Skin.TREE_FANTASIES) assertTrue(game.hasSkin(skin), skin.label());
+        // Le défi final fini : le premier remplissage, les suivants par les univers formés (onze ici : tous).
+        for (Skin skin : Skin.FINALES) assertFalse(game.hasSkin(skin), skin.label());
+        game.state().setGameFinished(true);
+        game.tick(1);
+        for (Skin skin : Skin.FINALES) assertTrue(game.hasSkin(skin), skin.label());
+        assertEquals(SkinVisual.TREE_GROUND, Skin.GROUND_WATER.visual());
+        assertEquals(SkinVisual.DIMENSION_FRAME, Skin.FRAME_BOOK.visual());
+        assertTrue(Skin.DIM_PALETTE_SAFE.isFree());
+    }
+
+    /**
+     * Version 0.198 : le profil, les succès et les statistiques. Les styles des avatars, les tuiles et les succès non
+     * obtenus suivent les succès obtenus (le dernier palier : tous ceux du catalogue) ; les albums les entrées trouvées puis
+     * les albums complets ; les courbes les heures de jeu ; la frise les univers formés ; la palette des courbes est libre.
+     */
+    @Test
+    void leProfilLesSuccesEtLesStatistiquesOntLeursConditions() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        game.tick(1);
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() < Skin.AVATAR_LINE.ordinal()) continue;
+            assertEquals(skin.isFree(), game.hasSkin(skin), "deux univers formés, rien d'autre : " + skin);
+            assertEquals(skin.visual() == SkinVisual.CHART_PALETTE, skin.isFree(), "libre : " + skin);
+        }
+        // Les succès : un à un, les paliers tombent ; le dernier demande tout le catalogue.
+        java.util.List<idle.core.achievements.Achievement> catalog = new java.util.ArrayList<>(game.achievements());
+        assertTrue(catalog.size() > 90, "le dernier palier chiffré, 90, reste sous le catalogue : " + catalog.size());
+        int got = 0;
+        for (idle.core.achievements.Achievement achievement : catalog) {
+            if (!game.hasAchievement(achievement.id())) game.state().addAchievement(achievement.id());
+            got = game.achievementCount();
+            game.tick(1);
+            for (int i = 0; i < Skin.AVATAR_STYLES.length; i++) {
+                int needed = Skin.AVATAR_STYLE_ACHIEVEMENTS[i] == Skin.ALL_ACHIEVEMENTS ? catalog.size() : Skin.AVATAR_STYLE_ACHIEVEMENTS[i];
+                assertEquals(got >= needed, game.hasSkin(Skin.AVATAR_STYLES[i]), Skin.AVATAR_STYLES[i] + " à " + got + " succès");
+            }
+            for (int i = 0; i < Skin.TILES.length; i++) {
+                int needed = Skin.TILE_ACHIEVEMENTS[i] == Skin.ALL_ACHIEVEMENTS ? catalog.size() : Skin.TILE_ACHIEVEMENTS[i];
+                assertEquals(got >= needed, game.hasSkin(Skin.TILES[i]), Skin.TILES[i] + " à " + got + " succès");
+            }
+            for (int i = 0; i < Skin.LOCKED_SKINS.length; i++) {
+                assertEquals(got >= Skin.LOCKED_ACHIEVEMENTS[i], game.hasSkin(Skin.LOCKED_SKINS[i]), Skin.LOCKED_SKINS[i] + " à " + got + " succès");
+            }
+        }
+        assertEquals(catalog.size(), got);
+        assertTrue(game.hasSkin(Skin.AVATAR_STAINED) && game.hasSkin(Skin.TILES_STAMPS), "tous les succès");
+        // Les albums : cinquante entrées pour l'illustré, puis un skin par album complet.
+        assertEquals(0, game.albumEntriesFound());
+        assertEquals(0, game.albumsComplete());
+        int found = 0;
+        for (idle.core.sky.Body body : game.bodies()) {
+            game.state().noteFound("bodies", body.id(), 1);
+            found++;
+            game.tick(1);
+            assertEquals(found, game.albumEntriesFound());
+            assertEquals(found >= Skin.ALBUM_ENTRIES, game.hasSkin(Skin.ALBUM_ILLUSTRATED), found + " entrées");
+        }
+        assertEquals(1, game.albumsComplete(), "les astres au complet");
+        assertTrue(game.hasSkin(Skin.ALBUM_STICKERS));
+        assertFalse(game.hasSkin(Skin.ALBUM_STAMPS));
+        for (idle.core.sky.Assembly assembly : game.assemblies()) {
+            game.state().noteFound("assemblies", assembly.id(), 1);
+            found++;
+        }
+        game.tick(1);
+        assertEquals(2, game.albumsComplete());
+        assertTrue(game.hasSkin(Skin.ALBUM_ILLUSTRATED) && game.hasSkin(Skin.ALBUM_STAMPS), found + " entrées, deux albums");
+        assertFalse(game.hasSkin(Skin.ALBUM_CARDS));
+        for (idle.core.molecules.Molecule molecule : game.molecules()) game.state().noteFound("molecules", molecule.id(), 1);
+        game.tick(1);
+        assertEquals(3, game.albumsComplete());
+        assertTrue(game.hasSkin(Skin.ALBUM_CARDS));
+        assertFalse(game.hasSkin(Skin.ALBUM_HERBARIUM));
+        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+            if (molecule.hasState()) game.state().noteFound("substances", molecule.id(), 1);
+        }
+        game.tick(1);
+        assertEquals(4, game.albumsComplete());
+        assertTrue(game.hasSkin(Skin.ALBUM_HERBARIUM), "les quatre albums");
+        // Les courbes : les heures de jeu.
+        for (int i = 0; i < Skin.CHARTS.length; i++) {
+            game.state().setTimePlayed(Skin.CHART_HOURS[i] * 3600.0 - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.CHARTS[i]), "une seconde avant : " + Skin.CHARTS[i]);
+            game.state().setTimePlayed(Skin.CHART_HOURS[i] * 3600.0);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.CHARTS[i]), Skin.CHARTS[i].label());
+        }
+        // La frise : les univers formés.
+        for (int universes = 2; universes <= 7; universes++) {
+            while (game.universes() < universes) assertTrue(game.testAddUniverse());
+            game.tick(1);
+            for (int i = 0; i < Skin.TIMELINES.length; i++) {
+                assertEquals(universes >= Skin.TIMELINE_UNIVERSES[i], game.hasSkin(Skin.TIMELINES[i]), Skin.TIMELINES[i] + " à " + universes + " univers");
+            }
+        }
+        assertTrue(Skin.CHART_NEON.isFree());
+        assertEquals(SkinVisual.ACHIEVEMENT_LOCKED, Skin.LOCKED_PUZZLE.visual());
+        assertEquals("Tous les succès obtenus", Skin.TILES_STAMPS.source());
     }
 }

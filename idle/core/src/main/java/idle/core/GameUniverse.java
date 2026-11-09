@@ -39,7 +39,20 @@ public abstract class GameUniverse extends GameAtoms {
     public abstract int baseChallengesCompleted();
     public abstract boolean isBigBangUnlocked();
     public abstract boolean hasTitle(idle.core.profile.Title title);
-
+    // Version 0.195 : ce que lisent les skins des hadrons et du vide, définis dans GameHadrons et GameVoid.
+    public abstract long hadronsMade();
+    public abstract double voidPairsBorn();
+    public abstract int voidHoleUniverses();
+    // Version 0.196 : ce que lisent les skins de l'établi de la graine, comptés depuis l'ouverture de la fenêtre dans GameLoop,
+    // GameClicker et GameMirror : les ronds de croissance cueillis, les orages, les cycles complets des saisons.
+    public abstract long bloomsCaught();
+    public abstract long storms();
+    public abstract int seasonCycles();
+    // Version 0.197 : les saisons figées de l'arbre lisent les saisons débloquées, définies dans GameMirror.
+    public abstract boolean areSeasonsUnlocked();
+    // Version 0.198 : les albums du profil lisent les catalogues des assemblages et des astres, définis dans GameMolecules.
+    public abstract List<idle.core.sky.Assembly> assemblies();
+    public abstract List<Body> bodies();
 
     // ------------------------------------------------------------------
     // Le cosmos : la galaxie, l'amas de galaxies, l'univers
@@ -2553,12 +2566,240 @@ public abstract class GameUniverse extends GameAtoms {
         for (int i = 0; i < idle.core.universe.Skin.BODIES.length; i++) {
             if (bodiesFormed() >= idle.core.universe.Skin.BODIES_FORMED[i]) unlockSkin(idle.core.universe.Skin.BODIES[i]);
         }
+        noteColliderHadronVoidSkins();
+        noteUniverseSkins();
+        noteTreeAndDimensionSkins();
+        noteProfileAndStatsSkins();
         if (state.rebuildPending() && generatorCount() >= generatorsPerAtom()) {
             double time = state.timeSinceFusion();
             state.setRebuildPending(false);
             if (state.rebuildRecord() <= 0 || time < state.rebuildRecord()) state.setRebuildRecord(time);
             if (time <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.FUSION_FLASH);
         }
+    }
+
+    /**
+     * Version 0.195 : les skins du reste du collisionneur, des hadrons et du vide. Le détecteur suit les collisions, les
+     * éclairs les croisements, les étincelles trois épreuves du collisionneur, l'envol des quarks et les quarks de la
+     * liaison les hadrons liés (le Puzzle : chaque sorte au moins une fois), les gluons leur compte, le fond des hadrons
+     * trois paliers de gluons, l'écume le vide ouvert puis le plus haut niveau d'une amélioration du vide, les paires
+     * celles nées depuis l'ouverture de la fenêtre, le trou noir du vide les univers qu'il compte une fois ouvert.
+     */
+    private void noteColliderHadronVoidSkins() {
+        for (int i = 0; i < idle.core.universe.Skin.DETECTORS.length; i++) {
+            if (state.collisionRuns() >= idle.core.universe.Skin.DETECTOR_COLLISIONS[i]) unlockSkin(idle.core.universe.Skin.DETECTORS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.LIGHTNINGS.length; i++) {
+            if (state.colliderCrossings() >= idle.core.universe.Skin.LIGHTNING_CROSSINGS[i]) unlockSkin(idle.core.universe.Skin.LIGHTNINGS[i]);
+        }
+        if (isTrialCompleted(idle.core.universe.Trial.DETECTOR)) unlockSkin(idle.core.universe.Skin.SPARKS_PETALS);
+        if (isTrialCompleted(idle.core.universe.Trial.NO_OVERHEAT)) unlockSkin(idle.core.universe.Skin.SPARKS_CONFETTI);
+        if (isTrialCompleted(idle.core.universe.Trial.FULL_CHARGE)) unlockSkin(idle.core.universe.Skin.SPARKS_EMBERS);
+        long hadrons = hadronsMade();
+        for (int i = 0; i < idle.core.universe.Skin.QUARK_FLIGHTS.length; i++) {
+            if (hadrons >= idle.core.universe.Skin.QUARK_FLIGHT_HADRONS[i]) unlockSkin(idle.core.universe.Skin.QUARK_FLIGHTS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.QUARK_SKINS.length; i++) {
+            if (hadrons >= idle.core.universe.Skin.QUARK_SKIN_HADRONS[i]) unlockSkin(idle.core.universe.Skin.QUARK_SKINS[i]);
+        }
+        boolean everyKind = true;
+        for (idle.core.collider.Hadron hadron : idle.core.collider.Hadron.values()) if (state.hadrons(hadron) <= 0) everyKind = false;
+        if (everyKind) unlockSkin(idle.core.universe.Skin.QUARKS_PUZZLE);
+        long gluons = gluons();
+        for (int i = 0; i < idle.core.universe.Skin.GLUON_SKINS.length; i++) {
+            if (gluons >= idle.core.universe.Skin.GLUON_SKIN_GLUONS[i]) unlockSkin(idle.core.universe.Skin.GLUON_SKINS[i]);
+        }
+        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.UPGRADES)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_BLACKBOARD);
+        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.AUTOMATIONS)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_LAB);
+        if (isGluonMilestoneReached(idle.core.collider.GluonMilestone.ELEMENTS)) unlockSkin(idle.core.universe.Skin.HADRON_BACK_STORM);
+        if (isVoidUnlocked()) {
+            unlockSkin(idle.core.universe.Skin.FOAMS[0]);
+            int highest = 0;
+            for (VoidUpgrade upgrade : VoidUpgrade.values()) highest = Math.max(highest, voidLevel(upgrade));
+            for (int i = 1; i < idle.core.universe.Skin.FOAMS.length; i++) if (highest >= i) unlockSkin(idle.core.universe.Skin.FOAMS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.PAIR_SKINS.length; i++) {
+            if (voidPairsBorn() >= idle.core.universe.Skin.PAIR_SKIN_BORN[i]) unlockSkin(idle.core.universe.Skin.PAIR_SKINS[i]);
+        }
+        if (isVoidUnlocked() && state.voidHoleOpen()) {
+            for (int i = 0; i < idle.core.universe.Skin.VOID_HOLES.length; i++) {
+                if (voidHoleUniverses() >= i + 1) unlockSkin(idle.core.universe.Skin.VOID_HOLES[i]);
+            }
+        }
+    }
+
+    /**
+     * Version 0.196 : les skins de l'univers. Les bulles suivent les univers formés (une par univers, du premier au sixième),
+     * la naissance et le lancement les univers à partir du cinquième, les liens à partir du septième ; la graine ses paliers ;
+     * l'arrosoir les arrosages de la graine en cours, le tuyau et la terre fertile achetés ; l'étagère l'étage du chrono
+     * acheté et les univers formés à partir du troisième ; le tuyau ses niveaux ; le chrono plein, puis les univers formés ;
+     * le rond de croissance les ronds cueillis, la météo les orages, les saisons leurs cycles complets, tous trois comptés
+     * depuis l'ouverture de la fenêtre (les skins, eux, restent).
+     */
+    private void noteUniverseSkins() {
+        int formed = universes();
+        for (int i = 0; i < idle.core.universe.Skin.UNIVERSE_BUBBLES.length; i++) {
+            if (formed >= i + 1) unlockSkin(idle.core.universe.Skin.UNIVERSE_BUBBLES[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.BIRTHS.length; i++) {
+            if (formed >= idle.core.universe.Skin.FIRST_BIRTH_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.BIRTHS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.LINKS.length; i++) {
+            if (formed >= idle.core.universe.Skin.FIRST_LINKS_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.LINKS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.LAUNCHES.length; i++) {
+            if (formed >= idle.core.universe.Skin.FIRST_LAUNCH_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.LAUNCHES[i]);
+        }
+        if (isUniverseFormed()) {
+            int stage = seedStage();
+            for (int i = 0; i < idle.core.universe.Skin.SEEDS.length; i++) {
+                if (stage >= i + 1) unlockSkin(idle.core.universe.Skin.SEEDS[i]);
+            }
+        }
+        for (int i = 0; i < idle.core.universe.Skin.CANS.length; i++) {
+            if (state.seedWaterings() >= idle.core.universe.Skin.CAN_WATERINGS[i]) unlockSkin(idle.core.universe.Skin.CANS[i]);
+        }
+        if (hasHose()) unlockSkin(idle.core.universe.Skin.CAN_BEAK);
+        if (seedUpgradeLevel(SeedUpgrade.SOIL) > 0) unlockSkin(idle.core.universe.Skin.CAN_SHELL);
+        if (isChronoUnlocked()) {
+            for (int i = 0; i < idle.core.universe.Skin.SHELVES.length; i++) {
+                if (formed >= idle.core.universe.Skin.FIRST_SHELF_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.SHELVES[i]);
+            }
+            if (chronoStored() >= chronoCapacity() - 1e-6) {
+                unlockSkin(idle.core.universe.Skin.CHRONOS[0]);
+                for (int i = 1; i < idle.core.universe.Skin.CHRONOS.length; i++) {
+                    if (formed >= idle.core.universe.Skin.FIRST_CHRONO_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.CHRONOS[i]);
+                }
+            }
+        }
+        int hose = seedUpgradeLevel(SeedUpgrade.HOSE);
+        for (int i = 0; i < idle.core.universe.Skin.HOSES.length; i++) {
+            if (hose >= idle.core.universe.Skin.HOSE_LEVELS[i]) unlockSkin(idle.core.universe.Skin.HOSES[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.RINGS.length; i++) {
+            if (bloomsCaught() >= idle.core.universe.Skin.RING_CAUGHT[i]) unlockSkin(idle.core.universe.Skin.RINGS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.WEATHERS.length; i++) {
+            if (storms() >= idle.core.universe.Skin.WEATHER_STORMS[i]) unlockSkin(idle.core.universe.Skin.WEATHERS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.SEASON_SKINS.length; i++) {
+            if (seasonCycles() >= i + 1) unlockSkin(idle.core.universe.Skin.SEASON_SKINS[i]);
+        }
+    }
+
+    /**
+     * Version 0.197 : les skins de l'arbre au-delà de ses essences, de ses bulles, de la carte des dimensions, du défi
+     * final et des cadres des mini-jeux. Les saisons figées suivent les saisons débloquées puis les univers formés ; les
+     * arbres de fantaisie le nombre de paliers de la graine dont une bulle est achetée ; les sols les paliers de la
+     * graine ; les bulles et leurs liens le nombre de bulles achetées ; la carte et les cadres les dimensions ouvertes ;
+     * le remplissage du défi final le défi fini, puis les univers formés. La palette des dimensions est libre.
+     */
+    private void noteTreeAndDimensionSkins() {
+        int formed = universes();
+        if (areSeasonsUnlocked()) {
+            for (int i = 0; i < idle.core.universe.Skin.TREE_SEASONS.length; i++) {
+                if (formed >= idle.core.universe.Skin.FIRST_TREE_SEASON_UNIVERSE + i) unlockSkin(idle.core.universe.Skin.TREE_SEASONS[i]);
+            }
+        }
+        int stages = treeBubbleStagesBought();
+        for (int i = 0; i < idle.core.universe.Skin.TREE_FANTASIES.length; i++) {
+            if (stages >= i + 1) unlockSkin(idle.core.universe.Skin.TREE_FANTASIES[i]);
+        }
+        if (isUniverseFormed()) {
+            int stage = seedStage();
+            for (int i = 0; i < idle.core.universe.Skin.GROUNDS.length; i++) {
+                if (stage >= idle.core.universe.Skin.FIRST_GROUND_STAGE + i) unlockSkin(idle.core.universe.Skin.GROUNDS[i]);
+            }
+        }
+        int bubbles = treeBubblesBought();
+        for (int i = 0; i < idle.core.universe.Skin.TREE_BUBBLE_SKINS.length; i++) {
+            if (bubbles >= idle.core.universe.Skin.TREE_BUBBLE_COUNTS[i]) unlockSkin(idle.core.universe.Skin.TREE_BUBBLE_SKINS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.BUBBLE_LINK_SKINS.length; i++) {
+            if (bubbles >= idle.core.universe.Skin.BUBBLE_LINK_COUNTS[i]) unlockSkin(idle.core.universe.Skin.BUBBLE_LINK_SKINS[i]);
+        }
+        int dimensions = dimensionsUnlocked();
+        for (int i = 0; i < idle.core.universe.Skin.MAPS.length; i++) {
+            if (dimensions >= idle.core.universe.Skin.MAP_DIMENSIONS[i]) unlockSkin(idle.core.universe.Skin.MAPS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.FRAMES.length; i++) {
+            if (dimensions >= idle.core.universe.Skin.FRAME_DIMENSIONS[i]) unlockSkin(idle.core.universe.Skin.FRAMES[i]);
+        }
+        if (state.gameFinished()) {
+            unlockSkin(idle.core.universe.Skin.FINALES[0]);
+            for (int i = 1; i < idle.core.universe.Skin.FINALES.length; i++) {
+                if (formed >= idle.core.universe.Skin.FIRST_FINALE_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.FINALES[i]);
+            }
+        }
+    }
+
+    /**
+     * Version 0.198 : les skins du profil, des succès et des statistiques. Les styles des avatars, les tuiles des succès et
+     * les succès non obtenus suivent les succès obtenus ; les albums les entrées trouvées puis les albums complets ; les
+     * courbes les heures de jeu ; la frise les univers formés. La palette des courbes est libre.
+     */
+    private void noteProfileAndStatsSkins() {
+        for (int i = 0; i < idle.core.universe.Skin.AVATAR_STYLES.length; i++) {
+            if (achievementsReach(idle.core.universe.Skin.AVATAR_STYLE_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.AVATAR_STYLES[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.TILES.length; i++) {
+            if (achievementsReach(idle.core.universe.Skin.TILE_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.TILES[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.LOCKED_SKINS.length; i++) {
+            if (achievementsReach(idle.core.universe.Skin.LOCKED_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.LOCKED_SKINS[i]);
+        }
+        if (albumEntriesFound() >= idle.core.universe.Skin.ALBUM_ENTRIES) unlockSkin(idle.core.universe.Skin.ALBUMS[0]);
+        int complete = albumsComplete();
+        for (int i = 1; i < idle.core.universe.Skin.ALBUMS.length; i++) {
+            if (complete >= i) unlockSkin(idle.core.universe.Skin.ALBUMS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.CHARTS.length; i++) {
+            if (state.timePlayed() >= idle.core.universe.Skin.CHART_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.CHARTS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.TIMELINES.length; i++) {
+            if (universes() >= idle.core.universe.Skin.TIMELINE_UNIVERSES[i]) unlockSkin(idle.core.universe.Skin.TIMELINES[i]);
+        }
+    }
+
+    /** Vrai si {@code needed} succès du catalogue sont obtenus ; {@link idle.core.universe.Skin#ALL_ACHIEVEMENTS} les demande tous (version 0.198). */
+    private boolean achievementsReach(int needed) {
+        if (needed == idle.core.universe.Skin.ALL_ACHIEVEMENTS) return !achievements().isEmpty() && achievementCount() >= achievements().size();
+        return achievementCount() >= needed;
+    }
+
+    /** Les entrées trouvées dans les quatre albums du profil, ensemble (version 0.198). */
+    public int albumEntriesFound() {
+        return state.foundMolecules().size() + state.foundSubstances().size() + state.foundAssemblies().size() + state.foundBodies().size();
+    }
+
+    /** Les albums du profil complets (version 0.198), de 0 à 4 : les molécules, les sortes rassemblées, les assemblages, les astres. */
+    public int albumsComplete() {
+        int sorts = 0;
+        for (Molecule molecule : molecules()) if (molecule.hasState()) sorts++;
+        int complete = 0;
+        if (albumComplete(state.foundMolecules(), molecules().size())) complete++;
+        if (albumComplete(state.foundSubstances(), sorts)) complete++;
+        if (albumComplete(state.foundAssemblies(), assemblies().size())) complete++;
+        if (albumComplete(state.foundBodies(), bodies().size())) complete++;
+        return complete;
+    }
+
+    private static boolean albumComplete(Map<String, Double> found, int catalog) {
+        return catalog > 0 && found.size() >= catalog;
+    }
+
+    /** Les bulles de l'arbre achetées (version 0.197), niveaux à part : de 0 à {@code TreeBubble.values().length}. */
+    public int treeBubblesBought() {
+        int bought = 0;
+        for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleBought(bubble)) bought++;
+        return bought;
+    }
+
+    /** Les paliers de la graine dont une bulle au moins est achetée (version 0.197) : de 0 à 8. */
+    public int treeBubbleStagesBought() {
+        java.util.Set<Integer> stages = new java.util.HashSet<>();
+        for (TreeBubble bubble : TreeBubble.values()) if (isTreeBubbleBought(bubble)) stages.add(bubble.stage());
+        return stages.size();
     }
 
     /** Les cases de l'arbre de matière noire achetées au moins une fois, liaisons comprises (version 0.193). */

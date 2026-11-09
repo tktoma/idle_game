@@ -55,26 +55,15 @@ public final class DimensionWindow extends BorderPane {
     private static final String BUTTON_STYLE = "-fx-font-size: 13px; -fx-padding: 8 16; -fx-cursor: hand; -fx-background-radius: 6;"
             + " -fx-border-radius: 6; -fx-text-fill: " + UniversePage.COLOR + "; -fx-background-color: #141a2c; -fx-border-color: #3b4670;";
 
-    /** La couleur de chaque dimension, celle de ses éclats : ses améliorations achetables la prennent (version 0.140). */
-    private static final String PLANE_COLOR = "#ffd27f", VOLUME_COLOR = "#c9a6ff", DURATION_COLOR = "#9be7a8", LOOP_COLOR = "#ff9eb5",
-            BRANE_COLOR = "#7fe0d4", CLICKER_COLOR = "#ffb36b", GRID_COLOR = "#a8b8ff",
-            MIRROR_COLOR = "#ff7ad9", MIX_COLOR = "#fff1c9";
     private static final String UPGRADE_STYLE = "-fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; -fx-opacity: 1;";
 
-    /** La couleur de la dimension {@code number} (1 à 10), celle de ses éclats ; celle de l'univers pour la ligne et au-delà. */
+    /**
+     * La couleur de la dimension {@code number} (1 à 10), celle de ses éclats : ses améliorations achetables la prennent
+     * (version 0.140) ; celle de l'univers pour la ligne et au-delà. Version 0.197 : celle de la palette choisie
+     * ({@link DimensionPalette}).
+     */
     public static String color(int number) {
-        return switch (number) {
-            case 2 -> PLANE_COLOR;
-            case 3 -> VOLUME_COLOR;
-            case 4 -> DURATION_COLOR;
-            case 5 -> LOOP_COLOR;
-            case 6 -> BRANE_COLOR;
-            case 7 -> CLICKER_COLOR;
-            case 8 -> GRID_COLOR;
-            case 9 -> MIRROR_COLOR;
-            case 10 -> MIX_COLOR;
-            default -> UniversePage.COLOR;
-        };
+        return DimensionPalette.hex(number < 1 || number > 10 ? 1 : number);
     }
 
     /**
@@ -229,6 +218,12 @@ public final class DimensionWindow extends BorderPane {
     private final Label mixShards = new Label();
     private final Label mixThreshold = new Label();
     private final Label mixInfo = new Label();
+    /** Les noms des trois axes de la grille, colorés de sa couleur : repris quand la palette change (version 0.197). */
+    private final java.util.List<Label> gridAxisNames = new java.util.ArrayList<>();
+    /** Le cadre des mini-jeux (version 0.197) : un calque sur l'arène, et la boîte qui lui fait sa marge. */
+    private final javafx.scene.canvas.Canvas frameLayer = new javafx.scene.canvas.Canvas();
+    private final javafx.scene.layout.StackPane framed;
+    private double frameTime;
     private final Label mixHint = new Label();
     private final Label mixDetail = new Label();
     private final java.util.Map<Game.MixUpgrade, Button> mixButtons = new java.util.EnumMap<>(Game.MixUpgrade.class);
@@ -300,9 +295,8 @@ public final class DimensionWindow extends BorderPane {
         head.setPadding(new Insets(0, 0, 10, 0));
         setTop(head);
         // Au-dessus de la vue, l'étape du mélange (version 0.159), cachée dans les autres dimensions.
-        Labels.centered(mixStage, "-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + MIX_COLOR + ";");
+        Labels.centered(mixStage, "-fx-font-size: 15px; -fx-font-weight: bold;");
         mixProgress.setStyle("-fx-font-size: 12px; -fx-text-fill: #c8d4ea;");
-        mixBarFill.setStyle("-fx-background-color: " + MIX_COLOR + "; -fx-background-radius: 4 0 0 4;");
         mixBarRest.setStyle("-fx-background-color: #1a2032; -fx-background-radius: 0 4 4 0;");
         for (Region part : new Region[] {mixBarFill, mixBarRest}) {
             part.setMinHeight(10);
@@ -323,11 +317,16 @@ public final class DimensionWindow extends BorderPane {
         mixStageBox.setAlignment(Pos.CENTER);
         mixStageBox.setPadding(new Insets(0, 0, 8, 0));
         CanvasPane holder = CanvasPane.filling(view);
-        VBox.setVgrow(holder, Priority.ALWAYS);
-        VBox middle = new VBox(mixStageBox, holder);
+        // Le cadre (version 0.197) : un calque transparent aux clics, hors de la mise en page, de la taille de la boîte.
+        frameLayer.setMouseTransparent(true);
+        frameLayer.setManaged(false);
+        framed = new javafx.scene.layout.StackPane(holder, frameLayer);
+        frameLayer.widthProperty().bind(framed.widthProperty());
+        frameLayer.heightProperty().bind(framed.heightProperty());
+        VBox.setVgrow(framed, Priority.ALWAYS);
+        VBox middle = new VBox(mixStageBox, framed);
         middle.setAlignment(Pos.CENTER);
         setCenter(middle);
-        shards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + UniversePage.COLOR + ";");
         threshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         javafx.scene.layout.FlowPane row = new javafx.scene.layout.FlowPane(12, 10);
         row.setAlignment(Pos.CENTER);
@@ -339,7 +338,6 @@ public final class DimensionWindow extends BorderPane {
         linePane = new VBox(10, shards, threshold, row);
         linePane.setAlignment(Pos.CENTER);
         linePane.setPadding(new Insets(10, 0, 0, 0));
-        planeShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ffd27f;");
         planeHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         javafx.scene.layout.FlowPane planeRow = new javafx.scene.layout.FlowPane(12, 10);
         planeRow.setAlignment(Pos.CENTER);
@@ -352,7 +350,6 @@ public final class DimensionWindow extends BorderPane {
         planePane = new VBox(10, planeShards, planeThreshold, planeHint, planeRow);
         planePane.setAlignment(Pos.CENTER);
         planePane.setPadding(new Insets(10, 0, 0, 0));
-        volumeShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #c9a6ff;");
         volumeThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         volumeHint.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         volumeHint.setWrapText(true);
@@ -373,7 +370,6 @@ public final class DimensionWindow extends BorderPane {
         volumePane = new VBox(10, volumeShards, volumeThreshold, volumeHint, freeCameraButton, volumeDetail, volumeRow);
         volumePane.setAlignment(Pos.CENTER);
         volumePane.setPadding(new Insets(10, 0, 0, 0));
-        durationShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #9be7a8;");
         durationThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(durationHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         durationHint.setMaxWidth(820);
@@ -392,7 +388,6 @@ public final class DimensionWindow extends BorderPane {
         durationPane = new VBox(10, durationShards, durationThreshold, durationHint, durationDetail, durationRow);
         durationPane.setAlignment(Pos.CENTER);
         durationPane.setPadding(new Insets(10, 0, 0, 0));
-        loopShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + LOOP_COLOR + ";");
         loopThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(loopHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         loopHint.setMaxWidth(820);
@@ -417,7 +412,6 @@ public final class DimensionWindow extends BorderPane {
         loopPane = new VBox(10, loopShards, loopThreshold, loopHint, metronomeButton, loopDetail, loopRow);
         loopPane.setAlignment(Pos.CENTER);
         loopPane.setPadding(new Insets(10, 0, 0, 0));
-        braneShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + BRANE_COLOR + ";");
         braneThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(braneHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         braneHint.setMaxWidth(820);
@@ -436,7 +430,6 @@ public final class DimensionWindow extends BorderPane {
         branePane = new VBox(10, braneShards, braneThreshold, braneHint, braneDetail, braneRow);
         branePane.setAlignment(Pos.CENTER);
         branePane.setPadding(new Insets(10, 0, 0, 0));
-        clickerShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + CLICKER_COLOR + ";");
         clickerThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(clickerHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         clickerHint.setMaxWidth(820);
@@ -456,7 +449,6 @@ public final class DimensionWindow extends BorderPane {
         clickerPane = new VBox(10, clickerShards, clickerThreshold, clickerHint, clickerDetail, clickerRow);
         clickerPane.setAlignment(Pos.CENTER);
         clickerPane.setPadding(new Insets(10, 0, 0, 0));
-        gridShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + GRID_COLOR + ";");
         gridThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         Labels.centered(gridHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         gridHint.setMaxWidth(820);
@@ -465,7 +457,6 @@ public final class DimensionWindow extends BorderPane {
         gridHint.setMinHeight(38);
         gridHint.setPrefHeight(38);
         Labels.note(gridDetail, 820);
-        gridLayerLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GRID_COLOR + ";");
         gridLayerLabel.setMinWidth(120);
         gridLayerLabel.setAlignment(Pos.CENTER);
         for (Button button : new Button[] {gridDown, gridUp}) {
@@ -500,7 +491,7 @@ public final class DimensionWindow extends BorderPane {
                 if (field.isFocused()) selectFromFields();
             });
             Label name = new Label(axes[axis]);
-            name.setStyle("-fx-font-size: 13px; -fx-text-fill: " + GRID_COLOR + ";");
+            gridAxisNames.add(name);
             gridAim.getChildren().addAll(name, field);
         }
         for (Button button : new Button[] {gridTry, gridZoomIn, gridZoomOut}) {
@@ -531,10 +522,8 @@ public final class DimensionWindow extends BorderPane {
         gridPane = new VBox(8, gridShards, gridThreshold, gridSize, gridHint, gridLayers, gridAim, gridDetail, gridRow);
         gridPane.setAlignment(Pos.CENTER);
         gridPane.setPadding(new Insets(10, 0, 0, 0));
-        mirrorShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + MIRROR_COLOR + ";");
         mirrorThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
         mirrorCounts.setStyle("-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
-        mirrorBoard.setStyle("-fx-font-size: 13px; -fx-text-fill: " + MIRROR_COLOR + ";");
         Labels.centered(mirrorHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         mirrorHint.setMaxWidth(820);
         mirrorHint.setAlignment(Pos.CENTER);
@@ -552,9 +541,8 @@ public final class DimensionWindow extends BorderPane {
         mirrorPane = new VBox(10, mirrorShards, mirrorThreshold, mirrorBoard, mirrorCounts, mirrorHint, mirrorDetail, mirrorRow);
         mirrorPane.setAlignment(Pos.CENTER);
         mirrorPane.setPadding(new Insets(10, 0, 0, 0));
-        mixShards.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + MIX_COLOR + ";");
         mixThreshold.setStyle("-fx-font-size: 13px; -fx-text-fill: #9be7a8;");
-        Labels.centered(mixInfo, "-fx-font-size: 13px; -fx-text-fill: " + MIX_COLOR + ";");
+        Labels.centered(mixInfo, "-fx-font-size: 13px;");
         mixInfo.setMaxWidth(860);
         Labels.centered(mixHint, "-fx-font-size: 13px; -fx-text-fill: #c8d4ea;");
         mixHint.setMaxWidth(860);
@@ -571,6 +559,7 @@ public final class DimensionWindow extends BorderPane {
         mixPane.setAlignment(Pos.CENTER);
         mixPane.setPadding(new Insets(10, 0, 0, 0));
         setBottom(new VBox(linePane, planePane, volumePane, durationPane, loopPane, branePane, clickerPane, gridPane, mirrorPane, mixPane));
+        restyle();
         setVisible(false);
     }
 
@@ -609,6 +598,9 @@ public final class DimensionWindow extends BorderPane {
 
     /** Recopie la dimension montrée (de la ligne au mélange) : ses éclats, et ce que coûtent ses améliorations. */
     private void refresh() {
+        // La palette des dimensions (version 0.197) : lue à chaque image ; changée, les étiquettes colorées sont reprises.
+        DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
+        if (changed(this, "palette " + DimensionPalette.skin())) restyle();
         autoBadge.setVisible(automatic());
         boolean mix = view.dimension() == Dimension.MIX && game.isMixOpen();
         mixPane.setVisible(mix);
@@ -657,7 +649,53 @@ public final class DimensionWindow extends BorderPane {
                 + "   (+" + rate(game.lineShardsPerSecond()) + " par seconde)");
         threshold(threshold, game.isLineThresholdReached(), game.state().dimensionShardsEarned(), Game.LINE_THRESHOLD, "segments gagnés", 1);
         paintUpgrades(buttons, this::describe, game::lineLevel, game::lineMaxLevel, game::lineCost, game::canBuyLine,
-                " segment", UniversePage.COLOR);
+                " segment", color(1));
+    }
+
+    /**
+     * Les étiquettes qui portent la couleur de leur dimension (version 0.197 : celle de la palette choisie) : les éclats de
+     * chaque dimension, la couche et les axes de la grille, le tableau du miroir, l'étape du mélange et sa barre.
+     */
+    private void restyle() {
+        String bold = "-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: ";
+        shards.setStyle(bold + color(1) + ";");
+        planeShards.setStyle(bold + color(2) + ";");
+        volumeShards.setStyle(bold + color(3) + ";");
+        durationShards.setStyle(bold + color(4) + ";");
+        loopShards.setStyle(bold + color(5) + ";");
+        braneShards.setStyle(bold + color(6) + ";");
+        clickerShards.setStyle(bold + color(7) + ";");
+        gridShards.setStyle(bold + color(8) + ";");
+        gridLayerLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: " + color(8) + ";");
+        for (Label name : gridAxisNames) name.setStyle("-fx-font-size: 13px; -fx-text-fill: " + color(8) + ";");
+        mirrorShards.setStyle(bold + color(9) + ";");
+        mirrorBoard.setStyle("-fx-font-size: 13px; -fx-text-fill: " + color(9) + ";");
+        mixShards.setStyle(bold + color(10) + ";");
+        mixInfo.setStyle("-fx-font-size: 13px; -fx-text-fill: " + color(10) + ";");
+        mixStage.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: " + color(10) + ";");
+        mixBarFill.setStyle("-fx-background-color: " + color(10) + "; -fx-background-radius: 4 0 0 4;");
+    }
+
+    /** Le cadre des mini-jeux (version 0.197) : pour les vérifications, la marge que la boîte de l'arène laisse au cadre. */
+    public double frameInset() {
+        return framed.getPadding().getTop();
+    }
+
+    /** Le style de l'étiquette des éclats de la dimension {@code number} (1 à 10), qui porte sa couleur : pour les vérifications. */
+    public String shardsStyle(int number) {
+        Label label = switch (number) {
+            case 2 -> planeShards;
+            case 3 -> volumeShards;
+            case 4 -> durationShards;
+            case 5 -> loopShards;
+            case 6 -> braneShards;
+            case 7 -> clickerShards;
+            case 8 -> gridShards;
+            case 9 -> mirrorShards;
+            case 10 -> mixShards;
+            default -> shards;
+        };
+        return label.getStyle();
     }
 
     /** Vrai si {@code key} diffère de ce que {@code node} a montré en dernier ; la retient pour la prochaine image. */
@@ -684,6 +722,7 @@ public final class DimensionWindow extends BorderPane {
         for (U upgrade : buttons.keySet()) {
             key.append(level.applyAsInt(upgrade)).append(canBuy.test(upgrade) ? '+' : '-');
         }
+        key.append(accent);
         if (!changed(buttons, key.toString())) return;
         for (U upgrade : buttons.keySet()) {
             Button button = buttons.get(upgrade);
@@ -702,7 +741,7 @@ public final class DimensionWindow extends BorderPane {
         planeHint.setText("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser."
                 + (game.isDimensionAutomationRunning(DimensionAutomation.PLANE_AIM)
                         ? " Visée automatique : touches lâchées, le point file seul vers l'éclat le plus proche." : ""));
-        paintUpgrades(planeButtons, this::describe, game::planeLevel, Game.PlaneUpgrade::max, game::planeCost, game::canBuyPlane, " facette", PLANE_COLOR);
+        paintUpgrades(planeButtons, this::describe, game::planeLevel, Game.PlaneUpgrade::max, game::planeCost, game::canBuyPlane, " facette", color(2));
     }
 
     /**
@@ -749,7 +788,7 @@ public final class DimensionWindow extends BorderPane {
         // Dedans, la rangée se cache mais garde sa place : le cube ne se déplace pas pendant la plongée.
         volumeRow.setVisible(outside);
         paintUpgrades(volumeButtons, this::describe, game::volumeLevel, Game.VolumeUpgrade::max, game::volumeCost,
-                u -> outside && game.canBuyVolume(u), " sphère", VOLUME_COLOR);
+                u -> outside && game.canBuyVolume(u), " sphère", color(3));
     }
 
     /** La durée : ses éclats, son seuil, ce qu'on y fait ; ses améliorations, bouton relâché. */
@@ -784,7 +823,7 @@ public final class DimensionWindow extends BorderPane {
             durationDetail.setManaged(durationDetail.isVisible());
         }
         paintUpgrades(durationButtons, this::describe, game::durationLevel, Game.DurationUpgrade::max, game::durationCost,
-                u -> !held && game.canBuyDuration(u), " instant", DURATION_COLOR);
+                u -> !held && game.canBuyDuration(u), " instant", color(4));
     }
 
     /**
@@ -821,7 +860,7 @@ public final class DimensionWindow extends BorderPane {
             loopDetail.setManaged(loopDetail.isVisible());
         }
         paintUpgrades(loopButtons, this::describe, game::loopLevel, Game.LoopUpgrade::max, game::loopCost, game::canBuyLoop,
-                " nœud", LOOP_COLOR);
+                " nœud", color(5));
     }
 
     /**
@@ -864,7 +903,7 @@ public final class DimensionWindow extends BorderPane {
             braneDetail.setManaged(braneDetail.isVisible());
         }
         paintUpgrades(braneButtons, this::describe, game::braneLevel, Game.BraneUpgrade::max, game::braneCost, game::canBuyBrane,
-                " onde", BRANE_COLOR);
+                " onde", color(6));
     }
 
     /**
@@ -907,7 +946,7 @@ public final class DimensionWindow extends BorderPane {
             clickerDetail.setManaged(clickerDetail.isVisible());
         }
         paintUpgrades(clickerButtons, this::describe, game::clickerLevel, Game.ClickerUpgrade::max, game::clickerCost,
-                game::canBuyClicker, " étincelle", CLICKER_COLOR);
+                game::canBuyClicker, " étincelle", color(7));
     }
 
     /**
@@ -964,7 +1003,7 @@ public final class DimensionWindow extends BorderPane {
             gridDetail.setManaged(gridDetail.isVisible());
         }
         paintUpgrades(gridButtons, this::describe, game::gridLevel, Game.GridUpgrade::max, game::gridCost, game::canBuyGrid,
-                " repère", GRID_COLOR);
+                " repère", color(8));
     }
 
     /** Le nombre d'un champ de coordonnée, ou −1 s'il n'en est pas un. */
@@ -1086,7 +1125,7 @@ public final class DimensionWindow extends BorderPane {
             mirrorDetail.setManaged(mirrorDetail.isVisible());
         }
         paintUpgrades(mirrorButtons, this::describe, game::mirrorLevel, Game.MirrorUpgrade::max, game::mirrorCost, game::canBuyMirror,
-                " reflet", MIRROR_COLOR);
+                " reflet", color(9));
     }
 
     /** Les dimensions mêlées, de la ligne à la dernière : « ligne + plan + volume ». */
@@ -1172,7 +1211,7 @@ public final class DimensionWindow extends BorderPane {
         if (!changed(mixRowKey, key.toString())) return;
         painted.remove(mixButtons);
         paintUpgrades(mixButtons, this::describe, game::mixLevel, Game.MixUpgrade::max, game::mixCost, game::canBuyMix,
-                " fragment", MIX_COLOR);
+                " fragment", color(10));
         for (Game.MixUpgrade upgrade : Game.MixUpgrade.values()) {
             if (stage >= upgrade.stage()) continue;
             Button button = mixButtons.get(upgrade);
@@ -1626,6 +1665,12 @@ public final class DimensionWindow extends BorderPane {
         if (view.dimension() != null) game.noteDimensionPlayed(view.dimension().number(), elapsed);
         view.frame(elapsed, moving);
         refresh();
+        // Le cadre (version 0.197) : sa marge quand un cadre est choisi, aucune sinon, et son dessin sur le calque.
+        idle.core.universe.Skin frameSkin = game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_FRAME);
+        double inset = DimensionFrameArt.frames(frameSkin) ? DimensionFrameArt.THICKNESS : 0;
+        if (framed.getPadding().getTop() != inset) framed.setPadding(new Insets(inset));
+        if (moving) frameTime += Math.min(elapsed, 0.1);
+        DimensionFrameArt.draw(frameLayer, frameSkin, frameTime);
     }
 
     /** Le bouton d'une amélioration du mélange : pour les vérifications. */

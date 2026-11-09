@@ -539,6 +539,7 @@ public final class UniversePage extends VBox {
     public void frame(double elapsed, boolean moving) {
         // Le lancement avance même animations coupées : c'est lui qui lance l'univers.
         boolean wasPlaying = launch.isPlaying();
+        launch.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.LAUNCH));
         launch.frame(elapsed);
         if (wasPlaying && !launch.isPlaying()) refresh();
         pulse += Math.min(elapsed, 0.1);
@@ -557,7 +558,12 @@ public final class UniversePage extends VBox {
         // La fin (version 0.160) avance même si le joueur change de sous-onglet : l'écran de fin vient quand même.
         if (selected != DIMENSIONS && dimensions.isFinalePlaying()) dimensions.frame(elapsed, moving);
         switch (selected) {
-            case DIMENSIONS -> dimensions.frame(elapsed, moving);
+            case DIMENSIONS -> {
+                // La carte et le remplissage du défi final (version 0.197), et la palette que leurs points reprennent.
+                DimensionPalette.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSION_PALETTE));
+                dimensions.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.DIMENSIONS_MAP), game.chosenSkin(idle.core.universe.SkinVisual.FINALE_FILL));
+                dimensions.frame(elapsed, moving);
+            }
             case SEED -> {
                 // Le tuyau et le chrono (version 0.139) : ce que la vue en montre suit le jeu à chaque image.
                 seedView.setHose(game.hasHose(), game.hasHose() && game.canTendSeed());
@@ -573,6 +579,10 @@ public final class UniversePage extends VBox {
                 seedView.setSeason(game.areSeasonsUnlocked() ? game.season() : null, game.seasonLeft(), game.seasonFillPerWatering());
                 // L'essence de l'arbre (version 0.185) : le skin choisi dans l'onglet Skins, null pour le Classique.
                 seedView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TREE));
+                // L'établi de la graine (version 0.196) : la graine, l'arrosoir, l'étagère, le tuyau, le chrono, le rond, la météo, les saisons.
+                for (idle.core.universe.SkinVisual visual : SeedView.ESTABLISHMENT) seedView.setVisualSkin(visual, game.chosenSkin(visual));
+                // L'arbre au-delà de son essence (version 0.197) : la saison figée, la fantaisie, le sol, les bulles et leurs liens.
+                for (idle.core.universe.SkinVisual visual : SeedView.TREE_LOOKS) seedView.setVisualSkin(visual, game.chosenSkin(visual));
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;
@@ -581,7 +591,12 @@ public final class UniversePage extends VBox {
                     seedUpgrades.refresh();
                 }
             }
-            default -> view.frame(elapsed, moving);
+            default -> {
+                // Les skins des bulles, de la naissance et des liens (version 0.196), et celui du lancement.
+                view.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_BUBBLE), game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_BIRTH),
+                        game.chosenSkin(idle.core.universe.SkinVisual.UNIVERSE_LINKS));
+                view.frame(elapsed, moving);
+            }
         }
     }
 

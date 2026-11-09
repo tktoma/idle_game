@@ -21,6 +21,11 @@ import javafx.scene.paint.Color;
  * d'aujourd'hui, tous ses facteurs à 1, ses décalages à 0, de sorte que sans skin le dessin ne bouge pas d'un pixel.
  * Trois essences ont leur propre silhouette : le baobab (bouteille et couronne courte), le séquoia (colonne et
  * couches étagées), le palmier (un stipe et un bouquet de palmes, sans touffes).
+ *
+ * <p>Version 0.197 : la saison figée, la fantaisie et le sol ({@link TreeSkinArt}) se combinent avec l'essence. La
+ * fantaisie remplace le feuillage et le bois (teintes, bois, forme des feuilles ; l'arbre inversé est dessiné la tête en
+ * bas) ; le sol remplace le pied ; la saison fige ce que l'arbre montre du temps : ses teintes et ses fleurs sans
+ * fantaisie, et dans tous les cas ce qui tombe, les lucioles et ce qui couvre le pied. Sans ces skins, rien ne change.
  */
 final class SeedTree {
 
@@ -165,6 +170,12 @@ final class SeedTree {
     /** Touffes de feuilles (ou palmes) du dernier arbre dessiné : pour les vérifications (le coût du dessin). */
     static int lastTips;
 
+    /**
+     * Les skins de la saison, de la fantaisie et du sol de l'arbre en cours de dessin (version 0.197), posés par
+     * {@link #draw} et rendus au Classique à la fin : le dessin se fait sur le fil JavaFX, un arbre à la fois.
+     */
+    private static TreeSkinArt.Look look = TreeSkinArt.Look.CLASSIC;
+
     /** Un bout de rameau : sa position, sa direction, et s'il porte des feuilles. */
     private record Tip(double x, double y, double angle, int index) {
     }
@@ -202,11 +213,42 @@ final class SeedTree {
      */
     static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
             Skin skin) {
+        return draw(g, w, h, baseX, baseY, stage, growth, time, skin, null, null, null);
+    }
+
+    /**
+     * Version 0.197 : l'arbre de l'essence {@code skin}, avec sa saison figée, sa fantaisie et son sol ({@code null} :
+     * le Classique de chacun). L'arbre inversé est dessiné la tête en bas, autour du milieu de sa hauteur ; le centre
+     * du feuillage rendu est celui que l'on voit.
+     */
+    static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
+            Skin skin, Skin seasonSkin, Skin fantasySkin, Skin groundSkin) {
+        look = TreeSkinArt.Look.of(seasonSkin, fantasySkin, groundSkin);
         Essence e = Essence.of(skin);
         int i = Math.max(0, Math.min(6, stage - 5));
-        double p = prominence(stage);
         double height = h * HEIGHT[i] * e.height * (0.35 + 0.65 * growth);
-        Color[] tones = e.foliage != null ? e.foliage : FOLIAGE[i];
+        boolean inverted = look.fantasy() == TreeSkinArt.Fantasy.INVERTED;
+        double pivot = baseY - height * 0.5;
+        if (inverted) {
+            g.save();
+            g.translate(0, 2 * pivot);
+            g.scale(1, -1);
+        }
+        try {
+            double[] crown = tree(g, w, h, baseX, baseY, stage, growth, time, e, i, height);
+            if (inverted) crown[1] = 2 * pivot - crown[1];
+            return crown;
+        } finally {
+            if (inverted) g.restore();
+            look = TreeSkinArt.Look.CLASSIC;
+        }
+    }
+
+    /** L'arbre lui-même, du halo aux effets, dans le repère où son pied est en {@code baseX, baseY}. */
+    private static double[] tree(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
+            Essence e, int i, double height) {
+        double p = prominence(stage);
+        Color[] tones = look.tones(e.foliage != null ? e.foliage : FOLIAGE[i]);
         Shape shape = new Shape();
         shape.crownX = baseX;
         shape.crownY = baseY - height * 0.72;
@@ -217,7 +259,13 @@ final class SeedTree {
         if (stage >= 9) rays(g, shape, h, stage, time);
         if (stage >= 11) cosmos(g, w, h, shape, time);
 
-        ground(g, w, baseX, baseY, height, stage, time);
+        if (look.ground() == TreeSkinArt.Ground.NONE) {
+            ground(g, w, baseX, baseY, height, stage, time);
+            TreeSkinArt.groundSeason(g, baseX, baseY, height, look.season(), height * (0.55 + 0.08 * (stage - 5)) * 0.95, tones);
+        } else {
+            double half = TreeSkinArt.ground(g, baseX, baseY, height, stage, time, look.ground());
+            TreeSkinArt.groundSeason(g, baseX, baseY, height, look.season(), half, tones);
+        }
         if (stage >= 8) roots(g, baseX, baseY, height, stage, time);
 
         // Le tronc et les rameaux.
@@ -253,9 +301,13 @@ final class SeedTree {
         if (e != Essence.PALM) foliage(g, shape, height, stage, i, time, tones, e);
         lastTips = shape.tips.size();
 
-        // Devant : les feuilles qui tombent, les lucioles, la sève qui monte, les étincelles.
-        if (stage >= 7) fallingLeaves(g, shape, baseY, height, stage, time, tones, e);
-        if (stage >= 6) fireflies(g, shape, stage, time);
+        // Devant : les feuilles qui tombent, les lucioles, la sève qui monte, les étincelles. La saison figée en décide :
+        // l'automne fait tomber dès le bonsaï et deux fois plus, le printemps des pétales, l'hiver rien, et sans lucioles.
+        TreeSkinArt.Season season = look.season();
+        if (season == TreeSkinArt.Season.AUTUMN || season == TreeSkinArt.Season.SPRING || (season == TreeSkinArt.Season.NONE && stage >= 7)) {
+            fallingLeaves(g, shape, baseY, height, stage, time, tones, e);
+        }
+        if (stage >= 6 && season != TreeSkinArt.Season.WINTER) fireflies(g, shape, stage, time);
         if (stage >= 8) sap(g, shape, stage, time);
         // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent (version 0.142).
         return new double[] {shape.crownX, shape.crownY, shape.crownRadius};
@@ -375,13 +427,14 @@ final class SeedTree {
         double[] xs = {x0 + nx * w0 / 2, x1 + nx * w1 / 2, x1 - nx * w1 / 2, x0 - nx * w0 / 2};
         double[] ys = {y0 + ny * w0 / 2, y1 + ny * w1 / 2, y1 - ny * w1 / 2, y0 - ny * w0 / 2};
         g.setGlobalAlpha(1);
-        g.setFill(e.barkDark);
+        g.setFill(look.barkDark(e.barkDark));
         g.fillPolygon(xs, ys, 4);
         // La face éclairée : un peu plus étroite, décalée vers la gauche.
         double[] lx = {x0 + nx * w0 * 0.42, x1 + nx * w1 * 0.42, x1 - nx * w1 * 0.15, x0 - nx * w0 * 0.15};
         double[] ly = {y0 + ny * w0 * 0.42, y1 + ny * w1 * 0.42, y1 - ny * w1 * 0.15, y0 - ny * w0 * 0.15};
-        g.setFill(wood);
+        g.setFill(look.wood(wood, e.bark));
         g.fillPolygon(lx, ly, 4);
+        TreeSkinArt.wood(g, look.fantasy(), x0, y0, x1, y1, w0, w1, seed);
         if (w0 > 4 && e.barkStyle != Bark.SMOOTH) {
             g.setStroke(e.mark);
             g.setLineWidth(Math.max(0.8, w0 * 0.05));
@@ -581,17 +634,29 @@ final class SeedTree {
         double radius = height * LEAF[i] * e.leaf;
         int perTip = (int) Math.round((7 + Math.min(3, stage - 5)) * e.density);
         double sumX = 0, sumY = 0;
+        boolean bare = look.bare(), clouds = look.fantasy() == TreeSkinArt.Fantasy.CLOUDS;
         for (int pass = 0; pass < 3; pass++) {
             for (Tip tip : shape.tips) {
                 double r = radius * (0.65 + 0.5 * UniverseView.noise(tip.index() * 5 + stage)) * (stage == 5 ? 1.25 : 1);
                 double flat = e.flat > 0 ? e.flat : stage == 5 ? 0.5 : 0.85;
                 if (pass == 0) {
+                    sumX += tip.x();
+                    sumY += tip.y();
+                    if (bare) continue;
                     // La masse d'ombre, d'un seul tenant, derrière les feuilles.
                     g.setFill(tones[0]);
                     g.setGlobalAlpha(0.9);
                     g.fillOval(tip.x() - r, tip.y() - r * flat, 2 * r, 2 * r * flat);
-                    sumX += tip.x();
-                    sumY += tip.y();
+                    continue;
+                }
+                if (bare) {
+                    // L'hiver figé : pas de feuilles, du givre au bout des rameaux.
+                    if (pass == 1) TreeSkinArt.frost(g, tip.x(), tip.y(), r, tip.angle(), time, tip.index());
+                    continue;
+                }
+                if (clouds) {
+                    // Les nuages : des bouffées à la place des feuilles une à une.
+                    if (pass == 1) TreeSkinArt.cloud(g, tip.x(), tip.y(), r, flat, tones[1], tones[2], tip.index());
                     continue;
                 }
                 Color tone = pass == 1 ? tones[1] : tones[2];
@@ -605,8 +670,16 @@ final class SeedTree {
                 }
             }
         }
-        // Des fleurs pour l'arbuste et le jeune arbre, des fruits pour l'arbre mûr, de l'or pour l'ancien.
-        Color dot = stage == 6 || stage == 7 ? BLOSSOM : stage == 8 ? FRUIT : stage == 9 ? Color.web("#f0b45a") : null;
+        // Des fleurs pour l'arbuste et le jeune arbre, des fruits pour l'arbre mûr, de l'or pour l'ancien ; le printemps
+        // figé fleurit chaque bout, à tous les paliers ; l'hiver figé ne porte rien.
+        Color dot = bare ? null : stage == 6 || stage == 7 ? BLOSSOM : stage == 8 ? FRUIT : stage == 9 ? Color.web("#f0b45a") : null;
+        if (look.blossoms()) {
+            for (Tip tip : shape.tips) {
+                double ox = (UniverseView.noise(tip.index() * 17 + 5) - 0.5) * radius;
+                TreeSkinArt.blossom(g, tip.x() + ox, tip.y() + radius * 0.2, radius * 0.16);
+            }
+            dot = null;
+        }
         if (dot != null) {
             g.setFill(dot);
             for (Tip tip : shape.tips) {
@@ -651,6 +724,12 @@ final class SeedTree {
      */
     private static void leaf(GraphicsContext g, Essence e, double x, double y, double size, double angle, Color tone, double alpha) {
         double c = Math.cos(angle), s = Math.sin(angle);
+        TreeSkinArt.Fantasy fantasy = look.fantasy();
+        if (fantasy == TreeSkinArt.Fantasy.CRYSTAL || fantasy == TreeSkinArt.Fantasy.CORAL || fantasy == TreeSkinArt.Fantasy.CIRCUIT
+                || fantasy == TreeSkinArt.Fantasy.PIXEL) {
+            TreeSkinArt.leaf(g, fantasy, x, y, size, angle, tone, alpha);
+            return;
+        }
         g.setFill(tone);
         g.setGlobalAlpha(alpha);
         switch (e.leafShape) {
@@ -696,7 +775,9 @@ final class SeedTree {
      */
     private static void fallingLeaves(GraphicsContext g, Shape shape, double baseY, double height, int stage, double time, Color[] tones,
             Essence e) {
-        int count = 3 + 3 * (stage - 7);
+        int count = Math.max(3, 3 + 3 * (stage - 7));
+        if (look.season() == TreeSkinArt.Season.AUTUMN) count *= 2;
+        boolean petals = e == Essence.CHERRY || look.season() == TreeSkinArt.Season.SPRING;
         for (int k = 0; k < count; k++) {
             double period = 7 + 5 * UniverseView.noise(k * 13 + 1);
             double t = ((time / period) + UniverseView.noise(k * 13 + 2)) % 1;
@@ -705,7 +786,7 @@ final class SeedTree {
             double y = shape.crownY + (baseY - shape.crownY) * t;
             Color tone = tones[t < 0.5 ? 1 : 2];
             double alpha = 0.85 * (1 - t * 0.6);
-            if (e == Essence.CHERRY) {
+            if (petals) {
                 double r = height * 0.007;
                 g.setFill(tone);
                 g.setGlobalAlpha(alpha);
