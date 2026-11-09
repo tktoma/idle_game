@@ -4,6 +4,7 @@ import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
 import idle.core.math.BigNum;
 import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.common.Format;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -87,12 +88,13 @@ public final class DarkMatterView extends Canvas {
      * Le skin de la boule (version 0.089) : {@code null} pour le classique. « Obsidienne » : une pierre
      * noire taillée en facettes, aux arêtes violettes et aux reflets vifs. « Nébuleuse » : un nuage de
      * gaz rose et bleu qui ondule, piqué d'étoiles naissantes. « Contractée » : un cœur très dense
-     * vers lequel des anneaux se resserrent sans fin.
+     * vers lequel des anneaux se resserrent sans fin. Les cinq boules de la version 0.191 (mercure, trou
+     * noir, œuf, nœud, lanterne) sont dessinées par {@link DarkSkinArt}.
      */
     private Skin skin;
 
     void setSkin(Skin chosen) {
-        skin = chosen == Skin.DARK_OBSIDIAN || chosen == Skin.DARK_NEBULA || chosen == Skin.DARK_CONTRACTED ? chosen : null;
+        skin = chosen != null && chosen.visual() == SkinVisual.DARK_BALL ? chosen : null;
     }
 
     Skin skin() {
@@ -103,12 +105,13 @@ public final class DarkMatterView extends Canvas {
      * Le skin de l'animation (version 0.089) : {@code null} pour le classique, où la matière ne tombe
      * en spirale que pendant la croissance. « Vortex » : un tourbillon de cinq bras violets qui tourne
      * sans cesse autour du point et l'alimente, bien plus vite quand on le fait grossir. « Pulsar » :
-     * deux faisceaux qui balaient la vue en tournant et des anneaux qui battent depuis le point.
+     * deux faisceaux qui balaient la vue en tournant et des anneaux qui battent depuis le point. Les quatre
+     * animations de la version 0.191 (pluie, neige, sablier, feu d'artifice) sont dessinées par {@link DarkSkinArt}.
      */
     private Skin animation;
 
     void setAnimation(Skin chosen) {
-        animation = chosen == Skin.DARK_VORTEX || chosen == Skin.DARK_PULSAR ? chosen : null;
+        animation = chosen != null && chosen.visual() == SkinVisual.DARK_ANIMATION ? chosen : null;
     }
 
     Skin animation() {
@@ -117,6 +120,40 @@ public final class DarkMatterView extends Canvas {
 
     /** L'angle du tourbillon ou des faisceaux, qui avance même au repos. */
     private double whirl = 0;
+
+    /**
+     * Pour les skins de la version 0.191 : la secousse du dernier appui, de 1 à l'instant où le point est
+     * pressé à 0 une demi-seconde plus tard ; l'appui adouci, de 0 à 1 ; et la croissance de la matière,
+     * 0 au proton et 1 à l'univers observable, sur l'échelle des logarithmes.
+     */
+    private double press = 0;
+    private double hold = 0;
+    private double growth = 0;
+    private boolean wasGrowing;
+
+    /** Logarithme décimal du diamètre du proton et de celui de l'univers observable, en mètres. */
+    private static final double LOG_PROTON = -15;
+    private static final double LOG_UNIVERSE = Math.log10(8.8e26);
+
+    double time() {
+        return time;
+    }
+
+    double press() {
+        return press;
+    }
+
+    double hold() {
+        return hold;
+    }
+
+    double growth() {
+        return growth;
+    }
+
+    double blobRadius() {
+        return blobRadius;
+    }
 
     DarkMatterView(double width, double height) {
         super(width, height);
@@ -154,6 +191,11 @@ public final class DarkMatterView extends Canvas {
         spiral += Math.min(elapsed, 0.1) * (0.4 + 3 * fall);
         double dt = Math.min(elapsed, 0.1);
         if (motion) time += dt;
+        if (growing && !wasGrowing) press = 1;
+        wasGrowing = growing;
+        press = Math.max(0, press - dt * 2);
+        hold += ((growing ? 1 : 0) - hold) * Math.min(1, dt * 6);
+        growth = Math.max(0, Math.min(1, (size.log10() - LOG_PROTON) / (LOG_UNIVERSE - LOG_PROTON)));
         double w = getWidth();
         double h = getHeight();
         double small = Math.min(w, h);
@@ -209,6 +251,7 @@ public final class DarkMatterView extends Canvas {
         if (motion) whirl += dt * (animation == Skin.DARK_PULSAR ? 1.2 + 3 * fall : 0.5 + 3.5 * fall + (growing ? 1 : 0));
         if (animation == Skin.DARK_VORTEX) vortex(g, cx, cy, small, growing);
         else if (animation == Skin.DARK_PULSAR) pulsar(g, cx, cy, w, h, growing);
+        else if (animation != null) DarkSkinArt.animate(animation, g, this, cx, cy, w, h, growing);
         // La matière qui tombe : des grains en spirale, plus nombreux et plus rapides avec la croissance.
         if (fall > 0.02 && animation == null) {
             int grains = (int) (14 + 46 * fall);
@@ -322,6 +365,10 @@ public final class DarkMatterView extends Canvas {
     /** La boule sous un skin. */
     private void drawSkin(GraphicsContext g, double cx, double cy, double r, boolean growing) {
         r = Math.max(r, 3);
+        if (DarkSkinArt.draws(skin)) {
+            DarkSkinArt.draw(skin, g, this, cx, cy, r, growing);
+            return;
+        }
         if (skin == Skin.DARK_OBSIDIAN) {
             // Une pierre taillée : neuf facettes, chacune de sa nuance, qui tournent lentement.
             int sides = 9;

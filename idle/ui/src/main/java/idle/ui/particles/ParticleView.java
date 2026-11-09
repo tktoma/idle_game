@@ -1,6 +1,7 @@
 package idle.ui.particles;
 
 import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -39,7 +40,7 @@ public final class ParticleView extends Canvas {
     private static final double FLIGHT_SECONDS = 1.6;
     /** Au-delà de cette vitesse, on n'anime plus les particules une par une. */
     private static final double FAST_RATE = 6;
-    private static final double RING_SECONDS = 0.6;
+    static final double RING_SECONDS = 0.6;
 
     /** Durée de l'animation de naissance, en secondes. */
     private static final double BIRTH_SECONDS = 1.2;
@@ -84,12 +85,14 @@ public final class ParticleView extends Canvas {
      * « Éclair » : des éclairs qui convergent, un noyau en étoile, des ondes en dents de scie.
      * « Prisme » : des éclats triangulaires aux couleurs de l'arc-en-ciel, un cristal hexagonal à facettes.
      * « Solitaire » : en noir et blanc, une seule lune sur son orbite et un anneau qui se remplit.
+     * Les six skins de la version 0.191 (braise, encre, essaim, horloge, verre soufflé, pixel) sont
+     * dessinés par {@link ParticleSkinArt}.
      */
     private static Skin skin;
 
-    /** Le skin de la fusion, choisi dans l'onglet Skins. */
+    /** Le skin de la fusion, choisi dans l'onglet Skins : tout skin du visuel de la fusion, {@code null} sinon. */
     public static void setSkin(Skin chosen) {
-        skin = chosen == Skin.FUSION_FLASH || chosen == Skin.FUSION_PRISM || chosen == Skin.FUSION_LONE ? chosen : null;
+        skin = chosen != null && chosen.visual() == SkinVisual.PARTICLE_FUSION ? chosen : null;
     }
 
     /** Le skin dessiné : pour les vérifications. */
@@ -222,7 +225,8 @@ public final class ParticleView extends Canvas {
         else if (skin == Skin.FUSION_PRISM) color = Color.hsb((time * 40) % 360, 0.55, 1);
         else if (skin == Skin.FUSION_LONE) color = Color.gray(0.82);
         if (skin != null) {
-            drawSkin(g, cx, cy, maxRadius, scale, birth, fadeIn, progress, fast, color);
+            if (ParticleSkinArt.draws(skin)) ParticleSkinArt.draw(skin, g, this, cx, cy, maxRadius, scale, birth, fadeIn, progress, fast);
+            else drawSkin(g, cx, cy, maxRadius, scale, birth, fadeIn, progress, fast, color);
             return;
         }
 
@@ -302,9 +306,7 @@ public final class ParticleView extends Canvas {
 
         // Noyau : grossit avec l'avancement, entouré d'un halo. Il apparaît pendant la naissance, et bat
         // d'autant plus vite que le générateur va vite.
-        double coreRadius = 3 + 13 * Math.sqrt(progress);
-        if (fast) coreRadius += (1.5 + 1.5 * intensity) * Math.sin(time * (8 + 16 * intensity));
-        coreRadius *= scale * birth * birth;
+        double coreRadius = coreRadius(progress, fast, scale, birth);
         // La couronne : des rayons qui tournent, plus longs avec la vitesse.
         if (intensity > 0.4 && coreRadius > 0) {
             int rays = 8;
@@ -415,9 +417,7 @@ public final class ParticleView extends Canvas {
             else if (skin == Skin.FUSION_PRISM) polygon(g, cx, cy, radius, 6, spin * 0.2, false);
             else dashedCircle(g, cx, cy, radius, 18, t);
         }
-        double coreRadius = 3 + 13 * Math.sqrt(progress);
-        if (fast) coreRadius += (1.5 + 1.5 * intensity) * Math.sin(time * (8 + 16 * intensity));
-        coreRadius *= scale * birth * birth;
+        double coreRadius = coreRadius(progress, fast, scale, birth);
         if (coreRadius <= 0) return;
         g.setGlobalAlpha(fadeIn);
         if (skin == Skin.FUSION_FLASH) {
@@ -470,6 +470,36 @@ public final class ParticleView extends Canvas {
             circle(g, cx, cy, Math.max(1.5 * unit, coreRadius * 0.25));
         }
         g.setGlobalAlpha(1);
+    }
+
+    /**
+     * Le rayon du noyau, en pixels : il grossit avec l'avancement, bat quand le générateur va vite,
+     * et apparaît pendant la naissance.
+     */
+    double coreRadius(double progress, boolean fast, double scale, double birth) {
+        double coreRadius = 3 + 13 * Math.sqrt(progress);
+        if (fast) coreRadius += (1.5 + 1.5 * intensity) * Math.sin(time * (8 + 16 * intensity));
+        return coreRadius * scale * birth * birth;
+    }
+
+    /** Les poussières en route, pour les skins dessinés à côté (version 0.191). */
+    List<Dust> dust() {
+        return dust;
+    }
+
+    /** L'âge de chaque onde de création, en secondes (version 0.191). */
+    List<Double> rings() {
+        return rings;
+    }
+
+    /** Les arcs d'énergie en cours : leur angle et leur âge (version 0.191). */
+    List<double[]> arcs() {
+        return arcs;
+    }
+
+    /** Le temps écoulé, en secondes (version 0.191). */
+    double time() {
+        return time;
     }
 
     /** Un polygone régulier, plein ou en contour. */
@@ -543,12 +573,12 @@ public final class ParticleView extends Canvas {
         g.strokePolyline(xs, ys, steps + 1);
     }
 
-    private static void circle(GraphicsContext g, double x, double y, double radius) {
+    static void circle(GraphicsContext g, double x, double y, double radius) {
         g.fillOval(x - radius, y - radius, radius * 2, radius * 2);
     }
 
     /** Une poussière en route vers le centre. */
-    private static final class Dust {
+    static final class Dust {
         double angle;
         double distance; // distance de départ, en fraction du rayon de la vue
         double swirl;

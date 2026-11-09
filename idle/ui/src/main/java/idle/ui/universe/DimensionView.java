@@ -75,6 +75,15 @@ import javafx.scene.text.TextAlignment;
  * du rythme ; les ondes et leurs rebonds ; les clics et les zones ×2 ; le halo du trésor caché ; l'axe du miroir et ses
  * paires. Les éclats ramassés s'éclairent, et les relâchements et les trésors font monter leur gain. Fermé, il reste un
  * visuel : les motifs des neuf autres se resserrent en un point.
+ *
+ * <p>Depuis la version 0.187, chaque mini-jeu a un skin ({@link idle.core.universe.Skin#DIMENSION_SKINS}, choisi dans
+ * l'onglet Skins par {@link Game#chosenSkin}) : il change le fond, le décor, l'habillage des éléments et les couleurs,
+ * jamais la logique ni la place de ce qu'on clique. La ligne devient des rails et des wagons ; le plan une feuille de
+ * cahier où le point est une pointe de stylo ; le volume un aquarium où les boules sont des poissons ; la durée un vinyle
+ * dont les spirales sont le sillon lu par l'aiguille ; la boucle une cible de tir à l'arc où le point est une flèche ; la
+ * brane une toile d'araignée aux points de rosée ; le clicker des bulles de savon ; la grille un démineur aux cases
+ * biseautées ; le miroir un vitrail ; le mélange un kaléidoscope qui répète le décor de l'arène six fois. Sans skin
+ * (le Classique), rien ne change.
  */
 public final class DimensionView extends Canvas {
 
@@ -82,6 +91,83 @@ public final class DimensionView extends Canvas {
     private static final Color[] PALETTE = {
             Color.web("#9fd0ff"), Color.web("#ffd27f"), Color.web("#c9a6ff"), Color.web("#9be7a8"), Color.web("#ff9eb5"),
             Color.web("#7fe0d4"), Color.web("#ffb36b"), Color.web("#a8b8ff"), Color.web("#ff7ad9"), Color.web("#fff1c9")};
+
+    // ------------------------------------------------------------------
+    // Les skins des dix mini-jeux (version 0.187) : fonds, décors et couleurs, en cache
+    // ------------------------------------------------------------------
+
+    /** Le fond de chaque dimension sous son skin, dans l'ordre des dimensions. */
+    private static final Color[] SKIN_BACKS = {
+            Color.web("#101a24"), Color.web("#f6f1e3"), Color.web("#0b3d4a"), Color.web("#1c1a18"), Color.web("#3f6a33"),
+            Color.web("#0a0d12"), Color.web("#bfe3ff"), Color.web("#c0c0c0"), Color.web("#0d0b10"), Color.BLACK};
+    /** Les rails et wagons : l'acier des rails, le bois des traverses, le ciel de nuit sur la terre. */
+    private static final Color RAIL = Color.web("#9aa3ad"), SLEEPER = Color.web("#5a4634"), IRON = Color.web("#1e1e22");
+    private static final javafx.scene.paint.LinearGradient RAILS_SKY = vertical("#101a24", "#2a3a2a");
+    /** La feuille de cahier : le papier, les carreaux, la marge, l'encre du stylo, le trait de crayon de la perspective. */
+    private static final Color PAPER_SQUARE = Color.web("#b8cfe8"), PAPER_MARGIN = Color.web("#d9534f"), INK = Color.web("#1f3f8f"),
+            PENCIL = Color.web("#8a95a8"), NIB = Color.web("#c9c9d2");
+    /** L'aquarium : l'eau du haut vers le fond, les arêtes claires, le sable, les bulles, et les robes des poissons. */
+    private static final javafx.scene.paint.LinearGradient WATER = vertical("#0b3d4a", "#126b6b");
+    private static final Color AQUA_EDGE = Color.web("#cfe9ee"), SAND = Color.web("#d8c08a"), BUBBLE = Color.web("#e6f7ff");
+    private static final Color[] FISH = {Color.web("#ff9a3c"), Color.web("#ffd23c"), Color.web("#4fc3f7"), Color.web("#ff6b6b")};
+    /** Le vinyle : le disque, ses sillons, le sillon lu, l'aiguille et son bras. */
+    private static final Color VINYL = Color.web("#141416"), GROOVE = Color.web("#2e2e33"), GROOVE_READ = Color.web("#8a8a90"),
+            TONEARM = Color.web("#d0d0d4"), CARTRIDGE = Color.web("#2a2a2e");
+    /** La cible : ses anneaux du dehors au centre (blanc, noir, bleu, rouge, or), les trois parts d'une zone sur chacun, la paille. */
+    private static final Color[] TARGET = {
+            Color.web("#f4f1e8"), Color.web("#1a1a1a"), Color.web("#2f7fd0"), Color.web("#d8362a"), Color.web("#f2c744")};
+    private static final Color[][] TARGET_ZONES = {
+            {Color.web("#d6d2c4"), Color.web("#e6e2d6"), Color.WHITE}, {Color.web("#3a3a3a"), Color.web("#5a5a5a"), Color.web("#8a8a8a")},
+            {Color.web("#5a9ae0"), Color.web("#86b6ec"), Color.web("#bcd8f6")}, {Color.web("#e4675c"), Color.web("#ee9088"), Color.web("#f8bcb6")},
+            {Color.web("#f6d56a"), Color.web("#f9e39a"), Color.web("#fdf2cc")}};
+    private static final Color STRAW = Color.web("#c9a86a"), STRAW_EDGE = Color.web("#8a6f3a"), ARROW_WOOD = Color.web("#5a3a1a"),
+            FLETCH = Color.web("#d8362a");
+    private static final javafx.scene.paint.LinearGradient GRASS = vertical("#5a8a3c", "#2f4d26");
+    /** La toile : ses fils argentés, la rosée, l'araignée. */
+    private static final Color THREAD = Color.web("#cfd6dd"), DEW = Color.web("#e8f4ff"), SPIDER = Color.web("#2b2b30");
+    /** Les fils radiaux de la toile, et le pas d'échantillonnage de chaque fil. */
+    private static final int WEB_RADIALS = 16, WEB_STEPS = 24;
+    /** Les bulles de savon : le ciel, les teintes irisées qui tournent, l'encre bleue des textes sur le ciel, le vert des clics automatiques. */
+    private static final javafx.scene.paint.LinearGradient SKY = vertical("#bfe3ff", "#eaf6ff");
+    private static final Color[] BUBBLE_HUES = new Color[24];
+    private static final javafx.scene.paint.RadialGradient BUBBLE_FILL = new javafx.scene.paint.RadialGradient(0, 0, 0.35, 0.35, 0.65, true,
+            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.color(1, 1, 1, 0.05)),
+            new javafx.scene.paint.Stop(0.85, Color.color(1, 1, 1, 0.1)), new javafx.scene.paint.Stop(1, Color.color(0.62, 0.82, 1, 0.5)));
+    private static final Color SKY_INK = Color.web("#1f3f5f"), SKY_AUTO = Color.web("#2e7d4a");
+    /** Le démineur : la case, son biseau clair et son biseau sombre, le texte, la mine, les chiffres de 1 à 8. */
+    private static final Color MINE_FACE = Color.web("#c0c0c0"), MINE_LIGHT = Color.WHITE, MINE_DARK = Color.web("#808080"),
+            MINE_TEXT = Color.web("#1a1a1a"), MINE_GRAY = Color.web("#505050"), MINE_HIT = Color.web("#ff3b30"), FLAG = Color.web("#d8362a"),
+            MINE_SUNK = Color.web("#b0b0b0"), MINE_TOP = Color.web("#e0e0e0"), MINE_SIDE = Color.web("#a0a0a0");
+    private static final Color[] MINE_DIGITS = {
+            Color.web("#0000ff"), Color.web("#008000"), Color.web("#ff0000"), Color.web("#000080"), Color.web("#800000"),
+            Color.web("#008080"), Color.web("#000000"), Color.web("#808080")};
+    /** Le vitrail : le plomb, les verres éteints et les mêmes verres éclairés, la lumière qui traverse. */
+    private static final Color LEAD = Color.web("#1a1a1a"), LEAD_SHINE = Color.web("#8a8a90"), DAYLIGHT = Color.web("#fff2d0");
+    private static final Color[] GLASS_DARK = {
+            Color.web("#1c2a5a"), Color.web("#5a1c22"), Color.web("#1c4a2e"), Color.web("#3a1c4e"), Color.web("#5a3a12")};
+    private static final Color[] GLASS_LIT = {
+            Color.web("#4f7fe0"), Color.web("#e04a4a"), Color.web("#4fc96a"), Color.web("#b060e0"), Color.web("#ffb640")};
+    /** Le kaléidoscope : le fond de la lunette, le contour, et les couleurs saturées des cinq copies du décor. */
+    private static final javafx.scene.paint.RadialGradient LENS = new javafx.scene.paint.RadialGradient(0, 0, 0.5, 0.5, 0.5, true,
+            javafx.scene.paint.CycleMethod.NO_CYCLE, new javafx.scene.paint.Stop(0, Color.web("#1a1030")), new javafx.scene.paint.Stop(1, Color.web("#050308")));
+    private static final Color LENS_RIM = Color.web("#444444");
+    private static final Color[] KALEIDO = {
+            Color.web("#ff2d55"), Color.web("#ff9f0a"), Color.web("#ffd60a"), Color.web("#30d158"), Color.web("#0a84ff")};
+
+    static {
+        for (int i = 0; i < BUBBLE_HUES.length; i++) BUBBLE_HUES[i] = Color.hsb(i * 360.0 / BUBBLE_HUES.length, 0.45, 1);
+    }
+
+    /** Un dégradé vertical du haut vers le bas, en proportion de la forme remplie : constant, il se garde en cache. */
+    private static javafx.scene.paint.LinearGradient vertical(String top, String bottom) {
+        return new javafx.scene.paint.LinearGradient(0, 0, 0, 1, true, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0, Color.web(top)), new javafx.scene.paint.Stop(1, Color.web(bottom)));
+    }
+
+    /** Vrai à l'image en cours quand la dimension montrée a un skin choisi (version 0.187) ; faux pour le Classique. */
+    private boolean skinned;
+    /** Le contour du sable de l'aquarium, rempli à chaque image sans rien allouer. */
+    private final double[] sandX = new double[14], sandY = new double[14];
 
     /** Un trait qui vient d'être touché : son éclat et les éclats qui montent. */
     private static final class Touch {
@@ -728,7 +814,13 @@ public final class DimensionView extends Canvas {
     // depuis la version 0.128, on y plonge, et l'on cueille de son centre les boules qui y apparaissent.
     private void volumeScene(GraphicsContext g, double w, double h, double cx, double cy, double u) {
         if (dive == Dive.OUTSIDE) {
-            volume(g, cx, cy, u * OUTSIDE_SIZE, time * 0.6, 1);
+            // Sous le skin, le cube du dehors est l'aquarium : des arêtes claires, et le petit cube blanc dedans.
+            if (skinned) {
+                cube(g, cx, cy, u * OUTSIDE_SIZE, time * 0.6, time * 0.6 * 0.7, AQUA_EDGE, 1);
+                cube(g, cx, cy, u * OUTSIDE_SIZE * 0.45, -time * 0.6 * 1.3, time * 0.6 * 0.5, Color.WHITE, 0.8);
+            } else {
+                volume(g, cx, cy, u * OUTSIDE_SIZE, time * 0.6, 1);
+            }
             if (game.isVolumeOpen()) {
                 g.setGlobalAlpha(0.55 + 0.25 * Math.sin(time * 2.5));
                 g.setFill(Color.WHITE);
@@ -739,12 +831,12 @@ public final class DimensionView extends Canvas {
             return;
         }
         aimCamera();
-        Color c = color();
+        Color c = color(), edge = skinned ? AQUA_EDGE : c;
         double inside = depthIn();
         // Les faces vues du dedans : une grille légère, pour sentir où l'on regarde.
         g.setLineWidth(1);
-        g.setStroke(c);
-        g.setGlobalAlpha(0.12 * inside);
+        g.setStroke(edge);
+        g.setGlobalAlpha((skinned ? 0.2 : 0.12) * inside);
         for (int axis = 0; axis < 3; axis++) {
             for (int side = -1; side <= 1; side += 2) {
                 for (double t = -0.5; t <= 0.51; t += 0.5) {
@@ -774,8 +866,17 @@ public final class DimensionView extends Canvas {
             shown.add(new double[] {at[0], at[1], at[2], camera.focal * game.volumeBallRadius() / at[2] * (0.2 + 0.8 * grow)});
         }
         shown.sort((a, b) -> Double.compare(b[2], a[2]));
+        int k = 0;
         for (double[] ball : shown) {
             double r = Math.max(2, ball[3]);
+            if (skinned) {
+                // Un poisson, de la robe de son rang, qui regarde vers le centre de la vue.
+                Color robe = FISH[k++ % FISH.length];
+                UniverseView.glow(g, ball[0], ball[1], r * 2.2, robe, 0.35);
+                g.setGlobalAlpha(1);
+                fish(g, ball[0], ball[1], r, ball[0] < w / 2, robe);
+                continue;
+            }
             UniverseView.glow(g, ball[0], ball[1], r * 2.4, c, 0.55);
             g.setGlobalAlpha(1);
             g.setFill(new javafx.scene.paint.RadialGradient(0, 0, ball[0] - r * 0.35, ball[1] - r * 0.35, r * 1.3, false,
@@ -801,6 +902,19 @@ public final class DimensionView extends Canvas {
         }
         if (dive == Dive.INSIDE && freeCamera) crosshair(g, w / 2, h / 2);
         if (dive == Dive.INSIDE) timer(g, w, c);
+    }
+
+    /** Un poisson : un ovale, une queue en triangle derrière, un œil devant ; {@code right} s'il regarde à droite. */
+    private static void fish(GraphicsContext g, double x, double y, double r, boolean right, Color robe) {
+        double d = right ? 1 : -1, wag = 0.15 * Math.sin(x * 0.05 + y * 0.03);
+        g.setFill(robe);
+        g.fillPolygon(new double[] {x - d * r * 0.9, x - d * r * 1.8, x - d * r * 1.8}, new double[] {y, y - r * (0.7 + wag), y + r * (0.7 - wag)}, 3);
+        g.fillOval(x - r, y - r * 0.6, 2 * r, 1.2 * r);
+        double e = Math.max(1.2, r * 0.2);
+        g.setFill(Color.WHITE);
+        g.fillOval(x + d * r * 0.45 - e, y - r * 0.2 - e, 2 * e, 2 * e);
+        g.setFill(IRON);
+        g.fillOval(x + d * r * 0.5 - e * 0.5, y - r * 0.2 - e * 0.5, e, e);
     }
 
     /** La croix de la caméra libre, au centre : c'est elle qui vise. */
@@ -946,9 +1060,11 @@ public final class DimensionView extends Canvas {
 
     private void draw() {
         double w = getWidth(), h = getHeight();
-        GraphicsContext g = CanvasPane.begin(this, BACK);
+        skinned = game.chosenSkin(idle.core.universe.SkinVisual.DIMENSIONS[dimension.ordinal()]) != null;
+        GraphicsContext g = CanvasPane.begin(this, skinned ? SKIN_BACKS[dimension.ordinal()] : BACK);
         if (g == null) return;
         double cx = w / 2, cy = h / 2, u = Math.min(w, h);
+        if (skinned) backdrop(g, w, h);
         switch (dimension) {
             case LINE -> line(g, w, cx, cy, u);
             case PLANE -> plane(g, w, h, cx, cy, u);
@@ -967,6 +1083,74 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
+    /**
+     * Le décor de fond d'un skin, derrière le jeu : le ciel de nuit sur la terre des rails, les carreaux et la marge du
+     * cahier, l'eau, les bulles et le sable de l'aquarium, l'herbe derrière la cible, le ciel des bulles de savon. Les
+     * autres skins dessinent leur décor dans leur scène, sur leur fond uni.
+     */
+    private void backdrop(GraphicsContext g, double w, double h) {
+        g.setGlobalAlpha(1);
+        switch (dimension) {
+            case LINE -> {
+                g.setFill(RAILS_SKY);
+                g.fillRect(0, 0, w, h);
+                g.setFill(Color.WHITE);
+                for (int k = 0; k < 40; k++) {
+                    double x = UniverseView.noise(k) * w, y = UniverseView.noise(k + 100) * h * 0.45;
+                    g.setGlobalAlpha(0.3 + 0.4 * UniverseView.noise(k + 200) * (0.6 + 0.4 * Math.sin(time * 1.5 + k)));
+                    g.fillOval(x, y, 2, 2);
+                }
+            }
+            case PLANE -> {
+                g.setStroke(PAPER_SQUARE);
+                g.setLineWidth(1);
+                g.setGlobalAlpha(0.8);
+                for (double x = 0; x <= w; x += 16) g.strokeLine(x, 0, x, h);
+                for (double y = 0; y <= h; y += 16) g.strokeLine(0, y, w, y);
+                g.setStroke(PAPER_MARGIN);
+                g.setLineWidth(1.5);
+                g.setGlobalAlpha(0.9);
+                g.strokeLine(w * 0.08, 0, w * 0.08, h);
+            }
+            case VOLUME -> {
+                g.setFill(WATER);
+                g.fillRect(0, 0, w, h);
+                // Les bulles montent du sable, chacune à sa colonne et à son rythme, et reviennent du bas.
+                g.setStroke(BUBBLE);
+                g.setLineWidth(1);
+                for (int k = 0; k < 24; k++) {
+                    double r = 2 + 3 * UniverseView.noise(k + 300), speed = 20 + 30 * UniverseView.noise(k + 400);
+                    double x = UniverseView.noise(k) * w + Math.sin(time * 2 + k) * 4;
+                    double y = h - ((time * speed + UniverseView.noise(k + 500) * h) % (h + 20));
+                    g.setGlobalAlpha(0.35);
+                    g.strokeOval(x - r, y - r, 2 * r, 2 * r);
+                }
+                g.setGlobalAlpha(1);
+                g.setFill(SAND);
+                for (int k = 0; k < 12; k++) {
+                    sandX[k] = w * k / 11;
+                    sandY[k] = h - h * (0.04 + 0.025 * UniverseView.noise(k + 600));
+                }
+                sandX[12] = w;
+                sandY[12] = h;
+                sandX[13] = 0;
+                sandY[13] = h;
+                g.fillPolygon(sandX, sandY, 14);
+            }
+            case LOOP -> {
+                g.setFill(GRASS);
+                g.fillRect(0, 0, w, h);
+            }
+            case CLICKER -> {
+                g.setFill(SKY);
+                g.fillRect(0, 0, w, h);
+            }
+            default -> {
+            }
+        }
+        g.setGlobalAlpha(1);
+    }
+
     // 1. La ligne (version 0.101) : les boules du jeu vont et viennent, un trait à chaque bout et d'autres à
     // égale distance ; chaque trait touché s'allume, et ses éclats montent. Avec l'amélioration (0.102),
     // plusieurs lignes l'une sous l'autre, et plusieurs boules sur chacune.
@@ -979,10 +1163,21 @@ public final class DimensionView extends Canvas {
     private void oneLine(GraphicsContext g, double w, double cy, double u, int index) {
         Color c = color();
         double x0 = w * 0.1, x1 = w * 0.9;
-        g.setStroke(c);
-        g.setLineWidth(2);
-        g.setGlobalAlpha(0.35);
-        g.strokeLine(x0, cy, x1, cy);
+        if (skinned) {
+            // Les rails : deux fers sur des traverses de bois.
+            g.setGlobalAlpha(1);
+            g.setFill(SLEEPER);
+            for (double x = x0; x <= x1; x += u * 0.035) g.fillRect(x - 2, cy - 7, 4, 14);
+            g.setStroke(RAIL);
+            g.setLineWidth(2.5);
+            g.strokeLine(x0, cy - 4, x1, cy - 4);
+            g.strokeLine(x0, cy + 4, x1, cy + 4);
+        } else {
+            g.setStroke(c);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.35);
+            g.strokeLine(x0, cy, x1, cy);
+        }
         int gaps = game.lineTicks() - 1;
         for (int k = 0; k <= gaps; k++) {
             double at = (double) k / gaps, x = x0 + (x1 - x0) * at;
@@ -990,10 +1185,23 @@ public final class DimensionView extends Canvas {
             for (Touch touch : touches) if (touch.line == index && Math.abs(touch.at - at) < 1e-9) lit = Math.max(lit, 1 - touch.age / 0.6);
             boolean end = k == 0 || k == gaps;
             double half = (end ? 16 : 10) + 6 * Math.max(0, lit);
-            g.setLineWidth(end ? 3 : 2);
-            g.setStroke(lit > 0 ? Color.WHITE : c);
-            g.setGlobalAlpha(0.55 + 0.45 * Math.max(0, lit));
-            g.strokeLine(x, cy - half, x, cy + half);
+            if (skinned) {
+                // Un panneau de gare : un poteau, et sa pancarte qui s'éclaire au passage du wagon.
+                g.setGlobalAlpha(0.9);
+                g.setStroke(RAIL);
+                g.setLineWidth(2);
+                g.strokeLine(x, cy - half - 8, x, cy - 8);
+                g.setFill(lit > 0 ? Color.WHITE : c);
+                g.fillRect(x - (end ? 9 : 7), cy - half - 16, end ? 18 : 14, 8);
+                g.setStroke(SLEEPER);
+                g.setLineWidth(1);
+                g.strokeRect(x - (end ? 9 : 7), cy - half - 16, end ? 18 : 14, 8);
+            } else {
+                g.setLineWidth(end ? 3 : 2);
+                g.setStroke(lit > 0 ? Color.WHITE : c);
+                g.setGlobalAlpha(0.55 + 0.45 * Math.max(0, lit));
+                g.strokeLine(x, cy - half, x, cy + half);
+            }
             if (lit > 0) UniverseView.glow(g, x, cy, u * 0.035 * lit + 4, c, 0.8 * lit);
         }
         // Les éclats de chaque trait touché montent et s'effacent.
@@ -1020,38 +1228,62 @@ public final class DimensionView extends Canvas {
             double x = x0 + (x1 - x0) * game.linePosition(index, ball);
             UniverseView.glow(g, x, cy, u * 0.06, c, 0.9);
             g.setGlobalAlpha(1);
-            g.setFill(Color.WHITE);
-            g.fillOval(x - 5, cy - 5, 10, 10);
+            if (skinned) wagon(g, x, cy, c);
+            else {
+                g.setFill(Color.WHITE);
+                g.fillOval(x - 5, cy - 5, 10, 10);
+            }
         }
+    }
+
+    /** Un petit wagon posé sur les rails : une caisse, deux roues, une cheminée et sa fumée. */
+    private void wagon(GraphicsContext g, double x, double cy, Color c) {
+        g.setFill(c);
+        g.fillRoundRect(x - 10, cy - 12, 20, 12, 3, 3);
+        g.setFill(IRON);
+        g.fillOval(x - 8, cy - 3, 7, 7);
+        g.fillOval(x + 1, cy - 3, 7, 7);
+        g.fillRect(x + 4, cy - 18, 3, 6);
+        g.setFill(Color.WHITE);
+        g.fillRect(x - 7, cy - 9, 5, 4);
+        g.fillRect(x, cy - 9, 5, 4);
+        for (int k = 0; k < 3; k++) {
+            double age = (time * 1.5 + k / 3.0) % 1, size = 4 + 6 * age;
+            g.setGlobalAlpha(0.5 * (1 - age));
+            g.fillOval(x + 5.5 - size / 2 - 3 * age, cy - 20 - 14 * age - size / 2, size, size);
+        }
+        g.setGlobalAlpha(1);
     }
 
     // 2. Le plan : la grille vue en perspective (version 0.081), où le joueur mène le point (Z Q S D,
     // version 0.104) ; sa traînée dessine la courbe de son passage, et les éclats attendent sur la grille.
     private void plane(GraphicsContext g, double w, double h, double cx, double cy, double u) {
-        Color c = color();
+        // Sur la feuille de cahier, la perspective est un trait de crayon, les éclats des taches d'encre, le point un stylo.
+        Color c = skinned ? INK : color(), gem = skinned ? INK : SHARD;
         double top = h * 0.25, bottom = h * 0.9;
-        g.setStroke(c);
+        g.setStroke(skinned ? PENCIL : c);
         g.setLineWidth(1);
         for (int k = 0; k <= 12; k++) {
             double t = k / 12.0;
             double y = top + (bottom - top) * t * t;
             double half = w * (0.18 + 0.32 * t * t);
-            g.setGlobalAlpha(0.12 + 0.25 * t);
+            g.setGlobalAlpha((skinned ? 0.3 : 0.12) + 0.25 * t);
             g.strokeLine(cx - half, y, cx + half, y);
         }
         for (int k = -8; k <= 8; k++) {
-            g.setGlobalAlpha(0.2);
+            g.setGlobalAlpha(skinned ? 0.4 : 0.2);
             g.strokeLine(cx + k * w * 0.0225, top, cx + k * w * 0.0625, bottom);
         }
-        // Les éclats : des losanges posés sur la grille, plus petits au loin.
+        // Les éclats : des losanges posés sur la grille, plus petits au loin ; des taches d'encre sur le cahier.
         int k = 0;
         for (Game.PlaneShard shard : game.planeShardsOnBoard()) {
             double[] at = onPlane(w, h, cx, shard.x(), shard.y());
             double r = Math.max(3, Game.PLANE_SHARD_RADIUS * w * 0.4 * at[2]) * (1 + 0.15 * Math.sin(time * 4 + k++));
-            UniverseView.glow(g, at[0], at[1], r * 2.6, SHARD, 0.6);
+            UniverseView.glow(g, at[0], at[1], r * 2.6, gem, 0.6);
             g.setGlobalAlpha(1);
-            g.setFill(SHARD);
-            g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r * 1.3, at[1], at[1] + r * 1.3, at[1]}, 4);
+            g.setFill(gem);
+            if (skinned) inkBlot(g, at[0], at[1], r, k);
+            else g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r * 1.3, at[1], at[1] + r * 1.3, at[1]}, 4);
         }
         // La traînée : la courbe que dessine le point en passant.
         if (trailCount > 1) {
@@ -1062,9 +1294,9 @@ public final class DimensionView extends Canvas {
                 xs[i] = q[0];
                 ys[i] = q[1];
             }
-            g.setStroke(Color.WHITE);
-            g.setLineWidth(2);
-            g.setGlobalAlpha(0.7);
+            g.setStroke(skinned ? INK : Color.WHITE);
+            g.setLineWidth(skinned ? 2.2 : 2);
+            g.setGlobalAlpha(skinned ? 0.9 : 0.7);
             g.strokePolyline(xs, ys, trailCount);
         }
         // Ce qui vient d'être ramassé : un éclat et le gain qui monte.
@@ -1072,8 +1304,8 @@ public final class DimensionView extends Canvas {
         g.setTextAlign(TextAlignment.CENTER);
         for (Pickup pickup : pickups) {
             double t = pickup.age / 0.9;
-            UniverseView.glow(g, pickup.x, pickup.y, 10 + 30 * t, SHARD, 0.7 * (1 - t));
-            g.setFill(Color.WHITE);
+            UniverseView.glow(g, pickup.x, pickup.y, 10 + 30 * t, gem, 0.7 * (1 - t));
+            g.setFill(skinned ? INK : Color.WHITE);
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.fillText(pickup.text, pickup.x, pickup.y - 18 - 30 * t);
         }
@@ -1081,14 +1313,41 @@ public final class DimensionView extends Canvas {
         double[] p = onPlane(w, h, cx, game.planeX(), game.planeY());
         // Un plancher bas : au départ, le point est petit, et la taille se voit grandir à chaque niveau.
         double pr = Math.max(2.5, game.planePlayerRadius() * w * 0.4 * p[2]);
-        UniverseView.glow(g, p[0], p[1], pr * 2.6 + 4, c, 0.9);
+        UniverseView.glow(g, p[0], p[1], pr * 2.6 + 4, c, skinned ? 0.4 : 0.9);
         g.setGlobalAlpha(1);
-        g.setFill(Color.WHITE);
-        g.fillOval(p[0] - pr * 0.6, p[1] - pr * 0.6, pr * 1.2, pr * 1.2);
+        if (skinned) pen(g, p[0], p[1]);
+        else {
+            g.setFill(Color.WHITE);
+            g.fillOval(p[0] - pr * 0.6, p[1] - pr * 0.6, pr * 1.2, pr * 1.2);
+        }
         g.setStroke(c);
         g.setLineWidth(1.5);
-        g.setGlobalAlpha(0.8);
+        g.setGlobalAlpha(skinned ? 0.5 : 0.8);
         g.strokeOval(p[0] - pr, p[1] - pr, pr * 2, pr * 2);
+    }
+
+    /** Une tache d'encre : un rond et deux gouttes à côté, toujours les mêmes pour un même éclat. */
+    private static void inkBlot(GraphicsContext g, double x, double y, double r, int seed) {
+        g.fillOval(x - r, y - r * 0.85, r * 2, r * 1.7);
+        double a = UniverseView.noise(seed) * Math.PI * 2, b = a + 2.2;
+        g.fillOval(x + Math.cos(a) * r * 1.2 - r * 0.35, y + Math.sin(a) * r * 1.2 - r * 0.35, r * 0.7, r * 0.7);
+        g.fillOval(x + Math.cos(b) * r * 1.1 - r * 0.25, y + Math.sin(b) * r * 1.1 - r * 0.25, r * 0.5, r * 0.5);
+    }
+
+    /** Le stylo, pointe posée au point du joueur, corps vers le haut à droite. */
+    private static void pen(GraphicsContext g, double x, double y) {
+        g.setStroke(INK);
+        g.setLineWidth(5);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.strokeLine(x + 8, y - 10, x + 26, y - 34);
+        g.setStroke(SHARD);
+        g.setLineWidth(5);
+        g.strokeLine(x + 24, y - 31, x + 28, y - 36);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setFill(NIB);
+        g.fillPolygon(new double[] {x, x + 9, x + 5}, new double[] {y, y - 5, y - 11}, 3);
+        g.setFill(INK);
+        g.fillOval(x - 1.5, y - 1.5, 3, 3);
     }
 
     /**
@@ -1211,17 +1470,22 @@ public final class DimensionView extends Canvas {
         Color c = color();
         double ring = durationRing(), button = durationButton(), progress = game.durationProgress();
         boolean held = game.isDurationHeld();
-        // Le rond.
-        UniverseView.glow(g, cx, cy, ring * 1.08, c, 0.12);
-        g.setStroke(c);
-        g.setLineWidth(2);
-        g.setGlobalAlpha(0.7);
-        g.strokeOval(cx - ring, cy - ring, ring * 2, ring * 2);
+        // Le rond ; sous le skin, le disque noir, ses sillons, son reflet et son étiquette.
+        if (skinned) vinyl(g, cx, cy, ring, button, c);
+        else {
+            UniverseView.glow(g, cx, cy, ring * 1.08, c, 0.12);
+            g.setStroke(c);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.7);
+            g.strokeOval(cx - ring, cy - ring, ring * 2, ring * 2);
+        }
         // Les spirales : au plus DURATION_DRAWN_TURNS tours dessinés, quoi que vaille la vitesse.
         int spirals = game.durationSpirals();
         double turns = Math.max(0.5, Math.min(DURATION_DRAWN_TURNS, game.durationTurnsMax()));
         double spin = time * 0.08;
         int steps = (int) Math.ceil(turns * 72);
+        // Où en est la pointe de la première spirale : l'aiguille du vinyle s'y pose.
+        double headX = cx, headY = cy - ring;
         for (int k = 0; k < spirals; k++) {
             double start = spin + Math.PI * 2 * k / spirals;
             double[] xs = new double[steps + 1], ys = new double[steps + 1];
@@ -1230,11 +1494,13 @@ public final class DimensionView extends Canvas {
                 xs[s] = cx + Math.cos(angle) * r;
                 ys[s] = cy + Math.sin(angle) * r;
             }
+            g.setStroke(skinned ? GROOVE_READ : c);
             g.setLineWidth(1);
-            g.setGlobalAlpha(0.22);
+            g.setGlobalAlpha(skinned ? 0.35 : 0.22);
             g.strokePolyline(xs, ys, steps + 1);
             int done = (int) Math.round(progress * steps);
             if (done > 0) {
+                g.setStroke(skinned ? Color.WHITE : c);
                 g.setLineWidth(2.4);
                 g.setGlobalAlpha(0.95);
                 g.strokePolyline(xs, ys, done + 1);
@@ -1247,13 +1513,18 @@ public final class DimensionView extends Canvas {
                 g.setGlobalAlpha(0.8);
                 g.fillOval(xs[0] - 3, ys[0] - 3, 6, 6);
             }
+            if (k == 0) {
+                headX = xs[done];
+                headY = ys[done];
+            }
         }
+        if (skinned && spirals > 0) tonearm(g, cx, cy, ring, headX, headY);
         // Le bouton : un anneau qui se remplit avec le temps tenu, et qui bat une fois au centre.
         boolean full = held && progress >= 1;
         double beat = full ? 0.5 + 0.5 * Math.sin(time * 8) : 0;
         UniverseView.glow(g, cx, cy, button * (1.8 + 0.6 * beat), c, held ? 0.6 + 0.3 * beat : 0.3);
         g.setGlobalAlpha(1);
-        g.setFill(held ? c.deriveColor(0, 1, 0.55, 1) : Color.web("#141a2c"));
+        g.setFill(held ? c.deriveColor(0, 1, 0.55, 1) : skinned ? VINYL : Color.web("#141a2c"));
         g.fillOval(cx - button, cy - button, button * 2, button * 2);
         g.setStroke(c);
         g.setLineWidth(2);
@@ -1282,6 +1553,46 @@ public final class DimensionView extends Canvas {
             g.fillText(pickup.text, pickup.x, pickup.y - button - 24 - 50 * t);
         }
         g.setGlobalAlpha(1);
+    }
+
+    /** Le disque du vinyle : noir, ses sillons concentriques, deux reflets qui tournent lentement, et l'étiquette colorée au milieu. */
+    private void vinyl(GraphicsContext g, double cx, double cy, double ring, double button, Color label) {
+        g.setGlobalAlpha(1);
+        g.setFill(VINYL);
+        g.fillOval(cx - ring, cy - ring, ring * 2, ring * 2);
+        g.setStroke(GROOVE);
+        g.setLineWidth(1);
+        int k = 0;
+        for (double r = ring * 0.97; r > button * 2.6; r -= 5) {
+            g.setGlobalAlpha(0.35 + 0.4 * UniverseView.noise(k++));
+            g.strokeOval(cx - r, cy - r, r * 2, r * 2);
+        }
+        g.setFill(Color.WHITE);
+        g.setGlobalAlpha(0.07);
+        double shine = 100 + 8 * Math.sin(time * 0.5);
+        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine, 35, javafx.scene.shape.ArcType.ROUND);
+        g.fillArc(cx - ring, cy - ring, ring * 2, ring * 2, shine + 180, 35, javafx.scene.shape.ArcType.ROUND);
+        g.setGlobalAlpha(1);
+        g.setFill(label);
+        g.fillOval(cx - button * 2.4, cy - button * 2.4, button * 4.8, button * 4.8);
+        g.setStroke(VINYL);
+        g.setLineWidth(1.5);
+        g.strokeOval(cx - button * 2.4, cy - button * 2.4, button * 4.8, button * 4.8);
+    }
+
+    /** Le bras de la platine : du pivot, hors du disque en haut à droite, à la cellule posée sur la pointe du sillon lu. */
+    private void tonearm(GraphicsContext g, double cx, double cy, double ring, double headX, double headY) {
+        double px = Math.min(getWidth() - 14, cx + ring * 1.12), py = Math.max(14, cy - ring * 1.02);
+        g.setGlobalAlpha(1);
+        g.setStroke(TONEARM);
+        g.setLineWidth(5);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        g.strokeLine(px, py, headX, headY);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        g.setFill(GROOVE_READ);
+        g.fillOval(px - 9, py - 9, 18, 18);
+        g.setFill(CARTRIDGE);
+        g.fillRoundRect(headX - 7, headY - 7, 14, 14, 3, 3);
     }
 
     // ------------------------------------------------------------------
@@ -1497,19 +1808,36 @@ public final class DimensionView extends Canvas {
         boolean open = game.isLoopOpen();
         int rings = open ? game.loopRings() : 1;
         double band = Math.max(6, Math.min(16, loopGap() * 0.42)), half = game.loopZoneHalfWidth();
-        UniverseView.glow(g, cx, cy, loopRadius(rings - 1) * 0.6, c, 0.15);
+        if (skinned) {
+            // La cible : sa paille, puis ses anneaux pleins du dehors au centre, blanc, noir, bleu, rouge, or.
+            double straw = loopRadius(0) + loopGap() * 0.7;
+            g.setGlobalAlpha(1);
+            g.setFill(STRAW);
+            g.fillOval(cx - straw, cy - straw, straw * 2, straw * 2);
+            g.setStroke(STRAW_EDGE);
+            g.setLineWidth(3);
+            g.strokeOval(cx - straw, cy - straw, straw * 2, straw * 2);
+            for (int ring = 0; ring < rings; ring++) {
+                double r = loopRadius(ring) + loopGap() * 0.5;
+                g.setFill(TARGET[targetColor(ring, rings)]);
+                g.fillOval(cx - r, cy - r, r * 2, r * 2);
+            }
+        } else {
+            UniverseView.glow(g, cx, cy, loopRadius(rings - 1) * 0.6, c, 0.15);
+        }
         for (int ring = 0; ring < rings; ring++) {
             double r = loopRadius(ring), flash = ringFlash[ring];
+            int target = targetColor(ring, rings);
             // Le cercle, qui s'éclaire un instant de la couleur du dernier clic.
-            g.setStroke(flash > 0 && ringFlashHit[ring] != null ? hitColor(ringFlashHit[ring]) : c);
-            g.setLineWidth(2 + 2 * flash);
-            g.setGlobalAlpha(Math.min(1, 0.35 + 0.5 * flash));
+            g.setStroke(flash > 0 && ringFlashHit[ring] != null ? hitColor(ringFlashHit[ring]) : skinned ? LEAD : c);
+            g.setLineWidth((skinned ? 1 : 2) + 2 * flash);
+            g.setGlobalAlpha(Math.min(1, (skinned ? 0.5 : 0.35) + 0.5 * flash));
             g.strokeOval(cx - r, cy - r, r * 2, r * 2);
             if (open) {
                 for (double center : game.loopZones(ring)) {
-                    zoneArc(g, cx, cy, r, center, half, band, LOOP_BAD, 0.75);
-                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_GOOD, band, LOOP_GOOD, 0.9);
-                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_EXCELLENT, band, LOOP_EXCELLENT, 1);
+                    zoneArc(g, cx, cy, r, center, half, band, skinned ? TARGET_ZONES[target][0] : LOOP_BAD, skinned ? 1 : 0.75);
+                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_GOOD, band, skinned ? TARGET_ZONES[target][1] : LOOP_GOOD, skinned ? 1 : 0.9);
+                    zoneArc(g, cx, cy, r, center, half * Game.LOOP_EXCELLENT, band, skinned ? TARGET_ZONES[target][2] : LOOP_EXCELLENT, 1);
                 }
             }
             double phase = open ? game.loopPhase(ring) : (time * Game.LOOP_TURNS) % 1;
@@ -1518,9 +1846,12 @@ public final class DimensionView extends Canvas {
             boolean inside = open && wait <= 0 && game.loopAim(ring) != Game.LoopHit.MISS;
             UniverseView.glow(g, x, y, band * (inside ? 2.4 : 1.6), inside ? Color.WHITE : c, wait > 0 ? 0.35 : 0.9);
             g.setGlobalAlpha(wait > 0 ? 0.5 : 1);
-            g.setFill(Color.WHITE);
             double dot = Math.max(3, band * 0.38);
-            g.fillOval(x - dot, y - dot, dot * 2, dot * 2);
+            if (skinned) arrow(g, x, y, a, band * 2.6);
+            else {
+                g.setFill(Color.WHITE);
+                g.fillOval(x - dot, y - dot, dot * 2, dot * 2);
+            }
             if (wait > 0) {
                 // L'attente du cercle : un anneau autour du point, qui se remplit jusqu'au prochain clic compté.
                 double done = 1 - Math.min(1, wait / Game.LOOP_COOLDOWN), ring2 = dot + 5;
@@ -1533,12 +1864,13 @@ public final class DimensionView extends Canvas {
                 g.strokeArc(x - ring2, y - ring2, ring2 * 2, ring2 * 2, 90, -360 * done, javafx.scene.shape.ArcType.OPEN);
             }
         }
-        // Ce qu'ont valu les derniers clics : le mot et le gain montent du point, et s'effacent.
+        // Ce qu'ont valu les derniers clics : le mot et le gain montent du point, et s'effacent ; sur la cible, le clic plante une flèche.
         g.setTextAlign(TextAlignment.CENTER);
         for (LoopMark mark : loopMarks) {
             double t = mark.age / LOOP_MARK_SECONDS;
             Color tint = hitColor(mark.hit);
             if (!mark.text.isEmpty()) UniverseView.glow(g, mark.x, mark.y, 8 + 22 * t, tint, 0.6 * (1 - t));
+            if (skinned && !mark.text.isEmpty()) plantedArrow(g, mark.x, mark.y, 1 - t);
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.setFill(tint);
             g.setFont(Font.font(15));
@@ -1549,6 +1881,42 @@ public final class DimensionView extends Canvas {
         }
         g.setGlobalAlpha(1);
         g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+    }
+
+    /** L'anneau de la cible du cercle {@code ring} parmi {@code rings} : blanc dehors, or au centre, les cinq couleurs réparties. */
+    private static int targetColor(int ring, int rings) {
+        return Math.min(TARGET.length - 1, ring * TARGET.length / Math.max(1, rings));
+    }
+
+    /** La flèche qui tourne : la pointe au point du cercle, le fût derrière elle le long du cercle, l'empennage au bout. */
+    private static void arrow(GraphicsContext g, double x, double y, double a, double length) {
+        // Le point tourne dans le sens des aiguilles d'une montre : la tangente de l'angle croissant va vers l'avant.
+        double tx = -Math.sin(a), ty = Math.cos(a), nx = Math.cos(a), ny = Math.sin(a);
+        g.setStroke(ARROW_WOOD);
+        g.setLineWidth(2.5);
+        g.strokeLine(x - tx * length, y - ty * length, x, y);
+        g.setStroke(FLETCH);
+        g.setLineWidth(2);
+        for (int side = -1; side <= 1; side += 2) {
+            double bx = x - tx * length, by = y - ty * length;
+            g.strokeLine(bx, by, bx - tx * 7 + nx * side * 5, by - ty * 7 + ny * side * 5);
+            g.strokeLine(bx + tx * 6, by + ty * 6, bx - tx * 1 + nx * side * 5, by - ty * 1 + ny * side * 5);
+        }
+        g.setFill(Color.WHITE);
+        g.fillPolygon(new double[] {x + tx * 8, x - nx * 4, x + nx * 4}, new double[] {y + ty * 8, y - ny * 4, y + ny * 4}, 3);
+    }
+
+    /** Une flèche plantée dans la cible, vue de face : le bout du fût et son empennage en trois plumes, qui s'efface. */
+    private static void plantedArrow(GraphicsContext g, double x, double y, double alpha) {
+        g.setGlobalAlpha(Math.max(0, alpha));
+        g.setStroke(FLETCH);
+        g.setLineWidth(2);
+        for (int k = 0; k < 3; k++) {
+            double a = -Math.PI / 2 + k * Math.PI * 2 / 3;
+            g.strokeLine(x, y, x + Math.cos(a) * 8, y + Math.sin(a) * 8);
+        }
+        g.setFill(ARROW_WOOD);
+        g.fillOval(x - 3, y - 3, 6, 6);
     }
 
     /** Un arc de zone : de {@code center − half} à {@code center + half} tours, dans le sens du point. */
@@ -1822,6 +2190,77 @@ public final class DimensionView extends Canvas {
     }
 
     /**
+     * Le point ({@code bx}, {@code by}) de la membrane à l'écran, écrit au rang {@code s} de {@code xs} et {@code ys} : creusé vers
+     * la souris autour du point tenu (les bords restent tenus, la membrane ne bouge qu'en dedans) ; fermée, une houle lente.
+     */
+    private void warp(double bx, double by, double pullX, double pullY, boolean open, double cx, double cy, double half,
+            double[] xs, double[] ys, int s) {
+        double near = braneHeld ? Math.exp(-(Math.pow(bx - braneFromX, 2) + Math.pow(by - braneFromY, 2)) / 0.18) : 0;
+        double edge = (1 - bx * bx) * (1 - by * by);
+        double sway = open ? 0 : 0.015 * Math.sin(time * 1.4 + bx * 3 + by * 2) * edge;
+        xs[s] = cx + (bx + pullX * near * edge * 0.6) * half;
+        ys[s] = cy + (by + pullY * near * edge * 0.6 + sway) * half;
+    }
+
+    /**
+     * La toile d'araignée tendue dans le cadre carré : ses fils radiaux du centre aux bords, son fil en spirale
+     * polygonale d'un fil radial au suivant, le cadre, et une petite araignée dans le coin haut gauche. Les fils suivent
+     * la même déformation que le quadrillage classique.
+     */
+    private void web(GraphicsContext g, double cx, double cy, double half, boolean open, double pullX, double pullY) {
+        g.setStroke(THREAD);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        double[] xs = new double[WEB_RADIALS * BRANE_GRID + 1], ys = new double[WEB_RADIALS * BRANE_GRID + 1];
+        for (int i = 0; i < WEB_RADIALS; i++) {
+            double a = webAngle(i), cos = Math.cos(a), sin = Math.sin(a), reach = 1 / Math.max(Math.abs(cos), Math.abs(sin));
+            for (int s = 0; s <= WEB_STEPS; s++) {
+                double f = (double) s / WEB_STEPS;
+                warp(f * reach * cos, f * reach * sin, pullX, pullY, open, cx, cy, half, xs, ys, s);
+            }
+            g.setGlobalAlpha(0.55);
+            g.setLineWidth(1);
+            g.strokePolyline(xs, ys, WEB_STEPS + 1);
+        }
+        // Le fil en spirale : un pas vers le bord à chaque fil radial passé.
+        int points = WEB_RADIALS * BRANE_GRID;
+        for (int n = 0; n <= points; n++) {
+            double a = webAngle(n % WEB_RADIALS), cos = Math.cos(a), sin = Math.sin(a), reach = 1 / Math.max(Math.abs(cos), Math.abs(sin));
+            double f = Math.min(1, 0.06 + 0.94 * n / points);
+            warp(f * reach * cos, f * reach * sin, pullX, pullY, open, cx, cy, half, xs, ys, n);
+        }
+        g.setGlobalAlpha(0.45);
+        g.setLineWidth(1);
+        g.strokePolyline(xs, ys, points + 1);
+        // Le cadre : des fils plus tendus, que la tirée ne bouge pas (les bords restent tenus).
+        g.setGlobalAlpha(0.85);
+        g.setLineWidth(1.5);
+        g.strokeRect(cx - half, cy - half, half * 2, half * 2);
+        g.setLineCap(javafx.scene.shape.StrokeLineCap.SQUARE);
+        spider(g, cx - half * 0.86, cy - half * 0.86, half * 0.05);
+    }
+
+    /** L'angle du fil radial {@code i} : réparti autour du centre, un peu décalé par le bruit, comme un fil tissé à la main. */
+    private static double webAngle(int i) {
+        return Math.PI * 2 * i / WEB_RADIALS + (UniverseView.noise(i + 700) - 0.5) * 0.12;
+    }
+
+    /** Une petite araignée : un corps en deux ovales et huit pattes, qui remuent à peine. */
+    private void spider(GraphicsContext g, double x, double y, double size) {
+        g.setGlobalAlpha(0.95);
+        g.setStroke(SPIDER);
+        g.setLineWidth(1.2);
+        for (int leg = 0; leg < 8; leg++) {
+            double side = leg < 4 ? -1 : 1, a = (-0.6 + 0.4 * (leg % 4)) + 0.08 * Math.sin(time * 3 + leg);
+            double kx = x + side * Math.cos(a) * size * 1.6, ky = y + Math.sin(a) * size * 1.6 - size * 0.3;
+            g.strokeLine(x, y, kx, ky);
+            g.strokeLine(kx, ky, kx + side * size * 0.6, ky + size * 1.2);
+        }
+        g.setFill(SPIDER);
+        g.fillOval(x - size * 0.8, y - size * 0.4, size * 1.6, size * 1.4);
+        g.fillOval(x - size * 0.45, y - size * 1.1, size * 0.9, size * 0.9);
+    }
+
+    /**
      * La membrane : un carré quadrillé, qui se creuse vers la souris tant qu'on la tient, avec le cercle en pointillé de
      * l'onde qui partirait. L'onde et ses rebonds (les cercles de ses images, découpés au carré), d'autant plus épais et
      * colorés qu'ils ont rebondi ; un éclat sur le bord où le front rebondit ; les points, dorés une fois touchés, avec
@@ -1832,27 +2271,25 @@ public final class DimensionView extends Canvas {
         Color c = color();
         double half = braneHalf();
         boolean open = game.isBraneOpen();
-        UniverseView.glow(g, cx, cy, half * 1.1, c, 0.1);
-        // Le quadrillage, creusé vers la souris autour du point tenu ; fermée, une houle lente.
+        if (!skinned) UniverseView.glow(g, cx, cy, half * 1.1, c, 0.1);
+        // Le quadrillage, creusé vers la souris autour du point tenu ; fermée, une houle lente. Sous le skin, la toile.
         double pullX = braneHeld ? braneToX - braneFromX : 0, pullY = braneHeld ? braneToY - braneFromY : 0;
-        g.setStroke(c);
-        int steps = 24;
-        for (int axis = 0; axis < 2; axis++) {
-            for (int k = 0; k <= BRANE_GRID; k++) {
-                double fixed = -1 + 2.0 * k / BRANE_GRID;
-                double[] xs = new double[steps + 1], ys = new double[steps + 1];
-                for (int s = 0; s <= steps; s++) {
-                    double run = -1 + 2.0 * s / steps, bx = axis == 0 ? run : fixed, by = axis == 0 ? fixed : run;
-                    double near = braneHeld ? Math.exp(-(Math.pow(bx - braneFromX, 2) + Math.pow(by - braneFromY, 2)) / 0.18) : 0;
-                    // Les bords restent tenus : la membrane ne bouge qu'en dedans.
-                    double edge = (1 - bx * bx) * (1 - by * by);
-                    double sway = open ? 0 : 0.015 * Math.sin(time * 1.4 + bx * 3 + by * 2) * edge;
-                    xs[s] = cx + (bx + pullX * near * edge * 0.6) * half;
-                    ys[s] = cy + (by + pullY * near * edge * 0.6 + sway) * half;
+        if (skinned) web(g, cx, cy, half, open, pullX, pullY);
+        else {
+            g.setStroke(c);
+            int steps = 24;
+            for (int axis = 0; axis < 2; axis++) {
+                for (int k = 0; k <= BRANE_GRID; k++) {
+                    double fixed = -1 + 2.0 * k / BRANE_GRID;
+                    double[] xs = new double[steps + 1], ys = new double[steps + 1];
+                    for (int s = 0; s <= steps; s++) {
+                        double run = -1 + 2.0 * s / steps;
+                        warp(axis == 0 ? run : fixed, axis == 0 ? fixed : run, pullX, pullY, open, cx, cy, half, xs, ys, s);
+                    }
+                    g.setGlobalAlpha(k == 0 || k == BRANE_GRID ? 0.8 : 0.18);
+                    g.setLineWidth(k == 0 || k == BRANE_GRID ? 2 : 1);
+                    g.strokePolyline(xs, ys, steps + 1);
                 }
-                g.setGlobalAlpha(k == 0 || k == BRANE_GRID ? 0.8 : 0.18);
-                g.setLineWidth(k == 0 || k == BRANE_GRID ? 2 : 1);
-                g.strokePolyline(xs, ys, steps + 1);
             }
         }
         braneFronts = 0;
@@ -1879,16 +2316,18 @@ public final class DimensionView extends Canvas {
                     // Seuls les fronts qui entrent dans le carré se voient : les autres, découpés, ne se dessinent pas.
                     if (!reachesSquare(at[0], at[1], r, cx, cy, half)) continue;
                     int bounces = (int) (ix[1] + iy[1]);
-                    // Un front qui a rebondi se voit mieux : plus épais, de la couleur de ses rebonds, et un halo.
+                    // Un front qui a rebondi se voit mieux : plus épais, de la couleur de ses rebonds, et un halo. Sur la
+                    // toile, l'onde est un frémissement des fils : des cercles plus fins, en fils plus brillants.
+                    double thin = skinned ? 0.6 : 1;
                     g.setStroke(bounceColor(bounces));
-                    g.setLineWidth(bounces == 0 ? 2.5 : 2 + 0.5 * Math.min(4, bounces));
+                    g.setLineWidth((bounces == 0 ? 2.5 : 2 + 0.5 * Math.min(4, bounces)) * thin);
                     g.setGlobalAlpha(Math.min(1, (bounces == 0 ? 0.9 : 0.75 + 0.05 * bounces) * fade + 0.1));
                     g.strokeOval(at[0] - r, at[1] - r, r * 2, r * 2);
                     braneFronts++;
                     // Un second front, plus pâle, juste derrière : l'onde a de l'épaisseur.
                     double inner = r * 0.92;
-                    g.setStroke(bounces == 0 ? c : bounceColor(bounces));
-                    g.setLineWidth(bounces == 0 ? 1 : 3);
+                    g.setStroke(bounces == 0 ? skinned ? THREAD : c : bounceColor(bounces));
+                    g.setLineWidth((bounces == 0 ? 1 : 3) * thin);
                     g.setGlobalAlpha((bounces == 0 ? 0.35 : 0.22) * fade);
                     g.strokeOval(at[0] - inner, at[1] - inner, inner * 2, inner * 2);
                 }
@@ -1932,11 +2371,16 @@ public final class DimensionView extends Canvas {
             for (Game.BraneWave wave : game.braneWaves()) struck |= wave.hasStruck(point);
             double[] at = braneScreen(point.x(), point.y());
             double r = 5 + (struck ? 2 : 0.8 * Math.sin(time * 3 + k++));
-            Color tint = struck ? BRANE_STRUCK : c;
-            UniverseView.glow(g, at[0], at[1], r * (struck ? 3.4 : 2.6), tint, struck ? 0.9 : 0.6);
+            Color tint = struck ? BRANE_STRUCK : skinned ? THREAD : c;
+            UniverseView.glow(g, at[0], at[1], r * (struck ? 3.4 : 2.6), tint, struck ? 0.9 : skinned ? 0.4 : 0.6);
             g.setGlobalAlpha(1);
-            g.setFill(struck ? BRANE_STRUCK : Color.WHITE);
+            g.setFill(struck ? BRANE_STRUCK : skinned ? DEW : Color.WHITE);
             g.fillOval(at[0] - r * 0.6, at[1] - r * 0.6, r * 1.2, r * 1.2);
+            if (skinned) {
+                // Une goutte de rosée : son reflet, en haut à gauche.
+                g.setFill(Color.WHITE);
+                g.fillOval(at[0] - r * 0.4, at[1] - r * 0.4, r * 0.35, r * 0.35);
+            }
             int passes = branePasses(point);
             if (struck && passes > 0) {
                 g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 11));
@@ -2111,24 +2555,44 @@ public final class DimensionView extends Canvas {
         Color c = color();
         double half = clickerHalf();
         boolean open = game.isClickerOpen();
-        UniverseView.glow(g, cx, cy, half * 1.15, c, 0.1 + (open ? 0.04 * Math.min(1, game.clickerRate() / 10) : 0));
-        g.setGlobalAlpha(0.6);
-        g.setFill(Color.web("#0c0f1c"));
-        g.fillRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
-        g.setStroke(c);
-        g.setLineWidth(2);
-        g.setGlobalAlpha(0.8);
-        g.strokeRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
+        if (skinned) {
+            // Sur le ciel, la surface est une vitre claire.
+            g.setGlobalAlpha(0.18);
+            g.setFill(Color.WHITE);
+            g.fillRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.7);
+            g.strokeRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
+        } else {
+            UniverseView.glow(g, cx, cy, half * 1.15, c, 0.1 + (open ? 0.04 * Math.min(1, game.clickerRate() / 10) : 0));
+            g.setGlobalAlpha(0.6);
+            g.setFill(Color.web("#0c0f1c"));
+            g.fillRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
+            g.setStroke(c);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.8);
+            g.strokeRoundRect(cx - half, cy - half, half * 2, half * 2, 14, 14);
+        }
         if (!open) {
             UniverseView.glow(g, cx, cy, 10 + 4 * Math.sin(time * 3), c, 0.6);
             g.setGlobalAlpha(1);
             return;
         }
         // Chaque zone, un disque doré ; là où plusieurs se superposent, chaque case prend la couleur de leur nombre.
+        // Sous le skin, chaque zone est une grande bulle translucide.
         List<Game.ClickerZone> zones = game.clickerZones();
+        int k = 0;
         for (Game.ClickerZone zone : zones) {
             double[] at = clickerScreen(zone.x(), zone.y());
             double r = zone.radius() * half * 2;
+            if (skinned) {
+                g.setGlobalAlpha(1);
+                g.setFill(BUBBLE_FILL);
+                g.fillOval(at[0] - r, at[1] - r, r * 2, r * 2);
+                bubbleShine(g, at[0], at[1], r, k++);
+                continue;
+            }
             g.setGlobalAlpha(0.3);
             g.setFill(stackColor(1));
             g.fillOval(at[0] - r, at[1] - r, r * 2, r * 2);
@@ -2149,12 +2613,14 @@ public final class DimensionView extends Canvas {
         for (Game.ClickerZone zone : zones) {
             double[] at = clickerScreen(zone.x(), zone.y());
             double r = zone.radius() * half * 2, share = Math.max(0, Math.min(1, zone.left() / zone.lifetime()));
-            g.setStroke(stackColor(1));
-            g.setLineWidth(1.5);
-            g.setGlobalAlpha(0.8);
-            g.strokeOval(at[0] - r, at[1] - r, r * 2, r * 2);
+            if (!skinned) {
+                g.setStroke(stackColor(1));
+                g.setLineWidth(1.5);
+                g.setGlobalAlpha(0.8);
+                g.strokeOval(at[0] - r, at[1] - r, r * 2, r * 2);
+            }
             double ring = r + 5;
-            g.setStroke(Color.WHITE);
+            g.setStroke(skinned ? SKY_INK : Color.WHITE);
             g.setLineWidth(3);
             g.setGlobalAlpha(share < 0.25 ? 0.6 + 0.4 * Math.sin(time * 14) : 0.85);
             g.strokeArc(at[0] - ring, at[1] - ring, ring * 2, ring * 2, 90, 360 * share, javafx.scene.shape.ArcType.OPEN);
@@ -2188,24 +2654,61 @@ public final class DimensionView extends Canvas {
         // La cadence, au-dessus de la surface.
         double rate = game.clickerRate();
         g.setGlobalAlpha(1);
-        g.setFill(rate > 0 ? Color.WHITE : Color.web("#8a93b0"));
+        g.setFill(skinned ? SKY_INK : rate > 0 ? Color.WHITE : Color.web("#8a93b0"));
         g.setFont(Font.font(14));
         g.fillText(cadenceText(rate), cx, cy - half - 12);
-        // Les clics : une onde qui s'élargit, et le gain qui monte.
+        // Les clics : une onde qui s'élargit, et le gain qui monte ; sous le skin, une bulle qui monte et éclate.
         for (ClickerMark mark : clickerMarks) {
             double t = mark.age / CLICKER_MARK_SECONDS, r = 6 + 34 * t;
             Color tint = mark.auto ? CLICKER_AUTO : mark.stack > 0 ? stackColor(mark.stack) : Color.WHITE;
-            g.setStroke(tint);
-            g.setLineWidth(2);
-            g.setGlobalAlpha(0.8 * (1 - t));
-            g.strokeOval(mark.x - r, mark.y - r, r * 2, r * 2);
-            UniverseView.glow(g, mark.x, mark.y, 6 + 10 * (1 - t), tint, 0.7 * (1 - t));
+            if (skinned) {
+                soapBubble(g, mark.x, mark.y, t);
+                tint = mark.auto ? SKY_AUTO : SKY_INK;
+            } else {
+                g.setStroke(tint);
+                g.setLineWidth(2);
+                g.setGlobalAlpha(0.8 * (1 - t));
+                g.strokeOval(mark.x - r, mark.y - r, r * 2, r * 2);
+                UniverseView.glow(g, mark.x, mark.y, 6 + 10 * (1 - t), tint, 0.7 * (1 - t));
+            }
             g.setGlobalAlpha(Math.max(0, 1 - t));
             g.setFill(tint);
             g.setFont(Font.font(mark.stack > 0 ? 15 : 13));
             g.fillText(mark.text, mark.x, mark.y - 14 - 30 * t);
         }
         g.setGlobalAlpha(1);
+    }
+
+    /** Le contour irisé d'une bulle, dont la teinte tourne avec le temps, et son reflet blanc en haut à gauche. */
+    private void bubbleShine(GraphicsContext g, double x, double y, double r, int seed) {
+        g.setStroke(BUBBLE_HUES[(int) ((time * 6 + seed * 5) % BUBBLE_HUES.length)]);
+        g.setLineWidth(2);
+        g.setGlobalAlpha(0.7);
+        g.strokeOval(x - r, y - r, r * 2, r * 2);
+        g.setStroke(Color.WHITE);
+        g.setLineWidth(Math.max(1.5, r * 0.08));
+        g.setGlobalAlpha(0.8);
+        g.strokeArc(x - r * 0.75, y - r * 0.75, r * 1.5, r * 1.5, 110, 40, javafx.scene.shape.ArcType.OPEN);
+    }
+
+    /** La bulle d'un clic, d'âge {@code t} de 0 à 1 : elle monte, puis éclate en gouttelettes qui s'écartent. */
+    private void soapBubble(GraphicsContext g, double x, double y, double t) {
+        double rise = 40 * t;
+        if (t < 0.7) {
+            double r = 7 + 6 * (1 - t);
+            g.setGlobalAlpha(1);
+            g.setFill(BUBBLE_FILL);
+            g.fillOval(x - r, y - rise - r, r * 2, r * 2);
+            bubbleShine(g, x, y - rise, r, (int) x);
+            return;
+        }
+        double burst = (t - 0.7) / 0.3, spread = 8 + 14 * burst;
+        g.setFill(Color.WHITE);
+        g.setGlobalAlpha(0.8 * (1 - burst));
+        for (int k = 0; k < 6; k++) {
+            double a = k * Math.PI / 3;
+            g.fillOval(x + Math.cos(a) * spread - 1.5, y - rise + Math.sin(a) * spread - 1.5, 3, 3);
+        }
     }
 
     /** « 3.5 clics par seconde, ×1.18 » : la cadence et ce qu'elle multiplie. */
@@ -2485,11 +2988,27 @@ public final class DimensionView extends Canvas {
         int[] origin = open ? gridOrigin() : new int[] {0, 0}, revealed = open ? gridRevealed() : new int[] {-1, -1};
         double side = gridSide(), left = gridLeft(), top = gridTop(), cell = side / span;
         boolean waiting = open && game.gridWait() > 0;
+        // Sous le skin, la carte est une plaque de démineur : ses cases en relief, et un cadre biseauté.
+        boolean bevels = skinned && span <= 64 && cell >= 6;
+        if (skinned) {
+            g.setGlobalAlpha(1);
+            g.setFill(MINE_FACE);
+            g.fillRect(left, top, side, side);
+            if (bevels) {
+                for (int i = 0; i < span; i++) {
+                    for (int j = 0; j < span; j++) bevel(g, left + i * cell, top + j * cell, cell, true);
+                }
+            }
+        }
         // Les cases essayées de la couche, dans la partie que la carte montre (trois pixels au moins : elles se voient).
         for (Game.GridProbe probe : gridProbed.values()) {
             if (probe.k() != layer || probe.i() < origin[0] || probe.j() < origin[1] || probe.i() >= origin[0] + span
                     || probe.j() >= origin[1] + span) continue;
             double size = Math.max(3, cell - 2), x = left + (probe.i() - origin[0] + 0.5) * cell, y = top + (probe.j() - origin[1] + 0.5) * cell;
+            if (skinned) {
+                mineCell(g, probe, x, y, cell, waiting);
+                continue;
+            }
             g.setGlobalAlpha(waiting ? 0.45 : 0.75);
             g.setFill(gridProbeColor(probe));
             g.fillRect(x - size / 2, y - size / 2, size, size);
@@ -2506,16 +3025,17 @@ public final class DimensionView extends Canvas {
             g.setGlobalAlpha(revealed[0] == layer ? 0.95 : 0.45);
             g.strokeRect(left + (revealed[1] - origin[0]) * cell + 1.5, top + 1.5, Math.max(3, cell - 3), side - 3);
         }
-        // Les lignes des cases quand elles se voient ; sinon, un repère tous les dixièmes.
-        g.setStroke(c);
+        // Les lignes des cases quand elles se voient ; sinon, un repère tous les dixièmes. Les cases en relief ont déjà leurs biseaux.
+        g.setStroke(skinned ? MINE_DARK : c);
         int every = span <= 64 ? 1 : Math.max(1, span / 10);
-        for (int k = 0; k <= span; k += every) {
+        for (int k = 0; k <= span && !bevels; k += every) {
             boolean edge = k == 0;
             g.setLineWidth(edge ? 2 : 1);
             g.setGlobalAlpha(edge ? 0.8 : span <= 64 ? 0.3 : 0.15);
             g.strokeLine(left + k * cell, top, left + k * cell, top + side);
             g.strokeLine(left, top + k * cell, left + side, top + k * cell);
         }
+        if (skinned) bevel(g, left - 4, top - 4, side + 8, false);
         g.setLineWidth(2);
         g.setGlobalAlpha(0.8);
         g.strokeRect(left, top, side, side);
@@ -2524,7 +3044,7 @@ public final class DimensionView extends Canvas {
             int[] at = gridSelected();
             double[] p = gridCellScreen(at[0], at[1]);
             double r = Math.max(5, cell / 2);
-            g.setStroke(Color.WHITE);
+            g.setStroke(skinned ? MINE_TEXT : Color.WHITE);
             g.setLineWidth(2);
             g.setGlobalAlpha(0.95);
             g.strokeRect(p[0] - r, p[1] - r, r * 2, r * 2);
@@ -2537,17 +3057,17 @@ public final class DimensionView extends Canvas {
         }
         g.setTextAlign(TextAlignment.CENTER);
         g.setGlobalAlpha(1);
-        g.setFill(revealed[0] == layer ? GRID_HINT : Color.WHITE);
+        g.setFill(revealed[0] == layer ? GRID_HINT : skinned ? MINE_TEXT : Color.WHITE);
         g.setFont(Font.font(14));
         g.fillText(layerText(layer, n) + (revealed[0] == layer ? " : le point visé est dans cette couche" : ""), left + side / 2, top - 12);
         if (open && span < n) {
-            g.setFill(Color.web("#8a93b0"));
+            g.setFill(skinned ? MINE_GRAY : Color.web("#8a93b0"));
             g.setFont(Font.font(12));
             g.fillText("x de " + origin[0] + " à " + (origin[0] + span - 1) + ", y de " + origin[1] + " à " + (origin[1] + span - 1),
                     left + side / 2, top + side + 38);
         }
-        // Dans les cases essayées assez grandes, le gain (et la distance, si l'affichage la montre).
-        if (cell >= 38) {
+        // Dans les cases essayées assez grandes, le gain (et la distance, si l'affichage la montre) ; le démineur y met son chiffre.
+        if (cell >= 38 && !skinned) {
             g.setFont(Font.font(11));
             for (Game.GridProbe probe : gridProbed.values()) {
                 if (probe.k() != layer || probe.i() < origin[0] || probe.j() < origin[1] || probe.i() >= origin[0] + span
@@ -2561,7 +3081,7 @@ public final class DimensionView extends Canvas {
         }
         if (waiting) {
             g.setGlobalAlpha(0.85);
-            g.setFill(Color.web("#8a93b0"));
+            g.setFill(skinned ? MINE_GRAY : Color.web("#8a93b0"));
             g.setFont(Font.font(13));
             g.fillText(String.format(java.util.Locale.ROOT, "Attente : %.1f s", game.gridWait()), left + side / 2, top + side + 20);
         }
@@ -2576,11 +3096,80 @@ public final class DimensionView extends Canvas {
             double glow = Math.max(10, mark.found ? cell * 1.2 : cell * 0.5);
             UniverseView.glow(g, at[0], at[1], glow * (0.6 + t), tint, (mark.found ? 0.9 : 0.5) * (1 - t));
             g.setGlobalAlpha(Math.max(0, 1 - t));
-            g.setFill(tint);
+            g.setFill(skinned ? mark.found ? MINE_HIT : mark.auto ? SKY_AUTO : MINE_TEXT : tint);
             g.setFont(mark.found ? Font.font(null, javafx.scene.text.FontWeight.BOLD, 17) : Font.font(14));
             g.fillText(mark.text, at[0], at[1] - 10 - 30 * t);
         }
         g.setGlobalAlpha(1);
+    }
+
+    /**
+     * Un biseau de démineur sur le carré de côté {@code size} en ({@code x}, {@code y}) : clair en haut et à gauche, sombre
+     * en bas et à droite ; {@code raised} pour une case en relief, sinon un cadre creusé (les côtés s'inversent).
+     */
+    private static void bevel(GraphicsContext g, double x, double y, double size, boolean raised) {
+        double width = raised ? Math.max(1, Math.min(3, size * 0.08)) : 3, inset = width / 2;
+        g.setGlobalAlpha(1);
+        g.setLineWidth(width);
+        g.setStroke(raised ? MINE_LIGHT : MINE_DARK);
+        g.strokeLine(x + inset, y + inset, x + size - inset, y + inset);
+        g.strokeLine(x + inset, y + inset, x + inset, y + size - inset);
+        g.setStroke(raised ? MINE_DARK : MINE_LIGHT);
+        g.strokeLine(x + size - inset, y + inset, x + size - inset, y + size - inset);
+        g.strokeLine(x + inset, y + size - inset, x + size - inset, y + size - inset);
+    }
+
+    /**
+     * Une case essayée, en démineur : elle s'enfonce (plate, cernée de sombre) et montre, si la case est assez grande,
+     * un chiffre coloré quand l'affichage dit la distance (1 au plus loin, 8 au plus près), un drapeau sinon ; trouvée,
+     * une mine sur fond rouge. Petite, elle prend la couleur de son chiffre.
+     */
+    private void mineCell(GraphicsContext g, Game.GridProbe probe, double x, double y, double cell, boolean waiting) {
+        double size = Math.max(3, cell - 1);
+        g.setGlobalAlpha(waiting ? 0.6 : 1);
+        int digit = mineDigit(probe);
+        boolean revealed = game.gridReveal() >= 1;
+        if (cell < 10) {
+            g.setFill(probe.found() ? MINE_HIT : revealed ? MINE_DIGITS[digit - 1] : FLAG);
+            g.fillRect(x - size / 2, y - size / 2, size, size);
+            return;
+        }
+        g.setFill(probe.found() ? MINE_HIT : MINE_SUNK);
+        g.fillRect(x - size / 2, y - size / 2, size, size);
+        g.setStroke(MINE_DARK);
+        g.setLineWidth(1);
+        g.strokeRect(x - size / 2 + 0.5, y - size / 2 + 0.5, size - 1, size - 1);
+        if (probe.found()) {
+            // La mine : un disque noir, quatre pointes, un reflet.
+            double r = cell * 0.22;
+            g.setFill(MINE_TEXT);
+            g.fillOval(x - r, y - r, r * 2, r * 2);
+            g.setStroke(MINE_TEXT);
+            g.setLineWidth(Math.max(1.5, r * 0.25));
+            g.strokeLine(x - r * 1.5, y, x + r * 1.5, y);
+            g.strokeLine(x, y - r * 1.5, x, y + r * 1.5);
+            g.setFill(Color.WHITE);
+            g.fillOval(x - r * 0.6, y - r * 0.6, r * 0.5, r * 0.5);
+        } else if (revealed) {
+            g.setFill(MINE_DIGITS[digit - 1]);
+            g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, cell * 0.55));
+            g.setTextAlign(TextAlignment.CENTER);
+            g.fillText(String.valueOf(digit), x, y + cell * 0.2);
+        } else {
+            // Le drapeau : un mât et un fanion rouge.
+            g.setStroke(MINE_TEXT);
+            g.setLineWidth(Math.max(1, cell * 0.06));
+            g.strokeLine(x, y - cell * 0.3, x, y + cell * 0.3);
+            g.strokeLine(x - cell * 0.2, y + cell * 0.3, x + cell * 0.2, y + cell * 0.3);
+            g.setFill(FLAG);
+            g.fillPolygon(new double[] {x, x - cell * 0.3, x}, new double[] {y - cell * 0.3, y - cell * 0.12, y + cell * 0.05}, 3);
+        }
+    }
+
+    /** Le chiffre de démineur d'un essai, de 1 (loin du point) à 8 (tout près), d'après la même chaleur que sa couleur. */
+    private int mineDigit(Game.GridProbe probe) {
+        double heat = Math.max(0, Math.min(1, 1 - probe.distance() / (game.gridDivisions() * 0.6)));
+        return 1 + (int) Math.round(7 * heat);
     }
 
     /** « Couche z = 3 (de 0 à 999) » : la couche montrée, et toutes celles de la grille. */
@@ -2598,7 +3187,8 @@ public final class DimensionView extends Canvas {
      * colorés, et, selon l'affichage, la couche du point visé (un contour rose) et sa colonne (un trait sur cette couche).
      */
     private void gridCube(GraphicsContext g, double ox, double oy, double s, int n, int layer, int[] revealed, Color c) {
-        g.setStroke(c);
+        if (skinned) mineFaces(g, ox, oy, s, n);
+        g.setStroke(skinned ? MINE_DARK : c);
         g.setLineWidth(1.5);
         g.setGlobalAlpha(0.7);
         for (int a = 0; a < 8; a++) {
@@ -2629,7 +3219,7 @@ public final class DimensionView extends Canvas {
         if (game.isGridOpen()) {
             int[] at = gridSelected();
             double[] p = iso(ox, oy, s, (at[0] + 0.5) / n, (at[1] + 0.5) / n, (at[2] + 0.5) / n);
-            g.setStroke(Color.WHITE);
+            g.setStroke(skinned ? MINE_TEXT : Color.WHITE);
             g.setLineWidth(1.5);
             g.setGlobalAlpha(0.9);
             g.strokeOval(p[0] - 4, p[1] - 4, 8, 8);
@@ -2639,6 +3229,42 @@ public final class DimensionView extends Canvas {
             UniverseView.glow(g, at[0], at[1], 10 + 10 * mark.age, mark.found ? GRID_FOUND : Color.WHITE, 0.8 * Math.max(0, 1 - mark.age / GRID_MARK_SECONDS));
         }
         g.setGlobalAlpha(1);
+    }
+
+    /**
+     * Les trois faces visibles du cube de biais en démineur : le dessus clair, la face de gauche et celle de droite plus
+     * sombres, chacune découpée en cases biseautées (dix par côté au plus, pour qu'elles se voient).
+     */
+    private static void mineFaces(GraphicsContext g, double ox, double oy, double s, int n) {
+        int cells = Math.min(n, 10);
+        g.setGlobalAlpha(1);
+        for (int face = 0; face < 3; face++) {
+            g.setFill(face == 0 ? MINE_TOP : face == 1 ? MINE_FACE : MINE_SIDE);
+            double[] a = faceCorner(ox, oy, s, face, 0, 0), b = faceCorner(ox, oy, s, face, 1, 0), d = faceCorner(ox, oy, s, face, 1, 1),
+                    e = faceCorner(ox, oy, s, face, 0, 1);
+            g.fillPolygon(new double[] {a[0], b[0], d[0], e[0]}, new double[] {a[1], b[1], d[1], e[1]}, 4);
+            g.setLineWidth(1);
+            for (int k = 1; k < cells; k++) {
+                double f = (double) k / cells;
+                double[] p = faceCorner(ox, oy, s, face, f, 0), q = faceCorner(ox, oy, s, face, f, 1);
+                double[] r = faceCorner(ox, oy, s, face, 0, f), t = faceCorner(ox, oy, s, face, 1, f);
+                g.setStroke(MINE_LIGHT);
+                g.setGlobalAlpha(0.7);
+                g.strokeLine(p[0], p[1], q[0], q[1]);
+                g.setStroke(MINE_DARK);
+                g.strokeLine(r[0], r[1], t[0], t[1]);
+            }
+            g.setGlobalAlpha(1);
+        }
+    }
+
+    /** Un point ({@code p}, {@code q}) de 0 à 1 d'une face visible du cube de biais : le dessus (0), la face de gauche (1), celle de droite (2). */
+    private static double[] faceCorner(double ox, double oy, double s, int face, double p, double q) {
+        return switch (face) {
+            case 0 -> iso(ox, oy, s, p, q, 1);
+            case 1 -> iso(ox, oy, s, p, 1, q);
+            default -> iso(ox, oy, s, 1, p, q);
+        };
     }
 
     /** Une couche du cube de biais, à la hauteur {@code z} : une plaque pleine, ou son seul contour. */
@@ -2811,8 +3437,14 @@ public final class DimensionView extends Canvas {
         double left = w / 2 - cell * columns / 2, top = h / 2 - cell * rows / 2 + 14;
         mirrorPatternDrawn = 0;
         mirrorReproducedDrawn = 0;
+        // Le vitrail : un halo de lumière qui traverse, puis chaque case en verre sombre cerné de plomb.
+        if (skinned) UniverseView.glow(g, left + cell * columns / 2 + Math.sin(time * 0.3) * cell, top + rows * cell / 2, cell * rows * 0.9, DAYLIGHT, 0.18);
         for (int column = 0; column < columns; column++) {
             for (int row = 0; row < rows; row++) {
+                if (skinned) {
+                    glass(g, left + column * cell, top + row * cell, cell, GLASS_DARK[glassIndex(column, row)]);
+                    continue;
+                }
                 boolean right = column >= columns / 2;
                 g.setGlobalAlpha(right ? 0.5 : 0.3);
                 g.setFill(Color.web(right ? "#141a2c" : "#10141f"));
@@ -2833,10 +3465,13 @@ public final class DimensionView extends Canvas {
                     if (shown >= 0 && shown < pattern.size()) {
                         Game.MirrorCell lit = pattern.get(shown);
                         double[] at = mirrorCellScreen(lit.column(), lit.row());
-                        UniverseView.glow(g, at[0], at[1], cell * 0.9, MIRROR_LIT, 0.9);
+                        UniverseView.glow(g, at[0], at[1], cell * 0.9, skinned ? Color.WHITE : MIRROR_LIT, 0.9);
                         g.setGlobalAlpha(1);
-                        g.setFill(MIRROR_LIT);
-                        g.fillRoundRect(at[0] - cell / 2 + 5, at[1] - cell / 2 + 5, cell - 10, cell - 10, 8, 8);
+                        if (skinned) glass(g, at[0] - cell / 2, at[1] - cell / 2, cell, GLASS_LIT[glassIndex(lit.column(), lit.row())]);
+                        else {
+                            g.setFill(MIRROR_LIT);
+                            g.fillRoundRect(at[0] - cell / 2 + 5, at[1] - cell / 2 + 5, cell - 10, cell - 10, 8, 8);
+                        }
                         g.setFill(BACK);
                         g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, Math.max(12, cell * 0.3)));
                         g.fillText(String.valueOf(shown + 1), at[0], at[1] + cell * 0.1);
@@ -2848,9 +3483,14 @@ public final class DimensionView extends Canvas {
                     for (int n = 0; n < Math.min(game.mirrorPosition(), pattern.size()); n++) {
                         Game.MirrorCell done = game.mirrored(pattern.get(n));
                         double[] at = mirrorCellScreen(done.column(), done.row());
-                        g.setGlobalAlpha(0.55);
-                        g.setFill(MIRROR_DONE);
-                        g.fillRoundRect(at[0] - cell / 2 + 6, at[1] - cell / 2 + 6, cell - 12, cell - 12, 8, 8);
+                        if (skinned) {
+                            g.setGlobalAlpha(1);
+                            glass(g, at[0] - cell / 2, at[1] - cell / 2, cell, GLASS_LIT[glassIndex(done.column(), done.row())]);
+                        } else {
+                            g.setGlobalAlpha(0.55);
+                            g.setFill(MIRROR_DONE);
+                            g.fillRoundRect(at[0] - cell / 2 + 6, at[1] - cell / 2 + 6, cell - 12, cell - 12, 8, 8);
+                        }
                         g.setGlobalAlpha(1);
                         g.setFill(BACK);
                         g.setFont(Font.font(Math.max(11, cell * 0.25)));
@@ -2871,13 +3511,23 @@ public final class DimensionView extends Canvas {
                 }
             }
         }
-        // Le miroir : un trait lumineux entre les deux moitiés.
+        // Le miroir : un trait lumineux entre les deux moitiés ; sur le vitrail, une baguette de plomb.
         double mx = left + cell * columns / 2;
-        for (int k = 0; k < 6; k++) UniverseView.glow(g, mx, top + (k + 0.5) * rows * cell / 6, cell * 0.5, c, 0.35 + 0.1 * Math.sin(time * 2 + k));
-        g.setStroke(Color.WHITE);
-        g.setLineWidth(3);
-        g.setGlobalAlpha(0.9);
-        g.strokeLine(mx, top - 6, mx, top + rows * cell + 6);
+        if (skinned) {
+            g.setGlobalAlpha(1);
+            g.setStroke(LEAD);
+            g.setLineWidth(7);
+            g.strokeLine(mx, top - 6, mx, top + rows * cell + 6);
+            g.setStroke(LEAD_SHINE);
+            g.setLineWidth(1.5);
+            g.strokeLine(mx - 1.5, top - 6, mx - 1.5, top + rows * cell + 6);
+        } else {
+            for (int k = 0; k < 6; k++) UniverseView.glow(g, mx, top + (k + 0.5) * rows * cell / 6, cell * 0.5, c, 0.35 + 0.1 * Math.sin(time * 2 + k));
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(3);
+            g.setGlobalAlpha(0.9);
+            g.strokeLine(mx, top - 6, mx, top + rows * cell + 6);
+        }
         // Les éclats des clics.
         for (MirrorFlash flash : mirrorFlashes) {
             // Un clic ne se joue qu'à droite : rien ne s'éclaire jamais du côté du motif.
@@ -2909,6 +3559,25 @@ public final class DimensionView extends Canvas {
             g.fillText(mirrorStatus(), w / 2, top - 16);
         }
         g.setGlobalAlpha(1);
+    }
+
+    /** Le verre de la case ({@code column}, {@code row}) : l'un des cinq, toujours le même pour une même case. */
+    private static int glassIndex(int column, int row) {
+        return (int) (UniverseView.noise(column * 131 + row * 17 + 5) * GLASS_DARK.length);
+    }
+
+    /** Une pièce de verre du vitrail : sa couleur, un reflet en biais en haut à gauche, et son plomb épais autour. */
+    private static void glass(GraphicsContext g, double x, double y, double cell, Color tint) {
+        g.setGlobalAlpha(1);
+        g.setFill(tint);
+        g.fillRect(x, y, cell, cell);
+        g.setGlobalAlpha(0.1);
+        g.setFill(Color.WHITE);
+        g.fillPolygon(new double[] {x, x + cell * 0.7, x}, new double[] {y, y, y + cell * 0.7}, 3);
+        g.setGlobalAlpha(1);
+        g.setStroke(LEAD);
+        g.setLineWidth(2);
+        g.strokeRect(x + 1, y + 1, cell - 2, cell - 2);
     }
 
     /** « Motif de 5 cases · record 7 · erreurs 1 / 2 » et la phase : au-dessus du plateau. */
@@ -3120,67 +3789,8 @@ public final class DimensionView extends Canvas {
         Color c = color();
         double[] a = mixArena();
         double left = a[0], top = a[1], side = a[2];
-        g.setGlobalAlpha(0.6);
-        g.setFill(Color.web("#0b0e1a"));
-        g.fillRoundRect(left, top, side, side, 10, 10);
-        // La grille : un quadrillage léger de 10 × 10.
-        if (game.isMixing(8)) {
-            g.setStroke(Color.web("#3b4670"));
-            g.setLineWidth(1);
-            g.setGlobalAlpha(0.35);
-            for (int k = 1; k < Game.MIX_GRID; k++) {
-                double at = side * k / Game.MIX_GRID;
-                g.strokeLine(left + at, top, left + at, top + side);
-                g.strokeLine(left, top + at, left + side, top + at);
-            }
-        }
-        // Le clicker : chaque case prend la couleur du nombre de zones ×2 qui la couvrent.
-        if (game.isMixing(7)) {
-            List<Game.MixZone> zones = game.mixZones();
-            double cell = side / MIX_ZONE_CELLS;
-            for (int i = 0; i < MIX_ZONE_CELLS && !zones.isEmpty(); i++) {
-                for (int j = 0; j < MIX_ZONE_CELLS; j++) {
-                    double x = (i + 0.5) / MIX_ZONE_CELLS, y = (j + 0.5) / MIX_ZONE_CELLS;
-                    int stack = 0;
-                    for (Game.MixZone zone : zones) if (zone.contains(x, y)) stack++;
-                    if (stack == 0) continue;
-                    g.setGlobalAlpha(Math.min(0.75, 0.3 + 0.12 * stack));
-                    g.setFill(stackColor(stack));
-                    g.fillRect(left + i * cell, top + j * cell, cell + 0.5, cell + 0.5);
-                }
-            }
-            for (Game.MixZone zone : zones) {
-                double[] at = mixScreen(zone.x(), zone.y());
-                double r = zone.radius() * side;
-                g.setStroke(stackColor(1));
-                g.setLineWidth(2);
-                g.setGlobalAlpha(0.8);
-                g.strokeArc(at[0] - r, at[1] - r, 2 * r, 2 * r, 90, 360 * zone.left() / Game.MIX_ZONE_SECONDS, javafx.scene.shape.ArcType.OPEN);
-                g.setFill(Color.WHITE);
-                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 12));
-                g.setTextAlign(TextAlignment.CENTER);
-                g.fillText("×2", at[0], at[1] + 4);
-            }
-        }
-        g.setStroke(c);
-        g.setLineWidth(1.5);
-        g.setGlobalAlpha(0.6);
-        g.strokeRoundRect(left, top, side, side, 10, 10);
-        // Le miroir : son axe, au milieu.
-        if (game.isMixing(9)) {
-            double mx = left + side / 2;
-            for (int k = 0; k < 5; k++) UniverseView.glow(g, mx, top + (k + 0.5) * side / 5, side * 0.06, PALETTE[8], 0.3 + 0.1 * Math.sin(time * 2 + k));
-            g.setStroke(Color.WHITE);
-            g.setLineWidth(2);
-            g.setGlobalAlpha(0.8);
-            g.strokeLine(mx, top, mx, top + side);
-        }
-        mixLine(g, left, top, side, c);
-        if (game.isMixing(6)) mixWaves(g, left, top, side);
-        if (game.isMixing(2)) {
-            mixShards(g, side);
-            mixCursor(g, side);
-        }
+        if (skinned) kaleidoscope(g, cx, cy, left, top, side, c);
+        else mixArt(g, left, top, side, c, 1, true);
         for (MixMark flash : mixFlashes) {
             double t = flash.age / MIX_FLASH_SECONDS;
             double[] at = mixScreen(flash.x, flash.y);
@@ -3200,21 +3810,131 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
     }
 
-    /** La ligne : à mi-hauteur, ses graduations, et la boule qui fait l'aller-retour ; plus pâle dès qu'elle pose des éclats. */
-    private void mixLine(GraphicsContext g, double left, double top, double side, Color c) {
+    /**
+     * Ce qui se dessine dans l'arène, dans l'ordre : son fond, la grille, les zones ×2 et leurs cases, le cadre, l'axe du
+     * miroir, la ligne, les ondes, les éclats et le point. {@code full} pour l'arène elle-même ; faux pour une copie du
+     * kaléidoscope, qui n'a ni fond, ni cases colorées, ni textes, ni point, et dont {@code fade} atténue les couleurs.
+     */
+    private void mixArt(GraphicsContext g, double left, double top, double side, Color c, double fade, boolean full) {
+        if (full) {
+            g.setGlobalAlpha(0.6);
+            g.setFill(Color.web("#0b0e1a"));
+            g.fillRoundRect(left, top, side, side, 10, 10);
+        }
+        // La grille : un quadrillage léger de 10 × 10.
+        if (game.isMixing(8)) {
+            g.setStroke(Color.web("#3b4670"));
+            g.setLineWidth(1);
+            g.setGlobalAlpha(0.35 * fade);
+            for (int k = 1; k < Game.MIX_GRID; k++) {
+                double at = side * k / Game.MIX_GRID;
+                g.strokeLine(left + at, top, left + at, top + side);
+                g.strokeLine(left, top + at, left + side, top + at);
+            }
+        }
+        // Le clicker : chaque case prend la couleur du nombre de zones ×2 qui la couvrent.
+        if (game.isMixing(7)) {
+            List<Game.MixZone> zones = game.mixZones();
+            double cell = side / MIX_ZONE_CELLS;
+            for (int i = 0; i < MIX_ZONE_CELLS && full && !zones.isEmpty(); i++) {
+                for (int j = 0; j < MIX_ZONE_CELLS; j++) {
+                    double x = (i + 0.5) / MIX_ZONE_CELLS, y = (j + 0.5) / MIX_ZONE_CELLS;
+                    int stack = 0;
+                    for (Game.MixZone zone : zones) if (zone.contains(x, y)) stack++;
+                    if (stack == 0) continue;
+                    g.setGlobalAlpha(Math.min(0.75, 0.3 + 0.12 * stack));
+                    g.setFill(stackColor(stack));
+                    g.fillRect(left + i * cell, top + j * cell, cell + 0.5, cell + 0.5);
+                }
+            }
+            for (Game.MixZone zone : zones) {
+                double[] at = mixScreen(zone.x(), zone.y());
+                double r = zone.radius() * side;
+                g.setStroke(full ? stackColor(1) : c);
+                g.setLineWidth(2);
+                g.setGlobalAlpha(0.8 * fade);
+                g.strokeArc(at[0] - r, at[1] - r, 2 * r, 2 * r, 90, 360 * zone.left() / Game.MIX_ZONE_SECONDS, javafx.scene.shape.ArcType.OPEN);
+                if (!full) continue;
+                g.setFill(Color.WHITE);
+                g.setFont(Font.font(null, javafx.scene.text.FontWeight.BOLD, 12));
+                g.setTextAlign(TextAlignment.CENTER);
+                g.fillText("×2", at[0], at[1] + 4);
+            }
+        }
+        g.setStroke(c);
+        g.setLineWidth(1.5);
+        g.setGlobalAlpha(0.6 * fade);
+        g.strokeRoundRect(left, top, side, side, 10, 10);
+        // Le miroir : son axe, au milieu.
+        if (game.isMixing(9)) {
+            double mx = left + side / 2;
+            for (int k = 0; k < 5; k++) UniverseView.glow(g, mx, top + (k + 0.5) * side / 5, side * 0.06, full ? PALETTE[8] : c, (0.3 + 0.1 * Math.sin(time * 2 + k)) * fade);
+            g.setStroke(Color.WHITE);
+            g.setLineWidth(2);
+            g.setGlobalAlpha(0.8 * fade);
+            g.strokeLine(mx, top, mx, top + side);
+        }
+        mixLine(g, left, top, side, c, fade);
+        if (game.isMixing(6)) mixWaves(g, left, top, side, fade);
+        if (game.isMixing(2)) {
+            mixShards(g, side, full ? null : c, fade);
+            if (full) mixCursor(g, side);
+        }
+    }
+
+    /**
+     * Le kaléidoscope : la lunette, un cercle qui contient l'arène ; le décor de l'arène y est répété cinq fois de plus,
+     * tourné de 60° en 60° et miroité une fois sur deux, en couleurs saturées et atténué, puis l'arène elle-même par-dessus,
+     * à sa place (ce qu'on clique ne bouge pas) ; autour, le contour noir de la lunette.
+     */
+    private void kaleidoscope(GraphicsContext g, double cx, double cy, double left, double top, double side, Color c) {
+        double lens = side * 0.72;
+        g.setGlobalAlpha(1);
+        g.setFill(LENS);
+        g.fillOval(cx - lens, cy - lens, lens * 2, lens * 2);
+        g.save();
+        g.beginPath();
+        g.arc(cx, cy, lens, lens, 0, 360);
+        g.closePath();
+        g.clip();
+        for (int k = 1; k < 6; k++) {
+            g.save();
+            g.translate(cx, cy);
+            g.rotate(60 * k);
+            if (k % 2 == 1) g.scale(1, -1);
+            g.translate(-cx, -cy);
+            mixArt(g, left, top, side, KALEIDO[k - 1], 0.45, false);
+            g.restore();
+        }
+        mixArt(g, left, top, side, c, 1, true);
+        g.restore();
+        g.setGlobalAlpha(1);
+        g.setStroke(Color.BLACK);
+        g.setLineWidth(10);
+        g.strokeOval(cx - lens - 5, cy - lens - 5, lens * 2 + 10, lens * 2 + 10);
+        g.setStroke(LENS_RIM);
+        g.setLineWidth(1.5);
+        g.strokeOval(cx - lens, cy - lens, lens * 2, lens * 2);
+    }
+
+    /**
+     * La ligne : à mi-hauteur, ses graduations, et la boule qui fait l'aller-retour ; plus pâle dès qu'elle pose des éclats.
+     * {@code fade} atténue le tout, pour les copies du kaléidoscope.
+     */
+    private void mixLine(GraphicsContext g, double left, double top, double side, Color c, double fade) {
         double y = top + Game.MIX_LINE_Y * side;
         boolean first = !game.isMixing(2);
         g.setStroke(c);
         g.setLineWidth(first ? 3 : 1.5);
-        g.setGlobalAlpha(first ? 0.9 : 0.35);
+        g.setGlobalAlpha((first ? 0.9 : 0.35) * fade);
         g.strokeLine(left + side * 0.02, y, left + side * 0.98, y);
         for (int i = 0; i < game.mixTicks(); i++) {
             double x = left + game.mixTickX(i) * side;
             g.strokeLine(x, y - (first ? 14 : 8), x, y + (first ? 14 : 8));
         }
         double bx = left + game.mixBall() * side;
-        UniverseView.glow(g, bx, y, first ? 26 : 14, c, first ? 0.8 : 0.4);
-        g.setGlobalAlpha(first ? 1 : 0.6);
+        UniverseView.glow(g, bx, y, first ? 26 : 14, c, (first ? 0.8 : 0.4) * fade);
+        g.setGlobalAlpha((first ? 1 : 0.6) * fade);
         g.setFill(Color.WHITE);
         double r = first ? 7 : 4;
         g.fillOval(bx - r, y - r, 2 * r, 2 * r);
@@ -3222,16 +3942,17 @@ public final class DimensionView extends Canvas {
 
     /**
      * Les éclats : plus petits et plus violets plus ils sont profonds ; un anneau autour de ceux que le point peut
-     * ramasser à sa profondeur. Un trait léger relie les deux éclats d'une paire, de part et d'autre du miroir.
+     * ramasser à sa profondeur. Un trait léger relie les deux éclats d'une paire, de part et d'autre du miroir. Dans une
+     * copie du kaléidoscope, tous prennent la couleur {@code tint} (sinon {@code null}), atténuée par {@code fade}.
      */
-    private void mixShards(GraphicsContext g, double side) {
+    private void mixShards(GraphicsContext g, double side, Color tint, double fade) {
         List<Game.MixShard> shards = game.mixShardList();
         if (game.isMixing(9)) {
             java.util.Map<Long, Game.MixShard> byId = new java.util.HashMap<>();
             for (Game.MixShard shard : shards) byId.put(shard.id(), shard);
-            g.setStroke(PALETTE[8]);
+            g.setStroke(tint == null ? PALETTE[8] : tint);
             g.setLineWidth(1);
-            g.setGlobalAlpha(0.4);
+            g.setGlobalAlpha(0.4 * fade);
             for (Game.MixShard shard : shards) {
                 Game.MixShard twin = byId.get(shard.twin());
                 if (twin == null || twin.id() < shard.id()) continue;
@@ -3242,16 +3963,16 @@ public final class DimensionView extends Canvas {
         boolean deep = game.isMixing(3);
         for (Game.MixShard shard : shards) {
             double[] at = mixScreen(shard.x(), shard.y());
-            Color tint = deep ? shardColor(shard.depth()) : SHARD;
+            Color gem = tint != null ? tint : deep ? shardColor(shard.depth()) : SHARD;
             double r = side * 0.018 * (deep ? 1.3 - 0.6 * shard.depth() : 1);
-            UniverseView.glow(g, at[0], at[1], r * 2.6, tint, 0.6);
-            g.setGlobalAlpha(1);
-            g.setFill(tint);
+            UniverseView.glow(g, at[0], at[1], r * 2.6, gem, 0.6 * fade);
+            g.setGlobalAlpha(fade);
+            g.setFill(gem);
             g.fillPolygon(new double[] {at[0], at[0] + r, at[0], at[0] - r}, new double[] {at[1] - r, at[1], at[1] + r, at[1]}, 4);
             if (deep && Math.abs(shard.depth() - game.mixDepth()) <= game.mixDepthTolerance() + 1e-9) {
                 g.setStroke(Color.WHITE);
                 g.setLineWidth(1.5);
-                g.setGlobalAlpha(0.8);
+                g.setGlobalAlpha(0.8 * fade);
                 g.strokeOval(at[0] - r * 1.8, at[1] - r * 1.8, r * 3.6, r * 3.6);
             }
         }
@@ -3301,9 +4022,9 @@ public final class DimensionView extends Canvas {
     /**
      * Les ondes : chacune est un cercle qui grandit jusqu'à sa portée ; ses rebonds sur les bords de l'arène sont les
      * cercles de ses images ({@code Game.images}, dans le repère de −1 à 1 de la brane), découpés à l'arène et colorés
-     * selon leurs rebonds.
+     * selon leurs rebonds ; {@code fade} les atténue, pour les copies du kaléidoscope.
      */
-    private void mixWaves(GraphicsContext g, double left, double top, double side) {
+    private void mixWaves(GraphicsContext g, double left, double top, double side, double fade) {
         if (game.mixWaves().isEmpty()) return;
         g.save();
         g.beginPath();
@@ -3316,7 +4037,7 @@ public final class DimensionView extends Canvas {
         for (Game.MixWave wave : game.mixWaves()) {
             double r = wave.radius();
             if (r <= 0) continue;
-            double fade = Math.max(0.15, 1 - r / wave.reach());
+            double ebb = Math.max(0.15, 1 - r / wave.reach());
             for (double[] ix : Game.images(2 * wave.x() - 1)) {
                 for (double[] iy : Game.images(2 * wave.y() - 1)) {
                     double x = (ix[0] + 1) / 2, y = (iy[0] + 1) / 2;
@@ -3325,7 +4046,7 @@ public final class DimensionView extends Canvas {
                     int bounces = (int) (ix[1] + iy[1]);
                     g.setStroke(bounceColor(bounces));
                     g.setLineWidth(2 + Math.min(4, bounces));
-                    g.setGlobalAlpha(0.85 * fade);
+                    g.setGlobalAlpha(0.85 * fade * ebb);
                     g.strokeOval(left + (x - r) * side, top + (y - r) * side, 2 * r * side, 2 * r * side);
                 }
             }

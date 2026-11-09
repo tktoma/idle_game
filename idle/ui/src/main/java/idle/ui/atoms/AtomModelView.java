@@ -29,13 +29,13 @@ import javafx.scene.paint.Color;
 final class AtomModelView extends Canvas {
 
     /** Nombre d'orbes que peut porter chaque couche, de la plus proche du noyau à la plus lointaine. */
-    private static final int[] SHELL_CAPACITIES = {2, 8, 18, 32, 32, 18, 8};
+    static final int[] SHELL_CAPACITIES = {2, 8, 18, 32, 32, 18, 8};
 
     /** Nombre maximal d'orbes : le nombre d'éléments du tableau périodique, comme {@code Game.MAX_ATOMS}. */
     static final int MAX_ORBS = 118;
 
     /** Durée de l'apparition d'une nouvelle orbe, en secondes. */
-    private static final double POP_SECONDS = 0.9;
+    static final double POP_SECONDS = 0.9;
 
     /** Côté maximal du grand atome, en pixels : celui d'avant. */
     static final double MAX_SIDE = 440;
@@ -78,12 +78,14 @@ final class AtomModelView extends Canvas {
      * Le skin de l'atome (version 0.089) : {@code null} pour le classique. « Noyau dense » : un noyau
      * de protons et de neutrons serrés, des couches en pointillés, des électrons bleus qui laissent
      * une traînée. « Noyau stellaire » : un petit soleil couronné de rayons, et des planètes de
-     * toutes les couleurs sur leurs orbites.
+     * toutes les couleurs sur leurs orbites. Les cinq skins de la version 0.191 (tableau noir, nuage
+     * de probabilité, système à anneaux, horlogerie, vitrail) sont dessinés par {@link AtomSkinArt}.
      */
     private Skin skin;
 
+    /** Le skin de l'atome : tout skin du visuel de l'atome, {@code null} sinon. */
     void setSkin(Skin chosen) {
-        skin = chosen == Skin.ATOM_DENSE || chosen == Skin.ATOM_STELLAR ? chosen : null;
+        skin = chosen != null && chosen.visual() == idle.core.universe.SkinVisual.ATOM ? chosen : null;
     }
 
     Skin skin() {
@@ -142,6 +144,7 @@ final class AtomModelView extends Canvas {
         double height = getHeight();
         g.setGlobalAlpha(1);
         g.clearRect(0, 0, width, height);
+        if (skin == Skin.ATOM_CHALK) AtomSkinArt.slate(g, width, height);
 
         // Le grand atome : au centre, carré, à sa taille d'avant.
         double side = Math.min(MAX_SIDE, Math.min(width, height));
@@ -229,6 +232,10 @@ final class AtomModelView extends Canvas {
      */
     private void drawAtom(GraphicsContext g, double cx, double cy, double size, int orbCount, double turn, double tilt,
             double clock, double fade, boolean main) {
+        if (AtomSkinArt.draws(skin)) {
+            AtomSkinArt.draw(skin, g, cx, cy, size, orbCount, turn, tilt, clock, fade, main, sinceLastOrb);
+            return;
+        }
         double nucleus = size * 0.07;
         // Les couches occupées se partagent l'espace entre le noyau et le bord. Avec peu de
         // couches, l'atome reste compact ; à partir de quatre, il occupe toute la vue.
@@ -382,7 +389,7 @@ final class AtomModelView extends Canvas {
     }
 
     /** Un nombre entre 0 et 1, toujours le même pour une même graine : les copies ne bougent pas d'une image à l'autre. */
-    private static double noise(int seed) {
+    static double noise(int seed) {
         long x = seed * 0x9E3779B97F4A7C15L;
         x ^= x >>> 31;
         x *= 0xBF58476D1CE4E5B9L;
@@ -391,7 +398,7 @@ final class AtomModelView extends Canvas {
     }
 
     /** Nombre de couches qui portent au moins une orbe, pour {@code count} orbes. */
-    private static int occupiedShells(int count) {
+    static int occupiedShells(int count) {
         int remaining = count;
         int shells = 0;
         while (remaining > 0 && shells < SHELL_CAPACITIES.length) {

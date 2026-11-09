@@ -1,6 +1,7 @@
 package idle.ui.universe;
 
 import idle.core.Game;
+import idle.core.universe.Skin;
 import idle.ui.common.CanvasPane;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -332,6 +333,15 @@ public final class SeedView extends Canvas {
         g.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
         g.fillText((long) Math.ceil(bloomLeft - 1e-9) + " s", at[0], at[1] + ring + 14);
         g.setGlobalAlpha(1);
+    }
+
+    // L'essence de l'arbre (version 0.185).
+    /** Le skin choisi pour l'arbre, {@code null} pour le Classique : SeedTree en tire l'essence. */
+    private Skin skin;
+
+    /** L'essence de l'arbre : le skin choisi pour le visuel de l'arbre, {@code null} pour le Classique. */
+    public void setSkin(Skin skin) {
+        this.skin = skin;
     }
 
     // La météo (version 0.155).
@@ -877,7 +887,7 @@ public final class SeedView extends Canvas {
         double topX = tipX, topY = tipY;
         // Du bonsaï à l'arbre-monde (version 0.120) : un arbre dessiné de la graine brisée.
         if (stage >= 5) {
-            double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time);
+            double[] top = SeedTree.draw(g, w, h, cx, cy - size * 0.2, stage, growth(), time, skin);
             topX = top[0];
             topY = top[1];
             crownX = top[0];

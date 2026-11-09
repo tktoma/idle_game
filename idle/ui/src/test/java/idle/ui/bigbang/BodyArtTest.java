@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import idle.core.Game;
 import idle.core.sky.Bodies;
 import idle.core.sky.Body;
+import idle.core.universe.Skin;
 import idle.ui.FxTestSupport;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -16,6 +17,10 @@ import org.junit.jupiter.api.Test;
  * Version 0.183 : les couches de détail des astres ({@link BodyArt#DETAIL_FROM}) n'agrandissent
  * pas leur emprise, chaque astre du catalogue se dessine à toutes les tailles, et l'espace vu de
  * très loin, quand tout est devenu du gaz, se dessine avec ses marques nettes par-dessus.
+ *
+ * <p>Version 0.186 : les trois skins des astres ({@link Skin#BODIES}) dessinent chaque astre à toutes
+ * les tailles sans exception, ne changent pas l'emprise (qui ne dépend que de l'astre), et sans skin
+ * ({@code null}) le dessin passe par le même chemin que sans argument.
  */
 class BodyArtTest {
 
@@ -81,6 +86,63 @@ class BodyArtTest {
                 for (double r : new double[] {2, BodyArt.DETAIL_FROM - 1, BodyArt.DETAIL_FROM, 40}) {
                     g.clearRect(0, 0, 300, 300);
                     BodyArt.draw(g, body, 150, 150, r);
+                }
+            }
+            return null;
+        });
+    }
+
+    @Test
+    void chaqueAstreSeDessineDansChaqueSkin() {
+        FxTestSupport.fx(() -> {
+            Canvas canvas = new Canvas(300, 300);
+            GraphicsContext g = canvas.getGraphicsContext2D();
+            assertEquals(3, Skin.BODIES.length);
+            for (Skin skin : Skin.BODIES) {
+                assertEquals(idle.core.universe.SkinVisual.BODY, skin.visual(), skin.name());
+                for (Body body : Bodies.DEFAULT) {
+                    // Minuscule, sous et sur le seuil du nom de la Cartographie, et grand : aucun ne doit lever d'exception.
+                    for (double r : new double[] {2, BodySkinArt.NAME_FROM - 1, BodySkinArt.NAME_FROM, 40}) {
+                        g.clearRect(0, 0, 300, 300);
+                        BodyArt.draw(g, body, 150, 150, r, skin);
+                    }
+                }
+            }
+            // Un skin qui n'habille pas les astres, ou aucun, donne le dessin classique.
+            BodyArt.draw(g, Bodies.DEFAULT.get(0), 150, 150, 20, Skin.TREE_BIRCH);
+            BodyArt.draw(g, Bodies.DEFAULT.get(0), 150, 150, 20, null);
+            return null;
+        });
+    }
+
+    @Test
+    void lEmpriseNeDependPasDuSkin() {
+        // Les emprises sont des fonctions de l'astre seul : les skins dessinent dedans, sans les changer.
+        for (Body body : Bodies.DEFAULT) {
+            double[] want = expected(body);
+            assertEquals(want[0], BodyArt.span(body), 0.01, body.id());
+            assertEquals(want[2], BodyArt.reachDown(body), 0.001, body.id());
+        }
+        assertEquals(BodyArt.DETAIL_FROM, BodySkinArt.NAME_FROM, "le nom de la Cartographie apparaît au rayon des couches de détail");
+    }
+
+    @Test
+    void sansSkinLeDessinEstLeClassique() {
+        FxTestSupport.fx(() -> {
+            // Les deux appels sont dessinés sur deux toiles et comparés pixel à pixel.
+            Canvas plain = new Canvas(120, 120);
+            Canvas nulled = new Canvas(120, 120);
+            for (Body body : Bodies.DEFAULT) {
+                plain.getGraphicsContext2D().clearRect(0, 0, 120, 120);
+                nulled.getGraphicsContext2D().clearRect(0, 0, 120, 120);
+                BodyArt.draw(plain.getGraphicsContext2D(), body, 60, 60, 16);
+                BodyArt.draw(nulled.getGraphicsContext2D(), body, 60, 60, 16, null);
+                javafx.scene.image.WritableImage a = plain.snapshot(null, null);
+                javafx.scene.image.WritableImage b = nulled.snapshot(null, null);
+                for (int px = 0; px < 120; px += 3) {
+                    for (int py = 0; py < 120; py += 3) {
+                        assertEquals(a.getPixelReader().getArgb(px, py), b.getPixelReader().getArgb(px, py), body.id() + " en " + px + "," + py);
+                    }
                 }
             }
             return null;

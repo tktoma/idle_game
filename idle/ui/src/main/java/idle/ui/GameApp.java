@@ -82,6 +82,19 @@ public final class GameApp extends GameAppTabs {
             narrow = nowNarrow;
             styleTabs();
         }
+        // Le chrome (version 0.190) : les skins du fond, des onglets et des cartes, appliqués quand le choix change.
+        idle.core.universe.Skin ambient = game.chosenSkin(idle.core.universe.SkinVisual.AMBIENT);
+        if (ambient != chrome.skin()) {
+            chrome.setSkin(ambient);
+            root.setStyle(Chrome.rootStyle(ambient));
+            root.setPadding(Chrome.rootPadding(ambient));
+        }
+        idle.core.universe.Skin tabs = game.chosenSkin(idle.core.universe.SkinVisual.TABS);
+        if (tabs != tabSkin) {
+            tabSkin = tabs;
+            styleTabs();
+        }
+        Card.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.CARD));
         if (debugBar != null) debugBar.refresh();
 
         // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.

@@ -1,5 +1,6 @@
 package idle.ui.common;
 
+import idle.core.universe.Skin;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -8,6 +9,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 
 /**
@@ -28,6 +33,14 @@ import javafx.util.Duration;
  *
  * <p>Sans action ({@link #setOnAction}), c'est une simple tuile : elle montre, elle ne se clique
  * pas. C'est ainsi que sont dessinés les succès et les ensembles d'éléments.
+ *
+ * <p>Version 0.190 : les cartes ont un skin, commun à toutes ({@link #setSkin}), pris à leur prochain remplissage.
+ * Fiche cartonnée : un fond crème, des textes sombres en police à chasse fixe, le coin haut droit écorné. Tuile de
+ * verre : un fond à peine blanchi, coins ronds, et à portée un bord lumineux de la couleur d'accent avec son halo.
+ * Carte à jouer : un fond blanc à marge, des textes sombres, le coin répété en bas à droite à l'envers, et un dos
+ * rouge hachuré quand elle est fermée. Étiquette : une forme à coins coupés en haut, un œillet et son fil en haut à
+ * gauche, et un léger penchement sous la souris. Dans chaque skin, les états se reconnaissent encore : leur couleur
+ * d'accent reste sur le bord et le prix, et leur signe devant le nom.
  */
 public final class Card extends VBox {
 
@@ -52,6 +65,26 @@ public final class Card extends VBox {
     }
 
     private static final String DARK = "#10151f";
+    /** Le skin des cartes (version 0.190), commun à toutes, ou {@code null} pour le Classique ; lu à chaque repeinture. */
+    private static volatile Skin skin = null;
+    /** La taille du coin écorné de la fiche cartonnée, en pixels. */
+    private static final double DOG_EAR = 14;
+    /** Le penchement d'une étiquette sous la souris, en degrés ; une carte sur deux penche de l'autre côté. */
+    private static final double TAG_TILT = 2;
+    /** La place laissée à l'œillet de l'étiquette, à gauche. */
+    private static final double TAG_ROOM = 14;
+    /** Les cartes construites, pour alterner le côté du penchement. */
+    private static int built = 0;
+
+    /** Change le skin de toutes les cartes ; chacune le prend à son prochain remplissage, ou sous la souris. */
+    public static void setSkin(Skin chosen) {
+        skin = chosen;
+    }
+
+    /** Le skin des cartes, ou {@code null} pour le Classique : pour les vérifications. */
+    public static Skin skin() {
+        return skin;
+    }
     /** Vrai si chaque carte écrit le signe de son état devant son nom ({@link #sign(State)}) : un réglage, commun à toutes. */
     private static boolean signs = true;
 
@@ -115,6 +148,15 @@ public final class Card extends VBox {
     private Runnable pinAction = null;
     private final Label pin = new Label();
     private boolean pinned = false;
+    /** Les ornements des skins (version 0.190), faits à la première demande puis gardés : rien n'est alloué par image. */
+    private Polygon dogEar = null;
+    private Label mirror = null;
+    private Circle eyelet = null;
+    private Line thread = null;
+    /** Le côté où penche cette étiquette sous la souris. */
+    private final double tilt;
+    /** Les marges d'avant l'étiquette, à rendre quand elle s'en va ; {@code null} hors de ce skin. */
+    private Insets beforeTag = null;
 
     // Le clic tenu : une seule carte à la fois peut l'être, celle sous la souris.
     /** Délai avant la première répétition, puis entre deux répétitions, en secondes. */
@@ -130,6 +172,7 @@ public final class Card extends VBox {
     public Card(String accent) {
         super(3);
         this.accent = accent;
+        tilt = (built++ % 2 == 0) ? TAG_TILT : -TAG_TILT;
         setPadding(new Insets(8, 12, 9, 12));
         setMinWidth(0);
         setAlignment(Pos.TOP_LEFT);
@@ -184,11 +227,14 @@ public final class Card extends VBox {
         });
         setOnMouseEntered(event -> {
             hovered = true;
+            // L'étiquette penche sous la souris, cliquable ou non : le penchement ne passe pas par la repeinture.
+            setRotate(skin == Skin.CARD_TAG ? tilt : 0);
             paint();
         });
         setOnMouseExited(event -> {
             hovered = false;
             if (held == this) held = null;
+            setRotate(0);
             paint();
         });
         paint();
@@ -405,15 +451,29 @@ public final class Card extends VBox {
         set(this.price, price);
         set(this.aside, aside);
         visible(head, !empty(corner) || !empty(mark) || pinAction != null || inlinePicture);
-        visible(foot, !empty(price) || !empty(aside));
+        // La carte à jouer répète son coin en bas à droite, à l'envers ; les autres skins n'ont pas ce second coin.
+        boolean mirrored = skin == Skin.CARD_PLAYING && !empty(corner);
+        if (mirrored || mirror != null) set(mirrorLabel(), mirrored ? corner : "");
+        visible(foot, !empty(price) || !empty(aside) || mirrored);
         paint();
     }
 
-    /** Tout le texte affiché, ligne par ligne : pour les vérifications. */
+    /** Le second coin de la carte à jouer, tourné d'un demi-tour, au bout du pied : fait à la première demande. */
+    private Label mirrorLabel() {
+        if (mirror == null) {
+            mirror = new Label();
+            mirror.setRotate(180);
+            mirror.setMinWidth(Region.USE_PREF_SIZE);
+            foot.getChildren().add(mirror);
+        }
+        return mirror;
+    }
+
+    /** Tout le texte affiché, ligne par ligne, le second coin de la carte à jouer compris : pour les vérifications. */
     public String text() {
         StringBuilder text = new StringBuilder();
-        for (Label label : new Label[] {corner, mark, title, line, detail, price, aside}) {
-            if (label.isVisible() && !empty(label.getText())) text.append(text.length() == 0 ? "" : " | ").append(label.getText());
+        for (Label label : new Label[] {corner, mark, title, line, detail, price, aside, mirror}) {
+            if (label != null && label.isVisible() && !empty(label.getText())) text.append(text.length() == 0 ? "" : " | ").append(label.getText());
         }
         return text.toString();
     }
@@ -435,8 +495,9 @@ public final class Card extends VBox {
     /** Colore la carte d'après son état, et un peu plus fort sous la souris quand elle est cliquable. */
     private void paint() {
         boolean lit = hovered && isClickable();
-        // Rien n'a changé depuis le dernier passage : les styles sont déjà les bons.
-        int look = 1 + 4 * state.ordinal() + (lit ? 2 : 0) + (isClickable() ? 1 : 0);
+        Skin skin = Card.skin;
+        // Rien n'a changé depuis le dernier passage (le skin compris) : les styles sont déjà les bons.
+        int look = 1 + 4 * state.ordinal() + (lit ? 2 : 0) + (isClickable() ? 1 : 0) + 64 * (skin == null ? 0 : skin.ordinal() + 1);
         if (look == painted) return;
         painted = look;
         // Le fond, la bordure, puis les encres : le nom, le texte courant et le texte discret.
@@ -504,19 +565,161 @@ public final class Card extends VBox {
             }
         }
         if (picture != null) picture.setOpacity(state == State.LOCKED ? 0.35 : state == State.WAITING ? 0.7 : 1);
-        setStyle("-fx-background-color: " + background + "; -fx-background-radius: 6; -fx-border-radius: 6;"
-                + " -fx-border-color: " + border + ";" + (state == State.LOCKED ? " -fx-border-style: dashed;" : "")
-                + (isClickable() ? " -fx-cursor: hand;" : ""));
-        corner.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiet + ";");
-        mark.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 0 6; -fx-background-radius: 3;"
-                + " -fx-border-radius: 3; -fx-text-fill: " + quiet + "; -fx-border-color: " + alpha(quiet, "66") + ";");
-        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + name + ";");
-        line.setStyle("-fx-font-size: 12px; -fx-text-fill: " + ink + ";");
         boolean solid = state == State.DONE || state == State.ARMED;
-        detail.setStyle("-fx-font-size: 11px; -fx-text-fill: " + (solid ? quiet : "#9fb0c2") + ";");
-        price.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: "
-                + (state == State.READY ? "#ffffff" : solid ? name : quiet) + ";");
-        aside.setStyle("-fx-font-size: 11px; -fx-text-fill: " + quiet + ";");
+        // Le style de la carte elle-même, la police de ses textes, et l'encre du prix : ceux de toujours sans skin.
+        String box;
+        String font = "";
+        String priceInk = state == State.READY ? "#ffffff" : solid ? name : quiet;
+        String faint = solid ? quiet : "#9fb0c2";
+        String dashed = state == State.LOCKED ? " -fx-border-style: dashed;" : "";
+        String hand = isClickable() ? " -fx-cursor: hand;" : "";
+        if (skin == null) {
+            box = "-fx-background-color: " + background + "; -fx-background-radius: 6; -fx-border-radius: 6;"
+                    + " -fx-border-color: " + border + ";" + dashed + hand;
+        } else {
+            switch (skin) {
+                case CARD_INDEX -> {
+                    font = " -fx-font-family: Monospaced;";
+                    boolean dim = state == State.LOCKED;
+                    background = state == State.DONE ? accent : state == State.ARMED ? "#ff8a75" : dim ? "#d8cfbb" : lit ? "#fff8e8eb" : "#f3ead6eb";
+                    name = dim ? "#8a7f6c" : "#2a2218";
+                    ink = dim ? "#8a7f6c" : "#3a3022";
+                    quiet = dim ? "#9a8f7c" : "#6b5a42";
+                    faint = quiet;
+                    priceInk = state == State.READY || solid ? "#2a2218" : quiet;
+                    border = state == State.READY ? (lit ? "#2a2218" : accent) : solid ? "#2a2218" : state == State.OFF ? "#8a7a60" : border;
+                    box = "-fx-background-color: " + background + "; -fx-background-radius: 2; -fx-border-radius: 2;"
+                            + " -fx-border-color: " + border + ";" + dashed + hand;
+                }
+                case CARD_GLASS -> {
+                    background = state == State.DONE ? alpha(accent, "55") : state == State.ON ? alpha(accent, "33")
+                            : state == State.ARMED ? "#ff8a75cc" : state == State.LOCKED ? "rgba(255, 255, 255, 0.03)"
+                            : lit ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.06)";
+                    if (state == State.DONE) {
+                        name = "#ffffff";
+                        ink = "#e8f4ff";
+                        quiet = "#e8f4ffbb";
+                        priceInk = "#ffffff";
+                        faint = quiet;
+                    }
+                    boolean ready = state == State.READY;
+                    border = ready ? (lit ? "#ffffff" : alpha(accent, "e6")) : border;
+                    box = "-fx-background-color: " + background + "; -fx-background-radius: 10; -fx-border-radius: 10;"
+                            + " -fx-border-color: " + border + ";" + dashed + hand
+                            + (ready ? " -fx-effect: dropshadow(gaussian, " + alpha(accent, "aa") + ", 14, 0.3, 0, 0);" : " -fx-effect: null;");
+                }
+                case CARD_PLAYING -> {
+                    boolean back = state == State.LOCKED;
+                    String inner = switch (state) {
+                        case READY -> alpha(accent, lit ? "66" : "44");
+                        case ON -> alpha(accent, "55");
+                        case STARTED -> alpha(accent, "22");
+                        case OFF -> "#e4e4de";
+                        case DONE -> accent;
+                        case ARMED -> "#ff8a75";
+                        case LOCKED -> "linear-gradient(from 0px 0px to 6px 6px, repeat, #9b2226 0%, #9b2226 50%, #7a1a1d 50%, #7a1a1d 100%)";
+                        default -> "#eeeee8";
+                    };
+                    name = back ? "#f3dcdc" : "#1c1c1c";
+                    ink = back ? "#e8c8c8" : "#1c1c1c";
+                    quiet = back ? "#e8c8c8aa" : "#55554f";
+                    faint = quiet;
+                    priceInk = back ? ink : state == State.READY || solid ? "#1c1c1c" : quiet;
+                    border = state == State.READY ? (lit ? "#1c1c1c" : accent) : back ? "#5a1013" : solid ? "#1c1c1c"
+                            : state == State.OFF ? "#b0b0a8" : border;
+                    box = "-fx-background-color: #f8f8f4, " + inner + "; -fx-background-insets: 0, 5; -fx-background-radius: 8, 4;"
+                            + " -fx-border-color: " + border + "; -fx-border-insets: 5; -fx-border-radius: 4;" + hand;
+                }
+                case CARD_TAG -> {
+                    boolean dim = state == State.LOCKED;
+                    background = switch (state) {
+                        case DONE -> accent;
+                        case ARMED -> "#ff8a75";
+                        case LOCKED -> "#4a443a";
+                        case READY -> lit ? "#f0e4c8" : "#e4d6b4";
+                        case ON -> "#e4d6b4";
+                        case STARTED -> "#d9cba8";
+                        case OFF -> "#bfb399";
+                        default -> "#cdbf9e";
+                    };
+                    name = dim ? "#9a9282" : "#2b2416";
+                    ink = dim ? "#8a8272" : "#3d3425";
+                    quiet = dim ? "#7a7262" : "#6a5d44";
+                    faint = quiet;
+                    priceInk = state == State.READY || solid ? "#2b2416" : quiet;
+                    border = state == State.READY ? (lit ? "#2b2416" : accent) : solid ? "#2b2416" : state == State.OFF ? "#8a7a60" : border;
+                    box = "-fx-shape: \"M 0 14 L 14 0 L 86 0 L 100 14 L 100 100 L 0 100 Z\"; -fx-background-color: " + background + ";"
+                            + " -fx-border-color: " + border + ";" + dashed + hand;
+                }
+                default -> box = "";     // un skin d'un autre visuel ne peut pas arriver ici : {@code chosenSkin(CARD)} ne rend que les siens
+            }
+        }
+        dress(skin);
+        setStyle(box);
+        corner.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiet + ";" + font);
+        if (mirror != null) mirror.setStyle(corner.getStyle());
+        mark.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 0 6; -fx-background-radius: 3;"
+                + " -fx-border-radius: 3; -fx-text-fill: " + quiet + "; -fx-border-color: " + alpha(quiet, "66") + ";" + font);
+        title.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: " + name + ";" + font);
+        line.setStyle("-fx-font-size: 12px; -fx-text-fill: " + ink + ";" + font);
+        detail.setStyle("-fx-font-size: 11px; -fx-text-fill: " + faint + ";" + font);
+        price.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + priceInk + ";" + font);
+        aside.setStyle("-fx-font-size: 11px; -fx-text-fill: " + quiet + ";" + font);
+    }
+
+    /**
+     * Pose ou retire les ornements d'un skin : le coin écorné de la fiche, l'œillet et le fil de l'étiquette, la place
+     * qu'ils demandent et le penchement sous la souris. Chaque ornement est fait une fois, puis seulement montré ou caché.
+     */
+    private void dress(Skin skin) {
+        boolean index = skin == Skin.CARD_INDEX;
+        if (index && dogEar == null) {
+            dogEar = new Polygon(0, 0, DOG_EAR, 0, DOG_EAR, DOG_EAR);
+            dogEar.setFill(Color.web("#2a2218"));
+            dogEar.setManaged(false);
+            dogEar.setMouseTransparent(true);
+            getChildren().add(dogEar);
+        }
+        if (dogEar != null) dogEar.setVisible(index);
+        boolean tag = skin == Skin.CARD_TAG;
+        if (tag && eyelet == null) {
+            eyelet = new Circle(4.5, Color.web(DARK));
+            eyelet.setStroke(Color.web("#8a7a5a"));
+            eyelet.setStrokeWidth(1.5);
+            eyelet.setManaged(false);
+            eyelet.setMouseTransparent(true);
+            thread = new Line(0, 0, 0, 22);
+            thread.setStroke(Color.web("#c9b58a"));
+            thread.setStrokeWidth(1.2);
+            thread.setManaged(false);
+            thread.setMouseTransparent(true);
+            getChildren().add(thread);
+            getChildren().add(eyelet);
+        }
+        if (eyelet != null) {
+            eyelet.setVisible(tag);
+            thread.setVisible(tag);
+        }
+        // L'étiquette laisse la place de l'œillet à gauche, et rend les marges d'avant en s'en allant.
+        if (tag && beforeTag == null) {
+            beforeTag = getPadding();
+            setPadding(new Insets(beforeTag.getTop(), beforeTag.getRight(), beforeTag.getBottom(), beforeTag.getLeft() + TAG_ROOM));
+        } else if (!tag && beforeTag != null) {
+            setPadding(beforeTag);
+            beforeTag = null;
+        }
+        setRotate(tag && hovered ? tilt : 0);
+    }
+
+    /** Les ornements, hors du rang des lignes, se placent à la main : le coin écorné en haut à droite, l'œillet en haut à gauche. */
+    @Override
+    protected void layoutChildren() {
+        super.layoutChildren();
+        if (dogEar != null && dogEar.isVisible()) dogEar.relocate(getWidth() - DOG_EAR, 0);
+        if (eyelet != null && eyelet.isVisible()) {
+            eyelet.relocate(7.75, 6.75);
+            thread.relocate(12.4, -14);
+        }
     }
 
     /**

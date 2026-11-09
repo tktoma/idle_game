@@ -61,9 +61,14 @@ import javafx.util.Duration;
  */
 public final class PeriodicTablePage extends VBox {
 
-    /** Le tableau des cases (version 0.088). */
-    /** Le skin dont les cases sont peintes : {@code null} pour le classique. */
+    /**
+     * Le skin dont les cases sont peintes : {@code null} pour le classique. Les styles des cases sous un
+     * skin sont dans {@link TableSkinStyles} ; « Minuscule » réduit aussi les cases de moitié, « Néon » et
+     * « Carte au trésor » donnent un fond au tableau entier (version 0.191).
+     */
     private idle.core.universe.Skin tableSkin;
+    /** La famille visée au dernier affichage : sur la carte au trésor, en changer repeint les îles marquées (version 0.191). */
+    private ElementCategory shownTarget;
 
     /** Le tableau fait 18 cases de large, séparées par un petit espace. */
     private static final int COLUMNS = 18;
@@ -102,6 +107,8 @@ public final class PeriodicTablePage extends VBox {
     private final Label automationLabel = new Label();
     private final Label detailLabel = new Label();
     private final Label bonusLabel = new Label();
+    /** Le tableau des cases (version 0.088). */
+    private final GridPane table = new GridPane();
     private final Map<Integer, Label> cells = new HashMap<>();
     private final Map<Integer, Tooltip> tooltips = new HashMap<>();
     private final Map<ElementCategory, Label> legend = new EnumMap<>(ElementCategory.class);
@@ -187,7 +194,6 @@ public final class PeriodicTablePage extends VBox {
         }
 
         // Le tableau : sept périodes, puis les lanthanides et les actinides sur deux lignes à part.
-        GridPane table = new GridPane();
         table.setHgap(CELL_GAP);
         table.setVgap(CELL_GAP);
         table.setAlignment(Pos.CENTER);
@@ -286,11 +292,20 @@ public final class PeriodicTablePage extends VBox {
     void refresh(boolean visible) {
         // Le skin du tableau (version 0.089) : les cases se redessinent quand il change.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.TABLE);
-        if (look != tableSkin) {
+        boolean repaint = look != tableSkin;
+        if (repaint) {
             tableSkin = look;
-            paintCells();
+            table.setStyle(look == null ? "" : TableSkinStyles.tableStyle(look));
+            double gap = look != null && TableSkinStyles.compact(look) ? CELL_GAP / 2 : CELL_GAP;
+            table.setHgap(gap);
+            table.setVgap(gap);
+            sizeCells();
         }
         ElementCategory target = game.synthesisTarget();
+        // Sur la carte au trésor, les îles de la famille visée portent une croix : changer de cible les repeint.
+        if (tableSkin == idle.core.universe.Skin.TABLE_MAP && target != shownTarget) repaint = true;
+        shownTarget = target;
+        if (repaint) paintCells();
         int left = game.synthesisTriesLeft();
         int count = game.state().synthesisCount();
         if (visible) refreshSynthesis(target, left, count);
@@ -505,11 +520,37 @@ public final class PeriodicTablePage extends VBox {
         // barre de défilement, qui rogne un peu la largeur, ferait hésiter les cases entre deux tailles.
         if (size == cellSize || (size > cellSize && size < cellSize + 2)) return;
         cellSize = size;
+        sizeCells();
+        paintCells();    // la taille du texte suit celle de la case
+    }
+
+    /** Donne à chaque case son côté : {@link #cellSize}, la moitié sous le skin « Minuscule » (version 0.191). */
+    private void sizeCells() {
+        double size = shownCellSize();
         for (Label cell : cells.values()) {
             cell.setMinSize(size, size);
             cell.setPrefSize(size, size);
         }
-        paintCells();    // la taille du texte suit celle de la case
+    }
+
+    /** Le côté des cases à l'écran, en pixels : pour les vérifications. */
+    double shownCellSize() {
+        return tableSkin != null && TableSkinStyles.compact(tableSkin) ? cellSize / 2 : cellSize;
+    }
+
+    /** Le style de la case de l'élément de ce numéro : pour les vérifications. */
+    String cellStyle(int number) {
+        return cells.get(number).getStyle();
+    }
+
+    /** Le texte de la case de l'élément de ce numéro : pour les vérifications. */
+    String cellText(int number) {
+        return cells.get(number).getText();
+    }
+
+    /** Le style du fond du tableau : pour les vérifications. */
+    String tableStyle() {
+        return table.getStyle();
     }
 
     /** Le bouton du filtre du prochain astre : pour les vérifications. */
@@ -525,6 +566,9 @@ public final class PeriodicTablePage extends VBox {
     /** Écrit et colore chaque case d'après ce que le joueur possède. */
     private void paintCells() {
         String font = "-fx-font-size: " + Math.max(8, Math.round(cellSize * 0.31)) + "px; ";
+        boolean compact = tableSkin != null && TableSkinStyles.compact(tableSkin);
+        boolean treasure = tableSkin == idle.core.universe.Skin.TABLE_MAP;
+        ElementCategory target = treasure ? game.synthesisTarget() : null;
         for (Element element : PeriodicTable.ELEMENTS) {
             int copies = game.elementCount(element.number());
             int max = game.maxCopiesOf(element);
@@ -532,11 +576,15 @@ public final class PeriodicTablePage extends VBox {
             boolean maxed = game.isElementMaxed(element.number());
             String color = COLORS.get(element.category());
             Label cell = cells.get(element.number());
-            cell.setText(unique ? element.symbol() + "\n★"
+            cell.setText(compact ? element.symbol()     // minuscule : rien que les lettres
+                    : treasure && maxed && !unique ? element.symbol() + "\n✕"     // le trésor déterré
+                    : unique ? element.symbol() + "\n★"
                     : copies > 0 ? element.symbol() + "\n" + Math.min(copies, max) + "/" + max : element.symbol());
             // Pas encore obtenu : éteint. Possédé : allumé. Au maximum : couleur pleine.
             if (tableSkin != null) {
-                cell.setStyle(font + skinStyle(tableSkin, color, copies > 0, maxed)
+                String skinFont = compact ? "-fx-font-size: " + Math.max(7, Math.round(cellSize * 0.2)) + "px; " : font;
+                boolean spot = treasure && copies == 0 && element.category() == target;
+                cell.setStyle(skinFont + TableSkinStyles.cellStyle(tableSkin, color, copies > 0, maxed, spot)
                         + (!filterOn ? "" : filtered.contains(element.number()) ? " -fx-border-color: #ffd27f; -fx-border-width: 2;"
                                 : " -fx-opacity: 0.3;"));
                 tooltips.get(element.number()).setText(detail(element, "\n"));
@@ -552,27 +600,6 @@ public final class PeriodicTablePage extends VBox {
                             : " -fx-opacity: 0.3;"));
             tooltips.get(element.number()).setText(detail(element, "\n"));
         }
-    }
-
-    /**
-     * Une case sous un skin (version 0.089). « Plomb » : des plaques de métal brut, carrées, au relief
-     * marqué, la famille en liseré du haut et la lettre gravée en caractères de machine. « Or » : des
-     * lingots dorés, arrondis, la lettre embossée en brun ; pas encore obtenu, un moule vide.
-     */
-    static String skinStyle(idle.core.universe.Skin skin, String family, boolean owned, boolean maxed) {
-        if (skin == idle.core.universe.Skin.TABLE_LEAD) {
-            String face = maxed ? "linear-gradient(to bottom, #8a919a, #4a5058)" : owned ? "linear-gradient(to bottom, #5d636b, #33373d)"
-                    : "linear-gradient(to bottom, #2a2d32, #1c1e22)";
-            return "-fx-font-family: 'Courier New', monospace; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 0;"
-                    + " -fx-border-radius: 0; -fx-background-color: " + face + "; -fx-text-fill: " + (owned ? "#e6e9ec" : "#6d737b") + ";"
-                    + " -fx-border-color: " + family + (owned ? "" : "66") + " #15181c #0c0e10 #15181c; -fx-border-width: 3 1 3 1;";
-        }
-        String face = maxed ? "linear-gradient(to bottom, #fff6c4, #f0c24c 50%, #b07a12)"
-                : owned ? "linear-gradient(to bottom, #f5dc8a, #c99a2e 55%, #8a5f10)" : "#1f1808";
-        return "-fx-font-family: Georgia, serif; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 10 10 4 4;"
-                + " -fx-border-radius: 10 10 4 4; -fx-background-color: " + face + "; -fx-text-fill: " + (owned ? "#4a2f05" : "#8a6a2a") + ";"
-                + " -fx-border-color: " + (owned ? "#fff3c0 #7a5210 " + family + " #7a5210" : "#6b5220") + ";"
-                + " -fx-border-width: " + (owned ? "1 1 3 1" : "1") + ";" + (owned ? "" : " -fx-border-style: dashed;");
     }
 
     /** Affiche les éléments gagnés depuis le dernier affichage et fait grossir leur case un instant. */

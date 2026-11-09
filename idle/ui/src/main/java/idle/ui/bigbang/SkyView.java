@@ -158,6 +158,7 @@ public final class SkyView extends Canvas {
         double top = (h - height(formed, lines, shrink)) / 2;
         g.setFont(Font.font(11));
         g.setTextAlign(TextAlignment.CENTER);
+        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         for (int[] line : lines) {
             double up = 0;
             double down = 0;
@@ -179,7 +180,7 @@ public final class SkyView extends Canvas {
                 double cx = x + (place - (BodyArt.reachLeft(body) + BodyArt.reachRight(body)) * r) / 2 + BodyArt.reachLeft(body) * r;
                 // Chaque astre flotte à peine, à son rythme.
                 double cy = middle + 1.5 * Math.sin(time * 0.6 + index * 1.9);
-                BodyArt.draw(g, body, cx, cy, r);
+                BodyArt.draw(g, body, cx, cy, r, bodySkin);
                 if (named) {
                     g.setFill(TEXT);
                     g.fillText(body.name(), x + place / 2, middle + down + 12);

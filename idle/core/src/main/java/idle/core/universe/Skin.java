@@ -28,7 +28,111 @@ public enum Skin {
     BEAM_GOLD(SkinVisual.COLLIDER_BEAM, "Faisceau doré", "Défi du détecteur"),
     COLLIDER_NEON(SkinVisual.COLLIDER, "Néon", "Défi « Sans surchauffe »"),
     COLLIDER_PLASMA(SkinVisual.COLLIDER, "Plasma", "Défi « Pleine charge »"),
-    COLLIDER_ICE(SkinVisual.COLLIDER, "Glace", "Défi « Un seul générateur »");
+    COLLIDER_ICE(SkinVisual.COLLIDER, "Glace", "Défi « Un seul générateur »"),
+    // Version 0.185 : les essences de l'arbre, une par univers formé à partir du quatrième (SKINS.md).
+    TREE_BIRCH(SkinVisual.TREE, "Bouleau", "Univers 4 formé"),
+    TREE_WILLOW(SkinVisual.TREE, "Saule pleureur", "Univers 5 formé"),
+    TREE_MAPLE(SkinVisual.TREE, "Érable rouge", "Univers 6 formé"),
+    TREE_CHERRY(SkinVisual.TREE, "Cerisier en fleur", "Univers 7 formé"),
+    TREE_BAOBAB(SkinVisual.TREE, "Baobab", "Univers 8 formé"),
+    TREE_SEQUOIA(SkinVisual.TREE, "Séquoia", "Univers 9 formé"),
+    TREE_PINE(SkinVisual.TREE, "Pin", "Univers 10 formé"),
+    TREE_PALM(SkinVisual.TREE, "Palmier", "Univers 11 formé"),
+    // Version 0.186 : les astres, par le nombre d'astres formés dans un univers (SKINS.md).
+    BODY_PLANETARIUM(SkinVisual.BODY, "Planétarium", "10 astres formés dans un univers"),
+    BODY_ENGRAVING(SkinVisual.BODY, "Gravure", "20 astres formés dans un univers"),
+    BODY_CARTOGRAPHY(SkinVisual.BODY, "Cartographie", "Les 35 astres formés dans un univers"),
+    // Version 0.187 : un skin par mini-jeu, débloqué par le seuil de sa dimension (SKINS.md).
+    LINE_RAILS(SkinVisual.LINE, "Rails et wagons", "Seuil de la ligne atteint"),
+    PLANE_NOTEBOOK(SkinVisual.PLANE, "Feuille de cahier", "Seuil du plan atteint"),
+    VOLUME_AQUARIUM(SkinVisual.VOLUME, "Aquarium", "Seuil du volume atteint"),
+    DURATION_VINYL(SkinVisual.DURATION, "Vinyle", "Seuil de la durée atteint"),
+    LOOP_ARCHERY(SkinVisual.LOOP, "Cible de tir à l'arc", "Seuil de la boucle atteint"),
+    BRANE_WEB(SkinVisual.BRANE, "Toile d'araignée", "Seuil de la brane atteint"),
+    CLICKER_BUBBLES(SkinVisual.CLICKER, "Bulles de savon", "Seuil du clicker atteint"),
+    GRID_MINESWEEPER(SkinVisual.GRID, "Démineur", "Seuil de la grille atteint"),
+    MIRROR_STAINED(SkinVisual.MIRROR, "Vitrail", "Seuil du miroir atteint"),
+    MIX_KALEIDOSCOPE(SkinVisual.MIX, "Kaléidoscope", "Seuil du mélange atteint"),
+    // Version 0.188 : les molécules (SKINS.md ; « Traits » demandait cent sortes, le catalogue en a 73 : toutes).
+    MOLECULE_SPACE_FILLING(SkinVisual.MOLECULE, "Boules pleines", "50 sortes de molécules créées"),
+    MOLECULE_SKELETON(SkinVisual.MOLECULE, "Traits", "Les 73 sortes de molécules créées"),
+    MOLECULE_PEARLS(SkinVisual.MOLECULE, "Perles", "20 sortes rassemblées"),
+    MOLECULE_BRICKS(SkinVisual.MOLECULE, "Lego", "1 000 molécules créées"),
+    // Version 0.189 : les cadres de l'avatar, un par titre (SKINS.md).
+    FRAME_ROUND(SkinVisual.AVATAR_FRAME, "Rond", "Titre « Alchimiste »"),
+    FRAME_HEXAGON(SkinVisual.AVATAR_FRAME, "Hexagone", "Titre « Lecteur du tableau »"),
+    FRAME_SHIELD(SkinVisual.AVATAR_FRAME, "Écusson", "Titre « Briseur de défis »"),
+    FRAME_BAROQUE(SkinVisual.AVATAR_FRAME, "Cadre doré baroque", "Titre « Faiseur de Big Bang »"),
+    FRAME_STAMP(SkinVisual.AVATAR_FRAME, "Timbre-poste", "Titre « Chasseur de comètes »"),
+    FRAME_POLAROID(SkinVisual.AVATAR_FRAME, "Polaroid", "Titre « Créateur d'univers »"),
+    // Version 0.190 : le chrome (SKINS.md).
+    AMBIENT_PAPER(SkinVisual.AMBIENT, "Papier", "Une heure de jeu"),
+    AMBIENT_SLATE(SkinVisual.AMBIENT, "Ardoise", "50 éléments découverts"),
+    AMBIENT_NIGHT(SkinVisual.AMBIENT, "Nuit étoilée", "La galaxie formée"),
+    AMBIENT_TERMINAL(SkinVisual.AMBIENT, "Terminal", "100 explosions"),
+    AMBIENT_BLUEPRINT(SkinVisual.AMBIENT, "Blueprint", "10 assemblages formés"),
+    TABS_BINDER(SkinVisual.TABS, "Onglets de classeur", "Le Big Bang débloqué"),
+    TABS_BUTTONS(SkinVisual.TABS, "Boutons physiques", "Dix heures de jeu"),
+    TABS_DOTS(SkinVisual.TABS, "Pastilles", "L'univers 1 formé"),
+    TABS_RIBBONS(SkinVisual.TABS, "Rubans", "L'univers 2 formé"),
+    CARD_INDEX(SkinVisual.CARD, "Fiche cartonnée", "100 fusions"),
+    CARD_GLASS(SkinVisual.CARD, "Tuile de verre", "Skin « Cristal » du Big Bang débloqué"),
+    CARD_PLAYING(SkinVisual.CARD, "Carte à jouer", "Les dix défis réussis"),
+    CARD_TAG(SkinVisual.CARD, "Étiquette", "Dix sondes revenues"),
+    // Version 0.191 : des skins de plus pour les huit visuels d'origine (SKINS.md, section 1).
+    FUSION_EMBER(SkinVisual.PARTICLE_FUSION, "Braise", "100 fusions"),
+    FUSION_INK(SkinVisual.PARTICLE_FUSION, "Encre", "1 000 fusions"),
+    FUSION_SWARM(SkinVisual.PARTICLE_FUSION, "Essaim", "100 générateurs en même temps"),
+    FUSION_CLOCK(SkinVisual.PARTICLE_FUSION, "Horloge", "10 000 fusions"),
+    FUSION_GLASS(SkinVisual.PARTICLE_FUSION, "Verre soufflé", "Skin « Prisme » débloqué"),
+    FUSION_PIXEL(SkinVisual.PARTICLE_FUSION, "Pixel", "Record de reconstruction en moins de 30 s"),
+    ATOM_CHALK(SkinVisual.ATOM, "Modèle de Bohr au tableau noir", "50 atomes créés"),
+    ATOM_CLOUD(SkinVisual.ATOM, "Nuage de probabilité", "1 000 atomes créés"),
+    ATOM_RINGS(SkinVisual.ATOM, "Système à anneaux", "Les 118 éléments découverts"),
+    ATOM_GEARS(SkinVisual.ATOM, "Horlogerie", "1 000 synthèses"),
+    ATOM_STAINED(SkinVisual.ATOM, "Vitrail", "100 éléments découverts"),
+    TABLE_WOOD(SkinVisual.TABLE, "Bois gravé", "50 éléments découverts"),
+    TABLE_CRYSTAL(SkinVisual.TABLE, "Cristal", "10 000 synthèses"),
+    TABLE_RUST(SkinVisual.TABLE, "Rouille", "Défi « Rouille » réussi"),
+    TABLE_NEON(SkinVisual.TABLE, "Néon", "Skin « Néon » du collisionneur débloqué"),
+    TABLE_MAP(SkinVisual.TABLE, "Carte au trésor", "Dix sondes revenues"),
+    TABLE_TINY(SkinVisual.TABLE, "Minuscule", "Le premier élément découvert"),
+    DARK_MERCURY(SkinVisual.DARK_BALL, "Goutte de mercure", "25 explosions"),
+    DARK_HOLE(SkinVisual.DARK_BALL, "Trou noir", "10 explosions"),
+    DARK_EGG(SkinVisual.DARK_BALL, "Œuf", "Skin « Contractée » débloqué"),
+    DARK_KNOT(SkinVisual.DARK_BALL, "Nœud", "200 explosions"),
+    DARK_LANTERN(SkinVisual.DARK_BALL, "Lanterne", "500 explosions"),
+    DARK_RAIN(SkinVisual.DARK_ANIMATION, "Pluie", "15 explosions"),
+    DARK_SNOW(SkinVisual.DARK_ANIMATION, "Neige", "50 explosions"),
+    DARK_HOURGLASS(SkinVisual.DARK_ANIMATION, "Sablier", "1 000 explosions"),
+    DARK_FIREWORKS(SkinVisual.DARK_ANIMATION, "Feu d'artifice", "100 explosions"),
+    BANG_INK(SkinVisual.BIG_BANG, "Encre de Chine", "5 Big Bangs"),
+    BANG_STAINED(SkinVisual.BIG_BANG, "Vitrail", "3 systèmes solaires complets"),
+    BANG_ABYSS(SkinVisual.BIG_BANG, "Abysses", "La planète océan formée"),
+    BANG_ORIGAMI(SkinVisual.BIG_BANG, "Papier plié", "10 Big Bangs"),
+    BANG_MAP(SkinVisual.BIG_BANG, "Carte ancienne", "25 comètes attrapées"),
+    BANG_NEON(SkinVisual.BIG_BANG, "Néon de ville", "20 Big Bangs"),
+    BEAM_COMET(SkinVisual.COLLIDER_BEAM, "Comète", "50 comètes attrapées"),
+    BEAM_INK(SkinVisual.COLLIDER_BEAM, "Encre", "1 000 collisions"),
+    BEAM_LASER(SkinVisual.COLLIDER_BEAM, "Laser", "10 000 collisions"),
+    BEAM_FIREFLIES(SkinVisual.COLLIDER_BEAM, "Lucioles", "100 collisions"),
+    COLLIDER_WOOD(SkinVisual.COLLIDER, "Bois et cuivre", "10 générateurs du collisionneur achetés"),
+    COLLIDER_CIRCUIT(SkinVisual.COLLIDER, "Circuit imprimé", "100 générateurs du collisionneur achetés"),
+    COLLIDER_STADIUM(SkinVisual.COLLIDER, "Stade", "1 000 générateurs du collisionneur achetés"),
+    COLLIDER_MOBIUS(SkinVisual.COLLIDER, "Ruban de Möbius", "Skin « Glace » du collisionneur débloqué");
+
+    /** Les skins des dix dimensions (version 0.187), dans l'ordre : {@code DIMENSION_SKINS[n - 1]} pour la dimension n. */
+    public static final Skin[] DIMENSION_SKINS = {LINE_RAILS, PLANE_NOTEBOOK, VOLUME_AQUARIUM, DURATION_VINYL, LOOP_ARCHERY, BRANE_WEB,
+        CLICKER_BUBBLES, GRID_MINESWEEPER, MIRROR_STAINED, MIX_KALEIDOSCOPE};
+
+    /** Les skins des astres (version 0.186) et les nombres d'astres formés qui les débloquent. */
+    public static final Skin[] BODIES = {BODY_PLANETARIUM, BODY_ENGRAVING, BODY_CARTOGRAPHY};
+    public static final int[] BODIES_FORMED = {10, 20, 35};
+
+    /** Les essences de l'arbre (version 0.185), dans l'ordre des univers qui les débloquent : la première au quatrième. */
+    public static final Skin[] TREES = {TREE_BIRCH, TREE_WILLOW, TREE_MAPLE, TREE_CHERRY, TREE_BAOBAB, TREE_SEQUOIA, TREE_PINE, TREE_PALM};
+    /** L'univers formé qui débloque la première essence. */
+    public static final int FIRST_TREE_UNIVERSE = 4;
 
     /** Ce qu'ajoute chaque skin débloqué à toutes les ressources d'en dessous de l'univers : +2 %. */
     public static final double BONUS = 0.02;

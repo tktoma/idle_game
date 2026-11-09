@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import idle.core.universe.Skin;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.canvas.GraphicsContext;
@@ -14,6 +15,12 @@ import javafx.scene.paint.Color;
  * poussière, lucioles, feuilles qui tombent, sève qui monte dans le tronc, rayons, puis pour l'arbre-monde des
  * étoiles, des mondes en orbite et des racines de lumière. Tout est tiré d'un bruit fixe : rien ne clignote d'une
  * image à l'autre, sauf ce qui doit bouger.
+ *
+ * <p>Version 0.185 : les essences. Le skin choisi pour l'arbre ({@link Skin#TREES}) change l'écorce, les feuilles et
+ * la silhouette à tous les paliers : une essence est un jeu de paramètres ({@link Essence}), et le Classique est celui
+ * d'aujourd'hui, tous ses facteurs à 1, ses décalages à 0, de sorte que sans skin le dessin ne bouge pas d'un pixel.
+ * Trois essences ont leur propre silhouette : le baobab (bouteille et couronne courte), le séquoia (colonne et
+ * couches étagées), le palmier (un stipe et un bouquet de palmes, sans touffes).
  */
 final class SeedTree {
 
@@ -48,8 +55,114 @@ final class SeedTree {
     private static final Color SOIL = Color.web("#2a2016"), GRASS = Color.web("#4f8f45"), MOSS = Color.web("#6fae5a");
     private static final Color GLOW = Color.web("#fff6d2"), FIREFLY = Color.web("#f7f0a0"), SAP = Color.web("#9fffe0");
     private static final Color BLOSSOM = Color.web("#ffb7d0"), FRUIT = Color.web("#ffcf5a"), STAR = Color.web("#e8f4ff");
+    /** Les pommes de pin et les noix de coco. */
+    private static final Color CONE = Color.web("#5a3a22"), COCONUT = Color.web("#5c3d1e"), COCONUT_LIGHT = Color.web("#8a6a3e");
 
-    /** Touffes de feuilles du dernier arbre dessiné : pour les vérifications (le coût du dessin). */
+    /** Comment l'écorce est marquée : les lignes d'aujourd'hui, ou celles d'une essence. */
+    enum Bark {
+        /** Des lignes dans le sens du bois (le Classique). */
+        LINES,
+        /** Des traits courts en travers, çà et là : les lenticelles du bouleau et du cerisier. */
+        LENTICELS,
+        /** Rien : l'écorce lisse du baobab. */
+        SMOOTH,
+        /** Des stries serrées dans le sens du bois, sombres et claires : le séquoia. */
+        FIBROUS,
+        /** Des lignes et des traits en travers qui découpent des plaques : le pin. */
+        PLATES,
+        /** Des anneaux en travers, tout le long : le stipe du palmier. */
+        RINGS
+    }
+
+    /** La forme d'une feuille. */
+    enum LeafShape {
+        /** L'amande d'aujourd'hui. */
+        ALMOND,
+        /** Un petit rond : bouleau, cerisier. */
+        ROUND,
+        /** Longue et étroite : le saule, les folioles du palmier. */
+        NARROW,
+        /** Une palme à cinq pointes : l'érable. */
+        PALMATE,
+        /** Des aiguilles, par quatre : le pin. */
+        NEEDLES
+    }
+
+    /**
+     * Une essence : un jeu de paramètres pour l'arbre. {@code foliage} à {@code null} garde les trois teintes du palier ;
+     * les facteurs ({@code height}, {@code trunk}, {@code spread}, {@code twist}, {@code length}, {@code tail},
+     * {@code leaf}, {@code density}) multiplient les constantes du palier ; {@code flat} à 0 garde l'aplatissement des
+     * touffes du palier ; {@code droop} fait retomber les rameaux fins, de ce nombre de radians par niveau.
+     */
+    enum Essence {
+        CLASSIC(null, BARK_DARK, BARK, BARK_LIGHT, BARK_DARK, Bark.LINES, LeafShape.ALMOND, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+        BIRCH(tones("#6f8f2a", "#a3c93a", "#d8ec7a"), Color.web("#cfc8b8"), Color.web("#e9e4d6"), Color.web("#f2eee4"), Color.web("#2a2420"),
+                Bark.LENTICELS, LeafShape.ROUND, 1.05, 0.7, 0.8, 0.8, 1, 1, 0.8, 1.1, 0, 0),
+        WILLOW(tones("#4b6e52", "#6f9f78", "#9fc9a0"), Color.web("#3f3a33"), Color.web("#6b6458"), Color.web("#8a8275"), Color.web("#3f3a33"),
+                Bark.LINES, LeafShape.NARROW, 1, 1, 1, 1, 1, 1.5, 1, 1, 0, 0.5),
+        MAPLE(tones("#b3341c", "#e0552a", "#ffa35c"), Color.web("#3a2f2a"), Color.web("#6b5a4e"), Color.web("#8d7b6c"), Color.web("#3a2f2a"),
+                Bark.LINES, LeafShape.PALMATE, 1, 1, 1.1, 1, 1, 1, 1.1, 1, 0, 0),
+        CHERRY(tones("#f3a7c0", "#fbc8da", "#fff0f5"), Color.web("#2e2423"), Color.web("#4a3b3a"), Color.web("#6a5756"), Color.web("#c9b8a8"),
+                Bark.LENTICELS, LeafShape.ROUND, 1, 1, 1.15, 1, 1, 1, 0.85, 1.2, 0, 0),
+        BAOBAB(tones("#4f5f48", "#7a8f6a","#a8b998"), Color.web("#6a5c50"), Color.web("#9a8a7a"), Color.web("#b3a494"), Color.web("#6a5c50"),
+                Bark.SMOOTH, LeafShape.ALMOND, 1, 2.5, 1.3, 1, 0.55, 1, 0.6, 0.6, 0, 0),
+        SEQUOIA(tones("#1f4a2c", "#2f6b3a", "#4f9a4f"), Color.web("#4a2518"), Color.web("#8a4a30"), Color.web("#a35a3c"), Color.web("#b06a4c"),
+                Bark.FIBROUS, LeafShape.NARROW, 1.1, 1, 1, 0.3, 1, 1, 0.9, 1, 0.4, 0),
+        PINE(tones("#2f6f5a", "#4e9a78", "#78bf96"), Color.web("#3d281c"), Color.web("#6e4b36"), Color.web("#8a6448"), Color.web("#3d281c"),
+                Bark.PLATES, LeafShape.NEEDLES, 1, 1, 1.4, 1, 1, 1, 1, 1, 0.7, 0),
+        PALM(tones("#3f7a3a", "#5fae4a", "#9fd978"), Color.web("#5c4832"), Color.web("#8c7250"), Color.web("#a88a62"), Color.web("#5c4832"),
+                Bark.RINGS, LeafShape.NARROW, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0);
+
+        final Color[] foliage;
+        final Color barkDark, bark, barkLight, mark;
+        final Bark barkStyle;
+        final LeafShape leafShape;
+        final double height, trunk, spread, twist, length, tail, leaf, density, flat, droop;
+
+        Essence(Color[] foliage, Color barkDark, Color bark, Color barkLight, Color mark, Bark barkStyle, LeafShape leafShape,
+                double height, double trunk, double spread, double twist, double length, double tail, double leaf, double density,
+                double flat, double droop) {
+            this.foliage = foliage;
+            this.barkDark = barkDark;
+            this.bark = bark;
+            this.barkLight = barkLight;
+            this.mark = mark;
+            this.barkStyle = barkStyle;
+            this.leafShape = leafShape;
+            this.height = height;
+            this.trunk = trunk;
+            this.spread = spread;
+            this.twist = twist;
+            this.length = length;
+            this.tail = tail;
+            this.leaf = leaf;
+            this.density = density;
+            this.flat = flat;
+            this.droop = droop;
+        }
+
+        private static Color[] tones(String shade, String mid, String light) {
+            return new Color[] {Color.web(shade), Color.web(mid), Color.web(light)};
+        }
+
+        /** L'essence du skin choisi pour l'arbre : {@code null} ou un autre visuel, le Classique. */
+        static Essence of(Skin skin) {
+            if (skin == null) return CLASSIC;
+            return switch (skin) {
+                case TREE_BIRCH -> BIRCH;
+                case TREE_WILLOW -> WILLOW;
+                case TREE_MAPLE -> MAPLE;
+                case TREE_CHERRY -> CHERRY;
+                case TREE_BAOBAB -> BAOBAB;
+                case TREE_SEQUOIA -> SEQUOIA;
+                case TREE_PINE -> PINE;
+                case TREE_PALM -> PALM;
+                default -> CLASSIC;
+            };
+        }
+    }
+
+    /** Touffes de feuilles (ou palmes) du dernier arbre dessiné : pour les vérifications (le coût du dessin). */
     static int lastTips;
 
     /** Un bout de rameau : sa position, sa direction, et s'il porte des feuilles. */
@@ -75,20 +188,32 @@ final class SeedTree {
     }
 
     /**
-     * Dessine l'arbre du palier {@code stage} (5 à 11) dont le pied est en {@code baseX, baseY}, et ses effets.
+     * Dessine l'arbre Classique du palier {@code stage} (5 à 11) dont le pied est en {@code baseX, baseY}, et ses effets.
      * {@code growth}, de 0 à 1, le fait grandir pendant le passage. Rend le centre du feuillage.
      */
     static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time) {
+        return draw(g, w, h, baseX, baseY, stage, growth, time, null);
+    }
+
+    /**
+     * Dessine l'arbre de l'essence du skin {@code skin} ({@code null} : le Classique), du palier {@code stage} (5 à 11),
+     * dont le pied est en {@code baseX, baseY}, et ses effets. {@code growth}, de 0 à 1, le fait grandir pendant le
+     * passage. Rend le centre du feuillage et son rayon.
+     */
+    static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
+            Skin skin) {
+        Essence e = Essence.of(skin);
         int i = Math.max(0, Math.min(6, stage - 5));
         double p = prominence(stage);
-        double height = h * HEIGHT[i] * (0.35 + 0.65 * growth);
+        double height = h * HEIGHT[i] * e.height * (0.35 + 0.65 * growth);
+        Color[] tones = e.foliage != null ? e.foliage : FOLIAGE[i];
         Shape shape = new Shape();
         shape.crownX = baseX;
         shape.crownY = baseY - height * 0.72;
         shape.crownRadius = height * (stage == 5 ? 0.45 : stage == 6 ? 0.42 : 0.5);
 
         // Derrière l'arbre : le halo, puis les rayons qui descendent du feuillage.
-        UniverseView.glow(g, shape.crownX, shape.crownY, shape.crownRadius * (1.4 + 1.6 * p), FOLIAGE[i][2], 0.10 + 0.30 * p);
+        UniverseView.glow(g, shape.crownX, shape.crownY, shape.crownRadius * (1.4 + 1.6 * p), tones[2], 0.10 + 0.30 * p);
         if (stage >= 9) rays(g, shape, h, stage, time);
         if (stage >= 11) cosmos(g, w, h, shape, time);
 
@@ -96,33 +221,40 @@ final class SeedTree {
         if (stage >= 8) roots(g, baseX, baseY, height, stage, time);
 
         // Le tronc et les rameaux.
-        double trunk = height * TRUNK[i] * (0.7 + 0.3 * growth);
+        double trunk = height * TRUNK[i] * e.trunk * (0.7 + 0.3 * growth);
         double sway = Math.sin(time * 0.7) * 0.025;
-        if (stage == 6) {
-            // L'arbuste : plusieurs tiges qui partent du sol, en éventail.
-            for (int k = 0; k < 6; k++) {
-                double a = -0.75 + 0.3 * k + sway + (UniverseView.noise(k * 31 + 5) - 0.5) * 0.15;
-                branch(g, shape, baseX + (k - 2.5) * trunk * 0.6, baseY, height * (0.38 + 0.08 * UniverseView.noise(k * 7 + 1)), a,
-                        trunk, DEPTH[i], k * 13 + 3, i, time, 0);
+        switch (e) {
+            case PALM -> palm(g, shape, baseX, baseY, height, trunk, stage, i, time, tones, e);
+            case BAOBAB -> baobab(g, shape, baseX, baseY, height, trunk, sway, stage, i, time, e);
+            case SEQUOIA -> column(g, shape, baseX, baseY, height, trunk, sway, stage, i, time, e);
+            default -> {
+                if (stage == 6) {
+                    // L'arbuste : plusieurs tiges qui partent du sol, en éventail.
+                    for (int k = 0; k < 6; k++) {
+                        double a = -0.75 + 0.3 * k + sway + (UniverseView.noise(k * 31 + 5) - 0.5) * 0.15;
+                        branch(g, shape, baseX + (k - 2.5) * trunk * 0.6, baseY, height * (0.38 + 0.08 * UniverseView.noise(k * 7 + 1)) * e.length, a,
+                                trunk, DEPTH[i], k * 13 + 3, i, time, 0, e);
+                    }
+                } else if (stage == 5) {
+                    // Le bonsaï : un tronc en S, court et épais, puis des plateaux de feuillage.
+                    double mx = baseX + height * 0.14, my = baseY - height * 0.30;
+                    taper(g, e, baseX, baseY, mx, my, trunk, trunk * 0.8, e.bark, 6, 71);
+                    shape.segments.add(new Segment(baseX, baseY, mx, my, trunk, 0));
+                    double nx = baseX - height * 0.06, ny = baseY - height * 0.52;
+                    taper(g, e, mx, my, nx, ny, trunk * 0.8, trunk * 0.62, e.bark, 6, 73);
+                    shape.segments.add(new Segment(mx, my, nx, ny, trunk * 0.8, 0));
+                    branch(g, shape, nx, ny, height * 0.30 * e.length, -0.15 + sway, trunk * 0.6, DEPTH[i], 5, i, time, 1, e);
+                } else {
+                    branch(g, shape, baseX, baseY, height * 0.34 * e.length, sway, trunk, DEPTH[i], stage * 7, i, time, 0, e);
+                }
             }
-        } else if (stage == 5) {
-            // Le bonsaï : un tronc en S, court et épais, puis des plateaux de feuillage.
-            double mx = baseX + height * 0.14, my = baseY - height * 0.30;
-            taper(g, baseX, baseY, mx, my, trunk, trunk * 0.8, BARK, 6);
-            shape.segments.add(new Segment(baseX, baseY, mx, my, trunk, 0));
-            double nx = baseX - height * 0.06, ny = baseY - height * 0.52;
-            taper(g, mx, my, nx, ny, trunk * 0.8, trunk * 0.62, BARK, 6);
-            shape.segments.add(new Segment(mx, my, nx, ny, trunk * 0.8, 0));
-            branch(g, shape, nx, ny, height * 0.30, -0.15 + sway, trunk * 0.6, DEPTH[i], 5, i, time, 1);
-        } else {
-            branch(g, shape, baseX, baseY, height * 0.34, sway, trunk, DEPTH[i], stage * 7, i, time, 0);
         }
 
-        foliage(g, shape, height, stage, i, time);
+        if (e != Essence.PALM) foliage(g, shape, height, stage, i, time, tones, e);
         lastTips = shape.tips.size();
 
         // Devant : les feuilles qui tombent, les lucioles, la sève qui monte, les étincelles.
-        if (stage >= 7) fallingLeaves(g, shape, baseY, height, stage, i, time);
+        if (stage >= 7) fallingLeaves(g, shape, baseY, height, stage, time, tones, e);
         if (stage >= 6) fireflies(g, shape, stage, time);
         if (stage >= 8) sap(g, shape, stage, time);
         // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent (version 0.142).
@@ -190,19 +322,26 @@ final class SeedTree {
 
     /**
      * Un rameau effilé, puis ses rameaux, plus courts et plus fins. Les bouts vont dans {@code shape.tips}, les
-     * segments dans {@code shape.segments}.
+     * segments dans {@code shape.segments}. Le saule fait retomber ses rameaux fins et allonge les derniers ; le pin ne
+     * laisse aucun rameau descendre.
      */
     private static void branch(GraphicsContext g, Shape shape, double x, double y, double length, double angle, double width,
-            int depth, int seed, int i, double time, int level) {
-        double wiggle = (UniverseView.noise(seed * 7 + 1) - 0.5) * TWIST[i];
+            int depth, int seed, int i, double time, int level, Essence e) {
+        double wiggle = (UniverseView.noise(seed * 7 + 1) - 0.5) * TWIST[i] * e.twist;
         double a = angle + wiggle * 0.5 + Math.sin(time * 0.9 + level + seed % 7) * 0.012 * level;
+        if (e.droop > 0 && level >= 2) {
+            a += (a < 0 ? -1 : 1) * e.droop * Math.min(3, level - 1);
+            a = Math.max(-2.7, Math.min(2.7, a));
+        }
+        if (e == Essence.PINE) a = Math.max(-1.35, Math.min(1.35, a));
+        if (depth <= 1) length *= e.tail;
         double ex = x + Math.sin(a) * length, ey = y - Math.cos(a) * length;
         double end = width * 0.68;
-        taper(g, x, y, ex, ey, width, end, level <= 1 ? BARK : BARK_LIGHT, level <= 1 ? 5 : 2);
+        taper(g, e, x, y, ex, ey, width, end, level <= 1 ? e.bark : e.barkLight, level <= 1 ? 5 : 2, seed);
         shape.segments.add(new Segment(x, y, ex, ey, width, level));
         // Les nœuds de l'arbre ancien.
         if (i == 4 && level <= 2 && UniverseView.noise(seed * 3 + 9) > 0.6) {
-            g.setFill(BARK_DARK);
+            g.setFill(e.barkDark);
             g.setGlobalAlpha(0.8);
             double kx = x + (ex - x) * 0.5, ky = y + (ey - y) * 0.5, r = width * 0.35;
             g.fillOval(kx - r, ky - r * 0.7, r * 2, r * 1.4);
@@ -216,54 +355,236 @@ final class SeedTree {
         if (depth <= 2) shape.tips.add(new Tip(x + (ex - x) * 0.6, y + (ey - y) * 0.6, a, shape.tips.size()));
         int children = depth >= 4 && UniverseView.noise(seed * 11 + 3) > 0.45 ? 3 : 2;
         for (int c = 0; c < children; c++) {
-            double spread = SPREAD[i] * (children == 3 ? (c - 1) : (c == 0 ? -0.8 : 0.8));
+            double spread = SPREAD[i] * e.spread * (children == 3 ? (c - 1) : (c == 0 ? -0.8 : 0.8));
             double jitter = (UniverseView.noise(seed * 3 + c) - 0.5) * 0.4;
             double shrink = 0.70 + 0.14 * UniverseView.noise(seed + c * 5);
             // L'arbre se redresse : les rameaux du haut reviennent vers le ciel.
             double lift = -a * 0.18;
-            branch(g, shape, ex, ey, length * shrink, a + spread + jitter + lift, end, depth - 1, seed * 5 + c + 1, i, time, level + 1);
+            branch(g, shape, ex, ey, length * shrink, a + spread + jitter + lift, end, depth - 1, seed * 5 + c + 1, i, time, level + 1, e);
         }
     }
 
     /**
-     * Un segment de bois qui s'effile, de {@code w0} à {@code w1}, avec son ombre et ses lignes d'écorce.
+     * Un segment de bois qui s'effile, de {@code w0} à {@code w1}, avec son ombre et les marques d'écorce de l'essence ;
+     * {@code barkLines} en donne la densité, {@code seed} place celles qui sont semées au hasard.
      */
-    private static void taper(GraphicsContext g, double x0, double y0, double x1, double y1, double w0, double w1, Color wood,
-            int barkLines) {
+    private static void taper(GraphicsContext g, Essence e, double x0, double y0, double x1, double y1, double w0, double w1, Color wood,
+            int barkLines, int seed) {
         double dx = x1 - x0, dy = y1 - y0, len = Math.max(1e-6, Math.hypot(dx, dy));
         double nx = -dy / len, ny = dx / len;
         double[] xs = {x0 + nx * w0 / 2, x1 + nx * w1 / 2, x1 - nx * w1 / 2, x0 - nx * w0 / 2};
         double[] ys = {y0 + ny * w0 / 2, y1 + ny * w1 / 2, y1 - ny * w1 / 2, y0 - ny * w0 / 2};
         g.setGlobalAlpha(1);
-        g.setFill(BARK_DARK);
+        g.setFill(e.barkDark);
         g.fillPolygon(xs, ys, 4);
         // La face éclairée : un peu plus étroite, décalée vers la gauche.
         double[] lx = {x0 + nx * w0 * 0.42, x1 + nx * w1 * 0.42, x1 - nx * w1 * 0.15, x0 - nx * w0 * 0.15};
         double[] ly = {y0 + ny * w0 * 0.42, y1 + ny * w1 * 0.42, y1 - ny * w1 * 0.15, y0 - ny * w0 * 0.15};
         g.setFill(wood);
         g.fillPolygon(lx, ly, 4);
-        if (w0 > 4) {
-            g.setStroke(BARK_DARK);
+        if (w0 > 4 && e.barkStyle != Bark.SMOOTH) {
+            g.setStroke(e.mark);
             g.setLineWidth(Math.max(0.8, w0 * 0.05));
             g.setGlobalAlpha(0.55);
-            for (int k = 0; k < barkLines; k++) {
-                double off = (k + 0.5) / barkLines - 0.5;
-                g.strokeLine(x0 + nx * w0 * off * 0.8, y0 + ny * w0 * off * 0.8, x1 + nx * w1 * off * 0.8, y1 + ny * w1 * off * 0.8);
+            switch (e.barkStyle) {
+                case LINES, PLATES -> {
+                    for (int k = 0; k < barkLines; k++) {
+                        double off = (k + 0.5) / barkLines - 0.5;
+                        g.strokeLine(x0 + nx * w0 * off * 0.8, y0 + ny * w0 * off * 0.8, x1 + nx * w1 * off * 0.8, y1 + ny * w1 * off * 0.8);
+                    }
+                    // Les plaques : des traits en travers, décalés d'une ligne à l'autre.
+                    if (e.barkStyle == Bark.PLATES) {
+                        for (int k = 0; k < barkLines; k++) {
+                            double t = (k + UniverseView.noise(seed * 13 + k)) / barkLines, side = (k % 2 == 0 ? -1 : 1) * 0.4;
+                            double cx = x0 + dx * t, cy = y0 + dy * t, cw = (w0 + (w1 - w0) * t) * 0.4;
+                            g.strokeLine(cx + nx * cw * side, cy + ny * cw * side, cx, cy);
+                        }
+                    }
+                }
+                case LENTICELS -> {
+                    // Des traits courts en travers du bois, semés le long du segment.
+                    g.setLineWidth(Math.max(1, w0 * 0.08));
+                    g.setGlobalAlpha(0.8);
+                    for (int k = 0; k < barkLines; k++) {
+                        double t = (k + UniverseView.noise(seed * 17 + k)) / barkLines, off = (UniverseView.noise(seed * 17 + k + 50) - 0.5) * 0.6;
+                        double cx = x0 + dx * t, cy = y0 + dy * t, cw = (w0 + (w1 - w0) * t) * (0.12 + 0.2 * UniverseView.noise(seed * 17 + k + 100));
+                        g.strokeLine(cx + nx * (off * w0 - cw), cy + ny * (off * w0 - cw), cx + nx * (off * w0 + cw), cy + ny * (off * w0 + cw));
+                    }
+                }
+                case FIBROUS -> {
+                    // Des stries serrées, une sombre et une claire.
+                    g.setLineWidth(Math.max(0.8, w0 * 0.03));
+                    int lines = barkLines * 2;
+                    for (int k = 0; k < lines; k++) {
+                        double off = (k + 0.5) / lines - 0.5;
+                        g.setStroke(k % 2 == 0 ? e.barkDark : e.mark);
+                        g.setGlobalAlpha(k % 2 == 0 ? 0.6 : 0.35);
+                        g.strokeLine(x0 + nx * w0 * off * 0.9, y0 + ny * w0 * off * 0.9, x1 + nx * w1 * off * 0.9, y1 + ny * w1 * off * 0.9);
+                    }
+                }
+                case RINGS -> {
+                    // Les anneaux du stipe, en travers, sur toute la largeur.
+                    g.setLineWidth(Math.max(1, w0 * 0.07));
+                    g.setGlobalAlpha(0.6);
+                    for (int k = 0; k < barkLines; k++) {
+                        double t = (k + 0.5) / barkLines, cw = (w0 + (w1 - w0) * t) * 0.5;
+                        double cx = x0 + dx * t, cy = y0 + dy * t;
+                        g.strokeLine(cx + nx * cw, cy + ny * cw, cx - nx * cw, cy - ny * cw);
+                    }
+                }
             }
             g.setGlobalAlpha(1);
         }
     }
 
-    /** Le feuillage : chaque bout porte une touffe de feuilles, une à une, ombre d'abord, lumière ensuite. */
-    private static void foliage(GraphicsContext g, Shape shape, double height, int stage, int i, double time) {
-        Color[] tones = FOLIAGE[i];
-        double radius = height * LEAF[i];
-        int perTip = 7 + Math.min(3, stage - 5);
+    /**
+     * Le baobab : une bouteille, un tronc énorme qui monte à mi-hauteur, puis des rameaux courts et épais qui partent
+     * d'en haut seulement, en éventail.
+     */
+    private static void baobab(GraphicsContext g, Shape shape, double baseX, double baseY, double height, double trunk, double sway,
+            int stage, int i, double time, Essence e) {
+        double mx = baseX + sway * height * 0.15, my = baseY - height * 0.28;
+        double tx = baseX + sway * height * 0.4, ty = baseY - height * 0.52;
+        taper(g, e, baseX, baseY, mx, my, trunk, trunk * 0.85, e.bark, 6, 81);
+        shape.segments.add(new Segment(baseX, baseY, mx, my, trunk, 0));
+        taper(g, e, mx, my, tx, ty, trunk * 0.85, trunk * 0.45, e.bark, 6, 83);
+        shape.segments.add(new Segment(mx, my, tx, ty, trunk * 0.85, 0));
+        int arms = 5;
+        for (int k = 0; k < arms; k++) {
+            double a = -1.2 + 2.4 * k / (arms - 1) + sway + (UniverseView.noise(k * 29 + stage) - 0.5) * 0.3;
+            double ax = tx + (k - (arms - 1) / 2.0) * trunk * 0.16;
+            branch(g, shape, ax, ty, height * 0.34 * e.length, a, trunk * 0.3, Math.max(2, DEPTH[i] - 1), k * 17 + stage * 3, i, time, 1, e);
+        }
+    }
+
+    /**
+     * Le séquoia : une colonne droite et très haute, et des étages de rameaux courts, presque horizontaux, de plus en
+     * plus courts vers la cime ; les touffes aplaties de l'essence en font des couches.
+     */
+    private static void column(GraphicsContext g, Shape shape, double baseX, double baseY, double height, double trunk, double sway,
+            int stage, int i, double time, Essence e) {
+        double topX = baseX + sway * height * 0.5, topY = baseY - height * 0.95;
+        int parts = 3;
+        double px = baseX, py = baseY, pw = trunk;
+        for (int k = 0; k < parts; k++) {
+            double t = (k + 1.0) / parts;
+            double nx = baseX + (topX - baseX) * t * t, ny = baseY + (topY - baseY) * t, nw = trunk * (1 - 0.85 * t);
+            taper(g, e, px, py, nx, ny, pw, nw, e.bark, 8, 91 + k);
+            shape.segments.add(new Segment(px, py, nx, ny, pw, 0));
+            px = nx;
+            py = ny;
+            pw = nw;
+        }
+        int tiers = 4 + i;
+        int depth = i >= 2 ? 2 : 1;
+        for (int t = 0; t < tiers; t++) {
+            double f = (t + 1.0) / (tiers + 1);
+            double y = baseY + (topY - baseY) * (0.22 + 0.72 * f), x = baseX + (topX - baseX) * Math.pow(0.22 + 0.72 * f, 2);
+            double len = height * 0.24 * (1 - 0.7 * f) * e.length;
+            for (int side = -1; side <= 1; side += 2) {
+                double a = side * (1.3 - 0.3 * f) + (UniverseView.noise(t * 7 + side + 40) - 0.5) * 0.2;
+                branch(g, shape, x, y, len, a, trunk * 0.2 * (1 - 0.5 * f), depth, t * 11 + side + 5, i, time, 2, e);
+            }
+        }
+        shape.tips.add(new Tip(topX, topY, 0, shape.tips.size()));
+    }
+
+    /**
+     * Le palmier : un stipe courbe, sans ramification, en segments annelés ; au sommet un bouquet de sept à neuf palmes
+     * arquées, chacune une nervure et ses folioles de part et d'autre, et quelques noix de coco. Pas de touffes : le
+     * centre et le rayon du feuillage sont ceux du bouquet.
+     */
+    private static void palm(GraphicsContext g, Shape shape, double baseX, double baseY, double height, double trunk, int stage, int i,
+            double time, Color[] tones, Essence e) {
+        double sway = Math.sin(time * 0.7) * 0.03;
+        double lean = (UniverseView.noise(stage * 3 + 1) - 0.5) * 0.35;
+        int parts = 9;
+        double px = baseX, py = baseY, pw = trunk;
+        for (int k = 0; k < parts; k++) {
+            double t = (k + 1.0) / parts;
+            double nx = baseX + height * 0.9 * (lean * t * t + sway * t), ny = baseY - height * 0.9 * t, nw = trunk * (1 - 0.45 * t);
+            taper(g, e, px, py, nx, ny, pw, nw, e.bark, 3, k * 7 + stage);
+            shape.segments.add(new Segment(px, py, nx, ny, pw, 0));
+            px = nx;
+            py = ny;
+            pw = nw;
+        }
+        int fronds = 7 + Math.min(2, i / 2);
+        double len = height * (0.36 + 0.02 * i);
+        // Les palmes du fond d'abord, plus sombres, puis celles de devant.
+        for (int pass = 0; pass < 2; pass++) {
+            for (int f = 0; f < fronds; f++) {
+                if ((f % 2 == 0) != (pass == 0)) continue;
+                double a = -2.6 + 5.2 * (f + 0.5) / fronds + (UniverseView.noise(f * 5 + stage) - 0.5) * 0.3 + Math.sin(time * 0.8 + f) * 0.03;
+                double l = len * (0.8 + 0.3 * UniverseView.noise(f * 5 + 2));
+                frond(g, px, py, l, a, trunk, pass == 0 ? tones[0] : tones[1], pass == 0 ? tones[1] : tones[2]);
+                shape.tips.add(new Tip(px + Math.sin(a) * l, py - Math.cos(a) * l + l * 0.55, a, shape.tips.size()));
+            }
+        }
+        // Les noix de coco, sous le bouquet.
+        for (int k = 0; k < 3; k++) {
+            double r = trunk * 0.3, x = px + (k - 1) * r * 1.6, y = py + r * 1.1;
+            g.setGlobalAlpha(1);
+            g.setFill(COCONUT);
+            g.fillOval(x - r, y - r, 2 * r, 2 * r);
+            g.setFill(COCONUT_LIGHT);
+            g.fillOval(x - r * 0.5, y - r * 0.6, r * 0.6, r * 0.5);
+        }
+        // L'arbre-monde : ses palmes brillent par le bout.
+        if (stage >= 11) {
+            for (Tip tip : shape.tips) {
+                double pulse = 0.5 + 0.5 * Math.sin(time * 1.7 + tip.index());
+                UniverseView.glow(g, tip.x(), tip.y(), len * (0.15 + 0.1 * pulse), tones[2], 0.18 + 0.2 * pulse);
+            }
+        }
+        g.setGlobalAlpha(1);
+        shape.crownX = px;
+        shape.crownY = py - len * 0.2;
+        shape.crownRadius = len * 0.85;
+    }
+
+    /**
+     * Une palme : une nervure qui part de {@code x, y} dans la direction {@code angle} (depuis la verticale) et retombe
+     * sous son poids, et ses folioles de part et d'autre, de plus en plus courtes vers le bout.
+     */
+    private static void frond(GraphicsContext g, double x, double y, double length, double angle, double trunk, Color rib, Color leaflet) {
+        int n = 10;
+        double sx = Math.sin(angle), cy = Math.cos(angle);
+        double[] xs = new double[n + 1], ys = new double[n + 1];
+        for (int k = 0; k <= n; k++) {
+            double t = k / (double) n;
+            xs[k] = x + sx * length * t;
+            ys[k] = y - cy * length * t + length * 0.55 * t * t;
+        }
+        g.setGlobalAlpha(0.9);
+        g.setStroke(leaflet);
+        g.setLineWidth(Math.max(1, length * 0.012));
+        for (int k = 1; k <= n; k++) {
+            double t = k / (double) n;
+            double tx = xs[k] - xs[k - 1], ty = ys[k] - ys[k - 1], tl = Math.max(1e-6, Math.hypot(tx, ty));
+            double nx = -ty / tl, ny = tx / tl, size = length * 0.15 * (1 - 0.6 * t);
+            // Les folioles pointent vers le bout, et pendent un peu.
+            double fx = (tx / tl) * size * 0.5, fy = (ty / tl) * size * 0.5 + size * 0.3;
+            g.strokeLine(xs[k], ys[k], xs[k] + nx * size + fx, ys[k] + ny * size + fy);
+            g.strokeLine(xs[k], ys[k], xs[k] - nx * size + fx, ys[k] - ny * size + fy);
+        }
+        g.setStroke(rib);
+        g.setLineWidth(Math.max(1.2, trunk * 0.1));
+        g.strokePolyline(xs, ys, n + 1);
+    }
+
+    /**
+     * Le feuillage : chaque bout porte une touffe de feuilles, une à une, ombre d'abord, lumière ensuite, dans les
+     * teintes et la forme de l'essence ; le pin porte ses pommes à quelques bouts.
+     */
+    private static void foliage(GraphicsContext g, Shape shape, double height, int stage, int i, double time, Color[] tones, Essence e) {
+        double radius = height * LEAF[i] * e.leaf;
+        int perTip = (int) Math.round((7 + Math.min(3, stage - 5)) * e.density);
         double sumX = 0, sumY = 0;
         for (int pass = 0; pass < 3; pass++) {
             for (Tip tip : shape.tips) {
                 double r = radius * (0.65 + 0.5 * UniverseView.noise(tip.index() * 5 + stage)) * (stage == 5 ? 1.25 : 1);
-                double flat = stage == 5 ? 0.5 : 0.85;
+                double flat = e.flat > 0 ? e.flat : stage == 5 ? 0.5 : 0.85;
                 if (pass == 0) {
                     // La masse d'ombre, d'un seul tenant, derrière les feuilles.
                     g.setFill(tones[0]);
@@ -280,7 +601,7 @@ final class SeedTree {
                     double ang = 2 * Math.PI * UniverseView.noise(n + 1), dist = r * (pass == 1 ? 0.85 : 0.55) * Math.sqrt(UniverseView.noise(n + 2));
                     double lx = tip.x() + Math.cos(ang) * dist, ly = tip.y() + Math.sin(ang) * dist * flat - (pass == 2 ? r * 0.15 : 0);
                     double flutter = Math.sin(time * 2.1 + n) * 0.25;
-                    leaf(g, lx, ly, r * (0.28 + 0.12 * UniverseView.noise(n + 3)), ang + flutter, tone, pass == 1 ? 0.95 : 0.9);
+                    leaf(g, e, lx, ly, r * (0.28 + 0.12 * UniverseView.noise(n + 3)), ang + flutter, tone, pass == 1 ? 0.95 : 0.9);
                 }
             }
         }
@@ -293,6 +614,20 @@ final class SeedTree {
                 double r = radius * 0.13, ox = (UniverseView.noise(tip.index() * 17 + 5) - 0.5) * radius;
                 g.setGlobalAlpha(0.95);
                 g.fillOval(tip.x() + ox - r, tip.y() - r + radius * 0.2, 2 * r, 2 * r);
+            }
+        }
+        // Les pommes de pin, brunes, pendues à quelques bouts.
+        if (e == Essence.PINE) {
+            for (Tip tip : shape.tips) {
+                if (UniverseView.noise(tip.index() * 23 + 6) < 0.72) continue;
+                double r = radius * 0.16, x = tip.x() + (UniverseView.noise(tip.index() * 23 + 7) - 0.5) * radius * 0.6, y = tip.y() + radius * 0.5;
+                g.setGlobalAlpha(0.95);
+                g.setFill(CONE);
+                g.fillOval(x - r * 0.6, y - r, r * 1.2, r * 2);
+                g.setStroke(COCONUT_LIGHT);
+                g.setLineWidth(Math.max(0.8, r * 0.15));
+                g.setGlobalAlpha(0.7);
+                for (int k = -1; k <= 1; k++) g.strokeLine(x - r * 0.45, y + k * r * 0.5, x + r * 0.45, y + k * r * 0.5 + r * 0.2);
             }
         }
         // L'arbre-monde : son feuillage brille par endroits, comme des villes vues de loin.
@@ -310,22 +645,57 @@ final class SeedTree {
         }
     }
 
-    /** Une feuille en amande, tournée de {@code angle}. */
-    private static void leaf(GraphicsContext g, double x, double y, double size, double angle, Color tone, double alpha) {
+    /**
+     * Une feuille de l'essence, tournée de {@code angle} : l'amande du Classique, un rond, une feuille étroite, une
+     * palme à cinq pointes, ou quatre aiguilles en éventail.
+     */
+    private static void leaf(GraphicsContext g, Essence e, double x, double y, double size, double angle, Color tone, double alpha) {
         double c = Math.cos(angle), s = Math.sin(angle);
-        double[] xs = {x - c * size, x - s * size * 0.45, x + c * size, x + s * size * 0.45};
-        double[] ys = {y - s * size, y + c * size * 0.45, y + s * size, y - c * size * 0.45};
         g.setFill(tone);
         g.setGlobalAlpha(alpha);
-        g.fillPolygon(xs, ys, 4);
+        switch (e.leafShape) {
+            case ROUND -> g.fillOval(x - size * 0.8, y - size * 0.7, size * 1.6, size * 1.4);
+            case NARROW -> {
+                double l = size * 1.6, hw = 0.18;
+                double[] xs = {x - c * l, x - s * l * hw, x + c * l, x + s * l * hw};
+                double[] ys = {y - s * l, y + c * l * hw, y + s * l, y - c * l * hw};
+                g.fillPolygon(xs, ys, 4);
+            }
+            case PALMATE -> {
+                double[] xs = new double[10], ys = new double[10];
+                for (int k = 0; k < 10; k++) {
+                    double a = angle + k * Math.PI / 5, r = k % 2 == 0 ? size * 1.1 : size * 0.5;
+                    xs[k] = x + Math.cos(a) * r;
+                    ys[k] = y + Math.sin(a) * r;
+                }
+                g.fillPolygon(xs, ys, 10);
+            }
+            case NEEDLES -> {
+                g.setStroke(tone);
+                g.setLineWidth(Math.max(0.8, size * 0.12));
+                for (int k = 0; k < 4; k++) {
+                    double a = angle - 0.45 + 0.3 * k, l = size * 1.4;
+                    g.strokeLine(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l);
+                }
+            }
+            default -> {
+                double[] xs = {x - c * size, x - s * size * 0.45, x + c * size, x + s * size * 0.45};
+                double[] ys = {y - s * size, y + c * size * 0.45, y + s * size, y - c * size * 0.45};
+                g.fillPolygon(xs, ys, 4);
+            }
+        }
     }
 
     // ------------------------------------------------------------------
     // Les effets, de plus en plus présents
     // ------------------------------------------------------------------
 
-    /** Les feuilles qui tombent du feuillage, en se balançant, jusqu'au sol. */
-    private static void fallingLeaves(GraphicsContext g, Shape shape, double baseY, double height, int stage, int i, double time) {
+    /**
+     * Les feuilles qui tombent du feuillage, en se balançant, jusqu'au sol, dans les teintes de l'essence ; du cerisier
+     * tombent des pétales, de petits ronds.
+     */
+    private static void fallingLeaves(GraphicsContext g, Shape shape, double baseY, double height, int stage, double time, Color[] tones,
+            Essence e) {
         int count = 3 + 3 * (stage - 7);
         for (int k = 0; k < count; k++) {
             double period = 7 + 5 * UniverseView.noise(k * 13 + 1);
@@ -333,7 +703,16 @@ final class SeedTree {
             double startX = shape.crownX + (UniverseView.noise(k * 13 + 3) - 0.5) * shape.crownRadius * 2;
             double x = startX + Math.sin(t * Math.PI * 4 + k) * height * 0.04;
             double y = shape.crownY + (baseY - shape.crownY) * t;
-            leaf(g, x, y, height * 0.012, t * 9 + k, FOLIAGE[i][t < 0.5 ? 1 : 2], 0.85 * (1 - t * 0.6));
+            Color tone = tones[t < 0.5 ? 1 : 2];
+            double alpha = 0.85 * (1 - t * 0.6);
+            if (e == Essence.CHERRY) {
+                double r = height * 0.007;
+                g.setFill(tone);
+                g.setGlobalAlpha(alpha);
+                g.fillOval(x - r, y - r * 0.8, 2 * r, 1.6 * r);
+            } else {
+                leaf(g, e, x, y, height * 0.012, t * 9 + k, tone, alpha);
+            }
         }
         g.setGlobalAlpha(1);
     }

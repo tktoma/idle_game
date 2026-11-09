@@ -31,6 +31,14 @@ public abstract class GameUniverse extends GameAtoms {
     public abstract boolean isGalaxyUnlocked();
     public abstract boolean canFormGalaxy();
     public abstract boolean keepsUpgradesOnFusion();
+    // Version 0.188 à 0.190 : ce que les conditions des skins lisent plus bas dans la chaîne des classes.
+    public abstract int moleculeKindsCreated();
+    public abstract int substancesFormed();
+    public abstract long moleculesCreated();
+    public abstract int assembliesFormed();
+    public abstract int baseChallengesCompleted();
+    public abstract boolean isBigBangUnlocked();
+    public abstract boolean hasTitle(idle.core.profile.Title title);
 
 
     // ------------------------------------------------------------------
@@ -2377,11 +2385,95 @@ public abstract class GameUniverse extends GameAtoms {
         return tiers;
     }
 
+    /** Les essences de l'arbre gagnées (version 0.185) : une par univers formé à partir du quatrième, huit au plus. */
+    public int treeSkinsEarned() {
+        return Math.max(0, Math.min(idle.core.universe.Skin.TREES.length, universes() - idle.core.universe.Skin.FIRST_TREE_UNIVERSE + 1));
+    }
+
     /** Les skins des paliers et du record se débloquent seuls, dès que l'onglet Skins est ouvert. */
     private void noteSkinUnlocks() {
         if (!isSkinsUnlocked()) return;
         for (int i = 0; i < darkSkinTiers(); i++) unlockSkin(DARK_SKINS[i]);
         for (int i = 0; i < bangSkinTiers(); i++) unlockSkin(BANG_SKINS[i]);
+        // Version 0.185 : une essence de l'arbre par univers formé, à partir du quatrième.
+        for (int i = 0; i < treeSkinsEarned(); i++) unlockSkin(idle.core.universe.Skin.TREES[i]);
+        // Version 0.187 : le skin de chaque mini-jeu, au seuil de sa dimension.
+        for (int n = 1; n <= MAX_DIMENSIONS; n++) {
+            if (isDimensionThresholdReached(n)) unlockSkin(idle.core.universe.Skin.DIMENSION_SKINS[n - 1]);
+        }
+        // Version 0.188 : les molécules.
+        if (moleculeKindsCreated() >= 50) unlockSkin(idle.core.universe.Skin.MOLECULE_SPACE_FILLING);
+        if (moleculeKindsCreated() >= molecules().size()) unlockSkin(idle.core.universe.Skin.MOLECULE_SKELETON);
+        if (substancesFormed() >= 20) unlockSkin(idle.core.universe.Skin.MOLECULE_PEARLS);
+        if (moleculesCreated() >= 1_000) unlockSkin(idle.core.universe.Skin.MOLECULE_BRICKS);
+        // Version 0.189 : les cadres de l'avatar, un par titre.
+        if (hasTitle(idle.core.profile.Title.ALCHEMIST)) unlockSkin(idle.core.universe.Skin.FRAME_ROUND);
+        if (hasTitle(idle.core.profile.Title.TABLE_READER)) unlockSkin(idle.core.universe.Skin.FRAME_HEXAGON);
+        if (hasTitle(idle.core.profile.Title.CHALLENGER)) unlockSkin(idle.core.universe.Skin.FRAME_SHIELD);
+        if (hasTitle(idle.core.profile.Title.BANG_MAKER)) unlockSkin(idle.core.universe.Skin.FRAME_BAROQUE);
+        if (hasTitle(idle.core.profile.Title.COMET_CHASER)) unlockSkin(idle.core.universe.Skin.FRAME_STAMP);
+        if (hasTitle(idle.core.profile.Title.UNIVERSE_CREATOR)) unlockSkin(idle.core.universe.Skin.FRAME_POLAROID);
+        // Version 0.190 : le chrome.
+        if (state.timePlayed() >= 3600) unlockSkin(idle.core.universe.Skin.AMBIENT_PAPER);
+        if (discoveredElements() >= 50) unlockSkin(idle.core.universe.Skin.AMBIENT_SLATE);
+        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.AMBIENT_NIGHT);
+        if (state.explosions() >= 100) unlockSkin(idle.core.universe.Skin.AMBIENT_TERMINAL);
+        if (assembliesFormed() >= 10) unlockSkin(idle.core.universe.Skin.AMBIENT_BLUEPRINT);
+        if (isBigBangUnlocked()) unlockSkin(idle.core.universe.Skin.TABS_BINDER);
+        if (state.timePlayed() >= 10 * 3600) unlockSkin(idle.core.universe.Skin.TABS_BUTTONS);
+        if (universes() >= 1) unlockSkin(idle.core.universe.Skin.TABS_DOTS);
+        if (universes() >= 2) unlockSkin(idle.core.universe.Skin.TABS_RIBBONS);
+        if (state.stats().fusions() >= 100) unlockSkin(idle.core.universe.Skin.CARD_INDEX);
+        if (hasSkin(idle.core.universe.Skin.BANG_CRYSTAL)) unlockSkin(idle.core.universe.Skin.CARD_GLASS);
+        if (baseChallengesCompleted() >= 10) unlockSkin(idle.core.universe.Skin.CARD_PLAYING);
+        if (state.probeRuns() >= 10) unlockSkin(idle.core.universe.Skin.CARD_TAG);
+        // Version 0.191 : des skins de plus pour les huit visuels d'origine.
+        long fusions = state.stats().fusions();
+        if (fusions >= 100) unlockSkin(idle.core.universe.Skin.FUSION_EMBER);
+        if (fusions >= 1_000) unlockSkin(idle.core.universe.Skin.FUSION_INK);
+        if (generatorCount() >= 100) unlockSkin(idle.core.universe.Skin.FUSION_SWARM);
+        if (fusions >= 10_000) unlockSkin(idle.core.universe.Skin.FUSION_CLOCK);
+        if (hasSkin(idle.core.universe.Skin.FUSION_PRISM)) unlockSkin(idle.core.universe.Skin.FUSION_GLASS);
+        if (state.rebuildRecord() > 0 && state.rebuildRecord() <= 30) unlockSkin(idle.core.universe.Skin.FUSION_PIXEL);
+        if (state.totalAtoms().gte(BigNum.of(50))) unlockSkin(idle.core.universe.Skin.ATOM_CHALK);
+        if (state.totalAtoms().gte(BigNum.of(1_000))) unlockSkin(idle.core.universe.Skin.ATOM_CLOUD);
+        if (isPeriodicTableComplete()) unlockSkin(idle.core.universe.Skin.ATOM_RINGS);
+        if (state.synthesisCount() >= 1_000) unlockSkin(idle.core.universe.Skin.ATOM_GEARS);
+        if (discoveredElements() >= 100) unlockSkin(idle.core.universe.Skin.ATOM_STAINED);
+        if (discoveredElements() >= 50) unlockSkin(idle.core.universe.Skin.TABLE_WOOD);
+        if (state.synthesisCount() >= 10_000) unlockSkin(idle.core.universe.Skin.TABLE_CRYSTAL);
+        if (state.completedChallenges().contains("challenge_rust")) unlockSkin(idle.core.universe.Skin.TABLE_RUST);
+        if (hasSkin(idle.core.universe.Skin.COLLIDER_NEON)) unlockSkin(idle.core.universe.Skin.TABLE_NEON);
+        if (state.probeRuns() >= 10) unlockSkin(idle.core.universe.Skin.TABLE_MAP);
+        if (discoveredElements() >= 1) unlockSkin(idle.core.universe.Skin.TABLE_TINY);
+        int explosions = state.explosions();
+        if (explosions >= 25) unlockSkin(idle.core.universe.Skin.DARK_MERCURY);
+        if (explosions >= 10) unlockSkin(idle.core.universe.Skin.DARK_HOLE);
+        if (hasSkin(idle.core.universe.Skin.DARK_CONTRACTED)) unlockSkin(idle.core.universe.Skin.DARK_EGG);
+        if (explosions >= 200) unlockSkin(idle.core.universe.Skin.DARK_KNOT);
+        if (explosions >= 500) unlockSkin(idle.core.universe.Skin.DARK_LANTERN);
+        if (explosions >= 15) unlockSkin(idle.core.universe.Skin.DARK_RAIN);
+        if (explosions >= 50) unlockSkin(idle.core.universe.Skin.DARK_SNOW);
+        if (explosions >= 1_000) unlockSkin(idle.core.universe.Skin.DARK_HOURGLASS);
+        if (explosions >= 100) unlockSkin(idle.core.universe.Skin.DARK_FIREWORKS);
+        if (state.bigBangs() >= 5) unlockSkin(idle.core.universe.Skin.BANG_INK);
+        if (solarSystemsComplete() >= 3) unlockSkin(idle.core.universe.Skin.BANG_STAINED);
+        if (state.hasBody("ocean_planet")) unlockSkin(idle.core.universe.Skin.BANG_ABYSS);
+        if (state.bigBangs() >= 10) unlockSkin(idle.core.universe.Skin.BANG_ORIGAMI);
+        if (state.cometsCaught() >= 25) unlockSkin(idle.core.universe.Skin.BANG_MAP);
+        if (state.bigBangs() >= 20) unlockSkin(idle.core.universe.Skin.BANG_NEON);
+        if (state.cometsCaught() >= 50) unlockSkin(idle.core.universe.Skin.BEAM_COMET);
+        if (state.collisionRuns() >= 1_000) unlockSkin(idle.core.universe.Skin.BEAM_INK);
+        if (state.collisionRuns() >= 10_000) unlockSkin(idle.core.universe.Skin.BEAM_LASER);
+        if (state.collisionRuns() >= 100) unlockSkin(idle.core.universe.Skin.BEAM_FIREFLIES);
+        if (colliderGeneratorsBoughtTotal() >= 10) unlockSkin(idle.core.universe.Skin.COLLIDER_WOOD);
+        if (colliderGeneratorsBoughtTotal() >= 100) unlockSkin(idle.core.universe.Skin.COLLIDER_CIRCUIT);
+        if (colliderGeneratorsBoughtTotal() >= 1_000) unlockSkin(idle.core.universe.Skin.COLLIDER_STADIUM);
+        if (hasSkin(idle.core.universe.Skin.COLLIDER_ICE)) unlockSkin(idle.core.universe.Skin.COLLIDER_MOBIUS);
+        // Version 0.186 : les skins des astres, par le nombre d'astres formés dans l'univers en cours.
+        for (int i = 0; i < idle.core.universe.Skin.BODIES.length; i++) {
+            if (bodiesFormed() >= idle.core.universe.Skin.BODIES_FORMED[i]) unlockSkin(idle.core.universe.Skin.BODIES[i]);
+        }
         if (state.rebuildPending() && generatorCount() >= generatorsPerAtom()) {
             double time = state.timeSinceFusion();
             state.setRebuildPending(false);

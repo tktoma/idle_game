@@ -47,6 +47,7 @@ public abstract class BigBangPageRefresh extends BigBangPageControls {
         int count = game.bigBangs();
         countLabel.setText(count + (count > 1 ? " Big Bangs" : " Big Bang"));
         refreshCycle();
+        refreshMoleculePictures();
         sinceLabel.setText("Partie en cours depuis " + Format.duration(game.stats().runTime())
                 + ". Le prochain se déclenche au bout de l'arbre de matière noire.");
         long created = game.moleculesCreated();

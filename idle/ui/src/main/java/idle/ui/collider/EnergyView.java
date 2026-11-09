@@ -25,6 +25,10 @@ import javafx.scene.text.TextAlignment;
  * <p>Version 0.078 : lancées assez vite (« Faisceaux rapides » au niveau 3), les boules prennent
  * feu, une flamme qui traîne derrière elles et grandit avec la vitesse ; et à chaque croisement,
  * de l'électricité crépite entre elles.
+ *
+ * <p>Version 0.191 : les quatre anneaux de plus (bois et cuivre, circuit imprimé, stade, ruban de Möbius)
+ * sont dessinés par {@link ColliderSkinArt}, les quatre faisceaux de plus (comète, encre, laser,
+ * lucioles) par {@link BeamSkinArt}.
  */
 public final class EnergyView extends Canvas {
 
@@ -132,34 +136,51 @@ public final class EnergyView extends Canvas {
         return collisionsShown;
     }
 
-    private double cx() {
+    double cx() {
         return getWidth() / 2;
     }
 
-    private double cy() {
+    double cy() {
         return getHeight() / 2 - 6;
     }
 
-    private double rx() {
+    double rx() {
         return Math.min(getWidth() * 0.36, 300);
     }
 
-    private double ry() {
+    double ry() {
         return getHeight() * 0.32;
     }
 
     /** Un point de l'anneau : l'angle 0 en haut (l'injecteur), π en bas (le détecteur). */
-    private double px(double angle) {
+    double px(double angle) {
         return cx() + rx() * Math.sin(angle);
     }
 
-    private double py(double angle) {
+    double py(double angle) {
         return cy() - ry() * Math.cos(angle);
+    }
+
+    /** Les secondes de l'animation, pour les skins dessinés à côté (version 0.191) ; et si elle tourne. */
+    double time() {
+        return time;
+    }
+
+    static boolean motion() {
+        return motion;
     }
 
     /** Les secondes de la dernière image, et la couleur des arcs du croisement (dorés sous le faisceau doré). */
     private double lastElapsed;
     private Color lightningColor = LIGHT;
+
+    /** Les faisceaux de la version 0.191, et ce qu'ils laissent au détecteur. */
+    private final BeamSkinArt beamArt = new BeamSkinArt(this);
+
+    /** Ce que le faisceau laisse au détecteur (neige, taches) : pour les vérifications. */
+    int beamRemains() {
+        return beamArt.remains();
+    }
 
     public void frame(double elapsed) {
         lastElapsed = Math.min(elapsed, 0.1);
@@ -257,11 +278,27 @@ public final class EnergyView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER);
-        g.setFill(look == idle.core.universe.Skin.COLLIDER_NEON ? Color.web("#05020a")
+        idle.core.universe.Skin beam = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER_BEAM);
+        // L'encre (version 0.191) demande un fond clair, quel que soit l'anneau.
+        boolean paper = beam == idle.core.universe.Skin.BEAM_INK;
+        g.setFill(paper ? BeamSkinArt.PAPER
+                : look == idle.core.universe.Skin.COLLIDER_NEON ? Color.web("#05020a")
                 : look == idle.core.universe.Skin.COLLIDER_PLASMA ? Color.web("#0c0408")
-                : look == idle.core.universe.Skin.COLLIDER_ICE ? Color.web("#06121c") : BACK);
+                : look == idle.core.universe.Skin.COLLIDER_ICE ? Color.web("#06121c")
+                : ColliderSkinArt.draws(look) ? ColliderSkinArt.background(look) : BACK);
         g.fillRect(0, 0, w, h);
-        if (look == idle.core.universe.Skin.COLLIDER_ICE) {
+        if (paper) {
+            // Le grain du papier : quelques fibres.
+            g.setStroke(Color.web("#c9bfa4"));
+            g.setLineWidth(0.7);
+            for (int i = 0; i < 30; i++) {
+                double x = (i * 0.754877666 % 1) * w, y = (i * 0.569840291 % 1) * h;
+                g.setGlobalAlpha(0.35);
+                g.strokeLine(x, y, x + 8 + 10 * (i % 3), y + (i % 2 == 0 ? 1 : -1));
+            }
+        } else if (ColliderSkinArt.dusts(look)) {
+            ColliderSkinArt.dust(g, this, look);
+        } else if (look == idle.core.universe.Skin.COLLIDER_ICE) {
             // La glace : des flocons qui descendent lentement.
             g.setStroke(Color.web("#cfefff"));
             g.setLineWidth(0.8);
@@ -284,9 +321,17 @@ public final class EnergyView extends Canvas {
         double phase = game.colliderBeamPhase();
         boolean crossing = game.isCrossing(), catchable = game.canCatchCrossing();
         // L'anneau.
+        double angle = 2 * Math.PI * phase;
+        boolean gold = beam == idle.core.universe.Skin.BEAM_GOLD;
+        if (!gold) goldDust.clear();
+        if (!BeamSkinArt.draws(beam)) beamArt.clear();
+        // Sous le ruban de Möbius (version 0.191), un faisceau sur deux passe dessous : il est dessiné avant l'anneau.
+        boolean mobius = look == idle.core.universe.Skin.COLLIDER_MOBIUS;
+        if (mobius) drawBeams(g, angle, beam, crossing, true, true);
         if (look == idle.core.universe.Skin.COLLIDER_NEON) neonRing(g);
         else if (look == idle.core.universe.Skin.COLLIDER_PLASMA) plasmaRing(g);
         else if (look == idle.core.universe.Skin.COLLIDER_ICE) iceRing(g);
+        else if (ColliderSkinArt.draws(look)) ColliderSkinArt.ring(g, this, look);
         else {
             ellipse(g, 0, 2 * Math.PI, RING, 10, 1);
             ellipse(g, 0, 2 * Math.PI, LIGHT, 2, 0.25 + 0.1 * Math.sin(time * 2));
@@ -300,20 +345,12 @@ public final class EnergyView extends Canvas {
         g.setFill(catchable ? GOLD : Color.web("#3b5578"));
         g.fillRoundRect(px(Math.PI) - 13, py(Math.PI) - 7, 26, 14, 4, 4);
         // Les deux faisceaux : partis ensemble de l'injecteur, ils se croisent dans le détecteur.
-        double angle = 2 * Math.PI * phase;
-        boolean gold = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER_BEAM) == idle.core.universe.Skin.BEAM_GOLD;
-        if (!gold) goldDust.clear();
-        if (gold) {
-            goldBeam(g, angle, 1);
-            goldBeam(g, -angle, -1);
-            drawGoldDust(g, lastElapsed);
-        } else {
-            beam(g, angle, 1, BEAM_A);
-            beam(g, -angle, -1, BEAM_B);
-        }
+        drawBeams(g, angle, beam, crossing, mobius, false);
+        if (gold) drawGoldDust(g, lastElapsed);
+        if (BeamSkinArt.draws(beam)) beamArt.after(g, beam, lastElapsed, crossing);
         // Quand les boules se croisent dans le détecteur, de l'électricité saute entre elles.
         arcs = 0;
-        lightningColor = gold ? Color.web("#ffcf4a") : LIGHT;
+        lightningColor = gold ? Color.web("#ffcf4a") : BeamSkinArt.draws(beam) ? BeamSkinArt.lightningColor(beam) : LIGHT;
         if (crossing && sparksOn) lightning(g, angle);
         if (catchable) glow(g, px(Math.PI), py(Math.PI), 46, GOLD, 0.5);
         // Les ondes des collisions.
@@ -351,28 +388,49 @@ public final class EnergyView extends Canvas {
                 g.setFill(spark.color);
                 g.fillText(spark.text, spark.x, spark.y);
                 g.setTextAlign(TextAlignment.LEFT);
+            } else if (beam == idle.core.universe.Skin.BEAM_LASER) {
+                // Des pixels sous le laser (version 0.191).
+                g.setFill(spark.color);
+                g.fillRect(Math.round(spark.x / 3) * 3 - 1.5, Math.round(spark.y / 3) * 3 - 1.5, 3, 3);
             } else {
                 g.setFill(spark.color);
                 g.fillOval(spark.x - 2, spark.y - 2, 4, 4);
             }
         }
         g.setGlobalAlpha(1);
+        // Les textes : à l'encre sur le papier, bleu pâle ailleurs.
+        Color text = paper ? Color.web("#141418") : LIGHT, dim = paper ? Color.web("#6a6050") : Color.web("#5a7088");
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font(13));
-        g.setFill(LIGHT);
+        g.setFill(text);
         g.fillText("+" + ColliderPane.rate(game.colliderEnergyPerSecond()) + " énergie par seconde", cx(), cy() + 5);
         g.setFont(Font.font(11));
-        g.setFill(catchable ? GOLD : Color.web("#5a7088"));
+        g.setFill(catchable ? GOLD : dim);
         g.fillText(catchable ? "ils se croisent : cliquer !" : crossing ? "croisement capté" : "cliquer quand les faisceaux se croisent en bas",
                 cx(), h - 8);
         // En haut à gauche : la chance d'une collision à chaque croisement.
         g.setTextAlign(TextAlignment.LEFT);
         g.setFont(Font.font(12));
-        g.setFill(LIGHT);
+        g.setFill(text);
         g.fillText("Chance de collision : " + Math.round(game.collisionChance() * 100) + " %", 12, 18);
-        g.setFill(Color.web("#5a7088"));
+        g.setFill(dim);
         g.fillText("un croisement toutes les " + seconds(game.colliderPeriod()) + " s", 12, 34);
         g.setTextAlign(TextAlignment.LEFT);
+    }
+
+    /**
+     * Les deux faisceaux sous le skin choisi (version 0.191 pour la généralisation). Sous le ruban de Möbius,
+     * {@code underPass} vrai ne dessine que ceux qui passent sous le ruban, faux que ceux qui passent dessus ;
+     * sans ruban, faux les dessine tous les deux.
+     */
+    private void drawBeams(GraphicsContext g, double angle, idle.core.universe.Skin beam, boolean crossing, boolean mobius, boolean underPass) {
+        for (int direction = 1; direction >= -1; direction -= 2) {
+            double a = direction * angle;
+            if (mobius && ColliderSkinArt.under(a) != underPass) continue;
+            if (beam == idle.core.universe.Skin.BEAM_GOLD) goldBeam(g, a, direction);
+            else if (BeamSkinArt.draws(beam)) beamArt.beam(g, beam, a, direction, crossing);
+            else beam(g, a, direction, direction > 0 ? BEAM_A : BEAM_B);
+        }
     }
 
     /** « 2 », « 1,4 » : des secondes, avec une décimale au besoin. */
@@ -604,7 +662,7 @@ public final class EnergyView extends Canvas {
     }
 
     /** Un nombre entre 0 et 1, toujours le même pour une même graine. */
-    private static double random(long seed) {
+    static double random(long seed) {
         double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
         return value - Math.floor(value);
     }
@@ -614,7 +672,7 @@ public final class EnergyView extends Canvas {
      * pâle contre la boule au rouge au bout, qui vacillent et montent un peu ; plus longues et plus
      * vives avec la vitesse ({@code heat}, de 0 à 1).
      */
-    private void flame(GraphicsContext g, double angle, int direction, double heat) {
+    void flame(GraphicsContext g, double angle, int direction, double heat) {
         double bx = px(angle), by = py(angle);
         glow(g, bx, by, 18 + 10 * heat, FLAME_MID, 0.45 + 0.35 * heat);
         int tongues = 11;
@@ -634,7 +692,7 @@ public final class EnergyView extends Canvas {
         }
     }
 
-    private static void glow(GraphicsContext g, double x, double y, double size, Color color, double strength) {
+    static void glow(GraphicsContext g, double x, double y, double size, Color color, double strength) {
         g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.color(color.getRed(), color.getGreen(), color.getBlue(), strength)),
                 new Stop(1, Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0))));

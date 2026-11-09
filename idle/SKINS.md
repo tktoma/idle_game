@@ -1,6 +1,6 @@
 # Les skins à venir : tout ce qui peut changer d'apparence
 
-Version 0.180, triée en 0.184 : onze idées retirées (fruit, serpents, anneau de Saturne, case du Big Bang, sucre, bestiaire, mécanique, skins par échelle, cartes de butin, arbre-monde, thème d'après le skin), l'horlogerie refaite en engrenages par particule ; 167 visuels restent. Une liste de travail, pas un engagement : chaque ligne est un visuel du jeu qui pourrait recevoir une
+Version 0.180, triée en 0.184, réalisation commencée en 0.185 (les lignes « fait en » le disent) : onze idées retirées (fruit, serpents, anneau de Saturne, case du Big Bang, sucre, bestiaire, mécanique, skins par échelle, cartes de butin, arbre-monde, thème d'après le skin), l'horlogerie refaite en engrenages par particule ; 167 visuels restent. Une liste de travail, pas un engagement : chaque ligne est un visuel du jeu qui pourrait recevoir une
 apparence de rechange, avec des idées de skins, ce que chacun changerait, et une façon de l'obtenir dans l'esprit des
 skins existants (un record, une recherche, un défi, un palier). Le mécanisme ne change pas : un skin débloqué donne
 +2 % à toutes les ressources d'en dessous de l'univers (`Skin.BONUS`), le choisir ne change que l'apparence, et
@@ -15,75 +15,75 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ## 1. Ce qui est déjà skinné, et ce qu'on peut y ajouter
 
 ### La fusion des particules (`ParticleView`, visuel PARTICLE_FUSION : Éclair, Prisme, Solitaire)
-- Braise — des poussières orange `#ffa53a` qui rougissent en approchant, un noyau de charbon craquelé qui luit par les fentes ; dix minutes sans acheter de générateur, la production en marche.
-- Encre — fond blanc crème dans la carte, poussières noires qui coulent comme des gouttes d'encre vers le centre, noyau en tache ; mille fusions.
-- Essaim — les poussières deviennent de petits traits qui volent en banc, changent de cap d'un coup, le noyau est une ruche hexagonale ; cent générateurs formés d'un seul coup (touche M tenue).
-- Horloge — le noyau est un cadran, les anneaux d'accrétion des aiguilles, chaque particule créée fait avancer la trotteuse ; une heure d'affilée au régime lent.
-- Verre soufflé — poussières en bulles irisées (teinte HSB lente), noyau en goutte de verre avec un reflet blanc ; la recherche « Fusion prismatique » et le skin Prisme déjà choisis une heure.
-- Pixel — tout en carrés de 4 px, couleurs à 8 valeurs, ondes carrées ; un record de reconstruction en moins de trente secondes.
+- Braise — **fait en 0.191** (condition retenue : 100 fusions) : des poussières orange `#ffa53a` qui rougissent en approchant, un noyau de charbon craquelé qui luit par les fentes ; dix minutes sans acheter de générateur, la production en marche.
+- Encre — **fait en 0.191** (condition retenue : 1 000 fusions) : fond blanc crème dans la carte, poussières noires qui coulent comme des gouttes d'encre vers le centre, noyau en tache ; mille fusions.
+- Essaim — **fait en 0.191** (condition retenue : 100 générateurs en même temps) : les poussières deviennent de petits traits qui volent en banc, changent de cap d'un coup, le noyau est une ruche hexagonale ; cent générateurs formés d'un seul coup (touche M tenue).
+- Horloge — **fait en 0.191** (condition retenue : 10 000 fusions) : le noyau est un cadran, les anneaux d'accrétion des aiguilles, chaque particule créée fait avancer la trotteuse ; une heure d'affilée au régime lent.
+- Verre soufflé — **fait en 0.191** (condition retenue : le skin Prisme débloqué) : poussières en bulles irisées (teinte HSB lente), noyau en goutte de verre avec un reflet blanc ; la recherche « Fusion prismatique » et le skin Prisme déjà choisis une heure.
+- Pixel — **fait en 0.191** (condition retenue : un record de reconstruction en moins de 30 s) : tout en carrés de 4 px, couleurs à 8 valeurs, ondes carrées ; un record de reconstruction en moins de trente secondes.
 
 ### Le grand atome (`AtomModelView`, visuel ATOM : Noyau dense, Noyau stellaire)
-- Modèle de Bohr au tableau noir — fond ardoise `#1d2a24`, orbites tracées à la craie (traits irréguliers, poussière), électrons en ronds de craie blanche ; cinquante atomes.
-- Nuage de probabilité — plus d'orbites : des nuages de points `#ffe9c2` plus denses là où l'électron a des chances d'être, qui respirent ; cent atomes.
-- Système à anneaux — le noyau est une planète à bandes, les couches des anneaux de glace vus de biais ; le 118ᵉ atome une première fois.
-- Horlogerie — chaque particule de l'atome est un petit engrenage : les protons et les neutrons du noyau en roues dentées de laiton `#c9a24a` serrées les unes contre les autres, les électrons en pignons minuscules qui tournent sur leur couche et s'engrènent au passage ; une heure de synthèse automatique sans intervention.
-- Vitrail — couches en plomb noir, électrons en verres colorés par famille du tableau, lumière qui passe au travers ; toutes les familles possédées une fois.
+- Modèle de Bohr au tableau noir — **fait en 0.191** (condition retenue : 50 atomes) : fond ardoise `#1d2a24`, orbites tracées à la craie (traits irréguliers, poussière), électrons en ronds de craie blanche ; cinquante atomes.
+- Nuage de probabilité — **fait en 0.191** (condition retenue : 1 000 atomes) : plus d'orbites : des nuages de points `#ffe9c2` plus denses là où l'électron a des chances d'être, qui respirent ; cent atomes.
+- Système à anneaux — **fait en 0.191** (condition retenue : les 118 éléments) : le noyau est une planète à bandes, les couches des anneaux de glace vus de biais ; le 118ᵉ atome une première fois.
+- Horlogerie — **fait en 0.191** (condition retenue : 1 000 synthèses) : chaque particule de l'atome est un petit engrenage : les protons et les neutrons du noyau en roues dentées de laiton `#c9a24a` serrées les unes contre les autres, les électrons en pignons minuscules qui tournent sur leur couche et s'engrènent au passage ; une heure de synthèse automatique sans intervention.
+- Vitrail — **fait en 0.191** (condition retenue : 100 éléments) : couches en plomb noir, électrons en verres colorés par famille du tableau, lumière qui passe au travers ; toutes les familles possédées une fois.
 
 ### Le tableau périodique (`PeriodicTablePage`, visuel TABLE : Plomb, Or)
-- Bois gravé — cases en planchettes `#8a6440` au grain visible, symbole brûlé au fer, possédées vernies ; cinquante éléments possédés.
-- Cristal — cases en facettes translucides de la couleur de la famille, bordures blanches, les cases au maximum scintillent ; une famille complète au maximum.
-- Rouille — métal piqué `#6e4a3a`, une case possédée est polie, une case au maximum chromée ; le défi « Rouille » réussi.
-- Néon — cases noires au trait de néon de la famille, texte qui grésille ; le défi « Sans surchauffe » réussi (comme Néon du collisionneur, pour faire une paire).
-- Carte au trésor — parchemin `#d8c49a`, cases dessinées à l'encre brune, les possédées marquées d'une croix rouge, les uniques d'une étoile dorée ; dix voyages de sondes.
-- Minuscule — cases réduites à leurs lettres, sans fond, alignées comme une partition : pour les grands écrans ; option libre, dès le premier élément.
+- Bois gravé — **fait en 0.191** (condition retenue : 50 éléments) : cases en planchettes `#8a6440` au grain visible, symbole brûlé au fer, possédées vernies ; cinquante éléments possédés.
+- Cristal — **fait en 0.191** (condition retenue : 10 000 synthèses) : cases en facettes translucides de la couleur de la famille, bordures blanches, les cases au maximum scintillent ; une famille complète au maximum.
+- Rouille — **fait en 0.191** (condition retenue : le défi Rouille) : métal piqué `#6e4a3a`, une case possédée est polie, une case au maximum chromée ; le défi « Rouille » réussi.
+- Néon — **fait en 0.191** (condition retenue : le skin Néon du collisionneur) : cases noires au trait de néon de la famille, texte qui grésille ; le défi « Sans surchauffe » réussi (comme Néon du collisionneur, pour faire une paire).
+- Carte au trésor — **fait en 0.191** (condition retenue : dix sondes) : parchemin `#d8c49a`, cases dessinées à l'encre brune, les possédées marquées d'une croix rouge, les uniques d'une étoile dorée ; dix voyages de sondes.
+- Minuscule — **fait en 0.191** (condition retenue : le premier élément) : cases réduites à leurs lettres, sans fond, alignées comme une partition : pour les grands écrans ; option libre, dès le premier élément.
 
 ### La boule de matière noire (`DarkMatterView`, visuel DARK_BALL : Obsidienne, Nébuleuse, Contractée)
-- Goutte de mercure — sphère miroir `#c0c8d0` qui reflète la règle graduée, tremble à chaque appui ; une explosion sans aucune matière noire gaspillée (tout dépensé avant).
-- Trou noir — disque noir net, anneau de lumière lentillée orange en haut, l'échelle des grandeurs se déforme autour ; dix explosions.
-- Œuf — coquille `#efe4ff` tachetée qui se fend à mesure que la boule grossit, l'explosion la fait éclore ; le défi « Contraction douce » réussi deux fois.
-- Nœud — une corde violette `#c9a6ff` nouée sur elle-même qui se resserre quand on appuie ; cent appuis à la main dans une heure.
-- Lanterne — papier translucide, flamme à l'intérieur qui grandit avec la matière, l'explosion est un éclat de papier brûlé ; une heure d'appui automatique.
+- Goutte de mercure — **fait en 0.191** (condition retenue : 25 explosions) : sphère miroir `#c0c8d0` qui reflète la règle graduée, tremble à chaque appui ; une explosion sans aucune matière noire gaspillée (tout dépensé avant).
+- Trou noir — **fait en 0.191** (condition retenue : 10 explosions) : disque noir net, anneau de lumière lentillée orange en haut, l'échelle des grandeurs se déforme autour ; dix explosions.
+- Œuf — **fait en 0.191** (condition retenue : le skin Contractée) : coquille `#efe4ff` tachetée qui se fend à mesure que la boule grossit, l'explosion la fait éclore ; le défi « Contraction douce » réussi deux fois.
+- Nœud — **fait en 0.191** (condition retenue : 200 explosions) : une corde violette `#c9a6ff` nouée sur elle-même qui se resserre quand on appuie ; cent appuis à la main dans une heure.
+- Lanterne — **fait en 0.191** (condition retenue : 500 explosions) : papier translucide, flamme à l'intérieur qui grandit avec la matière, l'explosion est un éclat de papier brûlé ; une heure d'appui automatique.
 
 ### L'animation de la matière noire (visuel DARK_ANIMATION : Vortex, Pulsar)
-- Pluie — des gouttes qui tombent droit, flaques en cercles au sol de la vue ; quinze explosions.
-- Neige — flocons lents `#efe4ff` qui tourbillonnent et se posent ; une explosion déclenchée entre minuit et six heures (heure de l'ordinateur).
-- Sablier — des grains qui coulent par un goulot vers la boule, un sablier dessiné en filigrane ; une heure sans explosion alors qu'elle était possible.
-- Feu d'artifice — l'explosion plein écran devient une gerbe de fusées de six couleurs qui retombent ; cent explosions.
+- Pluie — **fait en 0.191** (condition retenue : 15 explosions) : des gouttes qui tombent droit, flaques en cercles au sol de la vue ; quinze explosions.
+- Neige — **fait en 0.191** (condition retenue : 50 explosions) : flocons lents `#efe4ff` qui tourbillonnent et se posent ; une explosion déclenchée entre minuit et six heures (heure de l'ordinateur).
+- Sablier — **fait en 0.191** (condition retenue : 1 000 explosions) : des grains qui coulent par un goulot vers la boule, un sablier dessiné en filigrane ; une heure sans explosion alors qu'elle était possible.
+- Feu d'artifice — **fait en 0.191** (condition retenue : 100 explosions) : l'explosion plein écran devient une gerbe de fusées de six couleurs qui retombent ; cent explosions.
 
 ### Le Big Bang (`SpaceView`, `BurstView`, visuel BIG_BANG : Aurore, Supernova, Cristal)
-- Encre de Chine — fond blanc cassé `#f4efe4`, étoiles en points d'encre, disque d'espace en lavis gris, bord au pinceau ; cinq Big Bangs.
-- Vitrail — fond noir, ciel en verres colorés cernés de plomb, le disque est une rosace ; trois systèmes solaires complets.
-- Abysses — fond `#02060e`, étoiles qui deviennent des points de plancton lumineux, le disque une méduse qui pulse, le bord des tentacules ; la planète océan formée.
-- Papier plié — ciel en origami aux plis visibles, disque à facettes planes, étoiles en confettis de papier ; le défi « Big Bang à froid » réussi deux fois.
-- Carte ancienne — fond parchemin, étoiles reliées en constellations nommées en latin, disque en rose des vents ; vingt-cinq comètes attrapées.
-- Néon de ville — fond asphalte mouillé, disque en enseigne qui clignote, étoiles en fenêtres allumées ; cent molécules de la chimie du carbone.
+- Encre de Chine — **fait en 0.191** (condition retenue : 5 Big Bangs) : fond blanc cassé `#f4efe4`, étoiles en points d'encre, disque d'espace en lavis gris, bord au pinceau ; cinq Big Bangs.
+- Vitrail — **fait en 0.191** (condition retenue : 3 systèmes complets) : fond noir, ciel en verres colorés cernés de plomb, le disque est une rosace ; trois systèmes solaires complets.
+- Abysses — **fait en 0.191** (condition retenue : la planète océan) : fond `#02060e`, étoiles qui deviennent des points de plancton lumineux, le disque une méduse qui pulse, le bord des tentacules ; la planète océan formée.
+- Papier plié — **fait en 0.191** (condition retenue : 10 Big Bangs) : ciel en origami aux plis visibles, disque à facettes planes, étoiles en confettis de papier ; le défi « Big Bang à froid » réussi deux fois.
+- Carte ancienne — **fait en 0.191** (condition retenue : 25 comètes) : fond parchemin, étoiles reliées en constellations nommées en latin, disque en rose des vents ; vingt-cinq comètes attrapées.
+- Néon de ville — **fait en 0.191** (condition retenue : 20 Big Bangs) : fond asphalte mouillé, disque en enseigne qui clignote, étoiles en fenêtres allumées ; cent molécules de la chimie du carbone.
 
 ### Le faisceau du collisionneur (`EnergyView`, visuel COLLIDER_BEAM : Faisceau doré)
-- Comète — deux boules à longue queue de glace `#bfe8ff`, les croisements font neiger ; vingt-cinq comètes attrapées.
-- Encre — deux traits de plume noire sur fond clair, le croisement une tache ; mille croisements captés.
-- Laser — deux rayons fins et droits par segments, sans traînée, étincelles en pixels ; une heure à la plus haute énergie.
-- Lucioles — nuées de points verts clignotants au lieu de boules, le croisement les fait toutes s'allumer ; cent captures à la main.
+- Comète — **fait en 0.191** (condition retenue : 50 comètes) : deux boules à longue queue de glace `#bfe8ff`, les croisements font neiger ; vingt-cinq comètes attrapées.
+- Encre — **fait en 0.191** (condition retenue : 1 000 collisions) : deux traits de plume noire sur fond clair, le croisement une tache ; mille croisements captés.
+- Laser — **fait en 0.191** (condition retenue : 10 000 collisions) : deux rayons fins et droits par segments, sans traînée, étincelles en pixels ; une heure à la plus haute énergie.
+- Lucioles — **fait en 0.191** (condition retenue : 100 collisions) : nuées de points verts clignotants au lieu de boules, le croisement les fait toutes s'allumer ; cent captures à la main.
 
 ### L'anneau du collisionneur (visuel COLLIDER : Néon, Plasma, Glace)
-- Bois et cuivre — anneau en lattes vernies cerclées de cuivre `#b87333`, poussières en sciure ; dix générateurs du collisionneur.
-- Circuit imprimé — anneau en piste verte `#1f5a2a` avec pastilles dorées, poussières en bits qui passent ; tous les générateurs achetés.
-- Stade — anneau en piste d'athlétisme à huit couloirs, détecteur en ligne d'arrivée ; cent tours du faisceau rapide.
-- Ruban de Möbius — l'anneau se tord sur lui-même, les faisceaux passent dessus puis dessous ; le défi « Un seul générateur » réussi deux fois.
+- Bois et cuivre — **fait en 0.191** (condition retenue : 10 générateurs du collisionneur) : anneau en lattes vernies cerclées de cuivre `#b87333`, poussières en sciure ; dix générateurs du collisionneur.
+- Circuit imprimé — **fait en 0.191** (condition retenue : 100 générateurs) : anneau en piste verte `#1f5a2a` avec pastilles dorées, poussières en bits qui passent ; tous les générateurs achetés.
+- Stade — **fait en 0.191** (condition retenue : 1 000 générateurs) : anneau en piste d'athlétisme à huit couloirs, détecteur en ligne d'arrivée ; cent tours du faisceau rapide.
+- Ruban de Möbius — **fait en 0.191** (condition retenue : le skin Glace) : l'anneau se tord sur lui-même, les faisceaux passent dessus puis dessous ; le défi « Un seul générateur » réussi deux fois.
 
 ## 2. Le chrome : fenêtre, onglets, cartes
 
 ### Le fond et les barres (`GameAppBase`, `GameAppTabs`, `GameAppWindow`)
-- Papier — fond `#f4efe4` et texte sombre : un vrai thème clair dessiné, pas l'inversion ; une heure de jeu en thème Clair.
-- Ardoise — fond `#1d2a24` à la craie, bordures en traits de craie ; cinquante atomes.
-- Nuit étoilée — un fond qui laisse voir un ciel très sombre avec quelques étoiles fixes derrière les pages ; la galaxie formée.
-- Terminal — fond noir pur, texte vert `#6dff8f`, bordures en caractères ASCII ; la notation « Logarithme » débloquée.
-- Blueprint — fond bleu de plan `#1a3a6b`, lignes blanches fines, quadrillage discret ; dix assemblages formés.
+- Papier — **fait en 0.190** (visuel « Le fond de la fenêtre ») : fond `#f4efe4` et texte sombre ; une heure de jeu.
+- Ardoise — **fait en 0.190** : fond `#1d2a24` à la craie, bordures en traits de craie ; cinquante éléments découverts.
+- Nuit étoilée — **fait en 0.190** : un ciel très sombre avec quelques étoiles fixes derrière les pages ; la galaxie formée.
+- Terminal — **fait en 0.190** : fond noir pur, texte vert `#6dff8f`, bordures en caractères ASCII ; cent explosions.
+- Blueprint — **fait en 0.190** : fond bleu de plan `#1a3a6b`, lignes blanches fines, quadrillage discret ; dix assemblages formés.
 
 ### Les onglets (`tabStyle`, couleurs par onglet)
-- Onglets en onglets de classeur — forme trapèze, papier coloré, le courant dépasse ; cinq onglets ouverts.
-- Boutons physiques — relief, ombre portée, le courant enfoncé ; dix heures de jeu.
-- Pastilles — l'onglet n'est qu'un rond coloré avec l'icône, le nom apparaît au survol : gagne de la place ; tous les onglets ouverts.
-- Rubans — bandes verticales à gauche, la couleur de l'onglet en pleine hauteur ; l'univers 2 formé.
+- Onglets en onglets de classeur — **fait en 0.190** (visuel « Les onglets ») : forme trapèze, papier coloré, le courant dépasse ; le Big Bang débloqué.
+- Boutons physiques — **fait en 0.190** : relief, ombre portée, le courant enfoncé ; dix heures de jeu.
+- Pastilles — **fait en 0.190** : l'onglet n'est qu'un rond coloré avec l'icône, le nom apparaît au survol ; l'univers 1 formé.
+- Rubans — **fait en 0.190** : bandes verticales à gauche, la couleur de l'onglet en pleine hauteur ; l'univers 2 formé.
 
 ### Les icônes d'onglet (`TabIcon`, 13 icônes animées, et `AtomView`)
 - Jeu complet « trait de craie » — toutes les icônes redessinées en un seul trait blanc tremblé ; cinquante atomes.
@@ -93,10 +93,10 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Immobiles — les mêmes icônes sans animation, pour les écrans lents : c'est déjà un réglage (TAB_ICONS), il pourrait devenir un skin « Figées ».
 
 ### Les cartes (`Card`, le bouton universel du jeu)
-- Fiche cartonnée — fond crème, coins écornés, texte à la machine à écrire ; cent achats.
-- Tuile de verre — fond translucide qui laisse voir le fond animé, bord lumineux à l'état prêt ; le skin Cristal du Big Bang choisi.
-- Carte à jouer — bord blanc, coin avec le signe d'état comme une valeur, dos rouge quand fermée ; dix défis réussis.
-- Étiquette — un rectangle avec un œillet et un trou, pendu à un fil, qui se balance au survol ; dix sondes revenues.
+- Fiche cartonnée — **fait en 0.190** (visuel « Les cartes ») : fond crème, coins écornés, texte à la machine à écrire ; cent fusions.
+- Tuile de verre — **fait en 0.190** : fond translucide, bord lumineux à l'état prêt ; le skin Cristal du Big Bang débloqué.
+- Carte à jouer — **fait en 0.190** : bord blanc, coin avec le signe d'état comme une valeur, dos rouge quand fermée ; les dix défis réussis.
+- Étiquette — **fait en 0.190** : un rectangle avec un œillet et un trou, pendu à un fil, qui se balance au survol ; dix sondes revenues.
 - Signes d'état — le jeu ● ○ ◐ ▶ □ ✓ × ! peut changer de famille : « runes », « formes géométriques pleines », « lettres » (P, A, E, M, C, F, V, A) ; chacun un skin, un succès de chaque onglet.
 
 ### Les briques communes (`SubTabs`, `BuyAmountRow`, `FilterBar`, `OrderPane`, `PlanBar`, `Breakdown`, `MatterText`)
@@ -140,10 +140,10 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ## 5. Le Big Bang : espace, ciel, galaxie
 
 ### Les molécules (`MoleculeArt`, boules et bâtons)
-- Boules pleines (space-filling) — pas de bâtons, atomes qui se touchent ; cinquante sortes.
-- Traits (squelette) — seulement les liaisons, atomes en lettres ; cent sortes.
-- Perles — atomes en perles nacrées, bâtons en fil ; vingt sortes rassemblées.
-- Lego — atomes en briques à tenons, couleurs vives ; mille molécules.
+- Boules pleines (space-filling) — **fait en 0.188** (visuel « Les molécules ») : pas de bâtons, atomes qui se touchent ; cinquante sortes créées.
+- Traits (squelette) — **fait en 0.188** : seulement les liaisons, atomes en lettres ; toutes les sortes créées (73).
+- Perles — **fait en 0.188** : atomes en perles nacrées, bâtons en fil ; vingt sortes rassemblées.
+- Lego — **fait en 0.188** : atomes en briques à tenons, couleurs vives ; mille molécules créées.
 - Palette CPK alternative : « pastel », « daltonien sûr » (une palette vérifiée), « monochrome par rayon » ; chacun dès le premier Big Bang (option d'accessibilité, sans condition).
 
 ### Les amas rassemblés, les blocs d'assemblage, le gaz (`SpaceView`, `SpaceViewPlacement`, `SpaceViewPacking`)
@@ -152,9 +152,9 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Le gaz flouté au loin en voile de brume, en fumée de cheminée, en aurore ; mille molécules de gaz.
 
 ### Les astres (`BodyArt` : 35 astres, 10 échelles, 12 aspects)
-- Planétarium — tous les astres en sphères de laiton et de verre dépoli, sur des tiges ; dix astres.
-- Gravure — astres en hachures noir et blanc façon gravure du XIXᵉ siècle ; vingt astres.
-- Cartographie — astres en globes à méridiens et parallèles, nommés en lettres capitales ; trente-cinq astres.
+- Planétarium — **fait en 0.186** (visuel « Les astres ») : tous les astres en sphères de laiton et de verre dépoli, sur des tiges ; dix astres formés dans un univers.
+- Gravure — **fait en 0.186** : astres en hachures noir et blanc façon gravure du XIXᵉ siècle ; vingt astres formés dans un univers.
+- Cartographie — **fait en 0.186** : astres en globes à méridiens et parallèles, nommés en lettres capitales ; les trente-cinq astres formés dans un univers.
 
 ### Le ciel des astres (`SkyView`)
 - Planche naturaliste — fond parchemin, astres épinglés avec étiquette manuscrite ; quinze astres.
@@ -214,7 +214,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Les saisons en cartes à jouer, en roue de couleurs, en vitrail ; un cycle complet des saisons.
 
 ### Les arbres, du bonsaï à l'arbre-monde (`SeedTree`)
-- Essences — chêne, bouleau (écorce blanche), saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, palmier ; chaque essence un skin, débloqué par un univers formé à partir du quatrième.
+- Essences — **fait en 0.185** (visuel « L'arbre ») : bouleau (écorce blanche), saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, palmier ; chaque essence un skin, débloqué par un univers formé à partir du quatrième (4 à 11). Le chêne est le Classique.
 - Saisons figées — l'arbre toujours en automne (roux), en hiver (nu, givré), au printemps (fleurs) ; les saisons débloquées.
 - Fantaisie — arbre de cristal, arbre de corail, arbre en circuit lumineux, arbre de nuages, arbre inversé (les racines en haut), arbre en pixel art ; chaque bulle d'un palier différent.
 - Le sol — herbe, sable, neige, mousse, dallage, eau (l'arbre pousse sur une île) ; chaque sol par un palier de la graine.
@@ -228,23 +228,23 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Le remplissage vert du défi final en eau qui monte, en sable, en lumière, en lierre qui grimpe ; le défi final fini.
 
 ### Les dix mini-jeux (`DimensionView`, `DimensionWindow`, `VolumeCamera`)
-- La ligne — rails et wagons, cordes de guitare et médiator, fil et perles d'abaque, piste d'athlétisme, portée musicale et notes ; le seuil, puis chaque niveau d'amélioration en débloque un.
-- Le plan — damier, feuille de cahier, carte de jeu vidéo vue de haut, surface d'eau avec ronds, tapis persan ; le seuil du plan.
-- Le volume — aquarium (boules en poissons), boîte de Rubik, espace infini étoilé, intérieur d'une lanterne de papier, caverne de cristaux ; le seuil du volume.
-- La durée — spirales en vinyle, en coquillage, en escalier à vis, en horloge, en galaxie ; le seuil de la durée.
-- La boucle — cibles de tir à l'arc, anneaux de Saturne, pistes de patinage, cadrans d'horloges imbriqués, disques de DJ ; le seuil de la boucle.
-- La brane — drap tendu, surface d'eau, membrane de tambour, toile d'araignée, nappe de pique-nique ; le seuil de la brane.
-- Le clicker — taupinières, bulles de savon, lanternes, champignons, cibles de fête foraine ; le seuil du clicker.
-- La grille — grille de bataille navale, de mots croisés, de démineur, de jardin potager, de ruche ; le seuil de la grille.
-- Le miroir — miroir de bal, lac au reflet, vitrail symétrique, test de Rorschach, papillon ; le seuil du miroir.
-- Le mélange — kaléidoscope, cuisine (chaque dimension un ingrédient), orchestre, atelier d'alchimiste, carte du monde ; le seuil du mélange.
+- La ligne — **rails et wagons, fait en 0.187** (visuel « La ligne », au seuil) ; restent à faire : cordes de guitare et médiator, fil et perles d'abaque, piste d'athlétisme, portée musicale et notes ; le seuil, puis chaque niveau d'amélioration en débloque un.
+- Le plan — **feuille de cahier, fait en 0.187** (au seuil) ; restent à faire : damier, carte de jeu vidéo vue de haut, surface d'eau avec ronds, tapis persan ; le seuil du plan.
+- Le volume — **aquarium (boules en poissons), fait en 0.187** (au seuil) ; restent à faire : boîte de Rubik, espace infini étoilé, intérieur d'une lanterne de papier, caverne de cristaux ; le seuil du volume.
+- La durée — **vinyle, fait en 0.187** (au seuil) ; restent à faire : spirales en coquillage, en escalier à vis, en horloge, en galaxie ; le seuil de la durée.
+- La boucle — **cible de tir à l'arc, fait en 0.187** (au seuil) ; restent à faire : anneaux de Saturne, pistes de patinage, cadrans d'horloges imbriqués, disques de DJ ; le seuil de la boucle.
+- La brane — **toile d'araignée, fait en 0.187** (au seuil) ; restent à faire : drap tendu, surface d'eau, membrane de tambour, nappe de pique-nique ; le seuil de la brane.
+- Le clicker — **bulles de savon, fait en 0.187** (au seuil) ; restent à faire : taupinières, lanternes, champignons, cibles de fête foraine ; le seuil du clicker.
+- La grille — **démineur, fait en 0.187** (au seuil) ; restent à faire : bataille navale, mots croisés, de jardin potager, de ruche ; le seuil de la grille.
+- Le miroir — **vitrail symétrique, fait en 0.187** (au seuil) ; restent à faire : miroir de bal, lac au reflet, test de Rorschach, papillon ; le seuil du miroir.
+- Le mélange — **kaléidoscope, fait en 0.187** (au seuil) ; restent à faire : cuisine (chaque dimension un ingrédient), orchestre, atelier d'alchimiste, carte du monde ; le seuil du mélange.
 - Les cadres (`DimensionWindow`) — bordure de hublot, de cadre doré, d'écran cathodique, de livre ouvert ; dix dimensions ouvertes.
 - La palette des dix dimensions (PALETTE) en bloc : « pastel », « daltonien sûr », « monochrome », « arc-en-ciel saturé », « sépia » ; options d'accessibilité, sans condition.
 
 ## 8. Profil, succès, statistiques, réglages
 
 ### Les avatars (`Avatar`, `AvatarView`, 12 avatars + 1 importé)
-- Cadres — rond, hexagone, écusson, cadre doré baroque, timbre-poste dentelé, polaroid ; chaque titre obtenu en débloque un.
+- Cadres — **fait en 0.189** (visuel « Le cadre de l'avatar ») : rond (Alchimiste), hexagone (Lecteur du tableau), écusson (Briseur de défis), cadre doré baroque (Faiseur de Big Bang), timbre-poste dentelé (Chasseur de comètes), polaroid (Créateur d'univers).
 - Styles — chaque avatar en version « trait », « pixel », « craie », « vitrail » ; un jeu complet par palier de succès (25, 50, 75, tous).
 - Nouveaux avatars à gagner — l'arrosoir, le chrono, la sonde, le hadron, la bulle, le miroir, le kaléidoscope, la toile de l'univers ; chacun par le titre correspondant.
 

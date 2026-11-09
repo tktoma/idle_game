@@ -12,7 +12,33 @@ public enum SkinVisual {
     DARK_ANIMATION("Animation de la matière noire"),
     BIG_BANG("Big Bang"),
     COLLIDER_BEAM("Faisceau du collisionneur"),
-    COLLIDER("Collisionneur");
+    COLLIDER("Collisionneur"),
+    /** Version 0.185 : l'arbre de la graine, du bonsaï à l'arbre-monde, et ses essences. */
+    TREE("L'arbre"),
+    /** Version 0.186 : les astres, dans l'espace, le ciel et leurs cartes. */
+    BODY("Les astres"),
+    /** Version 0.187 : les dix mini-jeux des dimensions, un visuel chacun. */
+    LINE("La ligne"),
+    PLANE("Le plan"),
+    VOLUME("Le volume"),
+    DURATION("La durée"),
+    LOOP("La boucle"),
+    BRANE("La brane"),
+    CLICKER("Le clicker"),
+    GRID("La grille"),
+    MIRROR("Le miroir"),
+    MIX("Le mélange"),
+    /** Version 0.188 : les molécules, boules et bâtons. */
+    MOLECULE("Les molécules"),
+    /** Version 0.189 : le cadre de l'avatar du profil. */
+    AVATAR_FRAME("Le cadre de l'avatar"),
+    /** Version 0.190 : le chrome de la fenêtre, en trois visuels. */
+    AMBIENT("Le fond de la fenêtre"),
+    TABS("Les onglets"),
+    CARD("Les cartes");
+
+    /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
+    public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};
 
     private final String label;
 

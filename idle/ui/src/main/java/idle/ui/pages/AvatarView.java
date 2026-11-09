@@ -1,28 +1,80 @@
 package idle.ui.pages;
 
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
+import javafx.geometry.VPos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.RadialGradient;
+import javafx.scene.paint.Stop;
 import javafx.scene.shape.ArcType;
+import javafx.scene.shape.FillRule;
 import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.TextAlignment;
 
 /**
- * Un avatar dans son rond (version 0.147) : l'un de ceux que dessine le jeu ({@link Avatar}), ou l'image importée par
- * le joueur, recadrée au carré du milieu puis au cercle. Il ne se redessine que lorsqu'on lui donne autre chose à
- * montrer.
+ * Un avatar dans son cadre (version 0.147) : l'un de ceux que dessine le jeu ({@link Avatar}), ou l'image importée par
+ * le joueur, recadrée au carré du milieu puis à la forme du cadre. Le cadre est le skin choisi pour
+ * {@link SkinVisual#AVATAR_FRAME} (version 0.189) : le Classique est le rond d'origine ; les six autres (rond cerné,
+ * hexagone, écusson, cadre doré baroque, timbre-poste, polaroid) réduisent l'image pour se loger dans le même carré.
+ * La vue ne se redessine que lorsqu'on lui donne autre chose à montrer, ou un autre cadre.
  */
 public final class AvatarView extends Canvas {
 
     private static final String BACKGROUND = "#0e1420";
+    /** Le bord d'une image importée, là où un avatar du jeu prend sa propre couleur. */
+    private static final String IMAGE_EDGE = "#d6dde6";
+    private static final String GOLD = "#c9a24a", GOLD_LIGHT = "#fff2c8", GOLD_DARK = "#6e5218";
+    private static final String SILVER = "#c8ccd4", SILVER_DARK = "#3b414c";
+    private static final String PAPER = "#f4f1e8", INK = "#3b4a7a";
+    private static final String POLAROID = "#fafafa", PENCIL = "#3a3a44";
+    /** L'inclinaison du polaroid, en degrés. */
+    private static final double TILT = -4;
+
+    /** L'or du cadre baroque, éclairé en haut à gauche ; proportionnel, il suit la forme remplie. */
+    private static final RadialGradient GOLD_SHINE = new RadialGradient(0, 0, 0.4, 0.35, 0.75, true, CycleMethod.NO_CYCLE,
+            new Stop(0, Color.web(GOLD_LIGHT)), new Stop(0.45, Color.web(GOLD)), new Stop(1, Color.web(GOLD_DARK)));
+    /** L'argent de l'écusson, du reflet au métal sombre. */
+    private static final LinearGradient SILVER_SHINE = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
+            new Stop(0, Color.web("#eef1f6")), new Stop(0.5, Color.web(SILVER)), new Stop(1, Color.web("#8e949e")));
 
     private Avatar avatar = Avatar.PARTICLE;
     private Image image;
+    /** Le cadre ; {@code null} pour le Classique. */
+    private Skin frame;
+    /** La « valeur » du timbre-poste : le nombre de titres obtenus. */
+    private int stampValue;
 
     public AvatarView(double size) {
         super(size, size);
         setMouseTransparent(true);
         draw();
+    }
+
+    /** Met ce cadre autour de l'avatar ; {@code null}, ou un skin d'un autre visuel, remet le Classique. */
+    public void setFrame(Skin skin) {
+        Skin wanted = skin != null && skin.visual() == SkinVisual.AVATAR_FRAME ? skin : null;
+        if (wanted == frame) return;
+        frame = wanted;
+        draw();
+    }
+
+    /** Le cadre en place, ou {@code null} pour le Classique. */
+    public Skin frame() {
+        return frame;
+    }
+
+    /** La valeur écrite en bas à droite du timbre-poste : le nombre de titres obtenus. */
+    public void setStampValue(int value) {
+        if (value == stampValue) return;
+        stampValue = value;
+        if (frame == Skin.FRAME_STAMP) draw();
     }
 
     /** Montre un avatar du jeu. */
@@ -54,24 +106,255 @@ public final class AvatarView extends Canvas {
         double s = getWidth();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, s, s);
+        if (frame == null) {
+            drawClassic(g, s);
+            return;
+        }
+        switch (frame) {
+            case FRAME_ROUND -> drawRound(g, s);
+            case FRAME_HEXAGON -> drawHexagon(g, s);
+            case FRAME_SHIELD -> drawShield(g, s);
+            case FRAME_BAROQUE -> drawBaroque(g, s);
+            case FRAME_STAMP -> drawStamp(g, s);
+            case FRAME_POLAROID -> drawPolaroid(g, s);
+            default -> drawClassic(g, s);
+        }
+    }
+
+    /** Le Classique : le rond d'origine, cerné d'un trait de la couleur de l'avatar. */
+    private void drawClassic(GraphicsContext g, double s) {
         g.save();
         g.beginPath();
-        g.arc(s / 2, s / 2, s / 2 - 1, s / 2 - 1, 0, 360);
-        g.closePath();
+        circle(g, s / 2, s / 2, s / 2 - 1);
         g.clip();
-        g.setFill(Color.web(BACKGROUND));
-        g.fillRect(0, 0, s, s);
-        if (image != null) {
-            double side = Math.min(image.getWidth(), image.getHeight());
-            g.drawImage(image, (image.getWidth() - side) / 2, (image.getHeight() - side) / 2, side, side, 0, 0, s, s);
-        } else {
-            paint(g, avatar, s);
-        }
+        picture(g, 0, 0, s);
         g.restore();
         g.setGlobalAlpha(1);
-        g.setStroke(Color.web(image != null ? "#d6dde6" : avatar.color()));
+        g.setStroke(edge());
         g.setLineWidth(Math.max(1.5, s / 40));
         g.strokeOval(1, 1, s - 2, s - 2);
+    }
+
+    /** « Rond » : le Classique cerné d'un anneau net de 3 px à la couleur du profil, posé sur un anneau plus sombre. */
+    private void drawRound(GraphicsContext g, double s) {
+        g.save();
+        g.beginPath();
+        circle(g, s / 2, s / 2, s / 2 - 1);
+        g.clip();
+        picture(g, 0, 0, s);
+        g.restore();
+        g.setGlobalAlpha(1);
+        g.setStroke(Color.web("#4a3b2a"));
+        g.setLineWidth(5);
+        g.strokeOval(2.5, 2.5, s - 5, s - 5);
+        g.setStroke(Color.web(ProfilePage.COLOR));
+        g.setLineWidth(3);
+        g.strokeOval(2.5, 2.5, s - 5, s - 5);
+    }
+
+    /** « Hexagone » : la découpe à six côtés, pointe en haut, au bord biseauté : clair sur les côtés hauts, sombre en bas. */
+    private void drawHexagon(GraphicsContext g, double s) {
+        double c = s / 2, r = c - 2;
+        double[] xs = new double[6], ys = new double[6];
+        for (int k = 0; k < 6; k++) {
+            double a = -Math.PI / 2 + k * Math.PI / 3;
+            xs[k] = c + r * Math.cos(a);
+            ys[k] = c + r * Math.sin(a);
+        }
+        g.save();
+        g.beginPath();
+        g.moveTo(xs[0], ys[0]);
+        for (int k = 1; k < 6; k++) g.lineTo(xs[k], ys[k]);
+        g.closePath();
+        g.clip();
+        picture(g, 0, 0, s);
+        // Le biseau, dans la découpe : chaque côté n'en montre que la moitié intérieure.
+        Color tone = edge();
+        g.setLineWidth(Math.max(4, s / 12));
+        g.setLineCap(StrokeLineCap.ROUND);
+        for (int k = 0; k < 6; k++) {
+            g.setStroke(k >= 1 && k <= 3 ? tone.darker().darker() : tone.brighter());
+            g.strokeLine(xs[k], ys[k], xs[(k + 1) % 6], ys[(k + 1) % 6]);
+        }
+        g.restore();
+    }
+
+    /** « Écusson » : haut droit, flancs qui descendent puis se referment en pointe ; bordure argentée sur un filet sombre. */
+    private void drawShield(GraphicsContext g, double s) {
+        double left = 2, right = s - 2, top = 2 + s * 0.04, bottom = s - 2;
+        g.save();
+        g.beginPath();
+        g.moveTo(left, top);
+        g.lineTo(right, top);
+        g.lineTo(right, s * 0.45);
+        g.quadraticCurveTo(right, s * 0.80, s / 2, bottom);
+        g.quadraticCurveTo(left, s * 0.80, left, s * 0.45);
+        g.closePath();
+        g.clip();
+        picture(g, 0, 0, s);
+        // Le même contour tracé deux fois dans la découpe : le filet sombre déborde sous l'argent, vers l'intérieur.
+        g.beginPath();
+        g.moveTo(left, top);
+        g.lineTo(right, top);
+        g.lineTo(right, s * 0.45);
+        g.quadraticCurveTo(right, s * 0.80, s / 2, bottom);
+        g.quadraticCurveTo(left, s * 0.80, left, s * 0.45);
+        g.closePath();
+        g.setStroke(Color.web(SILVER_DARK));
+        g.setLineWidth(s / 9);
+        g.stroke();
+        g.setStroke(SILVER_SHINE);
+        g.setLineWidth(s / 14);
+        g.stroke();
+        g.restore();
+    }
+
+    /** « Cadre doré baroque » : l'image en rond dans un anneau d'or épais à quatre volutes, avec son ombre et ses rehauts. */
+    private void drawBaroque(GraphicsContext g, double s) {
+        double c = s / 2, outer = s * 0.455, inner = outer - s * 0.12;
+        g.setGlobalAlpha(0.45);
+        g.setFill(Color.BLACK);
+        g.fillOval(c - outer + 2, c - outer + 3, 2 * outer, 2 * outer);
+        g.setGlobalAlpha(1);
+        g.setFill(GOLD_SHINE);
+        g.fillOval(c - outer, c - outer, 2 * outer, 2 * outer);
+        g.save();
+        g.beginPath();
+        circle(g, c, c, inner);
+        g.clip();
+        picture(g, c - inner, c - inner, 2 * inner);
+        g.restore();
+        g.setGlobalAlpha(1);
+        g.setLineCap(StrokeLineCap.ROUND);
+        // Le filet sombre contre l'image, et le rehaut qui court sur le haut de l'anneau.
+        g.setStroke(Color.web(GOLD_DARK));
+        g.setLineWidth(Math.max(1, s / 80));
+        g.strokeOval(c - inner, c - inner, 2 * inner, 2 * inner);
+        g.setStroke(Color.web(GOLD_LIGHT));
+        g.setLineWidth(Math.max(1, s / 60));
+        double mid = (outer + inner) / 2;
+        g.strokeArc(c - mid, c - mid, 2 * mid, 2 * mid, 100, 70, ArcType.OPEN);
+        // Quatre volutes aux points cardinaux : deux boucles qui s'enroulent de part et d'autre de chaque point.
+        double loop = s * 0.055;
+        g.setLineWidth(Math.max(1.2, s / 45));
+        for (int k = 0; k < 4; k++) {
+            double a = k * Math.PI / 2;
+            double px = c + mid * Math.cos(a), py = c + mid * Math.sin(a);
+            double tx = -Math.sin(a) * loop * 1.3, ty = Math.cos(a) * loop * 1.3;
+            double start = Math.toDegrees(-a);
+            g.setStroke(Color.web(GOLD_DARK));
+            g.strokeArc(px + tx - loop, py + ty - loop, 2 * loop, 2 * loop, start + 60, 270, ArcType.OPEN);
+            g.strokeArc(px - tx - loop, py - ty - loop, 2 * loop, 2 * loop, start + 30, -270, ArcType.OPEN);
+            g.setStroke(Color.web(GOLD_LIGHT));
+            g.strokeArc(px + tx - loop, py + ty - loop, 2 * loop, 2 * loop, start + 120, 80, ArcType.OPEN);
+            g.strokeArc(px - tx - loop, py - ty - loop, 2 * loop, 2 * loop, start + 160, 80, ArcType.OPEN);
+        }
+    }
+
+    /** « Timbre-poste » : un carré crème aux bords dentelés, l'image au carré dans sa marge, la valeur en bas à droite, un cachet. */
+    private void drawStamp(GraphicsContext g, double s) {
+        double m = 2, side = s - 2 * m;
+        int teeth = Math.max(6, (int) Math.round(side / (s * 0.09)));
+        double pitch = side / teeth, bite = pitch * 0.3;
+        g.save();
+        g.beginPath();
+        g.rect(m, m, side, side);
+        g.clip();
+        // Les perforations mordent le bord : le carré moins les ronds, par la règle pair-impair.
+        g.setFillRule(FillRule.EVEN_ODD);
+        g.beginPath();
+        g.rect(m, m, side, side);
+        for (int k = 0; k <= teeth; k++) {
+            double at = m + k * pitch;
+            circle(g, at, m, bite);
+            circle(g, at, m + side, bite);
+            circle(g, m, at, bite);
+            circle(g, m + side, at, bite);
+        }
+        g.clip();
+        g.setFill(Color.web(PAPER));
+        g.fillRect(0, 0, s, s);
+        double inner = s * 0.74, x = (s - inner) / 2;
+        g.save();
+        g.beginPath();
+        g.rect(x, x, inner, inner);
+        g.clip();
+        picture(g, x, x, inner);
+        g.restore();
+        g.setGlobalAlpha(1);
+        g.setStroke(Color.web(INK));
+        g.setLineWidth(Math.max(1, s / 90));
+        g.strokeRect(x, x, inner, inner);
+        g.setFill(Color.web(INK));
+        g.setFont(Font.font("serif", s * 0.085));
+        g.setTextAlign(TextAlignment.RIGHT);
+        g.setTextBaseline(VPos.BOTTOM);
+        g.fillText(Integer.toString(stampValue), s - x * 0.55, s - x * 0.2);
+        // Le cachet, en encre : un rond dont on ne voit qu'une partie, à cheval sur le coin en haut à droite de l'image.
+        g.setGlobalAlpha(0.55);
+        g.setLineWidth(Math.max(1, s / 55));
+        double stamp = s * 0.17, sx = s * 0.78, sy = s * 0.3;
+        g.strokeArc(sx - stamp, sy - stamp, 2 * stamp, 2 * stamp, 30, 230, ArcType.OPEN);
+        g.strokeArc(sx - stamp * 0.8, sy - stamp * 0.8, 1.6 * stamp, 1.6 * stamp, 50, 180, ArcType.OPEN);
+        g.setGlobalAlpha(1);
+        g.restore();
+    }
+
+    /** « Polaroid » : un carré blanc penché, l'image carrée en haut, la marge basse large où s'écrit le nom de l'avatar. */
+    private void drawPolaroid(GraphicsContext g, double s) {
+        double c = s / 2, width = s * 0.76, margin = s * 0.04, inner = width - 2 * margin, height = (width - margin) / 0.78;
+        double left = c - width / 2, top = c - height / 2;
+        g.save();
+        g.translate(c, c);
+        g.rotate(TILT);
+        g.translate(-c, -c);
+        g.setGlobalAlpha(0.4);
+        g.setFill(Color.BLACK);
+        g.fillRect(left + 2, top + 3, width, height);
+        g.setGlobalAlpha(1);
+        g.setFill(Color.web(POLAROID));
+        g.fillRect(left, top, width, height);
+        g.save();
+        g.beginPath();
+        g.rect(left + margin, top + margin, inner, inner);
+        g.clip();
+        picture(g, left + margin, top + margin, inner);
+        g.restore();
+        g.setGlobalAlpha(1);
+        if (image == null) {
+            g.setFill(Color.web(PENCIL));
+            g.setFont(Font.font("serif", FontPosture.ITALIC, s * 0.085));
+            g.setTextAlign(TextAlignment.CENTER);
+            g.setTextBaseline(VPos.CENTER);
+            g.fillText(avatar.label(), c, top + margin + inner + (height - margin - inner) / 2);
+        }
+        g.restore();
+    }
+
+    /** Le fond, puis l'image recadrée ou l'avatar du jeu, dans le carré de côté {@code side} posé en ({@code x}, {@code y}). */
+    private void picture(GraphicsContext g, double x, double y, double side) {
+        g.setFill(Color.web(BACKGROUND));
+        g.fillRect(x, y, side, side);
+        if (image != null) {
+            double cut = Math.min(image.getWidth(), image.getHeight());
+            g.drawImage(image, (image.getWidth() - cut) / 2, (image.getHeight() - cut) / 2, cut, cut, x, y, side, side);
+        } else {
+            g.save();
+            g.translate(x, y);
+            paint(g, avatar, side);
+            g.restore();
+        }
+    }
+
+    /** La couleur du bord : celle de l'avatar du jeu, ou un gris clair pour une image. */
+    private Color edge() {
+        return Color.web(image != null ? IMAGE_EDGE : avatar.color());
+    }
+
+    /** Ajoute un cercle fermé au chemin en cours. */
+    private static void circle(GraphicsContext g, double x, double y, double r) {
+        g.arc(x, y, r, r, 0, 360);
+        g.closePath();
     }
 
     /** Dessine un avatar du jeu sur un carré de côté {@code s}, déjà découpé en rond. */

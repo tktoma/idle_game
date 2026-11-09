@@ -325,6 +325,10 @@ public abstract class GameAppBase extends Application {
     final idle.ui.common.BurstView burst = new idle.ui.common.BurstView();
     /** Toute la fenêtre : l'animation des skins en prend la taille. */
     StackPane windowPane;
+    /** Le fond de la fenêtre (version 0.190), sous tout le jeu : rien sans skin, un décor dans les marges avec. */
+    final Chrome chrome = new Chrome();
+    /** Le skin des onglets appliqué par {@link #styleTabs} (version 0.190), ou {@code null} : {@code refresh()} le compare au choisi. */
+    idle.core.universe.Skin tabSkin = null;
     boolean exploding = false;
     /** Secondes restantes pour confirmer l'explosion par un second clic ; 0 quand elle n'est pas demandée. */
     double explosionArmed = 0;
@@ -602,14 +606,17 @@ public abstract class GameAppBase extends Application {
 
         root.setTop(top);
         root.setCenter(pages);
-        root.setStyle("-fx-background-color: #0b0e14;");
+        root.setStyle(Chrome.CLASSIC_ROOT_STYLE);
 
         // L'explosion recouvre toute la fenêtre : un éclair blanc et une onde qui part du centre.
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, chronoCorner, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
+        // Le fond skinné (version 0.190) est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
+        StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, chronoCorner, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
                 transitionPane, absencePane);
+        window.widthProperty().addListener((observable, before, width) -> chrome.fit(width.doubleValue(), window.getHeight()));
+        window.heightProperty().addListener((observable, before, height) -> chrome.fit(window.getWidth(), height.doubleValue()));
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         StackPane.setAlignment(chronoCorner, Pos.BOTTOM_LEFT);

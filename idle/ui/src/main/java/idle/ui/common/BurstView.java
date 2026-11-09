@@ -28,6 +28,8 @@ import javafx.scene.paint.Stop;
  *       coquille de débris part jusqu'aux bords.</li>
  *   <li>Cristal : l'écran se fêle à partir du centre, puis vole en éclats qui partent en tournant.</li>
  * </ul>
+ * Les dix animations de la version 0.191 (pluie, neige, sablier, feu d'artifice ; encre de Chine, vitrail,
+ * abysses, papier plié, carte ancienne, néon de ville) sont dessinées par {@link BurstSkinArt}.
  */
 public final class BurstView extends Canvas {
 
@@ -86,13 +88,15 @@ public final class BurstView extends Canvas {
             case BANG_AURORA -> aurora(g, width, height, t);
             case BANG_SUPERNOVA -> supernova(g, width, height, cx, cy, far, t);
             case BANG_CRYSTAL -> crystal(g, width, height, cx, cy, far, t);
-            default -> { }
+            default -> {
+                if (BurstSkinArt.draws(skin)) BurstSkinArt.draw(skin, g, width, height, cx, cy, far, t, age);
+            }
         }
         g.setGlobalAlpha(1);
     }
 
     /** Un voile sur tout l'écran. */
-    private static void veil(GraphicsContext g, double w, double h, Color color, double alpha) {
+    static void veil(GraphicsContext g, double w, double h, Color color, double alpha) {
         g.setGlobalAlpha(Math.max(0, Math.min(1, alpha)));
         g.setFill(color);
         g.fillRect(0, 0, w, h);
@@ -100,7 +104,7 @@ public final class BurstView extends Canvas {
     }
 
     /** Monte, tient, puis redescend : 0 au début et à la fin, 1 entre {@code in} et {@code out}. */
-    private static double envelope(double t, double in, double out) {
+    static double envelope(double t, double in, double out) {
         if (t < in) return t / in;
         if (t > out) return Math.max(0, (1 - t) / (1 - out));
         return 1;
@@ -313,7 +317,7 @@ public final class BurstView extends Canvas {
         return Color.color(c.getRed(), c.getGreen(), c.getBlue(), Math.max(0, Math.min(1, alpha)));
     }
 
-    private static void glow(GraphicsContext g, double x, double y, double size, Color color, double strength) {
+    static void glow(GraphicsContext g, double x, double y, double size, Color color, double strength) {
         if (!(size > 0)) return;
         g.setGlobalAlpha(1);
         g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,

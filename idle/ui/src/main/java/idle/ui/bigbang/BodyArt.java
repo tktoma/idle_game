@@ -1,6 +1,7 @@
 package idle.ui.bigbang;
 
 import idle.core.sky.Body;
+import idle.core.universe.Skin;
 import java.util.HashMap;
 import java.util.Map;
 import javafx.scene.canvas.GraphicsContext;
@@ -42,6 +43,13 @@ import javafx.scene.shape.StrokeLineJoin;
  *
  * <p>Tout est tiré d'une suite fixe qui ne dépend que de l'identifiant de l'astre : un astre a
  * toujours les mêmes cailloux et les mêmes cratères, sur sa carte, dans le ciel et dans l'espace.
+ *
+ * <p>Trois skins (version 0.186, {@link Skin#BODIES}) remplacent cette apparence classique par une
+ * autre, pour tous les astres, dans la même emprise : le Planétarium, des sphères de laiton et de
+ * verre dépoli sur leur tige ; la Gravure, du noir sur blanc cassé modelé de hachures ; la
+ * Cartographie, des globes à méridiens et parallèles, avec leur nom en capitales. Ils sont dessinés
+ * par {@link BodySkinArt} ; sans skin ({@code null}), le dessin classique ne change pas d'un pixel,
+ * ses couches de détail comprises, que les skins n'ont pas : elles sont faites pour lui.
  */
 final class BodyArt {
 
@@ -52,23 +60,23 @@ final class BodyArt {
     static final double DETAIL_FROM = 14;
 
     /** Direction des queues d'une comète, en radians : vers le haut à droite. */
-    private static final double TAIL = -Math.PI / 6;
-    private static final Color SHADE = Color.web("#05060a");
-    private static final Color LIGHT = Color.web("#ffffff");
+    static final double TAIL = -Math.PI / 6;
+    static final Color SHADE = Color.web("#05060a");
+    static final Color LIGHT = Color.web("#ffffff");
     private static final Color ION_TAIL = Color.web("#9fd0ff");
     private static final Color LAND = Color.web("#a8905e");
     private static final Color GRASS = Color.web("#5f8f55");
 
     /** La chevelure d'une comète, en rayons de son dessin. */
-    private static final double COMA = 1.7;
+    static final double COMA = 1.7;
     /** La queue de gaz d'une comète : sa longueur, sa demi-largeur au bout et sa direction. */
-    private static final double ION_LENGTH = 5.2;
-    private static final double ION_WIDTH = 0.45;
-    private static final double ION_ANGLE = TAIL - 0.12;
+    static final double ION_LENGTH = 5.2;
+    static final double ION_WIDTH = 0.45;
+    static final double ION_ANGLE = TAIL - 0.12;
     /** Sa queue de poussière, plus courte, plus large et un peu déviée. */
-    private static final double DUST_LENGTH = 4.4;
-    private static final double DUST_WIDTH = 1;
-    private static final double DUST_ANGLE = TAIL + 0.14;
+    static final double DUST_LENGTH = 4.4;
+    static final double DUST_WIDTH = 1;
+    static final double DUST_ANGLE = TAIL + 0.14;
     /** Jusqu'où vont les queues d'une comète à droite et en haut, et le cercle qui la contient toute : son centre, son rayon. */
     private static final double COMET_RIGHT;
     private static final double COMET_UP;
@@ -76,31 +84,31 @@ final class BodyArt {
     private static final double COMET_SPAN;
 
     /** Les anneaux d'une géante : leur rayon et leur épaisseur, en rayons de la planète, et leur aplatissement. */
-    private static final double[] RINGS = {1.3, 1.5, 1.67};
+    static final double[] RINGS = {1.3, 1.5, 1.67};
     private static final double[] RING_WIDTHS = {0.1, 0.14, 0.06};
-    private static final double RING_TILT = 0.26;
+    static final double RING_TILT = 0.26;
     private static final double RING_REACH = 1.75;
     /** Un amas de roches et sa poussière. */
-    private static final double RUBBLE_REACH = 1.2;
+    static final double RUBBLE_REACH = 1.2;
     /** Nombre de segments d'un demi-anneau. */
-    private static final int ARC = 24;
+    static final int ARC = 24;
     /** Jusqu'où va la couronne d'une étoile, en rayons. */
-    private static final double CORONA = 1.45;
+    static final double CORONA = 1.45;
     /** Les faisceaux d'une étoile à neutrons : leur direction, leur longueur et leur demi-largeur au bout, en rayons. */
-    private static final double BEAM = -Math.PI / 3;
-    private static final double BEAM_LENGTH = 2.6;
-    private static final double BEAM_WIDTH = 0.2;
+    static final double BEAM = -Math.PI / 3;
+    static final double BEAM_LENGTH = 2.6;
+    static final double BEAM_WIDTH = 0.2;
     /** Le disque d'un trou noir : le rayon et l'épaisseur de ses anneaux, en rayons de l'horizon, et son aplatissement. */
-    private static final double[] DISC = {1.35, 1.62, 1.9, 2.18};
+    static final double[] DISC = {1.35, 1.62, 1.9, 2.18};
     private static final double[] DISC_WIDTHS = {0.26, 0.28, 0.28, 0.24};
-    private static final double DISC_TILT = 0.3;
+    static final double DISC_TILT = 0.3;
     private static final double DISC_REACH = 2.35;
     /** L'arc que fait, au-dessus d'un trou noir, la lumière du disque passé derrière lui. */
-    private static final double LENSED = 1.22;
+    static final double LENSED = 1.22;
     /** Les jets d'un trou noir supermassif : leur longueur et leur demi-largeur au bout, en rayons. */
-    private static final double JET_LENGTH = 2.3;
-    private static final double JET_WIDTH = 0.26;
-    private static final Color BLACK = Color.web("#000000");
+    static final double JET_LENGTH = 2.3;
+    static final double JET_WIDTH = 0.26;
+    static final Color BLACK = Color.web("#000000");
     private static final Color JET_COLOR = Color.web("#9fc8ff");
 
     static {
@@ -167,7 +175,7 @@ final class BodyArt {
      * Les couleurs d'un astre, calculées une fois : sa teinte et son accent, éclaircis, assombris ou
      * rendus translucides de toutes les façons dont le dessin a besoin.
      */
-    private static final class Skin {
+    static final class Palette {
         final int seed;
         final Color tint;
         final Color accent;
@@ -220,8 +228,19 @@ final class BodyArt {
         final Color streak;
         final Color jetWide;
         final Color jetThin;
+        /**
+         * Pour les skins (version 0.186) : le nom en capitales (Cartographie), le verre dépoli teinté
+         * d'un gaz et le verre lumineux d'une étoile (Planétarium), proportionnels à la sphère qu'ils
+         * remplissent pour n'être construits qu'une fois, le fond de carte clair et celui, sombre,
+         * d'un trou noir (Cartographie).
+         */
+        final String caps;
+        final RadialGradient glass;
+        final RadialGradient lamp;
+        final Color mapBase;
+        final Color mapDark;
 
-        Skin(Body body) {
+        Palette(Body body) {
             seed = body.id().hashCode();
             tint = Color.web(body.tint());
             accent = Color.web(body.accent());
@@ -271,6 +290,15 @@ final class BodyArt {
             streak = fade(accent.interpolate(LIGHT, 0.45), 0.3);
             jetWide = fade(accent.interpolate(LIGHT, 0.5), 0.25);
             jetThin = fade(LIGHT, 0.55);
+            caps = body.name().toUpperCase(java.util.Locale.ROOT);
+            glass = new RadialGradient(0, 0, 0.38, 0.36, 0.74, true, CycleMethod.NO_CYCLE,
+                    new Stop(0, fade(tint.interpolate(LIGHT, 0.7), 0.88)), new Stop(0.6, fade(tint.interpolate(BodySkinArt.GLASS, 0.3), 0.62)),
+                    new Stop(1, fade(tint.interpolate(SHADE, 0.3), 0.82)));
+            lamp = new RadialGradient(0, 0, 0.38, 0.36, 0.74, true, CycleMethod.NO_CYCLE,
+                    new Stop(0, fade(LIGHT, 0.98)), new Stop(0.35, tint.interpolate(LIGHT, 0.45)), new Stop(0.85, tint),
+                    new Stop(1, tint.interpolate(SHADE, 0.2)));
+            mapBase = tint.interpolate(LIGHT, 0.5);
+            mapDark = tint.interpolate(SHADE, 0.72);
         }
 
         private static Stop[] rock(Color base) {
@@ -279,7 +307,7 @@ final class BodyArt {
         }
     }
 
-    private static final Map<String, Skin> SKINS = new HashMap<>();
+    private static final Map<String, Palette> PALETTES = new HashMap<>();
     /** Les pointes de la forme en cours de dessin, gardées d'un dessin à l'autre pour ne rien allouer. */
     private static final double[] XS = new double[ARC + 1];
     private static final double[] YS = new double[ARC + 1];
@@ -294,16 +322,16 @@ final class BodyArt {
         return r >= DETAIL_FROM;
     }
 
-    private static Skin skin(Body body) {
-        Skin skin = SKINS.get(body.id());
-        if (skin == null) {
-            skin = new Skin(body);
-            SKINS.put(body.id(), skin);
+    private static Palette palette(Body body) {
+        Palette palette = PALETTES.get(body.id());
+        if (palette == null) {
+            palette = new Palette(body);
+            PALETTES.put(body.id(), palette);
         }
-        return skin;
+        return palette;
     }
 
-    private static Color fade(Color color, double opacity) {
+    static Color fade(Color color, double opacity) {
         return Color.color(color.getRed(), color.getGreen(), color.getBlue(), opacity);
     }
 
@@ -370,7 +398,7 @@ final class BodyArt {
     }
 
     /** Jusqu'où va le halo d'air d'un globe, en rayons : 0 pour un monde sans air. */
-    private static double air(Body.Look look) {
+    static double air(Body.Look look) {
         return switch (look) {
             case OCEAN -> 1.1;
             case HAZY -> 1.12;
@@ -387,26 +415,39 @@ final class BodyArt {
      *          tas d'un amas, du noyau d'une comète avec un peu de sa chevelure
      */
     static void draw(GraphicsContext g, Body body, double x, double y, double r) {
-        Skin skin = skin(body);
+        draw(g, body, x, y, r, null);
+    }
+
+    /**
+     * Dessine un astre centré en (x, y) dans l'apparence d'un skin des astres ({@link Skin#BODIES}),
+     * ou l'apparence classique si {@code skin} est {@code null} ou n'habille pas les astres.
+     */
+    static void draw(GraphicsContext g, Body body, double x, double y, double r, Skin skin) {
+        Palette palette = palette(body);
         g.setGlobalAlpha(1);
+        if (skin == Skin.BODY_PLANETARIUM || skin == Skin.BODY_ENGRAVING || skin == Skin.BODY_CARTOGRAPHY) {
+            BodySkinArt.draw(g, body, palette, x, y, r, skin);
+            g.setGlobalAlpha(1);
+            return;
+        }
         switch (body.tier()) {
-            case RUBBLE -> rubble(g, body, skin, x, y, r);
-            case COMET -> comet(g, body, skin, x, y, r);
+            case RUBBLE -> rubble(g, body, palette, x, y, r);
+            case COMET -> comet(g, body, palette, x, y, r);
             case ASTEROID -> {
-                lump(g, skin.seed, skin.rocks[0], x, y, r, 14, true);
-                rough(g, body.look(), skin, x, y, 0.6 * r, detailed(r));
+                lump(g, palette.seed, palette.rocks[0], x, y, r, 14, true);
+                rough(g, body.look(), palette, x, y, 0.6 * r, detailed(r));
             }
-            case MOON, PLANET -> globe(g, body, skin, x, y, r);
+            case MOON, PLANET -> globe(g, body, palette, x, y, r);
             case STAR, REMNANT -> {
-                if (body.look() == Body.Look.BEAMING) pulsar(g, skin, x, y, r); else star(g, body, skin, x, y, r);
+                if (body.look() == Body.Look.BEAMING) pulsar(g, palette, x, y, r); else star(g, body, palette, x, y, r);
             }
-            case BLACK_HOLE -> hole(g, skin, x, y, r, false);
-            case CORE -> hole(g, skin, x, y, r, true);
+            case BLACK_HOLE -> hole(g, palette, x, y, r, false);
+            case CORE -> hole(g, palette, x, y, r, true);
             case EXOTIC -> {
                 switch (body.look()) {
-                    case BEAMING -> pulsar(g, skin, x, y, r);
-                    case NEBULA -> nebula(g, skin, x, y, r);
-                    default -> hole(g, skin, x, y, r, true);
+                    case BEAMING -> pulsar(g, palette, x, y, r);
+                    case NEBULA -> nebula(g, palette, x, y, r);
+                    default -> hole(g, palette, x, y, r, true);
                 }
             }
         }
@@ -421,15 +462,15 @@ final class BodyArt {
      *
      * @param r le rayon de sa surface ; la couronne va jusqu'à {@link #CORONA} fois plus loin
      */
-    private static void star(GraphicsContext g, Body body, Skin skin, double x, double y, double r) {
-        int seed = skin.seed;
+    private static void star(GraphicsContext g, Body body, Palette palette, double x, double y, double r) {
+        int seed = palette.seed;
         boolean detail = detailed(r);
         double corona = CORONA * r;
-        g.setFill(new RadialGradient(0, 0, x, y, corona, false, CycleMethod.NO_CYCLE, skin.corona));
+        g.setFill(new RadialGradient(0, 0, x, y, corona, false, CycleMethod.NO_CYCLE, palette.corona));
         g.fillOval(x - corona, y - corona, 2 * corona, 2 * corona);
         if (detail && body.look() != Body.Look.BANDED) {
             // Des rayons fins, du bord de la surface jusque dans la couronne, jamais au-delà.
-            g.setStroke(skin.ray);
+            g.setStroke(palette.ray);
             g.setLineWidth(Math.max(0.75, 0.02 * r));
             g.setLineCap(StrokeLineCap.ROUND);
             for (int ray = 0; ray < 7; ray++) {
@@ -439,7 +480,7 @@ final class BodyArt {
             }
         }
         // Les protubérances : de petites boucles qui partent du bord et y reviennent ; en grand, presque deux fois plus.
-        g.setStroke(skin.flare);
+        g.setStroke(palette.flare);
         g.setLineWidth(Math.max(0.75, 0.035 * r));
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineJoin(StrokeLineJoin.ROUND);
@@ -458,18 +499,18 @@ final class BodyArt {
         }
         g.setLineJoin(StrokeLineJoin.MITER);
         g.setLineCap(StrokeLineCap.SQUARE);
-        g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE, skin.photosphere));
+        g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE, palette.photosphere));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
         if (body.look() == Body.Look.BANDED) {
-            bands(g, skin.bands, 0.3, x, y, r, -0.7, 0.28, 6, 0.14, 0.1);
-            if (detail) ripples(g, skin, x, y, r, -0.56, 0.28, 5);
+            bands(g, palette.bands, 0.3, x, y, r, -0.7, 0.28, 6, 0.14, 0.1);
+            if (detail) ripples(g, palette, x, y, r, -0.56, 0.28, 5);
         } else {
             if (detail) {
                 // La granulation : toute la surface est semée de petites cellules, à peine plus sombres.
-                g.setFill(skin.granule);
+                g.setFill(palette.granule);
                 spots(g, seed, 930, 16, 0.025, 0.035, 0.9, x, y, r);
             }
-            g.setFill(skin.facula);
+            g.setFill(palette.facula);
             spots(g, seed, 880, 6, 0.1, 0.12, 0.6, x, y, r);
             for (int stain = 0; stain < 3; stain++) {
                 double size = (0.04 + 0.05 * chance(seed, 900 + stain)) * r;
@@ -477,9 +518,9 @@ final class BodyArt {
                 double angle = 2 * Math.PI * chance(seed, 920 + stain);
                 double cx = x + away * Math.cos(angle);
                 double cy = y + away * Math.sin(angle);
-                g.setFill(skin.penumbra);
+                g.setFill(palette.penumbra);
                 g.fillOval(cx - 1.8 * size, cy - 1.8 * size, 3.6 * size, 3.6 * size);
-                g.setFill(skin.spot);
+                g.setFill(palette.spot);
                 g.fillOval(cx - size, cy - size, 2 * size, 2 * size);
             }
         }
@@ -500,20 +541,20 @@ final class BodyArt {
     }
 
     /** Jusqu'où va une nébuleuse, en rayons. */
-    private static final double NEBULA_REACH = 1.35;
+    static final double NEBULA_REACH = 1.35;
 
     /**
      * Une nébuleuse : des nuages qui se recouvrent, de la teinte vers l'accent, et une petite
      * étoile au cœur qui les éclaire.
      */
-    private static void nebula(GraphicsContext g, Skin skin, double x, double y, double r) {
-        java.util.Random random = new java.util.Random(skin.seed);
+    private static void nebula(GraphicsContext g, Palette palette, double x, double y, double r) {
+        java.util.Random random = new java.util.Random(palette.seed);
         for (int puff = 0; puff < 9; puff++) {
             double angle = random.nextDouble() * 2 * Math.PI;
             double away = random.nextDouble() * 0.55 * r;
             double size = (0.45 + random.nextDouble() * 0.35) * r;
             double px = x + Math.cos(angle) * away, py = y + Math.sin(angle) * away;
-            Color color = skin.tint.interpolate(skin.accent, puff / 8.0);
+            Color color = palette.tint.interpolate(palette.accent, puff / 8.0);
             g.setFill(new RadialGradient(0, 0, px, py, size, false, CycleMethod.NO_CYCLE,
                     new Stop(0, fade(color, 0.55)), new Stop(1, fade(color, 0))));
             g.fillOval(px - size, py - size, 2 * size, 2 * size);
@@ -524,13 +565,13 @@ final class BodyArt {
         g.fillOval(x - 2.5 * core, y - 2.5 * core, 5 * core, 5 * core);
     }
 
-    private static void pulsar(GraphicsContext g, Skin skin, double x, double y, double r) {
-        tail(g, skin.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM);
-        tail(g, skin.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM + Math.PI);
-        g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE, skin.halo));
+    private static void pulsar(GraphicsContext g, Palette palette, double x, double y, double r) {
+        tail(g, palette.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM);
+        tail(g, palette.beam, x, y, BEAM_LENGTH * r, BEAM_WIDTH * r, BEAM + Math.PI);
+        g.setFill(new RadialGradient(0, 0, x, y, r, false, CycleMethod.NO_CYCLE, palette.halo));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
         // Deux boucles du champ, de part et d'autre de l'axe des faisceaux.
-        g.setStroke(skin.flare);
+        g.setStroke(palette.flare);
         g.setLineWidth(Math.max(0.75, 0.03 * r));
         g.setLineJoin(StrokeLineJoin.ROUND);
         double cos = Math.cos(BEAM);
@@ -548,7 +589,7 @@ final class BodyArt {
         }
         g.setLineJoin(StrokeLineJoin.MITER);
         double ball = 0.36 * r;
-        g.setFill(new RadialGradient(0, 0, x - 0.2 * ball, y - 0.2 * ball, 1.3 * ball, false, CycleMethod.NO_CYCLE, skin.photosphere));
+        g.setFill(new RadialGradient(0, 0, x - 0.2 * ball, y - 0.2 * ball, 1.3 * ball, false, CycleMethod.NO_CYCLE, palette.photosphere));
         g.fillOval(x - ball, y - ball, 2 * ball, 2 * ball);
         g.setFill(new RadialGradient(0, 0, x, y, 0.8 * ball, false, CycleMethod.NO_CYCLE, SHINE));
         g.fillOval(x - ball, y - ball, 2 * ball, 2 * ball);
@@ -563,16 +604,16 @@ final class BodyArt {
      *
      * @param r le rayon de l'horizon ; le disque va jusqu'à {@link #DISC_REACH} fois plus loin
      */
-    private static void hole(GraphicsContext g, Skin skin, double x, double y, double r, boolean jets) {
+    private static void hole(GraphicsContext g, Palette palette, double x, double y, double r, boolean jets) {
         boolean detail = detailed(r);
         if (jets) {
             tail(g, JET, x, y, JET_LENGTH * r, JET_WIDTH * r, -Math.PI / 2);
             tail(g, JET, x, y, JET_LENGTH * r, JET_WIDTH * r, Math.PI / 2);
         }
         double glow = 2 * r;
-        g.setFill(new RadialGradient(0, 0, x, y, glow, false, CycleMethod.NO_CYCLE, skin.halo));
+        g.setFill(new RadialGradient(0, 0, x, y, glow, false, CycleMethod.NO_CYCLE, palette.halo));
         g.fillOval(x - glow, y - glow, 2 * glow, 2 * glow);
-        disc(g, skin, x, y, r, Math.PI, 0.7, detail);
+        disc(g, palette, x, y, r, Math.PI, 0.7, detail);
         // La lumière du disque, courbée par-dessus le trou : un grand arc en haut, un plus fin en bas.
         g.setLineCap(StrokeLineCap.BUTT);
         g.setLineJoin(StrokeLineJoin.ROUND);
@@ -583,7 +624,7 @@ final class BodyArt {
                 XS[step] = x + radius * Math.cos(angle);
                 YS[step] = y + radius * Math.sin(angle);
             }
-            g.setStroke(skin.discs[1]);
+            g.setStroke(palette.discs[1]);
             g.setGlobalAlpha(half == 0 ? 0.9 : 0.45);
             g.setLineWidth(Math.max(1, (half == 0 ? 0.16 : 0.07) * r));
             g.strokePolyline(XS, YS, ARC + 1);
@@ -593,7 +634,7 @@ final class BodyArt {
         g.setLineCap(StrokeLineCap.SQUARE);
         g.setFill(BLACK);
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
-        g.setStroke(skin.discs[0]);
+        g.setStroke(palette.discs[0]);
         g.setLineWidth(Math.max(0.75, 0.045 * r));
         g.strokeOval(x - 1.03 * r, y - 1.03 * r, 2.06 * r, 2.06 * r);
         if (detail) {
@@ -602,7 +643,7 @@ final class BodyArt {
             g.setLineWidth(Math.max(0.6, 0.018 * r));
             g.strokeOval(x - PHOTON_RING * r, y - PHOTON_RING * r, 2 * PHOTON_RING * r, 2 * PHOTON_RING * r);
         }
-        disc(g, skin, x, y, r, 0, 1, detail);
+        disc(g, palette, x, y, r, 0, 1, detail);
     }
 
     /**
@@ -610,7 +651,7 @@ final class BodyArt {
      *
      * @param doppler vrai pour repasser les anneaux d'un dégradé qui les éclaire à gauche et les assombrit à droite
      */
-    private static void disc(GraphicsContext g, Skin skin, double x, double y, double r, double from, double alpha, boolean doppler) {
+    private static void disc(GraphicsContext g, Palette palette, double x, double y, double r, double from, double alpha, boolean doppler) {
         g.setGlobalAlpha(alpha);
         g.setLineCap(StrokeLineCap.BUTT);
         g.setLineJoin(StrokeLineJoin.ROUND);
@@ -625,7 +666,7 @@ final class BodyArt {
                     XS[step] = x + DISC[ring] * r * Math.cos(angle);
                     YS[step] = y + DISC_TILT * DISC[ring] * r * Math.sin(angle);
                 }
-                if (pass == 0) g.setStroke(skin.discs[ring]);
+                if (pass == 0) g.setStroke(palette.discs[ring]);
                 g.setLineWidth(Math.max(1, DISC_WIDTHS[ring] * r));
                 g.strokePolyline(XS, YS, ARC + 1);
             }
@@ -636,25 +677,25 @@ final class BodyArt {
     }
 
     /** Un amas de roches : sept cailloux serrés de trois teintes, quelques gravillons, et leur poussière. */
-    private static void rubble(GraphicsContext g, Body body, Skin skin, double x, double y, double r) {
-        int seed = skin.seed;
+    private static void rubble(GraphicsContext g, Body body, Palette palette, double x, double y, double r) {
+        int seed = palette.seed;
         double cloud = RUBBLE_REACH * r;
-        g.setFill(new RadialGradient(0, 0, x, y, cloud, false, CycleMethod.NO_CYCLE, skin.dust));
+        g.setFill(new RadialGradient(0, 0, x, y, cloud, false, CycleMethod.NO_CYCLE, palette.dust));
         g.fillOval(x - cloud, y - cloud, 2 * cloud, 2 * cloud);
         for (int pebble = 0; pebble < 5; pebble++) {
             double away = (0.95 + 0.1 * chance(seed, 50 + pebble)) * r;
             double angle = 2 * Math.PI * chance(seed, 60 + pebble);
             double size = (0.07 + 0.05 * chance(seed, 70 + pebble)) * r;
-            lump(g, seed + 17 * pebble, skin.rocks[pebble % 3], x + away * Math.cos(angle), y + away * Math.sin(angle), size, 5, false);
+            lump(g, seed + 17 * pebble, palette.rocks[pebble % 3], x + away * Math.cos(angle), y + away * Math.sin(angle), size, 5, false);
         }
         // Six cailloux autour, puis le plus gros au milieu, par-dessus.
         for (int stone = 6; stone >= 0; stone--) {
             double away = stone == 0 ? 0 : (0.55 + 0.18 * chance(seed, stone * 3)) * r;
             double angle = stone * Math.PI / 3 + chance(seed, stone * 3 + 1);
             double size = (stone == 0 ? 0.5 : 0.3 + 0.16 * chance(seed, stone * 3 + 2)) * r;
-            lump(g, seed + 31 * stone, skin.rocks[stone % 3], x + away * Math.cos(angle), y + away * Math.sin(angle), size, 7, true);
+            lump(g, seed + 31 * stone, palette.rocks[stone % 3], x + away * Math.cos(angle), y + away * Math.sin(angle), size, 7, true);
         }
-        rough(g, body.look(), skin, x, y, 0.3 * r, detailed(r));
+        rough(g, body.look(), palette, x, y, 0.3 * r, detailed(r));
     }
 
     /**
@@ -662,14 +703,14 @@ final class BodyArt {
      * courent dans la queue de poussière, et des jets de gaz jaillissent du noyau du côté du soleil,
      * à l'opposé des queues, avant de se perdre dans la chevelure.
      */
-    private static void comet(GraphicsContext g, Body body, Skin skin, double x, double y, double r) {
-        int seed = skin.seed;
+    private static void comet(GraphicsContext g, Body body, Palette palette, double x, double y, double r) {
+        int seed = palette.seed;
         boolean detail = detailed(r);
         // La queue de gaz, droite et fine ; la queue de poussière, plus large et un peu déviée.
         tail(g, ION, x, y, ION_LENGTH * r, ION_WIDTH * r, ION_ANGLE);
-        tail(g, skin.dustTail, x, y, DUST_LENGTH * r, DUST_WIDTH * r, DUST_ANGLE);
+        tail(g, palette.dustTail, x, y, DUST_LENGTH * r, DUST_WIDTH * r, DUST_ANGLE);
         if (detail) {
-            g.setStroke(skin.streak);
+            g.setStroke(palette.streak);
             g.setLineWidth(Math.max(0.75, 0.05 * r));
             g.setLineCap(StrokeLineCap.ROUND);
             double cos = Math.cos(DUST_ANGLE);
@@ -687,7 +728,7 @@ final class BodyArt {
             g.setLineCap(StrokeLineCap.SQUARE);
         }
         double coma = COMA * r;
-        g.setFill(new RadialGradient(0, 0, x, y, coma, false, CycleMethod.NO_CYCLE, skin.coma));
+        g.setFill(new RadialGradient(0, 0, x, y, coma, false, CycleMethod.NO_CYCLE, palette.coma));
         g.fillOval(x - coma, y - coma, 2 * coma, 2 * coma);
         if (detail) {
             // Les jets : trois fontaines, larges et pâles puis fines et vives, qui restent dans la chevelure.
@@ -699,17 +740,17 @@ final class BodyArt {
                 double fromY = y + 0.3 * r * Math.sin(angle);
                 double toX = x + far * Math.cos(angle);
                 double toY = y + far * Math.sin(angle);
-                g.setStroke(skin.jetWide);
+                g.setStroke(palette.jetWide);
                 g.setLineWidth(Math.max(1.5, 0.16 * r));
                 g.strokeLine(fromX, fromY, toX, toY);
-                g.setStroke(skin.jetThin);
+                g.setStroke(palette.jetThin);
                 g.setLineWidth(Math.max(0.75, 0.05 * r));
                 g.strokeLine(fromX, fromY, toX, toY);
             }
             g.setLineCap(StrokeLineCap.SQUARE);
         }
-        lump(g, seed, skin.rocks[0], x, y, 0.6 * r, 9, true);
-        rough(g, body.look(), skin, x, y, 0.36 * r, detail);
+        lump(g, seed, palette.rocks[0], x, y, 0.6 * r, 9, true);
+        rough(g, body.look(), palette, x, y, 0.36 * r, detail);
     }
 
     /** Une queue de comète : un triangle qui part du noyau, s'élargit, et s'efface en s'éloignant. */
@@ -784,20 +825,20 @@ final class BodyArt {
      * des anneaux. En grand : l'ombre des anneaux sur le globe, son limbe qui s'assombrit, un reflet
      * sur ses mers ou sa glace, le liseré de son air, et l'ombre de la planète sur ses anneaux.
      */
-    private static void globe(GraphicsContext g, Body body, Skin skin, double x, double y, double r) {
+    private static void globe(GraphicsContext g, Body body, Palette palette, double x, double y, double r) {
         Body.Look look = body.look();
         boolean ringed = look == Body.Look.RINGED;
         boolean detail = detailed(r);
         // La moitié des anneaux qui passe derrière la planète.
-        if (ringed) rings(g, skin, x, y, r, Math.PI, 0.5, false);
+        if (ringed) rings(g, palette, x, y, r, Math.PI, 0.5, false);
         double air = air(look) * r;
         if (air > 0) {
-            g.setFill(new RadialGradient(0, 0, x, y, air, false, CycleMethod.NO_CYCLE, skin.air));
+            g.setFill(new RadialGradient(0, 0, x, y, air, false, CycleMethod.NO_CYCLE, palette.air));
             g.fillOval(x - air, y - air, 2 * air, 2 * air);
         }
-        g.setFill(new RadialGradient(0, 0, x - 0.3 * r, y - 0.32 * r, 1.35 * r, false, CycleMethod.NO_CYCLE, skin.globe));
+        g.setFill(new RadialGradient(0, 0, x - 0.3 * r, y - 0.32 * r, 1.35 * r, false, CycleMethod.NO_CYCLE, palette.globe));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
-        surface(g, look, skin, x, y, r, detail);
+        surface(g, look, palette, x, y, r, detail);
         if (detail && ringed) ringShadow(g, x, y, r);
         // La lumière vient d'en haut à gauche : le globe s'éteint vers le bas à droite, et brille un peu de l'autre côté.
         g.setFill(new RadialGradient(0, 0, x - 0.28 * r, y - 0.3 * r, 1.42 * r, false, CycleMethod.NO_CYCLE, SHADOW));
@@ -812,24 +853,24 @@ final class BodyArt {
                 g.setFill(new RadialGradient(0, 0, x - 0.42 * r, y - 0.44 * r, shine, false, CycleMethod.NO_CYCLE, SPECULAR));
                 g.fillOval(x - 0.42 * r - shine, y - 0.44 * r - shine, 2 * shine, 2 * shine);
             }
-            if (air > 0) atmosphere(g, skin, x, y, r);
+            if (air > 0) atmosphere(g, palette, x, y, r);
         }
         g.setFill(new RadialGradient(0, 0, x - 0.38 * r, y - 0.4 * r, 0.6 * r, false, CycleMethod.NO_CYCLE, GLINT));
         g.fillOval(x - r, y - r, 2 * r, 2 * r);
         // La moitié des anneaux qui passe devant.
-        if (ringed) rings(g, skin, x, y, r, 0, 0.9, detail);
+        if (ringed) rings(g, palette, x, y, r, 0, 0.9, detail);
     }
 
     /**
      * Le liseré d'air au bord d'un monde qui en a : un fil de sa brume tout autour du globe, et un
      * arc plus vif d'un tiers de tour du côté du soleil. Il reste dans le halo d'air ({@link #air}).
      */
-    private static void atmosphere(GraphicsContext g, Skin skin, double x, double y, double r) {
+    private static void atmosphere(GraphicsContext g, Palette palette, double x, double y, double r) {
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineWidth(Math.max(1, 0.035 * r));
-        g.setStroke(skin.airRim);
+        g.setStroke(palette.airRim);
         g.strokeOval(x - 1.01 * r, y - 1.01 * r, 2.02 * r, 2.02 * r);
-        g.setStroke(skin.airLit);
+        g.setStroke(palette.airLit);
         g.strokeArc(x - 1.01 * r, y - 1.01 * r, 2.02 * r, 2.02 * r, 90, 120, ArcType.OPEN);
         g.setLineCap(StrokeLineCap.SQUARE);
     }
@@ -858,7 +899,7 @@ final class BodyArt {
      *
      * @param shaded vrai pour y poser l'ombre de la planète : un tronçon sombre en bas à droite, à l'opposé du soleil
      */
-    private static void rings(GraphicsContext g, Skin skin, double x, double y, double r, double from, double alpha, boolean shaded) {
+    private static void rings(GraphicsContext g, Palette palette, double x, double y, double r, double from, double alpha, boolean shaded) {
         g.setGlobalAlpha(alpha);
         g.setLineCap(StrokeLineCap.BUTT);
         g.setLineJoin(StrokeLineJoin.ROUND);
@@ -868,7 +909,7 @@ final class BodyArt {
                 XS[step] = x + RINGS[ring] * r * Math.cos(angle);
                 YS[step] = y + RING_TILT * RINGS[ring] * r * Math.sin(angle);
             }
-            g.setStroke(skin.rings[ring]);
+            g.setStroke(palette.rings[ring]);
             g.setLineWidth(Math.max(1, RING_WIDTHS[ring] * r));
             g.strokePolyline(XS, YS, ARC + 1);
         }
@@ -896,19 +937,19 @@ final class BodyArt {
      *
      * @param detail vrai pour les couches de détail : le creux des cratères, l'ombre des nuages, les remous des géantes
      */
-    private static void surface(GraphicsContext g, Body.Look look, Skin skin, double x, double y, double r, boolean detail) {
-        int seed = skin.seed;
+    private static void surface(GraphicsContext g, Body.Look look, Palette palette, double x, double y, double r, boolean detail) {
+        int seed = palette.seed;
         switch (look) {
             case ROCKY -> {
                 // Des mers, de grandes taches sombres, puis des cratères.
                 g.setFill(MARE);
                 spots(g, seed, 900, 3, 0.22, 0.14, 0.5, x, y, r);
-                craters(g, skin, 8, 0.05, 0.09, 0.8, x, y, r, detail);
+                craters(g, palette, 8, 0.05, 0.09, 0.8, x, y, r, detail);
             }
             case ICY -> {
-                g.setFill(skin.veil);
+                g.setFill(palette.veil);
                 spots(g, seed, 910, 4, 0.18, 0.14, 0.55, x, y, r);
-                cracks(g, seed, skin.fissure, 0.016, x, y, r, 6, 0);
+                cracks(g, seed, palette.fissure, 0.016, x, y, r, 6, 0);
                 cracks(g, seed, FROST, 0.014, x, y, r, 3, 40);
                 // Une calotte, en haut.
                 g.setFill(FROST);
@@ -917,21 +958,21 @@ final class BodyArt {
             case MOLTEN -> {
                 g.setFill(PATCH);
                 spots(g, seed, 920, 3, 0.2, 0.12, 0.5, x, y, r);
-                veins(g, skin, x, y, r, 6);
-                embers(g, skin, 4, 0.1, 0.08, 0.7, x, y, r);
+                veins(g, palette, x, y, r, 6);
+                embers(g, palette, 4, 0.1, 0.08, 0.7, x, y, r);
             }
             case DARK -> {
                 g.setFill(PATCH);
                 spots(g, seed, 930, 4, 0.2, 0.1, 0.5, x, y, r);
-                g.setFill(skin.speck);
+                g.setFill(palette.speck);
                 spots(g, seed, 500, 10, 0.03, 0.05, 0.85, x, y, r);
             }
             case HAZY -> {
                 // Des voiles de brume, et de larges bandes floues.
-                g.setFill(skin.veil);
+                g.setFill(palette.veil);
                 g.fillOval(x - 0.9 * r, y - 0.75 * r, 1.5 * r, 1.5 * r);
                 g.fillOval(x - 0.5 * r, y - 0.55 * r, 1.4 * r, 1.4 * r);
-                bands(g, skin.bands, 0.3, x, y, r, -0.75, 0.3, 6, 0.15, 0.15);
+                bands(g, palette.bands, 0.3, x, y, r, -0.75, 0.3, 6, 0.15, 0.15);
             }
             case OCEAN -> {
                 // Des terres et leurs plaines, deux calottes, puis les nuages qui passent par-dessus.
@@ -941,8 +982,8 @@ final class BodyArt {
                     double size = (0.2 + 0.14 * chance(seed, 620 + land)) * r;
                     double cx = x + away * Math.cos(angle);
                     double cy = y + away * Math.sin(angle);
-                    lump(g, seed + 7 * land, skin.land, cx, cy, size, 8, false);
-                    lump(g, seed + 11 * land, skin.grass, cx + 0.15 * size, cy + 0.1 * size, 0.5 * size, 6, false);
+                    lump(g, seed + 7 * land, palette.land, cx, cy, size, 8, false);
+                    lump(g, seed + 11 * land, palette.grass, cx + 0.15 * size, cy + 0.1 * size, 0.5 * size, 6, false);
                 }
                 g.setFill(CAP);
                 g.fillOval(x - 0.36 * r, y - 0.92 * r, 0.72 * r, 0.24 * r);
@@ -950,16 +991,16 @@ final class BodyArt {
                 clouds(g, seed, x, y, r, 7, detail);
             }
             case BANDED -> {
-                bands(g, skin.bands, 0.85, x, y, r, -0.8, 0.2, 9, 0.17, 0.11);
-                if (detail) ripples(g, skin, x, y, r, -0.7, 0.2, 8);
+                bands(g, palette.bands, 0.85, x, y, r, -0.8, 0.2, 9, 0.17, 0.11);
+                if (detail) ripples(g, palette, x, y, r, -0.7, 0.2, 8);
                 // Une tempête : une tache ovale sur une bande, et son œil.
-                g.setFill(skin.storm);
+                g.setFill(palette.storm);
                 g.fillOval(x - 0.04 * r, y + 0.1 * r, 0.48 * r, 0.26 * r);
-                g.setFill(skin.stormEye);
+                g.setFill(palette.stormEye);
                 g.fillOval(x + 0.07 * r, y + 0.165 * r, 0.26 * r, 0.13 * r);
                 if (detail) {
                     // La tempête tourne : un arc clair presque fermé, entre son bord et son œil.
-                    g.setStroke(skin.stormSwirl);
+                    g.setStroke(palette.stormSwirl);
                     g.setLineWidth(Math.max(0.75, 0.02 * r));
                     g.setLineCap(StrokeLineCap.ROUND);
                     g.strokeArc(x - 0.005 * r, y + 0.125 * r, 0.41 * r, 0.21 * r, 200, 250, ArcType.OPEN);
@@ -967,8 +1008,8 @@ final class BodyArt {
                 }
             }
             case RINGED -> {
-                bands(g, skin.bands, 0.4, x, y, r, -0.72, 0.24, 7, 0.12, 0.12);
-                if (detail) ripples(g, skin, x, y, r, -0.6, 0.24, 6);
+                bands(g, palette.bands, 0.4, x, y, r, -0.72, 0.24, 7, 0.12, 0.12);
+                if (detail) ripples(g, palette, x, y, r, -0.6, 0.24, 6);
             }
             case GLOWING, BEAMING, VOID -> { }
         }
@@ -980,21 +1021,21 @@ final class BodyArt {
      *
      * @param detail vrai pour les couches de détail, décidé sur le rayon de l'astre entier, pas sur {@code r}
      */
-    private static void rough(GraphicsContext g, Body.Look look, Skin skin, double x, double y, double r, boolean detail) {
+    private static void rough(GraphicsContext g, Body.Look look, Palette palette, double x, double y, double r, boolean detail) {
         switch (look) {
-            case ROCKY -> craters(g, skin, 5, 0.1, 0.14, 0.7, x, y, r, detail);
+            case ROCKY -> craters(g, palette, 5, 0.1, 0.14, 0.7, x, y, r, detail);
             case ICY -> {
-                cracks(g, skin.seed, skin.fissure, 0.05, x, y, r, 4, 0);
+                cracks(g, palette.seed, palette.fissure, 0.05, x, y, r, 4, 0);
                 g.setFill(FROST);
-                spots(g, skin.seed, 940, 4, 0.06, 0.08, 0.8, x, y, r);
+                spots(g, palette.seed, 940, 4, 0.06, 0.08, 0.8, x, y, r);
             }
             case MOLTEN -> {
-                veins(g, skin, x, y, r, 4);
-                embers(g, skin, 2, 0.12, 0.1, 0.65, x, y, r);
+                veins(g, palette, x, y, r, 4);
+                embers(g, palette, 2, 0.12, 0.1, 0.65, x, y, r);
             }
             case DARK -> {
-                g.setFill(skin.speck);
-                spots(g, skin.seed, 500, 8, 0.04, 0.05, 0.78, x, y, r);
+                g.setFill(palette.speck);
+                spots(g, palette.seed, 500, 8, 0.04, 0.05, 0.78, x, y, r);
             }
             case HAZY, OCEAN, BANDED, RINGED, GLOWING, BEAMING, VOID -> { }
         }
@@ -1006,7 +1047,7 @@ final class BodyArt {
      * @param least  le rayon du plus petit, en rayons du disque ; {@code more} ce que le plus gros a en plus
      * @param spread jusqu'où va le centre d'un rond, en rayons du disque
      */
-    private static void spots(GraphicsContext g, int seed, int rank, int count, double least, double more, double spread,
+    static void spots(GraphicsContext g, int seed, int rank, int count, double least, double more, double spread,
             double x, double y, double r) {
         for (int spot = 0; spot < count; spot++) {
             double size = (least + more * chance(seed, rank + spot)) * r;
@@ -1020,24 +1061,24 @@ final class BodyArt {
      * Des cratères : un bord éclairé, en bas à droite, sous un fond sombre. En détail, et dès qu'un
      * cratère fait deux pixels, le creux s'ombre du côté du soleil et le bord d'en face prend la lumière.
      */
-    private static void craters(GraphicsContext g, Skin skin, int count, double least, double more, double spread,
+    private static void craters(GraphicsContext g, Palette palette, int count, double least, double more, double spread,
             double x, double y, double r, boolean detail) {
         g.setLineCap(StrokeLineCap.ROUND);
         for (int crater = 0; crater < count; crater++) {
-            double size = (least + more * chance(skin.seed, 300 + crater)) * r;
-            double away = spread * r * Math.sqrt(chance(skin.seed, 310 + crater));
-            double angle = 2 * Math.PI * chance(skin.seed, 320 + crater);
+            double size = (least + more * chance(palette.seed, 300 + crater)) * r;
+            double away = spread * r * Math.sqrt(chance(palette.seed, 310 + crater));
+            double angle = 2 * Math.PI * chance(palette.seed, 320 + crater);
             double cx = x + away * Math.cos(angle);
             double cy = y + away * Math.sin(angle);
-            g.setFill(skin.rim);
+            g.setFill(palette.rim);
             g.fillOval(cx - 0.82 * size, cy - 0.82 * size, 2 * size, 2 * size);
-            g.setFill(skin.floor);
+            g.setFill(palette.floor);
             g.fillOval(cx - size, cy - size, 1.76 * size, 1.76 * size);
             if (!detail || size < 2) continue;
             // L'ombre dans le creux, en haut à gauche, tout entière sur le fond ; puis l'arc éclairé, sur le bord d'en face.
             g.setFill(CRATER_SHADE);
             g.fillOval(cx - 0.98 * size, cy - 0.98 * size, 1.3 * size, 1.3 * size);
-            g.setStroke(skin.rimLit);
+            g.setStroke(palette.rimLit);
             g.setLineWidth(Math.max(0.75, 0.16 * size));
             g.strokeArc(cx - 0.9 * size, cy - 0.9 * size, 1.8 * size, 1.8 * size, 270, 100, ArcType.OPEN);
         }
@@ -1045,27 +1086,27 @@ final class BodyArt {
     }
 
     /** Des foyers : des ronds qui brillent au centre et s'effacent au bord. */
-    private static void embers(GraphicsContext g, Skin skin, int count, double least, double more, double spread,
+    private static void embers(GraphicsContext g, Palette palette, int count, double least, double more, double spread,
             double x, double y, double r) {
         for (int spot = 0; spot < count; spot++) {
-            double size = (least + more * chance(skin.seed, 400 + spot)) * r;
-            double away = spread * r * Math.sqrt(chance(skin.seed, 410 + spot));
-            double angle = 2 * Math.PI * chance(skin.seed, 420 + spot);
+            double size = (least + more * chance(palette.seed, 400 + spot)) * r;
+            double away = spread * r * Math.sqrt(chance(palette.seed, 410 + spot));
+            double angle = 2 * Math.PI * chance(palette.seed, 420 + spot);
             double cx = x + away * Math.cos(angle);
             double cy = y + away * Math.sin(angle);
-            g.setFill(new RadialGradient(0, 0, cx, cy, size, false, CycleMethod.NO_CYCLE, skin.ember));
+            g.setFill(new RadialGradient(0, 0, cx, cy, size, false, CycleMethod.NO_CYCLE, palette.ember));
             g.fillOval(cx - size, cy - size, 2 * size, 2 * size);
         }
     }
 
     /** Des veines qui luisent : chaque fissure deux fois, large et sourde puis fine et vive. */
-    private static void veins(GraphicsContext g, Skin skin, double x, double y, double r, int count) {
-        cracks(g, skin.seed, skin.glow, 0.09, x, y, r, count, 0);
-        cracks(g, skin.seed, skin.vein, 0.028, x, y, r, count, 0);
+    private static void veins(GraphicsContext g, Palette palette, double x, double y, double r, int count) {
+        cracks(g, palette.seed, palette.glow, 0.09, x, y, r, count, 0);
+        cracks(g, palette.seed, palette.vein, 0.028, x, y, r, count, 0);
     }
 
     /** Des fissures : des traits coudés entre deux points pris dans le disque. */
-    private static void cracks(GraphicsContext g, int seed, Color color, double width, double x, double y, double r, int count, int rank) {
+    static void cracks(GraphicsContext g, int seed, Color color, double width, double x, double y, double r, int count, int rank) {
         g.setStroke(color);
         g.setLineWidth(Math.max(0.75, width * r));
         g.setLineCap(StrokeLineCap.ROUND);
@@ -1147,8 +1188,8 @@ final class BodyArt {
      *
      * @param top la hauteur du premier, en rayons, de -1 (en haut) à 1 (en bas) ; {@code step} l'écart entre deux
      */
-    private static void ripples(GraphicsContext g, Skin skin, double x, double y, double r, double top, double step, int count) {
-        g.setStroke(skin.ripple);
+    private static void ripples(GraphicsContext g, Palette palette, double x, double y, double r, double top, double step, int count) {
+        g.setStroke(palette.ripple);
         g.setLineWidth(Math.max(0.75, 0.025 * r));
         g.setLineCap(StrokeLineCap.ROUND);
         g.setLineJoin(StrokeLineJoin.ROUND);
@@ -1159,7 +1200,7 @@ final class BodyArt {
             double high = Math.abs(dy) + sway;
             double half = Math.sqrt(Math.max(0, r * r - high * high)) - 0.08 * r;
             if (half <= 0) continue;
-            double phase = 2 * Math.PI * chance(skin.seed, 950 + ripple);
+            double phase = 2 * Math.PI * chance(palette.seed, 950 + ripple);
             for (int point = 0; point <= points; point++) {
                 double along = 2.0 * point / points - 1;
                 XS[point] = x + along * half;
@@ -1172,7 +1213,7 @@ final class BodyArt {
     }
 
     /** Un nombre entre 0 et 1 qui ne dépend que de l'astre et du rang demandé. */
-    private static double chance(int seed, int rank) {
+    static double chance(int seed, int rank) {
         double value = Math.sin(seed * 12.9898 + rank * 78.233) * 43758.5453;
         return value - Math.floor(value);
     }

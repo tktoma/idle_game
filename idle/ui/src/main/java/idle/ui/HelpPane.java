@@ -190,7 +190,12 @@ final class HelpPane extends Overlay {
                     + "rassemblées forment des assemblages, un par astre (" + game.assemblies().size() + "), puis des astres, "
                     + "jusqu'à la galaxie, l'amas de galaxies et l'univers. Les Big Bangs ouvrent des "
                     + "paliers, " + game.bigBangMilestones().size() + " en tout : une fois ouvert, un palier se paie en "
-                    + "particules ou en atomes, d'un clic sur sa carte, et agit dès lors."));
+                    + "particules ou en atomes, d'un clic sur sa carte, et agit dès lors."
+                    // Les skins des molécules (version 0.188) : par les sortes créées, rassemblées et le nombre de molécules.
+                    + (game.isSkinsUnlocked() ? " Les molécules ont aussi leurs skins, choisis dans l'onglet Skins et qui changent "
+                            + "leur dessin sur les cartes comme dans l'espace : Boules pleines à 50 sortes créées, Traits quand les "
+                            + game.molecules().size() + " sortes du catalogue l'ont été, Perles à 20 sortes rassemblées, Lego à 1 000 "
+                            + "molécules créées." : "")));
         } else {
             sections.add(new Section("La suite", "Elle se découvre en jouant : cette aide grandit avec la partie."));
         }
@@ -240,6 +245,10 @@ final class HelpPane extends Overlay {
                 + (game.isBigBangUnlocked() ? " Depuis le premier Big Bang, quatre albums gardent tout ce que vous avez obtenu au "
                         + "moins une fois, molécules, sortes rassemblées, assemblages et astres, avec le temps de jeu de la "
                         + "première fois ; ce qui manque reste un « ??? »." : "")
+                // Les cadres de l'avatar (version 0.189) : des skins, un par titre.
+                + (game.isSkinsUnlocked() ? " L'avatar a aussi ses cadres, un par titre (rond cerné, hexagone, écusson, cadre doré "
+                        + "baroque, timbre-poste, polaroid), choisis dans l'onglet Skins : ils entourent l'avatar de l'en-tête et "
+                        + "l'aperçu de votre image, pas les cartes de la galerie." : "")
                 + " Nom, avatar, titres et albums restent pour de bon, même après « Recommencer de zéro »."));
         // Les succès du deuxième univers (version 0.174) : chaque nouveauté s'ouvre par le sien.
         if (game.isSecondUniverse()) sections.add(new Section("Succès d'univers", "Une fois un univers formé, chaque "
@@ -277,7 +286,17 @@ final class HelpPane extends Overlay {
                 + "univers, et demande de plus en plus d'arrosages : un quart d'heure d'arrosoir pour le bonsaï, trois heures pour le jeune arbre, douze pour "
                 + "l'arbre-monde, ce que les améliorations de la graine raccourcissent d'autant ; les attentes de l'amas et de la formation sont faites pour jouer les "
                 + "dimensions et arroser. La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir "
-                + "la prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
+                + "la prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante."
+                // Les essences de l'arbre (version 0.185) : des skins, un par univers formé à partir du quatrième.
+                + (game.isSkinsUnlocked() ? " L'arbre a aussi ses essences, bouleau, saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, "
+                        + "palmier : une se débloque par univers formé à partir du quatrième, et se choisit dans l'onglet Skins ; elle change "
+                        + "l'écorce, les feuilles et la silhouette de l'arbre à tous ses paliers, du bonsaï à l'arbre-monde."
+                        // Les skins des mini-jeux (version 0.187) : un par dimension, débloqué à son seuil.
+                        + " Chaque mini-jeu a aussi son skin (rails et wagons pour la ligne, feuille de cahier pour le plan, aquarium, "
+                        + "vinyle, cible de tir à l'arc, toile d'araignée, bulles de savon, démineur, vitrail, kaléidoscope), débloqué "
+                        + "quand sa dimension atteint son seuil et choisi dans l'onglet Skins, dans la section de sa dimension : il change le "
+                        + "décor et l'habillage du jeu, jamais sa règle ni la place de ce qu'on clique." : "")
+                + " Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite ; son étage se paie en facettes du plan, dès le deuxième univers (le tuyau en sphères du "
                 + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis le coin bas gauche de la fenêtre, "
                 + "sur tous les onglets. Les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (voir plus bas). Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
@@ -469,7 +488,11 @@ final class HelpPane extends Overlay {
                 + ". Le trou noir du vide, ouvert, raccourcit aussi celle des deux trous noirs : ÷ (1 + "
                 + Math.round(Game.VOID_HOLE_MATURATION_STEP * 100) + " % par univers formé à partir du quatrième). En attendant, il donne "
                 + "le quart de son bonus, et ne compte ni pour les astres qui partent de lui ni pour la galaxie. "
-                + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."));
+                + game.maturationPlaces() + " astres mûrissent à la fois. Le bouton « Accélérer » dépense une charge d'impulsion pour gagner " + idle.ui.common.ElementText.number(idle.core.Game.MATURATION_HASTE_SECONDS) + " secondes."
+                // Les skins des astres (version 0.186) : par le nombre d'astres formés dans un univers.
+                + (game.isSkinsUnlocked() ? " Les astres ont aussi leurs skins, Planétarium, Gravure et Cartographie, débloqués à 10, 20 et 35 astres "
+                        + "formés dans un univers, et choisis dans l'onglet Skins : ils changent le dessin de tous les astres, sur leurs cartes, "
+                        + "dans le ciel, les systèmes et l'espace." : "")));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "
                 + "Autour d'une étoile mûre, on range des planètes, de la plus proche à la plus lointaine, et des lunes, une par "
                 + "planète au plus. Un système est complet à " + Game.SYSTEM_MIN_PLANETS + " planètes ; la galaxie en demande "
@@ -491,7 +514,15 @@ final class HelpPane extends Overlay {
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
                 + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
                 + "couper, de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
-                + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."));
+                + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."
+                // Le chrome de la fenêtre (version 0.190) : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
+                + (game.isSkinsUnlocked() ? " Le chrome de la fenêtre a aussi ses skins, choisis dans l'onglet Skins : le fond (Papier à une "
+                        + "heure de jeu, Ardoise à 50 éléments découverts, Nuit étoilée à la galaxie formée, Terminal à 100 explosions, "
+                        + "Blueprint à 10 assemblages formés), les onglets (classeur au Big Bang débloqué, boutons physiques à dix heures "
+                        + "de jeu, pastilles à l'univers 1 formé, rubans à l'univers 2 formé) et les cartes (fiche cartonnée à 100 fusions, "
+                        + "tuile de verre avec le skin Cristal du Big Bang, carte à jouer aux dix défis réussis, étiquette à dix sondes "
+                        + "revenues). Le fond n'habille que les marges, sous un voile sombre, et suit le thème choisi : le thème clair "
+                        + "l'inverse." : "")));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
         return sections;
     }

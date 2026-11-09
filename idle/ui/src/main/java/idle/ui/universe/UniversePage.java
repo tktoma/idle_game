@@ -571,6 +571,8 @@ public final class UniversePage extends VBox {
                 seedView.setWeather(game.isWeatherUnlocked() ? game.weather() : null, game.weatherLeft(), game.weatherFactor());
                 // Les saisons (version 0.157) : la saison, ce qu'il lui reste, et ce qu'un arrosage verse au chrono.
                 seedView.setSeason(game.areSeasonsUnlocked() ? game.season() : null, game.seasonLeft(), game.seasonFillPerWatering());
+                // L'essence de l'arbre (version 0.185) : le skin choisi dans l'onglet Skins, null pour le Classique.
+                seedView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TREE));
                 seedView.frame(elapsed, moving);
                 placeUnlockCan();
                 upgradesTimer += elapsed;

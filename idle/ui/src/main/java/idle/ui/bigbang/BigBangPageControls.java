@@ -343,35 +343,47 @@ public abstract class BigBangPageControls extends BigBangPageBase {
 
     /**
      * Le petit dessin d'une molécule pour l'en-tête de sa carte d'achat (version 0.178) : un carré de
-     * {@link #SMALL_PICTURE} pixels, fait une fois pour toutes.
+     * {@link #SMALL_PICTURE} pixels, fait une fois, puis refait seulement si le skin des molécules change.
      */
-    static HBox smallPicture(Molecule molecule) {
-        Canvas canvas = new Canvas(SMALL_PICTURE, SMALL_PICTURE);
-        GraphicsContext g = canvas.getGraphicsContext2D();
-        g.clearRect(0, 0, SMALL_PICTURE, SMALL_PICTURE);
+    HBox smallPicture(Molecule molecule) {
         MoleculeArt.Shape shape = MoleculeArt.of(molecule);
-        double radius = Math.min(SMALL_PICTURE / 2 - 2, shape.extent() * 11);
-        shape.draw(g, SMALL_PICTURE / 2, SMALL_PICTURE / 2, radius, -Math.PI / 6);
+        return picture(shape, SMALL_PICTURE, SMALL_PICTURE, Math.min(SMALL_PICTURE / 2 - 2, shape.extent() * 11));
+    }
+
+    /** Le dessin d'une molécule, centré dans la largeur de sa carte (états de la matière), refait si le skin change. */
+    HBox picture(Molecule molecule) {
+        MoleculeArt.Shape shape = MoleculeArt.of(molecule);
+        // Les petites molécules ne sont pas gonflées jusqu'au bord : leurs atomes gardent une taille raisonnable.
+        return picture(shape, PICTURE_WIDTH, PICTURE_HEIGHT, Math.min(PICTURE_HEIGHT / 2 - 3, shape.extent() * 24));
+    }
+
+    /** Une toile de ces dimensions où la molécule est dessinée dans le skin choisi, et qui sera redessinée si le skin change. */
+    private HBox picture(MoleculeArt.Shape shape, double width, double height, double radius) {
+        Canvas canvas = new Canvas(width, height);
+        Runnable paint = () -> {
+            GraphicsContext g = canvas.getGraphicsContext2D();
+            g.clearRect(0, 0, width, height);
+            shape.draw(g, width / 2, height / 2, radius, -Math.PI / 6, game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE));
+        };
+        paint.run();
+        moleculePictures.add(paint);
         HBox box = new HBox(canvas);
         box.setAlignment(Pos.CENTER);
         box.setMouseTransparent(true);     // le clic va à la carte
         return box;
     }
 
-    /** Le dessin d'une molécule, fait une fois pour toutes, centré dans la largeur de sa carte (états de la matière). */
-    static HBox picture(Molecule molecule) {
-        Canvas canvas = new Canvas(PICTURE_WIDTH, PICTURE_HEIGHT);
-        GraphicsContext g = canvas.getGraphicsContext2D();
-        g.clearRect(0, 0, PICTURE_WIDTH, PICTURE_HEIGHT);
-        MoleculeArt.Shape shape = MoleculeArt.of(molecule);
-        // Les petites molécules ne sont pas gonflées jusqu'au bord : leurs atomes gardent une taille raisonnable.
-        double radius = Math.min(PICTURE_HEIGHT / 2 - 3, shape.extent() * 24);
-        shape.draw(g, PICTURE_WIDTH / 2, PICTURE_HEIGHT / 2, radius, -Math.PI / 6);
-        HBox box = new HBox(canvas);
-        box.setAlignment(Pos.CENTER);
-        box.setMouseTransparent(true);     // le clic va à la carte
-        return box;
+    /** Redessine les molécules des cartes si le joueur a changé leur skin depuis la dernière fois. */
+    void refreshMoleculePictures() {
+        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE);
+        if (skin == drawnMoleculeSkin) return;
+        drawnMoleculeSkin = skin;
+        moleculePictures.forEach(Runnable::run);
     }
+
+    /** Les dessins des cartes de molécules, à refaire quand leur skin change, et le skin dans lequel ils ont été faits. */
+    private final List<Runnable> moleculePictures = new ArrayList<>();
+    private idle.core.universe.Skin drawnMoleculeSkin;
 
     /** La carte d'une molécule, ou {@code null} si son rayon n'a pas encore été ouvert : pour les vérifications. */
     public Card card(Molecule molecule) {

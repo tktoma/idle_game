@@ -23,6 +23,58 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.191", "Quarante skins de plus pour les huit visuels d'origine", List.of(
+                    "La fusion des particules : Braise (100 fusions), Encre (1 000), Essaim (100 générateurs), Horloge (10 000 "
+                            + "fusions), Verre soufflé (le skin Prisme), Pixel (une reconstruction en moins de 30 s). L'atome : "
+                            + "modèle de Bohr au tableau noir (50 atomes), nuage de probabilité (1 000), système à anneaux (les 118 "
+                            + "éléments), horlogerie (1 000 synthèses), vitrail (100 éléments). Le tableau : bois gravé (50 "
+                            + "éléments), cristal (10 000 synthèses), rouille (le défi Rouille), néon (le skin Néon du collisionneur), "
+                            + "carte au trésor (dix sondes), minuscule (le premier élément).",
+                    "La boule de matière noire : goutte de mercure (25 explosions), trou noir (10), œuf (le skin Contractée), nœud "
+                            + "(200), lanterne (500). Son animation : pluie (15 explosions), neige (50), feu d'artifice (100), "
+                            + "sablier (1 000). Le Big Bang : encre de Chine (5 Big Bangs), vitrail (3 systèmes complets), abysses "
+                            + "(la planète océan), papier plié (10 Big Bangs), carte ancienne (25 comètes), néon de ville (20 Big "
+                            + "Bangs). Le faisceau : lucioles (100 collisions), encre (1 000), laser (10 000), comète (50 comètes). "
+                            + "L'anneau : bois et cuivre (10 générateurs du collisionneur), circuit imprimé (100), stade (1 000), "
+                            + "ruban de Möbius (le skin Glace).",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.190", "Le chrome a ses skins : fonds, onglets, cartes", List.of(
+                    "Trois visuels de plus dans l'onglet Skins. Le fond de la fenêtre : Papier (une heure de jeu), Ardoise (50 "
+                            + "éléments découverts), Nuit étoilée (la galaxie formée), Terminal (100 explosions), Blueprint (10 "
+                            + "assemblages formés). Les onglets : onglets de classeur (le Big Bang débloqué), boutons physiques (dix "
+                            + "heures de jeu), pastilles (l'univers 1 formé), rubans (l'univers 2 formé). Les cartes : fiche cartonnée "
+                            + "(100 fusions), tuile de verre (le skin Cristal du Big Bang), carte à jouer (les dix défis), étiquette "
+                            + "(dix sondes revenues).",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.189", "Les cadres de l'avatar", List.of(
+                    "Six cadres pour l'avatar du profil, un par titre : rond (Alchimiste), hexagone (Lecteur du tableau), écusson "
+                            + "(Briseur de défis), cadre doré baroque (Faiseur de Big Bang), timbre-poste dentelé (Chasseur de "
+                            + "comètes), polaroid (Créateur d'univers). Visuel « Le cadre de l'avatar » dans l'onglet Skins.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.188", "Les skins des molécules", List.of(
+                    "Quatre apparences pour les molécules, dans l'espace et sur leurs cartes : Boules pleines (50 sortes créées), "
+                            + "Traits (toutes les sortes créées), Perles (20 sortes rassemblées), Lego (1 000 molécules créées). "
+                            + "Visuel « Les molécules » dans l'onglet Skins.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.187", "Un skin par mini-jeu", List.of(
+                    "Chaque dimension a son apparence de rechange, débloquée à son seuil : la ligne en rails et wagons, le plan en "
+                            + "feuille de cahier, le volume en aquarium, la durée en vinyle, la boucle en cible de tir à l'arc, la "
+                            + "brane en toile d'araignée, le clicker en bulles de savon, la grille en démineur, le miroir en vitrail, "
+                            + "le mélange en kaléidoscope. Dix visuels de plus dans l'onglet Skins, chacun avec son Classique ; "
+                            + "chaque skin débloqué donne toujours +2 % à toutes les ressources d'en dessous de l'univers.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.186", "Les skins des astres", List.of(
+                    "Trois apparences pour les trente-cinq astres, dans l'espace, le ciel, les systèmes et les cartes : Planétarium "
+                            + "(sphères de laiton et de verre dépoli sur leur tige) à dix astres formés dans un univers, Gravure "
+                            + "(hachures noir et blanc) à vingt, Cartographie (globes à méridiens et parallèles, nommés en "
+                            + "capitales) aux trente-cinq. Les couches de détail de la 0.183 restent propres au Classique.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.185", "Les essences de l'arbre", List.of(
+                    "L'arbre de la graine, du bonsaï à l'arbre-monde, a huit essences à choisir dans l'onglet Skins, une débloquée "
+                            + "par univers formé à partir du quatrième : bouleau, saule pleureur, érable rouge, cerisier en fleur, "
+                            + "baobab, séquoia, pin, palmier. Chacune change l'écorce, les feuilles et la silhouette ; le Classique "
+                            + "ne bouge pas.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.184", "La liste des skins, triée", List.of(
                     "SKINS.md relu et trié : onze idées retirées (le fruit de l'atome, les serpents du faisceau, l'anneau de Saturne du "
                             + "collisionneur, la case du Big Bang, les astres en sucre, en bestiaire et en mécanique, les skins par échelle, "

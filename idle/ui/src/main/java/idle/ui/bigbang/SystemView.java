@@ -93,14 +93,15 @@ public final class SystemView extends Canvas {
             g.fillText("zone habitable : une planète océan ici, +2", (from + to) / 2, 14);
         }
 
-        // L'étoile.
+        // L'étoile, dans le skin des astres choisi, comme ses planètes et leurs lunes.
+        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         Body star = game.body(system.star());
         Color glow = Color.web(star.tint());
         g.setFill(new RadialGradient(0, 0, starX(), cy, 70, false, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0.35)),
                 new Stop(1, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0))));
         g.fillOval(starX() - 70, cy - 70, 140, 140);
-        BodyArt.draw(g, star, starX(), cy, 28);
+        BodyArt.draw(g, star, starX(), cy, 28, bodySkin);
 
         // Les orbites et leurs planètes.
         for (int orbit = 0; orbit < orbits; orbit++) {
@@ -121,11 +122,11 @@ public final class SystemView extends Canvas {
             // La planète glisse sur son orbite, sans descendre jusqu'aux étiquettes.
             double angle = Math.asin(Math.min(1, 34 / radius)) * Math.sin(time * 0.35 + orbit * 1.7);
             double px = starX() + radius * Math.cos(angle), py = cy + radius * Math.sin(angle);
-            BodyArt.draw(g, planet, px, py, 13);
+            BodyArt.draw(g, planet, px, py, 13, bodySkin);
             if (orbit < system.moons().size()) {
                 Body moon = game.body(system.moons().get(orbit));
                 double a = time * (0.9 + 0.2 * orbit) + orbit;
-                BodyArt.draw(g, moon, px + 24 * Math.cos(a), py + 13 * Math.sin(a), 5);
+                BodyArt.draw(g, moon, px + 24 * Math.cos(a), py + 13 * Math.sin(a), 5, bodySkin);
             }
             g.setFill(TEXT);
             g.setFont(Font.font(11));

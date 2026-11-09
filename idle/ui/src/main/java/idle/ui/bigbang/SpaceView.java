@@ -323,7 +323,8 @@ public final class SpaceView extends SpaceViewPacking {
             g.strokeOval(originX - edge, originY - edge, 2 * edge, 2 * edge);
         }
 
-        // Les astres, nets même de très loin : chacun au milieu de sa clairière, aussi grand qu'elle le permet.
+        // Les astres, nets même de très loin : chacun au milieu de sa clairière, aussi grand qu'elle le permet, dans le skin choisi.
+        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         for (int body = 0; body < sky.length; body++) {
             double round = shown[body] * unit;
             double x = skyX[body];
@@ -338,10 +339,11 @@ public final class SpaceView extends SpaceViewPacking {
             // Un petit astre n'occupe pas toute sa clairière : une planète reste plus grande qu'une lune, quoi qu'elles contiennent.
             // Dans la galaxie, ce rayon est déjà celui du dessin.
             double r = round * (swirled ? 1 : share(sky[body].tier())) / BodyArt.span(sky[body]);
-            BodyArt.draw(g, sky[body], x - BodyArt.centerX(sky[body]) * r, y - BodyArt.centerY(sky[body]) * r, r);
+            BodyArt.draw(g, sky[body], x - BodyArt.centerX(sky[body]) * r, y - BodyArt.centerY(sky[body]) * r, r, bodySkin);
         }
 
-        // Puis les molécules, celles qui tombent dans la vue seulement : elles s'effacent à mesure que le gaz les remplace.
+        // Puis les molécules, celles qui tombent dans la vue seulement, dans leur skin : elles s'effacent à mesure que le gaz les remplace.
+        idle.core.universe.Skin moleculeSkin = game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE);
         if (mist < 1) {
             g.setGlobalAlpha(1 - mist);
             for (int index = 0; index < count && swirled; index++) {
@@ -351,7 +353,7 @@ public final class SpaceView extends SpaceViewPacking {
                 double dot = Math.max(0.8, rooms[index] * unit);
                 if (hidden[index] || x + dot < 0 || x - dot > w || y + dot < 0 || y - dot > h) continue;
                 if (dot >= DRAWN_FROM) {
-                    shapes[index].draw(g, x, y, dot, time * (0.05 + 0.04 * ((index * 7) % 5)) * (index % 2 == 0 ? 1 : -1) + index);
+                    shapes[index].draw(g, x, y, dot, time * (0.05 + 0.04 * ((index * 7) % 5)) * (index % 2 == 0 ? 1 : -1) + index, moleculeSkin);
                 } else {
                     g.setFill(swirlTints[index]);
                     g.fillOval(x - dot, y - dot, 2 * dot, 2 * dot);
@@ -369,7 +371,7 @@ public final class SpaceView extends SpaceViewPacking {
                 }
                 // Chacune tourne sur elle-même, à son rythme et dans son sens.
                 double spin = time * (0.05 + 0.04 * ((index * 7) % 5)) * (index % 2 == 0 ? 1 : -1) + index;
-                shapes[index].draw(g, x, y, states[index] != null ? size * GATHERED_SHARE : size, spin);
+                shapes[index].draw(g, x, y, states[index] != null ? size * GATHERED_SHARE : size, spin, moleculeSkin);
             }
             if (!swirled) drawNames(g, originX, originY, cosTurn, sinTurn, unit, w, h);
             g.setGlobalAlpha(1);
@@ -667,13 +669,15 @@ public final class SpaceView extends SpaceViewPacking {
 
     // ------------------------------------------------------------------
     // Les skins du Big Bang (version 0.089) : le vide, le ciel entier, l'espace créé et son bord.
+    // Les six skins de la version 0.191 sont dessinés par SpaceSkinArt.
     // ------------------------------------------------------------------
 
     private static Color skinVoid(idle.core.universe.Skin look) {
         return switch (look) {
             case BANG_AURORA -> Color.web("#020d14");
             case BANG_SUPERNOVA -> Color.web("#0d0306");
-            default -> Color.web("#04081a");
+            case BANG_CRYSTAL -> Color.web("#04081a");
+            default -> SpaceSkinArt.voidColor(look);
         };
     }
 
@@ -687,6 +691,10 @@ public final class SpaceView extends SpaceViewPacking {
      * un réseau de facettes sur toute la vue, des facettes allumées çà et là.
      */
     private void skinSky(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+        if (SpaceSkinArt.draws(look)) {
+            SpaceSkinArt.sky(g, w, h, look, time);
+            return;
+        }
         double small = Math.min(w, h);
         switch (look) {
             case BANG_AURORA -> {
@@ -766,6 +774,10 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** L'espace créé, rempli à la façon du skin : un voile d'aurore, une boule de feu, un cristal taillé. */
     private void skinSpace(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+        if (SpaceSkinArt.draws(look)) {
+            SpaceSkinArt.space(g, x, y, r, look, time);
+            return;
+        }
         g.setGlobalAlpha(1);
         switch (look) {
             case BANG_AURORA -> g.setFill(new javafx.scene.paint.RadialGradient(0, 0, x, y, r, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
@@ -801,6 +813,10 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** Le bord de l'espace : une lisière qui ondule, un front de flammes, ou les arêtes du cristal. */
     private void skinEdge(GraphicsContext g, double x, double y, double r, idle.core.universe.Skin look) {
+        if (SpaceSkinArt.draws(look)) {
+            SpaceSkinArt.edge(g, x, y, r, look, time);
+            return;
+        }
         int steps = 120;
         double[] xs = new double[steps + 1], ys = new double[steps + 1];
         switch (look) {
@@ -862,6 +878,10 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** Les étoiles sous un skin du Big Bang : vertes et douces, à branches, ou en losange. */
     private void skinStars(GraphicsContext g, double w, double h, idle.core.universe.Skin look) {
+        if (SpaceSkinArt.draws(look)) {
+            SpaceSkinArt.stars(g, w, h, look, time, STAR_X, STAR_Y, STAR_PACE);
+            return;
+        }
         for (int star = 0; star < STARS; star++) {
             double x = STAR_X[star] * w, y = STAR_Y[star] * h;
             double twinkle = Math.max(0.05, Math.min(1, 0.3 + 0.25 * Math.sin(time * STAR_PACE[star] * 1.5 + star)));

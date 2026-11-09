@@ -205,10 +205,10 @@ public abstract class GameAppTabs extends GameAppWindow {
         blast.setVisible(true);
         flash.setOpacity(0);
         // Le skin de l'animation (version 0.089) : une spirale ou un pulsar à la place de l'onde, et l'éclair à sa couleur.
+        // Version 0.191 : les quatre animations de plus (pluie, neige, sablier, feu d'artifice) jouent de même.
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION);
-        boolean skinned = look == idle.core.universe.Skin.DARK_VORTEX || look == idle.core.universe.Skin.DARK_PULSAR;
-        flash.setStyle("-fx-background-color: " + (look == idle.core.universe.Skin.DARK_VORTEX ? "#12061f"
-                : look == idle.core.universe.Skin.DARK_PULSAR ? "#e8fdff" : "#ffffff") + ";");
+        boolean skinned = look != null;
+        flash.setStyle("-fx-background-color: " + explosionFlashColor(look) + ";");
         shockwave.setVisible(!skinned);
         if (skinned) burst.play(look, 2.4);
 
@@ -241,6 +241,20 @@ public abstract class GameAppTabs extends GameAppWindow {
             clear.play();
         });
         bang.play();
+    }
+
+    /** La couleur de l'éclair de l'explosion sous le skin de l'animation (version 0.191 pour les quatre derniers) ; blanc sans skin. */
+    public static String explosionFlashColor(idle.core.universe.Skin look) {
+        if (look == null) return "#ffffff";
+        return switch (look) {
+            case DARK_VORTEX -> "#12061f";
+            case DARK_PULSAR -> "#e8fdff";
+            case DARK_RAIN -> "#3a8adf";
+            case DARK_SNOW -> "#f4f8ff";
+            case DARK_HOURGLASS -> "#e8c87a";
+            case DARK_FIREWORKS -> "#05030c";
+            default -> "#ffffff";
+        };
     }
 
     /** Applique la taille de l'interface, le thème et la disposition des onglets choisis dans les réglages. */
@@ -513,12 +527,36 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Sept ou huit onglets ne tiennent pas en toutes lettres dans une fenêtre étroite : en haut, ils
         // perdent alors leur icône et se serrent. À gauche, ils ont toujours la place.
         statsTab.setText(narrow ? "Stats" : "Statistiques");
-        boolean icons = tabsLeftApplied || !narrow;
+        // Les pastilles (version 0.190) ne montrent que l'icône, quelle que soit la largeur : le nom passe en infobulle.
+        boolean dots = tabSkin == idle.core.universe.Skin.TABS_DOTS;
+        boolean icons = tabsLeftApplied || !narrow || dots;
         javafx.scene.Node[] graphics = {particlesIcon, atomsTabIcon, automationIcon, darkMatterIcon, colliderIcon, bigBangIcon, universeIcon, voidIcon, hadronsIcon, profileIcon, achievementsIcon, statsIcon, settingsIcon, skinsIcon};
-        for (int i = 0; i < tabButtons.length; i++) tabButtons[i].setGraphic(icons ? graphics[i] : null);
+        for (int i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].setGraphic(icons ? graphics[i] : null);
+            tabButtons[i].setContentDisplay(dots ? javafx.scene.control.ContentDisplay.GRAPHIC_ONLY : javafx.scene.control.ContentDisplay.LEFT);
+            tabButtons[i].setTooltip(dots ? tabTip(tabs[i]) : null);
+        }
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
+        // Les onglets de classeur se posent sur la page : l'onglet affiché, plus haut, dépasse vers le haut seulement.
+        tabBar.setAlignment(tabSkin == idle.core.universe.Skin.TABS_BINDER ? javafx.geometry.Pos.BOTTOM_CENTER : javafx.geometry.Pos.CENTER);
     }
+
+    /** L'infobulle d'un onglet en pastille (version 0.190) : son nom, faite une fois par onglet et gardée. */
+    private javafx.scene.control.Tooltip tabTip(Tab tab) {
+        if (tabTips == null) tabTips = new javafx.scene.control.Tooltip[Tab.values().length];
+        if (tabTips[tab.ordinal()] == null) {
+            javafx.scene.control.Tooltip tip = new javafx.scene.control.Tooltip(tabName(tab));
+            tip.setShowDelay(Duration.millis(200));
+            tip.setStyle("-fx-font-size: 12px; -fx-padding: 6 10; -fx-text-fill: #e8f4ff; -fx-background-color: #16202e;"
+                    + " -fx-background-radius: 6; -fx-border-radius: 6; -fx-border-color: " + tabColor(tab) + ";");
+            tabTips[tab.ordinal()] = tip;
+        }
+        return tabTips[tab.ordinal()];
+    }
+
+    /** Les infobulles des pastilles, une par onglet, faites à la première demande. */
+    private javafx.scene.control.Tooltip[] tabTips;
 
     private static TabRole roleOf(Tab tab) {
         return switch (tab) {
@@ -553,8 +591,20 @@ public abstract class GameAppTabs extends GameAppWindow {
      * cadre tant qu'elles ne sont pas affichées. L'onglet affiché est rempli d'un voile de sa couleur
      * et brille. L'épaisseur du cadre, les marges et la police ne changent jamais d'un état à
      * l'autre : rien ne bouge au clic.
+     *
+     * <p>Version 0.190 : avec un skin des onglets ({@link #tabSkin}), l'allure vient de {@link #skinnedTabStyle} ; sans
+     * skin, elle est celle de toujours, au caractère près.
      */
     private String tabStyle(String color, boolean selected, TabRole role) {
+        return tabStyle(tabSkin, color, selected, role, tabsLeftApplied, narrow);
+    }
+
+    /**
+     * Le style d'un onglet, hors de toute fenêtre : le skin ({@code null} pour le Classique), la couleur et le rôle de
+     * l'onglet, s'il est affiché, et la disposition (en colonne à gauche, ou en haut, resserrée dans une fenêtre étroite).
+     */
+    static String tabStyle(idle.core.universe.Skin skin, String color, boolean selected, TabRole role, boolean tabsLeftApplied, boolean narrow) {
+        if (skin != null) return skinnedTabStyle(skin, color, selected, role, tabsLeftApplied, narrow);
         String base = "-fx-cursor: hand; -fx-border-width: 1.5;" + (tabsLeftApplied
                 ? " -fx-font-size: 14px; -fx-padding: 8 12; -fx-alignment: center-left; -fx-min-width: 176; -fx-max-width: 176;"
                         + " -fx-background-radius: 8; -fx-border-radius: 8;"
@@ -570,6 +620,58 @@ public abstract class GameAppTabs extends GameAppWindow {
                 : " -fx-text-fill: " + (role == TabRole.META ? "#7d8fa3" : "#a9bacb") + "; -fx-background-color: "
                         + (role == TabRole.META ? "transparent" : "#111824") + "; -fx-effect: null;";
         return base + border + fill;
+    }
+
+    /**
+     * L'allure d'un onglet sous un skin (version 0.190), dans les deux dispositions. Onglets de classeur : un fond de
+     * papier teinté, arrondi du côté qui ne touche pas la page, l'onglet affiché plus haut et sans bord vers la page.
+     * Boutons physiques : un relief en dégradé avec une ombre vers le bas, l'onglet affiché enfoncé (ombre interne,
+     * texte décalé). Pastilles : un rond plein de la couleur, 36 × 36, l'icône seule ({@link #styleTabs} cache le texte
+     * et pose l'infobulle). Rubans : un fond plat à coins carrés, la couleur en bande verticale à gauche. Les rôles se
+     * lisent encore : ce qui tourne à côté garde un bord en pointillés, les pages pour s'y retrouver un bord discret.
+     * Les marges, la police et la taille ne changent pas d'un état à l'autre, sauf la hauteur voulue du classeur.
+     */
+    private static String skinnedTabStyle(idle.core.universe.Skin skin, String color, boolean selected, TabRole role, boolean tabsLeftApplied, boolean narrow) {
+        String font = tabsLeftApplied || !narrow ? " -fx-font-size: 14px;" : " -fx-font-size: 12px;";
+        // Les marges de toujours : « haut droite bas gauche », pour pouvoir en changer une seule.
+        int top = tabsLeftApplied ? 8 : narrow ? 8 : 9, side = tabsLeftApplied ? 12 : 10;
+        // En colonne, l'onglet prend toute la largeur ; sauf la pastille, ronde dans les deux dispositions.
+        String column = tabsLeftApplied && skin != idle.core.universe.Skin.TABS_DOTS ? " -fx-alignment: center-left; -fx-min-width: 176; -fx-max-width: 176;" : "";
+        String text = " -fx-text-fill: " + (selected ? color : role == TabRole.META ? "#7d8fa3" : "#a9bacb") + ";";
+        String dashes = role == TabRole.SIDE ? " -fx-border-style: segments(5, 4);" : " -fx-border-style: solid;";
+        return "-fx-cursor: hand;" + font + column + text + dashes + switch (skin) {
+            case TABS_BINDER -> {
+                // Plus haut quand il est affiché : quatre pixels de plus du côté opposé à la page.
+                String padding = tabsLeftApplied
+                        ? " -fx-padding: " + top + " " + side + " " + top + " " + (selected ? side + 4 : side) + ";"
+                        : " -fx-padding: " + (selected ? top + 4 : top) + " " + side + " " + top + " " + side + ";";
+                String radius = tabsLeftApplied ? "10 0 0 10" : "10 10 0 0";
+                String width = tabsLeftApplied ? "1 0 1 1" : "1 1 0 1";
+                yield padding + " -fx-background-radius: " + radius + "; -fx-border-radius: " + radius + "; -fx-border-width: " + width + ";"
+                        + " -fx-background-color: " + fade(color, selected ? 0.22 : 0.10) + ";"
+                        + " -fx-border-color: " + fade(color, selected ? 0.9 : role == TabRole.META ? 0.2 : 0.45) + "; -fx-effect: null;";
+            }
+            case TABS_BUTTONS -> {
+                // Enfoncé : le texte descend de deux pixels, la hauteur ne change pas.
+                String padding = " -fx-padding: " + (selected ? top + 2 : top) + " " + side + " " + (selected ? top - 2 : top) + " " + side + ";";
+                yield padding + " -fx-background-radius: 4; -fx-border-radius: 4; -fx-border-width: 1;"
+                        + (selected
+                        ? " -fx-background-color: linear-gradient(to bottom, " + fade(color, 0.12) + ", " + fade(color, 0.28) + ");"
+                                + " -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.7), 6, 0.4, 0, 2);"
+                        : " -fx-background-color: linear-gradient(to bottom, #2a3648, #141c28);"
+                                + " -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 4, 0.3, 0, 2);")
+                        + " -fx-border-color: " + (selected ? color : role == TabRole.META ? "#3a4a5e" : fade(color, 0.6)) + ";";
+            }
+            case TABS_DOTS -> " -fx-padding: 0; -fx-alignment: center; -fx-min-width: 36; -fx-max-width: 36; -fx-min-height: 36; -fx-max-height: 36;"
+                    + " -fx-background-radius: 18; -fx-border-radius: 18; -fx-border-width: 2;"
+                    + " -fx-background-color: " + (selected ? color : fade(color, 0.35)) + ";"
+                    + " -fx-border-color: " + (selected ? "#ffffff" : role == TabRole.META ? "transparent" : fade(color, 0.7)) + ";"
+                    + (selected ? " -fx-effect: dropshadow(gaussian, " + fade(color, 0.7) + ", 12, 0.3, 0, 0);" : " -fx-effect: null;");
+            case TABS_RIBBONS -> " -fx-padding: " + top + " " + side + "; -fx-background-radius: 0; -fx-border-radius: 0; -fx-border-width: 0 0 0 6;"
+                    + " -fx-background-color: " + (selected ? fade(color, 0.16) : "#111824") + ";"
+                    + " -fx-border-color: " + (selected ? color : fade(color, role == TabRole.META ? 0.25 : 0.5)) + "; -fx-effect: null;";
+            default -> "";     // un skin d'un autre visuel ne peut pas arriver ici : {@code chosenSkin(TABS)} ne rend que les siens
+        };
     }
 
     /** Une couleur « #rrggbb » avec une transparence : « rgba(…) » pour le style. */
@@ -604,6 +706,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         // Au-delà d'un certain nombre, les générateurs tournent sans être dessinés : ils deviendraient illisibles.
         generators.setCount(Math.min(game.generatorCount(), MAX_VISIBLE_GENERATORS));
         if (windowPane != null) burst.frame(dt, windowPane.getWidth(), windowPane.getHeight());
+        chrome.frame(dt);
         idle.ui.particles.ParticleView.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.PARTICLE_FUSION));
         // L'atome de l'onglet tourne comme les autres icônes : immobile quand elles le sont.
         atomsTabIcon.frame(settings.effect(Settings.Effect.TAB_ICONS) ? dt : 0);

@@ -63,6 +63,8 @@ public final class GalaxyView extends Canvas {
     private double drawnWidth = -1;
     private double drawnHeight = -1;
     private int drawnLevel = -1;
+    /** Le skin des astres du dernier dessin : en changer redessine le trou noir supermassif. */
+    private idle.core.universe.Skin drawnSkin;
 
     /** Les autres galaxies de l'amas : huit, plus petites, chacune avec sa place, sa taille et son inclinaison. */
     private static final int NEIGHBOURS = 8;
@@ -129,7 +131,7 @@ public final class GalaxyView extends Canvas {
         if (BigBangPage.moving()) time += elapsed;
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.cosmosFormed() != drawnLevel
-                || colored != game.state().moleculesVersion();
+                || colored != game.state().moleculesVersion() || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         // La toile de l'univers ne bouge pas : inutile de la redessiner tant que rien ne change.
         if (!changed && (beat % 2 != 0 || drawnLevel >= 3)) return;
         redraw();
@@ -144,6 +146,7 @@ public final class GalaxyView extends Canvas {
         drawnHeight = h;
         boolean formed = game.hasGalaxy();
         drawnLevel = game.cosmosFormed();
+        drawnSkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         color();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
@@ -186,7 +189,7 @@ public final class GalaxyView extends Canvas {
         g.setGlobalAlpha(1);
         // Le trou noir supermassif, dès qu'il est formé.
         for (Body body : game.bodies()) {
-            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.035 * radius + 2);
+            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.035 * radius + 2, drawnSkin);
         }
         if (!formed) {
             g.setFill(TEXT);
@@ -226,7 +229,7 @@ public final class GalaxyView extends Canvas {
         spiral(g, colors, cx, cy, 0.3 * unit, -time * SPIN, 1, 0, 2, 1);
         g.setGlobalAlpha(1);
         for (Body body : game.bodies()) {
-            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.012 * unit + 2);
+            if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.012 * unit + 2, game.chosenSkin(idle.core.universe.SkinVisual.BODY));
         }
     }
 

@@ -5,6 +5,8 @@ import idle.core.molecules.Molecule;
 import idle.core.profile.Title;
 import idle.core.sky.Assembly;
 import idle.core.sky.Body;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.EventLog;
 import idle.ui.GameApp;
 import idle.ui.Readiness;
@@ -46,7 +48,9 @@ import javafx.stage.FileChooser;
  *       le titre porté, le temps de jeu, les univers, les Big Bangs et les titres obtenus ; puis la galerie des avatars
  *       ({@link Avatar}, dessinés par le jeu, la plupart ouverts par un titre, et l'image que le joueur importe, copiée
  *       dans le dossier des données et recadrée en rond) ; enfin la liste des {@link Title titres}, obtenus (cliquables
- *       pour les porter) et à venir (avec leur condition) ;</li>
+ *       pour les porter) et à venir (avec leur condition). L'avatar de l'en-tête et l'aperçu de l'image portent le cadre
+ *       choisi dans l'onglet Skins ({@link SkinVisual#AVATAR_FRAME}, version 0.189) ; les cartes de la galerie restent
+ *       rondes ;</li>
  *   <li>« Journal » : les dernières annonces du jeu ({@link EventLog}), la plus récente en haut ; il était la dernière
  *       sous-page des statistiques jusqu'à la 0.144 ;</li>
  *   <li>« Molécules », « États de la matière », « Assemblages », « Astres » : les albums ({@link AlbumPane}) de ce qui a
@@ -419,6 +423,11 @@ public final class ProfilePage extends VBox {
         Avatar drawn = Avatar.of(avatar);
         if (drawn == null) avatarView.show(custom);
         else avatarView.show(drawn);
+        Skin frame = game.chosenSkin(SkinVisual.AVATAR_FRAME);
+        for (AvatarView framed : new AvatarView[] {avatarView, customPreview}) {
+            framed.setStampValue(game.state().earnedTitles().size());
+            framed.setFrame(frame);
+        }
 
         String key = avatar + "/" + game.state().earnedTitles().size() + "/" + (custom != null) + "/" + Detail.shown() + "/" + Card.signsShown()
                 + "/" + (folder.get() != null);
@@ -636,6 +645,16 @@ public final class ProfilePage extends VBox {
     /** Ce que montre l'avatar de l'en-tête : l'identifiant d'un avatar du jeu, ou {@link Avatar#CUSTOM}. */
     public String shownAvatar() {
         return avatarView.shown();
+    }
+
+    /** Le cadre de l'avatar de l'en-tête, ou {@code null} pour le Classique. */
+    public Skin avatarFrame() {
+        return avatarView.frame();
+    }
+
+    /** Le cadre de l'aperçu de l'image importée, dans la galerie. */
+    public Skin previewFrame() {
+        return customPreview.frame();
     }
 
     /** La carte d'un avatar de la galerie. */

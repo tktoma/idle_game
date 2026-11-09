@@ -61,6 +61,9 @@ public final class BodiesPane extends VBox {
     private final Map<Body.Tier, Label> tierTitles = new EnumMap<>(Body.Tier.class);
     private final Map<Body.Tier, TileGrid> tierGrids = new EnumMap<>(Body.Tier.class);
     private final Map<Body, Card> cards = new LinkedHashMap<>();
+    /** Le dessin de chaque carte, et le skin des astres avec lequel ils ont été faits : en changer les redessine (version 0.186). */
+    private final Map<Body, Canvas> pictures = new LinkedHashMap<>();
+    private idle.core.universe.Skin drawnSkin;
     /** Les astres qui mûrissent : une ligne et un bouton « Accélérer » par place. */
     private final Label maturationTitle = new Label();
     private final VBox maturationBox = new VBox(6);
@@ -183,6 +186,11 @@ public final class BodiesPane extends VBox {
     public void refresh() {
         refreshMaturation();
         refreshPlan();
+        idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+        if (bodySkin != drawnSkin) {
+            drawnSkin = bodySkin;
+            pictures.forEach(this::picture);
+        }
         BigBangPage.showBulk(formAll, game.isBulkFormUnlocked(), "Former les astres prêts", game.bodiesReady());
         Map<Body.Tier, int[]> tiers = new EnumMap<>(Body.Tier.class);     // par échelle : cartes montrées, astres formés
         for (Body body : game.bodies()) {
@@ -245,14 +253,8 @@ public final class BodiesPane extends VBox {
         return cards.computeIfAbsent(body, each -> {
             Card card = new Card(GameApp.BIG_BANG_COLOR);
             Canvas canvas = new Canvas(PICTURE_WIDTH, PICTURE_HEIGHT);
-            canvas.getGraphicsContext2D().clearRect(0, 0, PICTURE_WIDTH, PICTURE_HEIGHT);
-            // Le plus grand rayon qui laisse tenir tout l'astre, queue ou anneaux compris, dans le cadre.
-            double r = Math.min((PICTURE_HEIGHT - 6) / (BodyArt.reachUp(body) + BodyArt.reachDown(body)),
-                    (PICTURE_WIDTH - 6) / (BodyArt.reachLeft(body) + BodyArt.reachRight(body)));
-            r = Math.min(r, LARGEST_PICTURE);
-            double x = PICTURE_WIDTH / 2 + (BodyArt.reachLeft(body) - BodyArt.reachRight(body)) * r / 2;
-            double y = PICTURE_HEIGHT / 2 + (BodyArt.reachUp(body) - BodyArt.reachDown(body)) * r / 2;
-            BodyArt.draw(canvas.getGraphicsContext2D(), body, x, y, r);
+            pictures.put(body, canvas);
+            picture(body, canvas);
             HBox picture = new HBox(canvas);
             picture.setAlignment(Pos.CENTER);
             picture.setMouseTransparent(true);     // le clic va à la carte
@@ -264,6 +266,18 @@ public final class BodiesPane extends VBox {
             tierGrids.get(body.tier()).add(card);
             return card;
         });
+    }
+
+    /** Dessine un astre sur sa carte, dans le skin des astres choisi. */
+    private void picture(Body body, Canvas canvas) {
+        canvas.getGraphicsContext2D().clearRect(0, 0, PICTURE_WIDTH, PICTURE_HEIGHT);
+        // Le plus grand rayon qui laisse tenir tout l'astre, queue ou anneaux compris, dans le cadre.
+        double r = Math.min((PICTURE_HEIGHT - 6) / (BodyArt.reachUp(body) + BodyArt.reachDown(body)),
+                (PICTURE_WIDTH - 6) / (BodyArt.reachLeft(body) + BodyArt.reachRight(body)));
+        r = Math.min(r, LARGEST_PICTURE);
+        double x = PICTURE_WIDTH / 2 + (BodyArt.reachLeft(body) - BodyArt.reachRight(body)) * r / 2;
+        double y = PICTURE_HEIGHT / 2 + (BodyArt.reachUp(body) - BodyArt.reachDown(body)) * r / 2;
+        BodyArt.draw(canvas.getGraphicsContext2D(), body, x, y, r, drawnSkin);
     }
 
     /** Le plan de plusieurs astres : caché tant qu'il n'est pas ouvert. */
