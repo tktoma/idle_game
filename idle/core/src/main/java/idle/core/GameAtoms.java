@@ -488,8 +488,9 @@ public abstract class GameAtoms extends GamePlans {
      * fois au plus. Un défi se joue sur un tableau de masse {@link #CHALLENGE_WEIGHT} (1 avant la version 0.097).
      */
     public BigNum tableWeight() {
-        if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT;
-        return inChallenge() ? CHALLENGE_WEIGHT
+        // Version 0.181 : un défi se corse d'un facteur par univers formé ({@link #challengeUniverseFactor()}).
+        if (ruled(Challenge.Rule.PRESENCE_ONLY) || ruled(Challenge.Rule.ABSENCE_ONLY)) return STYLE_CHALLENGE_WEIGHT.multiply(challengeUniverseFactor());
+        return inChallenge() ? CHALLENGE_WEIGHT.multiply(challengeUniverseFactor())
                 : BigNum.of(TABLE_WEIGHT_GROWTH).pow(Math.min(state.tableWeightLevel(), TABLE_WEIGHT_MAX_LEVEL));
     }
 

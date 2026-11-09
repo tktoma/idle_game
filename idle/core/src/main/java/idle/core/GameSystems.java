@@ -44,8 +44,6 @@ public abstract class GameSystems extends GameBase {
     public abstract BigNum steadySpacePerSecond();
     public abstract int colliderUpgradeLevel(ColliderUpgrade upgrade);
     public abstract int dimensionsUnlocked();
-    /** Les univers formés ({@link GameUniverse#universes()}) : le gain de la traversée et le trou noir du vide les comptent. */
-    public abstract int universes();
     /** Ce que le trou noir du vide divise la maturation des trous noirs (version 0.177, {@link GameVoid#voidHoleMaturationFactor()}). */
     public abstract double voidHoleMaturationFactor();
 

@@ -62,17 +62,24 @@ public final class SkyView extends Canvas {
         this.game = game;
     }
 
-    /** Le rayon d'un astre dans le ciel, en pixels, à l'échelle 1 : il grandit avec son échelle. */
+    /**
+     * Le rayon d'un astre dans le ciel, en pixels, à l'échelle 1 : il grandit avec son échelle. À
+     * cette échelle, tout ce qui est au moins un astéroïde a ses couches de détail
+     * ({@link BodyArt#DETAIL_FROM}) ; les places se mesurent sur l'emprise de chaque dessin, donc
+     * deux voisins ne se touchent jamais, quels que soient ces rayons.
+     */
     static double radius(Body body) {
         return switch (body.tier()) {
             case RUBBLE -> 9;
-            case COMET -> 8;
+            // Le rayon d'une comète est celui de son dessin : son noyau n'en fait que les six dixièmes.
+            case COMET -> 9;
             case ASTEROID -> 15;
             case MOON -> 24;
             case PLANET -> body.look() == Body.Look.BANDED || body.look() == Body.Look.RINGED ? 54 : 40;
             // Une naine brune dépasse à peine une géante gazeuse ; une géante, rouge ou bleue, écrase le Soleil.
             case STAR -> body.id().equals("brown_dwarf") ? 30 : body.id().endsWith("_giant") ? 48 : body.id().equals("red_dwarf") ? 34 : 40;
-            case REMNANT -> 12;
+            // Une naine blanche est plus petite qu'un astéroïde, mais encore assez grande pour ses détails.
+            case REMNANT -> 14;
             case BLACK_HOLE -> 15;
             case CORE -> 21;
             // Une nébuleuse s'étale ; un pulsar, un magnétar ou un quasar restent petits.

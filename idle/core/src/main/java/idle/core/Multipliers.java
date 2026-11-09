@@ -330,6 +330,7 @@ public final class Multipliers {
         add(factors, Aspect.COLLIDER, "Collisionneur", log(game.colliderDarkGrowthMultiplier()));
         add(factors, Aspect.ACHIEVEMENTS, "Succès du Big Bang", log(game.bangAchievementMultiplier(BangAchievement.Reward.DARK_GROWTH)));
         add(factors, Aspect.UNIVERSE, "Univers formés", log(game.universeDarkMatterFactor()));
+        add(factors, Aspect.UNIVERSE, "Premier univers, après le premier Big Bang", log(game.firstUniverseCycleMomentum()));
     }
 
     private static void space(Game game, List<Factor> factors) {

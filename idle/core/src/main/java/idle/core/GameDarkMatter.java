@@ -589,7 +589,8 @@ public abstract class GameDarkMatter extends GameParticles {
                 * moleculeBoost(Molecule.Stat.DARK_GROWTH)
                 * colliderDarkGrowthMultiplier()
                 * bangAchievementMultiplier(BangAchievement.Reward.DARK_GROWTH)
-                * universeDarkMatterFactor();
+                * universeDarkMatterFactor()
+                * firstUniverseCycleMomentum();
     }
 
     /**

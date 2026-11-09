@@ -1,6 +1,6 @@
 # Les skins à venir : tout ce qui peut changer d'apparence
 
-Version 0.180. Une liste de travail, pas un engagement : chaque ligne est un visuel du jeu qui pourrait recevoir une
+Version 0.180, triée en 0.184 : onze idées retirées (fruit, serpents, anneau de Saturne, case du Big Bang, sucre, bestiaire, mécanique, skins par échelle, cartes de butin, arbre-monde, thème d'après le skin), l'horlogerie refaite en engrenages par particule ; 167 visuels restent. Une liste de travail, pas un engagement : chaque ligne est un visuel du jeu qui pourrait recevoir une
 apparence de rechange, avec des idées de skins, ce que chacun changerait, et une façon de l'obtenir dans l'esprit des
 skins existants (un record, une recherche, un défi, un palier). Le mécanisme ne change pas : un skin débloqué donne
 +2 % à toutes les ressources d'en dessous de l'univers (`Skin.BONUS`), le choisir ne change que l'apparence, et
@@ -26,8 +26,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Modèle de Bohr au tableau noir — fond ardoise `#1d2a24`, orbites tracées à la craie (traits irréguliers, poussière), électrons en ronds de craie blanche ; cinquante atomes.
 - Nuage de probabilité — plus d'orbites : des nuages de points `#ffe9c2` plus denses là où l'électron a des chances d'être, qui respirent ; cent atomes.
 - Système à anneaux — le noyau est une planète à bandes, les couches des anneaux de glace vus de biais ; le 118ᵉ atome une première fois.
-- Horlogerie — couches en roues dentées de laiton `#c9a24a` qui s'engrènent, électrons en rubis ; une heure de synthèse automatique sans intervention.
-- Fruit — noyau en noyau de pêche, couches en chair et peau, électrons en gouttes de jus ; vingt-cinq synthèses ciblées.
+- Horlogerie — chaque particule de l'atome est un petit engrenage : les protons et les neutrons du noyau en roues dentées de laiton `#c9a24a` serrées les unes contre les autres, les électrons en pignons minuscules qui tournent sur leur couche et s'engrènent au passage ; une heure de synthèse automatique sans intervention.
 - Vitrail — couches en plomb noir, électrons en verres colorés par famille du tableau, lumière qui passe au travers ; toutes les familles possédées une fois.
 
 ### Le tableau périodique (`PeriodicTablePage`, visuel TABLE : Plomb, Or)
@@ -62,14 +61,12 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ### Le faisceau du collisionneur (`EnergyView`, visuel COLLIDER_BEAM : Faisceau doré)
 - Comète — deux boules à longue queue de glace `#bfe8ff`, les croisements font neiger ; vingt-cinq comètes attrapées.
 - Encre — deux traits de plume noire sur fond clair, le croisement une tache ; mille croisements captés.
-- Serpents — deux rubans écailleux `#9be7a8` / `#ff9eb5` qui ondulent, langue qui sort au croisement ; le défi « Pleine charge » réussi.
 - Laser — deux rayons fins et droits par segments, sans traînée, étincelles en pixels ; une heure à la plus haute énergie.
 - Lucioles — nuées de points verts clignotants au lieu de boules, le croisement les fait toutes s'allumer ; cent captures à la main.
 
 ### L'anneau du collisionneur (visuel COLLIDER : Néon, Plasma, Glace)
 - Bois et cuivre — anneau en lattes vernies cerclées de cuivre `#b87333`, poussières en sciure ; dix générateurs du collisionneur.
 - Circuit imprimé — anneau en piste verte `#1f5a2a` avec pastilles dorées, poussières en bits qui passent ; tous les générateurs achetés.
-- Anneau de Saturne — anneau en grains de glace innombrables, fond avec la planète en bas ; la planète géante gazeuse formée.
 - Stade — anneau en piste d'athlétisme à huit couloirs, détecteur en ligne d'arrivée ; cent tours du faisceau rapide.
 - Ruban de Möbius — l'anneau se tord sur lui-même, les faisceaux passent dessus puis dessous ; le défi « Un seul générateur » réussi deux fois.
 
@@ -134,7 +131,6 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Circuit — traits en pistes de cuivre, cases en puces ; l'arbre complet une fois.
 - Constellation — traits en fils d'étoiles, cases en étoiles plus ou moins brillantes ; la galaxie formée.
 - Métro — traits en lignes de métro colorées par branche, cases en stations ; cinq branches ouvertes.
-- La case du Big Bang au bout de l'arbre : une étoile, une porte, un œil, un bouton rouge ; chacun un palier de Big Bang.
 
 ### Les défis (`ChallengesPane`, l'arrivée de « la fuite »)
 - Cartes de tarot — chaque défi une lame, l'arrivée les retourne ; trois défis réussis.
@@ -158,11 +154,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ### Les astres (`BodyArt` : 35 astres, 10 échelles, 12 aspects)
 - Planétarium — tous les astres en sphères de laiton et de verre dépoli, sur des tiges ; dix astres.
 - Gravure — astres en hachures noir et blanc façon gravure du XIXᵉ siècle ; vingt astres.
-- Sucre — astres en bonbons et sucettes (la glacée en sucre d'orge, la lave en caramel, le Soleil en sucette rayée) ; le défi « Big Bang à froid ».
-- Bestiaire — chaque astre devient une créature : la comète un poisson à longue queue, le trou noir une bouche, la nébuleuse une méduse ; la galaxie formée.
-- Mécanique — astres en engrenages et rouages de tailles croissantes ; trois systèmes solaires complets.
 - Cartographie — astres en globes à méridiens et parallèles, nommés en lettres capitales ; trente-cinq astres.
-- Par échelle, des skins ciblés : les comètes (queue de feu, queue d'arc-en-ciel), les étoiles (étoiles à cinq branches, soleils à visage), les trous noirs (œil, spirale de papier, puits), le trou noir supermassif (porte, œil, bouche) ; chacun un succès de son échelle.
 
 ### Le ciel des astres (`SkyView`)
 - Planche naturaliste — fond parchemin, astres épinglés avec étiquette manuscrite ; quinze astres.
@@ -182,7 +174,6 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ### Les sondes (`ProbesView`, `LootPane`)
 - Sondes en avions de papier, en montgolfières, en bouteilles à la mer, en pigeons voyageurs ; dix, vingt-cinq, cinquante, cent voyages.
 - Trajectoires en pointillés de carte au trésor, en traînées de condensation, en fil d'Ariane ; chacun avec le skin de sonde.
-- Cartes de butin en coffre qui s'ouvre, en œuf qui éclot, en huître qui révèle une perle, en biscuit chinois ; chacun un palier de butin.
 
 ## 6. Collisionneur, hadrons, vide
 
@@ -226,7 +217,6 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Essences — chêne, bouleau (écorce blanche), saule pleureur, érable rouge, cerisier en fleur, baobab, séquoia, pin, palmier ; chaque essence un skin, débloqué par un univers formé à partir du quatrième.
 - Saisons figées — l'arbre toujours en automne (roux), en hiver (nu, givré), au printemps (fleurs) ; les saisons débloquées.
 - Fantaisie — arbre de cristal, arbre de corail, arbre en circuit lumineux, arbre de nuages, arbre inversé (les racines en haut), arbre en pixel art ; chaque bulle d'un palier différent.
-- Arbre-monde — un arbre qui porte des planètes (déjà le cas), des lanternes, des villes, des horloges, des yeux ; l'arbre-monde atteint, puis chaque fin de partie.
 - Le sol — herbe, sable, neige, mousse, dallage, eau (l'arbre pousse sur une île) ; chaque sol par un palier de la graine.
 
 ### Les bulles de l'arbre (`SeedView`, arbre d'améliorations)
@@ -290,7 +280,6 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 
 ### Thèmes (`ThemeFilter`, 11 thèmes dont 5 à débloquer)
 - Nouveaux thèmes en filtre : « Encre » (noir et blanc tranché), « Cyanotype » (bleu de Prusse `#1a3a6b` et blanc), « Vieux film » (sépia granuleux), « Thermique » (palette fausses couleurs), « Daltonien » (saturation et teintes vérifiées), « Lune » (gris bleuté), « Forêt » (verts), « Brasier » (rouges et oranges) ; chacun par un succès à trouver, dans l'esprit des cinq existants (une énigme dans sa description).
-- Un thème « d'après le skin » : le filtre global prend la teinte du dernier skin choisi.
 
 ### Notations (`Format`, 8 notations dont 3 à débloquer)
 - « Binaire » (puissances de 2), « Hexadécimale », « Chiffres japonais » (万, 億, 兆…), « Morse » (fantaisie), « Préfixes SI jusqu'au quetta », « Durées en battements de cœur » pour les temps ; chacune une énigme comme les trois existantes.

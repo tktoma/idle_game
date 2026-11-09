@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.random.RandomGenerator;
 
 /**
- * L'automatisation des dimensions (version 0.150), que la bulle du sommet de l'arbre-monde ouvre : des automatismes
+ * L'automatisation des dimensions (version 0.150), que les paliers de la graine et les univers ouvrent dimension par
+ * dimension (version 0.182 ; la bulle du sommet de l'arbre-monde avant) : des automatismes
  * qui jouent les dimensions à la place du joueur et achètent leurs améliorations ({@link DimensionAutomation}). Ils
  * s'achètent l'un après l'autre dans chaque dimension, ceux de la ligne en graines d'univers, ceux de chaque dimension
  * suivante avec la ressource de la précédente. Achetés, ils traversent les univers, comme les dimensions ; chacun se
@@ -24,20 +25,53 @@ public abstract class GameDimensionAutomation extends GameHadrons {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);
     }
 
-    /** Vrai une fois la bulle du sommet de l'arbre-monde achetée. */
+    /**
+     * Version 0.182 : les automatismes de la dimension n s'ouvrent quand la graine a atteint le palier n + 2 (le palier
+     * {@link GameUniverse#SEED_STAGES} au plus) et que n + 1 univers sont formés : ceux de la ligne au bonsaï et au deuxième univers,
+     * ceux du plan au cinquième palier et au troisième univers, et ainsi de suite jusqu'au mélange, à l'arbre-monde et au
+     * onzième univers. Avant, la bulle du sommet de l'arbre-monde les ouvrait tous d'un coup ; elle fait maintenant
+     * moitié prix ({@link #SUMMIT_DISCOUNT}).
+     */
+    public static final int AUTOMATION_STAGE_AHEAD = 2;
+
+    /** Ce que la bulle du sommet de l'arbre-monde retire du prix des automatismes des dimensions (version 0.182). */
+    public static final double SUMMIT_DISCOUNT = 0.5;
+
+    /** Le palier de la graine qu'il faut pour les automatismes de cette dimension : n + 2, l'arbre-monde au plus. */
+    public static int dimensionAutomationStage(int dimension) {
+        return Math.min(dimension + AUTOMATION_STAGE_AHEAD, GameUniverse.SEED_STAGES);
+    }
+
+    /** Les univers formés qu'il faut pour les automatismes de cette dimension : n + 1. */
+    public static int dimensionAutomationUniverses(int dimension) {
+        return dimension + 1;
+    }
+
+    /** Vrai si les automatismes de cette dimension sont ouverts : le palier de la graine et les univers y sont. */
+    public boolean isDimensionAutomationOpen(int dimension) {
+        return dimension >= 1 && dimension <= GameUniverse.MAX_DIMENSIONS && seedStage() >= dimensionAutomationStage(dimension)
+                && universes() >= dimensionAutomationUniverses(dimension);
+    }
+
+    /** Vrai si les automatismes d'au moins une dimension sont ouverts : le sous-onglet existe. */
     public boolean isDimensionAutomationUnlocked() {
-        return hasBubble(TreeBubble.SUMMIT);
+        return isDimensionAutomationOpen(1);
     }
 
     public boolean ownsDimensionAutomation(DimensionAutomation automation) {
         return state.dimensionAutomations().contains(automation.name());
     }
 
-    /** Vrai si on peut l'acheter, ou l'a acheté : la bulle, sa dimension ouverte, et celui d'avant acheté. */
+    /** Vrai si on peut l'acheter, ou l'a acheté : sa dimension ouverte aux automatismes, et celui d'avant acheté. */
     public boolean isDimensionAutomationAvailable(DimensionAutomation automation) {
         DimensionAutomation previous = automation.previous();
-        return isDimensionAutomationUnlocked() && dimensionsUnlocked() >= automation.dimension()
+        return isDimensionAutomationOpen(automation.dimension()) && dimensionsUnlocked() >= automation.dimension()
                 && (previous == null || ownsDimensionAutomation(previous));
+    }
+
+    /** Son prix : celui du catalogue, moitié prix avec la bulle du sommet de l'arbre-monde (version 0.182). */
+    public double dimensionAutomationCost(DimensionAutomation automation) {
+        return automation.cost() * (hasBubble(TreeBubble.SUMMIT) ? SUMMIT_DISCOUNT : 1);
     }
 
     /** Ce que le joueur a pour le payer : ses graines d'univers, ou la ressource de la dimension d'avant. */
@@ -52,13 +86,13 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     public boolean canBuyDimensionAutomation(DimensionAutomation automation) {
         return isDimensionAutomationAvailable(automation) && !ownsDimensionAutomation(automation)
-                && dimensionAutomationBalance(automation) >= automation.cost() - 1e-9;
+                && dimensionAutomationBalance(automation) >= dimensionAutomationCost(automation) - 1e-9;
     }
 
     /** Achète l'automatisme ; il se met en marche. Vrai si c'est fait. */
     public boolean buyDimensionAutomation(DimensionAutomation automation) {
         if (!canBuyDimensionAutomation(automation)) return false;
-        double cost = automation.cost();
+        double cost = dimensionAutomationCost(automation);
         switch (automation.paidWith()) {
             case 0 -> state.setUniverseSeeds(state.universeSeeds().subtract(BigNum.of(cost)).max(BigNum.ZERO));
             // Les autres, avec la ressource de la dimension d'avant (version 0.155 : un seul endroit, pour n'en oublier aucune).
@@ -92,7 +126,7 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     /** Ceux qui achètent : chacun prend son amélioration tant qu'elle est payable (cent fois par pas au plus). */
     void runDimensionAutomation() {
-        if (!isDimensionAutomationUnlocked()) return;
+        if (state.dimensionAutomations().isEmpty()) return;
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.kind() != DimensionAutomation.Kind.UPGRADE || !isDimensionAutomationRunning(automation)) continue;
             for (int bought = 0; bought < MAX_AUTO_ACTIONS_PER_STEP && buyDimensionUpgrade(automation); bought++) { }

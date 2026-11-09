@@ -191,6 +191,8 @@ public final class GameApp extends GameAppTabs {
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
+        // Le chrono dans un coin (version 0.182) : partout sauf sur la sous-page Graine, où il est déjà.
+        chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == idle.ui.universe.UniversePage.SEED);
 
         // La fuite (version 0.115) : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
         // le temps de son arrivée.

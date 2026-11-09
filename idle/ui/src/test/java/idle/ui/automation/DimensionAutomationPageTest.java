@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import idle.core.Game;
-import idle.core.GameUniverse.TreeBubble;
 import idle.core.math.BigNum;
 import idle.core.universe.DimensionAutomation;
 import idle.ui.FxTestSupport;
@@ -30,13 +29,21 @@ class DimensionAutomationPageTest {
         FxTestSupport.start();
     }
 
-    /** Une partie à {@code universes} univers (autant de dimensions ouvertes), de quoi payer, et la bulle si demandée. */
-    private static Game game(int universes, boolean summit) {
+    /**
+     * Une partie à {@code universes} univers (autant de dimensions ouvertes), de quoi payer ; {@code open} ouvre les automatismes
+     * de ces dimensions (version 0.182 : la graine à l'arbre-monde et un univers de plus ; la bulle du sommet avant).
+     */
+    private static Game game(int universes, boolean open) {
         Game game = new Game();
         game.start();
         game.testFormUniverse();
         for (int k = 1; k < universes; k++) assertTrue(game.testAddUniverse());
-        if (summit) game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        if (open) {
+            assertTrue(game.testAddUniverse());
+            game.state().setSeedSprouted(true);
+            game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
+            assertTrue(game.isDimensionAutomationOpen(universes));
+        }
         game.state().setUniverseSeeds(BigNum.of(100));
         game.state().setDimensionShards(1e9);
         game.state().setPlaneShards(1e9);
@@ -71,11 +78,11 @@ class DimensionAutomationPageTest {
     }
 
     @Test
-    void leSousOngletDimensionsApparaitAvecLaBulleDuSommet() {
+    void leSousOngletDimensionsApparaitAvecLePalierDeLaGraineEtLesUnivers() {
         FxTestSupport.fx(() -> {
             AutomationPage bare = page(game(4, false));
             assertTrue(bare.ordinaryTab().isVisible());
-            assertFalse(bare.dimensionsTab().isVisible(), "sans la bulle, pas de « Dimensions »");
+            assertFalse(bare.dimensionsTab().isVisible(), "sans le palier de la graine, pas de « Dimensions »");
             bare.step(1);
             assertEquals(AutomationPage.ORDINARY, bare.selected());
 
@@ -97,7 +104,11 @@ class DimensionAutomationPageTest {
             few.select(AutomationPage.DIMENSIONS);
             few.refresh();
             assertTrue(few.dimensionsPane().sectionShown(2));
-            assertFalse(few.dimensionsPane().sectionShown(3), "le volume n'est pas ouvert");
+            assertTrue(few.dimensionsPane().sectionShown(3), "trois univers : le volume est ouvert, ses automatismes pas encore");
+            assertEquals(Card.State.LOCKED, few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).state());
+            assertTrue(few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).text().contains("Avec le bonsaï et 4 univers formés"),
+                    few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).text());
+            assertFalse(few.dimensionsPane().sectionShown(4), "la durée n'est pas ouverte");
             return null;
         });
     }

@@ -67,7 +67,12 @@ import javafx.scene.text.TextAlignment;
  *   <li>tirer avec la souris déplace la vue, sans sortir de l'espace.</li>
  * </ul>
  * De très loin, la matière est un gaz : chaque molécule n'est plus qu'une bouffée de sa couleur,
- * et les bouffées se fondent en nuages qui remuent lentement ({@link #mist()}). En s'approchant,
+ * et les bouffées se fondent en nuages qui remuent lentement ({@link #mist()}). La structure reste
+ * pourtant lisible à travers eux (version 0.183) : par-dessus le gaz, net, chaque bloc d'assemblage
+ * est un disque plein de la couleur de sa matière sous son contour clair, et chaque amas un anneau
+ * fin de la couleur de son état, avec une légère lueur de cette couleur qui monte vers son bord.
+ * Ces marques apparaissent avec le gaz et s'effacent avec lui ({@link #drawMistBodies}) : de près,
+ * le dessin des amas et des blocs reprend. En s'approchant,
  * le gaz se dissipe et laisse voir les amas et leurs molécules : d'abord des points, puis leurs
  * atomes, leurs liaisons et leurs symboles ({@link MoleculeArt}). Tant que le joueur n'a pas rapproché la vue, elle suit
  * l'expansion et montre toujours tout l'espace.
@@ -298,6 +303,8 @@ public final class SpaceView extends SpaceViewPacking {
             g.setGlobalAlpha(1);
             blur.setRadius(Math.min(63, Math.max(LEAST_BLUR, BLUR_SHARE * unit) * mist));
             g.applyEffect(blur);
+            // Puis, net, ce qui garde la structure lisible dans le gaz : les blocs et le tour des amas.
+            if (!swirled) drawMistBodies(g, originX, originY, cosTurn, sinTurn, unit, edge, w, h);
         }
 
         // Ce qui reste net par-dessus le gaz : les étoiles, le cercle discret du cœur utilisé, le bord de l'espace.
@@ -376,6 +383,46 @@ public final class SpaceView extends SpaceViewPacking {
         double grown = magnification();
         g.fillText(following ? "Tout l'espace" : "Grossi " + (grown >= 10 ? String.valueOf(Math.round(grown))
                 : ElementText.number(Math.round(grown * 10) / 10.0)) + " fois", 10, h - 10);
+    }
+
+    /** Rayon d'un corps à l'écran, en pixels, à partir duquel il est redessiné net dans le gaz : plus petit, il n'est qu'un grain du nuage. */
+    static final double MIST_DISC_FROM = 2;
+    /** Ce que la lueur d'un amas vu dans le gaz garde de la couleur de son état, à son bord : au centre, rien. */
+    static final double MIST_GLOW = 0.3;
+
+    /**
+     * Ce que le gaz laisse voir de loin (version 0.183), dessiné net par-dessus les nuages : chaque
+     * bloc d'assemblage redevient un disque plein de la couleur de sa matière ({@code inks}) sous un
+     * contour fin de la couleur de son bord ({@code rims}), et chaque amas un anneau fin de la couleur
+     * de son état, avec une lueur de cette couleur qui monte vers son bord. Tout cela a l'opacité du
+     * gaz ({@link #mist()}) : invisible de près, où le dessin des amas et des blocs reprend, entier de
+     * très loin. Les corps tournent avec le reste ; un corps trop petit à l'écran n'est pas redessiné,
+     * et un disque qui dépasserait du bord de l'espace est rogné à ce bord.
+     */
+    private void drawMistBodies(GraphicsContext g, double originX, double originY, double cosTurn, double sinTurn, double unit,
+            double edge, double w, double h) {
+        g.setGlobalAlpha(mist);
+        g.setLineWidth(1);
+        for (int cluster = sky.length; cluster < clusters.length; cluster++) {
+            if (clusters[cluster].length == 0) continue;
+            double midX = originX + (middleX[cluster] * cosTurn - middleY[cluster] * sinTurn) * unit;
+            double midY = originY + (middleY[cluster] * cosTurn + middleX[cluster] * sinTurn) * unit;
+            double around = Math.min(rounds[cluster] * unit, edge - Math.hypot(midX - originX, midY - originY));
+            if (around < MIST_DISC_FROM || midX + around < 0 || midX - around > w || midY + around < 0 || midY - around > h) continue;
+            Color rim = rims[cluster];
+            if (blocks[cluster] != null) {
+                g.setFill(inks[cluster]);
+            } else {
+                g.setFill(new javafx.scene.paint.RadialGradient(0, 0, midX, midY, around, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                        new javafx.scene.paint.Stop(0, tint(rim, 0)), new javafx.scene.paint.Stop(0.6, tint(rim, 0.2 * MIST_GLOW)),
+                        new javafx.scene.paint.Stop(1, tint(rim, MIST_GLOW))));
+            }
+            g.fillOval(midX - around, midY - around, 2 * around, 2 * around);
+            // Le contour, d'un pixel, tout entier dans le disque.
+            g.setStroke(rim);
+            g.strokeOval(midX - around + 0.5, midY - around + 0.5, 2 * around - 1, 2 * around - 1);
+        }
+        g.setGlobalAlpha(1);
     }
 
     /**

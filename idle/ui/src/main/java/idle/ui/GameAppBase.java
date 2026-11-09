@@ -302,6 +302,8 @@ public abstract class GameAppBase extends Application {
     boolean detailKeyDown = false;
     // Les notifications, par-dessus tout le reste, et ce qui repère les nouvelles à annoncer.
     final ToastPane toasts = new ToastPane();
+    /** Le chrono dans un coin (version 0.182), en bas à gauche, hors de la sous-page Graine. */
+    final idle.ui.universe.ChronoCorner chronoCorner = new idle.ui.universe.ChronoCorner(game);
     final Notifier notifier = new Notifier(game);
     /** Le guide de transition entre univers (version 0.127). */
     final TransitionPane transitionPane = new TransitionPane(game);
@@ -606,10 +608,11 @@ public abstract class GameAppBase extends Application {
         flash.setStyle("-fx-background-color: #ffffff;");
         flash.setOpacity(0);
         blast.setVisible(false);
-        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
+        StackPane window = windowPane = new StackPane(root, dimensionWindow, blast, burst, chronoCorner, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
                 transitionPane, absencePane);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
+        StackPane.setAlignment(chronoCorner, Pos.BOTTOM_LEFT);
         scaled = new ScaledPane(window);
         themeFilter = new ThemeFilter(window);
 

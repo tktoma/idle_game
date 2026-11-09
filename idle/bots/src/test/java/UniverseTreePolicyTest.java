@@ -212,14 +212,16 @@ class UniverseTreePolicyTest {
     }
 
     @Test
-    void lesAutomatismesDesDimensionsSAchetentAvecLaBulleDuSommet() {
+    void lesAutomatismesDesDimensionsSAchetentDesQueLaGraineEtLesUniversLesOuvrent() {
+        // Version 0.182 : la ligne s'ouvre au palier 3 et à deux univers, le plan au palier 4 et à trois univers.
         Game game = universes(3, true);
-        worldTree(game);
+        game.state().setSeedSprouted(true);
+        game.state().setSeedWaterings(Game.seedStageWaterings(2));
         game.testAddUniverseSeeds(BigNum.of(20));
         UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
         expert.line(game);
-        assertEquals(0, game.dimensionAutomationsOwned(), "pas sans la bulle du sommet");
-        own(game, TreeBubble.SUMMIT);
+        assertEquals(0, game.dimensionAutomationsOwned(), "pas avant le palier 3 de la graine");
+        game.state().setSeedWaterings(Game.seedStageWaterings(3));
         double seeds = game.state().universeSeeds().toDouble();
         expert.line(game);
         for (DimensionAutomation automation : DimensionAutomation.values()) {
@@ -227,10 +229,32 @@ class UniverseTreePolicyTest {
         }
         assertEquals(seeds - 9, game.state().universeSeeds().toDouble(), 1e-9, "1 + 1 + 2 + 2 + 3 graines");
         assertEquals(5, expert.automations);
-        // Avec les segments du premier automatisme du plan, la visée automatique suit.
+        // Avec les segments du premier automatisme du plan, la visée automatique suit, dès le palier 4 (trois univers déjà là).
         game.state().setDimensionShards(DimensionAutomation.PLANE_AIM.cost());
         expert.line(game);
+        assertFalse(game.ownsDimensionAutomation(DimensionAutomation.PLANE_AIM), "le plan attend le palier 4");
+        game.state().setSeedWaterings(Game.seedStageWaterings(4));
+        game.state().setDimensionShards(DimensionAutomation.PLANE_AIM.cost());   // la ligne a dépensé les premiers
+        expert.line(game);
         assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_AIM));
+        // La bulle du sommet : moitié prix.
+        own(game, TreeBubble.SUMMIT);
+        game.state().setDimensionShards(DimensionAutomation.PLANE_VALUE.cost() * 0.6);
+        expert.line(game);
+        assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_VALUE), "60 % du prix suffisent avec la bulle");
+    }
+
+    @Test
+    void leChronoEstMisAFondDesSonEtage() {
+        Game game = universes(2, true);
+        game.state().setPlaneShards(1e6);
+        UniverseTreePolicy expert = new UniverseTreePolicy(UniverseTreePolicy.Style.EXPERT, new NoRandom());
+        expert.line(game);
+        assertTrue(game.isChronoUnlocked(), "l'étage du chrono, payable en facettes, s'achète (version 0.182)");
+        assertEquals(game.chronoMaxSpeed(), game.chronoSpeed(), 1e-9, "et le chrono est à fond");
+        game.state().setSeedUpgradeLevel(idle.core.GameUniverse.SeedUpgrade.CHRONO_SPEED.ordinal(), 2);
+        expert.line(game);
+        assertEquals(4, game.chronoSpeed(), 1e-9, "il suit l'accélération la plus forte");
     }
 
     @Test

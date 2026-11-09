@@ -180,9 +180,24 @@ public abstract class GameBase {
      */
     public static final BigNum BIG_BANG_PARTICLES_LATER = BigNum.of(1, 50000);
 
-    /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants. */
+    /**
+     * Particules du tout premier Big Bang de la partie (version 0.181) : celui de l'acte 2 du premier univers. Avec
+     * 10¹⁹⁰⁰⁰⁰ et la réserve de 120 000 de matière noire, l'acte 2 du Speedrunner (graine 201) durait 5 h 43 en 0.179 ;
+     * la cible est quatre heures. Les univers suivants gardent {@link #BIG_BANG_PARTICLES}.
+     */
+    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES = BigNum.of(1, 85000);
+
+    /**
+     * Particules des Big Bangs suivants du premier univers (version 0.181) : 10³⁰⁰⁰⁰. Après chaque Big Bang, la production
+     * repart de zéro et met une heure à repasser de 10¹⁸⁰⁰⁰ à 10³⁰⁰⁰⁰ ; c'est elle qui faisait durer les Big Bangs 2 à 4
+     * du Speedrunner (30, 65 et 88 minutes). Les univers suivants gardent {@link #BIG_BANG_PARTICLES_LATER}.
+     */
+    public static final BigNum FIRST_UNIVERSE_BIG_BANG_PARTICLES_LATER = BigNum.of(1, 30000);
+
+    /** Les particules que demande le prochain Big Bang : beaucoup pour le premier, moins pour les suivants, moins encore au premier univers. */
     public BigNum bigBangParticles() {
-        BigNum need = state.bigBangs() == 0 ? BIG_BANG_PARTICLES : BIG_BANG_PARTICLES_LATER;
+        BigNum need = state.universeFormed() ? (state.bigBangs() != 0 ? BIG_BANG_PARTICLES_LATER : BIG_BANG_PARTICLES)
+                : (state.bigBangs() != 0 ? FIRST_UNIVERSE_BIG_BANG_PARTICLES_LATER : FIRST_UNIVERSE_BIG_BANG_PARTICLES);
         // La barre haute (version 0.117) : une fois et demie plus d'ordres de grandeur.
         if (raisedBar()) need = BigNum.pow10(need.log10() * idle.core.bigbang.BangChallenge.RAISED_PARTICLES);
         double relief = bigBangCalmRelief();
@@ -277,6 +292,13 @@ public abstract class GameBase {
     public static final BigNum BIG_BANG_ATOMS = BigNum.of(1, 12);
 
     /**
+     * Les atomes des Big Bangs du premier univers (version 0.181) : dix fois moins. En 0.179, les Big Bangs 3, 4 et 7
+     * du Speedrunner attendaient les seuls atomes 54, 35 et 55 minutes ; la phase des sept Big Bangs durait 6 h 52,
+     * la cible est six heures. Les univers suivants gardent {@link #BIG_BANG_ATOMS}.
+     */
+    public static final BigNum FIRST_UNIVERSE_BIG_BANG_ATOMS = BigNum.of(1, 11);
+
+    /**
      * Matière noire à avoir en réserve, sans la dépenser, pour le Big Bang : une cinquantaine
      * d'explosions à onze matières noires.
      */
@@ -287,9 +309,10 @@ public abstract class GameBase {
         return idle.core.bigbang.BangChallenge.RAISED.name().equals(state.activeBangChallenge());
     }
 
-    /** Les atomes en main que demande le Big Bang : plus pendant la barre haute. */
+    /** Les atomes en main que demande le Big Bang : moins au premier univers (version 0.181), plus pendant la barre haute. */
     public BigNum bigBangAtoms() {
-        return raisedBar() ? BIG_BANG_ATOMS.multiply(idle.core.bigbang.BangChallenge.RAISED_ATOMS) : BIG_BANG_ATOMS;
+        BigNum need = state.universeFormed() ? BIG_BANG_ATOMS : FIRST_UNIVERSE_BIG_BANG_ATOMS;
+        return raisedBar() ? need.multiply(idle.core.bigbang.BangChallenge.RAISED_ATOMS) : need;
     }
 
     /**
@@ -298,7 +321,7 @@ public abstract class GameBase {
      * cette réserve, qui se remplit d'environ 43 000 à l'heure à ce moment, la dernière attente est d'environ une heure,
      * sans changer l'heure du Big Bang.
      */
-    public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(120_000);
+    public static final BigNum FIRST_BIG_BANG_DARK_MATTER = BigNum.of(42_000);
 
     /**
      * La matière noire en réserve que demande le Big Bang : plus pour le tout premier (version 0.166), et plus pendant la
@@ -362,10 +385,40 @@ public abstract class GameBase {
     public static final BigNum CHALLENGE_WEIGHT = BigNum.of(5000);
 
     /**
+     * Version 0.181 : les défis d'explosion se corsent un peu à chaque univers formé. La masse de leur tableau
+     * ({@link #CHALLENGE_WEIGHT}, {@link #STYLE_CHALLENGE_WEIGHT}) est multipliée par {@code 1,3^univers formés} :
+     * ×1,3 au deuxième univers, ×2,2 au quatrième, ×6,3 au huitième, ×13,8 au onzième. En 0.179 les dix défis se
+     * gagnaient en moins d'une minute dès le milieu de la partie ; cette pente les ramène à quelques minutes sans
+     * jamais barrer la route, la production montant bien plus vite d'un univers à l'autre.
+     */
+    public static final double CHALLENGE_UNIVERSE_GROWTH = 1.3;
+
+    /** Le facteur de difficulté des défis dans cet univers : {@link #CHALLENGE_UNIVERSE_GROWTH} par univers formé. */
+    public double challengeUniverseFactor() {
+        return Math.pow(CHALLENGE_UNIVERSE_GROWTH, universes());
+    }
+
+    /** Univers créés : 0 avant l'univers, 1 une fois formé, plus ceux d'après ({@link GameUniverse#universes()}). */
+    public abstract int universes();
+
+    /**
      * La matière noire de chaque explosion avant le premier Big Bang (version 0.097) : ×0,8. Le deuxième acte
      * s'étale ainsi vers six heures, au lieu de cinq.
      */
     public static final double FIRST_CYCLE_DARK_MATTER = 0.8;
+
+    /**
+     * Version 0.181 : l'élan de la matière noire du premier univers, du premier Big Bang à la formation, est multiplié par
+     * 1,6. Chaque cycle du troisième acte refait l'arbre de matière noire jusqu'au Débordement (10¹⁰ années-lumière),
+     * sans quoi les atomes du Big Bang restent plafonnés ; la taille croît comme l'élan, et les Big Bangs 2 à 4 du
+     * Speedrunner (graine 201) prenaient 30, 65 et 88 minutes. Les univers suivants n'y ont pas droit.
+     */
+    public static final double FIRST_UNIVERSE_CYCLE_MOMENTUM = 1.6;
+
+    /** L'élan du premier univers après son premier Big Bang ({@link #FIRST_UNIVERSE_CYCLE_MOMENTUM}), 1 ailleurs. */
+    public double firstUniverseCycleMomentum() {
+        return state.bigBangs() > 0 && !state.universeFormed() ? FIRST_UNIVERSE_CYCLE_MOMENTUM : 1;
+    }
 
     /**
      * Nombre d'atomes à avoir créés depuis le début de la partie (dépensés ou non) pour débloquer

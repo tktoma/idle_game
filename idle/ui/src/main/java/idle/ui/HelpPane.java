@@ -163,11 +163,16 @@ final class HelpPane extends Overlay {
                     + "les branches, six liaisons, payées en matière noire, s'ouvrent par l'une ou l'autre des voies voisines ; "
                     + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
                     + "matières noires : seuls les prix rythment l'arbre. Les défis sont des "
-                    + "parties sous contrainte, avec une récompense qui reste. Au bout de l'arbre, les "
+                    + "parties sous contrainte, avec une récompense qui reste"
+                    + (game.universes() > 0 ? " ; leur tableau pèse " + ElementText.number(game.challengeUniverseFactor())
+                            + " fois plus qu'au premier univers (×" + ElementText.number(Game.CHALLENGE_UNIVERSE_GROWTH) + " par univers formé)" : "")
+                    + ". Au bout de l'arbre, les "
                     + game.bigBangConditions().size() + " conditions du prochain Big Bang, une fois réunies, le "
                     + "déclenchent ; le tout premier demande une grande réserve de matière noire ("
                     + ElementText.number(Game.FIRST_BIG_BANG_DARK_MATTER.toDouble()) + "), les suivants "
-                    + ElementText.number(Game.BIG_BANG_DARK_MATTER.toDouble()) + ". Exploser nettement plus vite que la fois d'avant (en moins de "
+                    + ElementText.number(Game.BIG_BANG_DARK_MATTER.toDouble()) + ". Le premier univers demande aussi moins de particules et "
+                    + "d'atomes à ses Big Bangs que les suivants, et sa matière noire grossit plus vite après son premier Big Bang. "
+                    + "Exploser nettement plus vite que la fois d'avant (en moins de "
                     + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."));
         }
         if (game.isBigBangUnlocked()) {
@@ -273,7 +278,9 @@ final class HelpPane extends Overlay {
                 + "l'arbre-monde, ce que les améliorations de la graine raccourcissent d'autant ; les attentes de l'amas et de la formation sont faites pour jouer les "
                 + "dimensions et arroser. La graine ne prend pas plus de deux paliers d'avance sur les univers formés : les arrosages font venir "
                 + "la prochaine phase plus tôt, pas plus loin, et ceux versés en trop comptent pour la suivante. Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
-                + "pertes d'autant plus fortes qu'il va vite. Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
+                + "pertes d'autant plus fortes qu'il va vite ; son étage se paie en facettes du plan, dès le deuxième univers (le tuyau en sphères du "
+                + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis le coin bas gauche de la fenêtre, "
+                + "sur tous les onglets. Les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (voir plus bas). Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
                 + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
@@ -386,11 +393,16 @@ final class HelpPane extends Overlay {
                         + "vert autour du point. Les dix paliers atteints, la partie est finie : les traits de la carte "
                         + "deviennent verts dans une aura dorée, le point du milieu grandit, et l'écran de fin s'ouvre. Le jeu "
                         + "continue derrière, et « Revoir la fin » la rejoue." : "")));
-        // L'automatisation des dimensions (version 0.150) : avec la bulle du sommet de l'arbre-monde.
-        if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "La bulle du "
-                + "sommet de l'arbre-monde ouvre le sous-onglet « Dimensions » de l'onglet Automatisation : "
-                + DimensionAutomation.values().length + " automatismes qui jouent les dimensions à votre place et achètent "
-                + "leurs améliorations. Dans chaque dimension, ils s'achètent l'un après l'autre : ceux de la ligne en graines "
+        // L'automatisation des dimensions (version 0.150 ; version 0.182 : par les paliers de la graine et les univers).
+        if (game.isDimensionAutomationUnlocked()) sections.add(new Section("Automatisation des dimensions", "Les paliers de "
+                + "la graine et les univers ouvrent le sous-onglet « Dimensions » de l'onglet Automatisation, une dimension à la "
+                + "fois : ceux de la ligne avec " + Game.SEED_STAGE_NAMES.get(Game.dimensionAutomationStage(1) - 1) + " et "
+                + Game.dimensionAutomationUniverses(1) + " univers formés, ceux du plan avec "
+                + Game.SEED_STAGE_NAMES.get(Game.dimensionAutomationStage(2) - 1) + " et " + Game.dimensionAutomationUniverses(2)
+                + " univers, et ainsi de suite, un palier et un univers de plus par dimension (ceux du mélange avec l'arbre-monde et "
+                + Game.dimensionAutomationUniverses(Game.MAX_DIMENSIONS) + " univers). La bulle du sommet de l'arbre-monde les fait "
+                + "moitié prix. En tout, " + DimensionAutomation.values().length + " automatismes qui jouent les dimensions à votre "
+                + "place et achètent leurs améliorations. Dans chaque dimension, ils s'achètent l'un après l'autre : ceux de la ligne en graines "
                 + "d'univers, ceux du plan en " + Game.dimensionResourceName(1) + ", ceux du volume en "
                 + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ", ceux de la "
                 + "boucle en " + Game.dimensionResourceName(4) + ", ceux de la brane en " + Game.dimensionResourceName(5)

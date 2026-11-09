@@ -467,12 +467,19 @@ final class UniverseTreePolicy {
     // ------------------------------------------------------------------
 
     /**
-     * Les automatismes des dimensions (bulle du sommet), dans l'ordre du jeu ; le débit de l'arrosoir tant que la graine
+     * Le chrono à fond (version 0.182) ; les automatismes des dimensions (ouverts par les paliers de la graine et les univers,
+     * version 0.182), dans l'ordre du jeu ; le débit de l'arrosoir tant que la graine
      * pousse ; les autres améliorations de la graine dès qu'elles sont payables (version 0.163) ; puis la ligne au
      * meilleur rapport.
      */
     int line(Game game) {
         int done = 0;
+        // Version 0.182 : le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
+        // comptent en secondes de jeu), seulement au temps réel : la colonne « réel » des mesures le dit.
+        if (game.isChronoUnlocked() && game.chronoSpeed() < game.chronoMaxSpeed() - 1e-9) {
+            game.setChronoSpeed(game.chronoMaxSpeed());
+            trace(game, "chrono ×" + game.chronoMaxSpeed());
+        }
         if (game.isDimensionAutomationUnlocked()) {
             for (DimensionAutomation automation : DimensionAutomation.values()) {
                 if (game.canBuyDimensionAutomation(automation) && game.buyDimensionAutomation(automation)) {
@@ -510,6 +517,12 @@ final class UniverseTreePolicy {
             if (best == null || !game.buyLine(best)) break;
             lineBought++;
             done++;
+        }
+        // Version 0.182 : le chrono à fond dès son étage acheté. Il ne change rien au temps de jeu mesuré (les paliers se
+        // comptent en secondes de jeu), seulement au temps réel : la colonne « réel » des mesures le dit.
+        if (game.isChronoUnlocked() && game.chronoSpeed() < game.chronoMaxSpeed() - 1e-9) {
+            game.setChronoSpeed(game.chronoMaxSpeed());
+            trace(game, "chrono ×" + game.chronoMaxSpeed());
         }
         return done;
     }

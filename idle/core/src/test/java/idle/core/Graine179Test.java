@@ -30,20 +30,22 @@ class Graine179Test {
             }
         }
         assertEquals(50_000, SeedUpgrade.WATERING.baseCost(), 1e-9, "250 000 segments / 5");
-        assertEquals(700, SeedUpgrade.HOSE.baseCost(), 1e-9, "3 500 facettes / 5");
-        assertEquals(1_600, SeedUpgrade.SOIL.baseCost(), 1e-9, "8 000 sphères / 5");
+        // Version 0.182 : le tuyau au volume, la terre fertile à la durée, l'étage du chrono au plan.
+        assertEquals(1_600, SeedUpgrade.HOSE.baseCost(), 1e-9, "8 000 sphères / 5");
+        assertEquals(3_000_000, SeedUpgrade.SOIL.baseCost(), 1e-9, "15 000 000 instants / 5");
         assertEquals(3_000_000, SeedUpgrade.CHRONO_LOSS.baseCost(), 1e-9, "15 000 000 instants / 5");
-        assertEquals(5_000_000, SeedUpgrade.CHRONO.baseCost(), 1e-9, "l'étage du chrono : 15 000 000 / 3");
+        assertEquals(3_500 / 3.0, SeedUpgrade.CHRONO.baseCost(), 1e-9, "l'étage du chrono : 3 500 facettes / 3");
         assertEquals(1_000, SeedUpgrade.ASTRAL_LIGHT.baseCost(), 1e-9, "5 000 ondes / 5");
-        // Dix niveaux de terre fertile coûtent ensemble 1 600 × (1,6¹⁰ − 1) / 0,6 : moins de six heures de volume au rythme de départ.
+        // Dix niveaux de terre fertile coûtent ensemble 3 000 000 × (1,6¹⁰ − 1) / 0,6 : moins de dix heures de durée au rythme de départ.
         double soil = 0;
         for (int level = 0; level < SeedUpgrade.SOIL.max(); level++) soil += SeedUpgrade.SOIL.cost(level);
-        assertTrue(soil < 8_000 * 40, "dix niveaux de terre fertile : " + soil + " sphères, moins de dix heures de volume au rythme de départ");
-        // Un prix est toujours entier, arrondi au-dessus : 700 × 1,6² = 1 792.
+        assertTrue(soil < 15_000_000 * 40, "dix niveaux de terre fertile : " + soil + " instants, moins de dix heures de durée au rythme de départ");
+        // Un prix est toujours entier, arrondi au-dessus : 3 500 / 3 = 1 167 pour l'étage du chrono.
         Game game = GameTestSupport.universe(2);
         game.state().setPlaneShards(1e9);
-        assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE) && game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertEquals(1_792, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9);
+        assertEquals(1_167, game.seedUpgradeCost(SeedUpgrade.CHRONO), 1e-9);
+        assertTrue(game.buySeedUpgrade(SeedUpgrade.CHRONO));
+        assertEquals(1e9 - 1_167, game.state().planeShards(), 1e-6);
     }
 
     @Test
@@ -58,9 +60,9 @@ class Graine179Test {
         assertEquals(0, Game.seedStageWaterings(1));
         assertEquals(990, Game.seedStageWaterings(4), "le bonsaï et ses premières bulles : un quart d'heure d'arrosoir");
         assertEquals(133_290, Game.seedStageWaterings(Game.SEED_STAGES), "l'arbre-monde : douze heures d'arrosoir seul");
-        Game game = GameTestSupport.universe(3);
+        Game game = GameTestSupport.universe(4);
         game.state().setSeedSprouted(true);
-        game.state().setVolumeShards(1e9);
+        game.state().setDurationShards(1e12);   // version 0.182 : la terre fertile se paie en instants de la durée
         assertEquals(1, game.seedSoilFactor());
         for (int level = 1; level <= SeedUpgrade.SOIL.max(); level++) {
             assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));

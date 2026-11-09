@@ -49,7 +49,7 @@ public final class UniversePage extends VBox {
     static final int MAIN = 0;
     static final int DIMENSIONS = 1;
     /** Version 0.142 : plus de sous-onglet « Vide » ; le vide se joue dans son onglet, son cumul est dans la graine. */
-    static final int SEED = 2;
+    public static final int SEED = 2;
     /** La couleur de la graine d'univers : un or de paille. */
     static final String SEED_COLOR = "#e6d27a";
 

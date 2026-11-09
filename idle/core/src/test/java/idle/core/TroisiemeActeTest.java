@@ -707,11 +707,12 @@ class TroisiemeActeTest {
             game.state().setParticles(BigNum.of(1, 50));
             game.state().setAtoms(BigNum.of(1, 6));
             BigNum particlesNeed = game.bigBangParticles();
+            BigNum atomsNeed = game.bigBangAtoms();
             assertTrue(game.startBangChallenge(BangChallenge.RAISED));
             assertEquals(50, game.state().particles().log10(), 1e-9, "rien n'est remis à zéro");
             assertEquals(1e6, game.state().atoms().toDouble(), 1e-6);
             assertEquals(particlesNeed.log10() * 1.5, game.bigBangParticles().log10(), 1e-6, "une fois et demie plus d'ordres de grandeur");
-            assertEquals(Game.BIG_BANG_ATOMS.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
+            assertEquals(atomsNeed.toDouble() * 100, game.bigBangAtoms().toDouble(), 1);
             assertEquals(Game.BIG_BANG_DARK_MATTER.toDouble() * 2, game.bigBangDarkMatter().toDouble(), 1e-9);
             assertTrue(game.abandonBangChallenge());
             GameTestSupport.bangs(game, 6);

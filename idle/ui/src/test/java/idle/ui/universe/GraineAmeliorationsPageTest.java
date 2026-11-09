@@ -63,17 +63,17 @@ class GraineAmeliorationsPageTest {
             pane.button(SeedUpgrade.WATERING).fire();
             assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.WATERING));
             assertTrue(game.dimensionResource(1) < segments, "payé en segments");
-            // Le plan : le tuyau, que la vue dessine aussitôt.
-            pane.select(2);
-            assertTrue(pane.resourceText().getText().startsWith("Facettes du plan"), pane.resourceText().getText());
+            // Le volume (version 0.182 ; le plan avant) : le tuyau, que la vue dessine aussitôt.
+            pane.select(3);
+            assertTrue(pane.resourceText().getText().startsWith("Sphères du volume"), pane.resourceText().getText());
             assertFalse(page.seedView().isHoseShown());
             pane.button(SeedUpgrade.HOSE).fire();
             assertTrue(game.hasHose());
             for (int i = 0; i < 60; i++) page.frame(0.016, true);
             assertTrue(page.seedView().isHoseShown());
             assertTrue(page.seedView().hoseDrops() > 0, "le tuyau arrose");
-            // Le volume : la terre fertile double chaque arrosage.
-            pane.select(3);
+            // La durée (version 0.182 ; le volume avant) : la terre fertile double chaque arrosage.
+            pane.select(4);
             pane.button(SeedUpgrade.SOIL).fire();
             assertEquals(2, game.seedSoilFactor());
             return null;
@@ -87,25 +87,26 @@ class GraineAmeliorationsPageTest {
             Game game = new Game();
             game.start();
             game.testFormUniverse();
-            while (game.universes() < 2) assertTrue(game.testAddUniverse());
-            game.state().setPlaneShards(120);
+            while (game.universes() < 3) assertTrue(game.testAddUniverse());
+            // Version 0.182 : le tuyau est sur la branche Volume, 1 600 sphères au premier niveau.
+            game.state().setVolumeShards(120);
             SeedUpgradesPane pane = page(game).seedUpgrades();
-            pane.select(2);
+            pane.select(3);
             javafx.scene.control.Button hose = pane.button(SeedUpgrade.HOSE);
             assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose));
-            assertTrue(hose.getText().contains("il en manque 230"), hose.getText());
+            assertTrue(hose.getText().contains("il en manque 1 480"), hose.getText());
             assertTrue(hose.isDisabled());
             assertTrue(hose.getStyle().contains("-fx-opacity: 1"), "désactivée, la carte reste lisible");
-            assertEquals(SeedUpgradesPane.CardState.LOCKED, SeedUpgradesPane.state(pane.button(SeedUpgrade.CHRONO_CAPACITY)));
-            assertFalse(pane.isBranchOpen(3), "deux univers : le volume n'est pas ouvert");
-            game.state().setPlaneShards(400);
+            assertEquals(SeedUpgradesPane.CardState.LOCKED, SeedUpgradesPane.state(pane.button(SeedUpgrade.CHRONO_SPEED)), "sans l'étage du chrono");
+            assertFalse(pane.isBranchOpen(4), "trois univers : la durée n'est pas ouverte");
+            game.state().setVolumeShards(2_000);
             pane.refresh();
             assertEquals(SeedUpgradesPane.CardState.BUY, SeedUpgradesPane.state(hose));
             assertFalse(hose.isDisabled());
-            assertTrue(pane.hasPurchase(2), "l'onglet du plan porte sa pastille");
+            assertTrue(pane.hasPurchase(3), "l'onglet du volume porte sa pastille");
             hose.fire();
             assertEquals(1, game.seedUpgradeLevel(SeedUpgrade.HOSE));
-            assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose), "le niveau suivant coûte 875");
+            assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose), "le niveau suivant coûte 2 560");
             game.state().setSeedUpgradeLevel(SeedUpgrade.HOSE.ordinal(), SeedUpgrade.HOSE.max());
             pane.refresh();
             assertEquals(SeedUpgradesPane.CardState.MAX, SeedUpgradesPane.state(hose));
@@ -202,8 +203,8 @@ class GraineAmeliorationsPageTest {
             assertFalse(pane.chronoSlider().isVisible() && pane.chronoSlider().getParent().isVisible());
             pane.select(1);
             assertTrue(pane.button(SeedUpgrade.CHRONO_FILL).isDisabled(), "sans l'étage, pas de remplissage");
-            pane.select(4);
-            assertTrue(pane.resourceText().getText().startsWith("Instants de la durée"), pane.resourceText().getText());
+            pane.select(2);   // version 0.182 : l'étage du chrono est sur la branche Plan
+            assertTrue(pane.resourceText().getText().startsWith("Facettes du plan"), pane.resourceText().getText());
             pane.button(SeedUpgrade.CHRONO).fire();
             assertTrue(game.isChronoUnlocked());
             for (int i = 0; i < 30; i++) page.frame(0.016, true);

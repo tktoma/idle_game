@@ -23,6 +23,50 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.184", "La liste des skins, triée", List.of(
+                    "SKINS.md relu et trié : onze idées retirées (le fruit de l'atome, les serpents du faisceau, l'anneau de Saturne du "
+                            + "collisionneur, la case du Big Bang, les astres en sucre, en bestiaire et en mécanique, les skins par échelle, "
+                            + "les cartes de butin, l'arbre-monde, le thème d'après le skin), et l'horlogerie de l'atome refaite : chaque "
+                            + "particule est un petit engrenage. 167 visuels restent. Rien dans le jeu ne change.")),
+            new Note("0.183", "Des astres plus détaillés, un espace lisible de loin", List.of(
+                    "Assez grands à l'écran (14 pixels de rayon et plus), les astres gagnent des couches de détail : limbe "
+                            + "assombri, reflet sur les mers et les glaces, liseré d'atmosphère, ombres des nuages, bords éclairés "
+                            + "des cratères, remous entre les bandes et œil de la tempête des géantes, ombre des anneaux sur la "
+                            + "planète et de la planète sur ses anneaux, granulation, protubérances et rayons des étoiles, jets et "
+                            + "stries des comètes, facettes ombrées des astéroïdes, disque d'un trou noir plus brillant d'un côté et "
+                            + "anneau de photons. Les cartes d'achat des astres sont plus hautes (84 pixels) pour que cela se voie, "
+                            + "et le ciel dessine un peu plus grandes les comètes et les naines blanches.",
+                    "Dans l'espace vu de loin, le gaz ne cache plus la structure : chaque bloc d'assemblage reste un disque plein "
+                            + "et net de sa couleur, chaque amas garde un anneau fin et une lueur de la couleur de son état, le "
+                            + "tout d'autant plus marqué qu'on est loin. De près, rien ne change ; la galaxie enroulée non plus.",
+                    "Le rendu réel n'a pas été vu pendant le développement : si un détail déborde ou se trouve du mauvais côté de la "
+                            + "lumière (qui vient d'en haut à gauche), c'est à signaler.")),
+            new Note("0.182", "Le chrono dès le deuxième univers, les automatismes des dimensions palier par palier", List.of(
+                    "L'étage du chrono est sur la branche Plan de la graine : il se paie en facettes (1 167, un tiers du seuil du "
+                            + "plan) et vient donc avec le deuxième univers, au lieu de la durée et du cinquième. Le tuyau d'arrosage "
+                            + "passe au volume (1 600 sphères), la terre fertile à la durée (3 000 000 d'instants) ; les réglages du "
+                            + "chrono restent dans les quatre premières dimensions. Les niveaux déjà achetés sont gardés tels quels.",
+                    "Le chrono, une fois son étage acheté, se règle aussi depuis une petite carte en bas à gauche de la fenêtre, "
+                            + "sur tous les onglets ; elle se cache sur la sous-page Graine, où il est déjà.",
+                    "Les automatismes des dimensions ne s'ouvrent plus d'un coup par la bulle du sommet de l'arbre-monde, mais "
+                            + "dimension par dimension : ceux de la ligne avec la graine craquelée (palier 3) et deux univers formés, "
+                            + "ceux du plan avec la graine brisée et trois univers, puis un palier et un univers de plus par dimension "
+                            + "(ceux du miroir et du mélange avec l'arbre-monde, dix et onze univers). La bulle du sommet les fait "
+                            + "moitié prix. L'onglet Automatisation dit pour chaque dimension ce qui lui manque.",
+                    "Les bots mettent le chrono à fond dès son étage acheté : le temps de jeu mesuré ne change pas, le temps réel si.",
+                    "Les anciennes sauvegardes se chargent telles quelles : rien de nouveau n'est enregistré.")),
+            new Note("0.181", "Un premier univers plus court, des défis qui se corsent", List.of(
+                    "Le premier univers demande moins à ses Big Bangs : 10⁸⁵ ⁰⁰⁰ particules et 42 000 matières noires en réserve pour "
+                            + "le tout premier (10¹⁹⁰ ⁰⁰⁰ et 120 000 avant), 10³⁰ ⁰⁰⁰ particules pour les suivants (10⁵⁰ ⁰⁰⁰ avant), "
+                            + "10¹¹ atomes au lieu de 10¹² ; et l'élan de sa matière noire est multiplié par 1,6 après son premier "
+                            + "Big Bang. Les univers suivants gardent les seuils d'avant. Mesuré sur le Speedrunner (graine 201) : le "
+                            + "deuxième acte passe de 5 h 43 à 4 h 09, les sept Big Bangs de 6 h 52 à 5 h 41 ; le premier acte et "
+                            + "le troisième ne bougent pas.",
+                    "Les défis d'explosion se corsent un peu à chaque univers formé : la masse de leur tableau est multipliée "
+                            + "par 1,3 par univers (×2,9 au quatrième, ×13,8 au onzième). Au premier univers, rien ne change ; "
+                            + "ensuite ils demandent de nouveau quelques minutes au lieu de moins d'une, sans jamais barrer la "
+                            + "route. L'aide de la matière noire le dit.",
+                    "Les anciennes sauvegardes se chargent telles quelles : rien de nouveau n'est enregistré.")),
             new Note("0.180", "Les skins à venir : la liste", List.of(
                     "SKINS.md, à la racine du dépôt : tout ce que le jeu dessine ou joue et qui pourrait changer d'apparence, "
                             + "des huit visuels déjà skinnés au chrome de la fenêtre, aux astres, aux arbres, aux dix mini-jeux, "

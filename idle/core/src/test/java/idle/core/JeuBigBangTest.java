@@ -66,7 +66,7 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void ilManqueDesParticules() {
             Game game = readyGame();
-            game.state().setParticles(Game.BIG_BANG_PARTICLES.divide(BigNum.of(10)));
+            game.state().setParticles(game.bigBangParticles().divide(BigNum.of(10)));
             assertFalse(game.isBigBangConditionMet(BigBangCondition.PARTICLES));
             assertEquals(4, game.bigBangConditionsMet());
             assertFalse(game.canBigBang());
@@ -76,7 +76,7 @@ class JeuBigBangTest extends GameTestSupport {
         @Test
         void ilManqueDesAtomes() {
             Game game = readyGame();
-            game.state().setAtoms(Game.BIG_BANG_ATOMS.divide(BigNum.of(2)));
+            game.state().setAtoms(game.bigBangAtoms().divide(BigNum.of(2)));
             assertFalse(game.isBigBangConditionMet(BigBangCondition.ATOMS));
             assertFalse(game.canBigBang());
         }
@@ -236,8 +236,8 @@ class JeuBigBangTest extends GameTestSupport {
             List<StatsHistory.Sample> samples = game.stats().history().samples();
             StatsHistory.Sample last = samples.get(samples.size() - 1);
             assertEquals(Game.FIRST_BIG_BANG_DARK_MATTER.log10(), last.value(StatsHistory.Stat.DARK_MATTER), 1e-9);
-            assertEquals(Game.BIG_BANG_ATOMS.log10(), last.value(StatsHistory.Stat.ATOMS), 1e-9);
-            assertEquals(Game.BIG_BANG_PARTICLES.log10(), last.value(StatsHistory.Stat.PARTICLES), 1e-6);
+            assertEquals(Game.FIRST_UNIVERSE_BIG_BANG_ATOMS.log10(), last.value(StatsHistory.Stat.ATOMS), 1e-9);
+            assertEquals(Game.FIRST_UNIVERSE_BIG_BANG_PARTICLES.log10(), last.value(StatsHistory.Stat.PARTICLES), 1e-6);
             assertEquals(copies, last.value(StatsHistory.Stat.ELEMENT_COPIES));
         }
 

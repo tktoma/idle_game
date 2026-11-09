@@ -165,9 +165,9 @@ public final class DimensionAutomationPane extends VBox {
         };
     }
 
-    /** « 1 graine d'univers », « 100 000 segments » : un prix, avec ce qui le paie. */
-    public static String price(DimensionAutomation automation) {
-        double cost = automation.cost();
+    /** « 1 graine d'univers », « 100 000 segments » : un prix, avec ce qui le paie (moitié prix avec la bulle du sommet, version 0.182). */
+    public static String price(Game game, DimensionAutomation automation) {
+        double cost = game.dimensionAutomationCost(automation);
         String currency = Game.dimensionAutomationCurrency(automation);
         if (cost < 2 && automation.paidWith() == 0) currency = "graine d'univers";
         return (cost < 1e6 ? Format.whole((long) cost) : Format.darkMatter(cost)) + " " + currency;
@@ -211,13 +211,19 @@ public final class DimensionAutomationPane extends VBox {
             } else if (game.isDimensionAutomationAvailable(automation)) {
                 card.show(game.canBuyDimensionAutomation(automation) ? Card.State.READY : Card.State.WAITING, "", "",
                         automation.label(), brief(automation), detail(automation) + " S'achète une fois, puis se met en pause d'un clic.",
-                        price(automation), "");
+                        price(game, automation), "");
             } else {
                 card.show(Card.State.LOCKED, "", "verrouillé", automation.label(), brief(automation), detail(automation),
-                        price(automation), automation.previous() == null || !game.isDimensionAutomationUnlocked()
-                                ? "Avec la bulle du sommet" : "Après : " + automation.previous().label());
+                        price(game, automation), !game.isDimensionAutomationOpen(automation.dimension()) ? opening(automation.dimension())
+                                : "Après : " + automation.previous().label());
             }
         }
+    }
+
+    /** Ce qui ouvre les automatismes d'une dimension (version 0.182) : le palier de la graine et les univers formés. */
+    static String opening(int dimension) {
+        int stage = Game.dimensionAutomationStage(dimension), universes = Game.dimensionAutomationUniverses(dimension);
+        return "Avec " + Game.SEED_STAGE_NAMES.get(stage - 1) + " et " + universes + " univers formés";
     }
 
     /** Le premier automatisme d'une dimension : il dit ce qui la paie. */

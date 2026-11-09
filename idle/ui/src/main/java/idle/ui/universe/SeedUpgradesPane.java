@@ -30,7 +30,9 @@ import javafx.scene.text.Text;
  * son étage) ; celle du mélange (version 0.158), la bulle des racines, qui ouvre la bulle sous la graine. Une branche se
  * montre fermée, ses cartes verrouillées, tant que sa dimension ne l'est pas.
  *
- * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération.
+ * <p>Sous les branches, le chrono une fois son étage acheté : le temps qu'il garde, et le réglage de l'accélération. Depuis la
+ * version 0.182, l'étage est sur la branche Plan (Durée avant), le tuyau sur Volume et la terre fertile sur Durée ; et le chrono
+ * se règle aussi depuis un coin de la fenêtre ({@link ChronoCorner}).
  */
 public final class SeedUpgradesPane extends VBox {
 
@@ -277,7 +279,7 @@ public final class SeedUpgradesPane extends VBox {
         if (game.seedUpgradeLevel(upgrade) >= upgrade.max()) return "Au maximum";
         if (game.dimensionsUnlocked() < upgrade.dimension()) return "S'ouvre avec la dimension " + upgrade.dimension();
         if (upgrade == SeedUpgrade.WATERING && !game.isWateringCanUnlocked()) return "Il faut d'abord l'arrosoir, sur l'étagère";
-        if (upgrade.chrono() && !game.isChronoUnlocked()) return "Il faut d'abord l'étage du chrono (branche Durée)";
+        if (upgrade.chrono() && !game.isChronoUnlocked()) return "Il faut d'abord l'étage du chrono (branche Plan)";
         double cost = game.seedUpgradeCost(upgrade), owned = game.dimensionResource(upgrade.dimension());
         String resource = Game.dimensionResourceName(upgrade.dimension());
         String line = "Prix : " + Format.darkMatter(cost) + " " + resource;

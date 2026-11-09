@@ -1393,7 +1393,7 @@ public abstract class GameUniverse extends GameAtoms {
         HEART(11, "Bulle de l'arbre-monde, au cœur", 69_300, 1,
                 "Les particules exotiques s'assemblent : pions, kaons, mésons charmés…", 4, 6, 7),
         SUMMIT(11, "Bulle de l'arbre-monde, au sommet", 69_300, 1,
-                "L'automatisation des dimensions : des automatismes qui les jouent et achètent leurs améliorations", 10, 11, 17);
+                "Les automatismes des dimensions à moitié prix (ils s'ouvrent par les paliers de la graine et les univers)", 10, 11, 17);
 
         /** Ce que chaque niveau de plus coûte de plus, pour les bulles qui se rachètent : ×2,5 (version 0.166 ; ×2 avant). */
         public static final double LEVEL_GROWTH = 2.5;
@@ -1600,12 +1600,15 @@ public abstract class GameUniverse extends GameAtoms {
     public enum SeedUpgrade implements Priced {
         /** Segments de la ligne : +1 arrosage par seconde de l'arrosoir tenu, par niveau. */
         WATERING(1, "Débit de l'arrosoir", 20, false),
-        /** Facettes du plan : le tuyau d'arrosage, qui verse seul 10 % de ce que verse l'arrosoir, +10 % par niveau. */
-        HOSE(2, "Tuyau d'arrosage", 10, false),
-        /** Sphères du volume : la terre fertile, chaque arrosage compte pour un de plus par niveau ({@link #seedSoilFactor()}). */
-        SOIL(3, "Terre fertile", 10, false),
-        /** Instants de la durée : un étage de plus à l'étagère, avec le chrono. */
-        CHRONO(4, "Étage du chrono", 1, false),
+        /** Sphères du volume (version 0.182 ; facettes avant) : le tuyau d'arrosage, qui verse seul 10 % de ce que verse l'arrosoir, +10 % par niveau. */
+        HOSE(3, "Tuyau d'arrosage", 10, false),
+        /** Instants de la durée (version 0.182 ; sphères avant) : la terre fertile, chaque arrosage compte pour un de plus par niveau ({@link #seedSoilFactor()}). */
+        SOIL(4, "Terre fertile", 10, false),
+        /**
+         * Facettes du plan (version 0.182 ; instants de la durée avant) : un étage de plus à l'étagère, avec le chrono. Le
+         * chrono vient ainsi au deuxième univers, et ses réglages se paient dans les quatre premières dimensions.
+         */
+        CHRONO(2, "Étage du chrono", 1, false),
         /** Segments : le chrono se remplit plus vite. */
         CHRONO_FILL(1, "Remplissage du chrono", 20, true),
         /** Facettes : il garde plus de temps. */

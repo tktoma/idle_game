@@ -43,7 +43,14 @@ public final class BodiesPane extends VBox {
     /** Hauteur du ciel, en pixels : de quoi montrer les petits astres sur une ligne et les planètes sur une autre. */
     private static final double SKY_HEIGHT = 380;
     private static final double PICTURE_WIDTH = 150;
-    private static final double PICTURE_HEIGHT = 64;
+    /**
+     * Hauteur de l'image d'une carte, en pixels (version 0.183 : 84, contre 64 avant). Une comète,
+     * queues comprises, y a un rayon de quinze pixels : juste assez pour ses couches de détail
+     * ({@link BodyArt#DETAIL_FROM}). Les cartes, qui ne font que s'empiler dans leur grille, s'allongent d'autant.
+     */
+    private static final double PICTURE_HEIGHT = 84;
+    /** Le plus grand rayon d'un astre sur sa carte, en pixels : un globe sans air ni anneaux n'emplit pas toute la hauteur. */
+    private static final double LARGEST_PICTURE = 30;
 
     private final Game game;
     private final Runnable changed;
@@ -242,7 +249,7 @@ public final class BodiesPane extends VBox {
             // Le plus grand rayon qui laisse tenir tout l'astre, queue ou anneaux compris, dans le cadre.
             double r = Math.min((PICTURE_HEIGHT - 6) / (BodyArt.reachUp(body) + BodyArt.reachDown(body)),
                     (PICTURE_WIDTH - 6) / (BodyArt.reachLeft(body) + BodyArt.reachRight(body)));
-            r = Math.min(r, 26);
+            r = Math.min(r, LARGEST_PICTURE);
             double x = PICTURE_WIDTH / 2 + (BodyArt.reachLeft(body) - BodyArt.reachRight(body)) * r / 2;
             double y = PICTURE_HEIGHT / 2 + (BodyArt.reachUp(body) - BodyArt.reachDown(body)) * r / 2;
             BodyArt.draw(canvas.getGraphicsContext2D(), body, x, y, r);

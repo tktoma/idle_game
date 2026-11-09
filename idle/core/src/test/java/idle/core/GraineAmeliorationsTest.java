@@ -32,16 +32,19 @@ class GraineAmeliorationsTest {
         assertTrue(game.buySeedUpgrade(SeedUpgrade.WATERING));
         // Version 0.179 : un cinquième du seuil de la dimension au premier niveau, ×1,6 par niveau.
         assertEquals(segments - 50_000, game.dimensionResource(1), 1e-3, "le débit se paie en segments : 250 000 / 5");
-        double facettes = game.dimensionResource(2);
-        assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertEquals(facettes - 700, game.dimensionResource(2), 1e-3, "le tuyau, en facettes : 3 500 / 5");
-        assertEquals(700 * 1.6, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9);
-        assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertEquals(1792, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9, "700 × 1,6² = 1 792");
+        // Version 0.182 : le tuyau en sphères du volume, la terre fertile en instants de la durée, l'étage du chrono en facettes du plan.
         double spheres = game.dimensionResource(3);
+        assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
+        assertEquals(spheres - 1_600, game.dimensionResource(3), 1e-3, "le tuyau, en sphères : 8 000 / 5");
+        assertEquals(1_600 * 1.6, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9);
+        assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
+        assertEquals(4096, game.seedUpgradeCost(SeedUpgrade.HOSE), 1e-9, "1 600 × 1,6² = 4 096");
+        double instants = game.dimensionResource(4);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.SOIL));
-        assertEquals(spheres - 1_600, game.dimensionResource(3), 1e-3, "la terre fertile, en sphères : 8 000 / 5");
+        assertEquals(instants - 3_000_000, game.dimensionResource(4), 1e-3, "la terre fertile, en instants : 15 000 000 / 5");
+        double facettes = game.dimensionResource(2);
         assertTrue(game.buySeedUpgrade(SeedUpgrade.CHRONO));
+        assertEquals(facettes - 1_167, game.dimensionResource(2), 1e-3, "l'étage du chrono, en facettes : 3 500 / 3, arrondi au-dessus");
         assertFalse(game.canBuySeedUpgrade(SeedUpgrade.CHRONO), "un seul étage");
         assertEquals("segments", Game.dimensionResourceName(1));
         assertEquals("instants", Game.dimensionResourceName(4));
@@ -55,10 +58,16 @@ class GraineAmeliorationsTest {
         assertFalse(game.isSeedUpgradeOpen(SeedUpgrade.WATERING), "pas d'arrosoir");
         assertTrue(game.unlockWateringCan());
         assertTrue(game.buySeedUpgrade(SeedUpgrade.WATERING));
-        assertFalse(game.canBuySeedUpgrade(SeedUpgrade.HOSE), "le plan n'est pas ouvert");
+        assertFalse(game.canBuySeedUpgrade(SeedUpgrade.CHRONO), "le plan n'est pas ouvert");
+        assertFalse(game.isSeedUpgradeOpen(SeedUpgrade.CHRONO_FILL), "pas d'étage du chrono");
+        assertTrue(game.testAddUniverse());
+        assertFalse(game.canBuySeedUpgrade(SeedUpgrade.HOSE), "le tuyau attend le volume (version 0.182)");
+        assertTrue(game.buySeedUpgrade(SeedUpgrade.CHRONO), "l'étage du chrono vient avec le plan, au deuxième univers (version 0.182)");
+        assertTrue(game.isSeedUpgradeOpen(SeedUpgrade.CHRONO_FILL), "ses réglages s'ouvrent, dimension par dimension");
+        assertFalse(game.isSeedUpgradeOpen(SeedUpgrade.CHRONO_SPEED), "l'accélération attend le volume");
+        game.state().setVolumeShards(1e12);
         assertTrue(game.testAddUniverse());
         assertTrue(game.buySeedUpgrade(SeedUpgrade.HOSE));
-        assertFalse(game.isSeedUpgradeOpen(SeedUpgrade.CHRONO_FILL), "pas d'étage du chrono");
     }
 
     @Test

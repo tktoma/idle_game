@@ -420,20 +420,23 @@ class BotsTest {
     @Test
     void laBarreHauteCentupleLesAtomesAvantDeCouperLaFusion() throws Exception {
         // Correctif 0.141 (B2) : la fusion et la synthèse se coupaient à 1e12 atomes quand la barre haute en demande 1e14.
+        // Version 0.181 : au premier univers (cette sauvegarde), le Big Bang demande 1e11 atomes et la barre haute 1e13.
         Game g = load(FIFTH_BANG);
         ready(g);
+        g.state().setAtoms(BigNum.of(1, 12));
         assertTrue(FirstUniversePolicy.finalBangPreparation(g));
         RobotCosmosPlanner before = new RobotCosmosPlanner(g, 20);
-        before.resourceLoop();   // 1e13 atomes dépassent les 1e12 du Big Bang ordinaire : la fusion attend (et le Big Bang part)
+        before.resourceLoop();   // 1e12 atomes dépassent les 1e11 du Big Bang ordinaire : la fusion attend (et le Big Bang part)
         assertTrue(before.fusionPausedByRobot);
         Game raised = load(FIFTH_BANG);
         assertTrue(raised.startBangChallenge(BangChallenge.RAISED));
         ready(raised);
-        assertEquals(BigNum.of(1, 14), raised.bigBangAtoms());
+        raised.state().setAtoms(BigNum.of(1, 12));
+        assertEquals(BigNum.of(1, 13), raised.bigBangAtoms());
         assertTrue(FirstUniversePolicy.finalBangPreparation(raised));
         RobotCosmosPlanner during = new RobotCosmosPlanner(raised, 20);
         during.resourceLoop();
-        assertFalse(during.fusionPausedByRobot, "1e13 atomes ne suffisent pas à la barre haute : la fusion continue");
+        assertFalse(during.fusionPausedByRobot, "1e12 atomes ne suffisent pas à la barre haute : la fusion continue");
         assertTrue(raised.isAutomationEnabled("auto_fusion"));
         assertEquals(BangChallenge.RAISED, raised.activeBangChallenge(), "pas de Big Bang : le défi continue");
     }

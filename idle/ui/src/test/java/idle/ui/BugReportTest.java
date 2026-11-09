@@ -52,7 +52,7 @@ class BugReportTest {
         game.start();
         game.testFormUniverse();
         while (game.universes() < 4) assertTrue(game.testAddUniverse());
-        game.state().setDurationShards(1e7);
+        game.state().setPlaneShards(1e7);   // version 0.182 : l'étage du chrono se paie en facettes du plan
         assertTrue(game.buySeedUpgrade(Game.SeedUpgrade.CHRONO));
         game.state().setChronoStored(90);
         game.setChronoSpeed(1.5);

@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
  */
 class AutomatisationDimensionsTest {
 
-    /** Quatre dimensions ouvertes, la bulle du sommet, et de quoi payer. */
+    /** Quatre dimensions ouvertes aux automatismes (cinq univers, l'arbre-monde ; version 0.182), et de quoi payer. */
     private static Game four() {
         Game game = GameTestSupport.universe(4);
-        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        GameTestSupport.openDimensionAutomations(game, 4);
         game.state().setUniverseSeeds(BigNum.of(100));
         game.state().setDimensionShards(1e9);
         game.state().setPlaneShards(1e9);
@@ -67,11 +67,12 @@ class AutomatisationDimensionsTest {
     }
 
     @Test
-    void ilFautLaBulleDuSommetPuisLOrdre() {
+    void ilFautLePalierDeLaGraineEtLesUniversPuisLOrdre() {
         Game game = four();
-        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), false);
-        assertFalse(game.canBuyDimensionAutomation(DimensionAutomation.LINE_YIELD), "sans la bulle du sommet");
-        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        long waterings = game.state().seedWaterings();
+        game.state().setSeedWaterings(Game.seedStageWaterings(Game.dimensionAutomationStage(1)) - 1);
+        assertFalse(game.canBuyDimensionAutomation(DimensionAutomation.LINE_YIELD), "un palier de moins : fermé");
+        game.state().setSeedWaterings(waterings);
         assertFalse(game.canBuyDimensionAutomation(DimensionAutomation.LINE_TICKS), "pas avant celui d'avant");
         assertTrue(game.buyDimensionAutomation(DimensionAutomation.LINE_YIELD));
         assertEquals(99, game.state().universeSeeds().toDouble(), 1e-9, "une graine");
@@ -80,13 +81,24 @@ class AutomatisationDimensionsTest {
         double segments = game.state().dimensionShards();
         assertTrue(game.buyDimensionAutomation(DimensionAutomation.PLANE_AIM));
         assertEquals(segments - DimensionAutomation.PLANE_AIM.cost(), game.state().dimensionShards(), 1e-6, "payé en segments");
-        // Une dimension pas encore ouverte n'a pas ses automatismes.
+        // Une dimension pas encore ouverte aux automatismes n'a pas les siens : il faut un univers de plus qu'elle.
         Game two = GameTestSupport.universe(2);
-        two.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        GameTestSupport.openDimensionAutomations(two, 1);
         two.state().setDimensionShards(1e9);
         two.state().setPlaneShards(1e9);
+        assertEquals(2, two.universes());
+        assertTrue(two.isDimensionAutomationAvailable(DimensionAutomation.LINE_YIELD), "la ligne : deux univers et l'arbre-monde");
+        assertFalse(two.isDimensionAutomationAvailable(DimensionAutomation.PLANE_AIM), "le plan attend le troisième univers");
+        assertTrue(two.testAddUniverse());
         assertTrue(two.isDimensionAutomationAvailable(DimensionAutomation.PLANE_AIM));
-        assertFalse(two.isDimensionAutomationAvailable(DimensionAutomation.VOLUME_DIVE), "deux dimensions ouvertes");
+        assertFalse(two.isDimensionAutomationAvailable(DimensionAutomation.VOLUME_DIVE), "trois univers : pas le volume");
+        // La bulle du sommet fait moitié prix (version 0.182).
+        assertEquals(DimensionAutomation.PLANE_AIM.cost(), two.dimensionAutomationCost(DimensionAutomation.PLANE_AIM), 1e-9);
+        two.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        assertEquals(DimensionAutomation.PLANE_AIM.cost() / 2, two.dimensionAutomationCost(DimensionAutomation.PLANE_AIM), 1e-9);
+        double before = two.state().dimensionShards();
+        assertTrue(two.buyDimensionAutomation(DimensionAutomation.PLANE_AIM));
+        assertEquals(before - DimensionAutomation.PLANE_AIM.cost() / 2, two.state().dimensionShards(), 1e-6, "payé moitié prix");
     }
 
     @Test
@@ -185,7 +197,7 @@ class AutomatisationDimensionsTest {
     @Test
     void tousLesAutomatismesSAchetentAvecLaBonneRessource() {
         Game game = GameTestSupport.universe(10);
-        game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+        GameTestSupport.openDimensionAutomations(game, 10);   // onze univers et l'arbre-monde (version 0.182)
         game.state().setUniverseSeeds(BigNum.of(1_000));
         game.state().setDimensionShards(1e30);
         game.state().setPlaneShards(1e30);

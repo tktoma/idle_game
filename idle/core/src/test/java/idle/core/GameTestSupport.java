@@ -45,6 +45,18 @@ abstract class GameTestSupport {
     }
 
     /**
+     * Ouvre les automatismes des dimensions 1 à {@code dimension} (version 0.182) : la graine à l'arbre-monde, et
+     * {@code dimension + 1} univers formés au moins (ajoutés par l'outil d'essai s'il en manque).
+     */
+    static void openDimensionAutomations(Game game, int dimension) {
+        if (game.universes() == 0) game.testFormUniverse();
+        while (game.universes() < Game.dimensionAutomationUniverses(dimension)) assertTrue(game.testAddUniverse());
+        game.state().setSeedSprouted(true);
+        game.state().setSeedWaterings(Math.max(game.state().seedWaterings(), Game.seedStageWaterings(Game.SEED_STAGES)));
+        assertTrue(game.isDimensionAutomationOpen(dimension), "dimension " + dimension);
+    }
+
+    /**
      * Donne toutes les améliorations d'espace sauf celles qui multiplient une grandeur ({@link SpaceUpgrade.Boost}) :
      * elles fausseraient les comptes et ont leurs propres tests.
      */
@@ -60,9 +72,10 @@ abstract class GameTestSupport {
      */
     static void readyForBigBang(Game game) {
         game.state().setExplosions(Math.max(1, game.state().explosions()));
-        game.state().setParticles(Game.BIG_BANG_PARTICLES);
-        game.state().setAtoms(Game.BIG_BANG_ATOMS);
-        // Version 0.166 : la réserve du Big Bang à venir (120 000 pour le tout premier).
+        // Version 0.181 : les particules et les atomes demandés dépendent de l'univers (moins au premier).
+        game.state().setParticles(game.bigBangParticles());
+        game.state().setAtoms(game.bigBangAtoms());
+        // Version 0.166 : la réserve du Big Bang à venir (plus pour le tout premier).
         game.state().setDarkMatter(game.bigBangDarkMatter());
         int given = 0;
         for (Achievement achievement : game.achievements()) {

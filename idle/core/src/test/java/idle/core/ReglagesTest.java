@@ -41,7 +41,8 @@ class ReglagesTest {
     @Test
     void seulLeToutPremierBigBangDemandeUneGrandeReserve() {
         Game game = GameTestSupport.realGame();
-        assertEquals(120_000, game.bigBangDarkMatter().toDouble(), 1e-9, "univers 1, aucun Big Bang");
+        assertEquals(Game.FIRST_BIG_BANG_DARK_MATTER.toDouble(), game.bigBangDarkMatter().toDouble(), 1e-9, "univers 1, aucun Big Bang");
+        assertEquals(42_000, Game.FIRST_BIG_BANG_DARK_MATTER.toDouble(), 1e-9, "version 0.181 : 42 000 (120 000 avant)");
         game.state().setBigBangs(1);
         assertEquals(500, game.bigBangDarkMatter().toDouble(), 1e-9, "le deuxième Big Bang");
         game.state().setBigBangs(0);
@@ -49,7 +50,7 @@ class ReglagesTest {
         assertEquals(500, game.bigBangDarkMatter().toDouble(), 1e-9, "le premier Big Bang des univers suivants");
         game.state().setUniverseFormed(false);
         game.state().setActiveBangChallenge(BangChallenge.RAISED.name());
-        assertEquals(240_000, game.bigBangDarkMatter().toDouble(), 1e-9, "la barre haute double toujours");
+        assertEquals(84_000, game.bigBangDarkMatter().toDouble(), 1e-9, "la barre haute double toujours");
         assertTrue(Game.FIRST_BIG_BANG_DARK_MATTER.gt(Game.BIG_BANG_DARK_MATTER));
     }
 }
