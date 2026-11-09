@@ -22,6 +22,10 @@ import javafx.scene.text.TextAlignment;
  * ne se chevauchent pas.
  *
  * <p>Chaque astre porte son nom et flotte à peine, à son rythme. Les étoiles du fond scintillent.
+ *
+ * <p>Version 0.194 : les skins du ciel ({@link SkySkinArt}, {@link idle.core.universe.SkinVisual#SKY}) changent
+ * le fond, ce qui porte chaque ligne (tige du mobile, étagère de la vitrine), ce qui tient chaque astre (fil,
+ * épingle) et l'écriture des noms ; la mise en lignes réserve la place de la tige et de l'étagère.
  */
 public final class SkyView extends Canvas {
 
@@ -56,6 +60,8 @@ public final class SkyView extends Canvas {
     private int beat = 0;
     private double drawnWidth = -1;
     private double drawnHeight = -1;
+    /** Le skin du ciel de la dernière image (version 0.194) : en changer redessine sans attendre. */
+    private idle.core.universe.Skin drawnSkin;
 
     SkyView(Game game) {
         super(600, 330);
@@ -110,7 +116,8 @@ public final class SkyView extends Canvas {
     public void frame(double elapsed) {
         if (BigBangPage.moving()) time += elapsed;
         beat++;
-        boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.bodiesFormed() != drawn;
+        boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.bodiesFormed() != drawn
+                || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.SKY);
         if (!changed && beat % EVERY != 0) return;
         redraw();
     }
@@ -125,9 +132,16 @@ public final class SkyView extends Canvas {
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
         g.setGlobalAlpha(1);
-        g.setFill(VOID);
-        g.fillRect(0, 0, w, h);
-        drawStars(g, w, h);
+        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.SKY);
+        drawnSkin = skin;
+        boolean skinned = SkySkinArt.draws(skin);
+        if (skinned) {
+            SkySkinArt.background(g, w, h, skin, time);
+        } else {
+            g.setFill(VOID);
+            g.fillRect(0, 0, w, h);
+            drawStars(g, w, h);
+        }
 
         List<Body> formed = new ArrayList<>();
         for (Body body : game.bodies()) {
@@ -137,7 +151,7 @@ public final class SkyView extends Canvas {
         if (formed.isEmpty()) {
             rows = 0;
             shrink = LARGEST;
-            g.setFill(TEXT);
+            g.setFill(skinned ? SkySkinArt.textColor(skin) : TEXT);
             g.setFont(Font.font(12));
             g.setTextAlign(TextAlignment.CENTER);
             g.fillText("Le ciel est vide : formez un premier amas de roches.", w / 2, h / 2);
@@ -149,13 +163,13 @@ public final class SkyView extends Canvas {
         // peu nombreux, réduits quand le ciel se remplit.
         shrink = LARGEST;
         List<int[]> lines = layout(formed, w, shrink);
-        while (height(formed, lines, shrink) > h - 8 && shrink > 0.2) {
+        while (height(formed, lines, shrink, skin) > h - 8 && shrink > 0.2) {
             shrink *= 0.92;
             lines = layout(formed, w, shrink);
         }
         rows = lines.size();
         boolean named = shrink >= NAMES_FROM;
-        double top = (h - height(formed, lines, shrink)) / 2;
+        double top = (h - height(formed, lines, shrink, skin)) / 2;
         g.setFont(Font.font(11));
         g.setTextAlign(TextAlignment.CENTER);
         idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
@@ -171,23 +185,35 @@ public final class SkyView extends Canvas {
                 wide += cell(body, shrink) + GAP * shrink;
             }
             double x = (w - wide) / 2;
+            // La tige du mobile, ou l'étagère de la vitrine, puis les astres au-dessous ou au-dessus.
+            double rod = top;
+            top += skinned ? SkySkinArt.above(skin, shrink) : 0;
             double middle = top + up;
+            double shelf = middle + down + (named ? NAME : 4) + 2 * shrink;
+            if (skinned) SkySkinArt.line(g, skin, x, x + wide, rod, shelf, shrink);
             for (int index = line[0]; index < line[1]; index++) {
                 Body body = formed.get(index);
                 double r = radius(body) * shrink;
                 double place = cell(body, shrink);
                 // L'astre est au milieu de sa place, queue ou anneaux compris ; son nom, au milieu aussi.
                 double cx = x + (place - (BodyArt.reachLeft(body) + BodyArt.reachRight(body)) * r) / 2 + BodyArt.reachLeft(body) * r;
-                // Chaque astre flotte à peine, à son rythme.
+                // Chaque astre flotte à peine, à son rythme ; au bout d'un fil, il se balance aussi.
                 double cy = middle + 1.5 * Math.sin(time * 0.6 + index * 1.9);
+                if (skinned) {
+                    cx += SkySkinArt.sway(skin, time, index, shrink);
+                    SkySkinArt.holder(g, skin, cx, cy, BodyArt.reachUp(body) * r, rod, shrink);
+                }
                 BodyArt.draw(g, body, cx, cy, r, bodySkin);
-                if (named) {
+                if (named && skinned) {
+                    SkySkinArt.name(g, skin, body.name(), x + place / 2, middle + down + 12);
+                    g.setFont(Font.font(11));
+                } else if (named) {
                     g.setFill(TEXT);
                     g.fillText(body.name(), x + place / 2, middle + down + 12);
                 }
                 x += place + GAP * shrink;
             }
-            top += up + down + (named ? NAME : 4) + 6 * shrink;
+            top += up + down + (named ? NAME : 4) + 6 * shrink + (skinned ? SkySkinArt.below(skin, shrink) : 0);
         }
         g.setTextAlign(TextAlignment.LEFT);
     }
@@ -217,9 +243,10 @@ public final class SkyView extends Canvas {
         return shrink >= NAMES_FROM ? Math.max(wide, LETTER * body.name().length()) : wide;
     }
 
-    /** La hauteur que prennent ces lignes, noms compris. */
-    private static double height(List<Body> formed, List<int[]> lines, double shrink) {
+    /** La hauteur que prennent ces lignes, noms compris, et ce que le skin du ciel ajoute au-dessus et au-dessous de chacune. */
+    private static double height(List<Body> formed, List<int[]> lines, double shrink, idle.core.universe.Skin skin) {
         double total = 0;
+        double skinned = SkySkinArt.draws(skin) ? SkySkinArt.above(skin, shrink) + SkySkinArt.below(skin, shrink) : 0;
         for (int[] line : lines) {
             double up = 0;
             double down = 0;
@@ -228,7 +255,7 @@ public final class SkyView extends Canvas {
                 up = Math.max(up, BodyArt.reachUp(body) * radius(body) * shrink);
                 down = Math.max(down, BodyArt.reachDown(body) * radius(body) * shrink);
             }
-            total += up + down + (shrink >= NAMES_FROM ? NAME : 4) + 6 * shrink;
+            total += up + down + (shrink >= NAMES_FROM ? NAME : 4) + 6 * shrink + skinned;
         }
         return total;
     }

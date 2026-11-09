@@ -101,7 +101,7 @@ public final class SpaceView extends SpaceViewPacking {
         if (BigBangPage.moving()) time += elapsed;
         beat++;
         sincePlaced += elapsed;
-        boolean stale = placedVersion != game.state().moleculesVersion();
+        boolean stale = placedVersion != game.state().moleculesVersion() || placedPalette != MoleculeArt.palette();
         // La création automatique ajoute des molécules toutes les quelques secondes : une grosse vue ne
         // se remet en place que de loin en loin, sinon elle accrocherait à chaque passage.
         calm = stale && game.isAutoCreatingMolecules() && shapes.length >= CALM_FROM && sincePlaced < CALM_SECONDS;
@@ -110,7 +110,10 @@ public final class SpaceView extends SpaceViewPacking {
         if (scale != null) {
             // L'amas de galaxies tourne lentement ; la toile de l'univers ne bouge pas.
             boolean still = scale == Cosmos.UNIVERSE && farDrawn;
-            if (!moved && getWidth() == drawnWidth && getHeight() == drawnHeight && (still || beat % EVERY != 0)) return;
+            // Un autre skin de la toile ou de l'amas (version 0.194) : redessinée sans attendre.
+            boolean restyled = farDrawn && farSkin != game.chosenSkin(scale == Cosmos.UNIVERSE
+                    ? idle.core.universe.SkinVisual.COSMIC_WEB : idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+            if (!moved && !restyled && getWidth() == drawnWidth && getHeight() == drawnHeight && (still || beat % EVERY != 0)) return;
             redraw();
             return;
         }
@@ -126,6 +129,61 @@ public final class SpaceView extends SpaceViewPacking {
 
     /** Nombre de points à partir duquel la vue attend, pendant la création automatique, avant de se remettre en place. */
     static final int CALM_FROM = 5_000;
+
+    /**
+     * Les couleurs des corps dans les skins des amas et des blocs (version 0.194) : celles de la mise en place
+     * ({@code rims}, {@code inks}) quand aucun skin n'est choisi, sinon recalculées par {@link #tintBodies} quand
+     * la mise en place ou le choix change.
+     */
+    private Color[] shownRims = rims;
+    private Color[] shownInks = inks;
+    private int tintedVersion = -1;
+    private idle.core.universe.Skin tintedPalette;
+    private idle.core.universe.Skin tintedClumps;
+    private idle.core.universe.Skin tintedBlocks;
+
+    /** Les sommets de la forme d'une place dans ces skins, gardés d'une image à l'autre pour ne rien allouer. */
+    private final double[] pieceX = new double[6];
+    private final double[] pieceY = new double[6];
+
+    /** Les skins des amas, des blocs et du gaz lus pour l'image en cours ({@code null} : le Classique). */
+    private idle.core.universe.Skin clumpSkin;
+    private idle.core.universe.Skin blockSkin;
+    private idle.core.universe.Skin gasSkin;
+
+    /**
+     * Reprend les couleurs des corps dans les skins choisis, si la mise en place ou le choix a changé
+     * depuis la dernière fois : les liserés et les corps des amas suivent le skin des amas, les contours
+     * et les corps des blocs celui des blocs ; sans skin, ce sont les couleurs de la mise en place.
+     */
+    private void tintBodies() {
+        if (tintedVersion == placedVersion && tintedPalette == placedPalette && tintedClumps == clumpSkin && tintedBlocks == blockSkin
+                && shownRims.length == rims.length) return;
+        tintedVersion = placedVersion;
+        tintedPalette = placedPalette;
+        tintedClumps = clumpSkin;
+        tintedBlocks = blockSkin;
+        if (clumpSkin == null && blockSkin == null) {
+            shownRims = rims;
+            shownInks = inks;
+            return;
+        }
+        shownRims = new Color[rims.length];
+        shownInks = new Color[inks.length];
+        for (int cluster = 0; cluster < rims.length; cluster++) {
+            if (rims[cluster] == null) continue;
+            Assembly block = blocks[cluster];
+            if (block != null) {
+                Color tint = Color.web(block.tint());
+                shownRims[cluster] = blockSkin == null ? rims[cluster] : ClumpSkinArt.blockColor(blockSkin, true, rims[cluster]);
+                shownInks[cluster] = blockSkin == null ? inks[cluster] : ClumpSkinArt.blockColor(blockSkin, false, tint);
+            } else {
+                Molecule.State state = states[clusters[cluster][0]];
+                shownRims[cluster] = clumpSkin == null ? rims[cluster] : ClumpSkinArt.clumpColor(clumpSkin, state, true, rims[cluster]);
+                shownInks[cluster] = clumpSkin == null ? inks[cluster] : ClumpSkinArt.clumpColor(clumpSkin, state, false, inks[cluster]);
+            }
+        }
+    }
     /** Secondes entre deux mises en place d'une grosse vue pendant la création automatique. */
     static final double CALM_SECONDS = 15;
 
@@ -145,6 +203,11 @@ public final class SpaceView extends SpaceViewPacking {
             return;
         }
         place();
+        // Les skins des amas, des blocs et du gaz (version 0.194), lus une fois par image.
+        clumpSkin = game.chosenSkin(idle.core.universe.SkinVisual.CLUMPS);
+        blockSkin = game.chosenSkin(idle.core.universe.SkinVisual.BLOCKS);
+        gasSkin = game.chosenSkin(idle.core.universe.SkinVisual.GAS);
+        tintBodies();
         double fit = fitScale();
         if (Double.isNaN(scale) || following) scale = fit;
         scale = Math.max(fit, Math.min(CLOSEST, scale));
@@ -238,10 +301,12 @@ public final class SpaceView extends SpaceViewPacking {
                 // Un amas : sa couleur sous un fin liseré de la couleur de son état. Un bloc d'assemblage : la
                 // couleur de sa matière sous un contour clair, deux fois plus épais. De loin, un contour plus
                 // fin qu'un pixel n'est pas dessiné, et le corps est d'une seule couleur.
-                double rim = block != null ? BLOCK_RIM : RIM;
+                // Les skins des amas et des blocs (version 0.194) : d'autres formes et couleurs, le Néon un liseré double.
+                idle.core.universe.Skin pieces = block != null ? blockSkin : clumpSkin;
+                double rim = block != null ? BLOCK_RIM : clumpSkin == null ? RIM : RIM * ClumpSkinArt.rimScale(clumpSkin);
                 if (rim * unit < 0.75) rim = 0;
                 for (int pass = rim > 0 ? 0 : 1; pass < 2; pass++) {
-                    Color color = pass == 0 ? rims[cluster] : inks[cluster];
+                    Color color = pass == 0 ? shownRims[cluster] : shownInks[cluster];
                     double inset = pass == 0 ? 0 : rim;
                     g.setFill(color);
                     g.setStroke(color);
@@ -250,7 +315,13 @@ public final class SpaceView extends SpaceViewPacking {
                         double y = ys[index];
                         double round = (blobs[index] - inset) * unit;
                         if (round <= 0 || x + round < 0 || x - round > w || y + round < 0 || y - round > h) continue;
-                        g.fillOval(x - round, y - round, 2 * round, 2 * round);
+                        if (pieces == null) {
+                            g.fillOval(x - round, y - round, 2 * round, 2 * round);
+                        } else if (block != null) {
+                            ClumpSkinArt.blockPiece(g, pieces, x, y, round, index, pieceX, pieceY);
+                        } else {
+                            ClumpSkinArt.clumpPiece(g, states[index], x, y, round, index, pieceX, pieceY);
+                        }
                     }
                     int[] links = bridges[cluster];
                     for (int link = 0; link < links.length; link += 2) {
@@ -277,6 +348,15 @@ public final class SpaceView extends SpaceViewPacking {
                                 || Math.min(cornerY[0], Math.min(cornerY[1], cornerY[2])) > h) continue;
                         g.fillPolygon(cornerX, cornerY, 3);
                     }
+                    // Le reflet des lingots et de la glace, dans la couleur du contour, par-dessus le corps.
+                    if (pass == 1 && block != null && blockSkin != null) {
+                        g.setFill(shownRims[cluster]);
+                        for (int index : clusters[cluster]) {
+                            double round = (blobs[index] - inset) * unit;
+                            if (round <= 0 || xs[index] + round < 0 || xs[index] - round > w || ys[index] + round < 0 || ys[index] - round > h) continue;
+                            ClumpSkinArt.blockShine(g, blockSkin, xs[index], ys[index], round);
+                        }
+                    }
                 }
             }
             g.setLineCap(StrokeLineCap.SQUARE);
@@ -285,23 +365,33 @@ public final class SpaceView extends SpaceViewPacking {
         // Le gaz : une bouffée par molécule, de sa couleur, qui s'écarte un peu de sa place et y revient.
         // Tout ce qui est dessiné jusqu'ici est ensuite flouté d'un coup, et les bouffées deviennent des nuages.
         if (mist > 0) {
-            double puff = Math.max(1, (swirled ? SWIRL_PUFF : PUFF_SHARE) * unit);
+            // Le skin du gaz (version 0.194) ne touche pas la poussière de la galaxie : la matière seule devient brume, fumée ou aurore.
+            idle.core.universe.Skin gas = swirled ? null : gasSkin;
+            double puff = Math.max(1, (swirled ? SWIRL_PUFF : PUFF_SHARE) * unit * (gas == null ? 1 : ClumpSkinArt.puffScale(gas)));
             double churn = CHURN * unit * mist;
-            g.setGlobalAlpha((swirled ? SWIRL_ALPHA : PUFF_ALPHA) * mist);
+            g.setGlobalAlpha(Math.min(1, (swirled ? SWIRL_ALPHA : PUFF_ALPHA) * mist * (gas == null ? 1 : ClumpSkinArt.alphaScale(gas))));
             // sin(a + b) et cos(a + b), où a ne dépend que du temps et b que de la place.
             double swayTimeCos = Math.cos(time * 0.35);
             double swayTimeSin = Math.sin(time * 0.35);
             double heaveTimeCos = Math.cos(time * 0.28);
             double heaveTimeSin = Math.sin(time * 0.28);
+            // Une bouffée de fumée ou un rideau d'aurore dépasse de son rayon : la marge hors de la vue en tient compte.
+            double margin = gas == null ? puff : 5 * puff;
             for (int index = 0; index < count; index++) {
                 double x = xs[index] + churn * (swayTimeSin * swayCos[index] + swayTimeCos * swaySin[index]);
                 double y = ys[index] + churn * (heaveTimeCos * heaveCos[index] - heaveTimeSin * heaveSin[index]);
-                if (hidden[index] || x + puff < 0 || x - puff > w || y + puff < 0 || y - puff > h) continue;
-                g.setFill(swirled ? swirlTints[index] : tints[index] != null ? tints[index] : shapes[index].dominant());
-                g.fillOval(x - puff, y - puff, 2 * puff, 2 * puff);
+                if (hidden[index] || x + margin < 0 || x - margin > w || y + margin < 0 || y - margin > h) continue;
+                Color own = swirled ? swirlTints[index] : tints[index] != null ? tints[index] : shapes[index].dominant();
+                if (gas == null) {
+                    g.setFill(own);
+                    g.fillOval(x - puff, y - puff, 2 * puff, 2 * puff);
+                } else {
+                    g.setFill(ClumpSkinArt.puffColor(gas, index, own));
+                    ClumpSkinArt.puff(g, gas, x, y, puff, time, swayCos[index]);
+                }
             }
             g.setGlobalAlpha(1);
-            blur.setRadius(Math.min(63, Math.max(LEAST_BLUR, BLUR_SHARE * unit) * mist));
+            blur.setRadius(Math.min(63, Math.max(LEAST_BLUR, BLUR_SHARE * unit) * mist * (gas == null ? 1 : ClumpSkinArt.blurScale(gas))));
             g.applyEffect(blur);
             // Puis, net, ce qui garde la structure lisible dans le gaz : les blocs et le tour des amas.
             if (!swirled) drawMistBodies(g, originX, originY, cosTurn, sinTurn, unit, edge, w, h);
@@ -411,9 +501,9 @@ public final class SpaceView extends SpaceViewPacking {
             double midY = originY + (middleY[cluster] * cosTurn + middleX[cluster] * sinTurn) * unit;
             double around = Math.min(rounds[cluster] * unit, edge - Math.hypot(midX - originX, midY - originY));
             if (around < MIST_DISC_FROM || midX + around < 0 || midX - around > w || midY + around < 0 || midY - around > h) continue;
-            Color rim = rims[cluster];
+            Color rim = shownRims[cluster];
             if (blocks[cluster] != null) {
-                g.setFill(inks[cluster]);
+                g.setFill(shownInks[cluster]);
             } else {
                 g.setFill(new javafx.scene.paint.RadialGradient(0, 0, midX, midY, around, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
                         new javafx.scene.paint.Stop(0, tint(rim, 0)), new javafx.scene.paint.Stop(0.6, tint(rim, 0.2 * MIST_GLOW)),

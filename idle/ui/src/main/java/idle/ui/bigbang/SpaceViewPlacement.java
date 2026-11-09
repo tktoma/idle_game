@@ -40,8 +40,9 @@ public abstract class SpaceViewPlacement extends SpaceViewBase {
      * le temps passé grandit comme le nombre de molécules, pas comme son carré.
      */
     void place() {
-        if (placedVersion == game.state().moleculesVersion() || calm) return;
+        if (placedVersion == game.state().moleculesVersion() && placedPalette == MoleculeArt.palette() || calm) return;
         placedVersion = game.state().moleculesVersion();
+        placedPalette = MoleculeArt.palette();
         sincePlaced = 0;
         List<String> log = game.state().moleculeLog();
         // Trop de molécules pour un point chacune : chaque sorte garde sa part, un point en valant plusieurs.

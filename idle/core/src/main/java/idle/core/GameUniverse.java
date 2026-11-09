@@ -2504,6 +2504,51 @@ public abstract class GameUniverse extends GameAtoms {
         if (completedSets() >= 1) unlockSkin(idle.core.universe.Skin.PAGE_MEDALS);
         if (state.synthesisCount() >= 100) unlockSkin(idle.core.universe.Skin.PAGE_CRUCIBLE);
         if (familiesOwned() >= idle.core.elements.ElementCategory.values().length) unlockSkin(idle.core.universe.Skin.PAGE_SPECTRUM);
+        // Version 0.193 : la matière noire hors de la boule : l'échelle et la règle, l'arbre, les défis.
+        if (explosions >= 10) unlockSkin(idle.core.universe.Skin.RULER_WOOD);
+        if (explosions >= 20) unlockSkin(idle.core.universe.Skin.RULER_ARCHITECT);
+        if (hasAchievement("step_landmarks")) unlockSkin(idle.core.universe.Skin.RULER_CELESTIAL);
+        if (darkCellsBought() >= 30) unlockSkin(idle.core.universe.Skin.DARK_TREE_ROOTS);
+        if (darkLevelsBought() >= 100) unlockSkin(idle.core.universe.Skin.DARK_TREE_CIRCUIT);
+        if (state.hasGalaxy()) unlockSkin(idle.core.universe.Skin.DARK_TREE_CONSTELLATION);
+        if (darkBranchesOpened() >= idle.core.darkmatter.DarkUpgrade.Branch.values().length) unlockSkin(idle.core.universe.Skin.DARK_TREE_METRO);
+        int challengesDone = state.completedChallenges().size();
+        if (challengesDone >= 3) unlockSkin(idle.core.universe.Skin.CHALLENGES_TAROT);
+        if (challengesDone >= 6) unlockSkin(idle.core.universe.Skin.CHALLENGES_WANTED);
+        if (baseChallengesCompleted() >= idle.core.darkmatter.Challenges.DEFAULT.size()) unlockSkin(idle.core.universe.Skin.CHALLENGES_SEALS);
+        // Version 0.194 : le Big Bang au-delà des molécules : les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes.
+        if (substances >= 5) unlockSkin(idle.core.universe.Skin.CLUMPS_MINERALS);
+        if (substances >= 20) unlockSkin(idle.core.universe.Skin.CLUMPS_NEON);
+        if (substances >= 50) unlockSkin(idle.core.universe.Skin.CLUMPS_PASTEL);
+        for (int i = 0; i < idle.core.universe.Skin.BLOCKS.length; i++) {
+            if (assembliesFormed() >= idle.core.universe.Skin.BLOCKS_FORMED[i]) unlockSkin(idle.core.universe.Skin.BLOCKS[i]);
+        }
+        long gas = gatheredInState(Molecule.State.GAS);
+        if (gas >= 1_000) unlockSkin(idle.core.universe.Skin.GAS_HAZE);
+        if (gas >= 10_000) unlockSkin(idle.core.universe.Skin.GAS_SMOKE);
+        if (gas >= 100_000) unlockSkin(idle.core.universe.Skin.GAS_AURORA);
+        if (bodiesFormed() >= 15) unlockSkin(idle.core.universe.Skin.SKY_PLATE);
+        if (bodiesFormed() >= 25) unlockSkin(idle.core.universe.Skin.SKY_MOBILE);
+        if (bodiesFormed() >= 35) unlockSkin(idle.core.universe.Skin.SKY_SHOWCASE);
+        // La galaxie et l'amas de l'univers en cours, ou un univers déjà formé, qui les a eus : le premier skin ; les suivants, un par univers formé.
+        int formedUniverses = universes();
+        if (state.hasGalaxy() || formedUniverses >= 1) unlockSkin(idle.core.universe.Skin.GALAXIES[0]);
+        if (state.cosmosLevel() >= 2 || formedUniverses >= 1) unlockSkin(idle.core.universe.Skin.CLUSTERS[0]);
+        for (int i = 1; i < idle.core.universe.Skin.GALAXIES.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.GALAXIES[i]);
+        }
+        for (int i = 1; i < idle.core.universe.Skin.CLUSTERS.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.CLUSTERS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.WEBS.length; i++) {
+            if (formedUniverses >= i + 1) unlockSkin(idle.core.universe.Skin.WEBS[i]);
+        }
+        if (solarSystemsComplete() >= 1) unlockSkin(idle.core.universe.Skin.SYSTEM_ORRERY);
+        if (solarSystemsComplete() >= 2) unlockSkin(idle.core.universe.Skin.SYSTEM_CRAYON);
+        if (solarSystemsComplete() >= 3) unlockSkin(idle.core.universe.Skin.SYSTEM_RADAR);
+        for (int i = 0; i < idle.core.universe.Skin.PROBES.length; i++) {
+            if (state.probeRuns() >= idle.core.universe.Skin.PROBE_RUNS[i]) unlockSkin(idle.core.universe.Skin.PROBES[i]);
+        }
         // Version 0.186 : les skins des astres, par le nombre d'astres formés dans l'univers en cours.
         for (int i = 0; i < idle.core.universe.Skin.BODIES.length; i++) {
             if (bodiesFormed() >= idle.core.universe.Skin.BODIES_FORMED[i]) unlockSkin(idle.core.universe.Skin.BODIES[i]);
@@ -2514,6 +2559,29 @@ public abstract class GameUniverse extends GameAtoms {
             if (state.rebuildRecord() <= 0 || time < state.rebuildRecord()) state.setRebuildRecord(time);
             if (time <= REBUILD_FAST_SECONDS) unlockSkin(idle.core.universe.Skin.FUSION_FLASH);
         }
+    }
+
+    /** Les cases de l'arbre de matière noire achetées au moins une fois, liaisons comprises (version 0.193). */
+    public int darkCellsBought() {
+        int bought = 0;
+        for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) if (state.darkLevelOf(dark.id()) > 0) bought++;
+        return bought;
+    }
+
+    /** Les niveaux achetés dans l'arbre de matière noire, toutes cases confondues (version 0.193). */
+    public int darkLevelsBought() {
+        int levels = 0;
+        for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) levels += state.darkLevelOf(dark.id());
+        return levels;
+    }
+
+    /** Les branches de l'arbre de matière noire dont une case au moins est achetée (version 0.193), liaisons à part. */
+    public int darkBranchesOpened() {
+        java.util.EnumSet<idle.core.darkmatter.DarkUpgrade.Branch> opened = java.util.EnumSet.noneOf(idle.core.darkmatter.DarkUpgrade.Branch.class);
+        for (idle.core.darkmatter.DarkUpgrade dark : darkUpgrades()) {
+            if (!dark.isLink() && state.darkLevelOf(dark.id()) > 0) opened.add(dark.branch());
+        }
+        return opened.size();
     }
 
     /** Le record de reconstruction, en secondes ; 0 sans record. */

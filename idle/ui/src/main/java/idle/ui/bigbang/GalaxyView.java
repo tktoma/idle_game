@@ -24,6 +24,9 @@ import javafx.scene.text.TextAlignment;
  * Tant que la galaxie n'est pas formée, elle est pâle : un aperçu. Formée, elle brille, et le trou
  * noir supermassif est en son centre. La vraie, avec chaque molécule et chaque astre, est dans
  * l'expansion de la matière.
+ *
+ * <p>Version 0.194 : les skins de la galaxie, de l'amas et de la toile ({@link GalaxySkinArt}) redessinent
+ * les mêmes points, les mêmes membres de l'amas et les mêmes nœuds et filaments autrement.
  */
 public final class GalaxyView extends Canvas {
 
@@ -57,6 +60,8 @@ public final class GalaxyView extends Canvas {
     private final Game game;
     private final Color[] colors = new Color[DOTS];
     private int colored = -1;
+    /** La palette des molécules des couleurs en place (version 0.194) : en changer les reprend. */
+    private idle.core.universe.Skin coloredPalette;
     private double time = 0;
     /** Comme les autres vues qui bougent lentement : une image sur deux tant que rien ne change. */
     private int beat = 0;
@@ -65,6 +70,10 @@ public final class GalaxyView extends Canvas {
     private int drawnLevel = -1;
     /** Le skin des astres du dernier dessin : en changer redessine le trou noir supermassif. */
     private idle.core.universe.Skin drawnSkin;
+    /** Les skins du cosmos du dernier dessin (version 0.194) : en changer redessine sans attendre. */
+    private idle.core.universe.Skin drawnGalaxySkin;
+    private idle.core.universe.Skin drawnClusterSkin;
+    private idle.core.universe.Skin drawnWebSkin;
 
     /** Les autres galaxies de l'amas : huit, plus petites, chacune avec sa place, sa taille et son inclinaison. */
     private static final int NEIGHBOURS = 8;
@@ -72,6 +81,9 @@ public final class GalaxyView extends Canvas {
     private static final int WEB_COLUMNS = 7, WEB_ROWS = 3, WEB_PER_THREAD = 120, WEB_PER_NODE = 44;
     private static final double[] WEB_X, WEB_Y, WEB_SIZE;
     private static final int[] WEB_TINT;
+    /** Les nœuds de la toile, en parts de l'image, et ses filaments par paires de nœuds : ce que redessinent les skins (version 0.194). */
+    private static final double[] WEB_NODE_X, WEB_NODE_Y;
+    private static final int[] WEB_EDGES;
     private static final Color[] WEB_COLORS = {Color.web("#c9d6ea"), Color.web("#8fa8ff"), Color.web("#b48cf2"), Color.web("#ffe2a8")};
     /** Le nœud où se trouve l'amas du joueur : au milieu de la toile. */
     private static final int HOME = WEB_COLUMNS * (WEB_ROWS / 2) + WEB_COLUMNS / 2;
@@ -85,6 +97,7 @@ public final class GalaxyView extends Canvas {
             nodeY[node] = (row + 0.1 + 0.8 * fraction(node * 78.233 + 7)) / WEB_ROWS;
         }
         int seed = 0;
+        java.util.List<Integer> edges = new java.util.ArrayList<>();
         for (int node = 0; node < nodeX.length; node++) {
             int column = node % WEB_COLUMNS, row = node / WEB_COLUMNS;
             // Un amas dense à chaque nœud.
@@ -97,6 +110,8 @@ public final class GalaxyView extends Canvas {
                     column + 1 < WEB_COLUMNS && row + 1 < WEB_ROWS && node % 2 == 0 ? node + WEB_COLUMNS + 1 : -1};
             for (int other : towards) {
                 if (other < 0) continue;
+                edges.add(node);
+                edges.add(other);
                 for (int k = 0; k < WEB_PER_THREAD; k++, seed++) {
                     double along = fraction(seed * 5.13 + 4), aside = (fraction(seed * 9.71 + 5) - 0.5) * 0.05 * Math.sin(Math.PI * along) + (fraction(seed * 2.19 + 6) - 0.5) * 0.012;
                     double dx = nodeX[other] - nodeX[node], dy = nodeY[other] - nodeY[node], length = Math.hypot(dx, dy);
@@ -117,6 +132,10 @@ public final class GalaxyView extends Canvas {
         }
         HOME_X = nodeX[HOME];
         HOME_Y = nodeY[HOME];
+        WEB_NODE_X = nodeX;
+        WEB_NODE_Y = nodeY;
+        WEB_EDGES = new int[edges.size()];
+        for (int i = 0; i < WEB_EDGES.length; i++) WEB_EDGES[i] = edges.get(i);
     }
 
     private static final double HOME_X, HOME_Y;
@@ -131,7 +150,11 @@ public final class GalaxyView extends Canvas {
         if (BigBangPage.moving()) time += elapsed;
         beat++;
         boolean changed = getWidth() != drawnWidth || getHeight() != drawnHeight || game.cosmosFormed() != drawnLevel
-                || colored != game.state().moleculesVersion() || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+                || colored != game.state().moleculesVersion() || coloredPalette != MoleculeArt.palette()
+                || drawnSkin != game.chosenSkin(idle.core.universe.SkinVisual.BODY)
+                || drawnGalaxySkin != game.chosenSkin(idle.core.universe.SkinVisual.GALAXY)
+                || drawnClusterSkin != game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER)
+                || drawnWebSkin != game.chosenSkin(idle.core.universe.SkinVisual.COSMIC_WEB);
         // La toile de l'univers ne bouge pas : inutile de la redessiner tant que rien ne change.
         if (!changed && (beat % 2 != 0 || drawnLevel >= 3)) return;
         redraw();
@@ -147,6 +170,9 @@ public final class GalaxyView extends Canvas {
         boolean formed = game.hasGalaxy();
         drawnLevel = game.cosmosFormed();
         drawnSkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
+        drawnGalaxySkin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY);
+        drawnClusterSkin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+        drawnWebSkin = game.chosenSkin(idle.core.universe.SkinVisual.COSMIC_WEB);
         color();
         GraphicsContext g = getGraphicsContext2D();
         g.clearRect(0, 0, w, h);
@@ -159,7 +185,7 @@ public final class GalaxyView extends Canvas {
             g.fillOval(fraction(star * 12.9898) * w, fraction(star * 78.233) * h, 1, 1);
         }
         if (drawnLevel >= 3) {
-            universe(g, w, h);
+            universe(g, w, h, drawnWebSkin);
             return;
         }
         if (drawnLevel == 2) {
@@ -171,20 +197,25 @@ public final class GalaxyView extends Canvas {
         double radius = 0.46 * Math.min(w, h);
         // Pâle tant qu'elle n'est qu'un aperçu.
         double strength = formed ? 1 : 0.4;
-        g.setGlobalAlpha(strength);
-        g.setFill(new RadialGradient(0, 0, cx, cy, radius, false, CycleMethod.NO_CYCLE, GLOW));
-        g.fillOval(cx - radius, cy - radius, 2 * radius, 2 * radius);
-        // Les bras traînent derrière la rotation.
-        double cos = Math.cos(-time * SPIN);
-        double sin = Math.sin(-time * SPIN);
-        g.setGlobalAlpha(0.9 * strength);
-        for (int dot = 0; dot < DOTS; dot++) {
-            double out = AWAY[dot] * radius;
-            double x = cx + out * (COS[dot] * cos - SIN[dot] * sin);
-            double y = cy + out * (SIN[dot] * cos + COS[dot] * sin);
-            double size = dot % 11 == 0 ? 1.5 : 0.9;
-            g.setFill(colors[dot]);
-            g.fillOval(x - size, y - size, 2 * size, 2 * size);
+        if (GalaxySkinArt.draws(drawnGalaxySkin)) {
+            // Le skin de la galaxie (version 0.194) : les mêmes points, autrement.
+            GalaxySkinArt.galaxy(g, drawnGalaxySkin, cx, cy, radius, -time * SPIN, colors, AWAY, COS, SIN, strength);
+        } else {
+            g.setGlobalAlpha(strength);
+            g.setFill(new RadialGradient(0, 0, cx, cy, radius, false, CycleMethod.NO_CYCLE, GLOW));
+            g.fillOval(cx - radius, cy - radius, 2 * radius, 2 * radius);
+            // Les bras traînent derrière la rotation.
+            double cos = Math.cos(-time * SPIN);
+            double sin = Math.sin(-time * SPIN);
+            g.setGlobalAlpha(0.9 * strength);
+            for (int dot = 0; dot < DOTS; dot++) {
+                double out = AWAY[dot] * radius;
+                double x = cx + out * (COS[dot] * cos - SIN[dot] * sin);
+                double y = cy + out * (SIN[dot] * cos + COS[dot] * sin);
+                double size = dot % 11 == 0 ? 1.5 : 0.9;
+                g.setFill(colors[dot]);
+                g.fillOval(x - size, y - size, 2 * size, 2 * size);
+            }
         }
         g.setGlobalAlpha(1);
         // Le trou noir supermassif, dès qu'il est formé.
@@ -210,23 +241,42 @@ public final class GalaxyView extends Canvas {
      */
     static void cluster(GraphicsContext g, double w, double h, double time, Color[] colors, Game game) {
         double cx = w / 2, cy = h / 2, unit = Math.min(w, h);
-        // Le halo de l'amas : le gaz chaud qui baigne ses galaxies.
-        g.setGlobalAlpha(0.35);
-        g.setFill(new RadialGradient(0, 0, cx, cy, 0.5 * w, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#8fa8ff", 0.35)), new Stop(0.5, Color.web("#b48cf2", 0.12)), new Stop(1, Color.web("#8fa8ff", 0))));
-        g.fillRect(0, 0, w, h);
+        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY_CLUSTER);
+        boolean skinned = GalaxySkinArt.draws(skin);
+        if (!skinned) {
+            // Le halo de l'amas : le gaz chaud qui baigne ses galaxies.
+            g.setGlobalAlpha(0.35);
+            g.setFill(new RadialGradient(0, 0, cx, cy, 0.5 * w, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.web("#8fa8ff", 0.35)), new Stop(0.5, Color.web("#b48cf2", 0.12)), new Stop(1, Color.web("#8fa8ff", 0))));
+            g.fillRect(0, 0, w, h);
+        }
+        // Les membres : la galaxie du joueur d'abord, puis ses voisines ; dans un skin, le fond les relie avant qu'ils soient dessinés.
+        double[] xs = new double[NEIGHBOURS + 1], ys = new double[NEIGHBOURS + 1], radii = new double[NEIGHBOURS + 1];
+        xs[0] = cx;
+        ys[0] = cy;
+        radii[0] = 0.3 * unit;
         for (int other = 0; other < NEIGHBOURS; other++) {
             double side = other % 2 == 0 ? -1 : 1;
             // Les voisines se rangent des deux côtés de la galaxie du joueur, sans la recouvrir.
             double radius = (0.09 + 0.09 * fraction(other * 5.3 + 3)) * unit;
             // Au plus près, elle frôle la galaxie du joueur ; au plus loin, le bord de l'image.
             double nearest = 0.32 * unit + radius, farthest = Math.max(nearest, 0.5 * w - radius - 6);
-            double x = cx + side * (nearest + fraction(other * 3.7 + 1) * (farthest - nearest));
-            double y = cy + (fraction(other * 9.1 + 2) - 0.5) * 0.72 * h;
-            double turn = (other % 3 == 0 ? 1 : -1) * time * SPIN * (0.6 + 0.8 * fraction(other * 2.9));
-            spiral(g, colors, x, y, radius, turn + other, 0.3 + 0.7 * fraction(other * 6.1 + 4), Math.PI * fraction(other * 4.3 + 5), 7, 0.75);
+            xs[other + 1] = cx + side * (nearest + fraction(other * 3.7 + 1) * (farthest - nearest));
+            ys[other + 1] = cy + (fraction(other * 9.1 + 2) - 0.5) * 0.72 * h;
+            radii[other + 1] = radius;
         }
-        spiral(g, colors, cx, cy, 0.3 * unit, -time * SPIN, 1, 0, 2, 1);
+        if (skinned) GalaxySkinArt.clusterBackdrop(g, skin, w, h, xs, ys, radii, time);
+        for (int other = 0; other < NEIGHBOURS; other++) {
+            double turn = (other % 3 == 0 ? 1 : -1) * time * SPIN * (0.6 + 0.8 * fraction(other * 2.9));
+            if (skinned) {
+                GalaxySkinArt.clusterMember(g, skin, xs[other + 1], ys[other + 1], radii[other + 1], false, other + 1, time);
+            } else {
+                spiral(g, colors, xs[other + 1], ys[other + 1], radii[other + 1], turn + other, 0.3 + 0.7 * fraction(other * 6.1 + 4),
+                        Math.PI * fraction(other * 4.3 + 5), 7, 0.75);
+            }
+        }
+        if (skinned) GalaxySkinArt.clusterMember(g, skin, cx, cy, radii[0], true, 0, time);
+        else spiral(g, colors, cx, cy, radii[0], -time * SPIN, 1, 0, 2, 1);
         g.setGlobalAlpha(1);
         for (Body body : game.bodies()) {
             if (body.tier() == Body.Tier.CORE && game.hasBody(body.id())) BodyArt.draw(g, body, cx, cy, 0.012 * unit + 2, game.chosenSkin(idle.core.universe.SkinVisual.BODY));
@@ -257,15 +307,20 @@ public final class GalaxyView extends Canvas {
     /**
      * L'univers : une toile de filaments, des amas à leurs croisements, et du vide entre eux. Celui
      * du joueur est entouré, au milieu : à cette échelle une galaxie n'est plus qu'un point. La vue de
-     * l'expansion de la matière s'en sert aussi ({@link SpaceView}).
+     * l'expansion de la matière s'en sert aussi ({@link SpaceView}). {@code skin} est celui de la toile (version 0.194).
      */
-    static void universe(GraphicsContext g, double w, double h) {
+    static void universe(GraphicsContext g, double w, double h, idle.core.universe.Skin skin) {
         double left = 0.02 * w, top = 0.04 * h, wide = 0.96 * w, high = 0.92 * h;
-        for (int i = 0; i < WEB_X.length; i++) {
-            g.setGlobalAlpha(WEB_TINT[i] == 3 ? 0.95 : 0.5 + 0.4 * fraction(i * 1.93));
-            g.setFill(WEB_COLORS[WEB_TINT[i]]);
-            double size = WEB_SIZE[i];
-            g.fillOval(left + WEB_X[i] * wide - size / 2, top + WEB_Y[i] * high - size / 2, size, size);
+        if (GalaxySkinArt.draws(skin)) {
+            // Le skin de la toile (version 0.194) : les nœuds et les filaments, autrement.
+            GalaxySkinArt.web(g, skin, left, top, wide, high, WEB_NODE_X, WEB_NODE_Y, WEB_EDGES, HOME);
+        } else {
+            for (int i = 0; i < WEB_X.length; i++) {
+                g.setGlobalAlpha(WEB_TINT[i] == 3 ? 0.95 : 0.5 + 0.4 * fraction(i * 1.93));
+                g.setFill(WEB_COLORS[WEB_TINT[i]]);
+                double size = WEB_SIZE[i];
+                g.fillOval(left + WEB_X[i] * wide - size / 2, top + WEB_Y[i] * high - size / 2, size, size);
+            }
         }
         double hx = left + HOME_X * wide, hy = top + HOME_Y * high;
         g.setGlobalAlpha(0.9);
@@ -281,8 +336,9 @@ public final class GalaxyView extends Canvas {
 
     /** Donne à chaque point la couleur d'une molécule du joueur, quand leur liste a changé. */
     private void color() {
-        if (colored == game.state().moleculesVersion()) return;
+        if (colored == game.state().moleculesVersion() && coloredPalette == MoleculeArt.palette()) return;
         colored = game.state().moleculesVersion();
+        coloredPalette = MoleculeArt.palette();
         tint(game, colors);
     }
 

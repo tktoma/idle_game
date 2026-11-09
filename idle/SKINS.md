@@ -122,20 +122,20 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ## 4. La matière noire
 
 ### L'échelle des grandeurs et la règle (`DarkMatterView`)
-- Règle de bois — graduations gravées, chiffres au fer ; dix explosions.
-- Règle d'architecte — plastique jaune translucide ; vingt explosions.
-- Repères célestes — les cercles des objets connus deviennent les objets eux-mêmes dessinés en silhouette (un grain, une bille, la Terre, le Soleil, la galaxie) ; chaque objet dépassé une fois.
+- Règle de bois — **fait en 0.193** (condition retenue : 10 explosions) : graduations gravées, chiffres au fer ; dix explosions.
+- Règle d'architecte — **fait en 0.193** (condition retenue : 20 explosions) : plastique jaune translucide ; vingt explosions.
+- Repères célestes — **fait en 0.193** (condition retenue : le succès « Plus grand que tout », les 26 paliers de taille atteints) : les cercles des objets connus deviennent les objets eux-mêmes dessinés en silhouette (un grain, une bille, la Terre, le Soleil, la galaxie) ; chaque objet dépassé une fois.
 
 ### L'arbre de matière noire (`DarkMatterTreePane`)
-- Racines — les traits deviennent des racines brunes qui s'épaississent avec le niveau, les cases des bulbes ; trente cases achetées.
-- Circuit — traits en pistes de cuivre, cases en puces ; l'arbre complet une fois.
-- Constellation — traits en fils d'étoiles, cases en étoiles plus ou moins brillantes ; la galaxie formée.
-- Métro — traits en lignes de métro colorées par branche, cases en stations ; cinq branches ouvertes.
+- Racines — **fait en 0.193** (condition retenue : 30 cases de l'arbre achetées) : les traits deviennent des racines brunes qui s'épaississent avec le niveau, les cases des bulbes ; trente cases achetées.
+- Circuit — **fait en 0.193** (condition retenue : 100 niveaux achetés dans l'arbre, en tout ; « l'arbre complet » n'existe pas, bifurcations et cases sans limite obligent) : traits en pistes de cuivre, cases en puces ; l'arbre complet une fois.
+- Constellation — **fait en 0.193** (condition retenue : la galaxie formée) : traits en fils d'étoiles, cases en étoiles plus ou moins brillantes ; la galaxie formée.
+- Métro — **fait en 0.193** (condition retenue : les quatre branches entamées, l'arbre n'en ayant pas cinq) : traits en lignes de métro colorées par branche, cases en stations ; cinq branches ouvertes.
 
 ### Les défis (`ChallengesPane`, l'arrivée de « la fuite »)
-- Cartes de tarot — chaque défi une lame, l'arrivée les retourne ; trois défis réussis.
-- Affiches « wanted » — papier déchiré, portrait du défi ; six défis.
-- Sceaux — le défi réussi porte un sceau de cire rouge ; tous les défis.
+- Cartes de tarot — **fait en 0.193** (skin « Tarot » ; condition retenue : 3 défis réussis) : chaque défi une lame, l'arrivée les retourne ; trois défis réussis.
+- Affiches « wanted » — **fait en 0.193** (skin « Wanted » ; condition retenue : 6 défis réussis) : papier déchiré, portrait du défi ; six défis.
+- Sceaux — **fait en 0.193** (condition retenue : les dix défis réussis) : le défi réussi porte un sceau de cire rouge ; tous les défis.
 
 ## 5. Le Big Bang : espace, ciel, galaxie
 
@@ -144,12 +144,12 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Traits (squelette) — **fait en 0.188** : seulement les liaisons, atomes en lettres ; toutes les sortes créées (73).
 - Perles — **fait en 0.188** : atomes en perles nacrées, bâtons en fil ; vingt sortes rassemblées.
 - Lego — **fait en 0.188** : atomes en briques à tenons, couleurs vives ; mille molécules créées.
-- Palette CPK alternative : « pastel », « daltonien sûr » (une palette vérifiée), « monochrome par rayon » ; chacun dès le premier Big Bang (option d'accessibilité, sans condition).
+- Palette CPK alternative — **fait en 0.194** (visuel « La palette des molécules », trois skins libres, combinés avec la forme) : « pastel », « daltonien sûr » (une palette vérifiée), « monochrome par rayon » ; chacun dès le premier Big Bang (option d'accessibilité, sans condition).
 
 ### Les amas rassemblés, les blocs d'assemblage, le gaz (`SpaceView`, `SpaceViewPlacement`, `SpaceViewPacking`)
-- Amas en flaques, en cristaux à facettes, en nuages de coton, selon l'état, avec une palette au choix : « minéraux » (vrai gris du quartz, bleu du cuivre…), « néon », « pastel » ; cinq, vingt, cinquante sortes rassemblées.
-- Blocs d'assemblage en briques de pierre taillée, en lingots, en cristaux bruts, en pains de glace ; dix, vingt, trente assemblages.
-- Le gaz flouté au loin en voile de brume, en fumée de cheminée, en aurore ; mille molécules de gaz.
+- Amas — **fait en 0.194** (visuel « Les amas rassemblés » ; condition retenue : 5, 20, 50 sortes rassemblées) : en flaques, en cristaux à facettes, en nuages de coton, selon l'état, avec une palette au choix : « minéraux » (vrai gris du quartz, bleu du cuivre…), « néon », « pastel » ; cinq, vingt, cinquante sortes rassemblées.
+- Blocs d'assemblage — **fait en 0.194** (condition retenue : 10, 15, 20 assemblages, et les 30 du catalogue pour la glace) : en briques de pierre taillée, en lingots, en cristaux bruts, en pains de glace ; dix, vingt, trente assemblages.
+- Le gaz flouté au loin — **fait en 0.194** (condition retenue : 1 000, 10 000, 100 000 molécules de gaz rassemblées) : en voile de brume, en fumée de cheminée, en aurore ; mille molécules de gaz.
 
 ### Les astres (`BodyArt` : 35 astres, 10 échelles, 12 aspects)
 - Planétarium — **fait en 0.186** (visuel « Les astres ») : tous les astres en sphères de laiton et de verre dépoli, sur des tiges ; dix astres formés dans un univers.
@@ -157,23 +157,23 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Cartographie — **fait en 0.186** : astres en globes à méridiens et parallèles, nommés en lettres capitales ; les trente-cinq astres formés dans un univers.
 
 ### Le ciel des astres (`SkyView`)
-- Planche naturaliste — fond parchemin, astres épinglés avec étiquette manuscrite ; quinze astres.
-- Mobile — astres suspendus à des fils qui se balancent ; vingt-cinq astres.
-- Vitrine — étagères de verre éclairées par le bas ; trente-cinq astres.
+- Planche naturaliste — **fait en 0.194** (visuel « Le ciel des astres » ; condition retenue : 15 astres formés dans un univers) : fond parchemin, astres épinglés avec étiquette manuscrite ; quinze astres.
+- Mobile — **fait en 0.194** (condition retenue : 25 astres) : astres suspendus à des fils qui se balancent ; vingt-cinq astres.
+- Vitrine — **fait en 0.194** (condition retenue : les 35 astres) : étagères de verre éclairées par le bas ; trente-cinq astres.
 
 ### La galaxie, l'amas de galaxies, la toile (`GalaxyView`, `Spiral`)
-- Galaxie en coquillage (spirale de nautile), en pelote de laine, en empreinte digitale, en tourbillon d'évier, en roue de feu d'artifice ; la galaxie formée, puis chaque univers formé en débloque un.
-- Amas en grappe de raisin, en guirlande de lampions, en essaim d'abeilles ; l'amas de galaxies formé.
-- Toile de l'univers en réseau de neurones, en dentelle, en toile d'araignée au matin (gouttes), en carte de métro ; l'univers formé.
+- Galaxie — **fait en 0.194** (condition retenue : Nautile avec la galaxie formée, puis un skin par univers formé, du deuxième au cinquième) : en coquillage (spirale de nautile), en pelote de laine, en empreinte digitale, en tourbillon d'évier, en roue de feu d'artifice ; la galaxie formée, puis chaque univers formé en débloque un.
+- Amas — **fait en 0.194** (condition retenue : la grappe avec l'amas formé, les lampions à l'univers 2, l'essaim à l'univers 3) : en grappe de raisin, en guirlande de lampions, en essaim d'abeilles ; l'amas de galaxies formé.
+- Toile de l'univers — **fait en 0.194** (condition retenue : un skin par univers formé, du premier au quatrième) : en réseau de neurones, en dentelle, en toile d'araignée au matin (gouttes), en carte de métro ; l'univers formé.
 
 ### Les systèmes solaires (`SystemView`)
-- Orrery — orbites en cercles de laiton, planètes sur tiges ; un système complet.
-- Dessin d'enfant — orbites au crayon de couleur, Soleil à rayons ; deux systèmes.
-- Radar — fond vert, orbites en cercles de balayage, planètes en échos ; trois systèmes.
+- Orrery — **fait en 0.194** (condition retenue : 1 système complet) : orbites en cercles de laiton, planètes sur tiges ; un système complet.
+- Dessin d'enfant — **fait en 0.194** (condition retenue : 2 systèmes complets) : orbites au crayon de couleur, Soleil à rayons ; deux systèmes.
+- Radar — **fait en 0.194** (condition retenue : 3 systèmes complets ; les planètes y sont remplacées par des échos) : fond vert, orbites en cercles de balayage, planètes en échos ; trois systèmes.
 
 ### Les sondes (`ProbesView`, `LootPane`)
-- Sondes en avions de papier, en montgolfières, en bouteilles à la mer, en pigeons voyageurs ; dix, vingt-cinq, cinquante, cent voyages.
-- Trajectoires en pointillés de carte au trésor, en traînées de condensation, en fil d'Ariane ; chacun avec le skin de sonde.
+- Sondes — **fait en 0.194** (condition retenue : 10, 25, 50, 100 voyages revenus) : en avions de papier, en montgolfières, en bouteilles à la mer, en pigeons voyageurs ; dix, vingt-cinq, cinquante, cent voyages.
+- Trajectoires — **fait en 0.194** (pas de visuel à part : chaque skin de sonde a la sienne, les plumes pour le pigeon) : en pointillés de carte au trésor, en traînées de condensation, en fil d'Ariane ; chacun avec le skin de sonde.
 
 ## 6. Collisionneur, hadrons, vide
 

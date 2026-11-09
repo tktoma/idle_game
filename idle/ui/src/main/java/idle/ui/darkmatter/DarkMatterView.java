@@ -118,6 +118,21 @@ public final class DarkMatterView extends Canvas {
         return animation;
     }
 
+    /**
+     * Le skin de l'échelle des grandeurs (version 0.193) : {@code null} pour le classique. « Règle de bois » et
+     * « Règle d'architecte » redessinent la règle graduée ; « Repères célestes » remplace les cercles des objets
+     * connus par leur silhouette. Tout est dessiné par {@link RulerSkinArt}.
+     */
+    private Skin ruler;
+
+    void setRuler(Skin chosen) {
+        ruler = chosen != null && chosen.visual() == SkinVisual.DARK_RULER ? chosen : null;
+    }
+
+    Skin ruler() {
+        return ruler;
+    }
+
     /** L'angle du tourbillon ou des faisceaux, qui avance même au repos. */
     private double whirl = 0;
 
@@ -229,7 +244,7 @@ public final class DarkMatterView extends Canvas {
             double radius = Math.pow(10, logRing);
             if (radius <= minRadius || radius > maxRadius) continue;
             landmarkRadii[landmarks++] = radius;
-            drawRing(g, cx, cy, radius, landmark.name() + " (" + Format.length(landmark.size()) + ")", true);
+            drawRing(g, cx, cy, radius, landmark.name() + " (" + Format.length(landmark.size()) + ")", landmark);
         }
         // Les graduations : en mètres, ou en années-lumière quand les kilomètres ne suffisent plus.
         double logMeters = Math.log10(2 * minRadius) + logScale;
@@ -243,7 +258,7 @@ public final class DarkMatterView extends Canvas {
                 if (radius <= minRadius) continue;
                 boolean taken = false;                       // un repère occupe déjà cette place
                 for (int i = 0; i < landmarks; i++) taken |= Math.abs(landmarkRadii[i] - radius) < 14;
-                if (!taken) drawRing(g, cx, cy, radius, Format.length(BigNum.pow10(logSize)), false);
+                if (!taken) drawRing(g, cx, cy, radius, Format.length(BigNum.pow10(logSize)), null);
             }
             if (beyond) break;
         }
@@ -465,12 +480,18 @@ public final class DarkMatterView extends Canvas {
      * Un cercle de l'échelle, avec son texte au-dessus (ou en haut à droite quand le haut du
      * cercle sort de la vue).
      *
-     * @param landmark vrai pour un objet connu, dessiné plus net qu'une simple graduation
+     * @param object l'objet connu, dessiné plus net qu'une simple graduation (et en silhouette sous le skin
+     *               « Repères célestes », version 0.193) ; {@code null} pour une graduation
      */
-    private void drawRing(GraphicsContext g, double cx, double cy, double radius, String text, boolean landmark) {
-        g.setGlobalAlpha(landmark ? 0.9 : 0.35);
-        g.setStroke(landmark ? GLOW : RING);
-        g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
+    private void drawRing(GraphicsContext g, double cx, double cy, double radius, String text, Landmark object) {
+        boolean landmark = object != null;
+        if (landmark && ruler == Skin.RULER_CELESTIAL) {
+            RulerSkinArt.silhouette(g, cx, cy, radius, object.name(), time);
+        } else {
+            g.setGlobalAlpha(landmark ? 0.9 : 0.35);
+            g.setStroke(landmark ? GLOW : RING);
+            g.strokeOval(cx - radius, cy - radius, radius * 2, radius * 2);
+        }
         g.setGlobalAlpha(landmark ? 1 : 0.6);
         g.setFill(landmark ? CORE : TEXT);
         double top = cy - radius - 5;
@@ -500,6 +521,10 @@ public final class DarkMatterView extends Canvas {
         double length = Math.pow(10, logLength - logScale);
         double x = 16;
         double y = h - 16;
+        if (RulerSkinArt.drawsRuler(ruler)) {
+            RulerSkinArt.drawRuler(ruler, g, x, y, length, Format.length(BigNum.pow10(logLength)));
+            return;
+        }
         g.setGlobalAlpha(1);
         g.setStroke(TEXT);
         g.setLineWidth(1.5);

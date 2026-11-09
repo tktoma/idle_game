@@ -4,6 +4,8 @@ import idle.core.Game;
 import idle.core.bigbang.BigBangCondition;
 import idle.core.darkmatter.DarkUpgrade;
 import idle.core.math.BigNum;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.Confirm;
 import idle.ui.GameApp;
 import idle.ui.NextReset;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javafx.geometry.Pos;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -54,6 +57,9 @@ import javafx.scene.text.TextAlignment;
  * Elle se paie avec les trois ressources à la fois et demande des succès et tous les défis : elle
  * liste ses conditions (cinq, six avec le ciel), avec ce que le joueur en a. Comme elle efface tout, elle demande un
  * second clic dans les cinq secondes.
+ *
+ * <p>Version 0.193 : l'arbre a ses skins ({@link #setSkin}), dessinés par {@link DarkTreeSkinArt} : les traits
+ * changent d'allure et chaque case reçoit une vignette au coin, qui suit son niveau.
  */
 public final class DarkMatterTreePane extends Pane {
 
@@ -105,6 +111,8 @@ public final class DarkMatterTreePane extends Pane {
         final int side;
         /** Sa place à la dernière mise en page : les traits des liaisons en partent. */
         double x, y, width;
+        /** Sa vignette sous un skin (version 0.193), posée au coin de la carte. */
+        final Canvas art = new Canvas(DarkTreeSkinArt.ART, DarkTreeSkinArt.ART);
 
         Cell(DarkUpgrade upgrade, int row, int side) {
             this.upgrade = upgrade;
@@ -124,6 +132,8 @@ public final class DarkMatterTreePane extends Pane {
         final List<Cell> options = new ArrayList<>();
         /** 1 pour le premier rang de bifurcations, 2 pour le second. */
         int level;
+        /** Sa vignette sous un skin (version 0.193). */
+        final Canvas art = new Canvas(DarkTreeSkinArt.ART, DarkTreeSkinArt.ART);
 
         LinkCell(DarkUpgrade upgrade) {
             this.upgrade = upgrade;
@@ -172,6 +182,9 @@ public final class DarkMatterTreePane extends Pane {
     private double litFor = 0;
     /** Les deux voies de chaque bifurcation, par son nom. */
     private final Map<String, List<Cell>> forkCells = new HashMap<>();
+    /** Le skin de l'arbre (version 0.193), ou {@code null} pour le Classique ; et celui dont les vignettes sont posées. */
+    private Skin skin;
+    private Skin pictured;
 
     DarkMatterTreePane(Game game) {
         this.game = game;
@@ -400,8 +413,46 @@ public final class DarkMatterTreePane extends Pane {
         return bang;
     }
 
+    /** Le skin de l'arbre (version 0.193) : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
+    void setSkin(Skin chosen) {
+        skin = chosen != null && chosen.visual() == SkinVisual.DARK_TREE ? chosen : null;
+    }
+
+    /** Le skin de l'arbre, ou {@code null} : pour les vérifications. */
+    public Skin skin() {
+        return skin;
+    }
+
+    /** La largeur du trait qui mène à cette case : pour les vérifications (les skins la changent). */
+    public double linkWidth(String darkUpgradeId) {
+        for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) return cell.link.getStrokeWidth();
+        return 0;
+    }
+
+    /** Vrai si cette case porte une vignette de skin : pour les vérifications. */
+    public boolean hasArt(String darkUpgradeId) {
+        for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) return cell.art.getParent() != null;
+        for (LinkCell link : links) if (link.upgrade.id().equals(darkUpgradeId)) return link.art.getParent() != null;
+        return false;
+    }
+
+    /** Pose ou retire les vignettes quand le skin change, et habille les traits communs : tronc, étages, descentes. */
+    private void dressFrame() {
+        if (skin != pictured) {
+            pictured = skin;
+            boolean art = DarkTreeSkinArt.draws(skin);
+            for (Cell cell : cells) cell.card.setInlinePicture(art ? cell.art : null);
+            for (LinkCell link : links) link.card.setInlinePicture(art ? link.art : null);
+        }
+        Color dark = Color.web(GameApp.DARK_MATTER_COLOR);
+        DarkTreeSkinArt.dress(skin, trunk, dark, true, 6);
+        for (Line bus : buses) DarkTreeSkinArt.dress(skin, bus, dark, true, 6);
+        for (DarkUpgrade.Branch branch : branches) DarkTreeSkinArt.dress(skin, drops.get(branch), Color.web(COLORS.get(branch)), true, 3);
+    }
+
     /** Recopie l'état du jeu dans l'arbre : textes, couleurs, et cases cliquables seulement si l'achat est possible. */
     public void refresh() {
+        dressFrame();
         BigNum earned = game.darkMatterEarned();
         root.setText("Matière noire : " + Format.count(earned) + (earned.gt(BigNum.ONE) ? " gagnées" : " gagnée"));
         for (DarkUpgrade.Branch branch : branches) {
@@ -435,9 +486,9 @@ public final class DarkMatterTreePane extends Pane {
                                 : ". Une bifurcation : prendre cette voie ferme l'autre jusqu'au prochain Big Bang, où le choix se refait. "
                                         + "La Superposition du collisionneur ouvre les deux.") : "",
                         rival != null ? "« " + rival.name() + " » est prise, jusqu'au prochain Big Bang" : price(upgrade, available), "");
-                Color stroke = Color.web(available ? color : OFF);
-                cell.link.setStroke(stroke);
-                cell.elbow.setStroke(Color.web(OFF));
+                DarkTreeSkinArt.dress(skin, cell.link, Color.web(available ? color : OFF), available, level);
+                DarkTreeSkinArt.dress(skin, cell.elbow, Color.web(OFF), false, level);
+                if (pictured != null) DarkTreeSkinArt.paint(skin, cell.art, Color.web(color), level, maxed, available);
                 continue;
             }
 
@@ -451,9 +502,10 @@ public final class DarkMatterTreePane extends Pane {
                     maxed ? "" : price(upgrade, available), "");
 
             // Le trait qui mène à la case s'allume quand elle est accessible.
-            Color stroke = Color.web(available ? color : OFF);
-            cell.link.setStroke(stroke);
-            cell.elbow.setStroke(cell.side >= 0 && level == 0 ? Color.web(OFF) : stroke);
+            boolean elbowOn = available && !(cell.side >= 0 && level == 0);
+            DarkTreeSkinArt.dress(skin, cell.link, Color.web(available ? color : OFF), available, level);
+            DarkTreeSkinArt.dress(skin, cell.elbow, Color.web(elbowOn ? color : OFF), elbowOn, level);
+            if (pictured != null) DarkTreeSkinArt.paint(skin, cell.art, Color.web(color), level, maxed, available);
         }
         for (LinkCell link : links) refreshLink(link);
         showLit();
@@ -477,8 +529,11 @@ public final class DarkMatterTreePane extends Pane {
         for (Cell cell : cells) {
             boolean on = lit.contains(cell);
             cell.card.setEffect(on ? halo : null);
-            cell.link.setStrokeWidth(on ? 4 : 2);
-            if (on) cell.link.setStroke(Color.web("#ffffff"));
+            // Les traits viennent d'être habillés à leur largeur de repos ; les surlignés gagnent deux pixels.
+            if (on) {
+                cell.link.setStrokeWidth(cell.link.getStrokeWidth() + 2);
+                cell.link.setStroke(Color.web("#ffffff"));
+            }
         }
         for (LinkCell link : links) link.card.setEffect(litLinks.contains(link) ? halo : null);
     }
@@ -539,6 +594,9 @@ public final class DarkMatterTreePane extends Pane {
                         : ". Une liaison : l'une ou l'autre de ses voies suffit.")
                         + " Elle se paie en matière noire et repart au Big Bang avec les voies, sauf avec la Superposition du collisionneur." : "",
                 maxed ? "" : available ? price(upgrade, true) : missing, "");
+        if (pictured != null) {
+            DarkTreeSkinArt.paint(skin, link.art, Color.web(GameApp.DARK_MATTER_COLOR), game.darkLevelOf(upgrade.id()), maxed, available);
+        }
     }
 
     private static String branchName(DarkUpgrade.Branch branch) {
@@ -592,9 +650,9 @@ public final class DarkMatterTreePane extends Pane {
                     met == all ? "Pas pendant un défi" : met + (met > 1 ? " conditions sur " : " condition sur ") + all, aside);
         }
         Color stroke = Color.web(ready ? GameApp.BIG_BANG_COLOR : OFF);
-        for (Line tail : tails.values()) tail.setStroke(stroke);
-        gather.setStroke(stroke);
-        stem.setStroke(stroke);
+        for (Line tail : tails.values()) DarkTreeSkinArt.dress(skin, tail, stroke, ready, 1);
+        DarkTreeSkinArt.dress(skin, gather, stroke, ready, 1);
+        DarkTreeSkinArt.dress(skin, stem, stroke, ready, 1);
     }
 
     /** Une condition du Big Bang : ce qu'il faut, et entre parenthèses ce que le joueur a. */

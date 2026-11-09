@@ -185,7 +185,11 @@ final class HelpPane extends Overlay {
                     + ElementText.number(Game.BIG_BANG_DARK_MATTER.toDouble()) + ". Le premier univers demande aussi moins de particules et "
                     + "d'atomes à ses Big Bangs que les suivants, et sa matière noire grossit plus vite après son premier Big Bang. "
                     + "Exploser nettement plus vite que la fois d'avant (en moins de "
-                    + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."));
+                    + ElementText.percent(Game.SPEED_PRIME_MARGIN) + " du temps) rapporte une prime de vitesse : une matière noire de plus."
+                    + (game.isSkinsUnlocked() ? " L'échelle des grandeurs, l'arbre et les défis ont leurs skins, choisis dans l'onglet Skins : "
+                            + "Règle de bois (10 explosions), Règle d'architecte (20) et Repères célestes (les 26 paliers de taille) pour "
+                            + "l'échelle ; Racines (30 cases achetées), Circuit (100 niveaux), Constellation (la galaxie) et Métro (les quatre "
+                            + "branches entamées) pour l'arbre ; Tarot (3 défis réussis), Wanted (6) et Sceaux (les dix) pour les défis." : "")));
         }
         if (game.isBigBangUnlocked()) {
             // Version 0.126 : ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
@@ -207,7 +211,14 @@ final class HelpPane extends Overlay {
                     + (game.isSkinsUnlocked() ? " Les molécules ont aussi leurs skins, choisis dans l'onglet Skins et qui changent "
                             + "leur dessin sur les cartes comme dans l'espace : Boules pleines à 50 sortes créées, Traits quand les "
                             + game.molecules().size() + " sortes du catalogue l'ont été, Perles à 20 sortes rassemblées, Lego à 1 000 "
-                            + "molécules créées." : "")));
+                            + "molécules créées ; et trois palettes libres de leurs couleurs (Pastel, Daltonien sûr, Monochrome par rayon). "
+                            // Version 0.194 : les amas, les blocs et le gaz de l'espace, la galaxie, l'amas et la toile.
+                            + "Dans l'espace, les amas rassemblés (Minéraux, Néon, Pastel à 5, 20 et 50 sortes rassemblées), les blocs "
+                            + "d'assemblage (Pierre taillée, Lingots, Cristaux bruts, Pains de glace à 10, 15, 20 et 30 assemblages) et le gaz "
+                            + "au loin (Brume, Fumée, Aurore à 1 000, 10 000 et 100 000 molécules de gaz rassemblées) ont les leurs ; la galaxie "
+                            + "(Nautile avec la galaxie, puis un par univers formé jusqu'au cinquième), l'amas de galaxies (Grappe de raisin, "
+                            + "Lampions, Essaim d'abeilles) et la toile de l'univers (Neurones, Dentelle, Toile au matin, Métro, un par univers "
+                            + "formé) aussi." : "")));
         } else {
             sections.add(new Section("La suite", "Elle se découvre en jouant : cette aide grandit avec la partie."));
         }
@@ -514,7 +525,8 @@ final class HelpPane extends Overlay {
                 // Les skins des astres (version 0.186) : par le nombre d'astres formés dans un univers.
                 + (game.isSkinsUnlocked() ? " Les astres ont aussi leurs skins, Planétarium, Gravure et Cartographie, débloqués à 10, 20 et 35 astres "
                         + "formés dans un univers, et choisis dans l'onglet Skins : ils changent le dessin de tous les astres, sur leurs cartes, "
-                        + "dans le ciel, les systèmes et l'espace." : "")));
+                        + "dans le ciel, les systèmes et l'espace. Le ciel lui-même a les siens (version 0.194) : Planche naturaliste à 15 "
+                        + "astres, Mobile à 25, Vitrine à 35." : "")));
         if (game.isSolarSystemsUnlocked()) sections.add(new Section("Systèmes solaires", "Dans le Big Bang, depuis le sixième. "
                 + "Autour d'une étoile mûre, on range des planètes, de la plus proche à la plus lointaine, et des lunes, une par "
                 + "planète au plus. Un système est complet à " + Game.SYSTEM_MIN_PLANETS + " planètes ; la galaxie en demande "
@@ -522,13 +534,20 @@ final class HelpPane extends Overlay {
                 + "au loin), par lune, pour une étoile géante, et deux pour une planète océan en deuxième ou troisième orbite d'un "
                 + "Soleil ou d'une naine rouge. Chaque point d'un système complet ajoute " + ElementText.percent(Game.SYSTEM_GAIN)
                 + " à toutes les grandeurs. Au septième Big Bang, deux places de maturation et une sonde de plus ; au huitième, "
-                + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."));
+                + "les matières exotiques : cinq astres sans assemblage, que la galaxie demande aussi."
+                // Version 0.194 : les skins des systèmes, par les systèmes complets.
+                + (game.isSkinsUnlocked() ? " Le dessin des systèmes a ses skins, dans l'onglet Skins : Orrery à un système complet, Dessin "
+                        + "d'enfant à deux, Radar à trois." : "")));
         if (game.isProbesUnlocked()) sections.add(new Section("Sondes", "Dans le Big Bang, depuis le troisième. On choisit une "
                 + "destination, puis un voyage de " + (int) (ProbeTrip.SHORT.seconds() / 60) + " minutes à " + (int) (ProbeTrip.NIGHT.seconds() / 3600) + " heures ; plus il est long, plus le butin est riche par heure. À l'"
                 + "arrivée, la sonde attend à destination : un clic sur elle" + claimKey(settings) + " ouvre son butin, une carte par clic, ou tout d'un coup : des éléments "
                 + "du rayon visé, de l'espace d'un coup, un sursaut qui double l'espace par seconde un moment, des échantillons. "
                 + "Les échantillons paient les améliorations : instruments, moteurs, réserves d'énergie, soute et hangar. "
-                + "Rien ne se perd si l'on revient tard, ni au Big Bang."));
+                + "Rien ne se perd si l'on revient tard, ni au Big Bang."
+                // Version 0.194 : les skins des sondes, par les voyages ; la trajectoire suit le skin.
+                + (game.isSkinsUnlocked() ? " Les sondes ont leurs skins, dans l'onglet Skins, par voyages revenus : Avion de papier à 10, "
+                        + "Montgolfière à 25, Bouteille à la mer à 50, Pigeon à 100 ; chacun a sa trajectoire (pointillés de carte au trésor, "
+                        + "traînée de condensation, fil d'Ariane, plumes) et le dos de la carte du butin le suit." : "")));
         sections.add(new Section("Sauvegarde et absence", "La partie s'écrit toute seule toutes les "
                 + settings.saveDelay().label() + " (le rythme se choisit dans les réglages) et à la fermeture. Au retour, "
                 + (settings.offline() ? "" : "si le temps hors ligne est rejoué (il est coupé en ce moment), ")

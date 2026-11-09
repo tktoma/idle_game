@@ -18,6 +18,9 @@ import javafx.scene.text.TextAlignment;
  * Les sondes dessinées : le hangar à gauche, une trajectoire par sonde vers sa destination à
  * droite, et la sonde qui avance au fil de son voyage. Arrivée, elle brille au-dessus de sa
  * destination : un clic dessus ouvre son butin.
+ *
+ * <p>Version 0.194 : les skins des sondes ({@link ProbeSkinArt}, {@link idle.core.universe.SkinVisual#PROBE})
+ * changent le ciel, la trajectoire et la sonde ; le hangar et les destinations restent.
  */
 public final class ProbesView extends Canvas {
 
@@ -34,6 +37,18 @@ public final class ProbesView extends Canvas {
 
     private final Game game;
     private double time;
+    /** Le skin des sondes de l'image en cours (version 0.194) : {@code null} pour le Classique. */
+    private idle.core.universe.Skin skin;
+
+    /** La couleur des textes vifs, dans le skin en cours. */
+    private Color lit() {
+        return skin == null ? LIT : ProbeSkinArt.text(skin);
+    }
+
+    /** La couleur des textes discrets, dans le skin en cours. */
+    private Color dim() {
+        return skin == null ? DIM : ProbeSkinArt.dim(skin);
+    }
 
     /** @param onLanded ce que fait un clic sur une sonde arrivée : ouvrir son butin, par son numéro */
     ProbesView(Game game, LongConsumer onLanded) {
@@ -102,9 +117,15 @@ public final class ProbesView extends Canvas {
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
-        stars(g, w, h);
+        skin = game.chosenSkin(idle.core.universe.SkinVisual.PROBE);
+        if (ProbeSkinArt.draws(skin)) {
+            ProbeSkinArt.background(g, skin, w, h, time);
+        } else {
+            skin = null;
+            g.setFill(BACK);
+            g.fillRect(0, 0, w, h);
+            stars(g, w, h);
+        }
         int lanes = Math.min(LANES, Math.max(1, game.probeSlots()));
         List<Probe> probes = game.state().probes();
         hangar(g, baseX(), h / 2);
@@ -112,7 +133,7 @@ public final class ProbesView extends Canvas {
             double y = laneY(i, lanes);
             if (i < probes.size()) lane(g, probes.get(i), y);
             else {
-                g.setFill(DIM);
+                g.setFill(dim());
                 g.setFont(Font.font(11));
                 g.setTextAlign(TextAlignment.RIGHT);
                 g.fillText("Place libre", targetX() + 60, y + 4);
@@ -143,7 +164,7 @@ public final class ProbesView extends Canvas {
         g.setLineWidth(1.5);
         g.strokeOval(x - 30, y - 8, 60, 16);
         g.setGlobalAlpha(1);
-        g.setFill(TEXT);
+        g.setFill(skin == null ? TEXT : ProbeSkinArt.text(skin));
         g.setFont(Font.font(11));
         g.setTextAlign(TextAlignment.CENTER);
         g.fillText("Hangar", x, y + 34);
@@ -158,16 +179,21 @@ public final class ProbesView extends Canvas {
             XS[k] = at[0];
             YS[k] = at[1];
         }
-        g.setStroke(PATH);
-        g.setLineWidth(1.5);
-        for (int k = 0; k < STEPS; k += 2) g.strokeLine(XS[k], YS[k], XS[k + 1], YS[k + 1]);
         int done = (int) Math.floor(t * STEPS);
-        if (done > 0) {
-            g.setStroke(LIT);
-            g.setGlobalAlpha(0.7);
-            g.setLineWidth(2);
-            g.strokePolyline(XS, YS, done + 1);
-            g.setGlobalAlpha(1);
+        if (skin != null) {
+            // Dans un skin (version 0.194), la trajectoire suit la sonde : pointillés, condensation, fil, plumes.
+            ProbeSkinArt.path(g, skin, XS, YS, STEPS, done, time);
+        } else {
+            g.setStroke(PATH);
+            g.setLineWidth(1.5);
+            for (int k = 0; k < STEPS; k += 2) g.strokeLine(XS[k], YS[k], XS[k + 1], YS[k + 1]);
+            if (done > 0) {
+                g.setStroke(LIT);
+                g.setGlobalAlpha(0.7);
+                g.setLineWidth(2);
+                g.strokePolyline(XS, YS, done + 1);
+                g.setGlobalAlpha(1);
+            }
         }
         destination(g, probe.destination(), targetX() + 22, y, probe.landed());
         double[] at = point(t, y), ahead = point(Math.min(1, t + 0.01), y);
@@ -175,17 +201,17 @@ public final class ProbesView extends Canvas {
         if (probe.landed()) {
             // Arrivée : elle tourne au-dessus de sa destination, et appelle le clic.
             double pulse = 0.5 + 0.5 * Math.sin(time * 4);
-            glow(g, targetX() + 22, y, 30 + 6 * pulse, LIT, 0.35 + 0.3 * pulse);
+            glow(g, targetX() + 22, y, 30 + 6 * pulse, lit(), 0.35 + 0.3 * pulse);
             double orbit = time * 1.6;
             craft(g, targetX() + 22 + 20 * Math.cos(orbit), y + 9 * Math.sin(orbit), orbit + Math.PI / 2);
-            g.setFill(LIT);
+            g.setFill(lit());
             g.setFont(Font.font(12));
             g.setTextAlign(TextAlignment.RIGHT);
             g.fillText("Butin prêt · cliquer", targetX() - 16, y + 4);
             g.setTextAlign(TextAlignment.LEFT);
         } else {
-            // En vol : une traîne, puis la sonde, pointée le long de sa route.
-            for (int k = 1; k <= 8; k++) {
+            // En vol : une traîne (le Classique seul : les skins ont la leur dans la trajectoire), puis la sonde, pointée le long de sa route.
+            for (int k = 1; k <= 8 && skin == null; k++) {
                 double[] back = point(Math.max(0, t - k * 0.008), y);
                 g.setGlobalAlpha(0.35 * (1 - k / 9.0));
                 g.setFill(LIT);
@@ -193,7 +219,7 @@ public final class ProbesView extends Canvas {
             }
             g.setGlobalAlpha(1);
             craft(g, at[0], at[1], angle);
-            g.setFill(DIM);
+            g.setFill(dim());
             g.setFont(Font.font(11));
             g.setTextAlign(TextAlignment.RIGHT);
             g.fillText("arrivée dans " + ProbesPane.minutes(probe.left()), targetX() - 16, y + 4);
@@ -201,8 +227,12 @@ public final class ProbesView extends Canvas {
         }
     }
 
-    /** La sonde : un petit corps lumineux, ses deux panneaux, pointée selon {@code angle}. */
-    private static void craft(GraphicsContext g, double x, double y, double angle) {
+    /** La sonde : un petit corps lumineux, ses deux panneaux, pointée selon {@code angle} ; dans un skin, ce que le skin en fait. */
+    private void craft(GraphicsContext g, double x, double y, double angle) {
+        if (skin != null) {
+            ProbeSkinArt.craft(g, skin, x, y, angle, time);
+            return;
+        }
         glow(g, x, y, 12, LIT, 0.55);
         double c = Math.cos(angle), s = Math.sin(angle);
         double[] px = {x + 7 * c, x - 5 * c - 4 * s, x - 3 * c, x - 5 * c + 4 * s};
@@ -249,7 +279,7 @@ public final class ProbesView extends Canvas {
                 g.fillOval(x - 11, y - 11, 22, 22);
             }
         }
-        g.setFill(reached ? LIT : TEXT);
+        g.setFill(reached ? lit() : skin == null ? TEXT : ProbeSkinArt.text(skin));
         g.setFont(Font.font(10));
         g.setTextAlign(TextAlignment.CENTER);
         g.fillText(where.label(), x, y + 26);

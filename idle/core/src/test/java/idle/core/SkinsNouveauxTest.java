@@ -35,8 +35,8 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(131, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
-                + "quarante de la 0.191, vingt-huit de la 0.192");
+        assertEquals(176, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+                + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194");
     }
 
     /** Version 0.186 : les skins des astres, à 10, 20 et 35 astres formés dans un univers ; acquis, ils restent. */
@@ -245,6 +245,156 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.AMBIENT_DUST, Skin.DUST_ASH.visual());
         assertEquals(SkinVisual.GENERATOR_FUSION, Skin.GENERATORS_SUCTION.visual());
         assertEquals(SkinVisual.TABLE_PAGE, Skin.PAGE_SPECTRUM.visual());
+    }
+
+    /** Version 0.193 : l'échelle des grandeurs, l'arbre de matière noire et les défis, chacun à sa condition et pas avant. */
+    @Test
+    void lEchelleLArbreEtLesDefisOntLeursConditions() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        game.state().setGalaxy(false);
+        game.tick(1);
+        game.tick(1);
+        for (Skin skin : new Skin[] {Skin.RULER_WOOD, Skin.RULER_ARCHITECT, Skin.RULER_CELESTIAL, Skin.DARK_TREE_ROOTS, Skin.DARK_TREE_CIRCUIT,
+            Skin.DARK_TREE_CONSTELLATION, Skin.DARK_TREE_METRO, Skin.CHALLENGES_TAROT, Skin.CHALLENGES_WANTED, Skin.CHALLENGES_SEALS}) {
+            assertFalse(game.hasSkin(skin), "pas avant sa condition : " + skin);
+        }
+        assertEquals(0, game.darkCellsBought());
+        assertEquals(0, game.darkBranchesOpened());
+        // La règle : dix explosions ; l'arbre : une case par branche sauf la dernière, vingt-neuf cases ; trois défis.
+        game.state().setExplosions(10);
+        java.util.List<idle.core.darkmatter.DarkUpgrade> cells = new java.util.ArrayList<>();
+        for (idle.core.darkmatter.DarkUpgrade dark : game.darkUpgrades()) if (!dark.isLink()) cells.add(dark);
+        // Les trois branches qui ne se paient pas en matière noire sont entamées, une case d'abord par branche.
+        java.util.Set<idle.core.darkmatter.DarkUpgrade.Branch> opened = java.util.EnumSet.noneOf(idle.core.darkmatter.DarkUpgrade.Branch.class);
+        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
+            if (dark.branch() != idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER && opened.add(dark.branch())) game.state().setDarkLevel(dark.id(), 1);
+        }
+        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
+            if (game.darkCellsBought() >= 29) break;
+            if (dark.branch() != idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER) game.state().setDarkLevel(dark.id(), 1);
+        }
+        java.util.List<idle.core.darkmatter.Challenge> challenges = idle.core.darkmatter.Challenges.DEFAULT;
+        for (int i = 0; i < 3; i++) game.state().addCompletedChallenge(challenges.get(i).id());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.RULER_WOOD), "dix explosions : le bois");
+        assertFalse(game.hasSkin(Skin.RULER_ARCHITECT), "pas vingt");
+        assertEquals(29, game.darkCellsBought());
+        assertEquals(29, game.darkLevelsBought());
+        assertEquals(3, game.darkBranchesOpened(), "trois branches sur quatre");
+        assertFalse(game.hasSkin(Skin.DARK_TREE_ROOTS) || game.hasSkin(Skin.DARK_TREE_METRO) || game.hasSkin(Skin.DARK_TREE_CIRCUIT));
+        assertTrue(game.hasSkin(Skin.CHALLENGES_TAROT), "trois défis");
+        assertFalse(game.hasSkin(Skin.CHALLENGES_WANTED), "pas six");
+        // La suite : vingt explosions, le succès des paliers, une trentième case en matière noire (à cent niveaux), la galaxie, tous les défis.
+        game.state().setExplosions(20);
+        game.state().addAchievement("step_landmarks");
+        for (idle.core.darkmatter.DarkUpgrade dark : cells) {
+            if (dark.branch() == idle.core.darkmatter.DarkUpgrade.Branch.DARK_MATTER) {
+                game.state().setDarkLevel(dark.id(), 71);
+                break;
+            }
+        }
+        game.state().setGalaxy(true);
+        for (idle.core.darkmatter.Challenge challenge : challenges) game.state().addCompletedChallenge(challenge.id());
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.RULER_ARCHITECT), "vingt explosions");
+        assertTrue(game.hasSkin(Skin.RULER_CELESTIAL), "les 26 paliers");
+        assertEquals(30, game.darkCellsBought());
+        assertEquals(100, game.darkLevelsBought());
+        assertEquals(4, game.darkBranchesOpened());
+        assertTrue(game.hasSkin(Skin.DARK_TREE_ROOTS), "trente cases");
+        assertTrue(game.hasSkin(Skin.DARK_TREE_CIRCUIT), "cent niveaux");
+        assertTrue(game.hasSkin(Skin.DARK_TREE_CONSTELLATION), "la galaxie");
+        assertTrue(game.hasSkin(Skin.DARK_TREE_METRO), "les quatre branches");
+        assertTrue(game.hasSkin(Skin.CHALLENGES_WANTED) && game.hasSkin(Skin.CHALLENGES_SEALS), "six défis, puis les dix");
+        assertEquals(SkinVisual.DARK_RULER, Skin.RULER_CELESTIAL.visual());
+        assertEquals(SkinVisual.DARK_TREE, Skin.DARK_TREE_METRO.visual());
+        assertEquals(SkinVisual.CHALLENGES, Skin.CHALLENGES_SEALS.visual());
+    }
+
+    /** Version 0.194 : le Big Bang au-delà des molécules : chaque skin vient à sa condition, pas avant ; les palettes sont libres. */
+    @Test
+    void lesAmasLesBlocsLeGazLeCielLeCosmosLesSystemesEtLesSondesOntLeursConditions() {
+        for (Skin skin : new Skin[] {Skin.PALETTE_PASTEL, Skin.PALETTE_SAFE, Skin.PALETTE_MONO}) {
+            assertTrue(skin.isFree(), "une palette est libre : " + skin);
+            assertEquals(SkinVisual.MOLECULE_PALETTE, skin.visual());
+        }
+        Game game = GameTestSupport.universe(1);
+        game.state().setSkinsOpen(true);
+        game.state().setGalaxy(false);
+        game.tick(1);
+        game.tick(1);
+        // Un univers formé : le premier skin de la galaxie, de l'amas et de la toile ; rien d'autre.
+        assertTrue(game.hasSkin(Skin.GALAXY_NAUTILUS) && game.hasSkin(Skin.CLUSTER_GRAPES) && game.hasSkin(Skin.WEB_NEURONS), "l'univers 1 formé");
+        for (Skin skin : new Skin[] {Skin.CLUMPS_MINERALS, Skin.CLUMPS_NEON, Skin.CLUMPS_PASTEL, Skin.BLOCKS_STONE, Skin.BLOCKS_INGOTS, Skin.BLOCKS_CRYSTALS,
+            Skin.BLOCKS_ICE, Skin.GAS_HAZE, Skin.GAS_SMOKE, Skin.GAS_AURORA, Skin.SKY_PLATE, Skin.SKY_MOBILE, Skin.SKY_SHOWCASE, Skin.GALAXY_YARN,
+            Skin.GALAXY_FINGERPRINT, Skin.GALAXY_WHIRLPOOL, Skin.GALAXY_FIREWORK, Skin.CLUSTER_LANTERNS, Skin.CLUSTER_BEES, Skin.WEB_LACE, Skin.WEB_DEW,
+            Skin.WEB_METRO, Skin.SYSTEM_ORRERY, Skin.SYSTEM_CRAYON, Skin.SYSTEM_RADAR, Skin.PROBE_PAPER, Skin.PROBE_BALLOON, Skin.PROBE_BOTTLE,
+            Skin.PROBE_PIGEON}) {
+            assertFalse(game.hasSkin(skin), "pas avant sa condition : " + skin);
+        }
+        // Cinq sortes rassemblées, dont un gaz à mille molécules ; dix assemblages ; quinze astres ; un système complet ; dix voyages.
+        int gathered = 0;
+        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+            if (gathered >= 5 || molecule.state() != idle.core.molecules.Molecule.State.GAS) continue;
+            game.state().setMoleculeCount(molecule.id(), gathered == 0 ? 1_000 : 1);
+            game.state().addSubstance(molecule.id());
+            gathered++;
+        }
+        assertEquals(5, game.substancesFormed());
+        assertEquals(1_004, game.gatheredInState(idle.core.molecules.Molecule.State.GAS));
+        java.util.List<idle.core.sky.Assembly> assemblies = game.assemblies();
+        for (int i = 0; i < 10; i++) game.state().addAssembly(assemblies.get(i).id());
+        java.util.List<idle.core.sky.Body> bodies = game.bodies();
+        for (int i = 0; i < 15; i++) game.state().addBody(bodies.get(i).id());
+        java.util.List<idle.core.sky.SolarSystem> systems = new java.util.ArrayList<>();
+        systems.add(new idle.core.sky.SolarSystem("yellow_sun", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
+        game.state().setSolarSystems(systems);
+        game.state().setProbeRuns(10);
+        game.tick(1);
+        assertEquals(1, game.solarSystemsComplete());
+        assertTrue(game.hasSkin(Skin.CLUMPS_MINERALS), "cinq sortes");
+        assertFalse(game.hasSkin(Skin.CLUMPS_NEON), "pas vingt");
+        assertTrue(game.hasSkin(Skin.BLOCKS_STONE), "dix assemblages");
+        assertFalse(game.hasSkin(Skin.BLOCKS_INGOTS), "pas quinze");
+        assertTrue(game.hasSkin(Skin.GAS_HAZE), "mille molécules de gaz");
+        assertFalse(game.hasSkin(Skin.GAS_SMOKE), "pas dix mille");
+        assertTrue(game.hasSkin(Skin.SKY_PLATE), "quinze astres");
+        assertFalse(game.hasSkin(Skin.SKY_MOBILE), "pas vingt-cinq");
+        assertTrue(game.hasSkin(Skin.SYSTEM_ORRERY), "un système complet");
+        assertFalse(game.hasSkin(Skin.SYSTEM_CRAYON), "pas deux");
+        assertTrue(game.hasSkin(Skin.PROBE_PAPER), "dix voyages");
+        assertFalse(game.hasSkin(Skin.PROBE_BALLOON), "pas vingt-cinq");
+        // Tout le reste : toutes les sortes rassemblées (cent mille molécules de gaz), tous les assemblages et les astres, trois systèmes,
+        // cent voyages, cinq univers.
+        for (idle.core.molecules.Molecule molecule : game.molecules()) {
+            game.state().setMoleculeCount(molecule.id(), molecule.state() == idle.core.molecules.Molecule.State.GAS ? 100_000 : 1);
+            game.state().addSubstance(molecule.id());
+        }
+        for (idle.core.sky.Assembly assembly : assemblies) game.state().addAssembly(assembly.id());
+        for (idle.core.sky.Body body : bodies) game.state().addBody(body.id());
+        systems.add(new idle.core.sky.SolarSystem("red_dwarf", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
+        systems.add(new idle.core.sky.SolarSystem("blue_giant", java.util.List.of("rocky_planet", "ocean_planet"), java.util.List.of()));
+        game.state().setSolarSystems(systems);
+        game.state().setProbeRuns(100);
+        for (int k = 2; k <= 5; k++) assertTrue(game.testAddUniverse());
+        game.tick(1);
+        assertEquals(30, game.assembliesFormed());
+        assertEquals(35, game.bodiesFormed());
+        assertEquals(3, game.solarSystemsComplete());
+        assertEquals(5, game.universes());
+        for (Skin skin : Skin.values()) {
+            if (skin.ordinal() >= Skin.PALETTE_PASTEL.ordinal()) assertTrue(game.hasSkin(skin), "tout est là : " + skin);
+        }
+        assertEquals(SkinVisual.CLUMPS, Skin.CLUMPS_NEON.visual());
+        assertEquals(SkinVisual.BLOCKS, Skin.BLOCKS_ICE.visual());
+        assertEquals(SkinVisual.GAS, Skin.GAS_AURORA.visual());
+        assertEquals(SkinVisual.SKY, Skin.SKY_SHOWCASE.visual());
+        assertEquals(SkinVisual.GALAXY, Skin.GALAXY_FIREWORK.visual());
+        assertEquals(SkinVisual.GALAXY_CLUSTER, Skin.CLUSTER_BEES.visual());
+        assertEquals(SkinVisual.COSMIC_WEB, Skin.WEB_METRO.visual());
+        assertEquals(SkinVisual.SYSTEM, Skin.SYSTEM_RADAR.visual());
+        assertEquals(SkinVisual.PROBE, Skin.PROBE_PIGEON.visual());
     }
 
     /** Version 0.192 : le bonus s'arrête à cent skins comptés, et les skins libres ne comptent pas. */

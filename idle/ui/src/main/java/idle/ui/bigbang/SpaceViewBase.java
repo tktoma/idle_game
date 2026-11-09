@@ -313,6 +313,8 @@ public abstract class SpaceViewBase extends Canvas {
     /** Part de gaz dans la dernière image : 0 de près, 1 quand il ne reste que du gaz. */
     double mist = 0;
     int placedVersion = -1;
+    /** La palette des molécules de la dernière mise en place (version 0.194) : en changer remet en place, pour reprendre les couleurs. */
+    idle.core.universe.Skin placedPalette;
     /** Distance au centre du bord du dessin le plus éloigné, à la dernière image, en unités de longueur. */
     double reach = 0;
 
@@ -502,6 +504,10 @@ public abstract class SpaceViewBase extends Canvas {
     /** Les couleurs des points d'une galaxie vue de loin, celles des molécules du joueur, et la liste de molécules dont elles viennent. */
     private final Color[] farColors = new Color[GalaxyView.DOTS];
     private int farColored = -1;
+    /** Le skin de la toile ou de l'amas du dernier dessin lointain (version 0.194) : en changer redessine sans attendre. */
+    idle.core.universe.Skin farSkin;
+    /** La palette des molécules des couleurs de l'amas (version 0.194). */
+    private idle.core.universe.Skin farPalette;
     boolean farDrawn = false;
 
     /**
@@ -525,11 +531,13 @@ public abstract class SpaceViewBase extends Canvas {
         g.setGlobalAlpha(1);
         g.setFill(VOID);
         g.fillRect(0, 0, w, h);
+        farSkin = game.chosenSkin(scale == Cosmos.UNIVERSE ? idle.core.universe.SkinVisual.COSMIC_WEB : idle.core.universe.SkinVisual.GALAXY_CLUSTER);
         if (scale == Cosmos.UNIVERSE) {
-            GalaxyView.universe(g, w, h);
+            GalaxyView.universe(g, w, h, farSkin);
         } else {
-            if (farColored != game.state().moleculesVersion()) {
+            if (farColored != game.state().moleculesVersion() || farPalette != MoleculeArt.palette()) {
                 farColored = game.state().moleculesVersion();
+                farPalette = MoleculeArt.palette();
                 GalaxyView.tint(game, farColors);
             }
             GalaxyView.cluster(g, w, h, time, farColors, game);

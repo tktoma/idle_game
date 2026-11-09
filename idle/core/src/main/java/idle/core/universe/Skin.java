@@ -149,7 +149,71 @@ public enum Skin {
     GENERATORS_SHATTER(SkinVisual.GENERATOR_FUSION, "Éclat", "Skin « Éclair » débloqué"),
     PAGE_MEDALS(SkinVisual.TABLE_PAGE, "Médailles", "Un ensemble complet"),
     PAGE_CRUCIBLE(SkinVisual.TABLE_PAGE, "Creuset", "100 synthèses"),
-    PAGE_SPECTRUM(SkinVisual.TABLE_PAGE, "Spectre", "Toutes les familles possédées");
+    PAGE_SPECTRUM(SkinVisual.TABLE_PAGE, "Spectre", "Toutes les familles possédées"),
+    // Version 0.193 : la matière noire hors de la boule (SKINS.md, section 4) : l'échelle et la règle, l'arbre, les défis.
+    // « Métro » demandait cinq branches, l'arbre en a quatre ; « Circuit » demandait l'arbre complet, que les bifurcations
+    // et les cases sans limite rendent impossible : cent niveaux achetés en tout le remplacent.
+    RULER_WOOD(SkinVisual.DARK_RULER, "Règle de bois", "10 explosions"),
+    RULER_ARCHITECT(SkinVisual.DARK_RULER, "Règle d'architecte", "20 explosions"),
+    RULER_CELESTIAL(SkinVisual.DARK_RULER, "Repères célestes", "Succès « Plus grand que tout » : les 26 paliers de taille"),
+    DARK_TREE_ROOTS(SkinVisual.DARK_TREE, "Racines", "30 cases de l'arbre achetées"),
+    DARK_TREE_CIRCUIT(SkinVisual.DARK_TREE, "Circuit", "100 niveaux achetés dans l'arbre, en tout"),
+    DARK_TREE_CONSTELLATION(SkinVisual.DARK_TREE, "Constellation", "La galaxie formée"),
+    DARK_TREE_METRO(SkinVisual.DARK_TREE, "Métro", "Les quatre branches de l'arbre entamées"),
+    CHALLENGES_TAROT(SkinVisual.CHALLENGES, "Tarot", "3 défis réussis"),
+    CHALLENGES_WANTED(SkinVisual.CHALLENGES, "Wanted", "6 défis réussis"),
+    CHALLENGES_SEALS(SkinVisual.CHALLENGES, "Sceaux", "Les dix défis réussis"),
+    // Version 0.194 : le Big Bang au-delà des molécules (SKINS.md, section 5). Les trois palettes sont libres : des réglages
+    // d'accessibilité. Les blocs demandaient 10, 20, 30 et 40 assemblages, le catalogue en a 30 : 10, 15, 20 et tous. Le gaz se
+    // compte en molécules de gaz rassemblées ; la galaxie, l'amas et la toile s'échelonnent sur les univers formés.
+    PALETTE_PASTEL(SkinVisual.MOLECULE_PALETTE, "Pastel", "Libre : les couleurs CPK adoucies", true),
+    PALETTE_SAFE(SkinVisual.MOLECULE_PALETTE, "Daltonien sûr", "Libre : la palette d'Okabe et Ito", true),
+    PALETTE_MONO(SkinVisual.MOLECULE_PALETTE, "Monochrome par rayon", "Libre : des gris, le plus clair pour le plus gros atome", true),
+    CLUMPS_MINERALS(SkinVisual.CLUMPS, "Minéraux", "5 sortes rassemblées"),
+    CLUMPS_NEON(SkinVisual.CLUMPS, "Néon", "20 sortes rassemblées"),
+    CLUMPS_PASTEL(SkinVisual.CLUMPS, "Pastel", "50 sortes rassemblées"),
+    BLOCKS_STONE(SkinVisual.BLOCKS, "Pierre taillée", "10 assemblages formés"),
+    BLOCKS_INGOTS(SkinVisual.BLOCKS, "Lingots", "15 assemblages formés"),
+    BLOCKS_CRYSTALS(SkinVisual.BLOCKS, "Cristaux bruts", "20 assemblages formés"),
+    BLOCKS_ICE(SkinVisual.BLOCKS, "Pains de glace", "Les 30 assemblages formés"),
+    GAS_HAZE(SkinVisual.GAS, "Brume", "1 000 molécules de gaz rassemblées"),
+    GAS_SMOKE(SkinVisual.GAS, "Fumée", "10 000 molécules de gaz rassemblées"),
+    GAS_AURORA(SkinVisual.GAS, "Aurore", "100 000 molécules de gaz rassemblées"),
+    SKY_PLATE(SkinVisual.SKY, "Planche naturaliste", "15 astres formés dans un univers"),
+    SKY_MOBILE(SkinVisual.SKY, "Mobile", "25 astres formés dans un univers"),
+    SKY_SHOWCASE(SkinVisual.SKY, "Vitrine", "Les 35 astres formés dans un univers"),
+    GALAXY_NAUTILUS(SkinVisual.GALAXY, "Nautile", "La galaxie formée"),
+    GALAXY_YARN(SkinVisual.GALAXY, "Pelote de laine", "L'univers 2 formé"),
+    GALAXY_FINGERPRINT(SkinVisual.GALAXY, "Empreinte digitale", "L'univers 3 formé"),
+    GALAXY_WHIRLPOOL(SkinVisual.GALAXY, "Tourbillon", "L'univers 4 formé"),
+    GALAXY_FIREWORK(SkinVisual.GALAXY, "Roue de feu d'artifice", "L'univers 5 formé"),
+    CLUSTER_GRAPES(SkinVisual.GALAXY_CLUSTER, "Grappe de raisin", "L'amas de galaxies formé"),
+    CLUSTER_LANTERNS(SkinVisual.GALAXY_CLUSTER, "Lampions", "L'univers 2 formé"),
+    CLUSTER_BEES(SkinVisual.GALAXY_CLUSTER, "Essaim d'abeilles", "L'univers 3 formé"),
+    WEB_NEURONS(SkinVisual.COSMIC_WEB, "Neurones", "L'univers 1 formé"),
+    WEB_LACE(SkinVisual.COSMIC_WEB, "Dentelle", "L'univers 2 formé"),
+    WEB_DEW(SkinVisual.COSMIC_WEB, "Toile au matin", "L'univers 3 formé"),
+    WEB_METRO(SkinVisual.COSMIC_WEB, "Métro", "L'univers 4 formé"),
+    SYSTEM_ORRERY(SkinVisual.SYSTEM, "Orrery", "1 système solaire complet"),
+    SYSTEM_CRAYON(SkinVisual.SYSTEM, "Dessin d'enfant", "2 systèmes solaires complets"),
+    SYSTEM_RADAR(SkinVisual.SYSTEM, "Radar", "3 systèmes solaires complets"),
+    PROBE_PAPER(SkinVisual.PROBE, "Avion de papier", "10 voyages de sonde"),
+    PROBE_BALLOON(SkinVisual.PROBE, "Montgolfière", "25 voyages de sonde"),
+    PROBE_BOTTLE(SkinVisual.PROBE, "Bouteille à la mer", "50 voyages de sonde"),
+    PROBE_PIGEON(SkinVisual.PROBE, "Pigeon", "100 voyages de sonde");
+
+    /** Les skins de la galaxie (version 0.194), dans l'ordre : le premier avec la galaxie formée, puis un par univers formé à partir du deuxième. */
+    public static final Skin[] GALAXIES = {GALAXY_NAUTILUS, GALAXY_YARN, GALAXY_FINGERPRINT, GALAXY_WHIRLPOOL, GALAXY_FIREWORK};
+    /** Les skins de l'amas de galaxies (version 0.194) : le premier avec l'amas formé, puis un par univers formé à partir du deuxième. */
+    public static final Skin[] CLUSTERS = {CLUSTER_GRAPES, CLUSTER_LANTERNS, CLUSTER_BEES};
+    /** Les skins de la toile de l'univers (version 0.194) : un par univers formé, du premier au quatrième. */
+    public static final Skin[] WEBS = {WEB_NEURONS, WEB_LACE, WEB_DEW, WEB_METRO};
+    /** Les skins des blocs d'assemblage (version 0.194) et les nombres d'assemblages formés qui les débloquent. */
+    public static final Skin[] BLOCKS = {BLOCKS_STONE, BLOCKS_INGOTS, BLOCKS_CRYSTALS, BLOCKS_ICE};
+    public static final int[] BLOCKS_FORMED = {10, 15, 20, 30};
+    /** Les skins des sondes (version 0.194) et les nombres de voyages qui les débloquent. */
+    public static final Skin[] PROBES = {PROBE_PAPER, PROBE_BALLOON, PROBE_BOTTLE, PROBE_PIGEON};
+    public static final int[] PROBE_RUNS = {10, 25, 50, 100};
 
     /** Les skins du fond des particules (version 0.192), dans l'ordre des paliers de particules créées qui les débloquent : 1e6, 1e9… 1e24. */
     public static final Skin[] DUSTS = {DUST_SNOW, DUST_RAIN, DUST_POLLEN, DUST_FIREFLIES, DUST_BUBBLES, DUST_GOLD, DUST_ASH};

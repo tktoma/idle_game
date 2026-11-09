@@ -19,6 +19,8 @@ import javafx.scene.layout.VBox;
  * Le butin d'une sonde, par-dessus la fenêtre : une carte au premier plan, retournée. Un clic
  * l'ouvre (la récompense s'applique), le suivant passe à la carte d'après ; « Tout ouvrir »
  * ouvre d'un coup ce qui reste. Les cartes ouvertes se rangent en petit, dessous.
+ *
+ * <p>Version 0.194 : le dos de la carte retournée suit le skin des sondes ({@link ProbeSkinArt}) : sa couleur et sa marque.
  */
 public final class LootPane extends StackPane {
 
@@ -191,11 +193,13 @@ public final class LootPane extends StackPane {
                 : done == 0 ? total + (total > 1 ? " récompenses à ouvrir" : " récompense à ouvrir")
                 : "Ouvertes : " + done + " sur " + total);
         boolean faceUp = shownText != null;
+        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.PROBE);
+        boolean skinned = !faceUp && ProbeSkinArt.draws(skin);
         String border = faceUp ? COLOR : "#6b5a3e";
-        card.setStyle("-fx-background-color: " + (faceUp ? "#3a2a14" : "#1c140a") + "; -fx-background-radius: 14; -fx-border-radius: 14;"
-                + " -fx-border-width: 2; -fx-border-color: " + border + "; -fx-cursor: hand;");
+        card.setStyle("-fx-background-color: " + (faceUp ? "#3a2a14" : skinned ? ProbeSkinArt.cardBack(skin) : "#1c140a")
+                + "; -fx-background-radius: 14; -fx-border-radius: 14; -fx-border-width: 2; -fx-border-color: " + border + "; -fx-cursor: hand;");
         String tint = faceUp ? tint(shownKind) : "#6b5a3e";
-        cardMark.setText(faceUp ? "◆" : "?");
+        cardMark.setText(faceUp ? "◆" : skinned ? ProbeSkinArt.cardMark(skin) : "?");
         cardMark.setStyle("-fx-font-size: 34px; -fx-font-weight: bold; -fx-text-fill: " + tint + ";");
         cardKind.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: " + (faceUp ? tint : COLOR) + ";");
         if (!faceUp) {

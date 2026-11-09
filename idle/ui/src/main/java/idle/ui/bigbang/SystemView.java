@@ -18,6 +18,9 @@ import javafx.scene.text.TextAlignment;
  * plus proche à la plus lointaine, les lunes autour de leur planète. Chaque orbite dit d'un coup
  * d'œil si sa planète est à sa place : verte quand elle l'est, orange sinon. La zone habitable d'un
  * Soleil ou d'une naine rouge est un voile vert sur les orbites 2 et 3.
+ *
+ * <p>Version 0.194 : les skins des systèmes ({@link SystemSkinArt}, {@link idle.core.universe.SkinVisual#SYSTEM})
+ * changent le fond, les orbites, l'étoile et les planètes ; les textes gardent leur place.
  */
 public final class SystemView extends Canvas {
 
@@ -69,25 +72,34 @@ public final class SystemView extends Canvas {
         if (w <= 0 || h <= 0) return;
         GraphicsContext g = getGraphicsContext2D();
         g.setGlobalAlpha(1);
-        g.setFill(BACK);
-        g.fillRect(0, 0, w, h);
-        // Quelques étoiles lointaines.
-        g.setFill(Color.web("#8aa0bc"));
-        for (int i = 0; i < 50; i++) {
-            g.setGlobalAlpha(0.15 + 0.2 * (0.5 + 0.5 * Math.sin(time * 0.7 + i)));
-            g.fillOval((i * 0.754877666 % 1) * w, (i * 0.569840291 % 1) * h, 1.3, 1.3);
-        }
-        g.setGlobalAlpha(1);
+        idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.SYSTEM);
+        boolean skinned = SystemSkinArt.draws(skin);
         List<String> planets = system.planets();
         int orbits = Math.max(planets.size(), 2);
         double cy = cy();
+        if (skinned) {
+            SystemSkinArt.background(g, skin, w, h, starX(), cy, time);
+        } else {
+            g.setFill(BACK);
+            g.fillRect(0, 0, w, h);
+            // Quelques étoiles lointaines.
+            g.setFill(Color.web("#8aa0bc"));
+            for (int i = 0; i < 50; i++) {
+                g.setGlobalAlpha(0.15 + 0.2 * (0.5 + 0.5 * Math.sin(time * 0.7 + i)));
+                g.fillOval((i * 0.754877666 % 1) * w, (i * 0.569840291 % 1) * h, 1.3, 1.3);
+            }
+            g.setGlobalAlpha(1);
+        }
+        Color text = skinned ? SystemSkinArt.text(skin) : TEXT;
+        Color muted = skinned ? SystemSkinArt.muted(skin) : MUTED;
 
         // La zone habitable, sur les orbites 2 et 3.
         if (Game.hasHabitableZone(system)) {
+            Color zone = skinned ? SystemSkinArt.zone(skin) : GOOD;
             double from = orbitX(1, orbits) - spacing(orbits) / 2, to = orbitX(2, orbits) + spacing(orbits) / 2;
-            g.setFill(Color.color(GOOD.getRed(), GOOD.getGreen(), GOOD.getBlue(), 0.08));
+            g.setFill(Color.color(zone.getRed(), zone.getGreen(), zone.getBlue(), 0.08));
             g.fillRect(from, 18, to - from, h - 54);
-            g.setFill(Color.color(GOOD.getRed(), GOOD.getGreen(), GOOD.getBlue(), 0.75));
+            g.setFill(Color.color(zone.getRed(), zone.getGreen(), zone.getBlue(), 0.75));
             g.setFont(Font.font(11));
             g.setTextAlign(TextAlignment.CENTER);
             g.fillText("zone habitable : une planète océan ici, +2", (from + to) / 2, 14);
@@ -96,12 +108,16 @@ public final class SystemView extends Canvas {
         // L'étoile, dans le skin des astres choisi, comme ses planètes et leurs lunes.
         idle.core.universe.Skin bodySkin = game.chosenSkin(idle.core.universe.SkinVisual.BODY);
         Body star = game.body(system.star());
-        Color glow = Color.web(star.tint());
-        g.setFill(new RadialGradient(0, 0, starX(), cy, 70, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0.35)),
-                new Stop(1, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0))));
-        g.fillOval(starX() - 70, cy - 70, 140, 140);
-        BodyArt.draw(g, star, starX(), cy, 28, bodySkin);
+        if (skinned) {
+            SystemSkinArt.star(g, skin, star, starX(), cy, bodySkin, time);
+        } else {
+            Color glow = Color.web(star.tint());
+            g.setFill(new RadialGradient(0, 0, starX(), cy, 70, false, CycleMethod.NO_CYCLE,
+                    new Stop(0, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0.35)),
+                    new Stop(1, Color.color(glow.getRed(), glow.getGreen(), glow.getBlue(), 0))));
+            g.fillOval(starX() - 70, cy - 70, 140, 140);
+            BodyArt.draw(g, star, starX(), cy, 28, bodySkin);
+        }
 
         // Les orbites et leurs planètes.
         for (int orbit = 0; orbit < orbits; orbit++) {
@@ -109,11 +125,16 @@ public final class SystemView extends Canvas {
             double radius = x - starX();
             boolean has = orbit < planets.size();
             boolean placed = has && game.isPlanetWellPlaced(system, orbit);
-            Color color = !has ? MUTED : placed ? GOOD : BAD;
-            arc(g, radius, cy, color, has ? 2 : 1, has ? 0.8 : 0.35);
+            Color color = skinned ? SystemSkinArt.orbit(skin, has, placed) : !has ? MUTED : placed ? GOOD : BAD;
+            if (skinned) {
+                arcPoints(radius, cy);
+                SystemSkinArt.orbit(g, skin, XS, YS, STEPS + 1, color, has);
+            } else {
+                arc(g, radius, cy, color, has ? 2 : 1, has ? 0.8 : 0.35);
+            }
             g.setTextAlign(TextAlignment.CENTER);
             if (!has) {
-                g.setFill(MUTED);
+                g.setFill(muted);
                 g.setFont(Font.font(11));
                 g.fillText("orbite " + (orbit + 1) + " libre", x, h - 22);
                 continue;
@@ -122,23 +143,26 @@ public final class SystemView extends Canvas {
             // La planète glisse sur son orbite, sans descendre jusqu'aux étiquettes.
             double angle = Math.asin(Math.min(1, 34 / radius)) * Math.sin(time * 0.35 + orbit * 1.7);
             double px = starX() + radius * Math.cos(angle), py = cy + radius * Math.sin(angle);
-            BodyArt.draw(g, planet, px, py, 13, bodySkin);
+            if (skinned) SystemSkinArt.planet(g, skin, planet, px, py, 13, starX(), cy, bodySkin, time);
+            else BodyArt.draw(g, planet, px, py, 13, bodySkin);
             if (orbit < system.moons().size()) {
                 Body moon = game.body(system.moons().get(orbit));
                 double a = time * (0.9 + 0.2 * orbit) + orbit;
-                BodyArt.draw(g, moon, px + 24 * Math.cos(a), py + 13 * Math.sin(a), 5, bodySkin);
+                double mx = px + 24 * Math.cos(a), my = py + 13 * Math.sin(a);
+                if (skinned) SystemSkinArt.planet(g, skin, moon, mx, my, 5, starX(), cy, bodySkin, time);
+                else BodyArt.draw(g, moon, mx, my, 5, bodySkin);
             }
-            g.setFill(TEXT);
+            g.setFill(text);
             g.setFont(Font.font(11));
             g.fillText(planet.name(), x, h - 34);
             g.setFill(color);
             g.fillText((placed ? "✓ " : "✗ ") + kind(planet), x, h - 20);
-            g.setFill(MUTED);
+            g.setFill(muted);
             g.fillText("orbite " + (orbit + 1), x, h - 6);
         }
         g.setTextAlign(TextAlignment.LEFT);
         if (planets.isEmpty()) {
-            g.setFill(MUTED);
+            g.setFill(muted);
             g.setFont(Font.font(12));
             g.fillText("Ajoutez des planètes : les telluriques près de l'étoile, les glacées et gazeuses au loin.", 128, 30);
         }
@@ -150,14 +174,19 @@ public final class SystemView extends Canvas {
         return (planet.look() == Body.Look.BANDED ? "gazeuse" : "glacée") + " → au loin";
     }
 
-    /** Un arc d'orbite autour de l'étoile, sur la hauteur du dessin. */
-    private void arc(GraphicsContext g, double radius, double cy, Color color, double width, double alpha) {
+    /** Les points d'un arc d'orbite autour de l'étoile, sur la hauteur du dessin, dans {@link #XS} et {@link #YS}. */
+    private void arcPoints(double radius, double cy) {
         double half = Math.min(0.6, Math.asin(Math.min(1, (getHeight() * 0.36) / Math.max(radius, 1))));
         for (int k = 0; k <= STEPS; k++) {
             double a = -half + 2 * half * k / STEPS;
             XS[k] = starX() + radius * Math.cos(a);
             YS[k] = cy + radius * Math.sin(a);
         }
+    }
+
+    /** Un arc d'orbite autour de l'étoile, sur la hauteur du dessin. */
+    private void arc(GraphicsContext g, double radius, double cy, Color color, double width, double alpha) {
+        arcPoints(radius, cy);
         g.setStroke(color);
         g.setLineWidth(width);
         g.setGlobalAlpha(alpha);

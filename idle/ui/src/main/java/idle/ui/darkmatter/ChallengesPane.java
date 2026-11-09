@@ -3,6 +3,8 @@ package idle.ui.darkmatter;
 import idle.core.Game;
 import idle.core.darkmatter.Challenge;
 import idle.core.darkmatter.Challenges;
+import idle.core.universe.Skin;
+import idle.core.universe.SkinVisual;
 import idle.ui.Confirm;
 import idle.ui.GameApp;
 import idle.ui.common.Card;
@@ -15,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
@@ -26,6 +29,9 @@ import javafx.scene.layout.VBox;
  * mode détails ({@link Detail}). Un clic sur la carte commence le défi, ou l'abandonne s'il est
  * en cours. Les deux effacent la partie : la carte passe alors au rouge et demande un second
  * clic dans les cinq secondes.
+ *
+ * <p>Version 0.193 : les défis ont leurs skins ({@link #setSkin}), dessinés par {@link ChallengesSkinArt} : une
+ * vignette par carte (lame de tarot, affiche « wanted », sceau de cire), qui suit l'état du défi.
  */
 public final class ChallengesPane extends VBox {
 
@@ -39,6 +45,10 @@ public final class ChallengesPane extends VBox {
     /** Défi dont la carte attend son second clic, ou {@code null}. */
     private Challenge armed = null;
     private double armedFor = 0;
+    /** Le skin des défis (version 0.193), ou {@code null} pour le Classique ; celui dont les vignettes sont posées ; et les vignettes. */
+    private Skin skin;
+    private Skin pictured;
+    private final Map<Challenge, Canvas> arts = new LinkedHashMap<>();
 
     ChallengesPane(Game game) {
         super(10);
@@ -128,9 +138,11 @@ public final class ChallengesPane extends VBox {
         }
         if (reveal < MAKE_ROOM_SECONDS) {
             // Les défis s'écartent : ceux d'avant reculent un peu, ceux d'après glissent vers la droite pour faire la place.
+            // Sous le skin Tarot (version 0.193), les lames se retournent en même temps : un tour complet sur leur hauteur.
             double t = ease(reveal / MAKE_ROOM_SECONDS);
-            for (Card card : before) { card.setTranslateX(-14 * t); card.setOpacity(1 - 0.35 * t); }
-            for (Card card : after) { card.setTranslateX(70 * t); card.setOpacity(1 - 0.35 * t); }
+            double flip = skin == Skin.CHALLENGES_TAROT ? Math.max(0.02, Math.abs(Math.cos(Math.PI * t))) : 1;
+            for (Card card : before) { card.setTranslateX(-14 * t); card.setOpacity(1 - 0.35 * t); card.setScaleX(flip); }
+            for (Card card : after) { card.setTranslateX(70 * t); card.setOpacity(1 - 0.35 * t); card.setScaleX(flip); }
             return;
         }
         grid.show(leak, true);
@@ -138,8 +150,8 @@ public final class ChallengesPane extends VBox {
             // Les autres reviennent à leur place, la fuite grandit au milieu, dépasse un peu, puis se pose.
             double t = Math.min(1, (reveal - MAKE_ROOM_SECONDS) / 0.8);
             double back = 1 - ease(t);
-            for (Card card : before) { card.setTranslateX(-14 * back); card.setOpacity(1 - 0.35 * back); }
-            for (Card card : after) { card.setTranslateX(-90 * back); card.setOpacity(1 - 0.35 * back); }
+            for (Card card : before) { card.setTranslateX(-14 * back); card.setOpacity(1 - 0.35 * back); card.setScaleX(1); }
+            for (Card card : after) { card.setTranslateX(-90 * back); card.setOpacity(1 - 0.35 * back); card.setScaleX(1); }
             double grow = Math.min(1, (reveal - MAKE_ROOM_SECONDS) / 0.9);
             double scale = grow < 0.7 ? 0.2 + 0.95 * grow / 0.7 : 1.15 - 0.15 * (grow - 0.7) / 0.3;
             double glow = Math.max(0, 1 - (reveal - MAKE_ROOM_SECONDS) / (REVEAL_SECONDS - MAKE_ROOM_SECONDS));
@@ -148,8 +160,8 @@ public final class ChallengesPane extends VBox {
             leak.setOpacity(Math.min(1, grow * 1.5));
             return;
         }
-        for (Card card : before) { card.setTranslateX(0); card.setOpacity(1); }
-        for (Card card : after) { card.setTranslateX(0); card.setOpacity(1); }
+        for (Card card : before) { card.setTranslateX(0); card.setOpacity(1); card.setScaleX(1); }
+        for (Card card : after) { card.setTranslateX(0); card.setOpacity(1); card.setScaleX(1); }
         leak.setScaleX(1);
         leak.setScaleY(1);
         leak.setOpacity(1);
@@ -172,8 +184,42 @@ public final class ChallengesPane extends VBox {
         return cards.get(challenge);
     }
 
+    /** Le skin des défis (version 0.193) : pris au prochain {@link #refresh()} ; un skin d'un autre visuel vaut le Classique. */
+    void setSkin(Skin chosen) {
+        skin = chosen != null && chosen.visual() == SkinVisual.CHALLENGES ? chosen : null;
+    }
+
+    /** Le skin des défis, ou {@code null} : pour les vérifications. */
+    public Skin skin() {
+        return skin;
+    }
+
+    /** Vrai si la carte de ce défi porte une vignette de skin : pour les vérifications. */
+    public boolean hasArt(Challenge challenge) {
+        Canvas art = arts.get(challenge);
+        return art != null && art.getParent() != null;
+    }
+
+    /** Pose ou retire les vignettes quand le skin change : en haut de la carte, ou dans son en-tête pour le sceau. */
+    private void dressCards() {
+        if (skin == pictured) return;
+        pictured = skin;
+        arts.clear();
+        cards.forEach((challenge, card) -> {
+            if (!ChallengesSkinArt.draws(skin)) {
+                card.setPicture(null);
+                return;
+            }
+            Canvas art = ChallengesSkinArt.canvas(skin);
+            arts.put(challenge, art);
+            if (ChallengesSkinArt.inline(skin)) card.setInlinePicture(art);
+            else card.setPicture(art);
+        });
+    }
+
     /** Recopie l'état des défis dans les cartes. */
     void refresh() {
+        dressCards();
         Challenge active = game.activeChallenge();
         intro.setText(game.completedChallenges() + " / " + game.challenges().size() + " réussis. "
                 + "Une partie rejouée de zéro avec une contrainte ; l'explosion la réussit."
@@ -192,6 +238,10 @@ public final class ChallengesPane extends VBox {
             boolean running = active != null && active.id().equals(challenge.id());
             boolean confirming = armed == challenge && armedFor > 0;
             double best = game.challengeBestTime(challenge.id());
+            if (pictured != null) {
+                int index = challenge == Challenges.LEAK ? Challenges.DEFAULT.size() : Challenges.DEFAULT.indexOf(challenge);
+                ChallengesSkinArt.paint(skin, arts.get(challenge), challenge, index, done, unlocked);
+            }
 
             String line = shortRule(challenge) + "\nGain : " + shortReward(challenge);
             String detail = "Contrainte : " + rule(challenge) + "\nRécompense : " + reward(challenge)

@@ -56,6 +56,11 @@ import javafx.scene.text.TextAlignment;
  * au centre, dessinées de l'arrière-plan vers l'avant. Les dégradés et couleurs dérivées sont
  * calculés une fois par molécule, par couleur d'atome, à la mise en place ({@link Looks}) : rien
  * n'est alloué au dessin au-delà de ce que fait le Classique.
+ *
+ * <p>Version 0.194 : la palette des molécules ({@link MoleculePaletteArt}, {@link SkinVisual#MOLECULE_PALETTE})
+ * change la couleur des atomes sous toutes ces formes. Elle est fixée pour tout le jeu ({@link #setPalette}) ; une
+ * mise en place est calculée par molécule et par palette, et {@link #of(Molecule)} rend celle de la palette en cours,
+ * dominant compris. Les vues qui gardent des mises en place les redemandent quand la palette change ({@link #palette()}).
  */
 final class MoleculeArt {
 
@@ -100,6 +105,8 @@ final class MoleculeArt {
             Map.entry("Se", "#ffb85c"));
 
     private static final Map<String, Shape> SHAPES = new HashMap<>();
+    /** La palette des molécules choisie (version 0.194) : {@code null} pour les couleurs CPK du Classique. */
+    private static Skin palette;
     /** Les places du pavage, en spirale depuis le centre : assez pour la plus grosse molécule du catalogue. */
     private static final List<double[]> SITES = sites(6);
 
@@ -425,12 +432,23 @@ final class MoleculeArt {
     private static final Map<Double, Font> LABELS = new HashMap<>();
     private static final Map<Double, Font> MONO = new HashMap<>();
 
-    /** La mise en place d'une molécule, calculée à la première demande. */
+    /** La mise en place d'une molécule dans la palette en cours, calculée à la première demande. */
     static Shape of(Molecule molecule) {
-        return SHAPES.computeIfAbsent(molecule.id(), id -> layout(molecule));
+        Skin tones = palette;
+        return SHAPES.computeIfAbsent(tones == null ? molecule.id() : molecule.id() + "|" + tones.id(), id -> layout(molecule, tones));
     }
 
-    private static Shape layout(Molecule molecule) {
+    /** Fixe la palette des molécules (version 0.194) : {@code null}, ou un skin d'un autre visuel, rend les couleurs du Classique. */
+    static void setPalette(Skin skin) {
+        palette = MoleculePaletteArt.draws(skin) ? skin : null;
+    }
+
+    /** La palette des molécules en cours : {@code null} pour le Classique. */
+    static Skin palette() {
+        return palette;
+    }
+
+    private static Shape layout(Molecule molecule, Skin tones) {
         // Les éléments dans l'ordre où ils prennent place : les hydrogènes en dernier, et avant eux
         // les moins nombreux d'abord, les plus lourds en premier à nombre égal.
         List<Map.Entry<Integer, Integer>> order = new ArrayList<>(molecule.recipe().entrySet());
@@ -443,7 +461,7 @@ final class MoleculeArt {
         for (Map.Entry<Integer, Integer> entry : order) {
             Element element = PeriodicTable.element(entry.getKey());
             boolean hydrogen = element.number() == 1 && !onlyHydrogen;
-            Color color = color(element);
+            Color color = tones == null ? color(element) : MoleculePaletteArt.color(tones, element, color(element));
             if (dominant == null) dominant = color;
             double radius = hydrogen ? HYDROGEN_RADIUS : 0.32 + 0.12 * Math.min(1, element.number() / 60.0);
             boolean labelled = element.number() != 1 && element.number() != 6;

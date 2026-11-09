@@ -23,6 +23,33 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.194", "Trente-cinq skins pour le Big Bang au-delà des molécules : palette, amas, blocs, gaz, ciel, cosmos, systèmes, sondes", List.of(
+                    "Dix visuels de plus dans l'onglet Skins. La palette des molécules, à côté de leur forme et combinée avec elle : Pastel, "
+                            + "Daltonien sûr (la palette d'Okabe et Ito) et Monochrome par rayon, trois skins libres, sans bonus ; la couleur "
+                            + "dominante des molécules, dans l'espace et la galaxie, la suit.",
+                    "Dans l'expansion de la matière : les amas rassemblés (Minéraux à 5 sortes rassemblées, Néon à 20, Pastel à 50 ; flaques, "
+                            + "cristaux à facettes ou nuages de coton selon l'état), les blocs d'assemblage (Pierre taillée à 10 assemblages, "
+                            + "Lingots à 15, Cristaux bruts à 20, Pains de glace aux 30 : le catalogue n'en a pas 40) et le gaz au loin (Brume à "
+                            + "1 000 molécules de gaz rassemblées, Fumée à 10 000, Aurore à 100 000).",
+                    "Le ciel des astres : Planche naturaliste (15 astres formés dans un univers), Mobile (25), Vitrine (35). La galaxie : "
+                            + "Nautile (la galaxie formée), Pelote de laine, Empreinte digitale, Tourbillon, Roue de feu d'artifice (les univers 2 "
+                            + "à 5 formés). L'amas de galaxies : Grappe de raisin (l'amas formé), Lampions (univers 2), Essaim d'abeilles (univers "
+                            + "3). La toile de l'univers : Neurones, Dentelle, Toile au matin, Métro (les univers 1 à 4 formés).",
+                    "Les systèmes solaires : Orrery (1 système complet), Dessin d'enfant (2), Radar (3, les planètes en échos). Les sondes : "
+                            + "Avion de papier (10 voyages), Montgolfière (25), Bouteille à la mer (50), Pigeon (100) ; la trajectoire suit le "
+                            + "skin (pointillés de carte au trésor, condensation, fil d'Ariane, plumes), comme le dos de la carte du butin.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.193", "Dix skins pour la matière noire hors de la boule : l'échelle des grandeurs, l'arbre, les défis", List.of(
+                    "Trois visuels de plus dans l'onglet Skins. L'échelle des grandeurs : Règle de bois (10 explosions), Règle "
+                            + "d'architecte (20 explosions), Repères célestes (le succès « Plus grand que tout », les 26 paliers de "
+                            + "taille), où les cercles des objets connus deviennent leur silhouette, du proton à l'univers observable.",
+                    "L'arbre de matière noire : Racines (30 cases de l'arbre achetées), Circuit (100 niveaux achetés dans l'arbre, en "
+                            + "tout, à la place de « l'arbre complet », que les bifurcations et les cases sans limite rendent impossible), "
+                            + "Constellation (la galaxie formée), Métro (les quatre branches entamées : l'arbre n'en a pas cinq). Les "
+                            + "traits changent d'allure et chaque case porte une vignette qui suit son niveau.",
+                    "Les défis : Tarot (3 défis réussis ; les lames se retournent à l'arrivée de la fuite), Wanted (6 défis), Sceaux "
+                            + "(les dix défis : un sceau de cire rouge sur chaque défi réussi).",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.192", "Vingt-huit skins pour le chrome et les particules : icônes, signes, bulles, fond, fusion, page du tableau", List.of(
                     "Sept visuels de plus dans l'onglet Skins. Les icônes d'onglet, l'atome compris : Trait de craie (50 atomes créés), "
                             + "Pixel art (une reconstruction en moins d'une minute), Constellation (la galaxie formée), Emoji (la bulle du "

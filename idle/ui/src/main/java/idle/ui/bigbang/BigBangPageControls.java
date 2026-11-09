@@ -346,21 +346,25 @@ public abstract class BigBangPageControls extends BigBangPageBase {
      * {@link #SMALL_PICTURE} pixels, fait une fois, puis refait seulement si le skin des molécules change.
      */
     HBox smallPicture(Molecule molecule) {
-        MoleculeArt.Shape shape = MoleculeArt.of(molecule);
-        return picture(shape, SMALL_PICTURE, SMALL_PICTURE, Math.min(SMALL_PICTURE / 2 - 2, shape.extent() * 11));
+        return picture(molecule, SMALL_PICTURE, SMALL_PICTURE, 11, 2);
     }
 
     /** Le dessin d'une molécule, centré dans la largeur de sa carte (états de la matière), refait si le skin change. */
     HBox picture(Molecule molecule) {
-        MoleculeArt.Shape shape = MoleculeArt.of(molecule);
         // Les petites molécules ne sont pas gonflées jusqu'au bord : leurs atomes gardent une taille raisonnable.
-        return picture(shape, PICTURE_WIDTH, PICTURE_HEIGHT, Math.min(PICTURE_HEIGHT / 2 - 3, shape.extent() * 24));
+        return picture(molecule, PICTURE_WIDTH, PICTURE_HEIGHT, 24, 3);
     }
 
-    /** Une toile de ces dimensions où la molécule est dessinée dans le skin choisi, et qui sera redessinée si le skin change. */
-    private HBox picture(MoleculeArt.Shape shape, double width, double height, double radius) {
+    /**
+     * Une toile de ces dimensions où la molécule est dessinée dans le skin et la palette choisis, et qui sera redessinée
+     * s'ils changent : le rayon vaut {@code perExtent} pixels par pas d'emprise, sans dépasser la demi-hauteur moins {@code margin}.
+     */
+    private HBox picture(Molecule molecule, double width, double height, double perExtent, double margin) {
         Canvas canvas = new Canvas(width, height);
         Runnable paint = () -> {
+            // La mise en place suit la palette en cours (version 0.194) : elle est redemandée à chaque dessin.
+            MoleculeArt.Shape shape = MoleculeArt.of(molecule);
+            double radius = Math.min(height / 2 - margin, shape.extent() * perExtent);
             GraphicsContext g = canvas.getGraphicsContext2D();
             g.clearRect(0, 0, width, height);
             shape.draw(g, width / 2, height / 2, radius, -Math.PI / 6, game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE));
@@ -373,17 +377,20 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         return box;
     }
 
-    /** Redessine les molécules des cartes si le joueur a changé leur skin depuis la dernière fois. */
+    /** Redessine les molécules des cartes si le joueur a changé leur skin ou leur palette (version 0.194) depuis la dernière fois. */
     void refreshMoleculePictures() {
         idle.core.universe.Skin skin = game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE);
-        if (skin == drawnMoleculeSkin) return;
+        MoleculeArt.setPalette(game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE_PALETTE));
+        if (skin == drawnMoleculeSkin && MoleculeArt.palette() == drawnPalette) return;
         drawnMoleculeSkin = skin;
+        drawnPalette = MoleculeArt.palette();
         moleculePictures.forEach(Runnable::run);
     }
 
     /** Les dessins des cartes de molécules, à refaire quand leur skin change, et le skin dans lequel ils ont été faits. */
     private final List<Runnable> moleculePictures = new ArrayList<>();
     private idle.core.universe.Skin drawnMoleculeSkin;
+    private idle.core.universe.Skin drawnPalette;
 
     /** La carte d'une molécule, ou {@code null} si son rayon n'a pas encore été ouvert : pour les vérifications. */
     public Card card(Molecule molecule) {
@@ -454,6 +461,8 @@ public abstract class BigBangPageControls extends BigBangPageBase {
     }
 
     public void frame(double elapsed) {
+        // La palette des molécules (version 0.194) : les vues la lisent à chaque image.
+        MoleculeArt.setPalette(game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE_PALETTE));
         if (selected == 1) spaceView.frame(elapsed);
         if (selected == 5) bodiesPane.frame(elapsed);
         if (selected == 7) bangChallenges.frame(elapsed);

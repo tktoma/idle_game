@@ -43,7 +43,22 @@ public enum SkinVisual {
     TOOLTIP("Les info-bulles"),
     AMBIENT_DUST("Le fond animé des particules"),
     GENERATOR_FUSION("La fusion des générateurs"),
-    TABLE_PAGE("La page du tableau périodique");
+    TABLE_PAGE("La page du tableau périodique"),
+    /** Version 0.193 : la matière noire hors de la boule : la règle et l'échelle, l'arbre, les défis. */
+    DARK_RULER("L'échelle des grandeurs"),
+    DARK_TREE("L'arbre de matière noire"),
+    CHALLENGES("Les défis"),
+    /** Version 0.194 : le Big Bang au-delà des molécules : leur palette, les amas, les blocs, le gaz, le ciel, le cosmos, les systèmes, les sondes. */
+    MOLECULE_PALETTE("La palette des molécules"),
+    CLUMPS("Les amas rassemblés"),
+    BLOCKS("Les blocs d'assemblage"),
+    GAS("Le gaz au loin"),
+    SKY("Le ciel des astres"),
+    GALAXY("La galaxie"),
+    GALAXY_CLUSTER("L'amas de galaxies"),
+    COSMIC_WEB("La toile de l'univers"),
+    SYSTEM("Les systèmes solaires"),
+    PROBE("Les sondes");
 
     /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
     public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};

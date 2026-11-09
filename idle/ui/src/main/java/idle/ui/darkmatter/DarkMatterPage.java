@@ -325,6 +325,10 @@ public final class DarkMatterPage extends VBox {
     public void refresh(boolean visible) {
         view.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DARK_BALL));
         view.setAnimation(game.chosenSkin(idle.core.universe.SkinVisual.DARK_ANIMATION));
+        // Version 0.193 : l'échelle des grandeurs, l'arbre et les défis ont les leurs.
+        view.setRuler(game.chosenSkin(idle.core.universe.SkinVisual.DARK_RULER));
+        tree.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.DARK_TREE));
+        challenges.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.CHALLENGES));
         // Un Big Bang vient d'avoir lieu : la page reviendra sur sa première sous-page, à la prochaine explosion.
         if (game.bigBangs() != bigBangs) {
             bigBangs = game.bigBangs();
