@@ -23,6 +23,13 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.201", "Correctif : le jeu ne se lançait plus depuis la 0.194", List.of(
+                    "Au lancement, la page du Big Bang plantait (NullPointerException sur les dessins des cartes de molécules) : le "
+                            + "constructeur de la classe mère dessinait les cartes avant que la liste qui garde leurs dessins soit créée. "
+                            + "La liste se crée à la demande.",
+                    "Un test construit désormais chaque page et chaque panneau de la fenêtre, sur une partie neuve et sur une partie "
+                            + "avancée, comme le jeu le fait au démarrage (ConstructionDesPagesTest).",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.200", "Treize skins de sons, huit thèmes et six notations : la liste de SKINS.md est entièrement réalisée", List.of(
                     "Trois visuels de plus dans l'onglet Skins, tous synthétisés sans fichier audio. La banque de sons change le timbre de "
                             + "tous les sons : Bois (xylophone et claves) à une heure de jeu, Verre (carillon, une octave plus haut) à deux, "

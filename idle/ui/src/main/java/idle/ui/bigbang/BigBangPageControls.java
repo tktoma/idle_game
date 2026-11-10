@@ -370,6 +370,8 @@ public abstract class BigBangPageControls extends BigBangPageBase {
             shape.draw(g, width / 2, height / 2, radius, -Math.PI / 6, game.chosenSkin(idle.core.universe.SkinVisual.MOLECULE));
         };
         paint.run();
+        // Version 0.201 : le constructeur de BigBangPageBase passe ici avant que les champs de cette classe soient posés.
+        if (moleculePictures == null) moleculePictures = new ArrayList<>();
         moleculePictures.add(paint);
         HBox box = new HBox(canvas);
         box.setAlignment(Pos.CENTER);
@@ -384,11 +386,14 @@ public abstract class BigBangPageControls extends BigBangPageBase {
         if (skin == drawnMoleculeSkin && MoleculeArt.palette() == drawnPalette) return;
         drawnMoleculeSkin = skin;
         drawnPalette = MoleculeArt.palette();
-        moleculePictures.forEach(Runnable::run);
+        if (moleculePictures != null) moleculePictures.forEach(Runnable::run);
     }
 
-    /** Les dessins des cartes de molécules, à refaire quand leur skin change, et le skin dans lequel ils ont été faits. */
-    private final List<Runnable> moleculePictures = new ArrayList<>();
+    /**
+     * Les dessins des cartes de molécules, à refaire quand leur skin change, et le skin dans lequel ils ont été faits. Créée
+     * à la demande (version 0.201) : la classe mère en pose déjà pendant son constructeur.
+     */
+    private List<Runnable> moleculePictures;
     private idle.core.universe.Skin drawnMoleculeSkin;
     private idle.core.universe.Skin drawnPalette;
 
