@@ -2570,6 +2570,8 @@ public abstract class GameUniverse extends GameAtoms {
         noteUniverseSkins();
         noteTreeAndDimensionSkins();
         noteProfileAndStatsSkins();
+        noteWindowSkins();
+        noteSoundSkins();
         if (state.rebuildPending() && generatorCount() >= generatorsPerAtom()) {
             double time = state.timeSinceFusion();
             state.setRebuildPending(false);
@@ -2759,6 +2761,72 @@ public abstract class GameUniverse extends GameAtoms {
         for (int i = 0; i < idle.core.universe.Skin.TIMELINES.length; i++) {
             if (universes() >= idle.core.universe.Skin.TIMELINE_UNIVERSES[i]) unlockSkin(idle.core.universe.Skin.TIMELINES[i]);
         }
+    }
+
+    /**
+     * Version 0.199 : les skins de la fenêtre autour du jeu. Les notifications suivent celles reçues depuis l'ouverture du
+     * jeu ({@link #noteNotificationsShown}), les panneaux les heures de jeu, la transition les univers formés, l'écran de
+     * fin et le bouton de démarrage la partie finie puis les univers formés, le curseur un succès d'un onglet chacun.
+     */
+    private void noteWindowSkins() {
+        for (int i = 0; i < idle.core.universe.Skin.TOASTS.length; i++) {
+            if (notificationsShown >= idle.core.universe.Skin.TOAST_NOTIFICATIONS[i]) unlockSkin(idle.core.universe.Skin.TOASTS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.PANELS.length; i++) {
+            if (state.timePlayed() >= idle.core.universe.Skin.PANEL_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.PANELS[i]);
+        }
+        int formed = universes();
+        for (int i = 0; i < idle.core.universe.Skin.TRANSITIONS.length; i++) {
+            if (formed >= i + 1) unlockSkin(idle.core.universe.Skin.TRANSITIONS[i]);
+        }
+        if (state.gameFinished()) {
+            unlockSkin(idle.core.universe.Skin.ENDINGS[0]);
+            for (int i = 1; i < idle.core.universe.Skin.ENDINGS.length; i++) {
+                if (formed >= idle.core.universe.Skin.FIRST_ENDING_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.ENDINGS[i]);
+            }
+            unlockSkin(idle.core.universe.Skin.START_BUTTONS[0]);
+            for (int i = 1; i < idle.core.universe.Skin.START_BUTTONS.length; i++) {
+                if (formed >= idle.core.universe.Skin.FIRST_START_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.START_BUTTONS[i]);
+            }
+        }
+        for (int i = 0; i < idle.core.universe.Skin.CURSORS.length; i++) {
+            if (hasAchievement(idle.core.universe.Skin.CURSOR_ACHIEVEMENTS[i])) unlockSkin(idle.core.universe.Skin.CURSORS[i]);
+        }
+    }
+
+    /**
+     * Version 0.200 : les skins des sons. Les banques suivent les heures de jeu (le silence partiel est libre), le son du
+     * Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers formés.
+     */
+    private void noteSoundSkins() {
+        for (int i = 0; i < idle.core.universe.Skin.SOUND_BANKS.length; i++) {
+            if (state.timePlayed() >= idle.core.universe.Skin.SOUND_BANK_HOURS[i] * 3600.0) unlockSkin(idle.core.universe.Skin.SOUND_BANKS[i]);
+        }
+        for (int i = 0; i < idle.core.universe.Skin.BANG_SOUNDS.length; i++) {
+            if (state.bigBangs() >= idle.core.universe.Skin.BANG_SOUND_BANGS[i]) unlockSkin(idle.core.universe.Skin.BANG_SOUNDS[i]);
+        }
+        if (isDimensionThresholdReached(5)) {
+            unlockSkin(idle.core.universe.Skin.METRONOMES[0]);
+            for (int i = 1; i < idle.core.universe.Skin.METRONOMES.length; i++) {
+                if (universes() >= idle.core.universe.Skin.FIRST_METRONOME_UNIVERSE + i - 1) unlockSkin(idle.core.universe.Skin.METRONOMES[i]);
+            }
+        }
+    }
+
+    /** Les notifications affichées depuis l'ouverture du jeu (version 0.199), comptées par la fenêtre ; non sauvegardées. */
+    private int notificationsShown;
+
+    /**
+     * La fenêtre dit combien de notifications elle a affichées depuis l'ouverture du jeu (version 0.199) : les skins des
+     * notifications s'en débloquent au pas suivant. Le compte ne descend jamais et n'est pas sauvegardé.
+     */
+    public void noteNotificationsShown(int total) {
+        notificationsShown = Math.max(notificationsShown, total);
+    }
+
+    /** Les notifications affichées depuis l'ouverture du jeu (version 0.199). */
+    public int notificationsShown() {
+        return notificationsShown;
     }
 
     /** Vrai si {@code needed} succès du catalogue sont obtenus ; {@link idle.core.universe.Skin#ALL_ACHIEVEMENTS} les demande tous (version 0.198). */

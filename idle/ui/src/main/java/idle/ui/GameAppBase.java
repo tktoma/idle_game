@@ -327,6 +327,12 @@ public abstract class GameAppBase extends Application {
     StackPane windowPane;
     /** Le fond de la fenêtre (version 0.190), sous tout le jeu : rien sans skin, un décor dans les marges avec. */
     final Chrome chrome = new Chrome();
+    /** Le rideau de la transition entre univers (version 0.199), joué quand le guide est confirmé sous un skin. */
+    final TransitionSkinArt curtain = new TransitionSkinArt();
+    /** La traînée du curseur « Étoile filante » (version 0.199), tout au-dessus de la fenêtre. */
+    final CursorSkinArt.Trail cursorTrail = new CursorSkinArt.Trail();
+    /** Le skin du curseur posé sur la fenêtre (version 0.199), ou {@code null} : {@code refresh()} le compare à celui à montrer. */
+    idle.core.universe.Skin cursorSkin = null;
     /** Le skin des onglets appliqué par {@link #styleTabs} (version 0.190), ou {@code null} : {@code refresh()} le compare au choisi. */
     idle.core.universe.Skin tabSkin = null;
     boolean exploding = false;
@@ -371,6 +377,13 @@ public abstract class GameAppBase extends Application {
     /** Ce qui est prêt quelque part, pour la pastille des onglets. */
     final Readiness readiness = Readiness.of(game);
     final Label shortcutsLabel = new Label();
+
+    /** Le fond, le rideau et la traînée prennent la taille de la fenêtre (version 0.199 pour les deux derniers). */
+    void fitLayers(double width, double height) {
+        chrome.fit(width, height);
+        curtain.fit(width, height);
+        cursorTrail.fit(width, height);
+    }
 
     @Override
     public void start(Stage stage) {
@@ -614,9 +627,11 @@ public abstract class GameAppBase extends Application {
         blast.setVisible(false);
         // Le fond skinné (version 0.190) est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
         StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, chronoCorner, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
-                transitionPane, absencePane);
-        window.widthProperty().addListener((observable, before, width) -> chrome.fit(width.doubleValue(), window.getHeight()));
-        window.heightProperty().addListener((observable, before, height) -> chrome.fit(window.getWidth(), height.doubleValue()));
+                transitionPane, absencePane, curtain, cursorTrail);
+        window.widthProperty().addListener((observable, before, width) -> fitLayers(width.doubleValue(), window.getHeight()));
+        window.heightProperty().addListener((observable, before, height) -> fitLayers(window.getWidth(), height.doubleValue()));
+        curtain.setVisible(false);
+        transitionPane.setOnConfirmed(curtain::play);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
         StackPane.setAlignment(chronoCorner, Pos.BOTTOM_LEFT);
@@ -680,6 +695,9 @@ public abstract class GameAppBase extends Application {
                 for (Cosmetic opened : cosmetics.frame(dt, settings.paused())) {
                     if (settings.notice(Notice.COSMETICS)) toasts.show(Cosmetics.announcement(opened), SETTINGS_COLOR);
                 }
+                // Version 0.199 : le rideau de la transition et la traînée du curseur suivent le temps de l'interface.
+                curtain.frame(dt);
+                cursorTrail.frame(dt);
                 refresh();
             }
         }.start();
@@ -723,6 +741,12 @@ public abstract class GameAppBase extends Application {
         // Toucher à la souris remet à zéro le temps passé sans rien faire (le thème « Sépia »).
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, event -> cosmetics.input());
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> cosmetics.input());
+        // La traînée de l'étoile filante (version 0.199) suit la souris, en coordonnées de son calque.
+        scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_MOVED, event -> {
+            if (!cursorTrail.isActive()) return;
+            javafx.geometry.Point2D local = cursorTrail.sceneToLocal(event.getSceneX(), event.getSceneY());
+            if (local != null) cursorTrail.move(local.getX(), local.getY());
+        });
         scene.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_DRAGGED, event -> cosmetics.input());
         scene.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> cosmetics.input());
         // La fenêtre perd la main touche enfoncée : le relâchement ne viendra jamais, on l'anticipe.

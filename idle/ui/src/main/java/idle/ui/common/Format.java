@@ -7,7 +7,8 @@ import java.util.Locale;
 
 /**
  * Mise en forme des nombres affichés au joueur. Les grands nombres suivent la notation choisie
- * dans les réglages ({@link Settings.Notation}).
+ * dans les réglages ({@link Settings.Notation}) ; les six notations de la version 0.200 sont écrites
+ * dans {@link Notations}, et « Battements de cœur » change les durées plutôt que les nombres.
  */
 public final class Format {
 
@@ -40,8 +41,22 @@ public final class Format {
      * notations donnent la même chose : « 123.45 ».
      */
     public static String big(BigNum value) {
-        if (notation == Settings.Notation.SCIENTIFIC || value.sign() <= 0 || value.lt(THOUSAND)) return value.format();
+        if (notation == Settings.Notation.SCIENTIFIC || notation == Settings.Notation.HEARTBEATS || value.sign() <= 0 || value.lt(THOUSAND)) {
+            return value.format();
+        }
         switch (notation) {
+            case BINARY -> {
+                return Notations.power(value, 2);
+            }
+            case HEX -> {
+                return Notations.hex(value);
+            }
+            case JAPANESE -> {
+                return Notations.japanese(value);
+            }
+            case MORSE -> {
+                return Notations.morse(mantissa(value), roundedExponent(value));
+            }
             case POWERS -> {
                 long exponent = roundedExponent(value);
                 return mantissa(value) + "×10" + superscript(exponent);
@@ -78,6 +93,9 @@ public final class Format {
             case ALPHABET -> {
                 return digits + " " + alphabet(letter);
             }
+            case SI -> {
+                return letter < Notations.SI_PREFIXES.length ? digits + " " + Notations.SI_PREFIXES[letter] : value.format();
+            }
             default -> {
                 return digits + "e" + exponent;
             }
@@ -85,13 +103,13 @@ public final class Format {
     }
 
     /** La mantisse, à trois chiffres significatifs : « 1.23 » ; 9.996 s'arrondit à « 1.00 », la puissance suivante. */
-    private static String mantissa(BigNum value) {
+    static String mantissa(BigNum value) {
         String digits = String.format(Locale.ROOT, "%.2f", value.mantissa());
         return digits.equals("10.00") ? "1.00" : digits;
     }
 
     /** La puissance de dix qui va avec {@link #mantissa(BigNum)}. */
-    private static long roundedExponent(BigNum value) {
+    static long roundedExponent(BigNum value) {
         return String.format(Locale.ROOT, "%.2f", value.mantissa()).equals("10.00") ? value.exponent() + 1 : value.exponent();
     }
 
@@ -131,9 +149,11 @@ public final class Format {
 
     /**
      * Durée lisible : « 8.2 s », « 12 min 05 s », « 3 h 12 min », « 2 j 3 h ». Deux unités au
-     * plus : au-delà, la précision n'apporte rien.
+     * plus : au-delà, la précision n'apporte rien. Dans la notation « Battements de cœur »
+     * (version 0.200), la durée se compte en battements : « 3 600 battements ».
      */
     public static String duration(double seconds) {
+        if (notation == Settings.Notation.HEARTBEATS) return Notations.heartbeats(seconds);
         if (seconds < 60) {
             String text = String.format(Locale.ROOT, "%.1f", Math.max(0, seconds));
             return (text.endsWith(".0") ? text.substring(0, text.length() - 2) : text) + " s";

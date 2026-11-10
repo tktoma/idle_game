@@ -32,7 +32,20 @@ public final class Settings {
         /** 10^7.09 : le nombre écrit par son logarithme. À débloquer. */
         LOG("Logarithme", Cosmetic.LOG),
         /** 1.23 ×X^VII : la puissance de dix en chiffres romains. À débloquer. */
-        ROMAN("Romaine", Cosmetic.ROMAN);
+        ROMAN("Romaine", Cosmetic.ROMAN),
+        // Version 0.200 : six notations de plus (SKINS.md, section 8), toutes à débloquer.
+        /** 1.21×2^10 : une mantisse entre 1 et 2, et la puissance de deux. */
+        BINARY("Binaire", Cosmetic.BINARY),
+        /** 0x4D2 jusqu'à 1e15, puis 1.23×16^5 : la puissance de seize. */
+        HEX("Hexadécimale", Cosmetic.HEX),
+        /** 1234万 : les unités japonaises, de quatre chiffres en quatre chiffres, jusqu'au 無量大数 (1e68) ; au-delà, ×10^…. */
+        JAPANESE("Chiffres japonais", Cosmetic.JAPANESE),
+        /** ·−−−− ·−·−·− ··−−− ···−− e6 : la mantisse en points et traits, l'exposant en clair. */
+        MORSE("Morse", Cosmetic.MORSE),
+        /** 12.3 G : les préfixes du Système international, k, M, G… jusqu'au quetta (1e30), puis scientifique. */
+        SI("Préfixes SI", Cosmetic.SI),
+        /** Les nombres en scientifique ; les durées en battements de cœur : « 3 600 battements » (un par seconde, à 60 par minute). */
+        HEARTBEATS("Battements de cœur", Cosmetic.HEARTBEATS);
 
         private final String label;
         private final Cosmetic unlock;
@@ -83,8 +96,8 @@ public final class Settings {
 
     /**
      * Apparence générale de la fenêtre. Chaque thème est un filtre posé sur le thème sombre
-     * ({@link ThemeFilter}) : l'inverser, tourner ses teintes, le désaturer, le teinter. Les cinq
-     * derniers sont à débloquer ({@link Cosmetic}).
+     * ({@link ThemeFilter}) : l'inverser, tourner ses teintes, le désaturer, le teinter, et depuis la version 0.200
+     * éclaircir ses noirs d'une couleur (le voile). Douze sont à débloquer ({@link Cosmetic}) ; « Daltonien » est libre.
      */
     public enum Theme {
         /** Fond sombre : celui pour lequel le jeu est dessiné. */
@@ -108,7 +121,24 @@ public final class Settings {
         /** Nébuleuse : un voile violet et rose. */
         NEBULA("Nébuleuse", false, 0.15, 0.2, 0, 0, "#e3a8ff", Cosmetic.NEBULA),
         /** Or : tout en reflets dorés. */
-        GOLD("Or", false, 0, -1, 0.12, 0.2, "#ffd36a", Cosmetic.GOLD);
+        GOLD("Or", false, 0, -1, 0.12, 0.2, "#ffd36a", Cosmetic.GOLD),
+        // Version 0.200 : huit thèmes de plus (SKINS.md, section 8), tous des filtres.
+        /** Encre : noir et blanc tranché, le contraste au plus fort. */
+        INK("Encre", false, 0, -1, 0.05, 1.0, null, null, Cosmetic.INK),
+        /** Cyanotype : du bleu de Prusse au blanc, les noirs voilés de bleu. */
+        CYANOTYPE("Cyanotype", false, 0, -1, 0.05, 0.1, null, "#1a3a6b", Cosmetic.CYANOTYPE),
+        /** Vieux film : un sépia plus sombre et plus contrasté que « Sépia », les noirs voilés de brun. */
+        OLD_FILM("Vieux film", false, 0, -1, -0.05, 0.3, "#d9b78a", "#2a1a08", Cosmetic.OLD_FILM),
+        /** Thermique : les teintes retournées, saturées à bloc, en fausses couleurs. */
+        THERMAL("Thermique", false, -0.5, 1.0, 0.05, 0.4, null, "#1a0030", Cosmetic.THERMAL),
+        /** Daltonien (libre) : les rouges et les verts écartés vers l'orange et le bleu, la saturation baissée, le contraste monté. */
+        COLORBLIND("Daltonien", false, 0.08, -0.3, 0.02, 0.15, null, null, null),
+        /** Lune : un gris bleuté, les noirs voilés d'ardoise. */
+        MOON("Lune", false, 0, -1, 0.05, 0.05, "#b9c4d6", "#101520", Cosmetic.MOON),
+        /** Forêt : tout en verts, du sous-bois sombre à la feuille claire. */
+        FOREST("Forêt", false, 0, -1, 0.05, 0.1, "#86c46d", "#06180a", Cosmetic.FOREST),
+        /** Brasier : rouges et oranges, les noirs voilés de braise. */
+        BLAZE("Brasier", false, 0, -1, 0.1, 0.2, "#ff7a2a", "#3a0a00", Cosmetic.BLAZE);
 
         private final String label;
         private final boolean invert;
@@ -117,9 +147,15 @@ public final class Settings {
         private final double brightness;
         private final double contrast;
         private final String tint;
+        private final String shade;
         private final Cosmetic unlock;
 
         Theme(String label, boolean invert, double hue, double saturation, double brightness, double contrast, String tint, Cosmetic unlock) {
+            this(label, invert, hue, saturation, brightness, contrast, tint, null, unlock);
+        }
+
+        /** Version 0.200 : {@code shade} est le voile qui éclaircit les noirs (mélange « écran »), ou {@code null}. */
+        Theme(String label, boolean invert, double hue, double saturation, double brightness, double contrast, String tint, String shade, Cosmetic unlock) {
             this.label = label;
             this.invert = invert;
             this.hue = hue;
@@ -127,6 +163,7 @@ public final class Settings {
             this.brightness = brightness;
             this.contrast = contrast;
             this.tint = tint;
+            this.shade = shade;
             this.unlock = unlock;
         }
 
@@ -162,9 +199,14 @@ public final class Settings {
             return tint;
         }
 
+        /** Le voile qui éclaircit les noirs (version 0.200, mélange « écran » : le blanc reste blanc), ou {@code null}. */
+        public String shade() {
+            return shade;
+        }
+
         /** Vrai si le thème ne change rien : le thème sombre. */
         public boolean isPlain() {
-            return !invert && hue == 0 && saturation == 0 && brightness == 0 && contrast == 0 && tint == null;
+            return !invert && hue == 0 && saturation == 0 && brightness == 0 && contrast == 0 && tint == null && shade == null;
         }
 
         /** Ce qui l'ouvre, ou {@code null} s'il est offert d'emblée. */

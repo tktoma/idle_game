@@ -19,11 +19,15 @@ final class ToastPane extends VBox {
     private static final double FADE_SECONDS = 1;
     /** Nombre de messages visibles à la fois : au-delà, le plus ancien laisse sa place. */
     private static final int MAX_VISIBLE = 4;
-    private static final String STYLE = "-fx-font-size: 13px; -fx-padding: 8 14; -fx-text-fill: #e8f4ff;"
+    static final String STYLE = "-fx-font-size: 13px; -fx-padding: 8 14; -fx-text-fill: #e8f4ff;"
             + " -fx-background-color: #16202eee; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: ";
 
     private final List<Label> toasts = new ArrayList<>();
     private final List<Double> remaining = new ArrayList<>();
+    /** Le skin des messages à venir (version 0.199), {@code null} pour le classique ; ceux déjà affichés gardent le leur. */
+    private idle.core.universe.Skin skin;
+    /** Les messages affichés depuis l'ouverture du jeu (version 0.199) : les skins des notifications s'en débloquent. */
+    private int shown;
 
     ToastPane() {
         super(6);
@@ -34,14 +38,30 @@ final class ToastPane extends VBox {
 
     /** Affiche un message, avec un liseré de la couleur donnée. */
     void show(String text, String color) {
-        Label toast = new Label(text);
-        toast.setStyle(STYLE + color + ";");
+        Label toast = new Label(ToastSkinStyles.text(skin, text));
+        toast.setStyle(ToastSkinStyles.style(skin, color));
+        toast.setRotate(ToastSkinStyles.rotation(skin));
         toast.setWrapText(true);
-        toast.setMaxWidth(440);
+        toast.setMaxWidth(ToastSkinStyles.maxWidth(skin));
+        shown++;
         toasts.add(toast);
         remaining.add(SECONDS);
         getChildren().add(toast);
         while (toasts.size() > MAX_VISIBLE) remove(0);
+    }
+
+    /** Le skin des prochains messages (version 0.199) ; {@code null} pour le classique. */
+    void setSkin(idle.core.universe.Skin skin) {
+        this.skin = skin;
+    }
+
+    idle.core.universe.Skin skin() {
+        return skin;
+    }
+
+    /** Les messages affichés depuis l'ouverture du jeu (version 0.199), effacés ou non. */
+    int shown() {
+        return shown;
     }
 
     /** Nombre de messages affichés en ce moment. */

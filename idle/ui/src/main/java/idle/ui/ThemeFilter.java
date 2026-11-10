@@ -16,8 +16,10 @@ import javafx.scene.paint.Color;
  * l'inverse (le fond presque noir devient presque blanc, les textes clairs deviennent foncés),
  * puis fait tourner les teintes d'un demi-tour pour que chaque couleur retrouve la sienne ; les
  * autres tournent les teintes, désaturent, éclaircissent, renforcent le contraste, et peuvent
- * teinter le tout d'une couleur (multipliée : le noir reste noir). Pages, dessins et graphiques
- * suivent donc tous ensemble.
+ * teinter le tout d'une couleur (multipliée : le noir reste noir), et depuis la version 0.200 voiler
+ * les noirs d'une couleur (mélange « écran » : le blanc reste blanc, le noir prend la couleur du
+ * voile, comme le bleu de Prusse d'un cyanotype). Pages, dessins et graphiques suivent donc tous
+ * ensemble.
  *
  * <p>Avant la version 0.063, seul le thème clair existait, dans une classe {@code LightTheme}.
  */
@@ -27,6 +29,7 @@ final class ThemeFilter {
     /** Les couleurs pleines du filtre : elles doivent couvrir exactement la zone. */
     private ColorInput white;
     private ColorInput tint;
+    private ColorInput shade;
 
     ThemeFilter(Region region) {
         this.region = region;
@@ -36,11 +39,12 @@ final class ThemeFilter {
     void apply(Settings.Theme theme) {
         white = null;
         tint = null;
+        shade = null;
         region.setEffect(theme.isPlain() ? null : effect(theme));
         fit();
     }
 
-    /** Le filtre d'un thème : l'inversion, puis le réglage des couleurs, puis la teinte. */
+    /** Le filtre d'un thème : l'inversion, puis le réglage des couleurs, puis la teinte, puis le voile des noirs. */
     Effect effect(Settings.Theme theme) {
         Effect input = null;
         if (theme.invert()) {
@@ -57,17 +61,26 @@ final class ThemeFilter {
         adjust.setBrightness(theme.brightness());
         adjust.setContrast(theme.contrast());
         if (input != null) adjust.setInput(input);
-        if (theme.tint() == null) return adjust;
-        tint = new ColorInput(0, 0, 1, 1, Color.web(theme.tint()));
-        Blend multiply = new Blend(BlendMode.MULTIPLY);
-        multiply.setBottomInput(adjust);
-        multiply.setTopInput(tint);
-        return multiply;
+        Effect colored = adjust;
+        if (theme.tint() != null) {
+            tint = new ColorInput(0, 0, 1, 1, Color.web(theme.tint()));
+            Blend multiply = new Blend(BlendMode.MULTIPLY);
+            multiply.setBottomInput(adjust);
+            multiply.setTopInput(tint);
+            colored = multiply;
+        }
+        if (theme.shade() == null) return colored;
+        // Version 0.200 : le voile en « écran » : le noir devient la couleur du voile, le blanc reste blanc.
+        shade = new ColorInput(0, 0, 1, 1, Color.web(theme.shade()));
+        Blend screen = new Blend(BlendMode.SCREEN);
+        screen.setBottomInput(colored);
+        screen.setTopInput(shade);
+        return screen;
     }
 
     /** Les couleurs pleines doivent couvrir exactement la zone : à rappeler quand la fenêtre change de taille. */
     void fit() {
-        for (ColorInput input : new ColorInput[] {white, tint}) {
+        for (ColorInput input : new ColorInput[] {white, tint, shade}) {
             if (input == null) continue;
             input.setWidth(Math.max(1, region.getWidth()));
             input.setHeight(Math.max(1, region.getHeight()));

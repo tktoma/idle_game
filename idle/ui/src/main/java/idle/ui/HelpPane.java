@@ -99,7 +99,7 @@ final class HelpPane extends Overlay {
             content.getChildren().add(title);
             content.getChildren().add(text);
         }
-        setVisible(true);
+        reveal();
     }
 
     void close() {
@@ -595,7 +595,26 @@ final class HelpPane extends Overlay {
                         + "de jeu, pastilles à l'univers 1 formé, rubans à l'univers 2 formé) et les cartes (fiche cartonnée à 100 fusions, "
                         + "tuile de verre avec le skin Cristal du Big Bang, carte à jouer aux dix défis réussis, étiquette à dix sondes "
                         + "revenues). Le fond n'habille que les marges, sous un voile sombre, et suit le thème choisi : le thème clair "
-                        + "l'inverse." : "")));
+                        + "l'inverse." : "")
+                // Version 0.199 : la fenêtre autour du jeu : notifications, panneaux, transition, fin, bouton de démarrage, curseur.
+                + (game.isSkinsUnlocked() ? " Autour du jeu encore, dans l'onglet Skins : les notifications (Post-it, Télégramme, Bulle de BD, "
+                        + "Ticket de caisse, Parchemin déroulé, à 20, 50, 100, 200 et 500 notifications reçues depuis l'ouverture du jeu), "
+                        + "les panneaux comme celui-ci (Page de livre à cinq heures de jeu, Écran de cinéma à dix, Tableau d'affichage à "
+                        + "vingt), le guide de transition entre univers et son rideau (Fondu au blanc, Page tournée, Diaphragme, Trou noir, un "
+                        + "par univers formé), l'écran de fin (Générique qui défile à la partie finie, Certificat encadré et Photo souvenir à "
+                        + "dix et onze univers), le bouton de démarrage d'une partie neuve (Interrupteur à la partie finie, Graine qu'on "
+                        + "plante, Allumette et Détonateur à neuf, dix et onze univers) et le curseur (Main de verre, Étoile filante et sa "
+                        + "traînée, Arrosoir sur l'onglet Univers, Loupe sur l'onglet Big Bang, Baguette : un succès d'un onglet différent "
+                        + "chacun)." : "")
+                // Version 0.200 : les sons (skins), les thèmes et les notations nouveaux (réglages).
+                + (game.isSkinsUnlocked() ? " Les sons aussi ont leurs skins, tous synthétisés : la banque de sons change le timbre de tous "
+                        + "(Bois à une heure de jeu, Verre à deux, 8 bits à cinq, Orchestre à dix, Nature à vingt ; Silence partiel, libre, ne "
+                        + "laisse sonner que les Big Bangs), le son du Big Bang a le sien (Carillon géant, Souffle de vent, Orgue à 5, 10 et 20 "
+                        + "Big Bangs) et le tic du métronome de la boucle le sien (Bois au seuil de la boucle, Métal, Goutte d'eau et "
+                        + "Battement de cœur à six, sept et huit univers)." : "")
+                + " Les réglages comptent dix-neuf thèmes, dont douze à débloquer par une énigme (le thème Daltonien, d'accessibilité, "
+                + "est libre), et quatorze notations, dont neuf à débloquer ; la notation Battements de cœur écrit les durées en battements, "
+                + "un par seconde."));
         sections.add(new Section("Raccourcis clavier", shortcuts(settings)));
         return sections;
     }

@@ -55,7 +55,7 @@ public final class FinalePane extends Overlay {
     /** Montre l'écran, ses chiffres pris à cet instant. */
     public void open() {
         fill();
-        setVisible(true);
+        reveal();
     }
 
     public void close() {

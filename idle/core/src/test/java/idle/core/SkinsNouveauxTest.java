@@ -35,9 +35,9 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(332, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+        assertEquals(369, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
                 + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194, trente-six de la 0.195, cinquante-deux de la 0.196, "
-                + "quarante-un de la 0.197, vingt-sept de la 0.198");
+                + "quarante-un de la 0.197, vingt-sept de la 0.198, vingt-quatre de la 0.199, treize de la 0.200");
     }
 
     /** Version 0.186 : les skins des astres, à 10, 20 et 35 astres formés dans un univers ; acquis, ils restent. */
@@ -762,7 +762,7 @@ class SkinsNouveauxTest {
         game.tick(1);
         game.tick(1);
         for (Skin skin : Skin.values()) {
-            if (skin.ordinal() < Skin.AVATAR_LINE.ordinal()) continue;
+            if (skin.ordinal() < Skin.AVATAR_LINE.ordinal() || skin.ordinal() >= Skin.TOAST_POSTIT.ordinal()) continue;
             assertEquals(skin.isFree(), game.hasSkin(skin), "deux univers formés, rien d'autre : " + skin);
             assertEquals(skin.visual() == SkinVisual.CHART_PALETTE, skin.isFree(), "libre : " + skin);
         }
@@ -841,5 +841,121 @@ class SkinsNouveauxTest {
         assertTrue(Skin.CHART_NEON.isFree());
         assertEquals(SkinVisual.ACHIEVEMENT_LOCKED, Skin.LOCKED_PUZZLE.visual());
         assertEquals("Tous les succès obtenus", Skin.TILES_STAMPS.source());
+    }
+
+    /**
+     * Version 0.199 : la fenêtre autour du jeu. Les notifications suivent celles affichées depuis l'ouverture (compte tenu
+     * par la fenêtre, non sauvegardé) ; les panneaux les heures de jeu ; la transition les univers formés ; l'écran de fin
+     * et le bouton de démarrage la partie finie puis les univers formés ; le curseur un succès d'un onglet chacun.
+     */
+    @Test
+    void lesNotificationsLesPanneauxLaTransitionLaFinLeDemarrageEtLeCurseurOntLeursConditions() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        // Les notifications : le compte ne descend jamais, et n'est pas écrit dans la sauvegarde.
+        for (int i = 0; i < Skin.TOASTS.length; i++) {
+            game.noteNotificationsShown(Skin.TOAST_NOTIFICATIONS[i] - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.TOASTS[i]), Skin.TOASTS[i].label() + " avant son compte");
+            game.noteNotificationsShown(Skin.TOAST_NOTIFICATIONS[i]);
+            game.noteNotificationsShown(0);
+            assertEquals(Skin.TOAST_NOTIFICATIONS[i], game.notificationsShown());
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.TOASTS[i]), Skin.TOASTS[i].label());
+        }
+        // Les panneaux : les heures de jeu.
+        for (int i = 0; i < Skin.PANELS.length; i++) {
+            game.state().setTimePlayed(Skin.PANEL_HOURS[i] * 3600.0 - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.PANELS[i]), Skin.PANELS[i].label() + " avant son heure");
+            game.state().setTimePlayed(Skin.PANEL_HOURS[i] * 3600.0);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.PANELS[i]), Skin.PANELS[i].label());
+        }
+        // Le curseur : un succès chacun, d'un onglet différent.
+        assertEquals(Skin.CURSORS.length, Skin.CURSOR_ACHIEVEMENTS.length);
+        for (int i = 0; i < Skin.CURSORS.length; i++) {
+            String id = Skin.CURSOR_ACHIEVEMENTS[i];
+            assertTrue(game.achievements().stream().anyMatch(achievement -> achievement.id().equals(id)), id + " existe");
+            assertFalse(game.hasSkin(Skin.CURSORS[i]), Skin.CURSORS[i].label() + " avant son succès");
+            game.state().addAchievement(Skin.CURSOR_ACHIEVEMENTS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.CURSORS[i]), Skin.CURSORS[i].label());
+        }
+        // La transition : un skin par univers formé, du premier au quatrième ; déjà deux ici.
+        for (int i = 0; i < Skin.TRANSITIONS.length; i++) assertEquals(i < 2, game.hasSkin(Skin.TRANSITIONS[i]), Skin.TRANSITIONS[i].label() + " à 2 univers");
+        // La fin et le démarrage : rien tant que la partie n'est pas finie, même à onze univers.
+        for (int universes = 3; universes <= 11; universes++) {
+            assertTrue(game.testAddUniverse());
+            game.tick(1);
+            for (int i = 0; i < Skin.TRANSITIONS.length; i++) assertEquals(universes >= i + 1, game.hasSkin(Skin.TRANSITIONS[i]), Skin.TRANSITIONS[i].label() + " à " + universes);
+            for (Skin skin : Skin.ENDINGS) assertFalse(game.hasSkin(skin), skin.label() + " sans fin de partie");
+            for (Skin skin : Skin.START_BUTTONS) assertFalse(game.hasSkin(skin), skin.label() + " sans fin de partie");
+        }
+        game.state().setGameFinished(true);
+        game.tick(1);
+        for (Skin skin : Skin.ENDINGS) assertTrue(game.hasSkin(skin), skin.label());
+        for (Skin skin : Skin.START_BUTTONS) assertTrue(game.hasSkin(skin), skin.label());
+        // Une partie finie à huit univers : le premier skin de chaque, pas les suivants.
+        Game young = GameTestSupport.universe(8);
+        young.state().setSkinsOpen(true);
+        young.state().setGameFinished(true);
+        young.tick(1);
+        for (int i = 0; i < Skin.ENDINGS.length; i++) assertEquals(i == 0, young.hasSkin(Skin.ENDINGS[i]), Skin.ENDINGS[i].label() + " à 8 univers");
+        for (int i = 0; i < Skin.START_BUTTONS.length; i++) assertEquals(i == 0, young.hasSkin(Skin.START_BUTTONS[i]), Skin.START_BUTTONS[i].label() + " à 8 univers");
+        assertTrue(young.testAddUniverse());
+        young.tick(1);
+        assertTrue(young.hasSkin(Skin.START_SEED), "la graine à neuf univers");
+        assertFalse(young.hasSkin(Skin.ENDING_CERTIFICATE), "le certificat attend dix univers");
+        assertEquals(SkinVisual.TOAST, Skin.TOAST_SCROLL.visual());
+        assertEquals("5 h de jeu", Skin.PANEL_BOOK.source());
+    }
+
+    /** Version 0.200 : les sons. Les banques suivent les heures de jeu, le son du Big Bang les Big Bangs, le métronome le seuil de la boucle puis les univers. */
+    @Test
+    void lesBanquesDeSonsLeBigBangEtLeMetronomeOntLeursConditions() {
+        Game game = GameTestSupport.universe(2);
+        game.state().setSkinsOpen(true);
+        game.tick(1);
+        assertTrue(game.hasSkin(Skin.SOUND_SILENCE), "le silence partiel est libre");
+        assertTrue(Skin.SOUND_SILENCE.isFree());
+        for (int i = 0; i < Skin.SOUND_BANKS.length; i++) {
+            game.state().setTimePlayed(Skin.SOUND_BANK_HOURS[i] * 3600.0 - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.SOUND_BANKS[i]), Skin.SOUND_BANKS[i].label() + " avant son heure");
+            game.state().setTimePlayed(Skin.SOUND_BANK_HOURS[i] * 3600.0);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.SOUND_BANKS[i]), Skin.SOUND_BANKS[i].label());
+        }
+        for (int i = 0; i < Skin.BANG_SOUNDS.length; i++) {
+            game.state().setBigBangs(Skin.BANG_SOUND_BANGS[i] - 1);
+            game.tick(1);
+            assertFalse(game.hasSkin(Skin.BANG_SOUNDS[i]), Skin.BANG_SOUNDS[i].label() + " avant son Big Bang");
+            game.state().setBigBangs(Skin.BANG_SOUND_BANGS[i]);
+            game.tick(1);
+            assertTrue(game.hasSkin(Skin.BANG_SOUNDS[i]), Skin.BANG_SOUNDS[i].label());
+        }
+        // Le métronome : rien sans le seuil de la boucle, même à huit univers ; le seuil atteint, un skin de plus par univers à partir du sixième.
+        for (int universes = 3; universes <= 8; universes++) assertTrue(game.testAddUniverse());
+        game.tick(1);
+        for (Skin skin : Skin.METRONOMES) assertFalse(game.hasSkin(skin), skin.label() + " sans le seuil de la boucle");
+        Game loop = GameTestSupport.universe(5);
+        loop.state().setSkinsOpen(true);
+        loop.state().setLoopShardsEarned(GameUniverse.LOOP_THRESHOLD);
+        loop.tick(1);
+        assertTrue(loop.isDimensionThresholdReached(5));
+        for (int i = 0; i < Skin.METRONOMES.length; i++) assertEquals(i == 0, loop.hasSkin(Skin.METRONOMES[i]), Skin.METRONOMES[i].label() + " à 5 univers");
+        for (int universes = 6; universes <= 8; universes++) {
+            assertTrue(loop.testAddUniverse());
+            loop.tick(1);
+            for (int i = 0; i < Skin.METRONOMES.length; i++) {
+                assertEquals(i == 0 || universes >= Skin.FIRST_METRONOME_UNIVERSE + i - 1, loop.hasSkin(Skin.METRONOMES[i]), Skin.METRONOMES[i].label() + " à " + universes);
+            }
+        }
+        assertEquals(SkinVisual.SOUND_BANK, Skin.SOUND_WOOD.visual());
+        assertEquals(SkinVisual.BIG_BANG_SOUND, Skin.BANG_SOUND_ORGAN.visual());
+        assertEquals(SkinVisual.METRONOME, Skin.METRONOME_HEART.visual());
+        assertEquals("1 h de jeu", Skin.SOUND_WOOD.source());
     }
 }

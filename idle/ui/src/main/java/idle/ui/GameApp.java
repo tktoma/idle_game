@@ -71,6 +71,33 @@ import javafx.scene.input.KeyCode;
  */
 public final class GameApp extends GameAppTabs {
 
+    /**
+     * Version 0.199 : les skins de la fenêtre autour du jeu. Les notifications prennent leur skin à l'affichage et le jeu
+     * apprend combien ont été affichées ; les panneaux (aide, absence) suivent le visuel des panneaux, l'écran de fin et
+     * la fin de partie celui de l'écran de fin s'il est choisi, sinon celui des panneaux ; le guide de transition le sien ;
+     * le curseur se pose sur toute la fenêtre, l'arrosoir et la loupe seulement sur leur onglet.
+     */
+    private void refreshWindowSkins() {
+        toasts.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOAST));
+        game.noteNotificationsShown(toasts.shown());
+        idle.core.universe.Skin panel = game.chosenSkin(idle.core.universe.SkinVisual.PANEL);
+        idle.core.universe.Skin ending = game.chosenSkin(idle.core.universe.SkinVisual.ENDING);
+        helpPane.setSkin(panel);
+        absencePane.setSkin(panel);
+        endPane.setSkin(ending != null ? ending : panel);
+        finalePane.setSkin(ending != null ? ending : panel);
+        transitionPane.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION));
+        // Version 0.200 : les sons prennent la banque, le son du Big Bang et le tic du métronome choisis.
+        sound.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.SOUND_BANK), game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG_SOUND),
+                game.chosenSkin(idle.core.universe.SkinVisual.METRONOME));
+        idle.core.universe.Skin cursor = CursorSkinArt.shownOn(game.chosenSkin(idle.core.universe.SkinVisual.CURSOR), selectedTab);
+        if (cursor != cursorSkin) {
+            cursorSkin = cursor;
+            if (windowPane != null) windowPane.setCursor(CursorSkinArt.cursor(cursor));
+            cursorTrail.setActive(cursor == idle.core.universe.Skin.CURSOR_SHOOTING_STAR);
+        }
+    }
+
     /** Recopie l'état du jeu dans les composants. */
     void refresh() {
         // Fenêtre étroite : les onglets se resserrent pour tenir sur une ligne.
@@ -102,6 +129,7 @@ public final class GameApp extends GameAppTabs {
         idle.ui.common.Breakdown.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOOLTIP));
         generators.setDustSkin(game.chosenSkin(idle.core.universe.SkinVisual.AMBIENT_DUST));
         generators.setFusionSkin(game.chosenSkin(idle.core.universe.SkinVisual.GENERATOR_FUSION));
+        refreshWindowSkins();
         if (debugBar != null) debugBar.refresh();
 
         // L'onglet « Particules » : ses compteurs, ses cartes et sa fusion ne sont recopiés que lorsqu'il est affiché.

@@ -6,8 +6,8 @@ skins existants (un record, une recherche, un défi, un palier). Le mécanisme n
 +2 % à toutes les ressources d'en dessous de l'univers (`Skin.BONUS`), le choisir ne change que l'apparence, et
 « Classique » reste toujours là.
 
-Ce qui existe (version 0.177) : huit visuels (`SkinVisual`), dix-neuf skins (`Skin`), cinq thèmes et trois notations
-à débloquer (`Cosmetic`). Tout le reste de cette liste est sans skin aujourd'hui.
+Ce qui existait (version 0.177) : huit visuels (`SkinVisual`), dix-neuf skins (`Skin`), cinq thèmes et trois notations
+à débloquer (`Cosmetic`). Depuis la 0.200, toute la liste est réalisée : 92 visuels, 369 skins, dix-neuf thèmes et quatorze notations (section 9).
 
 Conventions : une ligne par skin, « nom — ce qui change (formes, couleurs, mouvement) ; comment on l'obtient ».
 Les couleurs sont données en hex quand elles comptent. Les noms des fichiers sont ceux de `ui/src/main/java/idle/ui`.
@@ -262,30 +262,30 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - La frise des univers — **fait en 0.198** (condition retenue : 3, 5, 7 univers formés ; visuel « La frise des univers ») : en frise chronologique de musée, en pellicule de film, en train avec un wagon par univers ; cinq univers.
 
 ### Notifications, panneaux, transitions (`ToastPane`, `Overlay`, `TransitionPane`, `EndPane`, `FinalePane`)
-- Toasts en post-it, en télégramme, en bulle de bande dessinée, en ticket de caisse, en parchemin déroulé ; cent notifications.
-- Panneaux (aide, fin, absence) en page de livre, en écran de cinéma avec rideau, en tableau d'affichage ; dix heures.
-- La transition entre univers en fondu au blanc, en page tournée, en diaphragme d'appareil photo, en trou noir qui avale ; chaque univers formé.
-- L'écran de fin de partie en générique de film qui défile, en certificat encadré, en photo souvenir ; chaque fin de partie.
+- Toasts — **fait en 0.199** (condition retenue : 20, 50, 100, 200, 500 notifications affichées depuis l'ouverture du jeu, compte tenu par la fenêtre et non sauvegardé ; visuel « Les notifications ») : en post-it, en télégramme, en bulle de bande dessinée, en ticket de caisse, en parchemin déroulé ; cent notifications.
+- Panneaux (aide, fin, absence) — **fait en 0.199** (condition retenue : 5, 10, 20 h de jeu ; visuel « Les panneaux » ; la fin suit le visuel de l'écran de fin quand un de ses skins est choisi) : en page de livre, en écran de cinéma avec rideau, en tableau d'affichage ; dix heures.
+- La transition entre univers — **fait en 0.199** (condition retenue : 1, 2, 3, 4 univers formés ; visuel « La transition entre univers » : la carte du guide et un rideau joué à la confirmation) : en fondu au blanc, en page tournée, en diaphragme d'appareil photo, en trou noir qui avale ; chaque univers formé.
+- L'écran de fin de partie — **fait en 0.199** (condition retenue : la partie finie, puis finie et 10, 11 univers formés, le jeu ne comptant qu'une fin ; visuel « L'écran de fin », sur `EndPane` et `FinalePane`) : en générique de film qui défile, en certificat encadré, en photo souvenir ; chaque fin de partie.
 
 ### Le bouton de démarrage et le premier écran (`GameAppWindow.showStartButton`)
-- Bouton en interrupteur à bascule, en graine qu'on plante, en allumette qu'on frotte, en détonateur ; chaque fin de partie en débloque un.
+- Bouton — **fait en 0.199** (condition retenue : la partie finie, puis finie et 9, 10, 11 univers formés ; visuel « Le bouton de démarrage » ; « Recommencer » efface les skins, le bouton de la partie neuve garde celui qui était choisi le temps de cette ouverture du jeu) : en interrupteur à bascule, en graine qu'on plante, en allumette qu'on frotte, en détonateur ; chaque fin de partie en débloque un.
 
-### Curseurs (aujourd'hui seulement les curseurs système)
-- Curseur en main de verre, en étoile filante (traînée), en arrosoir sur la graine, en loupe sur l'espace, en baguette ; chaque onglet pourrait avoir le sien, débloqué par un succès de l'onglet.
+### Curseurs (`CursorSkinArt`, version 0.199 ; avant, seulement les curseurs système)
+- Curseur — **fait en 0.199** (condition retenue : les succès « Premier automatisme », « Attrapée au vol », « Jeune pousse », « À mi-chemin », « Dix explosions », un onglet chacun ; visuel « Le curseur », image dessinée au code posée sur la fenêtre, l'arrosoir seulement sur l'onglet Univers et la loupe sur l'onglet Big Bang ; le curseur système reste le Classique) : en main de verre, en étoile filante (traînée), en arrosoir sur la graine, en loupe sur l'espace, en baguette ; chaque onglet pourrait avoir le sien, débloqué par un succès de l'onglet.
 
 ### Sons (`Sound`, synthétisés)
-- Banques de sons : « bois » (xylophone, claves), « verre » (carillon), « 8 bits » (ondes carrées), « orchestre » (cordes), « nature » (gouttes, vent, oiseaux), « silence partiel » (seulement les Big Bangs) ; chacun un palier de temps de jeu.
-- Le Big Bang : grondement actuel, carillon géant, souffle de vent, orgue ; chaque palier de Big Bang.
-- Le métronome de la boucle : bois, métal, goutte d'eau, battement de cœur ; le seuil de la boucle.
+- Banques de sons — **fait en 0.200** (condition retenue : 1, 2, 5, 10, 20 h de jeu ; « Silence partiel » libre ; visuel « La banque de sons », synthèse au code dans `SoundBanks`, chaque banque change le timbre de tous les sons) : « bois » (xylophone, claves), « verre » (carillon), « 8 bits » (ondes carrées), « orchestre » (cordes), « nature » (gouttes, vent, oiseaux), « silence partiel » (seulement les Big Bangs) ; chacun un palier de temps de jeu.
+- Le Big Bang — **fait en 0.200** (condition retenue : 5, 10, 20 Big Bangs ; visuel « Le son du Big Bang » ; le grondement actuel reste le Classique) : grondement actuel, carillon géant, souffle de vent, orgue ; chaque palier de Big Bang.
+- Le métronome de la boucle — **fait en 0.200** (condition retenue : le seuil de la boucle, puis le seuil et 6, 7, 8 univers formés ; visuel « Le métronome de la boucle ») : bois, métal, goutte d'eau, battement de cœur ; le seuil de la boucle.
 
-### Thèmes (`ThemeFilter`, 11 thèmes dont 5 à débloquer)
-- Nouveaux thèmes en filtre : « Encre » (noir et blanc tranché), « Cyanotype » (bleu de Prusse `#1a3a6b` et blanc), « Vieux film » (sépia granuleux), « Thermique » (palette fausses couleurs), « Daltonien » (saturation et teintes vérifiées), « Lune » (gris bleuté), « Forêt » (verts), « Brasier » (rouges et oranges) ; chacun par un succès à trouver, dans l'esprit des cinq existants (une énigme dans sa description).
+### Thèmes (`ThemeFilter`, 11 thèmes dont 5 à débloquer avant la 0.200 ; 19 dont 12 depuis)
+- Nouveaux thèmes en filtre — **fait en 0.200** (condition retenue : des énigmes dans `Cosmetic` : 1 000 fusions, le défi Rouille réussi, un Big Bang entre minuit et 6 h, 3 systèmes complets, 10 comètes, la galaxie formée, 100 explosions ; « Daltonien » libre ; un voile « écran » nouveau colore les noirs ; « Vieux film » sans grain) : « Encre » (noir et blanc tranché), « Cyanotype » (bleu de Prusse `#1a3a6b` et blanc), « Vieux film » (sépia granuleux), « Thermique » (palette fausses couleurs), « Daltonien » (saturation et teintes vérifiées), « Lune » (gris bleuté), « Forêt » (verts), « Brasier » (rouges et oranges) ; chacun par un succès à trouver, dans l'esprit des cinq existants (une énigme dans sa description).
 
-### Notations (`Format`, 8 notations dont 3 à débloquer)
-- « Binaire » (puissances de 2), « Hexadécimale », « Chiffres japonais » (万, 億, 兆…), « Morse » (fantaisie), « Préfixes SI jusqu'au quetta », « Durées en battements de cœur » pour les temps ; chacune une énigme comme les trois existantes.
+### Notations (`Format`, 8 notations dont 3 à débloquer avant la 0.200 ; 14 dont 9 depuis)
+- **fait en 0.200** (condition retenue : des énigmes dans `Cosmetic` : exactement 1 024 particules, exactement 255 de matière noire, 10 000 molécules créées, 100 notifications reçues d'une traite, 1e30 particules, le chrono plein ; « Battements de cœur » laisse les nombres en scientifique et écrit les durées en battements ; au-delà de leur portée, les notations replient sur ×10^… ou la scientifique) : « Binaire » (puissances de 2), « Hexadécimale », « Chiffres japonais » (万, 億, 兆…), « Morse » (fantaisie), « Préfixes SI jusqu'au quetta », « Durées en battements de cœur » pour les temps ; chacune une énigme comme les trois existantes.
 
-## 9. Comment ranger tout ça dans le code
+## 9. Où tout cela est rangé dans le code
 
-- Chaque élément ci-dessus qui n'est pas encore dans `SkinVisual` y gagnerait une entrée (AMBIENT, TAB_ICONS, CARD, DARK_TREE, MOLECULE, BODY, SKY, GALAXY, SYSTEM, PROBE, LOOT, HADRON, VOID, UNIVERSE_BUBBLE, LAUNCH, SEED, WATERING_CAN, TREE, TREE_BUBBLE, DIMENSIONS_MAP, DIMENSION_1 à DIMENSION_10, AVATAR_FRAME, ALBUM, ACHIEVEMENT, CHART, TOAST, TRANSITION, CURSOR, SOUND) ; les skins eux-mêmes dans `Skin`, avec leur `source`, et la page Skins les range déjà par visuel.
-- Les palettes d'accessibilité (daltonien, pastel, monochrome) et les versions « figées » ou « silencieuses » devraient être libres dès le début : ce sont des réglages déguisés en skins, sans bonus.
-- L'ordre proposé pour commencer, par ce que le joueur regarde le plus longtemps : les arbres (7 essences), les astres (planétarium, gravure, bestiaire), les dix mini-jeux (un skin chacun), les molécules (boules pleines, perles), les avatars (cadres), puis le chrome (cartes, onglets, fonds).
+- Tout est réalisé (versions 0.185 à 0.200) : chaque ligne des sections 1 à 8 porte sa mention « fait en » et la condition retenue ; 369 skins (`Skin`, 92 visuels dans `SkinVisual`), dix-neuf thèmes et quatorze notations (`Settings.Theme`, `Settings.Notation`, les énigmes dans `Cosmetic`).
+- Les skins se débloquent dans `GameUniverse.noteSkinUnlocks()` et ses méthodes `noteXxxSkins()` ; les skins libres (accessibilité, versions figées ou silencieuses) sont marqués `true` dans `Skin` et ne comptent pas dans le bonus (plafond `Skin.MAX_COUNTED`) ; la page Skins les range par visuel.
+- Les dessins par skin vivent dans des classes voisines (`XxxSkinArt`, `XxxSkinStyles`, `SoundBanks`, `Notations`) ; les thèmes et notations à débloquer se guettent dans `Cosmetics` et se choisissent dans les réglages.

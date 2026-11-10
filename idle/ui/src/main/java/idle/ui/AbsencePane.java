@@ -53,7 +53,7 @@ final class AbsencePane extends Overlay {
     void open(Absence absence) {
         this.absence = absence;
         settled = false;
-        setVisible(true);
+        reveal();
         refresh();
     }
 

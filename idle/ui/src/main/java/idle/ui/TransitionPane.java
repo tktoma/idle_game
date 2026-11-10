@@ -33,6 +33,8 @@ final class TransitionPane extends Overlay {
     private final Button go = new Button();
     private final Button later = new Button("Plus tard");
     private Runnable onGo = () -> { };
+    /** Le rideau à jouer quand le joueur confirme (version 0.199), avec le skin du guide ; rien par défaut. */
+    private java.util.function.Consumer<idle.core.universe.Skin> onConfirmed = skin -> { };
 
     TransitionPane(Game game) {
         super(VEIL);
@@ -89,7 +91,12 @@ final class TransitionPane extends Overlay {
         gainedLabel.setText((transition.gained().isEmpty() ? "" : "Et vous gagnez : " + String.join(" ", transition.gained()))
                 + "\nEntrée : confirmer · Échap : plus tard.");
         go.setText(launching ? "Lancer l'univers" : "Former l'univers");
-        setVisible(true);
+        reveal();
+    }
+
+    /** Ce qui joue le rideau de la transition (version 0.199) une fois la transition confirmée, avec le skin du guide. */
+    void setOnConfirmed(java.util.function.Consumer<idle.core.universe.Skin> curtain) {
+        onConfirmed = curtain == null ? skin -> { } : curtain;
     }
 
     private static void fill(VBox box, List<String> lines) {
@@ -106,8 +113,10 @@ final class TransitionPane extends Overlay {
     void confirm() {
         if (!isOpen()) return;
         Runnable action = onGo;
+        idle.core.universe.Skin skin = skin();
         close();
         action.run();
+        if (skin != null) onConfirmed.accept(skin);
     }
 
     void close() {

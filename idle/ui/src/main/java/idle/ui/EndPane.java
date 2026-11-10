@@ -59,7 +59,7 @@ final class EndPane extends Overlay {
         if (isVisible() || game.state().endSeen() || !game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE)) return false;
         game.state().setEndSeen(true);
         fill();
-        setVisible(true);
+        reveal();
         return true;
     }
 

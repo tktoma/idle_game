@@ -24,6 +24,9 @@ import javax.sound.sampled.LineEvent;
  * <p>Le métronome de la boucle (version 0.153) a son tic à part ({@link #beat(int)}) : il bat en rythme, plusieurs
  * fois par seconde, sans attendre ni retarder les sons des annonces.
  *
+ * <p>Version 0.200 : les skins des sons ({@link SoundBanks}) changent le timbre de tous les sons (la banque), celui du
+ * Big Bang et le tic du métronome, toujours sans fichier audio.
+ *
  * <p>Sans carte son, ou si le système refuse la sortie audio, le jeu reste muet sans erreur :
  * le premier échec coupe les sons jusqu'à la fermeture.
  */
@@ -45,10 +48,13 @@ final class Sound {
     private static final AudioFormat FORMAT = new AudioFormat(RATE, 16, 1, true, false);
 
     private final Map<Cue, short[]> samples = new EnumMap<>(Cue.class);
+    /** Les skins des sons choisis (version 0.200) : la banque, le son du Big Bang, le tic du métronome ; {@code null} = Classique. */
+    private idle.core.universe.Skin bank, bangSkin, metronomeSkin;
     private final Map<Cue, Long> lastPlayed = new EnumMap<>(Cue.class);
     private long lastAny = Long.MIN_VALUE / 2;
     private volatile boolean broken = false;
-    private ExecutorService player;
+    /** Le fil des sons, créé au premier son ; visible des essais pour attendre sa fin. */
+    ExecutorService player;
     /** Où partent les échantillons : la sortie audio, ou un relevé pour les essais. */
     java.util.function.Consumer<byte[]> sink = this::output;
 
@@ -96,11 +102,30 @@ final class Sound {
         if (now - lastAny < ANY_CUE_GAP * 1e9) return false;
         Long last = lastPlayed.get(cue);
         if (last != null && now - last < SAME_CUE_GAP * 1e9) return false;
+        short[] sound = samples.computeIfAbsent(cue, this::synthesizeSkinned);
+        // Le silence partiel (version 0.200) : un son vide ne part pas et ne compte pas dans le rythme.
+        if (sound.length == 0) return false;
         lastAny = now;
         lastPlayed.put(cue, now);
-        byte[] pcm = pcm(samples.computeIfAbsent(cue, Sound::synthesize), Math.min(100, volume) / 100.0);
-        send(pcm);
+        send(pcm(sound, Math.min(100, volume) / 100.0));
         return true;
+    }
+
+    /**
+     * Les skins des sons (version 0.200) : la banque change le timbre de tous les sons, le son du Big Bang et le tic du
+     * métronome ont le leur. Les sons déjà calculés sont oubliés quand le choix change.
+     */
+    void setSkins(idle.core.universe.Skin bank, idle.core.universe.Skin bang, idle.core.universe.Skin metronome) {
+        if (bank == this.bank && bang == this.bangSkin && metronome == this.metronomeSkin) return;
+        this.bank = bank;
+        this.bangSkin = bang;
+        this.metronomeSkin = metronome;
+        samples.clear();
+    }
+
+    /** Un son dans les skins choisis (version 0.200) : {@link SoundBanks} les connaît, le Classique reste {@link #synthesize(Cue)}. */
+    private short[] synthesizeSkinned(Cue cue) {
+        return SoundBanks.synthesize(cue, bank, bangSkin, metronomeSkin);
     }
 
     /**
@@ -112,9 +137,10 @@ final class Sound {
         long now = System.nanoTime();
         Long last = lastPlayed.get(Cue.BEAT);
         if (last != null && now - last < BEAT_GAP * 1e9) return false;
+        short[] sound = samples.computeIfAbsent(Cue.BEAT, this::synthesizeSkinned);
+        if (sound.length == 0) return false;
         lastPlayed.put(Cue.BEAT, now);
-        byte[] pcm = pcm(samples.computeIfAbsent(Cue.BEAT, Sound::synthesize), Math.min(100, volume) / 100.0);
-        send(pcm);
+        send(pcm(sound, Math.min(100, volume) / 100.0));
         return true;
     }
 
@@ -169,7 +195,7 @@ final class Sound {
         return out;
     }
 
-    /** Fabrique un son. Les sons restent sous 70 % de la pleine échelle : jamais de saturation. */
+    /** Fabrique un son, dans le timbre Classique. Les sons restent sous 70 % de la pleine échelle : jamais de saturation. */
     static short[] synthesize(Cue cue) {
         return switch (cue) {
             // Un grondement qui descend, une longue traîne.
@@ -196,11 +222,13 @@ final class Sound {
         };
     }
 
-    private interface Wave {
+    /** Une forme d'onde : l'amplitude à un instant, en secondes. */
+    interface Wave {
         double at(double seconds);
     }
 
-    private static short[] render(double seconds, Wave wave) {
+    /** Calcule un son de cette durée, borné à 70 % de la pleine échelle. */
+    static short[] render(double seconds, Wave wave) {
         short[] out = new short[(int) (seconds * RATE)];
         for (int i = 0; i < out.length; i++) {
             double value = Math.max(-0.7, Math.min(0.7, wave.at(i / RATE)));
@@ -210,18 +238,18 @@ final class Sound {
     }
 
     /** Attaque linéaire puis décroissance jusqu'au silence à la fin. */
-    private static double envelope(double t, double attack, double length) {
+    static double envelope(double t, double attack, double length) {
         if (t < attack) return t / attack;
         double rest = Math.max(0, 1 - (t - attack) / (length - attack));
         return rest * rest;
     }
 
-    private static double sine(double frequency, double t) {
+    static double sine(double frequency, double t) {
         return Math.sin(2 * Math.PI * frequency * t);
     }
 
     /** Un bruit déterministe : le même son à chaque fois. */
-    private static double noise(double t) {
+    static double noise(double t) {
         long n = (long) (t * RATE) * 2_654_435_761L;
         n ^= n >>> 13;
         n *= 0x5bd1e995L;
@@ -230,7 +258,7 @@ final class Sound {
     }
 
     /** Des notes l'une après l'autre, chacune tenue jusqu'à la fin. */
-    private static double notes(double t, double step, double length, double... frequencies) {
+    static double notes(double t, double step, double length, double... frequencies) {
         double sum = 0;
         for (int i = 0; i < frequencies.length; i++) {
             double start = i * step;

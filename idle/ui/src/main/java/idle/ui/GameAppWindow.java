@@ -31,6 +31,9 @@ public abstract class GameAppWindow extends GameAppBase {
     // Ce que fournissent les parties suivantes.
     abstract void stepSubTab(int direction);
 
+    /** Le skin du bouton de démarrage choisi dans la partie effacée par « Recommencer » (version 0.199), ou {@code null}. */
+    private idle.core.universe.Skin startSkinMemory;
+
 
     /** Le jeu se ferme : la partie et la place de la fenêtre sont écrites une dernière fois. */
     @Override
@@ -225,6 +228,9 @@ public abstract class GameAppWindow extends GameAppBase {
         button.setStyle("-fx-font-size: 16px; -fx-padding: 12 28; -fx-text-fill: #e8f4ff;"
                 + " -fx-background-color: #16202e; -fx-background-radius: 8;"
                 + " -fx-border-color: #9fd0ff; -fx-border-radius: 8; -fx-cursor: hand;");
+        // Version 0.199 : le skin du bouton, celui de la partie chargée ou celui que la partie effacée avait choisi.
+        idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.START_BUTTON);
+        StartButtonArt.dress(button, look != null ? look : startSkinMemory);
 
         // Le bouton « respire » pour attirer l'œil.
         ScaleTransition pulse = new ScaleTransition(Duration.seconds(1.1), button);
@@ -266,6 +272,9 @@ public abstract class GameAppWindow extends GameAppBase {
      */
     void resetGame() {
         if (debugBar != null) debugBar.cancelFastForward();
+        // Version 0.199 : « Recommencer » efface les skins avec le reste ; le bouton de la partie neuve garde pourtant
+        // celui que le joueur avait choisi, souvenir de l'interface seule, non sauvegardé.
+        startSkinMemory = game.chosenSkin(idle.core.universe.SkinVisual.START_BUTTON);
         game.reset();
         game.restored();
         save();

@@ -100,7 +100,18 @@ public enum SkinVisual {
     ACHIEVEMENT_LOCKED("Les succès non obtenus"),
     CHART("Les courbes des statistiques"),
     CHART_PALETTE("La palette des courbes"),
-    TIMELINE("La frise des univers");
+    TIMELINE("La frise des univers"),
+    /** Version 0.199 : les notifications, les panneaux, la transition entre univers, l'écran de fin, le bouton de démarrage, le curseur. */
+    TOAST("Les notifications"),
+    PANEL("Les panneaux"),
+    TRANSITION("La transition entre univers"),
+    ENDING("L'écran de fin"),
+    START_BUTTON("Le bouton de démarrage"),
+    CURSOR("Le curseur"),
+    /** Version 0.200 : les sons : la banque de tous les sons, le son du Big Bang, le tic du métronome de la boucle. */
+    SOUND_BANK("La banque de sons"),
+    BIG_BANG_SOUND("Le son du Big Bang"),
+    METRONOME("Le métronome de la boucle");
 
     /** Les visuels des dix dimensions, dans l'ordre (version 0.187) : {@code DIMENSIONS[n - 1]} pour la dimension n. */
     public static final SkinVisual[] DIMENSIONS = {LINE, PLANE, VOLUME, DURATION, LOOP, BRANE, CLICKER, GRID, MIRROR, MIX};

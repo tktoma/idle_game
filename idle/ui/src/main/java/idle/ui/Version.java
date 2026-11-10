@@ -23,6 +23,49 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.200", "Treize skins de sons, huit thèmes et six notations : la liste de SKINS.md est entièrement réalisée", List.of(
+                    "Trois visuels de plus dans l'onglet Skins, tous synthétisés sans fichier audio. La banque de sons change le timbre de "
+                            + "tous les sons : Bois (xylophone et claves) à une heure de jeu, Verre (carillon, une octave plus haut) à deux, "
+                            + "8 bits (ondes carrées) à cinq, Orchestre (cordes en dents de scie, attaque lente, vibrato) à dix, Nature (gouttes, "
+                            + "vent, pépiements pour la comète) à vingt ; Silence partiel, libre et sans bonus, ne laisse sonner que les Big Bangs.",
+                    "Le son du Big Bang : Carillon géant (trois grandes cloches), Souffle de vent, Orgue (un accord de tuyaux) à 5, 10 et 20 "
+                            + "Big Bangs ; le grondement d'avant reste le Classique. Le tic du métronome de la boucle : Bois (bloc de bois) au seuil "
+                            + "de la boucle, Métal, Goutte d'eau et Battement de cœur (deux coups sourds) à six, sept et huit univers formés. Le son "
+                            + "du Big Bang et le tic choisis passent devant la banque.",
+                    "Huit thèmes de plus dans les réglages, en filtre comme les autres, avec un voile nouveau qui colore les noirs : Encre (noir "
+                            + "et blanc tranché) à mille fusions, Cyanotype (bleu de Prusse #1a3a6b et blanc) au défi Rouille réussi, Vieux film "
+                            + "(sépia sombre et contrasté ; sans grain, le filtre n'en fait pas) à un Big Bang fait entre minuit et six heures, "
+                            + "Thermique (fausses couleurs) à trois systèmes solaires complets, Lune (gris bleuté) à dix comètes, Forêt (verts) à "
+                            + "la galaxie formée, Brasier (rouges et oranges) à cent explosions ; chacun avec son énigme. Daltonien (saturation "
+                            + "baissée, rouges et verts écartés, contraste monté) est libre : de l'accessibilité.",
+                    "Six notations de plus, chacune par une énigme : Binaire (1.21×2^10, puis 2^282 361 pour les plus grands nombres) à "
+                            + "exactement 1 024 particules, Hexadécimale (0x4D2 jusqu'à 1e15, puis ×16^…) à exactement 255 de matière noire, "
+                            + "Chiffres japonais (万, 億, 兆… jusqu'au 無量大数, puis ×10^…) à dix mille molécules créées, Morse (la mantisse en "
+                            + "points et traits, l'exposant en clair) à cent notifications reçues d'une traite, Préfixes SI (k, M, G… jusqu'au "
+                            + "quetta, puis scientifique) à 1e30 particules, Battements de cœur (les nombres en scientifique, les durées en "
+                            + "battements, un par seconde) au chrono plein.",
+                    "La liste de SKINS.md est entièrement réalisée depuis la 0.185 : 369 skins, dix-neuf thèmes et quatorze notations.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
+            new Note("0.199", "Vingt-quatre skins pour la fenêtre autour du jeu : notifications, panneaux, transition, fin, démarrage, curseur", List.of(
+                    "Six visuels de plus dans l'onglet Skins. Les notifications : Post-it (jaune, collé de travers), Télégramme (en capitales, "
+                            + "terminé par STOP), Bulle de BD, Ticket de caisse (étroit, bords crantés), Parchemin déroulé, à 20, 50, 100, 200 et "
+                            + "500 notifications reçues depuis l'ouverture du jeu ; ce compte n'est pas sauvegardé, il repart à chaque lancement, "
+                            + "mais les skins obtenus restent.",
+                    "Les panneaux par-dessus la fenêtre (l'aide, l'absence, la fin de l'univers et la fin de partie faute d'un skin de fin) : "
+                            + "Page de livre à cinq heures de jeu, Écran de cinéma (rideau rouge en voile, écran blanc) à dix, Tableau d'affichage "
+                            + "(liège et feuille punaisée) à vingt. Sur un fond clair, les textes passent à l'encre en gardant leur teinte.",
+                    "Le guide de transition entre univers et le rideau joué quand on confirme : Fondu au blanc, Page tournée, Diaphragme, Trou "
+                            + "noir, à un, deux, trois et quatre univers formés.",
+                    "L'écran de fin (l'univers formé et la partie finie) : Générique qui défile (tout noir, la carte monte) à la partie finie, "
+                            + "Certificat encadré à dix univers formés, Photo souvenir (polaroïd de travers) à onze.",
+                    "Le bouton de démarrage : Interrupteur à la partie finie, Graine qu'on plante, Allumette, Détonateur à neuf, dix et onze "
+                            + "univers formés. « Recommencer » efface les skins avec le reste ; le bouton de la partie neuve garde pourtant celui "
+                            + "qui était choisi, le temps de cette ouverture du jeu.",
+                    "Le curseur, dessiné au code et posé sur toute la fenêtre : Main de verre (succès « Premier automatisme »), Étoile filante "
+                            + "avec sa traînée d'étincelles (« Attrapée au vol »), Arrosoir sur l'onglet Univers seulement (« Jeune pousse »), "
+                            + "Loupe sur l'onglet Big Bang seulement (« À mi-chemin »), Baguette (« Dix explosions »). Le curseur système reste "
+                            + "le Classique.",
+                    "Le rendu réel n'a pas été vu pendant le développement.")),
             new Note("0.198", "Vingt-sept skins et huit avatars pour le profil, les succès et les statistiques", List.of(
                     "Sept visuels de plus dans l'onglet Skins. Le style des avatars du jeu, qui redessine l'en-tête du profil et toute la "
                             + "galerie, pas l'image importée : Trait (les contours à l'encre sur du papier), Pixel, Craie (sur une ardoise), "
