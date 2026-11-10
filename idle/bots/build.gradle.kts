@@ -172,6 +172,25 @@ tasks.register<JavaExec>("bulles") {
     ) + listOfNotNull(providers.gradleProperty("ids").orNull)
 }
 
+// Version 0.204 : à partir de quand chaque chose ne sert plus, mesuré en rejouant la suite sans elle depuis chaque jalon.
+//   ./gradlew :bots:arrets -Psortie=sorties/arrets                       les automatismes, sur le premier univers
+//   ./gradlew :bots:arrets -Psortie=sorties/arrets -Pids=ameliorations   ou arbre, mecaniques, dimensions, ou des identifiants
+//   ./gradlew :bots:arrets -Pdepart=…/une.save -Punivers=4 -Pids=dimensions   depuis une sauvegarde, jusqu'à l'univers 4
+tasks.register<JavaExec>("arrets") {
+    group = "application"
+    description = "À partir de quel jalon un automatisme, une amélioration ou une mécanique ne sert plus"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "AnalyseArrets"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(
+        providers.gradleProperty("sortie").orElse("sorties/arrets").get(),
+        providers.gradleProperty("depart").orElse("neuf").get(),
+        providers.gradleProperty("univers").orElse("1").get(),
+        providers.gradleProperty("ids").orElse("automatismes").get(),
+    ) + listOfNotNull(providers.gradleProperty("fils").orNull)
+}
+
 // Version 0.166 : ce que vaut chaque amélioration durable du premier univers, mesuré par une partie sans elle.
 //   ./gradlew :bots:durables -Psortie=sorties/durables                 les neuf améliorations payées en atomes
 //   ./gradlew :bots:durables -Psortie=sorties/durables -Pids=atom_keep  une seule

@@ -36,6 +36,13 @@ public class RobotCosmosPlanner {
    * (graine 201) se forme 76 s plus tard sur 8 h, l'ordre d'un changement de graine. Le calcul baisse de 10 à 15 %.
    */
   boolean sobriety=false;
+  /**
+   * Version 0.204 : les mécaniques que ce bot ne joue plus, pour mesurer à partir de quand chacune ne sert plus
+   * ({@link AnalyseArrets}, {@link AnalyseMecaniques}) : {@code collisionneur}, {@code sondes}, {@code defis},
+   * {@code cometes}, {@code anomalies}, {@code impulsions}, {@code appui_m}. Vide pour un bot ordinaire.
+   */
+  final java.util.Set<String> sansMecaniques=new java.util.HashSet<>();
+  boolean sansJouer(String mecanique){return !sansMecaniques.isEmpty() && sansMecaniques.contains(mecanique);}
   /** Les automatismes que la sobriété a éteints, pour les rallumer tels quels. */
   final List<String> sobrietyOff=new ArrayList<>();
   /** Allumée par défaut ; la propriété {@code idle.sansSobriete} la coupe, pour comparer avec le bot d'avant la 0.202. */
@@ -260,7 +267,7 @@ public class RobotCosmosPlanner {
     }
   }
   void collider(){
-    if(!g.isColliderUnlocked())return;
+    if(!g.isColliderUnlocked() || sansJouer("collisionneur"))return;
     // Version 0.133 : tant que le vide se propose, l'énergie du collisionneur se garde pour l'ouvrir ; ses automates
     // d'achat attendent aussi, et repartent ensuite.
     // Version 0.152 : de même pour l'onglet des hadrons, à partir de l'univers 4.
@@ -325,7 +332,7 @@ public class RobotCosmosPlanner {
    * L'onde chimique d'urgence est particulièrement utile quand un astre attend des éléments.
    */
   void probes(){
-    if(!g.isProbesUnlocked())return;
+    if(!g.isProbesUnlocked() || sansJouer("sondes"))return;
     for(Probe p:new ArrayList<>(g.landedProbes()))g.claimAllProbeRewards(p.id());
     for(ProbeUpgrade u:ProbeUpgrade.values()){
       while(g.canBuyProbeUpgrade(u))g.buyProbeUpgrade(u);
@@ -755,6 +762,7 @@ public class RobotCosmosPlanner {
    * (avant la 0.141, un défi abandonné à 30 explosions attendait 55 explosions de la partie suivante au lieu de 25).
    */
   void challenges(){
+    if(sansJouer("defis"))return;
     double now=g.state().timePlayed();
     if(g.bigBangs()!=bigBangsSeen || g.state().explosions()<explosionsSeen)forgetFailedChallenges();
     explosionsSeen=g.state().explosions();

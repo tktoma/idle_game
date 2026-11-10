@@ -109,7 +109,8 @@ public abstract class GameDimensionAutomation extends GameHadrons {
 
     /** Vrai s'il agit en ce moment : en marche, « Tout couper » relâché. */
     public boolean isDimensionAutomationRunning(DimensionAutomation automation) {
-        return isDimensionAutomationEnabled(automation) && !state.automationPaused() && state.started();
+        return isDimensionAutomationEnabled(automation) && !state.automationPaused() && state.started()
+                && !(state.testBlocking() && state.testBlocked("dimension:" + automation.dimension()));
     }
 
     /** Met en marche ou coupe un automatisme acheté ; faux s'il ne l'est pas. */

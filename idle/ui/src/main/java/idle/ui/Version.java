@@ -23,6 +23,14 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.204", "Rien de changé au jeu : une mesure de ce qui ne sert plus, automatismes, améliorations et mécaniques", List.of(
+                    "Le jeu se joue exactement comme en 0.203 : mêmes règles, mêmes prix, mêmes textes. Cette version ajoute un "
+                            + "outil de mesure pour l'équilibrage, du côté des bots.",
+                    "L'outil rejoue la fin du premier univers en coupant une chose à la fois (un automatisme, une amélioration, "
+                            + "une mécanique) depuis sept moments de la partie, et note à partir de quand la couper ne retarde plus "
+                            + "rien. Les tableaux sont dans le README des bots.",
+                    "Pour le permettre, le moteur sait tenir un automatisme éteint le temps d'une mesure. Ce réglage n'existe que "
+                            + "dans les mesures : il ne s'enregistre pas dans la sauvegarde et le jeu ne s'en sert jamais.")),
             new Note("0.203", "Retours sur les skins : six retirés, plus de fonds clairs, le chrono rangé, des skins plus légers", List.of(
                     "Six skins retirés : l'Œuf, la Pluie et le Feu d'artifice de la matière noire ; le Ballon noué, la Planète-fruit "
                             + "et l'Œuf des bulles des univers. Une sauvegarde qui en avait un de choisi revient au Classique pour ce "

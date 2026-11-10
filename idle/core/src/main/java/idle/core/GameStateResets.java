@@ -217,6 +217,7 @@ public abstract class GameStateResets extends GameStateCollider {
     }
 
     public void setDarkAutomationEnabled(String darkAutomationId, boolean enabled) {
+        if (enabled && testBlocked(darkAutomationId)) return;
         if (enabled) {
             enabledDarkAutomations.add(darkAutomationId);
         } else {

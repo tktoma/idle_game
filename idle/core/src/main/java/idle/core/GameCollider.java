@@ -545,7 +545,8 @@ public abstract class GameCollider extends GameDarkTree {
      * les automatismes (version 0.167 : avant, la coupure générale ne les touchait pas).
      */
     public boolean isColliderAutomationRunning(ColliderUpgrade upgrade) {
-        return state.colliderUpgradeLevel(upgrade) > 0 && !state.isColliderPaused(upgrade) && !state.automationPaused();
+        return state.colliderUpgradeLevel(upgrade) > 0 && !state.isColliderPaused(upgrade) && !state.automationPaused()
+                && !state.testBlocked("collider");
     }
 
     /** Vrai si au moins un automate du collisionneur est acheté et en pause (version 0.167). */

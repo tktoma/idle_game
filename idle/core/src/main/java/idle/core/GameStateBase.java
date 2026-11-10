@@ -582,7 +582,31 @@ public abstract class GameStateBase {
         return enabledAutomations.contains(automationId);
     }
 
+    /**
+     * Version 0.204 : ce qu'une mesure interdit d'allumer, pour l'outil des bots qui cherche à partir de quand un
+     * automatisme ne sert plus ({@code AnalyseArrets}). Jamais sauvegardé, vide dans une partie ordinaire. Les clés : l'identifiant
+     * d'un automatisme (ordinaire ou de matière noire), {@code collider}, {@code gather}, {@code form}, {@code molecules},
+     * {@code hold}, et {@code dimension:N} pour les automatismes de la dimension N.
+     */
+    private final Set<String> testBlocked = new java.util.HashSet<>();
+
+    /** Interdit d'allumer ceci jusqu'à la fin de la partie en mémoire ; celui qui l'interdit l'éteint aussi lui-même. */
+    public void testBlock(String key) {
+        testBlocked.add(key);
+    }
+
+    /** Vrai si une mesure interdit quelque chose : faux dans une partie ordinaire. */
+    public boolean testBlocking() {
+        return !testBlocked.isEmpty();
+    }
+
+    /** Vrai si une mesure interdit d'allumer ceci ({@link #testBlock}). */
+    public boolean testBlocked(String key) {
+        return !testBlocked.isEmpty() && testBlocked.contains(key);
+    }
+
     public void setAutomationEnabled(String automationId, boolean enabled) {
+        if (enabled && testBlocked(automationId)) return;
         if (enabled) {
             enabledAutomations.add(automationId);
         } else {

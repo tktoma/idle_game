@@ -567,6 +567,96 @@ Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre par
 
 Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
 
+## À partir de quand une chose ne sert plus (version 0.204)
+
+Demande : couper les automatismes, puis les améliorations, puis les mécaniques, et noter à partir de quand il devient inutile de les avoir. L'outil `AnalyseArrets` le mesure au lieu de le supposer.
+
+**La méthode.** Une partie de référence (Speedrunner, graine 201, une décision toutes les 20 s, depuis zéro jusqu'à l'univers 1 formé : **35 h 25 min 40**) est photographiée à sept jalons. Depuis chaque jalon, la suite est rejouée avec une seule chose coupée, et son heure d'arrivée est comparée à celle d'un **témoin** : la même suite, même hasard, sans rien couper. Une coupure « ne sert plus » à un jalon quand elle ne retarde pas l'arrivée de plus que la tolérance (deux minutes, ou 0,5 % du temps restant). Un écart de plus de 30 s est rejoué avec un second hasard ; le verdict garde le pire des deux. Une suite trop en retard (plus de 30 min, ou 5 % du reste) est arrêtée : c'est le « plafond ».
+
+| Jalon | Heure | Tolérance |
+|---|---|---|
+| 1 début | 00:00:00 | 10 min 26 |
+| 2 explosion 1 | 14:24:40 | 6 min 11 |
+| 3 Big Bang 1 | 18:54:40 | 4 min 57 |
+| 4 Big Bang 5 | 22:21:40 | 3 min 55 |
+| 5 Big Bang 8 | 26:02:20 | 2 min 49 |
+| 6 galaxie | 29:44:40 | 2 min 00 |
+| 7 amas | 31:44:40 | 2 min 00 |
+
+Ce que coupe chaque famille : un **automatisme** reste éteint (acheté ou offert, il ne se rallume pas) ; une **amélioration** ne s'achète plus (ses niveaux déjà pris restent) ; une **mécanique** n'est plus jouée par le bot.
+
+**À lire avant les tableaux.**
+- *Avant le Big Bang 5, le hasard pèse jusqu'à 50 minutes.* Deux témoins qui ne diffèrent que par le hasard arrivent à 23 min d'écart depuis l'explosion 1 et 17 min depuis le Big Bang 1 ; une coupure sans effet réel y montre des écarts de −1 h 27 à +1 h 42. Aux jalons 1 à 3, seul un « plafond » sur les deux hasards est une preuve ; les « gains » affichés par l'outil à ces jalons (Patience, Compression) sont dans ce bruit et ne sont pas retenus. À partir du Big Bang 5, les deux témoins arrivent à la même seconde et les écarts se lisent tels quels.
+- *C'est le Speedrunner.* Il achète à la main à chaque décision, toutes les 20 s, sans jamais s'absenter : un automatisme lui sert moins qu'à un joueur qui ferme le jeu. « Ne sert plus » veut dire « à ce bot, sur l'univers 1 ».
+- *Un seul univers.* Une amélioration durable « inutile » après le Big Bang 5 de l'univers 1 est gardée pour les univers suivants, non mesurés ici.
+
+### 1. Les automatismes
+
+| Automatisme | Ne sert plus à partir de | Ce qui le montre |
+|---|---|---|
+| Couplage | Big Bang 1 | −40 s / −1 min 20 au Big Bang 1, 0 s ensuite |
+| Automatismes offerts (matière noire) | Big Bang 1 | −3 min / +2 min 20, 0 s ensuite |
+| Automates du collisionneur | Big Bang 1 | 0 s dès le Big Bang 5 ; le bot règle le collisionneur à la main |
+| Rassemblement automatique | Big Bang 1 | +40 s / +20 s, 0 s ensuite |
+| Formation automatique des astres | Big Bang 1 | +20 s, 0 s ensuite |
+| Appui automatique | Big Bang 1 | 0 s dès le Big Bang 5 |
+| Vitesse de création | Big Bang 5 | plafond depuis le début et l'explosion 1 ; 0 s dès le Big Bang 8 |
+| Nouveau générateur | Big Bang 5 | plafond jusqu'au Big Bang 1, 0 s ensuite |
+| Améliorations en atomes (matière noire) | Big Bang 5 | plafond depuis l'explosion 1, 0 s dès le Big Bang 8 |
+| Achat des automatismes (matière noire) | Big Bang 5 | plafond depuis l'explosion 1, +20 s au Big Bang 5 |
+| Arbre de matière noire (automatisme) | Big Bang 5 | +6 min 40 sur un hasard au Big Bang 1, 0 s ensuite |
+| Fusion des générateurs | galaxie | plafond jusqu'au Big Bang 8, −40 s à la galaxie |
+| Explosion (matière noire) | galaxie | plafond jusqu'au Big Bang 8, −40 s à la galaxie |
+| Création automatique des molécules | amas | +26 min du Big Bang 5 à la galaxie, 0 s à l'amas |
+| Synthèse d'éléments | **jamais** | plafond jusqu'à la galaxie, encore +3 min 20 / +2 min 20 à l'amas |
+
+En clair : dès le Big Bang 5, les trois automatismes des particules (vitesse, couplage, générateur) et tous ceux de la matière noire sauf l'explosion peuvent s'éteindre sans rien coûter. La fusion et l'explosion comptent jusqu'à la galaxie formée. Les molécules comptent jusqu'à l'amas. La synthèse compte jusqu'au bout. La sobriété de la 0.202 éteint la boucle après le dernier Big Bang ; cette mesure ne dit pas qu'elle peut s'allumer plus tôt, parce qu'ici le bot continue d'acheter à la main ce que l'automatisme coupé n'achète plus.
+
+### 2. Les améliorations
+
+| Amélioration | Ne sert plus à partir de | Ce qui le montre |
+|---|---|---|
+| Couplage | Big Bang 1 | plafond depuis le début ; −40 s / −40 s au Big Bang 1 |
+| Dédoublement | Big Bang 1 | plafond depuis le début ; rien de net ensuite |
+| Masse atomique | Big Bang 1 | plafond depuis le début ; −20 s au Big Bang 1, 0 s ensuite |
+| Compression | Big Bang 1 | dans le bruit à tous les jalons, 0 s dès le Big Bang 5 |
+| Achat groupé | Big Bang 1 | plafond sur un hasard depuis l'explosion 1 ; 0 s dès le Big Bang 5 |
+| Vitesse de création | Big Bang 5 | plafond jusqu'au Big Bang 1 |
+| Nouveau générateur | Big Bang 5 | plafond jusqu'au Big Bang 1, 0 s ensuite |
+| Rendement | Big Bang 5 | plafond jusqu'au Big Bang 1, 0 s ensuite |
+| Catalyseur | Big Bang 5 | plafond jusqu'à l'explosion 1 ; +8 min 40 sur un hasard au Big Bang 1 |
+| Persistance | Big Bang 5 | plafond jusqu'à l'explosion 1 ; +13 min 40 sur un hasard au Big Bang 1 |
+| Patience | Big Bang 5 | +7 min 40 sur un hasard au Big Bang 1 ; jamais de plafond |
+| Surcharge | Big Bang 5 | +9 min 20 sur un hasard au Big Bang 1 ; jamais de plafond |
+
+En clair : **à partir du Big Bang 5, plus aucun achat d'amélioration en particules ou en atomes ne change l'heure de l'univers**, à vingt secondes près. Les niveaux pris avant suffisent. Trois améliorations ne passent jamais le plafond, même coupées depuis le début : Patience, Compression et Surcharge. Leur effet sur ce bot est plus petit que le bruit du hasard ; ce sont les trois à regarder si l'on veut rééquilibrer.
+
+### 3. Les mécaniques
+
+| Mécanique | Ne sert plus à partir de | Ce qui le montre |
+|---|---|---|
+| Défis de matière noire | Big Bang 5 | plafond jusqu'au Big Bang 1, 0 s ensuite |
+| Collisionneur (achats et réglages) | Big Bang 8 | +27 min 40 / +14 min 20 au Big Bang 5, puis +1 min |
+| Anomalies du ciel | **jamais** | +4 min 40 à l'amas (−2 min 40 à la galaxie : dans la tolérance) |
+| Comètes | **jamais** | +8 à +12 min du Big Bang 5 à l'amas |
+| Sondes | **jamais** | plafond à la galaxie et à l'amas |
+| Impulsions d'espace | **jamais** | plafond à la galaxie et à l'amas |
+| Touche M tenue | sans objet | le Speedrunner au pas de 20 s ne la tient pas : 0 s partout |
+
+### Refaire la mesure
+
+```
+./gradlew :bots:arrets -Psortie=sorties/arrets                        les automatismes, univers 1
+./gradlew :bots:arrets -Psortie=sorties/arrets -Pids=ameliorations    ou mecaniques, arbre, dimensions, ou des identifiants séparés par des virgules
+./gradlew :bots:arrets -Pdepart=une.save -Punivers=4 -Pids=dimensions  depuis une sauvegarde, jusqu'à l'univers 4
+```
+
+La sortie tient en trois fichiers, réécrits après chaque coupure : `arrets.txt` (le tableau), `arrets.csv` (une ligne par coupure et par jalon) et `journal.txt` (l'avancement). Comptez 4 à 5 minutes par coupure sur deux cœurs : 67 min pour les 15 automatismes, 31 min pour les 7 mécaniques, environ 50 min pour les 12 améliorations.
+
+**Pas encore mesurés** : les 62 cases de l'arbre de matière noire (`-Pids=arbre`, environ 4 h 30) et les automatismes des dimensions, qui n'existent qu'aux univers suivants (`-Pids=dimensions`, depuis une sauvegarde).
+
+**Dans le moteur.** Pour qu'un automatisme reste éteint alors que le jeu le rallume à l'achat, `GameState.testBlock(clé)` le tient éteint le temps d'une mesure. Ce réglage n'est pas enregistré dans la sauvegarde et le jeu ne l'appelle jamais.
+
 ## Des simulations 40 % plus rapides, et la sobriété des bots (version 0.202)
 
 Demande : que le bot ne fasse plus grandir une ressource qui n'en a plus besoin, pour moins d'actions et une simulation plus rapide. Mesuré d'abord (Speedrunner, graine 201, profil JFR) : les **décisions du bot ne pèsent que 9 %** du calcul ; les 91 % restants sont le moteur entre deux décisions, surtout les automatismes que le bot laisse allumés (fusion 37 %, synthèse 23 %, achats 6 %, matière noire 10 %). Trois changements en sortent.

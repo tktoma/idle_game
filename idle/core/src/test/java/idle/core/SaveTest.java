@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Test;
 class SaveTest {
 
     /** Ce qui se recalcule et ne fait pas partie de la sauvegarde. */
-    private static final Set<String> DERIVED = Set.of("elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
+    private static final Set<String> DERIVED = Set.of("testBlocked", "elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
             "assembliesSeen", "bodiesSeen", "moleculeLog",
             // Version 0.168 : vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
             "momentsUndated",

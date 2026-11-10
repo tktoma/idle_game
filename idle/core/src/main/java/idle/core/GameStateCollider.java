@@ -63,7 +63,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     public void setAutoGather(boolean enabled) {
-        autoGather = enabled;
+        autoGather = enabled && !testBlocked("gather");
     }
 
     /** Vrai si la formation automatique est en marche (elle ne sert qu'une fois acquise). Un réglage : aucune remise à zéro ne la coupe ({@link PlayerSettings}). */
@@ -72,7 +72,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
     }
 
     public void setAutoForm(boolean enabled) {
-        autoForm = enabled;
+        autoForm = enabled && !testBlocked("form");
     }
 
     /** Part de l'espace créé que la création automatique laisse toujours libre, de 0 à 1. C'est un réglage. */

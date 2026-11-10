@@ -267,7 +267,7 @@ StringBuilder logs;
 static final double HOLD_STEP=0.5;
 static final int HOLD_MAX_ACTION_SECONDS=5;
 /** Vrai si ce profil tient la touche M pendant qu'il joue. */
-boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1;}
+boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1 && !sansJouer("appui_m");}
 /** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
 private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
@@ -302,10 +302,10 @@ while(wallSeconds+0.000001>=nextActionAt && opportunities++<maxOpportunities){
 nextActionAt+=actionInterval;
 if(rng.nextDouble()>=p.attention())continue;
 actions++;
-if(g.isCometVisible() && rng.nextDouble()<p.skyAttention())g.catchComet();
+if(g.isCometVisible() && rng.nextDouble()<p.skyAttention() && !sansJouer("cometes"))g.catchComet();
 // Version 0.131 : l'anomalie du ciel, selon l'attention au ciel du profil.
-if(g.skyEvent()!=null && !skyEventsOff() && skyRng.nextDouble()<p.skyAttention())catchSkyEvent();
-if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
+if(g.skyEvent()!=null && !skyEventsOff() && skyRng.nextDouble()<p.skyAttention() && !sansJouer("anomalies"))catchSkyEvent();
+if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention() && !sansJouer("impulsions")){
       int charges=g.pulseCharges();
       for(int k=0;k<charges;k++){
         // Pour les conditions 18/24/28 astres et tous les astres du catalogue (la galaxie),

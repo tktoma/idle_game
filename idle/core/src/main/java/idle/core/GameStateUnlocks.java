@@ -327,7 +327,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
 
     /** Met en marche ou coupe l'appui automatique. */
     public void setAutoHold(boolean enabled) {
-        autoHold = enabled;
+        autoHold = enabled && !testBlocked("hold");
     }
 
     /** Vrai si la création automatique des molécules est en marche (elle ne sert qu'une fois acquise). Ni l'explosion ni le Big Bang ne la coupent. */
@@ -337,7 +337,7 @@ public abstract class GameStateUnlocks extends GameStateBase {
 
     /** Met en marche ou coupe la création automatique des molécules. */
     public void setAutoMolecules(boolean enabled) {
-        autoMolecules = enabled;
+        autoMolecules = enabled && !testBlocked("molecules");
     }
 
     /** Vue en lecture seule des sortes que la création automatique entretient, dans l'ordre où elles ont été choisies. */
