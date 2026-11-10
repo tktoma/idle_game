@@ -8,31 +8,28 @@ import javafx.scene.text.TextAlignment;
 
 /**
  * Les animations plein écran des skins de la version 0.191, dessinées à côté de {@link BurstView} pour
- * la garder lisible : l'explosion de matière noire sous ses quatre nouvelles animations, et le Big Bang
+ * la garder lisible : l'explosion de matière noire sous ses deux animations (version 0.203 : la pluie et le feu d'artifice retirés), et le Big Bang
  * sous ses six nouveaux skins, chacun dans ses couleurs.
  * <ul>
- * <li>Pluie : une averse de plus en plus drue, des ronds de flaque en bas, puis l'eau qui monte et se retire.</li>
  * <li>Neige : des flocons qui tourbillonnent de partout vers le centre, un blanc total, puis tout se dissipe.</li>
  * <li>Sablier : un grand sablier en filigrane dont le sable coule en entier, puis qui se retourne.</li>
- * <li>Feu d'artifice : six fusées, une par couleur, montent en éventail et éclatent en gerbes qui retombent.</li>
  * <li>Encre de Chine : une goutte d'encre tombe sur le papier et s'étale en lavis, éclaboussures autour.</li>
  * <li>Vitrail : des verres colorés s'allument l'un après l'autre autour du centre, cernés de plomb, en rosace.</li>
  * <li>Abysses : la nuit bleue, du plancton qui monte en s'allumant, une méduse qui pulse et grandit.</li>
  * <li>Papier plié : une feuille se déplie en facettes depuis le centre, des confettis tombent.</li>
- * <li>Carte ancienne : le parchemin, une rose des vents qui tourne et s'agrandit, des constellations qui se tracent.</li>
+ * <li>Carte ancienne : le vélin sombre, une rose des vents qui tourne et s'agrandit, des constellations qui se tracent.</li>
  * <li>Néon de ville : l'asphalte mouillé, une enseigne qui clignote avant de s'allumer, des fenêtres qui s'éclairent.</li>
  * </ul>
  */
 final class BurstSkinArt {
 
-    private static final Color[] FIREWORK = {Color.web("#ff5a5a"), Color.web("#ffb347"), Color.web("#fff36b"),
-        Color.web("#6bff8a"), Color.web("#5ad0ff"), Color.web("#d06bff")};
     private static final Color[] GLASS = {Color.web("#d62839"), Color.web("#f4a259"), Color.web("#f7d354"),
         Color.web("#4fa36b"), Color.web("#2f6fb5"), Color.web("#7a3fa0")};
-    private static final Color INK = Color.web("#1a1a1e");
-    private static final Color PAPER = Color.web("#f4efe3");
-    private static final Color PARCHMENT = Color.web("#e8d7b0");
-    private static final Color SEPIA = Color.web("#5a3a1a");
+    // Version 0.203 : les mêmes teintes nuit que la vue de l'espace (SpaceSkinArt).
+    private static final Color INK = Color.web("#e9e6dd");
+    private static final Color PAPER = Color.web("#111215");
+    private static final Color PARCHMENT = Color.web("#191510");
+    private static final Color SEPIA = Color.web("#c9a468");
 
     private BurstSkinArt() {
     }
@@ -40,7 +37,7 @@ final class BurstSkinArt {
     /** Vrai pour les animations dessinées ici : celles de la version 0.191. */
     static boolean draws(Skin skin) {
         return switch (skin) {
-            case DARK_RAIN, DARK_SNOW, DARK_HOURGLASS, DARK_FIREWORKS, BANG_INK, BANG_STAINED, BANG_ABYSS, BANG_ORIGAMI, BANG_MAP, BANG_NEON -> true;
+            case DARK_SNOW, DARK_HOURGLASS, BANG_INK, BANG_STAINED, BANG_ABYSS, BANG_ORIGAMI, BANG_MAP, BANG_NEON -> true;
             default -> false;
         };
     }
@@ -53,10 +50,8 @@ final class BurstSkinArt {
      */
     static void draw(Skin skin, GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
         switch (skin) {
-            case DARK_RAIN -> rain(g, w, h, t, age);
             case DARK_SNOW -> snow(g, w, h, cx, cy, far, t, age);
             case DARK_HOURGLASS -> hourglass(g, w, h, cx, cy, t);
-            case DARK_FIREWORKS -> fireworks(g, w, h, cx, t);
             case BANG_INK -> ink(g, w, h, cx, cy, far, t);
             case BANG_STAINED -> stained(g, w, h, cx, cy, far, t);
             case BANG_ABYSS -> abyss(g, w, h, cx, cy, t, age);
@@ -71,37 +66,6 @@ final class BurstSkinArt {
     private static double fraction(double seed) {
         double value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
         return value - Math.floor(value);
-    }
-
-    private static void rain(GraphicsContext g, double w, double h, double t, double age) {
-        double on = BurstView.envelope(t, 0.15, 0.8);
-        BurstView.veil(g, w, h, Color.web("#06101e"), 0.7 * on);
-        // L'averse : de plus en plus de gouttes, de plus en plus vite.
-        int drops = (int) (120 + 400 * Math.min(1, t * 1.5));
-        g.setStroke(Color.web("#9fd0ff"));
-        g.setLineWidth(Math.max(1, h * 0.002));
-        for (int i = 0; i < drops; i++) {
-            double x = fraction(i * 1.3) * w;
-            double speed = 1 + 2 * fraction(i * 2.9) + 3 * t;
-            double y = ((fraction(i * 4.7) + age * speed * 0.8) % 1) * h;
-            g.setGlobalAlpha(on * (0.3 + 0.5 * fraction(i * 6.1)));
-            g.strokeLine(x, y - h * 0.03 * speed, x, y);
-        }
-        // Les ronds de flaque.
-        g.setStroke(Color.web("#cfe8ff"));
-        g.setLineWidth(1.2);
-        for (int k = 0; k < 40; k++) {
-            double phase = (age * (1 + fraction(k)) + fraction(k * 3.3)) % 1;
-            double x = fraction(k * 2.1) * w, y = h - h * 0.12 * fraction(k * 5.7);
-            double rx = w * 0.04 * phase, ry = rx * 0.3;
-            g.setGlobalAlpha(on * (1 - phase));
-            g.strokeOval(x - rx, y - ry, 2 * rx, 2 * ry);
-        }
-        // L'eau qui monte depuis le bas jusqu'à tout couvrir, puis se retire.
-        double flood = t < 0.65 ? Math.max(0, (t - 0.3) / 0.35) : Math.max(0, 1 - (t - 0.65) / 0.35);
-        g.setGlobalAlpha(0.55 * flood);
-        g.setFill(Color.web("#3a8adf"));
-        g.fillRect(0, h * (1 - flood), w, h * flood);
     }
 
     private static void snow(GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
@@ -174,46 +138,6 @@ final class BurstSkinArt {
         }
         g.restore();
         BurstView.glow(g, cx, cy, wide * 0.6, Color.web("#ffd27f"), 0.5 * on);
-    }
-
-    private static void fireworks(GraphicsContext g, double w, double h, double cx, double t) {
-        double on = BurstView.envelope(t, 0.1, 0.9);
-        BurstView.veil(g, w, h, Color.web("#05030c"), 0.8 * on);
-        double small = Math.min(w, h);
-        for (int k = 0; k < FIREWORK.length; k++) {
-            Color color = FIREWORK[k];
-            // Six fusées en éventail depuis le bas du centre, chacune un peu décalée dans le temps.
-            double delay = 0.03 * k;
-            double u = Math.max(0, Math.min(1, (t - delay) / 0.35));
-            double spread = (k - 2.5) / 2.5;
-            double apexX = cx + spread * w * 0.38, apexY = h * (0.2 + 0.1 * Math.abs(spread));
-            double x = cx + (apexX - cx) * u, y = h - (h - apexY) * (1 - (1 - u) * (1 - u));
-            if (u < 1) {
-                g.setStroke(color);
-                g.setLineWidth(Math.max(2, small * 0.004));
-                g.setGlobalAlpha(0.9 * on);
-                g.strokeLine(x, y, x - (apexX - cx) * 0.08, y + h * 0.08);
-                BurstView.glow(g, x, y, small * 0.02, Color.WHITE, 0.9);
-                continue;
-            }
-            // L'éclatement : des étincelles qui s'écartent, retombent, et laissent des traînées.
-            double v = Math.max(0, Math.min(1, (t - delay - 0.35) / 0.6));
-            int sparks = 26;
-            for (int s = 0; s < sparks; s++) {
-                double a = 2 * Math.PI * s / sparks + fraction(k * 7 + s) * 0.2;
-                double reach = small * 0.28 * Math.sqrt(v) * (0.8 + 0.4 * fraction(s * 3.3 + k));
-                double fallDown = h * 0.3 * v * v;
-                double sx = apexX + reach * Math.cos(a), sy = apexY + reach * Math.sin(a) * 0.8 + fallDown;
-                double size = small * 0.008 * (1 - v) + 1;
-                g.setStroke(color);
-                g.setLineWidth(size);
-                g.setGlobalAlpha(0.9 * (1 - v) * on);
-                g.strokeLine(sx, sy, apexX + reach * 0.8 * Math.cos(a), apexY + reach * 0.8 * Math.sin(a) * 0.8 + fallDown * 0.6);
-                g.setFill(Color.WHITE);
-                g.fillOval(sx - size / 2, sy - size / 2, size, size);
-            }
-            BurstView.glow(g, apexX, apexY, small * 0.25 * (1 - v), color, 0.6 * (1 - v) * on);
-        }
     }
 
     private static void ink(GraphicsContext g, double w, double h, double cx, double cy, double far, double t) {
@@ -321,7 +245,7 @@ final class BurstSkinArt {
 
     private static void origami(GraphicsContext g, double w, double h, double cx, double cy, double far, double t, double age) {
         double on = BurstView.envelope(t, 0.1, 0.8);
-        BurstView.veil(g, w, h, Color.web("#f1e9d8"), 0.9 * on);
+        BurstView.veil(g, w, h, Color.web("#141824"), 0.9 * on);
         // La feuille se déplie : des facettes triangulaires de plus en plus nombreuses à partir du centre.
         int facets = 4 + (int) (12 * Math.min(1, t * 1.5));
         double reach = far * Math.min(1, t * 1.4);
@@ -330,10 +254,10 @@ final class BurstSkinArt {
             double r0 = reach * (0.7 + 0.3 * fraction(k * 2.1)), r1 = reach * (0.7 + 0.3 * fraction(k * 2.1 + 1));
             double shade = 0.78 + 0.2 * fraction(k * 3.7);
             g.setGlobalAlpha(on);
-            g.setFill(Color.color(shade * 0.98, shade * 0.93, shade * 0.82));
+            g.setFill(Color.color(shade * 0.36, shade * 0.42, shade * 0.60));
             g.fillPolygon(new double[] {cx, cx + r0 * Math.cos(a0), cx + r1 * Math.cos(a1)},
                     new double[] {cy, cy + r0 * Math.sin(a0), cy + r1 * Math.sin(a1)}, 3);
-            g.setStroke(Color.web("#a08a68"));
+            g.setStroke(Color.web("#5d6a8c"));
             g.setLineWidth(Math.max(1, far * 0.002));
             g.setGlobalAlpha(0.6 * on);
             g.strokeLine(cx, cy, cx + r0 * Math.cos(a0), cy + r0 * Math.sin(a0));
@@ -385,7 +309,7 @@ final class BurstSkinArt {
             g.setFill(k % 2 == 0 ? SEPIA : Color.web("#b02a2a"));
             g.fillPolygon(new double[] {cx, cx + len * Math.cos(a), cx + len * 0.18 * Math.cos(a + 0.4)},
                     new double[] {cy, cy + len * Math.sin(a), cy + len * 0.18 * Math.sin(a + 0.4)}, 3);
-            g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#d85a5a"));
+            g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#7a2020"));
             g.fillPolygon(new double[] {cx, cx + len * Math.cos(a), cx + len * 0.18 * Math.cos(a - 0.4)},
                     new double[] {cy, cy + len * Math.sin(a), cy + len * 0.18 * Math.sin(a - 0.4)}, 3);
         }

@@ -57,6 +57,15 @@ class CosmosSkinsTest {
         return game;
     }
 
+    /**
+     * La même partie, sans aucun skin choisi : le témoin. Les vues lisent le skin choisi dans la partie à chaque image ;
+     * avant la 0.203, le témoin partageait la partie des vues habillées et se dessinait donc dans leur skin (les tests
+     * comparaient un skin à lui-même).
+     */
+    private static Game bare() {
+        return game();
+    }
+
     /** Le nombre de pixels qui diffèrent entre deux dessins, un sur trois dans chaque sens. */
     private static int differing(Canvas a, Canvas b) {
         WritableImage first = a.snapshot(null, null);
@@ -132,7 +141,7 @@ class CosmosSkinsTest {
     void lesAmasLesBlocsEtLeGazSeDessinentEtChangentLEspace() {
         FxTestSupport.fx(() -> {
             Game game = game();
-            SpaceView plain = new SpaceView(game);
+            SpaceView plain = new SpaceView(bare());
             live(plain);
             for (SkinVisual visual : new SkinVisual[] {SkinVisual.CLUMPS, SkinVisual.BLOCKS, SkinVisual.GAS}) {
                 List<Skin> skins = skinsOf(visual);
@@ -188,7 +197,7 @@ class CosmosSkinsTest {
             Game game = game();
             List<Skin> skins = skinsOf(SkinVisual.SKY);
             assertEquals(3, skins.size());
-            SkyView plain = new SkyView(game);
+            SkyView plain = new SkyView(bare());
             for (Skin skin : skins) {
                 assertTrue(game.chooseSkin(SkinVisual.SKY, skin), skin.name());
                 SkyView view = new SkyView(game);
@@ -231,10 +240,12 @@ class CosmosSkinsTest {
             assertEquals(5, skinsOf(SkinVisual.GALAXY).size());
             assertEquals(3, skinsOf(SkinVisual.GALAXY_CLUSTER).size());
             assertEquals(4, skinsOf(SkinVisual.COSMIC_WEB).size());
+            Game bare = bare();
             for (int level = 0; level <= 3; level++) {
                 game.state().setCosmosLevel(level);
+                bare.state().setCosmosLevel(level);
                 SkinVisual visual = level >= 3 ? SkinVisual.COSMIC_WEB : level == 2 ? SkinVisual.GALAXY_CLUSTER : SkinVisual.GALAXY;
-                GalaxyView plain = new GalaxyView(game);
+                GalaxyView plain = new GalaxyView(bare);
                 for (Skin skin : skinsOf(visual)) {
                     assertTrue(game.chooseSkin(visual, skin), skin.name());
                     GalaxyView view = new GalaxyView(game);
@@ -252,6 +263,8 @@ class CosmosSkinsTest {
                     // La vue de l'espace montre l'amas et la toile de loin : dans le même skin.
                     if (level >= 2) {
                         SpaceView space = new SpaceView(game);
+                        // La page du Big Bang choisit l'échelle montrée (ses boutons) ; sans elle, la vue reste sur l'espace.
+                        space.showCosmos(level >= 3 ? idle.core.sky.Cosmos.UNIVERSE : idle.core.sky.Cosmos.CLUSTER);
                         space.setWidth(500);
                         space.setHeight(300);
                         space.frame(0.1);
@@ -273,8 +286,9 @@ class CosmosSkinsTest {
             assertEquals(3, skins.size());
             List<SolarSystem> systems = new ArrayList<>(game.state().solarSystems());
             systems.add(new SolarSystem("blue_giant", List.of(), List.of()));
+            Game bare = bare();
             for (SolarSystem system : systems) {
-                SystemView plain = new SystemView(game, system);
+                SystemView plain = new SystemView(bare, system);
                 for (Skin skin : skins) {
                     assertTrue(game.chooseSkin(SkinVisual.SYSTEM, skin), skin.name());
                     SystemView view = new SystemView(game, system);

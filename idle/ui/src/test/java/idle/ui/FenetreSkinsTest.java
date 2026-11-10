@@ -249,17 +249,8 @@ class FenetreSkinsTest {
                 assertTrue(drawn, skin.label() + " dessine quelque chose");
                 double[] hotspot = CursorSkinArt.hotspot(skin);
                 assertTrue(hotspot[0] >= 0 && hotspot[0] < CursorSkinArt.SIZE && hotspot[1] >= 0 && hotspot[1] < CursorSkinArt.SIZE);
-                // L'arrosoir sur l'univers, la loupe sur le Big Bang, les autres partout.
-                Skin onParticles = CursorSkinArt.shownOn(skin, GameAppBase.Tab.PARTICLES);
-                if (skin == Skin.CURSOR_WATERING_CAN) {
-                    assertNull(onParticles);
-                    assertEquals(skin, CursorSkinArt.shownOn(skin, GameAppBase.Tab.UNIVERSE));
-                } else if (skin == Skin.CURSOR_MAGNIFIER) {
-                    assertNull(onParticles);
-                    assertEquals(skin, CursorSkinArt.shownOn(skin, GameAppBase.Tab.BIG_BANG));
-                } else {
-                    assertEquals(skin, onParticles);
-                }
+                // Version 0.203 : tous partout, l'arrosoir et la loupe compris (avant : l'univers et le Big Bang seulement).
+                for (GameAppBase.Tab tab : GameAppBase.Tab.values()) assertEquals(skin, CursorSkinArt.shownOn(skin, tab), skin.label() + " sur " + tab);
             }
             assertNull(CursorSkinArt.shownOn(null, GameAppBase.Tab.UNIVERSE));
             CursorSkinArt.Trail trail = new CursorSkinArt.Trail();

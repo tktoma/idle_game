@@ -7,7 +7,7 @@ skins existants (un record, une recherche, un défi, un palier). Le mécanisme n
 « Classique » reste toujours là.
 
 Ce qui existait (version 0.177) : huit visuels (`SkinVisual`), dix-neuf skins (`Skin`), cinq thèmes et trois notations
-à débloquer (`Cosmetic`). Depuis la 0.200, toute la liste est réalisée : 92 visuels, 369 skins, dix-neuf thèmes et quatorze notations (section 9).
+à débloquer (`Cosmetic`). Depuis la 0.200, toute la liste est réalisée : 92 visuels, 369 skins, dix-neuf thèmes et quatorze notations (section 9). Depuis la 0.203 : 363 skins, six retirés après essai (section 10).
 
 Conventions : une ligne par skin, « nom — ce qui change (formes, couleurs, mouvement) ; comment on l'obtient ».
 Les couleurs sont données en hex quand elles comptent. Les noms des fichiers sont ceux de `ui/src/main/java/idle/ui`.
@@ -34,33 +34,33 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 - Cristal — **fait en 0.191** (condition retenue : 10 000 synthèses) : cases en facettes translucides de la couleur de la famille, bordures blanches, les cases au maximum scintillent ; une famille complète au maximum.
 - Rouille — **fait en 0.191** (condition retenue : le défi Rouille) : métal piqué `#6e4a3a`, une case possédée est polie, une case au maximum chromée ; le défi « Rouille » réussi.
 - Néon — **fait en 0.191** (condition retenue : le skin Néon du collisionneur) : cases noires au trait de néon de la famille, texte qui grésille ; le défi « Sans surchauffe » réussi (comme Néon du collisionneur, pour faire une paire).
-- Carte au trésor — **fait en 0.191** (condition retenue : dix sondes) : parchemin `#d8c49a`, cases dessinées à l'encre brune, les possédées marquées d'une croix rouge, les uniques d'une étoile dorée ; dix voyages de sondes.
+- Carte au trésor — **fait en 0.191, en version nuit depuis la 0.203** (condition retenue : dix sondes) : vélin sombre `#191510` (parchemin `#d8c49a` avant), cases dessinées à l'encre d'or, les possédées marquées d'une croix rouge, les uniques d'une étoile dorée ; dix voyages de sondes.
 - Minuscule — **fait en 0.191** (condition retenue : le premier élément) : cases réduites à leurs lettres, sans fond, alignées comme une partition : pour les grands écrans ; option libre, dès le premier élément.
 
 ### La boule de matière noire (`DarkMatterView`, visuel DARK_BALL : Obsidienne, Nébuleuse, Contractée)
 - Goutte de mercure — **fait en 0.191** (condition retenue : 25 explosions) : sphère miroir `#c0c8d0` qui reflète la règle graduée, tremble à chaque appui ; une explosion sans aucune matière noire gaspillée (tout dépensé avant).
 - Trou noir — **fait en 0.191** (condition retenue : 10 explosions) : disque noir net, anneau de lumière lentillée orange en haut, l'échelle des grandeurs se déforme autour ; dix explosions.
-- Œuf — **fait en 0.191** (condition retenue : le skin Contractée) : coquille `#efe4ff` tachetée qui se fend à mesure que la boule grossit, l'explosion la fait éclore ; le défi « Contraction douce » réussi deux fois.
+- Œuf — **fait en 0.191, retiré en 0.203** (condition retenue : le skin Contractée) : coquille `#efe4ff` tachetée qui se fend à mesure que la boule grossit, l'explosion la fait éclore ; le défi « Contraction douce » réussi deux fois.
 - Nœud — **fait en 0.191** (condition retenue : 200 explosions) : une corde violette `#c9a6ff` nouée sur elle-même qui se resserre quand on appuie ; cent appuis à la main dans une heure.
 - Lanterne — **fait en 0.191** (condition retenue : 500 explosions) : papier translucide, flamme à l'intérieur qui grandit avec la matière, l'explosion est un éclat de papier brûlé ; une heure d'appui automatique.
 
 ### L'animation de la matière noire (visuel DARK_ANIMATION : Vortex, Pulsar)
-- Pluie — **fait en 0.191** (condition retenue : 15 explosions) : des gouttes qui tombent droit, flaques en cercles au sol de la vue ; quinze explosions.
+- Pluie — **fait en 0.191, retiré en 0.203** (condition retenue : 15 explosions) : des gouttes qui tombent droit, flaques en cercles au sol de la vue ; quinze explosions.
 - Neige — **fait en 0.191** (condition retenue : 50 explosions) : flocons lents `#efe4ff` qui tourbillonnent et se posent ; une explosion déclenchée entre minuit et six heures (heure de l'ordinateur).
 - Sablier — **fait en 0.191** (condition retenue : 1 000 explosions) : des grains qui coulent par un goulot vers la boule, un sablier dessiné en filigrane ; une heure sans explosion alors qu'elle était possible.
-- Feu d'artifice — **fait en 0.191** (condition retenue : 100 explosions) : l'explosion plein écran devient une gerbe de fusées de six couleurs qui retombent ; cent explosions.
+- Feu d'artifice — **fait en 0.191, retiré en 0.203** (condition retenue : 100 explosions) : l'explosion plein écran devient une gerbe de fusées de six couleurs qui retombent ; cent explosions.
 
 ### Le Big Bang (`SpaceView`, `BurstView`, visuel BIG_BANG : Aurore, Supernova, Cristal)
-- Encre de Chine — **fait en 0.191** (condition retenue : 5 Big Bangs) : fond blanc cassé `#f4efe4`, étoiles en points d'encre, disque d'espace en lavis gris, bord au pinceau ; cinq Big Bangs.
+- Encre de Chine — **fait en 0.191, en version nuit depuis la 0.203** (condition retenue : 5 Big Bangs) : papier noir `#111215` (blanc cassé `#f4efe4` avant, qui jurait avec le reste de la fenêtre), étoiles en points d'encre claire, disque d'espace en lavis, bord au pinceau ; cinq Big Bangs.
 - Vitrail — **fait en 0.191** (condition retenue : 3 systèmes complets) : fond noir, ciel en verres colorés cernés de plomb, le disque est une rosace ; trois systèmes solaires complets.
 - Abysses — **fait en 0.191** (condition retenue : la planète océan) : fond `#02060e`, étoiles qui deviennent des points de plancton lumineux, le disque une méduse qui pulse, le bord des tentacules ; la planète océan formée.
-- Papier plié — **fait en 0.191** (condition retenue : 10 Big Bangs) : ciel en origami aux plis visibles, disque à facettes planes, étoiles en confettis de papier ; le défi « Big Bang à froid » réussi deux fois.
-- Carte ancienne — **fait en 0.191** (condition retenue : 25 comètes) : fond parchemin, étoiles reliées en constellations nommées en latin, disque en rose des vents ; vingt-cinq comètes attrapées.
+- Papier plié — **fait en 0.191, en version nuit depuis la 0.203** (condition retenue : 10 Big Bangs) : feuille bleu nuit (crème avant), ciel en origami aux plis visibles, disque à facettes planes, étoiles en confettis de papier ; le défi « Big Bang à froid » réussi deux fois.
+- Carte ancienne — **fait en 0.191, en version nuit depuis la 0.203** (condition retenue : 25 comètes) : vélin sombre tracé à l'encre d'or (parchemin jaune avant), étoiles reliées en constellations nommées en latin, disque en rose des vents ; vingt-cinq comètes attrapées.
 - Néon de ville — **fait en 0.191** (condition retenue : 20 Big Bangs) : fond asphalte mouillé, disque en enseigne qui clignote, étoiles en fenêtres allumées ; cent molécules de la chimie du carbone.
 
 ### Le faisceau du collisionneur (`EnergyView`, visuel COLLIDER_BEAM : Faisceau doré)
 - Comète — **fait en 0.191** (condition retenue : 50 comètes) : deux boules à longue queue de glace `#bfe8ff`, les croisements font neiger ; vingt-cinq comètes attrapées.
-- Encre — **fait en 0.191** (condition retenue : 1 000 collisions) : deux traits de plume noire sur fond clair, le croisement une tache ; mille croisements captés.
+- Encre — **fait en 0.191, en version nuit depuis la 0.203** (condition retenue : 1 000 collisions) : deux traits de plume d'encre claire sur papier noir (encre noire sur fond crème avant), le croisement une tache ; mille croisements captés.
 - Laser — **fait en 0.191** (condition retenue : 10 000 collisions) : deux rayons fins et droits par segments, sans traînée, étincelles en pixels ; une heure à la plus haute énergie.
 - Lucioles — **fait en 0.191** (condition retenue : 100 collisions) : nuées de points verts clignotants au lieu de boules, le croisement les fait toutes s'allumer ; cent captures à la main.
 
@@ -196,7 +196,7 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 ## 7. L'univers
 
 ### Les univers en bulles (`UniverseView`, la naissance)
-- Bulles de savon réalistes (irisation), ballons de baudruche noués, boules à neige, globes en verre d'un orrery, planètes-fruits, œufs — **fait en 0.196** (condition retenue : un par univers formé, du premier au sixième) : chaque univers formé en débloque un.
+- Bulles de savon réalistes (irisation), ballons de baudruche noués, boules à neige, globes en verre d'un orrery, planètes-fruits, œufs — **fait en 0.196** (condition retenue : un par univers formé, du premier au sixième) : chaque univers formé en débloque un. **0.203 : les ballons, les planètes-fruits et les œufs sont retirés ; restent la bulle de savon, la boule à neige et le globe d'orrery, aux univers 1, 2 et 3.**
 - La naissance en éclosion, en bourgeon qui s'ouvre, en feu d'artifice, en page qui se tourne — **fait en 0.196** (condition retenue : les univers 5, 6, 7, 8 formés) : cinq univers.
 - Les liens entre bulles en fil, en lierre, en circuit, en constellation — **fait en 0.196** (condition retenue : les univers 7, 8, 9, 10 formés) : dix univers.
 
@@ -286,6 +286,19 @@ Les couleurs sont données en hex quand elles comptent. Les noms des fichiers so
 
 ## 9. Où tout cela est rangé dans le code
 
-- Tout est réalisé (versions 0.185 à 0.200) : chaque ligne des sections 1 à 8 porte sa mention « fait en » et la condition retenue ; 369 skins (`Skin`, 92 visuels dans `SkinVisual`), dix-neuf thèmes et quatorze notations (`Settings.Theme`, `Settings.Notation`, les énigmes dans `Cosmetic`).
+- Tout est réalisé (versions 0.185 à 0.200) : chaque ligne des sections 1 à 8 porte sa mention « fait en » et la condition retenue ; 369 skins à la 0.200, 363 depuis la 0.203 (`Skin`, 92 visuels dans `SkinVisual`), dix-neuf thèmes et quatorze notations (`Settings.Theme`, `Settings.Notation`, les énigmes dans `Cosmetic`).
 - Les skins se débloquent dans `GameUniverse.noteSkinUnlocks()` et ses méthodes `noteXxxSkins()` ; les skins libres (accessibilité, versions figées ou silencieuses) sont marqués `true` dans `Skin` et ne comptent pas dans le bonus (plafond `Skin.MAX_COUNTED`) ; la page Skins les range par visuel.
 - Les dessins par skin vivent dans des classes voisines (`XxxSkinArt`, `XxxSkinStyles`, `SoundBanks`, `Notations`) ; les thèmes et notations à débloquer se guettent dans `Cosmetics` et se choisissent dans les réglages.
+
+## 10. Retours d'essai (version 0.203)
+
+Après un tour complet des skins en jeu :
+
+- **Retirés** (six) : l'Œuf, la Pluie et le Feu d'artifice de la matière noire ; le Ballon noué, la Planète-fruit et l'Œuf des bulles des univers. Une sauvegarde qui les nomme se relit sans eux (`GameState.load`), le Classique revient là où l'un d'eux était choisi. La Boule à neige et le Globe d'orrery passent aux univers 2 et 3.
+- **Plus de fond clair** : l'Encre de Chine, le Papier plié et la Carte ancienne du Big Bang, l'Encre du collisionneur, la Carte au trésor du tableau et l'Empreinte digitale de la galaxie avaient un fond crème ou jaune au milieu d'une fenêtre sombre. Ils gardent leur idée, en version nuit. Règle pour la suite : un skin ne pose pas de grand aplat clair dans la fenêtre.
+- **L'eau sort de ce qui la verse** : le Coquillage (une conque dont le canal finit au bec) et la Fontaine (une borne à bec de bronze qui finit à la lance) ; `BecDuCoquillageTest` le vérifie pour chaque arrosoir.
+- **La perspective reste** : la Feuille de cahier du plan est couchée et fuit comme la grille du Classique, au lieu d'une feuille à plat sous une perspective au crayon.
+- **La Grappe de raisin** est une vraie grappe (grains serrés, rafle, feuille, vrille) ; **la galaxie** garde son skin au milieu de l'amas.
+- **L'arbre de matière noire** : chaque skin habille aussi le fond de l'arbre et ses en-têtes, et ses vignettes passent de 18 à 26 pixels.
+- **Les curseurs** se montrent sur tous les onglets ; **un son choisi** se fait entendre tout de suite, et choisir un tic allume le métronome de la boucle.
+- **La page Skins** écrit sous chaque visuel où il se voit et ce qu'il change (`SkinPlaces`).

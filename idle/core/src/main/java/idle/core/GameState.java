@@ -429,11 +429,14 @@ public final class GameState extends GameStateResets {
         skinsOpen = data.flag("skinsOpen", false);
         unlockedSkins.clear();
         skinsVersion++;
-        for (String id : data.list("unlockedSkins")) unlockSkin(id);
+        // Version 0.203 : un skin retiré du jeu (six l'ont été) ne se relit pas : ni débloqué, ni choisi.
+        for (String id : data.list("unlockedSkins")) if (idle.core.universe.Skin.byId(id) != null) unlockSkin(id);
         chosenSkins.clear();
         for (String pair : data.list("chosenSkins")) {
             int arrow = pair.indexOf('>');
-            if (arrow > 0) chosenSkins.put(pair.substring(0, arrow), pair.substring(arrow + 1));
+            if (arrow > 0 && idle.core.universe.Skin.byId(pair.substring(arrow + 1)) != null) {
+                chosenSkins.put(pair.substring(0, arrow), pair.substring(arrow + 1));
+            }
         }
         regimeOpen = data.flag("regimeOpen", false);
         setRegimeLeft(data.real("regimeLeft", 0));

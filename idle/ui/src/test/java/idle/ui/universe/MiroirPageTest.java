@@ -194,6 +194,7 @@ class MiroirPageTest {
             window.frame(0.016, true);
             assertTrue(window.mirrorCountsText().endsWith("erreurs 1 / 1"), window.mirrorCountsText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 9);
             game.state().setGridShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.MIRROR_PLAY));
             window.frame(0.016, true);
@@ -233,7 +234,7 @@ class MiroirPageTest {
             game.state().setMirrorShards(1e6);
             upgrades.refresh();
             assertTrue(upgrades.button(SeedUpgrade.SEASONS).isDisabled(), "les saisons attendent l'étage du chrono");
-            assertTrue(upgrades.button(SeedUpgrade.SEASONS).getText().endsWith("Il faut d'abord l'étage du chrono (branche Durée)"),
+            assertTrue(upgrades.button(SeedUpgrade.SEASONS).getText().endsWith("Il faut d'abord l'étage du chrono (branche Plan)"),
                     upgrades.button(SeedUpgrade.SEASONS).getText());
             game.state().setSeedUpgradeLevel(SeedUpgrade.CHRONO.ordinal(), 1);
             upgrades.refresh();
@@ -257,6 +258,7 @@ class MiroirPageTest {
         FxTestSupport.fx(() -> {
             Game game = ninth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 9);
             game.state().setGridShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

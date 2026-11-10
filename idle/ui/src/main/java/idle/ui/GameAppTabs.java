@@ -194,7 +194,16 @@ public abstract class GameAppTabs extends GameAppWindow {
     private void explode() {
         if (exploding || !game.canExplode()) return;
         explosionArmed = 0;
-        if (!settings.effect(Settings.Effect.FLASH)) {
+        playExplosion(true);
+    }
+
+    /**
+     * L'animation de l'explosion. Version 0.203 : {@code real} faux la joue seule, sans exploser ni changer d'onglet, pour
+     * l'outil « Explosion » du profil de test.
+     */
+    void playExplosion(boolean real) {
+        if (exploding) return;
+        if (real && !settings.effect(Settings.Effect.FLASH)) {
             // Sans l'éclair : pas d'onde ni d'éclair, l'explosion a lieu tout de suite.
             game.explode();
             selectTab(Tab.DARK_MATTER);
@@ -226,10 +235,12 @@ public abstract class GameAppTabs extends GameAppWindow {
         bang.getChildren().add(grow);
         bang.getChildren().add(whiten);
         bang.setOnFinished(done -> {
-            game.explode();
             shockwave.setVisible(false);
-            selectTab(Tab.DARK_MATTER);
-            refresh();
+            if (real) {
+                game.explode();
+                selectTab(Tab.DARK_MATTER);
+                refresh();
+            }
 
             FadeTransition clear = new FadeTransition(Duration.seconds(1.4), flash);
             clear.setFromValue(1);
@@ -249,10 +260,8 @@ public abstract class GameAppTabs extends GameAppWindow {
         return switch (look) {
             case DARK_VORTEX -> "#12061f";
             case DARK_PULSAR -> "#e8fdff";
-            case DARK_RAIN -> "#3a8adf";
             case DARK_SNOW -> "#f4f8ff";
             case DARK_HOURGLASS -> "#e8c87a";
-            case DARK_FIREWORKS -> "#05030c";
             default -> "#ffffff";
         };
     }
@@ -538,9 +547,21 @@ public abstract class GameAppTabs extends GameAppWindow {
         }
         tabBar.setSpacing(narrow ? 1 : 4);
         tabGap.setMinWidth(narrow ? 6 : 18);
+        // Version 0.203 : la colonne de gauche prend la largeur de ses onglets. Avant, elle gardait ses 194 pixels même avec
+        // les pastilles, larges de 36 : un grand bloc vide à côté d'elles.
+        double column = dots ? SIDE_BAR_DOTS : SIDE_BAR;
+        if (sideBar.getPrefWidth() != column) {
+            sideBar.setMinWidth(column);
+            sideBar.setPrefWidth(column);
+            sideBar.setMaxWidth(column);
+            sideBar.setAlignment(dots ? javafx.geometry.Pos.TOP_CENTER : javafx.geometry.Pos.TOP_LEFT);
+        }
         // Les onglets de classeur se posent sur la page : l'onglet affiché, plus haut, dépasse vers le haut seulement.
         tabBar.setAlignment(tabSkin == idle.core.universe.Skin.TABS_BINDER ? javafx.geometry.Pos.BOTTOM_CENTER : javafx.geometry.Pos.CENTER);
     }
+
+    /** La largeur de la colonne des onglets, à gauche : celle de toujours, et celle des pastilles (36 de pastille, 8 de marge de chaque côté, le bord). */
+    static final double SIDE_BAR = 194, SIDE_BAR_DOTS = 54;
 
     /** L'infobulle d'un onglet en pastille (version 0.190) : son nom, faite une fois par onglet et gardée. */
     private javafx.scene.control.Tooltip tabTip(Tab tab) {

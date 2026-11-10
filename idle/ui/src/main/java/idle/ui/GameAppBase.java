@@ -98,6 +98,7 @@ public abstract class GameAppBase extends Application {
     abstract void announce(double dt);
     abstract void open(Tab tab);
     abstract void selectTab(Tab tab);
+    abstract void playExplosion(boolean real);
     abstract void animate(double dt);
     abstract int framesPerSecond();
     abstract double timeFactor();
@@ -304,6 +305,8 @@ public abstract class GameAppBase extends Application {
     final ToastPane toasts = new ToastPane();
     /** Le chrono dans un coin (version 0.182), en bas à gauche, hors de la sous-page Graine. */
     final idle.ui.universe.ChronoCorner chronoCorner = new idle.ui.universe.ChronoCorner(game);
+    /** Version 0.203 : le même chrono, dans l'en-tête de la fenêtre d'une dimension, qui recouvre tout le reste. */
+    final idle.ui.universe.ChronoCorner dimensionChrono = new idle.ui.universe.ChronoCorner(game);
     final Notifier notifier = new Notifier(game);
     /** Le guide de transition entre univers (version 0.127). */
     final TransitionPane transitionPane = new TransitionPane(game);
@@ -545,11 +548,12 @@ public abstract class GameAppBase extends Application {
         HBox infoBar = new HBox(10, goalLabel, helpButton, detailHint);
         infoBar.setAlignment(Pos.CENTER);
         infoBar.setStyle("-fx-padding: 3 12; -fx-background-color: #0e131b;");
-        VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar);
+        // Version 0.203 : le chrono a sa ligne, sous celle de l'objectif : il ne flotte plus par-dessus les pages.
+        VBox top = new VBox(explosionButton, challengeLabel, tabBar, infoBar, chronoCorner);
         topBox = top;
         sideBar.setStyle("-fx-background-color: #0e131b; -fx-padding: 10 8; -fx-spacing: 6; -fx-border-color: transparent #1d2633 transparent transparent;");
-        sideBar.setMinWidth(194);
-        sideBar.setPrefWidth(194);
+        sideBar.setMinWidth(GameAppTabs.SIDE_BAR);
+        sideBar.setPrefWidth(GameAppTabs.SIDE_BAR);
         subTabHolder.setStyle("-fx-background-color: #0e131b; -fx-padding: 4 0; -fx-border-color: transparent transparent #1d2633 transparent;");
         // Toujours la même hauteur, sous-onglets ou non : rien ne bouge quand on change d'onglet.
         subTabHolder.setMinHeight(SUB_TAB_HEIGHT);
@@ -592,6 +596,44 @@ public abstract class GameAppBase extends Application {
                 selectTab(Tab.UNIVERSE);
                 universePage.playFinale();
             });
+            debugBar.setAnimations(new DebugBar.AnimationTools() {
+                @Override
+                public void explosion() {
+                    playExplosion(false);
+                }
+
+                @Override
+                public boolean bigBang() {
+                    idle.core.universe.Skin bang = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG);
+                    if (bang != null) burst.play(bang, 3.5);
+                    return bang != null;
+                }
+
+                @Override
+                public boolean birth() {
+                    if (game.universes() <= 0) return false;
+                    dimensionWindow.close();
+                    selectTab(Tab.UNIVERSE);
+                    universePage.playBirth();
+                    return true;
+                }
+
+                @Override
+                public boolean launch() {
+                    if (game.universes() <= 0) return false;
+                    dimensionWindow.close();
+                    selectTab(Tab.UNIVERSE);
+                    universePage.launchView().play(null);
+                    return true;
+                }
+
+                @Override
+                public boolean curtain() {
+                    idle.core.universe.Skin chosen = game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION);
+                    if (chosen != null) GameAppBase.this.curtain.play(chosen);
+                    return chosen != null;
+                }
+            });
             debugBar.setCosmetics(new DebugBar.CosmeticTools() {
                 @Override
                 public void unlockAll() {
@@ -619,6 +661,17 @@ public abstract class GameAppBase extends Application {
 
         root.setTop(top);
         root.setCenter(pages);
+        // Version 0.203 : la fenêtre ne se laisse plus pousser par une page plus haute qu'elle. Avant, le contenu, centré,
+        // dépassait en haut comme en bas : dans une petite fenêtre, le haut de la barre du profil de test sortait de l'écran.
+        root.setMinSize(0, 0);
+        StackPane.setAlignment(root, Pos.TOP_LEFT);
+        // Une page plus haute que la place qui reste dépasse en bas, coupée, au lieu de passer sur les onglets.
+        pages.setMinSize(0, 0);
+        javafx.scene.shape.Rectangle pagesClip = new javafx.scene.shape.Rectangle();
+        pagesClip.widthProperty().bind(pages.widthProperty());
+        pagesClip.heightProperty().bind(pages.heightProperty());
+        pages.setClip(pagesClip);
+        for (javafx.scene.Node page : pages.getChildren()) if (StackPane.getAlignment(page) == null) StackPane.setAlignment(page, Pos.TOP_CENTER);
         root.setStyle(Chrome.CLASSIC_ROOT_STYLE);
 
         // L'explosion recouvre toute la fenêtre : un éclair blanc et une onde qui part du centre.
@@ -626,7 +679,7 @@ public abstract class GameAppBase extends Application {
         flash.setOpacity(0);
         blast.setVisible(false);
         // Le fond skinné (version 0.190) est tout en dessous ; il prend la taille de la fenêtre et se redessine avec elle.
-        StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, chronoCorner, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
+        StackPane window = windowPane = new StackPane(chrome, root, dimensionWindow, blast, burst, toasts, lootPane, helpPane, endPane, finalePane, popupPane,
                 transitionPane, absencePane, curtain, cursorTrail);
         window.widthProperty().addListener((observable, before, width) -> fitLayers(width.doubleValue(), window.getHeight()));
         window.heightProperty().addListener((observable, before, height) -> fitLayers(window.getWidth(), height.doubleValue()));
@@ -634,7 +687,7 @@ public abstract class GameAppBase extends Application {
         transitionPane.setOnConfirmed(curtain::play);
         bigBangPage.probesPane().setOpener(lootPane::open);
         StackPane.setAlignment(toasts, Pos.BOTTOM_RIGHT);
-        StackPane.setAlignment(chronoCorner, Pos.BOTTOM_LEFT);
+        dimensionWindow.setChrono(dimensionChrono);
         scaled = new ScaledPane(window);
         themeFilter = new ThemeFilter(window);
 

@@ -95,14 +95,15 @@ public final class DimensionView extends Canvas {
 
     /** Le fond de chaque dimension sous son skin, dans l'ordre des dimensions. */
     private static final Color[] SKIN_BACKS = {
-            Color.web("#101a24"), Color.web("#f6f1e3"), Color.web("#0b3d4a"), Color.web("#1c1a18"), Color.web("#3f6a33"),
+            Color.web("#101a24"), Color.web("#15120e"), Color.web("#0b3d4a"), Color.web("#1c1a18"), Color.web("#3f6a33"),
             Color.web("#0a0d12"), Color.web("#bfe3ff"), Color.web("#c0c0c0"), Color.web("#0d0b10"), Color.BLACK};
     /** Les rails et wagons : l'acier des rails, le bois des traverses, le ciel de nuit sur la terre. */
     private static final Color RAIL = Color.web("#9aa3ad"), SLEEPER = Color.web("#5a4634"), IRON = Color.web("#1e1e22");
     private static final javafx.scene.paint.LinearGradient RAILS_SKY = vertical("#101a24", "#2a3a2a");
-    /** La feuille de cahier : le papier, les carreaux, la marge, l'encre du stylo, le trait de crayon de la perspective. */
+    /** La feuille de cahier : le papier (plus sombre au loin), les carreaux, la marge, l'encre du stylo. */
+    private static final Color PAPER = Color.web("#f6f1e3"), PAPER_FAR = Color.web("#b9b3a2");
     private static final Color PAPER_SQUARE = Color.web("#b8cfe8"), PAPER_MARGIN = Color.web("#d9534f"), INK = Color.web("#1f3f8f"),
-            PENCIL = Color.web("#8a95a8"), NIB = Color.web("#c9c9d2");
+            NIB = Color.web("#c9c9d2");
     /** L'aquarium : l'eau du haut vers le fond, les arêtes claires, le sable, les bulles, et les robes des poissons. */
     private static final javafx.scene.paint.LinearGradient WATER = vertical("#0b3d4a", "#126b6b");
     private static final Color AQUA_EDGE = Color.web("#cfe9ee"), SAND = Color.web("#d8c08a"), BUBBLE = Color.web("#e6f7ff");
@@ -1101,15 +1102,36 @@ public final class DimensionView extends Canvas {
                 }
             }
             case PLANE -> {
+                // Version 0.203 : la feuille est le plan lui-même, couchée sur le bureau et vue en perspective comme la grille
+                // du Classique ; ses carreaux fuient avec elle, plus serrés au loin. Avant : une feuille à plat, de face, sur
+                // toute la vue, et la perspective tracée au crayon par-dessus : deux quadrillages qui se contredisaient.
+                double cx = w / 2, top = h * 0.25, bottom = h * 0.9, lean = w * 0.32 / (bottom - top);
+                double head = top - h * 0.1, headHalf = w * 0.18 - lean * (top - head), footHalf = w * 0.5 + lean * (h - bottom);
+                g.setFill(new javafx.scene.paint.LinearGradient(0, head, 0, h, false, javafx.scene.paint.CycleMethod.NO_CYCLE,
+                        new javafx.scene.paint.Stop(0, PAPER_FAR), new javafx.scene.paint.Stop(1, PAPER)));
+                g.fillPolygon(new double[] {cx - headHalf, cx + headHalf, cx + footHalf, cx - footHalf}, new double[] {head, head, h, h}, 4);
+                // Les petits carreaux : deux fois plus serrés que les traits du jeu, que plane() repasse en plus appuyé.
                 g.setStroke(PAPER_SQUARE);
                 g.setLineWidth(1);
-                g.setGlobalAlpha(0.8);
-                for (double x = 0; x <= w; x += 16) g.strokeLine(x, 0, x, h);
-                for (double y = 0; y <= h; y += 16) g.strokeLine(0, y, w, y);
+                for (int k = 0; k <= 24; k++) {
+                    double t = k / 24.0, y = top + (bottom - top) * t * t, half = w * (0.18 + 0.32 * t * t);
+                    g.setGlobalAlpha(0.35 + 0.3 * t);
+                    g.strokeLine(cx - half, y, cx + half, y);
+                }
+                g.setGlobalAlpha(0.5);
+                for (int k = -16; k <= 16; k++) g.strokeLine(cx + k * w * 0.01125, top, cx + k * w * 0.03125, bottom);
+                // La marge rouge suit une ligne de fuite, à gauche ; trois trous de classeur entre elle et le bord.
                 g.setStroke(PAPER_MARGIN);
                 g.setLineWidth(1.5);
                 g.setGlobalAlpha(0.9);
-                g.strokeLine(w * 0.08, 0, w * 0.08, h);
+                double marginTop = cx - 7 * w * 0.0225, marginSlope = -7 * w * 0.04 / (bottom - top);
+                g.strokeLine(marginTop + marginSlope * (head - top), head, marginTop + marginSlope * (h - top), h);
+                g.setFill(SKIN_BACKS[1]);
+                for (double t : new double[] {0.3, 0.62, 0.9}) {
+                    double y = top + (bottom - top) * t * t, x = cx - 7.5 * w * (0.0225 + 0.04 * t * t), r = 3 + 5 * t;
+                    g.fillOval(x - r, y - r * 0.45, 2 * r, r * 0.9);
+                }
+                g.setGlobalAlpha(1);
             }
             case VOLUME -> {
                 g.setFill(WATER);
@@ -1257,20 +1279,21 @@ public final class DimensionView extends Canvas {
     // 2. Le plan : la grille vue en perspective (version 0.081), où le joueur mène le point (Z Q S D,
     // version 0.104) ; sa traînée dessine la courbe de son passage, et les éclats attendent sur la grille.
     private void plane(GraphicsContext g, double w, double h, double cx, double cy, double u) {
-        // Sur la feuille de cahier, la perspective est un trait de crayon, les éclats des taches d'encre, le point un stylo.
+        // Sur la feuille de cahier, la perspective est celle de la feuille, les éclats des taches d'encre, le point un stylo.
         Color c = skinned ? INK : color(), gem = skinned ? INK : SHARD;
         double top = h * 0.25, bottom = h * 0.9;
-        g.setStroke(skinned ? PENCIL : c);
+        // Version 0.203 : sur le cahier, ces traits sont les grands carreaux de la feuille couchée (voir backdrop).
+        g.setStroke(skinned ? PAPER_SQUARE.darker() : c);
         g.setLineWidth(1);
         for (int k = 0; k <= 12; k++) {
             double t = k / 12.0;
             double y = top + (bottom - top) * t * t;
             double half = w * (0.18 + 0.32 * t * t);
-            g.setGlobalAlpha((skinned ? 0.3 : 0.12) + 0.25 * t);
+            g.setGlobalAlpha((skinned ? 0.5 : 0.12) + 0.25 * t);
             g.strokeLine(cx - half, y, cx + half, y);
         }
         for (int k = -8; k <= 8; k++) {
-            g.setGlobalAlpha(skinned ? 0.4 : 0.2);
+            g.setGlobalAlpha(skinned ? 0.65 : 0.2);
             g.strokeLine(cx + k * w * 0.0225, top, cx + k * w * 0.0625, bottom);
         }
         // Les éclats : des losanges posés sur la grille, plus petits au loin ; des taches d'encre sur le cahier.
@@ -3891,11 +3914,11 @@ public final class DimensionView extends Canvas {
         g.setGlobalAlpha(1);
         g.setFill(LENS);
         g.fillOval(cx - lens, cy - lens, lens * 2, lens * 2);
+        // Version 0.203 : plus de découpe ronde autour des copies. L'arène, carrée et centrée, tient dans la lunette quel
+        // que soit l'angle (sa demi-diagonale vaut 0,707 côté, la lunette 0,72), et le contour noir, large de dix pixels,
+        // couvre ce qui dépasserait d'une lueur. La découpe coûtait à elle seule la moitié du dessin : le kaléidoscope
+        // prenait plus de deux fois le temps du Classique.
         g.save();
-        g.beginPath();
-        g.arc(cx, cy, lens, lens, 0, 360);
-        g.closePath();
-        g.clip();
         for (int k = 1; k < 6; k++) {
             g.save();
             g.translate(cx, cy);

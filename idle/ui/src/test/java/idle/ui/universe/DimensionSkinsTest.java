@@ -111,7 +111,10 @@ class DimensionSkinsTest {
                 run(game, view, 0.5);
                 view.frame(0.1, false);
                 run(game, view, 2);
-                assertArrayEquals(before, positions(view, dimension), 1e-9, dimension + " : ni après deux secondes et demie");
+                // Le témoin vit le même temps : la caméra du volume tourne seule, avec ou sans skin.
+                plain.frame(0.1, false);
+                run(classic, plain, 2);
+                assertArrayEquals(positions(plain, dimension), positions(view, dimension), 1e-9, dimension + " : ni après deux secondes et demie");
                 assertEquals(dimension, view.dimension());
             }
             return null;

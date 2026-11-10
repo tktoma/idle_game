@@ -9,35 +9,24 @@ import javafx.scene.paint.Stop;
 
 /**
  * Les skins de la matière noire de la version 0.191, dessinés à côté de {@link DarkMatterView} pour la
- * garder lisible : cinq boules et quatre animations.
+ * garder lisible : quatre boules et deux animations (version 0.203 : l'œuf, la pluie et le feu d'artifice retirés).
  * <ul>
  * <li>« Goutte de mercure » : une sphère miroir gris argent au reflet déformé, qui tremble à chaque appui ;</li>
  * <li>« Trou noir » : un disque noir net, un anneau de lumière orange plus brillant en haut, l'espace
  * étiré autour ;</li>
- * <li>« Œuf » : une coquille pâle tachetée, dont les fissures s'allongent à mesure que la matière grossit
- * du proton à l'univers observable ;</li>
  * <li>« Nœud » : une corde violette nouée en trèfle, qui se resserre à l'appui ;</li>
  * <li>« Lanterne » : du papier translucide à nervures, et dedans une flamme qui grandit avec la matière ;</li>
- * <li>« Pluie » : des gouttes qui tombent droit, des ronds de flaque en bas de la vue ;</li>
  * <li>« Neige » : des flocons lents qui tourbillonnent, attirés vers la boule quand elle grossit ;</li>
- * <li>« Sablier » : un sablier en filigrane dont les grains coulent par le goulot vers la boule ;</li>
- * <li>« Feu d'artifice » : des fusées de six couleurs qui montent du bas de la vue et éclatent.</li>
+ * <li>« Sablier » : un sablier en filigrane dont les grains coulent par le goulot vers la boule.</li>
  * </ul>
  */
 final class DarkSkinArt {
 
-    /** Les six couleurs du feu d'artifice. */
-    static final Color[] FIREWORK = {Color.web("#ff5a5a"), Color.web("#ffb347"), Color.web("#fff36b"),
-        Color.web("#6bff8a"), Color.web("#5ad0ff"), Color.web("#d06bff")};
-
-    private static final Color SHELL = Color.web("#efe6d2");
-    private static final Color SPECKLE = Color.web("#9a7b55");
     private static final Color ROPE = Color.web("#8a4cff");
     private static final Color ROPE_DARK = Color.web("#3d1a7a");
     private static final Color PAPER = Color.web("#f6d9a0");
     private static final Color RIB = Color.web("#8a5a2a");
     private static final Color FLAME = Color.web("#ffb347");
-    private static final Color DROP = Color.web("#9fd0ff");
     private static final Color FLAKE = Color.web("#eef6ff");
     private static final Color SAND = Color.web("#e8c87a");
     private static final Color GLASS = Color.web("#8f7fb8");
@@ -47,13 +36,13 @@ final class DarkSkinArt {
 
     /** Vrai pour les boules dessinées ici : celles de la version 0.191. */
     static boolean draws(Skin skin) {
-        return skin == Skin.DARK_MERCURY || skin == Skin.DARK_HOLE || skin == Skin.DARK_EGG
+        return skin == Skin.DARK_MERCURY || skin == Skin.DARK_HOLE
                 || skin == Skin.DARK_KNOT || skin == Skin.DARK_LANTERN;
     }
 
     /** Vrai pour les animations dessinées ici : celles de la version 0.191. */
     static boolean animates(Skin skin) {
-        return skin == Skin.DARK_RAIN || skin == Skin.DARK_SNOW || skin == Skin.DARK_HOURGLASS || skin == Skin.DARK_FIREWORKS;
+        return skin == Skin.DARK_SNOW || skin == Skin.DARK_HOURGLASS;
     }
 
     /** Un nombre entre 0 et 1, toujours le même pour une même graine. */
@@ -88,7 +77,6 @@ final class DarkSkinArt {
         switch (skin) {
             case DARK_MERCURY -> mercury(g, view, cx, cy, r);
             case DARK_HOLE -> hole(g, view, cx, cy, r, growing);
-            case DARK_EGG -> egg(g, view, cx, cy, r);
             case DARK_KNOT -> knot(g, view, cx, cy, r);
             default -> lantern(g, view, cx, cy, r, growing);
         }
@@ -163,59 +151,6 @@ final class DarkSkinArt {
         g.setGlobalAlpha(1);
         g.setFill(Color.BLACK);
         g.fillOval(cx - r, cy - r, 2 * r, 2 * r);
-    }
-
-    /** L'œuf : une coquille pâle tachetée, fissurée d'autant plus loin que la matière a grossi. */
-    private static void egg(GraphicsContext g, DarkMatterView view, double cx, double cy, double r) {
-        double growth = view.growth(), time = view.time();
-        double rx = r * 0.86, ry = r * 1.05;
-        glow(g, cx, cy, r * 1.5, Color.web("#c9a6ff"), 0.15 + 0.35 * growth);
-        g.setGlobalAlpha(1);
-        g.setFill(new RadialGradient(0, 0, cx - rx * 0.3, cy - ry * 0.35, r * 1.4, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.WHITE), new Stop(0.4, SHELL), new Stop(1, Color.web("#b8a888"))));
-        g.fillOval(cx - rx, cy - ry, 2 * rx, 2 * ry);
-        // Les taches, toujours aux mêmes places.
-        g.setFill(SPECKLE);
-        for (int k = 0; k < 26; k++) {
-            double a = fraction(k * 1.7) * 2 * Math.PI, d = Math.sqrt(fraction(k * 3.1)) * 0.9;
-            double size = r * (0.03 + 0.06 * fraction(k * 5.3));
-            g.setGlobalAlpha(0.35 + 0.4 * fraction(k * 7.9));
-            g.fillOval(cx + d * rx * Math.cos(a) - size, cy + d * ry * Math.sin(a) - size * 0.8, 2 * size, 1.6 * size);
-        }
-        // Les fissures : six, parties de la couronne, dont la longueur suit la croissance ; la lumière passe au travers.
-        for (int k = 0; k < 6; k++) {
-            double length = growth * (0.6 + 0.5 * fraction(k * 2.3));
-            if (length <= 0.02) continue;
-            int segments = 10;
-            double[] xs = new double[segments + 1], ys = new double[segments + 1];
-            double a = -Math.PI / 2 + (k - 2.5) * 0.5;
-            double x = cx + rx * 0.2 * Math.cos(a), y = cy - ry * 0.75 + ry * 0.1 * fraction(k);
-            xs[0] = x;
-            ys[0] = y;
-            for (int s = 1; s <= segments; s++) {
-                double u = s / (double) segments;
-                a += (fraction(k * 11 + s) - 0.5) * 0.9;
-                x += Math.cos(a) * ry * 0.16 * length;
-                y += Math.abs(Math.sin(a)) * ry * 0.16 * length;
-                xs[s] = x;
-                ys[s] = Math.min(y, cy + ry * 0.95);
-                if (u > 0.6 && s % 3 == 0) {
-                    // Une ramification.
-                    g.setStroke(Color.web("#5a4a3a"));
-                    g.setLineWidth(Math.max(0.6, r * 0.012));
-                    g.setGlobalAlpha(0.8);
-                    g.strokeLine(x, ys[s], x + Math.cos(a + 1) * ry * 0.12 * length, ys[s] + Math.abs(Math.sin(a + 1)) * ry * 0.12 * length);
-                }
-            }
-            g.setStroke(Color.web("#c9a6ff"));
-            g.setLineWidth(Math.max(1.5, r * 0.045) * (0.5 + growth));
-            g.setGlobalAlpha(0.3 + 0.5 * growth * (0.7 + 0.3 * Math.sin(time * 4 + k)));
-            g.strokePolyline(xs, ys, segments + 1);
-            g.setStroke(Color.web("#3a2a1a"));
-            g.setLineWidth(Math.max(0.8, r * 0.02));
-            g.setGlobalAlpha(0.9);
-            g.strokePolyline(xs, ys, segments + 1);
-        }
     }
 
     /** Le nœud : une corde violette en trèfle, trois boucles, qui se resserre tant qu'on appuie. */
@@ -316,44 +251,10 @@ final class DarkSkinArt {
     static void animate(Skin skin, GraphicsContext g, DarkMatterView view, double cx, double cy, double w, double h, boolean growing) {
         double strength = Math.max(view.fall(), growing ? 0.6 : 0);
         switch (skin) {
-            case DARK_RAIN -> rain(g, view, cx, cy, w, h, strength);
             case DARK_SNOW -> snow(g, view, cx, cy, w, h, strength);
-            case DARK_HOURGLASS -> hourglass(g, view, cx, cy, w, h, strength);
-            default -> fireworks(g, view, w, h, strength);
+            default -> hourglass(g, view, cx, cy, w, h, strength);
         }
         g.setGlobalAlpha(1);
-    }
-
-    /** La pluie : des gouttes qui tombent droit, plus serrées quand la matière grossit, et des ronds de flaque en bas. */
-    private static void rain(GraphicsContext g, DarkMatterView view, double cx, double cy, double w, double h, double strength) {
-        double time = view.time(), ball = view.blobRadius();
-        int drops = (int) (50 + 70 * strength);
-        g.setStroke(DROP);
-        g.setLineWidth(1.2);
-        for (int i = 0; i < drops; i++) {
-            double x = fraction(i * 1.3) * w;
-            double speed = 0.5 + 0.4 * fraction(i * 2.9) + strength;
-            double y = ((fraction(i * 4.7) + time * speed) % 1) * h;
-            double length = 6 + 10 * speed;
-            // Une goutte qui tombe sur la boule s'y arrête.
-            if (Math.abs(x - cx) < ball && y > cy - ball && y < cy) continue;
-            g.setGlobalAlpha(0.25 + 0.4 * fraction(i * 6.1));
-            g.strokeLine(x, y - length, x, y);
-        }
-        // Les ronds de flaque, au ras du bas de la vue.
-        g.setStroke(Color.web("#bfe0ff"));
-        for (int k = 0; k < 14; k++) {
-            double phase = (time * (0.6 + 0.3 * fraction(k)) + fraction(k * 3.3)) % 1;
-            double x = fraction(k * 2.1) * w, y = h - 8 - fraction(k * 5.7) * 22;
-            double rx = 3 + 22 * phase, ry = rx * 0.3;
-            g.setLineWidth(1);
-            g.setGlobalAlpha(0.6 * (1 - phase));
-            g.strokeOval(x - rx, y - ry, 2 * rx, 2 * ry);
-        }
-        // La surface de l'eau, un trait bleuté.
-        g.setGlobalAlpha(0.35);
-        g.setStroke(DROP);
-        g.strokeLine(0, h - 4, w, h - 4);
     }
 
     /** La neige : des flocons lents qui tourbillonnent, et que la boule attire quand elle grossit. */
@@ -435,40 +336,4 @@ final class DarkSkinArt {
         }
     }
 
-    /** Le feu d'artifice : des fusées qui montent du bas de la vue, une couleur chacune, et éclatent en gerbe. */
-    private static void fireworks(GraphicsContext g, DarkMatterView view, double w, double h, double strength) {
-        double time = view.time();
-        int rockets = (int) (4 + 6 * strength);
-        for (int k = 0; k < rockets; k++) {
-            Color color = FIREWORK[k % FIREWORK.length];
-            double period = 2.2 + 1.5 * fraction(k * 3.7);
-            double phase = ((time / period) + fraction(k * 1.9)) % 1;
-            double x = (0.1 + 0.8 * fraction(k * 2.3 + Math.floor(time / period + fraction(k * 1.9)))) * w;
-            double apex = h * (0.15 + 0.35 * fraction(k * 4.1));
-            if (phase < 0.4) {
-                // La montée : un trait qui s'étire, avec une traînée qui s'éteint.
-                double u = phase / 0.4;
-                double y = h - (h - apex) * (1 - (1 - u) * (1 - u));
-                g.setStroke(color);
-                g.setLineWidth(1.5);
-                g.setGlobalAlpha(0.8);
-                g.strokeLine(x, y, x + 2 * Math.sin(time * 20 + k), y + 10 + 20 * (1 - u));
-                glow(g, x, y, 5, Color.WHITE, 0.9);
-            } else {
-                // La gerbe : des étincelles qui s'écartent, retombent et s'effacent.
-                double u = (phase - 0.4) / 0.6;
-                int sparks = 14;
-                g.setFill(color);
-                for (int s = 0; s < sparks; s++) {
-                    double a = 2 * Math.PI * s / sparks + fraction(k) * 0.4;
-                    double reach = Math.min(w, h) * 0.12 * Math.sqrt(u);
-                    double sx = x + reach * Math.cos(a), sy = apex + reach * Math.sin(a) + 40 * u * u;
-                    double size = 2.5 * (1 - u) + 0.5;
-                    g.setGlobalAlpha(0.9 * (1 - u));
-                    g.fillOval(sx - size / 2, sy - size / 2, size, size);
-                }
-                glow(g, x, apex, 30 * (1 - u), color, 0.6 * (1 - u));
-            }
-        }
-    }
 }

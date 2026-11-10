@@ -265,6 +265,7 @@ public final class GalaxyView extends Canvas {
             ys[other + 1] = cy + (fraction(other * 9.1 + 2) - 0.5) * 0.72 * h;
             radii[other + 1] = radius;
         }
+        if (skin == idle.core.universe.Skin.CLUSTER_GRAPES) GalaxySkinArt.bunch(xs, ys, radii, w, h);
         if (skinned) GalaxySkinArt.clusterBackdrop(g, skin, w, h, xs, ys, radii, time);
         for (int other = 0; other < NEIGHBOURS; other++) {
             double turn = (other % 3 == 0 ? 1 : -1) * time * SPIN * (0.6 + 0.8 * fraction(other * 2.9));
@@ -275,7 +276,14 @@ public final class GalaxyView extends Canvas {
                         Math.PI * fraction(other * 4.3 + 5), 7, 0.75);
             }
         }
+        // Version 0.203 : sans skin d'amas, la galaxie du joueur garde son skin à elle au milieu de l'amas. Avant, elle
+        // redevenait la spirale classique dès l'amas formé : le skin de la galaxie semblait ne plus rien faire.
+        idle.core.universe.Skin own = game.chosenSkin(idle.core.universe.SkinVisual.GALAXY);
+        // La grappe (version 0.203) déplace la galaxie du joueur : elle et son cœur se dessinent à sa place rangée.
+        cx = xs[0];
+        cy = ys[0];
         if (skinned) GalaxySkinArt.clusterMember(g, skin, cx, cy, radii[0], true, 0, time);
+        else if (GalaxySkinArt.draws(own)) GalaxySkinArt.galaxy(g, own, cx, cy, radii[0], -time * SPIN, colors, AWAY, COS, SIN, 1);
         else spiral(g, colors, cx, cy, radii[0], -time * SPIN, 1, 0, 2, 1);
         g.setGlobalAlpha(1);
         for (Body body : game.bodies()) {

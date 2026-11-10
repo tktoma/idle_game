@@ -247,6 +247,8 @@ public final class DimensionWindow extends BorderPane {
     private final Label autoBadge = new Label("automatique");
     private final Label line = new Label();
     private final Button back = new Button("← Retour");
+    /** L'en-tête : le retour, le titre, la phrase, et depuis la version 0.203 la ligne du chrono ({@link #setChrono}). */
+    private VBox head;
     /**
      * Ce que chaque rangée de boutons et chaque explication a montré en dernier (niveaux, achetabilité, détails demandés) :
      * {@link #refresh()} tourne à chaque image, les longs textes ne se refont que si ça change.
@@ -256,6 +258,11 @@ public final class DimensionWindow extends BorderPane {
     /** Une fenêtre qui garde seule le choix de la caméra libre : pour les vérifications. */
     public DimensionWindow(Game game) {
         this(game, new boolean[1]);
+    }
+
+    /** Version 0.203 : range la ligne du chrono dans l'en-tête, sous la phrase ; elle se montre et se cache seule. */
+    public void setChrono(javafx.scene.Node chrono) {
+        head.getChildren().add(chrono);
     }
 
     private DimensionWindow(Game game, boolean[] free) {
@@ -288,7 +295,7 @@ public final class DimensionWindow extends BorderPane {
         HBox.setHgrow(after, Priority.ALWAYS);
         HBox top = new HBox(12, back, spacer, title, after, autoBadge);
         top.setAlignment(Pos.CENTER_LEFT);
-        VBox head = new VBox(6, top, line);
+        head = new VBox(6, top, line);
         head.setAlignment(Pos.CENTER);
         line.setMaxWidth(Double.MAX_VALUE);
         line.setAlignment(Pos.CENTER);

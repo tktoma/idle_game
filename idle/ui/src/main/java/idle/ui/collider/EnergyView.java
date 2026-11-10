@@ -179,6 +179,8 @@ public final class EnergyView extends Canvas {
 
     /** Les faisceaux de la version 0.191, et ce qu'ils laissent au détecteur. */
     private final BeamSkinArt beamArt = new BeamSkinArt(this);
+    /** Le faisceau de la dernière image : en changer efface la neige et les taches. */
+    private idle.core.universe.Skin beamDrawn;
 
     /** Ce que le faisceau laisse au détecteur (neige, taches) : pour les vérifications. */
     int beamRemains() {
@@ -299,7 +301,7 @@ public final class EnergyView extends Canvas {
         g.setGlobalAlpha(1);
         idle.core.universe.Skin look = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER);
         idle.core.universe.Skin beam = game.chosenSkin(idle.core.universe.SkinVisual.COLLIDER_BEAM);
-        // L'encre (version 0.191) demande un fond clair, quel que soit l'anneau.
+        // L'encre (version 0.191) a son papier, quel que soit l'anneau ; noir depuis la 0.203.
         boolean paper = beam == idle.core.universe.Skin.BEAM_INK;
         g.setFill(paper ? BeamSkinArt.PAPER
                 : look == idle.core.universe.Skin.COLLIDER_NEON ? Color.web("#05020a")
@@ -309,7 +311,7 @@ public final class EnergyView extends Canvas {
         g.fillRect(0, 0, w, h);
         if (paper) {
             // Le grain du papier : quelques fibres.
-            g.setStroke(Color.web("#c9bfa4"));
+            g.setStroke(Color.web("#4a4a52"));
             g.setLineWidth(0.7);
             for (int i = 0; i < 30; i++) {
                 double x = (i * 0.754877666 % 1) * w, y = (i * 0.569840291 % 1) * h;
@@ -344,7 +346,9 @@ public final class EnergyView extends Canvas {
         double angle = 2 * Math.PI * phase;
         boolean gold = beam == idle.core.universe.Skin.BEAM_GOLD;
         if (!gold) goldDust.clear();
-        if (!BeamSkinArt.draws(beam)) beamArt.clear();
+        // Version 0.203 : tout changement de faisceau efface ce qui restait (la neige de la comète restait sous le laser).
+        if (beam != beamDrawn) beamArt.clear();
+        beamDrawn = beam;
         // Sous le ruban de Möbius (version 0.191), un faisceau sur deux passe dessous : il est dessiné avant l'anneau.
         boolean mobius = look == idle.core.universe.Skin.COLLIDER_MOBIUS;
         if (mobius) drawBeams(g, angle, beam, crossing, true, true);
@@ -436,7 +440,7 @@ public final class EnergyView extends Canvas {
         }
         g.setGlobalAlpha(1);
         // Les textes : à l'encre sur le papier, bleu pâle ailleurs.
-        Color text = paper ? Color.web("#141418") : LIGHT, dim = paper ? Color.web("#6a6050") : Color.web("#5a7088");
+        Color text = LIGHT, dim = paper ? Color.web("#8a8a92") : Color.web("#5a7088");
         g.setTextAlign(TextAlignment.CENTER);
         g.setFont(Font.font(13));
         g.setFill(text);

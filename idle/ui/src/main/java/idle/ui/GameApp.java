@@ -77,6 +77,10 @@ public final class GameApp extends GameAppTabs {
      * la fin de partie celui de l'écran de fin s'il est choisi, sinon celui des panneaux ; le guide de transition le sien ;
      * le curseur se pose sur toute la fenêtre, l'arrosoir et la loupe seulement sur leur onglet.
      */
+    /** Les skins de son vus à l'image d'avant (version 0.203) : un changement, sur la page des skins, se fait entendre. */
+    private boolean soundSkinsSeen;
+    private idle.core.universe.Skin bankSeen, bangSoundSeen, tickSeen;
+
     private void refreshWindowSkins() {
         toasts.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TOAST));
         game.noteNotificationsShown(toasts.shown());
@@ -88,8 +92,26 @@ public final class GameApp extends GameAppTabs {
         finalePane.setSkin(ending != null ? ending : panel);
         transitionPane.setSkin(game.chosenSkin(idle.core.universe.SkinVisual.TRANSITION));
         // Version 0.200 : les sons prennent la banque, le son du Big Bang et le tic du métronome choisis.
-        sound.setSkins(game.chosenSkin(idle.core.universe.SkinVisual.SOUND_BANK), game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG_SOUND),
-                game.chosenSkin(idle.core.universe.SkinVisual.METRONOME));
+        idle.core.universe.Skin bank = game.chosenSkin(idle.core.universe.SkinVisual.SOUND_BANK);
+        idle.core.universe.Skin bangSound = game.chosenSkin(idle.core.universe.SkinVisual.BIG_BANG_SOUND);
+        idle.core.universe.Skin tick = game.chosenSkin(idle.core.universe.SkinVisual.METRONOME);
+        sound.setSkins(bank, bangSound, tick);
+        // Version 0.203 : un skin de son choisi sur la page des skins se fait entendre tout de suite. Avant, rien ne se
+        // passait : le tic du métronome ne s'entend que dans la boucle, métronome allumé (il est éteint au départ), et l'on
+        // croyait le skin sans effet. Choisir un tic allume donc aussi le métronome de la boucle.
+        if (soundSkinsSeen && selectedTab == Tab.SKINS) {
+            Sound.Cue heard = tick != tickSeen ? Sound.Cue.BEAT : bangSound != bangSoundSeen ? Sound.Cue.BIG_BANG
+                    : bank != bankSeen ? Sound.Cue.ACHIEVEMENT : null;
+            if (tick != tickSeen && tick != null && !settings.loopMetronome()) {
+                settings.setLoopMetronome(true);
+                toasts.show("Métronome de la boucle activé : il bat dans la dimension 5, la boucle.", SETTINGS_COLOR);
+            }
+            if (heard != null && settings.sound()) sound.preview(heard, settings.volume());
+        }
+        soundSkinsSeen = true;
+        bankSeen = bank;
+        bangSoundSeen = bangSound;
+        tickSeen = tick;
         idle.core.universe.Skin cursor = CursorSkinArt.shownOn(game.chosenSkin(idle.core.universe.SkinVisual.CURSOR), selectedTab);
         if (cursor != cursorSkin) {
             cursorSkin = cursor;
@@ -239,8 +261,10 @@ public final class GameApp extends GameAppTabs {
         lastBigBangs = game.bigBangs();
         if (selectedTab == Tab.BIG_BANG) bigBangPage.refresh();
         if (selectedTab == Tab.UNIVERSE) universePage.refresh();
-        // Le chrono dans un coin (version 0.182) : partout sauf sur la sous-page Graine, où il est déjà.
+        // Le chrono hors de la Graine (version 0.182) : partout sauf sur la sous-page Graine, où il est déjà. Version 0.203 :
+        // une ligne sous l'objectif, et la même dans l'en-tête de la fenêtre d'une dimension quand elle est ouverte.
         chronoCorner.refresh(selectedTab == Tab.UNIVERSE && universePage.selected() == idle.ui.universe.UniversePage.SEED);
+        dimensionChrono.refresh(!dimensionWindow.isVisible());
 
         // La fuite (version 0.115) : quand elle apparaît parmi les défis, une seule fois, la vue va aux défis et y reste
         // le temps de son arrivée.

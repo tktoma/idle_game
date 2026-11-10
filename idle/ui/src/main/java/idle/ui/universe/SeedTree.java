@@ -219,7 +219,7 @@ final class SeedTree {
     /**
      * Version 0.197 : l'arbre de l'essence {@code skin}, avec sa saison figée, sa fantaisie et son sol ({@code null} :
      * le Classique de chacun). L'arbre inversé est dessiné la tête en bas, autour du milieu de sa hauteur ; le centre
-     * du feuillage rendu est celui que l'on voit.
+     * rendu est celui de l'arbre à l'endroit (la place des bulles ne dépend pas de la fantaisie).
      */
     static double[] draw(GraphicsContext g, double w, double h, double baseX, double baseY, int stage, double growth, double time,
             Skin skin, Skin seasonSkin, Skin fantasySkin, Skin groundSkin) {
@@ -236,7 +236,9 @@ final class SeedTree {
         }
         try {
             double[] crown = tree(g, w, h, baseX, baseY, stage, growth, time, e, i, height);
-            if (inverted) crown[1] = 2 * pivot - crown[1];
+            // Version 0.203 : le centre rendu reste celui de l'arbre à l'endroit. Les bulles se rangent sur toute la hauteur
+            // de l'arbre, comme sous les autres fantaisies ; avec le centre retourné (près du sol), elles s'entassaient
+            // toutes sur la graine, ou sortaient de la vue.
             return crown;
         } finally {
             if (inverted) g.restore();
@@ -310,7 +312,11 @@ final class SeedTree {
         if (stage >= 6 && season != TreeSkinArt.Season.WINTER) fireflies(g, shape, stage, time);
         if (stage >= 8) sap(g, shape, stage, time);
         // Le centre du feuillage et son rayon : les bulles de l'arbre s'y posent (version 0.142).
-        return new double[] {shape.crownX, shape.crownY, shape.crownRadius};
+        // Version 0.203 : sous une essence aux rameaux retombants (le saule), la moyenne des touffes descend au tiers de
+        // l'arbre, et les bulles, rangées jusqu'au feuillage, s'écrasaient en bas. Le centre rendu reste à la hauteur
+        // ordinaire du houppier ; les effets dessinés plus haut ont suivi les touffes.
+        double crownY = e.droop > 0 ? Math.min(shape.crownY, baseY - height * 0.72) : shape.crownY;
+        return new double[] {shape.crownX, crownY, shape.crownRadius};
     }
 
     // ------------------------------------------------------------------
@@ -506,7 +512,10 @@ final class SeedTree {
         for (int k = 0; k < arms; k++) {
             double a = -1.2 + 2.4 * k / (arms - 1) + sway + (UniverseView.noise(k * 29 + stage) - 0.5) * 0.3;
             double ax = tx + (k - (arms - 1) / 2.0) * trunk * 0.16;
-            branch(g, shape, ax, ty, height * 0.34 * e.length, a, trunk * 0.3, Math.max(2, DEPTH[i] - 1), k * 17 + stage * 3, i, time, 1, e);
+            // Cinq bras : un niveau de rameaux de moins que les autres essences, deux à partir de l'arbre mûr (version
+            // 0.203 : 448 touffes à ce palier, trois fois le Classique, pour un dessin trois fois plus lent).
+            int depth = Math.max(2, DEPTH[i] - (i >= 3 ? 2 : 1));
+            branch(g, shape, ax, ty, height * 0.34 * e.length, a, trunk * 0.3, depth, k * 17 + stage * 3, i, time, 1, e);
         }
     }
 
@@ -752,10 +761,15 @@ final class SeedTree {
             case NEEDLES -> {
                 g.setStroke(tone);
                 g.setLineWidth(Math.max(0.8, size * 0.12));
+                // Version 0.203 : les quatre aiguilles d'un seul tracé (quatre traits séparés avant : le pin coûtait moitié plus
+                // à dessiner que les autres essences).
+                g.beginPath();
                 for (int k = 0; k < 4; k++) {
                     double a = angle - 0.45 + 0.3 * k, l = size * 1.4;
-                    g.strokeLine(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l);
+                    g.moveTo(x, y);
+                    g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
                 }
+                g.stroke();
             }
             default -> {
                 double[] xs = {x - c * size, x - s * size * 0.45, x + c * size, x + s * size * 0.45};

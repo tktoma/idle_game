@@ -38,7 +38,8 @@ import javafx.util.Duration;
  * Fiche cartonnée : un fond crème, des textes sombres en police à chasse fixe, le coin haut droit écorné. Tuile de
  * verre : un fond à peine blanchi, coins ronds, et à portée un bord lumineux de la couleur d'accent avec son halo.
  * Carte à jouer : un fond blanc à marge, des textes sombres, le coin répété en bas à droite à l'envers, et un dos
- * rouge hachuré quand elle est fermée. Étiquette : une forme à coins coupés en haut, un œillet et son fil en haut à
+ * rouge hachuré quand elle est fermée. Étiquette : deux coins arrondis en haut (une forme à coins coupés avant la 0.203, trop
+ * lourde à dessiner), un œillet et son fil en haut à
  * gauche, et un léger penchement sous la souris. Dans chaque skin, les états se reconnaissent encore : leur couleur
  * d'accent reste sur le bord et le prix, et leur signe devant le nom.
  */
@@ -703,7 +704,10 @@ public final class Card extends VBox {
                     faint = quiet;
                     priceInk = state == State.READY || solid ? "#2b2416" : quiet;
                     border = state == State.READY ? (lit ? "#2b2416" : accent) : solid ? "#2b2416" : state == State.OFF ? "#8a7a60" : border;
-                    box = "-fx-shape: \"M 0 14 L 14 0 L 86 0 L 100 14 L 100 100 L 0 100 Z\"; -fx-background-color: " + background + ";"
+                    // Version 0.203 : deux coins arrondis en haut au lieu d'une forme libre (-fx-shape). Une région à forme
+                    // libre se retrace en entier à chaque image, sans rien garder en mémoire : sur une page de quatre-vingts
+                    // cartes (l'arbre de matière noire), le rendu prenait près de trois fois plus de temps qu'en Classique.
+                    box = "-fx-background-radius: 14 14 3 3; -fx-border-radius: 14 14 3 3; -fx-background-color: " + background + ";"
                             + " -fx-border-color: " + border + ";" + dashed + hand;
                 }
                 default -> box = "";     // un skin d'un autre visuel ne peut pas arriver ici : {@code chosenSkin(CARD)} ne rend que les siens

@@ -95,6 +95,11 @@ public final class DarkMatterTreePane extends Pane {
     private static final String CARD_STYLE = "-fx-font-size: 12px; -fx-padding: 6 8; -fx-background-radius: 6;"
             + " -fx-border-radius: 6;";
 
+    /** Le style de la racine et celui des en-têtes (à finir par leur couleur de fond) ; un skin y ajoute le sien (version 0.203). */
+    private static final String ROOT_STYLE = CARD_STYLE + " -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a0f2e;"
+            + " -fx-background-color: " + GameApp.DARK_MATTER_COLOR + ";";
+    private static final String HEADER_STYLE = CARD_STYLE + " -fx-font-weight: bold; -fx-text-fill: #10151f; -fx-background-color: ";
+
     /** Une case de l'arbre : l'amélioration, sa carte, sa place et les traits qui y mènent. */
     private static final class Cell {
         final DarkUpgrade upgrade;
@@ -269,16 +274,14 @@ public final class DarkMatterTreePane extends Pane {
         }
 
         root.setAlignment(Pos.CENTER);
-        root.setStyle(CARD_STYLE + " -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1a0f2e;"
-                + " -fx-background-color: " + GameApp.DARK_MATTER_COLOR + ";");
+        root.setStyle(ROOT_STYLE);
         getChildren().add(root);
         for (DarkUpgrade.Branch branch : branches) {
             Label header = new Label();
             header.setAlignment(Pos.CENTER);
             header.setTextAlignment(TextAlignment.CENTER);
             header.setWrapText(true);
-            header.setStyle(CARD_STYLE + " -fx-font-weight: bold; -fx-text-fill: #10151f; -fx-background-color: "
-                    + COLORS.get(branch) + ";");
+            header.setStyle(HEADER_STYLE + COLORS.get(branch) + ";");
             headers.put(branch, header);
             getChildren().add(header);
         }
@@ -443,6 +446,12 @@ public final class DarkMatterTreePane extends Pane {
             boolean art = DarkTreeSkinArt.draws(skin);
             for (Cell cell : cells) cell.card.setInlinePicture(art ? cell.art : null);
             for (LinkCell link : links) link.card.setInlinePicture(art ? link.art : null);
+            // Version 0.203 : le fond de l'arbre et ses en-têtes prennent le skin, eux aussi.
+            setBackground(DarkTreeSkinArt.backdrop(skin));
+            root.setStyle(ROOT_STYLE + DarkTreeSkinArt.header(skin, GameApp.DARK_MATTER_COLOR));
+            for (DarkUpgrade.Branch branch : branches) {
+                headers.get(branch).setStyle(HEADER_STYLE + COLORS.get(branch) + ";" + DarkTreeSkinArt.header(skin, COLORS.get(branch)));
+            }
         }
         Color dark = Color.web(GameApp.DARK_MATTER_COLOR);
         DarkTreeSkinArt.dress(skin, trunk, dark, true, 6);

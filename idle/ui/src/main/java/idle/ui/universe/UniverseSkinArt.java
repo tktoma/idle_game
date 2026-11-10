@@ -14,10 +14,10 @@ import javafx.scene.shape.StrokeLineCap;
  * visuels.
  * <ul>
  * <li>Les bulles : « Bulle de savon » (une sphère presque transparente, irisée d'arcs-en-ciel qui tournent, deux reflets),
- * « Ballon noué » (un ballon de baudruche d'une couleur franche, son nœud et sa ficelle), « Boule à neige » (un globe de
+ * « Boule à neige » (un globe de
  * verre sur un socle de bois, un sapin dedans et la neige qui tombe), « Globe d'orrery » (un globe de verre sur son pied de
- * laiton, un méridien, des planètes qui tournent sur leurs anneaux), « Planète-fruit » (une orange grenue, ses quartiers,
- * sa feuille), « Œuf » (une coquille pâle et tachetée, pointe en haut) ;</li>
+ * laiton, un méridien, des planètes qui tournent sur leurs anneaux) ; version 0.203 : le ballon noué, la planète-fruit et
+ * l'œuf retirés ;</li>
  * <li>la naissance : « Éclosion » (un œuf qui se fend, dont les deux moitiés s'écartent sur la lumière), « Bourgeon »
  * (une tige, puis un bourgeon dont les pétales s'ouvrent), « Feu d'artifice » (une fusée qui monte, puis une gerbe
  * d'étincelles qui retombent), « Page tournée » (une page blanche qui se tourne de droite à gauche et découvre le ciel) ;
@@ -34,11 +34,7 @@ final class UniverseSkinArt {
     private static final Color BRASS_DARK = Color.web("#8a6a2a");
     private static final Color WOOD = Color.web("#6b4a2a");
     private static final Color WOOD_LIGHT = Color.web("#9a7046");
-    private static final Color ORANGE = Color.web("#ff9a2e");
-    private static final Color ORANGE_DEEP = Color.web("#c85f10");
-    private static final Color LEAF = Color.web("#5fbf5a");
     private static final Color SHELL = Color.web("#f3e8d2");
-    private static final Color SPECKLE = Color.web("#a88a62");
     private static final Color THREAD = Color.web("#e6d2a8");
     private static final Color IVY = Color.web("#4f9b4a");
     private static final Color IVY_LIGHT = Color.web("#8fd38a");
@@ -63,11 +59,8 @@ final class UniverseSkinArt {
         g.setGlobalAlpha(lit);
         switch (skin) {
             case BUBBLE_SOAP -> soap(g, x, y, r, seed, lit, time);
-            case BUBBLE_BALLOON -> balloon(g, x, y, r, seed, lit, time);
             case BUBBLE_SNOWGLOBE -> snowGlobe(g, x, y, r, seed, lit, time);
-            case BUBBLE_ORRERY -> orrery(g, x, y, r, seed, lit, time);
-            case BUBBLE_FRUIT -> fruit(g, x, y, r, seed, lit);
-            default -> egg(g, x, y, r, seed, lit);
+            default -> orrery(g, x, y, r, seed, lit, time);
         }
         g.setGlobalAlpha(1);
     }
@@ -105,35 +98,6 @@ final class UniverseSkinArt {
         g.setLineWidth(1);
         g.setGlobalAlpha(lit * 0.4);
         g.strokeOval(x - r, y - r, 2 * r, 2 * r);
-    }
-
-    private static void balloon(GraphicsContext g, double x, double y, double r, int seed, double lit, double time) {
-        Color color = BALLOONS[seed % BALLOONS.length];
-        double sway = Math.sin(time * 0.8 + seed) * r * 0.04;
-        // La ficelle, qui ondule sous le nœud.
-        g.setStroke(Color.web("#e8e8f0"));
-        g.setLineWidth(1);
-        g.setGlobalAlpha(lit * 0.7);
-        g.beginPath();
-        g.moveTo(x + sway, y + r * 1.08);
-        g.bezierCurveTo(x + sway - r * 0.15, y + r * 1.3, x + sway + r * 0.2, y + r * 1.45, x + sway - r * 0.05, y + r * 1.7);
-        g.stroke();
-        // Le ballon, un peu plus haut que large, et son nœud.
-        g.setGlobalAlpha(lit);
-        g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.4, r * 1.4, false, CycleMethod.NO_CYCLE,
-                new Stop(0, color.interpolate(Color.WHITE, 0.45)), new Stop(0.6, color), new Stop(1, color.darker().darker())));
-        g.fillOval(x - r * 0.88, y - r, r * 1.76, r * 2.02);
-        g.setFill(color.darker());
-        g.fillPolygon(new double[] {x + sway - r * 0.1, x + sway + r * 0.1, x + sway + r * 0.16, x + sway - r * 0.16},
-                new double[] {y + r * 0.97, y + r * 0.97, y + r * 1.12, y + r * 1.12}, 4);
-        // Le reflet allongé, en haut à gauche.
-        g.setFill(Color.WHITE);
-        g.setGlobalAlpha(lit * 0.55);
-        g.save();
-        g.translate(x - r * 0.4, y - r * 0.5);
-        g.rotate(-35);
-        g.fillOval(-r * 0.1, -r * 0.3, r * 0.2, r * 0.6);
-        g.restore();
     }
 
     private static void snowGlobe(GraphicsContext g, double x, double y, double r, int seed, double lit, double time) {
@@ -224,68 +188,9 @@ final class UniverseSkinArt {
         g.strokeArc(x - r * 0.82, y - r * 0.82, r * 1.64, r * 1.64, 120, 35, ArcType.OPEN);
     }
 
-    private static void fruit(GraphicsContext g, double x, double y, double r, int seed, double lit) {
-        g.setGlobalAlpha(lit);
-        g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.35, r * 1.35, false, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#ffc06a")), new Stop(0.65, ORANGE), new Stop(1, ORANGE_DEEP)));
-        g.fillOval(x - r, y - r, 2 * r, 2 * r);
-        // La peau grenue : des pores, plus serrés au bord.
-        g.setFill(ORANGE_DEEP);
-        for (int k = 0; k < 70; k++) {
-            double a = UniverseView.noise(seed * 17 + k) * Math.PI * 2, d = r * 0.95 * Math.sqrt(UniverseView.noise(seed * 17 + k + 300));
-            double dot = Math.max(0.6, r * 0.018);
-            g.setGlobalAlpha(lit * 0.35);
-            g.fillOval(x + Math.cos(a) * d - dot, y + Math.sin(a) * d - dot, 2 * dot, 2 * dot);
-        }
-        // Les quartiers, à peine marqués, comme des méridiens.
-        g.setStroke(ORANGE_DEEP);
-        g.setLineWidth(1);
-        g.setGlobalAlpha(lit * 0.3);
-        for (int k = 0; k < 3; k++) {
-            double squeeze = 0.25 + 0.3 * k;
-            g.strokeOval(x - r * squeeze, y - r * 0.98, r * squeeze * 2, r * 1.96);
-        }
-        // La feuille et son pédoncule, en haut.
-        g.setGlobalAlpha(lit);
-        g.setFill(Color.web("#7a4a1a"));
-        g.fillOval(x - r * 0.08, y - r * 1.05, r * 0.16, r * 0.14);
-        g.setFill(LEAF);
-        g.beginPath();
-        g.moveTo(x + r * 0.05, y - r * 1.0);
-        g.bezierCurveTo(x + r * 0.2, y - r * 1.4, x + r * 0.6, y - r * 1.35, x + r * 0.55, y - r * 1.1);
-        g.bezierCurveTo(x + r * 0.4, y - r * 0.95, x + r * 0.2, y - r * 0.95, x + r * 0.05, y - r * 1.0);
-        g.fill();
-        g.setFill(Color.WHITE);
-        g.setGlobalAlpha(lit * 0.3);
-        g.fillOval(x - r * 0.6, y - r * 0.65, r * 0.3, r * 0.2);
-    }
-
-    private static void egg(GraphicsContext g, double x, double y, double r, int seed, double lit) {
-        Color shell = SHELL.interpolate(BALLOONS[seed % BALLOONS.length], 0.18);
-        g.setGlobalAlpha(lit);
-        // L'œuf : plus étroit en haut, plus large en bas, en deux ovales qui se recouvrent.
-        g.setFill(new RadialGradient(0, 0, x - r * 0.3, y - r * 0.2, r * 1.5, false, CycleMethod.NO_CYCLE,
-                new Stop(0, shell.interpolate(Color.WHITE, 0.5)), new Stop(0.7, shell), new Stop(1, shell.darker())));
-        eggPath(g, x, y, r);
-        g.fill();
-        // Les taches, plus nombreuses vers le bas.
-        g.setFill(SPECKLE);
-        for (int k = 0; k < 24; k++) {
-            double a = UniverseView.noise(seed * 23 + k) * Math.PI * 2, d = Math.sqrt(UniverseView.noise(seed * 23 + k + 300));
-            double sx = x + Math.cos(a) * d * r * 0.72, sy = y + 0.1 * r + Math.sin(a) * d * r * 0.78;
-            double dot = r * (0.02 + 0.04 * UniverseView.noise(seed * 23 + k + 600));
-            g.setGlobalAlpha(lit * 0.45);
-            g.fillOval(sx - dot, sy - dot * 0.8, 2 * dot, 1.6 * dot);
-        }
-        g.setStroke(shell.darker());
-        g.setLineWidth(1);
-        g.setGlobalAlpha(lit * 0.5);
-        eggPath(g, x, y, r);
-        g.stroke();
-        g.setFill(Color.WHITE);
-        g.setGlobalAlpha(lit * 0.35);
-        g.fillOval(x - r * 0.5, y - r * 0.6, r * 0.25, r * 0.4);
-    }
+    // ------------------------------------------------------------------
+    // La naissance
+    // ------------------------------------------------------------------
 
     /** Le tracé d'un œuf, pointe en haut, dans un cercle de rayon {@code r}. */
     private static void eggPath(GraphicsContext g, double x, double y, double r) {
@@ -297,10 +202,6 @@ final class UniverseSkinArt {
         g.bezierCurveTo(x - r * 0.95, y - r * 0.1, x - r * 0.55, y - r, x, y - r);
         g.closePath();
     }
-
-    // ------------------------------------------------------------------
-    // La naissance
-    // ------------------------------------------------------------------
 
     /**
      * Les effets de la naissance habillée du skin, à {@code t} secondes de son début (jusqu'à {@link UniverseView#BIRTH_SECONDS}) ;

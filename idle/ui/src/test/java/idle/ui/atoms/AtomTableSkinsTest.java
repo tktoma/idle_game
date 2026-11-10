@@ -126,13 +126,13 @@ class AtomTableSkinsTest {
                 }
                 if (skin == Skin.TABLE_MAP) {
                     assertTrue(page.cellText(26).endsWith("✕"), "le trésor déterré porte une croix");
-                    assertTrue(page.cellStyle(9).contains("#b02a2a"), "une île de la famille visée est marquée en rouge");
-                    assertFalse(page.cellStyle(118).contains("#b02a2a"), "une île d'une autre famille ne l'est pas");
-                    assertTrue(page.tableStyle().contains("#d8c49a"), "le parchemin");
+                    assertTrue(page.cellStyle(9).contains("#e06a5a"), "une île de la famille visée est marquée en rouge");
+                    assertFalse(page.cellStyle(118).contains("#e06a5a"), "une île d'une autre famille ne l'est pas");
+                    assertTrue(page.tableStyle().contains("#191510"), "le vélin sombre");
                     // Changer de cible repeint les îles marquées.
                     assertTrue(game.setSynthesisTarget(null));
                     page.refresh();
-                    assertFalse(page.cellStyle(9).contains("#b02a2a"), "plus de cible, plus de croix");
+                    assertFalse(page.cellStyle(9).contains("#e06a5a"), "plus de cible, plus de croix");
                     assertTrue(game.setSynthesisTarget(ElementCategory.HALOGEN));
                 }
                 if (skin == Skin.TABLE_NEON) assertTrue(page.tableStyle().contains("#050508"), "le fond noir");

@@ -99,7 +99,10 @@ class AlbumSkinsTest {
                         Node node = AlbumSkinArt.picture(entry, found, 7, skin, "#ffd27f");
                         assertNotNull(node);
                         Canvas canvas = (Canvas) ((javafx.scene.layout.HBox) node).getChildren().get(0);
-                        assertFalse(blank(canvas), skin + (found ? " trouvée" : " vide") + " : " + entry.name());
+                        // « Illustré » ne dessine que le dessin de la case : trouvée et sans dessin, elle reste nue (aucune case
+                        // du jeu n'est sans dessin ; les autres skins ont leur cadre, leur timbre ou leur étiquette).
+                        boolean nue = skin == Skin.ALBUM_ILLUSTRATED && found && entry.picture() == null;
+                        assertEquals(nue, blank(canvas), skin + (found ? " trouvée" : " vide") + " : " + entry.name());
                     }
                 }
             }

@@ -118,6 +118,33 @@ final class DebugBar extends VBox {
     private BotBridge bot;
     /** L'outil « Jouer la fin » (version 0.160), branché par l'application. */
     private Runnable playFinale = () -> { };
+
+    /**
+     * Version 0.203 : les animations plein écran, rejouées sans rien changer à la partie, pour juger un skin sans attendre
+     * l'événement ; branché par l'application, qui tient les vues.
+     */
+    interface AnimationTools {
+        /** L'explosion de matière noire, dans le skin choisi, sans exploser. */
+        void explosion();
+
+        /** L'animation du Big Bang dans le skin choisi ; faux s'il n'y en a pas (le Classique n'en a pas). */
+        boolean bigBang();
+
+        /** La naissance d'un univers ; faux tant qu'aucun univers n'est formé. */
+        boolean birth();
+
+        /** Le lancement d'un univers ; faux tant qu'aucun univers n'est formé. */
+        boolean launch();
+
+        /** L'effet de la transition entre deux univers dans le skin choisi ; faux s'il n'y en a pas (le Classique n'en a pas). */
+        boolean curtain();
+    }
+
+    private AnimationTools animations;
+    /** Version 0.203 : la zone défilante de chaque groupe ; ses outils ne poussent plus la fenêtre quand ils sont nombreux. */
+    private final Map<Button, javafx.scene.control.ScrollPane> scrolls = new LinkedHashMap<>();
+    /** La hauteur au plus des outils d'un groupe : au-delà, ils défilent. */
+    static final double TOOLS_MAX_HEIGHT = 132;
     private boolean live = false;
     private double sinceDecision = 0;
 
@@ -506,6 +533,26 @@ final class DebugBar extends VBox {
                 tool("Une décision", () -> {
                     BotBridge b = bot();
                     if (b != null) note(b.act() ? "Le bot a joué une décision." : "Le bot a échoué : il ne suit plus le jeu.");
+                }));
+
+        // Version 0.203 : les animations, rejouées à la demande dans le skin choisi.
+        groupRight("Animations",
+                tool("Explosion (skin choisi)", () -> { if (animations != null) animations.explosion(); }),
+                tool("Big Bang (skin choisi)", () -> {
+                    if (animations != null && !animations.bigBang()) note("Le Big Bang classique n'a pas d'animation : choisissez un skin du Big Bang.");
+                }),
+                tool("Naissance d'un univers", () -> {
+                    if (animations != null && !animations.birth()) note("Il faut un univers formé : « Former l'univers », groupe Univers.");
+                }),
+                tool("Lancement d'un univers", () -> {
+                    if (animations != null && !animations.launch()) note("Il faut un univers formé : « Former l'univers », groupe Univers.");
+                }),
+                tool("Transition (skin choisi)", () -> {
+                    if (animations != null && !animations.curtain()) note("La transition classique n'a pas d'effet : choisissez un skin de la transition.");
+                }),
+                tool("Jouer la fin", () -> {
+                    if (game.isDimensionsUnlocked()) playFinale.run();
+                    else note("La fin se joue sur la carte des dimensions : ouvrez d'abord une dimension.");
                 }));
 
         groupRight("Paliers",
@@ -936,6 +983,11 @@ final class DebugBar extends VBox {
         playFinale = action == null ? () -> { } : action;
     }
 
+    /** Ce que font les outils du groupe « Animations » (version 0.203). */
+    void setAnimations(AnimationTools tools) {
+        animations = tools;
+    }
+
     /** Ouvre le défi final : la dernière amélioration de la graine, puis la bulle des racines, sans rien payer. */
     private void openFinalChallenge() {
         game.state().setSeedUpgradeLevel(Game.SeedUpgrade.ROOT_BUBBLE.ordinal(), 1);
@@ -1012,7 +1064,21 @@ final class DebugBar extends VBox {
         toggle.setOnAction(event -> open(open == toggle ? null : toggle));
         groups.put(toggle, line);
         header.getChildren().add(toggle);
-        getChildren().add(line);
+        // Version 0.203 : les outils dans une zone qui défile au-delà de TOOLS_MAX_HEIGHT. Avant, un groupe à beaucoup de
+        // boutons (Univers, Dimensions, Skins) grandissait la barre jusqu'à pousser la fenêtre : le haut de la barre, où sont
+        // les autres groupes, sortait de l'écran.
+        line.prefWrapLengthProperty().bind(widthProperty().subtract(44));
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(line);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setMaxHeight(TOOLS_MAX_HEIGHT);
+        scroll.setMinHeight(0);
+        scroll.setFocusTraversable(false);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-padding: 0;");
+        scroll.setVisible(false);
+        scroll.setManaged(false);
+        scrolls.put(toggle, scroll);
+        getChildren().add(scroll);
         return toggle;
     }
 
@@ -1023,6 +1089,8 @@ final class DebugBar extends VBox {
             boolean shown = toggle == group;
             line.setVisible(shown);
             line.setManaged(shown);
+            scrolls.get(toggle).setVisible(shown);
+            scrolls.get(toggle).setManaged(shown);
             toggle.setStyle(shown ? OPEN_GROUP_STYLE : GROUP_STYLE);
         });
     }

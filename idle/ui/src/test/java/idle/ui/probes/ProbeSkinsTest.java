@@ -45,6 +45,8 @@ class ProbeSkinsTest {
         probes.add(new Probe(ProbeDestination.GAS_CLOUD, ProbeTrip.SHORT, 450, 900, 1));
         probes.add(new Probe(ProbeDestination.NEBULA, ProbeTrip.HOUR, 0, 3600, 2));
         game.state().setProbes(probes);
+        // Deux sondes en vol demandent deux places : avec une seule, la seconde voie tombait hors de la vue.
+        game.state().setProbeUpgradeLevel(idle.core.probes.ProbeUpgrade.HANGAR, 1);
         game.state().setProbeRewards(List.of(new idle.core.probes.ProbeReward(idle.core.probes.ProbeReward.Type.SPACE, "", 100, ProbeDestination.NEBULA, 2)));
         return game;
     }
@@ -67,7 +69,8 @@ class ProbeSkinsTest {
             Game game = game();
             List<Skin> skins = probeSkins();
             assertEquals(4, skins.size());
-            ProbesView plain = new ProbesView(game, id -> { });
+            // Le témoin a sa propre partie, sans skin : la vue lit le skin choisi dans la partie à chaque image.
+            ProbesView plain = new ProbesView(game(), id -> { });
             for (Skin skin : skins) {
                 assertTrue(game.chooseSkin(SkinVisual.PROBE, skin), skin.name());
                 ProbesView view = new ProbesView(game, id -> { });
@@ -83,7 +86,9 @@ class ProbeSkinsTest {
                     assertTrue(differing(plain, view) > 0, skin.name() + " à " + size);
                 }
                 // Le clic sur la sonde arrivée répond toujours.
-                assertNotEquals(null, view.probeAt(view.getWidth() - 90, 20 + (view.getHeight() - 40) * 0.75 / Math.max(1, Math.min(ProbesView.LANES, game.probeSlots()))));
+                // La sonde arrivée est la seconde : sa voie est aux trois quarts de la hauteur utile quand il y en a deux.
+                assertEquals(2, game.probeSlots());
+                assertNotEquals(null, view.probeAt(view.getWidth() - 90, 20 + (view.getHeight() - 40) * 0.75));
             }
             assertTrue(game.chooseSkin(SkinVisual.PROBE, null));
             assertFalse(ProbeSkinArt.draws(Skin.CARD_TAG));

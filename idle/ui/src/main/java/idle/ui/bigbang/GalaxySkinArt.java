@@ -18,7 +18,7 @@ import javafx.scene.shape.StrokeLineCap;
  * <p><b>La galaxie</b> ({@link #galaxy}) : « Nautile », une coquille enroulée en spirale logarithmique,
  * ivoire cernée de brun, à loges séparées de cloisons, les points semés le long de la spire ; « Pelote de
  * laine », une boule de brins qui s'entrecroisent, chaque brin un arc de la couleur d'un point ; « Empreinte
- * digitale », des crêtes d'encre concentriques, interrompues, sur une carte pâle ; « Tourbillon », une eau
+ * digitale », des crêtes d'encre claire concentriques, interrompues, à même le ciel ; « Tourbillon », une eau
  * bleu-vert qui s'enroule vers une bonde noire, les points étirés en filets d'écume ; « Roue de feu
  * d'artifice », des étincelles chaudes qui filent le long des bras, chacune avec sa traînée.
  *
@@ -38,7 +38,8 @@ final class GalaxySkinArt {
     private static final Color SHELL_EDGE = Color.web("#8a5a3a");
     private static final Color SHELL_SEPTUM = Color.web("#b58a68");
     // Empreinte digitale
-    private static final Color CARD = Color.web("#ece7dc");
+    /** Version 0.203 : l'encre claire de l'empreinte, posée sur le ciel ; la carte pâle derrière elle est retirée. */
+    private static final Color PRINT = Color.web("#d9d4ea");
     private static final Color RIDGE = Color.web("#2a2a35");
     // Tourbillon
     private static final Color WATER = Color.web("#1f6f7a");
@@ -187,12 +188,17 @@ final class GalaxySkinArt {
         g.setLineCap(StrokeLineCap.SQUARE);
     }
 
-    /** Empreinte digitale : une carte pâle, et des crêtes d'encre concentriques, ondulées et interrompues çà et là. */
+    /**
+     * Empreinte digitale : des crêtes d'encre claire concentriques, ondulées et interrompues çà et là, à même le ciel.
+     * Version 0.203 : la carte crème qui les portait (un carré jaune pâle au milieu du ciel noir) est retirée.
+     */
     private static void fingerprint(GraphicsContext g, double cx, double cy, double radius, double turn) {
-        g.setFill(CARD);
-        g.fillRoundRect(cx - radius * 1.05, cy - radius * 1.05, 2.1 * radius, 2.1 * radius, radius * 0.3, radius * 0.3);
-        g.setStroke(RIDGE);
-        g.setLineWidth(Math.max(0.8, radius * 0.012));
+        // Une lueur douce sous les crêtes, pour que l'empreinte se détache du ciel.
+        g.setFill(new RadialGradient(0, 0, cx, cy, radius * 1.05, false, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.color(0.55, 0.5, 0.85, 0.28)), new Stop(1, Color.color(0.55, 0.5, 0.85, 0))));
+        g.fillOval(cx - radius * 1.05, cy - radius * 1.05, 2.1 * radius, 2.1 * radius);
+        g.setStroke(PRINT);
+        g.setLineWidth(Math.max(0.9, radius * 0.014));
         g.setLineCap(StrokeLineCap.ROUND);
         int ridges = 16;
         int steps = 96;
@@ -274,8 +280,36 @@ final class GalaxySkinArt {
     // ------------------------------------------------------------------
 
     /**
+     * Version 0.203 : range les membres de l'amas en grappe pour le skin « Grappe de raisin ». Les grains se touchent, par
+     * rangs de plus en plus courts vers le bas (trois, trois, deux, un pour neuf membres) ; celui du joueur, le premier,
+     * prend le milieu du deuxième rang. Les autres skins gardent les places que la vue leur donne.
+     */
+    static void bunch(double[] xs, double[] ys, double[] radii, double w, double h) {
+        int count = xs.length, first = 1;
+        while (first * (first + 1) / 2 < count) first++;
+        double grain = Math.min(0.78 * h / (2 + 1.7 * (first - 1)), 0.45 * w / first);
+        double top = h - 0.04 * h - (2 + 1.7 * (first - 1)) * grain;
+        // Les grains qui manquent pour un triangle plein manquent au rang du haut, raccourci : la pointe du bas reste.
+        int missing = first * (first + 1) / 2 - count;
+        int other = 1;
+        for (int row = 0; row < first; row++) {
+            int inRow = first - row - (row == 0 ? missing : 0);
+            for (int k = 0; k < inRow; k++) {
+                // Le grain du joueur : au milieu du deuxième rang (du seul rang, s'il n'y en a qu'un).
+                int member = row == Math.min(1, first - 1) && k == (inRow - 1) / 2 ? 0 : other++;
+                if (member >= count) continue;
+                // Un rang du haut raccourci d'un nombre impair de grains se décale d'un demi-grain : il reste en quinconce.
+                double shift = row == 0 && missing % 2 == 1 && first > 1 ? 0.98 * grain : 0;
+                xs[member] = w / 2 + shift + (k - (inRow - 1) / 2.0) * 1.96 * grain;
+                ys[member] = top + grain + row * 1.7 * grain;
+                radii[member] = member == 0 ? grain * 1.04 : grain * (0.9 + 0.1 * fraction(member * 3.1));
+            }
+        }
+    }
+
+    /**
      * Le fond de l'amas dans ce skin, avant ses membres : la rafle de la grappe (une tige depuis le haut,
-     * une branche vers chaque grain), le fil des lampions, le vol zigzagant des abeilles.
+     * une feuille et une vrille), le fil des lampions, le vol zigzagant des abeilles.
      *
      * @param xs les centres des membres, {@code radii} leurs rayons ; le premier est la galaxie du joueur
      */
@@ -283,19 +317,54 @@ final class GalaxySkinArt {
         g.setGlobalAlpha(1);
         switch (skin) {
             case CLUSTER_GRAPES -> {
-                g.setStroke(STEM);
-                g.setLineCap(StrokeLineCap.ROUND);
-                double stemX = xs[0], stemY = 0;
-                g.setLineWidth(4);
-                g.strokeLine(stemX, stemY, stemX, ys[0] - radii[0] * 0.6);
-                g.setLineWidth(2);
+                // Version 0.203 : une vraie grappe ({@link #bunch} a serré les grains). La rafle descend du haut jusqu'aux
+                // premiers grains, une feuille à trois lobes et une vrille à son départ. Avant : des grains épars reliés
+                // au centre par des traits droits.
+                double top = Double.MAX_VALUE, grain = radii[0];
+                for (int member = 0; member < xs.length; member++) top = Math.min(top, ys[member] - radii[member]);
+                // La rafle part du milieu des grains du haut.
+                double stemX = 0;
+                int topmost = 0;
                 for (int member = 0; member < xs.length; member++) {
-                    double fromY = Math.max(stemY + 4, ys[member] - radii[member] - 0.25 * h);
-                    g.strokeLine(stemX, fromY, xs[member], ys[member]);
+                    if (ys[member] - radii[member] < top + grain * 0.5) {
+                        stemX += xs[member];
+                        topmost++;
+                    }
                 }
-                // Une feuille en haut.
-                g.setFill(GRAPE_GREEN);
-                g.fillOval(stemX + 6, 2, 0.12 * w, 0.1 * h);
+                stemX = topmost == 0 ? w / 2 : stemX / topmost;
+                g.setLineCap(StrokeLineCap.ROUND);
+                g.setStroke(STEM);
+                g.setLineWidth(Math.max(3, grain * 0.22));
+                g.beginPath();
+                g.moveTo(stemX + grain * 0.5, 0);
+                g.quadraticCurveTo(stemX - grain * 0.3, top * 0.5, stemX, top + grain * 0.5);
+                g.stroke();
+                // La feuille : trois lobes pointus autour d'une nervure, à droite de la rafle.
+                double lx = stemX + grain * 0.35, ly = Math.max(2, top * 0.35), leaf = grain * 1.7;
+                g.setFill(GRAPE_GREEN.deriveColor(0, 1, 0.75, 1));
+                g.beginPath();
+                g.moveTo(lx, ly);
+                g.bezierCurveTo(lx + leaf * 0.2, ly - leaf * 0.55, lx + leaf * 0.7, ly - leaf * 0.5, lx + leaf * 0.75, ly - leaf * 0.15);
+                g.bezierCurveTo(lx + leaf * 1.1, ly - leaf * 0.25, lx + leaf * 1.35, ly + leaf * 0.05, lx + leaf * 1.3, ly + leaf * 0.3);
+                g.bezierCurveTo(lx + leaf * 1.05, ly + leaf * 0.35, lx + leaf * 0.95, ly + leaf * 0.6, lx + leaf * 0.7, ly + leaf * 0.75);
+                g.bezierCurveTo(lx + leaf * 0.45, ly + leaf * 0.55, lx + leaf * 0.15, ly + leaf * 0.4, lx, ly);
+                g.closePath();
+                g.fill();
+                g.setStroke(GRAPE_GREEN);
+                g.setLineWidth(1.2);
+                g.strokeLine(lx, ly, lx + leaf * 1.1, ly + leaf * 0.22);
+                g.strokeLine(lx + leaf * 0.35, ly + leaf * 0.07, lx + leaf * 0.7, ly - leaf * 0.25);
+                g.strokeLine(lx + leaf * 0.4, ly + leaf * 0.08, lx + leaf * 0.68, ly + leaf * 0.55);
+                // La vrille : une boucle qui s'enroule, à gauche.
+                g.setLineWidth(1.4);
+                g.beginPath();
+                double vx = stemX - grain * 0.1, vy = Math.max(3, top * 0.45);
+                g.moveTo(vx, vy);
+                for (int k = 1; k <= 28; k++) {
+                    double a = k * 0.42, r = grain * (0.16 + 0.03 * k) * 0.55;
+                    g.lineTo(vx - grain * 0.045 * k * 1.6 + r * Math.cos(a) - r, vy + r * Math.sin(a));
+                }
+                g.stroke();
                 g.setLineCap(StrokeLineCap.SQUARE);
             }
             case CLUSTER_LANTERNS -> {
@@ -341,14 +410,26 @@ final class GalaxySkinArt {
         g.setGlobalAlpha(1);
         switch (skin) {
             case CLUSTER_GRAPES -> {
-                Color body = rank % 3 == 2 && !own ? GRAPE_GREEN : GRAPE;
-                g.setFill(new RadialGradient(0, 0, cx - radius * 0.35, cy - radius * 0.35, radius * 1.3, false, CycleMethod.NO_CYCLE,
-                        new Stop(0, body.interpolate(GRAPE_LIGHT, own ? 0.7 : 0.45)), new Stop(1, body.deriveColor(0, 1, 0.6, 1))));
+                // Version 0.203 : tous les grains du même violet, plus ou moins mûr (plus de grains verts), cernés d'une
+                // ombre, la pruine en voile bleuté et un reflet ; celui du joueur, plus clair, a un liseré doré.
+                Color body = rank % 3 == 1 ? GRAPE.interpolate(Color.web("#3a2a7a"), 0.45) : rank % 3 == 2 ? GRAPE.interpolate(Color.web("#8a2a5a"), 0.4) : GRAPE;
+                g.setFill(Color.color(0, 0, 0, 0.35));
+                g.fillOval(cx - radius * 1.04, cy - radius * 0.98, 2.08 * radius, 2.08 * radius);
+                g.setFill(new RadialGradient(0, 0, cx - radius * 0.3, cy - radius * 0.35, radius * 1.35, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, body.interpolate(GRAPE_LIGHT, own ? 0.65 : 0.35)), new Stop(0.55, body), new Stop(1, body.deriveColor(0, 1, 0.45, 1))));
+                g.fillOval(cx - radius, cy - radius, 2 * radius, 2 * radius);
+                g.setFill(new RadialGradient(0, 0, cx + radius * 0.2, cy + radius * 0.3, radius * 0.9, false, CycleMethod.NO_CYCLE,
+                        new Stop(0, Color.color(0.75, 0.8, 1, 0.16)), new Stop(1, Color.color(0.75, 0.8, 1, 0))));
                 g.fillOval(cx - radius, cy - radius, 2 * radius, 2 * radius);
                 g.setFill(Color.WHITE);
-                g.setGlobalAlpha(0.7);
-                g.fillOval(cx - radius * 0.5, cy - radius * 0.55, radius * 0.3, radius * 0.22);
+                g.setGlobalAlpha(0.75);
+                g.fillOval(cx - radius * 0.52, cy - radius * 0.58, radius * 0.3, radius * 0.2);
                 g.setGlobalAlpha(1);
+                if (own) {
+                    g.setStroke(Color.web("#ffd98a"));
+                    g.setLineWidth(1.5);
+                    g.strokeOval(cx - radius, cy - radius, 2 * radius, 2 * radius);
+                }
             }
             case CLUSTER_LANTERNS -> {
                 double wide = radius * 0.85, tall = radius;

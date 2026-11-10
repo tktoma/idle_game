@@ -262,6 +262,7 @@ class MelangePageTest {
             Game game = tenth();
             DimensionWindow window = window(game);
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 10);
             game.state().setMirrorShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.MIX_AUTO));
             game.state().setMixStageEarned(game.mixStageGoal());
@@ -308,6 +309,7 @@ class MelangePageTest {
         FxTestSupport.fx(() -> {
             Game game = tenth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 10);
             game.state().setMirrorShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

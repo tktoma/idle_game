@@ -155,6 +155,7 @@ class ClickerPageTest {
             assertTrue(window.clickerButton(Game.ClickerUpgrade.STACK).getText().startsWith("Zones superposées : chaque zone de plus ×1.75 → ×2"),
                     window.clickerButton(Game.ClickerUpgrade.STACK).getText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 7);
             game.state().setBraneShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.CLICKER_PLAY));
             window.frame(0.016, true);
@@ -224,6 +225,7 @@ class ClickerPageTest {
         FxTestSupport.fx(() -> {
             Game game = seventh();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 7);
             game.state().setBraneShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

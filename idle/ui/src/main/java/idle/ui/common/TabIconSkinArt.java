@@ -207,7 +207,11 @@ public final class TabIconSkinArt {
             }
             case SKINS -> {
                 m.ring(0, 0, 0.4, 0.32, 8, 0);
-                for (int k = 0; k < 3; k++) m.point(-0.21 + 0.17 * k, -0.12 + (k == 1 ? -0.04 : 0.02));
+                // Les trois pastilles montent et descendent tour à tour, au rythme où elles brillent dans l'icône classique
+                // (version 0.203 : sous un skin, la palette était la seule icône immobile).
+                for (int k = 0; k < 3; k++) {
+                    m.point(-0.21 + 0.17 * k, -0.12 + (k == 1 ? -0.04 : 0.02) + 0.03 * Math.sin(time * 1.6 + k * 2.1));
+                }
             }
         }
         return m;

@@ -12,30 +12,34 @@ import javafx.scene.paint.Stop;
  * Les six skins du Big Bang de la version 0.191, dessinés à côté de {@link SpaceView} pour la garder
  * lisible : le vide, le ciel de toute la vue, l'espace créé, son bord et les étoiles.
  * <ul>
- * <li>« Encre de Chine » : un fond blanc cassé aux fibres de papier, des étoiles en points d'encre, l'espace en
- * lavis gris, le bord d'un coup de pinceau irrégulier ;</li>
+ * <li>« Encre de Chine » : un papier noir aux fibres à peine visibles, des étoiles en points d'encre claire, l'espace
+ * en lavis, le bord d'un coup de pinceau irrégulier (version 0.203 : papier blanc cassé avant) ;</li>
  * <li>« Vitrail » : un fond noir, le ciel en verres colorés cernés de plomb, l'espace en rosace ;</li>
  * <li>« Abysses » : un bleu très sombre, des rais de lumière qui tombent d'en haut, des étoiles en plancton
  * lumineux, l'espace en méduse qui pulse ;</li>
- * <li>« Papier plié » : une feuille crème aux plis visibles, l'espace à facettes planes, des étoiles en confettis ;</li>
- * <li>« Carte ancienne » : du parchemin taché, des lignes de rhumb, les étoiles reliées en constellations, l'espace
- * en rose des vents ;</li>
+ * <li>« Papier plié » : une feuille bleu nuit aux plis visibles, l'espace à facettes planes, des étoiles en confettis
+ * (version 0.203 : feuille crème avant) ;</li>
+ * <li>« Carte ancienne » : un vélin sombre tracé à l'encre d'or, des lignes de rhumb, les étoiles reliées en
+ * constellations, l'espace en rose des vents (version 0.203 : parchemin jaune avant) ;</li>
  * <li>« Néon de ville » : l'asphalte mouillé où se reflètent les enseignes, l'espace en enseigne qui clignote,
  * les étoiles en fenêtres allumées.</li>
  * </ul>
  */
 final class SpaceSkinArt {
 
-    private static final Color INK = Color.web("#1a1a1e");
-    private static final Color PAPER = Color.web("#f4efe3");
+    // Version 0.203 (retour de jeu) : l'encre, le papier plié et la carte ancienne passent en version nuit. Leurs fonds
+    // clairs (papier crème, parchemin jaune) juraient avec le reste de la fenêtre, sombre partout : papier noir et
+    // encre claire, feuille bleu nuit, carte à l'encre d'or sur vélin sombre.
+    private static final Color INK = Color.web("#e9e6dd");
+    private static final Color PAPER = Color.web("#111215");
     private static final Color LEAD = Color.web("#2a2a2e");
     private static final Color[] GLASS = {Color.web("#d62839"), Color.web("#f4a259"), Color.web("#f7d354"),
         Color.web("#4fa36b"), Color.web("#2f6fb5"), Color.web("#7a3fa0")};
     private static final Color PLANKTON = Color.web("#6bffd0");
     private static final Color JELLY = Color.web("#b08aff");
-    private static final Color FOLD = Color.web("#a08a68");
-    private static final Color PARCHMENT = Color.web("#e8d7b0");
-    private static final Color SEPIA = Color.web("#5a3a1a");
+    private static final Color FOLD = Color.web("#5d6a8c");
+    private static final Color PARCHMENT = Color.web("#191510");
+    private static final Color SEPIA = Color.web("#c9a468");
     private static final Color PINK = Color.web("#ff4fd8");
     private static final Color CYAN = Color.web("#3ff0ff");
     private static final Color WINDOW = Color.web("#ffd27f");
@@ -65,7 +69,7 @@ final class SpaceSkinArt {
             case BANG_INK -> PAPER;
             case BANG_STAINED -> Color.BLACK;
             case BANG_ABYSS -> Color.web("#020814");
-            case BANG_ORIGAMI -> Color.web("#f1e9d8");
+            case BANG_ORIGAMI -> Color.web("#141824");
             case BANG_MAP -> PARCHMENT;
             default -> Color.web("#15171a");
         };
@@ -77,7 +81,7 @@ final class SpaceSkinArt {
         switch (look) {
             case BANG_INK -> {
                 // Les fibres du papier : de longs traits à peine visibles.
-                g.setStroke(Color.web("#c9c0ae"));
+                g.setStroke(Color.web("#4a4a52"));
                 g.setLineWidth(0.8);
                 for (int k = 0; k < 60; k++) {
                     double x = fraction(k * 1.31) * w, y = fraction(k * 2.77) * h;
@@ -135,7 +139,7 @@ final class SpaceSkinArt {
                         for (int half = 0; half < 2; half++) {
                             double shade = 0.9 + 0.08 * ((half + i + j) % 2 == 0 ? 1 : -1) * (0.6 + 0.4 * fraction(i * 7.1 + j * 3.3 + half));
                             g.setGlobalAlpha(0.6);
-                            g.setFill(Color.color(Math.min(1, shade * 0.98), Math.min(1, shade * 0.93), Math.min(1, shade * 0.84)));
+                            g.setFill(Color.color(shade * 0.11, shade * 0.13, shade * 0.20));
                             double[] xs = slash ? (half == 0 ? new double[] {x, x + cell, x} : new double[] {x + cell, x + cell, x})
                                     : (half == 0 ? new double[] {x, x + cell, x + cell} : new double[] {x, x + cell, x});
                             double[] ys = slash ? (half == 0 ? new double[] {y, y, y + cell} : new double[] {y, y + cell, y + cell})
@@ -158,7 +162,7 @@ final class SpaceSkinArt {
                     double x = fraction(k * 1.31) * w, y = fraction(k * 2.77) * h, size = small * (0.05 + 0.15 * fraction(k * 4.1));
                     g.setGlobalAlpha(1);
                     g.setFill(new RadialGradient(0, 0, x, y, size, false, CycleMethod.NO_CYCLE,
-                            new Stop(0, tint(Color.web("#b89a60"), 0.25)), new Stop(1, tint(Color.web("#b89a60"), 0))));
+                            new Stop(0, tint(Color.web("#b89a60"), 0.10)), new Stop(1, tint(Color.web("#b89a60"), 0))));
                     g.fillOval(x - size, y - size, 2 * size, 2 * size);
                 }
                 g.setStroke(SEPIA);
@@ -260,7 +264,7 @@ final class SpaceSkinArt {
                 for (int k = 0; k < sides; k++) {
                     double a0 = 2 * Math.PI * k / sides, a1 = 2 * Math.PI * (k + 1) / sides;
                     double shade = 0.7 + 0.22 * ((k % 2 == 0 ? 1 : 0) * 0.6 + 0.4 * fraction(k * 3.7));
-                    g.setFill(Color.color(shade * 0.95, shade * 0.88, shade * 0.75));
+                    g.setFill(Color.color(shade * 0.36, shade * 0.42, shade * 0.60));
                     g.fillPolygon(new double[] {x, x + r * Math.cos(a0), x + r * Math.cos(a1)}, new double[] {y, y + r * Math.sin(a0), y + r * Math.sin(a1)}, 3);
                     g.setStroke(FOLD);
                     g.setLineWidth(Math.max(0.8, r * 0.006));
@@ -270,8 +274,8 @@ final class SpaceSkinArt {
                 }
             }
             case BANG_MAP -> {
-                // La rose des vents : un disque de parchemin foncé, seize branches sépia et rouges.
-                g.setFill(Color.web("#d8c49a"));
+                // La rose des vents : un disque de vélin un peu plus clair, seize branches or et rouges.
+                g.setFill(Color.web("#2a2217"));
                 g.fillOval(x - r, y - r, 2 * r, 2 * r);
                 for (int k = 0; k < 16; k++) {
                     double a = -Math.PI / 2 + Math.PI * k / 8;
@@ -279,7 +283,7 @@ final class SpaceSkinArt {
                     g.setFill(k % 2 == 0 ? SEPIA : Color.web("#b02a2a"));
                     g.fillPolygon(new double[] {x, x + len * Math.cos(a), x + len * 0.18 * Math.cos(a + 0.4)},
                             new double[] {y, y + len * Math.sin(a), y + len * 0.18 * Math.sin(a + 0.4)}, 3);
-                    g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#d85a5a"));
+                    g.setFill(k % 2 == 0 ? Color.web("#8a6a3a") : Color.web("#7a2020"));
                     g.fillPolygon(new double[] {x, x + len * Math.cos(a), x + len * 0.18 * Math.cos(a - 0.4)},
                             new double[] {y, y + len * Math.sin(a), y + len * 0.18 * Math.sin(a - 0.4)}, 3);
                 }
@@ -347,7 +351,7 @@ final class SpaceSkinArt {
                     xs[k] = x + r * Math.cos(a);
                     ys[k] = y + r * Math.sin(a);
                 }
-                g.setStroke(Color.web("#6a5a40"));
+                g.setStroke(Color.web("#8fa0c8"));
                 g.setLineWidth(Math.max(1.5, r * 0.008));
                 g.setGlobalAlpha(0.9);
                 g.strokePolyline(xs, ys, sides + 1);

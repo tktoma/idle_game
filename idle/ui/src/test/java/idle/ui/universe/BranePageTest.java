@@ -197,6 +197,7 @@ class BranePageTest {
             assertEquals(0.35 * 1.3, game.braneMaxReach(), 1e-9);
             assertTrue(window.braneButton(Game.BraneUpgrade.GAIN).getText().startsWith("Gain : chaque passage vaut 2 → 3 ondes"));
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 6);
             game.state().setLoopShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.BRANE_PULL));
             window.frame(0.016, true);
@@ -250,6 +251,7 @@ class BranePageTest {
         FxTestSupport.fx(() -> {
             Game game = sixth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 6);
             game.state().setLoopShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

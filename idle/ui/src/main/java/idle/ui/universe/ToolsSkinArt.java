@@ -15,13 +15,13 @@ import javafx.scene.shape.StrokeLineCap;
  * <ul>
  * <li>L'arrosoir : « Théière » (une panse ronde, son couvercle à bouton, une anse en boucle et un bec courbe), « Pichet »
  * (une cruche de grès haute, à l'anse plate et au large bec), « Nuage » (un nuage qu'on presse, dont la pluie coule par le
- * côté), « Bec d'oiseau » (un oiseau rond dont le bec verse), « Coquillage » (une coquille en éventail, striée, ouverte à
- * droite) ; chacun garde la taille, le centre et l'inclinaison de l'arrosoir, et verse au même endroit ;</li>
+ * côté), « Bec d'oiseau » (un oiseau rond dont le bec verse), « Coquillage » (une conque couchée, sa spire
+ * à gauche, son canal effilé jusqu'au bec) ; chacun garde la taille, le centre et l'inclinaison de l'arrosoir, et verse au même endroit ;</li>
  * <li>l'étagère : « Pierre » (des dalles grises, épaisses, sur des piliers), « Atelier » (de la tôle sombre rivetée, des
  * montants perforés), « Bambou » (des tiges noueuses et des planches de lattes), « Nuage » (des planches de nuage qui
  * flottent, sans montants) ;</li>
  * <li>le tuyau : « Liane » (une tige verte, ses feuilles et une vrille au bout), « Fontaine » (une conduite de pierre et
- * une vasque au pied de la plante), « Rigole » (une tranchée creusée dans la terre, l'eau au fond), « Pipette » (un tube de
+ * une borne à bec de bronze, tournée vers la plante), « Rigole » (une tranchée creusée dans la terre, l'eau au fond), « Pipette » (un tube de
  * verre gradué, sa poire de caoutchouc à gauche) ;</li>
  * <li>le chrono : « Sablier » (deux ampoules dans leur bâti de bois, le sable en bas à hauteur du temps gardé, un filet
  * qui coule quand il tourne), « Montre à gousset » (un boîtier d'or à sa chaîne, le cadran blanc, l'aiguille), « Cadran
@@ -195,30 +195,39 @@ final class ToolsSkinArt {
         g.strokeLine(s * 0.1, s * 0.42, s * 0.12, s * 0.6);
     }
 
+    /**
+     * Le coquillage. Version 0.203 : une conque couchée, sa spire à gauche et son canal qui s'effile vers la droite jusqu'au
+     * point où l'arrosoir verse : l'eau sort du bout du canal. Avant, un éventail ouvert vers le haut, dont le bord
+     * s'arrêtait à mi-chemin : l'eau naissait en l'air, à côté de lui, sous une flaque flottante.
+     */
     private static void shell(GraphicsContext g, double s, boolean ghost) {
-        // Une coquille en éventail, la charnière en bas à gauche, ouverte vers le haut à droite.
-        g.save();
-        g.translate(-s * 0.2, s * 0.2);
-        g.rotate(-35);
-        g.setFill(ghost ? GHOST : SHELL);
-        g.fillArc(-s * 0.75, -s * 0.75, s * 1.5, s * 1.5, 10, 160, ArcType.ROUND);
-        g.fillRect(-s * 0.2, -s * 0.05, s * 0.4, s * 0.25);
-        if (!ghost) {
-            g.setStroke(SHELL_RIDGE);
-            g.setLineWidth(Math.max(1, s * 0.03));
-            for (int k = 0; k <= 8; k++) {
-                double a = Math.toRadians(10 + 160 * k / 8.0);
-                g.strokeLine(0, 0, Math.cos(a) * s * 0.75, -Math.sin(a) * s * 0.75);
-            }
-            g.setLineWidth(1.5);
-            g.strokeArc(-s * 0.75, -s * 0.75, s * 1.5, s * 1.5, 10, 160, ArcType.OPEN);
-            g.strokeArc(-s * 0.45, -s * 0.45, s * 0.9, s * 0.9, 10, 160, ArcType.OPEN);
-        }
-        g.restore();
+        Color fill = ghost ? GHOST : SHELL;
+        g.setFill(fill);
+        // Le canal : il part du corps et finit au bec, en (0,95 s ; −0,42 s).
+        g.fillPolygon(new double[] {-s * 0.05, s * 0.97, s * 0.99, s * 0.2}, new double[] {-s * 0.38, -s * 0.5, -s * 0.36, s * 0.3}, 4);
+        // Le corps, renflé, puis la spire en pointe, à gauche.
+        g.fillOval(-s * 0.62, -s * 0.42, s * 1.0, s * 0.84);
+        g.fillPolygon(new double[] {-s * 0.5, -s * 1.0, -s * 0.42}, new double[] {-s * 0.3, s * 0.12, s * 0.34}, 3);
         if (ghost) return;
+        g.setLineCap(StrokeLineCap.ROUND);
+        g.setStroke(SHELL_RIDGE);
+        // Les tours de la spire, de plus en plus serrés vers la pointe.
+        g.setLineWidth(Math.max(1, s * 0.03));
+        for (int k = 0; k < 4; k++) {
+            double t = k / 4.0, x = -s * (0.52 + 0.4 * t), half = s * 0.3 * (1 - t * 0.85);
+            g.strokeArc(x - half * 0.35, s * 0.03 * (1 + 2 * t) - half, half * 0.7, 2 * half, 90, 180, ArcType.OPEN);
+        }
+        // Les côtes du corps et du canal, qui convergent vers le bec.
+        for (int k = 0; k < 5; k++) {
+            double t = (k + 0.5) / 5;
+            g.strokeLine(-s * 0.3, -s * 0.36 + s * 0.68 * t, s * 0.9, -s * 0.47 + s * 0.1 * t);
+        }
+        // L'ouverture : une lèvre rosée le long du canal, et l'eau qui affleure à son bout.
+        g.setFill(Color.web("#f4b8a8"));
+        g.fillPolygon(new double[] {s * 0.1, s * 0.95, s * 0.98, s * 0.25}, new double[] {-s * 0.12, -s * 0.44, -s * 0.37, s * 0.16}, 4);
         g.setFill(WATER);
-        g.setGlobalAlpha(g.getGlobalAlpha() * 0.6);
-        g.fillOval(s * 0.7, -s * 0.5, s * 0.25, s * 0.14);
+        g.setGlobalAlpha(g.getGlobalAlpha() * 0.75);
+        g.fillOval(s * 0.82, -s * 0.47, s * 0.16, s * 0.1);
         g.setGlobalAlpha(1);
     }
 
@@ -359,7 +368,9 @@ final class ToolsSkinArt {
                 g.fillOval(tip[0] + s * 0.3, tip[1] - s * 0.14, s * 0.2, s * 0.2);
             }
             case HOSE_FOUNTAIN -> {
-                // La conduite de pierre, au sol, et la vasque sur son pied.
+                // Version 0.203 : la conduite de pierre mène à une borne, dont le bec de bronze finit à la lance : le jet
+                // en sort et retombe au pied de la plante. Avant, une vasque posée là : l'eau partait de son bord, de côté,
+                // sans rien pour la pousser.
                 g.setStroke(STONE);
                 g.setLineWidth(Math.max(4, s * 0.18));
                 hosePath(g, s, tip, floor);
@@ -368,13 +379,25 @@ final class ToolsSkinArt {
                 g.setLineWidth(1);
                 hosePath(g, s, tip, floor);
                 g.stroke();
+                // La borne : un fût, son socle et son chapeau.
+                double left = tip[0] - s * 0.72, wide = s * 0.4, top = tip[1] - s * 0.5, foot = tip[1] + s * 0.45;
                 g.setFill(STONE);
-                g.fillRect(tip[0] + s * 0.05, tip[1] - s * 0.1, s * 0.16, s * 0.4);
-                g.fillOval(tip[0] - s * 0.15, tip[1] + s * 0.22, s * 0.56, s * 0.18);
-                g.fillArc(tip[0] - s * 0.25, tip[1] - s * 0.35, s * 0.76, s * 0.5, 180, 180, ArcType.ROUND);
+                g.fillRect(left, top, wide, foot - top);
+                g.fillRect(left - s * 0.06, foot - s * 0.1, wide + s * 0.12, s * 0.1);
+                g.fillRect(left - s * 0.06, top - s * 0.08, wide + s * 0.12, s * 0.1);
+                g.fillArc(left, top - s * 0.24, wide, s * 0.36, 0, 180, ArcType.ROUND);
+                g.setStroke(STONE_DARK);
+                g.setLineWidth(1);
+                g.strokeRect(left, top, wide, foot - top);
+                // Le mascaron, d'où sort le bec ; puis le bec, tourné vers la plante, jusqu'à la lance.
+                g.setFill(STONE_DARK);
+                g.fillOval(left + wide * 0.5 - s * 0.13, tip[1] - s * 0.17, s * 0.26, s * 0.26);
+                g.setStroke(Color.web("#b08a4a"));
+                g.setLineWidth(Math.max(3, s * 0.11));
+                g.strokeLine(left + wide * 0.6, tip[1] - s * 0.03, tip[0] - s * 0.03, tip[1] - s * 0.01);
                 g.setFill(WATER);
-                g.setGlobalAlpha(0.8);
-                g.fillOval(tip[0] - s * 0.18, tip[1] - s * 0.16, s * 0.62, s * 0.12);
+                g.setGlobalAlpha(0.85);
+                g.fillOval(tip[0] - s * 0.05, tip[1] - s * 0.05, s * 0.1, s * 0.1);
                 g.setGlobalAlpha(1);
             }
             case HOSE_CHANNEL -> {

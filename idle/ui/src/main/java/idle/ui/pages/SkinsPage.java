@@ -97,7 +97,12 @@ public final class SkinsPage extends VBox {
                 cards.put(skin, card);
                 grid.add(card);
             }
-            getChildren().addAll(name, grid);
+            // Version 0.203 : sous le nom du visuel, où il se voit et ce qu'il change (SkinPlaces).
+            Label place = new Label(SkinPlaces.of(visual));
+            place.setWrapText(true);
+            place.setMaxWidth(820);
+            place.setStyle("-fx-font-size: 11px; -fx-text-fill: #8a9bb0;");
+            getChildren().addAll(name, place, grid);
         }
         refresh();
     }

@@ -156,6 +156,16 @@ final class Sound {
         player.execute(() -> sink.accept(pcm));
     }
 
+    /**
+     * Version 0.203 : fait entendre un son tout de suite, même s'il vient d'être joué : l'aperçu d'un skin de son que le
+     * joueur vient de choisir (la banque, le Big Bang, le tic du métronome). Vrai s'il est parti.
+     */
+    boolean preview(Cue cue, int volume) {
+        lastPlayed.remove(cue);
+        lastAny = Long.MIN_VALUE / 2;
+        return cue == Cue.BEAT ? beat(volume) : play(cue, volume);
+    }
+
     /** Le son d'essai du réglage du volume : joué même s'il vient de l'être. */
     void test(int volume) {
         lastPlayed.remove(Cue.ACHIEVEMENT);

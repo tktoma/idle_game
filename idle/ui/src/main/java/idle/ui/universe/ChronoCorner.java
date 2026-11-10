@@ -6,13 +6,18 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 /**
- * Le chrono dans un coin de la fenêtre (version 0.182) : une fois son étage acheté, il se règle depuis n'importe quel
- * onglet, sans revenir à la sous-page Graine, où il reste aussi ({@link SeedUpgradesPane}). Une petite carte en bas à
- * gauche : le temps gardé, l'accélération, et le curseur. Elle disparaît sur la sous-page Graine (le chrono y est déjà)
- * et tant que l'étage n'est pas acheté.
+ * Le chrono hors de la sous-page Graine (version 0.182) : une fois son étage acheté, il se règle depuis n'importe quel
+ * onglet, sans revenir à la sous-page Graine, où il reste aussi ({@link SeedUpgradesPane}). Le temps gardé,
+ * l'accélération, et le curseur. Il disparaît sur la sous-page Graine (le chrono y est déjà) et tant que l'étage n'est
+ * pas acheté.
+ * <p>
+ * Version 0.203 : une bande d'une ligne, rangée dans la mise en page (sous la ligne de l'objectif, et dans l'en-tête
+ * de la fenêtre d'une dimension), au lieu d'une carte flottante en bas à gauche, qui passait par-dessus les cartes des
+ * pages, les améliorations des dimensions et la colonne des onglets. Elle a sa place à elle : elle ne recouvre plus rien.
  */
 public final class ChronoCorner extends VBox {
 
@@ -22,25 +27,25 @@ public final class ChronoCorner extends VBox {
     private boolean syncing;
 
     public ChronoCorner(Game game) {
-        super(4);
+        super(0);
         this.game = game;
-        setAlignment(Pos.BOTTOM_LEFT);
-        setPadding(new Insets(16));
-        setMaxWidth(USE_PREF_SIZE);
+        setAlignment(Pos.CENTER);
+        setPadding(new Insets(0));
         setMaxHeight(USE_PREF_SIZE);
-        setPickOnBounds(false);
-        VBox card = new VBox(4);
-        card.setStyle("-fx-background-color: #16202eee; -fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #8fd3ff;"
-                + " -fx-padding: 8 12;");
+        HBox card = new HBox(10);
+        card.setAlignment(Pos.CENTER);
+        card.setStyle("-fx-background-color: #0e131b; -fx-border-color: transparent transparent #1d2633 transparent; -fx-padding: 2 12;");
         Label title = new Label("Le chrono");
-        title.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #8fd3ff;");
+        title.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #8fd3ff;");
+        title.setMinWidth(USE_PREF_SIZE);
         line.setStyle("-fx-font-size: 12px; -fx-text-fill: #b8c8d8;");
         speed.setBlockIncrement(0.25);
         speed.setMajorTickUnit(0.25);
         speed.setMinorTickCount(0);
         speed.setSnapToTicks(true);
         speed.setFocusTraversable(false);
-        speed.setPrefWidth(200);
+        speed.setPrefWidth(180);
+        speed.setMinWidth(120);
         speed.valueProperty().addListener((obs, before, after) -> {
             if (syncing) return;
             game.setChronoSpeed(Math.round(after.doubleValue() * 4) / 4.0);

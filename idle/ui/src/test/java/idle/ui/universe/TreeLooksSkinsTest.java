@@ -1,5 +1,6 @@
 package idle.ui.universe;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -64,7 +65,6 @@ class TreeLooksSkinsTest {
     @Test
     void chaqueSaisonFantaisieEtSolSeDessineAChaquePalierAvecChaqueEssence() {
         FxTestSupport.fx(() -> {
-            GraphicsContext g = new Canvas(W, H).getGraphicsContext2D();
             List<Skin> seasons = skinsOf(SkinVisual.TREE_SEASON), fantasies = skinsOf(SkinVisual.TREE_FANTASY), grounds = skinsOf(SkinVisual.TREE_GROUND);
             assertEquals(3, seasons.size());
             assertEquals(6, fantasies.size());
@@ -73,6 +73,9 @@ class TreeLooksSkinsTest {
             essences.add(null);
             for (Skin essence : essences) {
                 for (int stage = 5; stage <= 11; stage++) {
+                    // Un canevas neuf par palier : jamais affiché, un canevas garde tous ses ordres de dessin, et sept cents
+                    // arbres sur le même prenaient plus de deux minutes (un arbre se dessine en une milliseconde).
+                    GraphicsContext g = new Canvas(W, H).getGraphicsContext2D();
                     for (int k = 0; k < 6; k++) {
                         Skin season = seasons.get(k % 3), fantasy = fantasies.get(k), ground = grounds.get(k);
                         for (double growth : new double[] {0, 1}) {
@@ -91,16 +94,18 @@ class TreeLooksSkinsTest {
     }
 
     @Test
-    void lArbreInverseAUnFeuillageEnBasEtLesAutresEnHaut() {
+    void lArbreInverseGardeLaPlaceDesBullesDeLArbreALEndroit() {
+        // Version 0.203 (retour de jeu) : l'arbre inversé rendait le centre de son feuillage retourné, près du sol, et les
+        // bulles, rangées de la graine au feuillage, s'entassaient toutes au même endroit. Le dessin est retourné (voir
+        // chaqueSkinDeLArbreChangeLeDessin…) ; le centre rendu, lui, reste celui de l'arbre à l'endroit.
         FxTestSupport.fx(() -> {
             GraphicsContext g = new Canvas(W, H).getGraphicsContext2D();
-            for (int stage = 7; stage <= 11; stage++) {
+            for (int stage = 5; stage <= 11; stage++) {
                 double height = H * new double[] {0.36, 0.40, 0.50, 0.51, 0.54, 0.56, 0.58}[stage - 5];
-                double classic = SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0, null, null, null, null)[1];
-                double inverted = SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0, null, null, Skin.TREE_INVERTED, null)[1];
-                assertTrue(classic <= BASE_Y - height * 0.45, "palier " + stage + " : le feuillage Classique dans le haut de l'arbre (" + classic + ")");
-                assertTrue(inverted >= BASE_Y - height * 0.55, "palier " + stage + " : le feuillage inversé dans le bas (" + inverted + ")");
-                assertEquals(classic, 2 * (BASE_Y - height * 0.5) - inverted, 1e-6, "le même arbre, retourné autour du milieu de sa hauteur");
+                double[] classic = SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0, null, null, null, null);
+                double[] inverted = SeedTree.draw(g, W, H, BASE_X, BASE_Y, stage, 1, 0, null, null, Skin.TREE_INVERTED, null);
+                if (stage >= 7) assertTrue(classic[1] <= BASE_Y - height * 0.45, "palier " + stage + " : le feuillage Classique dans le haut de l'arbre (" + classic[1] + ")");
+                assertArrayEquals(classic, inverted, 1e-9, "palier " + stage + " : le même centre, donc les mêmes places de bulles");
             }
             return null;
         });

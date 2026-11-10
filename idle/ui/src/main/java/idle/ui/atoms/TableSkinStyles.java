@@ -19,7 +19,7 @@ import idle.core.universe.Skin;
  * maximum ;</li>
  * <li>« Néon » : des cases noires au trait de néon de la famille, texte lumineux, éteint tant que la case
  * n'est pas obtenue ;</li>
- * <li>« Carte au trésor » : du parchemin, les cases obtenues en îles à l'encre brune, les autres en
+ * <li>« Carte au trésor » : un vélin sombre (version 0.203 : parchemin jaune avant), les cases obtenues en îles à l'encre d'or, les autres en
  * pointillés, une croix rouge sur les trésors déterrés (au maximum) et sur les îles de la famille visée ;</li>
  * <li>« Minuscule » : rien que les lettres, sans fond ni bordure, dans la couleur de la famille.</li>
  * </ul>
@@ -40,8 +40,8 @@ final class TableSkinStyles {
     static String tableStyle(Skin skin) {
         if (skin == Skin.TABLE_NEON) return "-fx-background-color: #050508; -fx-background-radius: 8; -fx-padding: 10;";
         if (skin == Skin.TABLE_MAP) {
-            return "-fx-background-color: #d8c49a; -fx-background-radius: 6; -fx-padding: 12;"
-                    + " -fx-border-color: #7a5a2a; -fx-border-width: 2; -fx-border-radius: 6; -fx-border-style: solid;";
+            return "-fx-background-color: #191510; -fx-background-radius: 6; -fx-padding: 12;"
+                    + " -fx-border-color: #6a5230; -fx-border-width: 2; -fx-border-radius: 6; -fx-border-style: solid;";
         }
         return "";
     }
@@ -128,12 +128,12 @@ final class TableSkinStyles {
         if (!owned) {
             // Une île pas encore découverte : un contour en pointillés, rouge si la synthèse ciblée la vise.
             return "-fx-font-family: Georgia, serif; -fx-font-style: italic; " + COMMON + " -fx-background-radius: 8; -fx-border-radius: 8;"
-                    + " -fx-background-color: transparent; -fx-text-fill: " + (spot ? "#b02a2a" : "#8a6a3a88") + ";"
-                    + " -fx-border-color: " + (spot ? "#b02a2a" : "#8a6a3a") + "; -fx-border-width: 1.5; -fx-border-style: dotted;";
+                    + " -fx-background-color: transparent; -fx-text-fill: " + (spot ? "#e06a5a" : "#c9a46888") + ";"
+                    + " -fx-border-color: " + (spot ? "#e06a5a" : "#7a6238") + "; -fx-border-width: 1.5; -fx-border-style: dotted;";
         }
         return "-fx-font-family: Georgia, serif; " + COMMON + " -fx-background-radius: 8 12 9 11; -fx-border-radius: 8 12 9 11;"
-                + " -fx-background-color: " + (maxed ? "#a8b070" : "#e8d7a8") + "; -fx-text-fill: " + (maxed ? "#b02a2a" : "#4a2e12") + ";"
-                + " -fx-border-color: #5a3a1a; -fx-border-width: " + (maxed ? 2 : 1.5) + ";";
+                + " -fx-background-color: " + (maxed ? "#3d4424" : "#2e2618") + "; -fx-text-fill: " + (maxed ? "#ff8a78" : "#e6cf9c") + ";"
+                + " -fx-border-color: #c9a468; -fx-border-width: " + (maxed ? 2 : 1.5) + ";";
     }
 
     private static String tiny(String family, boolean owned, boolean maxed) {

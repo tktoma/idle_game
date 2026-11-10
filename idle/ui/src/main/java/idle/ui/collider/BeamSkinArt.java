@@ -12,7 +12,8 @@ import javafx.scene.paint.Color;
  * <ul>
  * <li>« Comète » : deux boules à longue queue de glace bleu pâle semée de cristaux ; au croisement, il neige
  * sur le détecteur ;</li>
- * <li>« Encre » : deux traits de plume noire sur fond clair, de l'injecteur à la plume ; le croisement laisse
+ * <li>« Encre » : deux traits de plume d'encre claire sur papier noir (version 0.203 : encre noire sur fond crème avant,
+ * qui jurait avec le reste de la page), de l'injecteur à la plume ; le croisement laisse
  * une tache qui s'étale puis sèche ;</li>
  * <li>« Laser » : des rayons fins et droits, par segments, sans traînée ; les étincelles sont des pixels ;</li>
  * <li>« Lucioles » : une nuée de points verts qui clignotent autour de chaque tête ; au croisement, toutes
@@ -21,9 +22,9 @@ import javafx.scene.paint.Color;
  */
 final class BeamSkinArt {
 
-    /** Le fond clair du skin « Encre ». */
-    static final Color PAPER = Color.web("#f3ecd8");
-    private static final Color INK = Color.web("#141418");
+    /** Le papier noir du skin « Encre » (version 0.203). */
+    static final Color PAPER = Color.web("#0d0e12");
+    private static final Color INK = Color.web("#e9e6dd");
     private static final Color ICE = Color.web("#cfefff");
     private static final Color ICE_DEEP = Color.web("#7fc8ff");
     private static final Color LASER = Color.web("#ff3040");

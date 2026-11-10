@@ -2466,13 +2466,10 @@ public abstract class GameUniverse extends GameAtoms {
         int explosions = state.explosions();
         if (explosions >= 25) unlockSkin(idle.core.universe.Skin.DARK_MERCURY);
         if (explosions >= 10) unlockSkin(idle.core.universe.Skin.DARK_HOLE);
-        if (hasSkin(idle.core.universe.Skin.DARK_CONTRACTED)) unlockSkin(idle.core.universe.Skin.DARK_EGG);
         if (explosions >= 200) unlockSkin(idle.core.universe.Skin.DARK_KNOT);
         if (explosions >= 500) unlockSkin(idle.core.universe.Skin.DARK_LANTERN);
-        if (explosions >= 15) unlockSkin(idle.core.universe.Skin.DARK_RAIN);
         if (explosions >= 50) unlockSkin(idle.core.universe.Skin.DARK_SNOW);
         if (explosions >= 1_000) unlockSkin(idle.core.universe.Skin.DARK_HOURGLASS);
-        if (explosions >= 100) unlockSkin(idle.core.universe.Skin.DARK_FIREWORKS);
         if (state.bigBangs() >= 5) unlockSkin(idle.core.universe.Skin.BANG_INK);
         if (solarSystemsComplete() >= 3) unlockSkin(idle.core.universe.Skin.BANG_STAINED);
         if (state.hasBody("ocean_planet")) unlockSkin(idle.core.universe.Skin.BANG_ABYSS);
@@ -2628,7 +2625,7 @@ public abstract class GameUniverse extends GameAtoms {
     }
 
     /**
-     * Version 0.196 : les skins de l'univers. Les bulles suivent les univers formés (une par univers, du premier au sixième),
+     * Version 0.196 : les skins de l'univers. Les bulles suivent les univers formés (une par univers, du premier au troisième),
      * la naissance et le lancement les univers à partir du cinquième, les liens à partir du septième ; la graine ses paliers ;
      * l'arrosoir les arrosages de la graine en cours, le tuyau et la terre fertile achetés ; l'étagère l'étage du chrono
      * acheté et les univers formés à partir du troisième ; le tuyau ses niveaux ; le chrono plein, puis les univers formés ;

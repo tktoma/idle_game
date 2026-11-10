@@ -59,7 +59,7 @@ class DarkMatterSkinsTest {
     void chaqueBouleSeDessineSansException() {
         FxTestSupport.fx(() -> {
             List<Skin> skins = skinsOf(SkinVisual.DARK_BALL);
-            assertEquals(8, skins.size());
+            assertEquals(7, skins.size(), "version 0.203 : l'œuf retiré");
             for (Skin skin : skins) {
                 DarkMatterView view = new DarkMatterView(400, 300);
                 view.setSkin(skin);
@@ -74,7 +74,7 @@ class DarkMatterSkinsTest {
     void chaqueAnimationSeDessineSansExceptionAvecChaqueBoule() {
         FxTestSupport.fx(() -> {
             List<Skin> animations = skinsOf(SkinVisual.DARK_ANIMATION);
-            assertEquals(6, animations.size());
+            assertEquals(4, animations.size(), "version 0.203 : la pluie et le feu d'artifice retirés");
             for (Skin animation : animations) {
                 DarkMatterView view = new DarkMatterView(400, 300);
                 view.setAnimation(animation);
@@ -92,11 +92,11 @@ class DarkMatterSkinsTest {
     void laCroissanceEtLAppuiSontMesures() {
         FxTestSupport.fx(() -> {
             DarkMatterView view = new DarkMatterView(400, 300);
-            view.setSkin(Skin.DARK_EGG);
+            view.setSkin(Skin.DARK_LANTERN);
             view.frame(0.05, SIZES[0], false, 0);
-            assertEquals(0, view.growth(), 1e-9, "un proton : l'œuf est intact");
+            assertEquals(0, view.growth(), 1e-9, "un proton : la flamme est au plus bas");
             view.frame(0.05, SIZES[2], false, 0);
-            assertEquals(1, view.growth(), 1e-9, "l'univers observable : les fissures sont au bout");
+            assertEquals(1, view.growth(), 1e-9, "l'univers observable : la flamme est à son plein");
             view.frame(0.05, SIZES[1], true, 10);
             assertTrue(view.press() > 0.8, "la secousse part à l'appui");
             for (int k = 0; k < 30; k++) view.frame(0.05, SIZES[1], true, 10);
@@ -110,7 +110,7 @@ class DarkMatterSkinsTest {
     void unSkinDUnAutreVisuelOuAucunDonneLeClassique() {
         FxTestSupport.fx(() -> {
             DarkMatterView view = new DarkMatterView(400, 300);
-            view.setSkin(Skin.DARK_RAIN);
+            view.setSkin(Skin.DARK_SNOW);
             view.setAnimation(Skin.DARK_HOLE);
             assertNull(view.skin());
             assertNull(view.animation());

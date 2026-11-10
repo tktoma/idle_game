@@ -94,7 +94,7 @@ class GraineAmeliorationsPageTest {
             pane.select(3);
             javafx.scene.control.Button hose = pane.button(SeedUpgrade.HOSE);
             assertEquals(SeedUpgradesPane.CardState.SHORT, SeedUpgradesPane.state(hose));
-            assertTrue(hose.getText().contains("il en manque 1 480"), hose.getText());
+            assertTrue(hose.getText().contains("il en manque 1480"), hose.getText());
             assertTrue(hose.isDisabled());
             assertTrue(hose.getStyle().contains("-fx-opacity: 1"), "désactivée, la carte reste lisible");
             assertEquals(SeedUpgradesPane.CardState.LOCKED, SeedUpgradesPane.state(pane.button(SeedUpgrade.CHRONO_SPEED)), "sans l'étage du chrono");

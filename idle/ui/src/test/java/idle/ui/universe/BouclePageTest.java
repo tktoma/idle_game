@@ -204,6 +204,7 @@ class BouclePageTest {
             assertTrue(window.loopHintText().contains("(S, D, F, Espace, J, K, L)"), window.loopHintText());
             assertTrue(window.autoBadgeText().isEmpty());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 5);
             game.state().setDurationShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.LOOP_PLAY));
             window.frame(0.016, true);
@@ -316,6 +317,7 @@ class BouclePageTest {
         FxTestSupport.fx(() -> {
             Game game = fifth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 5);
             game.state().setDurationShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

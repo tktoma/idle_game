@@ -35,7 +35,9 @@ class NotationsTest {
                 assertFalse(text.isBlank(), notation + " sur " + SAMPLES.get(i));
                 assertTrue(text.length() <= 60, notation + " reste court sur " + SAMPLES.get(i) + " : " + text);
                 // En dessous de mille, toutes les notations écrivent pareil ; au-dessus, la nouvelle (hors battements) change l'écriture.
-                if (i < 2 || notation == Settings.Notation.HEARTBEATS) assertEquals(classic.get(i), text, notation + " sur " + SAMPLES.get(i));
+                // Les préfixes SI s'arrêtent au quetta (10^30) : au-delà, c'est la scientifique, comme l'annonce le skin.
+                boolean repli = notation == Settings.Notation.SI && !SAMPLES.get(i).lt(BigNum.of(1, 33));
+                if (i < 2 || notation == Settings.Notation.HEARTBEATS || repli) assertEquals(classic.get(i), text, notation + " sur " + SAMPLES.get(i));
                 else assertFalse(classic.get(i).equals(text), notation + " doit changer " + SAMPLES.get(i));
             }
         }
@@ -47,7 +49,7 @@ class NotationsTest {
         assertEquals("1.21×2^10", Format.big(BigNum.of(1234)));
         assertEquals("1.91×2^19", Format.big(BigNum.of(1, 6)));
         assertEquals("1.00×2^10", Format.big(BigNum.of(1024)));
-        assertTrue(Format.big(BigNum.of(1, 85_000)).endsWith("×2^282 361"), Format.big(BigNum.of(1, 85_000)));
+        assertTrue(Format.big(BigNum.of(1, 85_000)).endsWith("×2^282 363"), Format.big(BigNum.of(1, 85_000)));
         Format.setNotation(Settings.Notation.HEX);
         assertEquals("0x4D2", Format.big(BigNum.of(1234)));
         assertEquals("0xF4240", Format.big(BigNum.of(1, 6)));
@@ -60,7 +62,7 @@ class NotationsTest {
         Format.setNotation(Settings.Notation.JAPANESE);
         assertEquals("1 234", Format.big(BigNum.of(1234)));
         assertEquals("100万", Format.big(BigNum.of(1, 6)));
-        assertEquals("10垓", Format.big(BigNum.of(1, 21)));
+        assertEquals("10.0垓", Format.big(BigNum.of(1, 21)), "trois chiffres, comme partout");
         assertEquals("1.00無量大数", Format.big(BigNum.of(1, 68)));
         assertEquals("1.00×10^85000", Format.big(BigNum.of(1, 85_000)), "au-delà du 無量大数, le repli");
         Format.setNotation(Settings.Notation.MORSE);

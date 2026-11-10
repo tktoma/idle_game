@@ -35,7 +35,7 @@ class SkinsNouveauxTest {
         assertTrue(game.chooseSkin(SkinVisual.TREE, null));
         assertEquals(null, game.chosenSkin(SkinVisual.TREE));
         // Chaque skin débloqué compte pour le bonus, comme les autres (+2 %).
-        assertEquals(369, Skin.values().length, "dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
+        assertEquals(363, Skin.values().length, "six retirés en 0.203 ; dix-neuf skins d'avant, huit essences, trois astres, dix mini-jeux, quatre molécules, six cadres, treize de chrome, "
                 + "quarante de la 0.191, vingt-huit de la 0.192, dix de la 0.193, trente-cinq de la 0.194, trente-six de la 0.195, cinquante-deux de la 0.196, "
                 + "quarante-un de la 0.197, vingt-sept de la 0.198, vingt-quatre de la 0.199, treize de la 0.200");
     }
@@ -137,7 +137,7 @@ class SkinsNouveauxTest {
         assertTrue(game.hasSkin(Skin.TABLE_TINY), "le premier élément");
         assertTrue(game.hasSkin(Skin.FUSION_EMBER), "cent fusions");
         assertFalse(game.hasSkin(Skin.FUSION_INK), "pas mille");
-        assertTrue(game.hasSkin(Skin.DARK_MERCURY) && game.hasSkin(Skin.DARK_HOLE) && game.hasSkin(Skin.DARK_RAIN), "25 explosions");
+        assertTrue(game.hasSkin(Skin.DARK_MERCURY) && game.hasSkin(Skin.DARK_HOLE), "25 explosions");
         assertFalse(game.hasSkin(Skin.DARK_SNOW), "pas cinquante");
         assertTrue(game.hasSkin(Skin.ATOM_CHALK), "cinquante atomes");
         assertFalse(game.hasSkin(Skin.ATOM_CLOUD));
@@ -672,7 +672,7 @@ class SkinsNouveauxTest {
             for (int i = 0; i < Skin.WEATHERS.length; i++) assertEquals(game.storms() >= Skin.WEATHER_STORMS[i], game.hasSkin(Skin.WEATHERS[i]), Skin.WEATHERS[i] + " à " + game.storms());
         }
         assertTrue(game.hasSkin(Skin.WEATHER_PASTEL), "dix orages en quatre cents tours");
-        assertEquals(SkinVisual.UNIVERSE_BUBBLE, Skin.BUBBLE_EGG.visual());
+        assertEquals(SkinVisual.UNIVERSE_BUBBLE, Skin.BUBBLE_ORRERY.visual());
         assertEquals(SkinVisual.LAUNCH, Skin.LAUNCH_CURTAIN.visual());
         assertEquals(SkinVisual.SEASONS, Skin.SEASONS_STAINED.visual());
     }

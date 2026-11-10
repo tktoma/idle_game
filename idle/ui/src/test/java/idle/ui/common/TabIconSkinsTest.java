@@ -82,12 +82,15 @@ class TabIconSkinsTest {
         for (TabIcon.Kind kind : TabIcon.Kind.values()) {
             TabIconSkinArt.Model now = TabIconSkinArt.model(kind, 0);
             TabIconSkinArt.Model later = TabIconSkinArt.model(kind, 1.3);
+            // La paire du vide s'ouvre et se referme : à 0 s comme à 1,3 s, elle est fermée ; elle est ouverte entre les deux.
+            TabIconSkinArt.Model between = TabIconSkinArt.model(kind, 0.4);
             assertTrue(now.points() >= 2, kind.name());
             assertEquals(now.points(), later.points(), kind.name());
             boolean moved = false;
             for (int p = 0; p < now.points(); p++) {
                 assertTrue(Math.abs(now.x(p)) <= 0.5 && Math.abs(now.y(p)) <= 0.5, kind + " point " + p + " dans l'icône");
                 if (Math.abs(now.x(p) - later.x(p)) > 1e-6 || Math.abs(now.y(p) - later.y(p)) > 1e-6) moved = true;
+                if (Math.abs(now.x(p) - between.x(p)) > 1e-6 || Math.abs(now.y(p) - between.y(p)) > 1e-6) moved = true;
             }
             assertTrue(moved, kind + " : quelque chose bouge");
             // Toutes les icônes sauf le vide et le profil ont au moins un trait.
@@ -101,7 +104,7 @@ class TabIconSkinsTest {
     void lePixelArtRameneLaCouleurAHuitValeurs() {
         Color eight = TabIconSkinArt.eightLevels(Color.web("#9fd0ff"));
         for (double channel : new double[] {eight.getRed(), eight.getGreen(), eight.getBlue()}) {
-            assertEquals(Math.round(channel * 7), channel * 7, 1e-9, "un multiple de 1/7");
+            assertEquals(Math.round(channel * 7), channel * 7, 1e-6, "un multiple de 1/7 (la couleur se garde en simple précision)");
         }
         assertNotEquals(Color.web("#9fd0ff"), eight);
         assertEquals(Color.WHITE, TabIconSkinArt.eightLevels(Color.WHITE));

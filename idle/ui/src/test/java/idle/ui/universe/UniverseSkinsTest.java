@@ -81,7 +81,7 @@ class UniverseSkinsTest {
     void chaqueSkinDesBullesSeDessineEtDiffereDuClassique() {
         FxTestSupport.fx(() -> {
             List<Skin> skins = skinsOf(SkinVisual.UNIVERSE_BUBBLE);
-            assertEquals(6, skins.size());
+            assertEquals(3, skins.size(), "version 0.203 : le ballon, la planète-fruit et l'œuf retirés");
             UniverseView classic = still(600, 7, null, null, null);
             int links = classic.shownLinks();
             for (Skin skin : skins) {
@@ -127,7 +127,7 @@ class UniverseSkinsTest {
                 assertTrue(differing(classic, skinned) > 20, "le lien « " + skin.label() + " » se voit");
             }
             // Les trois visuels ensemble, et le Classique partout : rien ne casse.
-            live(10, Skin.BUBBLE_EGG, Skin.BIRTH_PAGE, Skin.LINKS_CONSTELLATION);
+            live(10, Skin.BUBBLE_ORRERY, Skin.BIRTH_PAGE, Skin.LINKS_CONSTELLATION);
             live(10, null, null, null);
             return null;
         });

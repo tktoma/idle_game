@@ -99,13 +99,10 @@ public enum Skin {
     TABLE_TINY(SkinVisual.TABLE, "Minuscule", "Le premier élément découvert"),
     DARK_MERCURY(SkinVisual.DARK_BALL, "Goutte de mercure", "25 explosions"),
     DARK_HOLE(SkinVisual.DARK_BALL, "Trou noir", "10 explosions"),
-    DARK_EGG(SkinVisual.DARK_BALL, "Œuf", "Skin « Contractée » débloqué"),
     DARK_KNOT(SkinVisual.DARK_BALL, "Nœud", "200 explosions"),
     DARK_LANTERN(SkinVisual.DARK_BALL, "Lanterne", "500 explosions"),
-    DARK_RAIN(SkinVisual.DARK_ANIMATION, "Pluie", "15 explosions"),
     DARK_SNOW(SkinVisual.DARK_ANIMATION, "Neige", "50 explosions"),
     DARK_HOURGLASS(SkinVisual.DARK_ANIMATION, "Sablier", "1 000 explosions"),
-    DARK_FIREWORKS(SkinVisual.DARK_ANIMATION, "Feu d'artifice", "100 explosions"),
     BANG_INK(SkinVisual.BIG_BANG, "Encre de Chine", "5 Big Bangs"),
     BANG_STAINED(SkinVisual.BIG_BANG, "Vitrail", "3 systèmes solaires complets"),
     BANG_ABYSS(SkinVisual.BIG_BANG, "Abysses", "La planète océan formée"),
@@ -242,11 +239,8 @@ public enum Skin {
     VOID_HOLE_TEA(SkinVisual.VOID_HOLE, "Tourbillon de thé", "Le trou noir du vide ouvert, 5 univers comptés"),
     // Version 0.196 : l'univers : les bulles, leur naissance, leurs liens, le lancement, la graine et son établi.
     BUBBLE_SOAP(SkinVisual.UNIVERSE_BUBBLE, "Bulle de savon", "Univers 1 formé"),
-    BUBBLE_BALLOON(SkinVisual.UNIVERSE_BUBBLE, "Ballon noué", "Univers 2 formé"),
-    BUBBLE_SNOWGLOBE(SkinVisual.UNIVERSE_BUBBLE, "Boule à neige", "Univers 3 formé"),
-    BUBBLE_ORRERY(SkinVisual.UNIVERSE_BUBBLE, "Globe d'orrery", "Univers 4 formé"),
-    BUBBLE_FRUIT(SkinVisual.UNIVERSE_BUBBLE, "Planète-fruit", "Univers 5 formé"),
-    BUBBLE_EGG(SkinVisual.UNIVERSE_BUBBLE, "Œuf", "Univers 6 formé"),
+    BUBBLE_SNOWGLOBE(SkinVisual.UNIVERSE_BUBBLE, "Boule à neige", "Univers 2 formé"),
+    BUBBLE_ORRERY(SkinVisual.UNIVERSE_BUBBLE, "Globe d'orrery", "Univers 3 formé"),
     BIRTH_HATCHING(SkinVisual.UNIVERSE_BIRTH, "Éclosion", "Univers 5 formé"),
     BIRTH_BUD(SkinVisual.UNIVERSE_BIRTH, "Bourgeon", "Univers 6 formé"),
     BIRTH_FIREWORKS(SkinVisual.UNIVERSE_BIRTH, "Feu d'artifice", "Univers 7 formé"),
@@ -385,8 +379,8 @@ public enum Skin {
     START_DETONATOR(SkinVisual.START_BUTTON, "Détonateur", "La partie finie, 11 univers formés"),
     CURSOR_GLASS_HAND(SkinVisual.CURSOR, "Main de verre", "Succès « Premier automatisme »"),
     CURSOR_SHOOTING_STAR(SkinVisual.CURSOR, "Étoile filante", "Succès « Attrapée au vol »"),
-    CURSOR_WATERING_CAN(SkinVisual.CURSOR, "Arrosoir", "Succès « Jeune pousse » ; se montre sur l'onglet Univers"),
-    CURSOR_MAGNIFIER(SkinVisual.CURSOR, "Loupe", "Succès « À mi-chemin » ; se montre sur l'onglet Big Bang"),
+    CURSOR_WATERING_CAN(SkinVisual.CURSOR, "Arrosoir", "Succès « Jeune pousse »"),
+    CURSOR_MAGNIFIER(SkinVisual.CURSOR, "Loupe", "Succès « À mi-chemin »"),
     CURSOR_WAND(SkinVisual.CURSOR, "Baguette", "Succès « Dix explosions »"),
     // Version 0.200 : les sons : la banque de sons, le son du Big Bang, le métronome de la boucle (SKINS.md, section 8).
     SOUND_WOOD(SkinVisual.SOUND_BANK, "Bois", "1 h de jeu"),
@@ -476,8 +470,11 @@ public enum Skin {
     public static final Skin[] FRAMES = {FRAME_PORTHOLE, FRAME_GILDED, FRAME_CRT, FRAME_BOOK};
     public static final int[] FRAME_DIMENSIONS = {4, 6, 8, 10};
 
-    /** Les skins des bulles des univers (version 0.196) : {@code UNIVERSE_BUBBLES[n - 1]} à l'univers n formé. */
-    public static final Skin[] UNIVERSE_BUBBLES = {BUBBLE_SOAP, BUBBLE_BALLOON, BUBBLE_SNOWGLOBE, BUBBLE_ORRERY, BUBBLE_FRUIT, BUBBLE_EGG};
+    /**
+     * Les skins des bulles des univers (version 0.196) : {@code UNIVERSE_BUBBLES[n - 1]} à l'univers n formé. Version 0.203 :
+     * le ballon noué, la planète-fruit et l'œuf retirés, il en reste trois, aux univers 1, 2 et 3.
+     */
+    public static final Skin[] UNIVERSE_BUBBLES = {BUBBLE_SOAP, BUBBLE_SNOWGLOBE, BUBBLE_ORRERY};
     /** Les skins de la naissance (version 0.196), un par univers formé à partir du cinquième. */
     public static final Skin[] BIRTHS = {BIRTH_HATCHING, BIRTH_BUD, BIRTH_FIREWORKS, BIRTH_PAGE};
     public static final int FIRST_BIRTH_UNIVERSE = 5;

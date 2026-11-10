@@ -12,7 +12,7 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Version 0.182 : le chrono dans un coin de la fenêtre, hors de la sous-page Graine, une fois son étage acheté. */
+/** Version 0.182 : le chrono hors de la sous-page Graine, une fois son étage acheté ; version 0.203 : une ligne rangée, plus une carte flottante. */
 class ChronoCornerTest {
 
     @BeforeAll
@@ -43,7 +43,7 @@ class ChronoCornerTest {
             assertEquals(1.5, game.chronoSpeed(), 1e-9, "le réglage va par quarts");
             game.state().setChronoStored(60);
             corner.refresh(false);
-            assertTrue(corner.text().getText().contains("×1,5, le jeu accélère"), corner.text().getText());
+            assertTrue(corner.text().getText().contains("×1.5, le jeu accélère"), corner.text().getText());
             // Le réglage fait ailleurs se recopie dans la carte.
             game.setChronoSpeed(2);
             corner.refresh(false);

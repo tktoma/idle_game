@@ -253,6 +253,7 @@ class GrillePageTest {
             assertTrue(window.gridSizeText().startsWith("Grille de 700 × 700 × 700 cases"), window.gridSizeText());
             assertTrue(window.gridSizeText().endsWith("2 essais par point"), window.gridSizeText());
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 8);
             game.state().setClickerShards(1e9);
             assertTrue(game.buyDimensionAutomation(DimensionAutomation.GRID_PROBE));
             window.frame(0.016, true);
@@ -308,6 +309,7 @@ class GrillePageTest {
         FxTestSupport.fx(() -> {
             Game game = eighth();
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
+            idle.ui.FxTestSupport.openDimensionAutomations(game, 8);
             game.state().setClickerShards(1e9);
             DimensionAutomationPane pane = new DimensionAutomationPane(game);
             new Scene(pane, 1200, 760);

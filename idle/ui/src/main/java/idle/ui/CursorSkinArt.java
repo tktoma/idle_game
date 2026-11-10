@@ -20,8 +20,8 @@ import javafx.scene.paint.Color;
  * <ul>
  * <li>« Main de verre » : une main qui pointe, translucide et cernée de blanc bleuté ;</li>
  * <li>« Étoile filante » : une étoile d'or qui laisse une traînée d'étincelles ({@link Trail}) ;</li>
- * <li>« Arrosoir » : un petit arrosoir vert, trois gouttes au bec ; il ne se montre que sur l'onglet Univers ;</li>
- * <li>« Loupe » : une lentille cerclée et son manche ; elle ne se montre que sur l'onglet Big Bang ;</li>
+ * <li>« Arrosoir » : un petit arrosoir vert, trois gouttes au bec ;</li>
+ * <li>« Loupe » : une lentille cerclée et son manche ;</li>
  * <li>« Baguette » : une baguette sombre, une étoile à son bout et deux étincelles.</li>
  * </ul>
  */
@@ -39,14 +39,12 @@ final class CursorSkinArt {
     }
 
     /**
-     * Le skin à montrer sur cet onglet : l'arrosoir seulement sur l'univers, la loupe seulement sur le Big Bang, les
-     * autres partout ; {@code null} pour le curseur système.
+     * Le skin à montrer sur cet onglet ; {@code null} pour le curseur système. Version 0.203 : tous se montrent partout.
+     * Avant, l'arrosoir ne se montrait que sur l'univers et la loupe que sur le Big Bang : choisis depuis l'onglet Skins,
+     * ils semblaient ne rien changer.
      */
     static Skin shownOn(Skin skin, GameAppBase.Tab tab) {
-        if (!handles(skin)) return null;
-        if (skin == Skin.CURSOR_WATERING_CAN) return tab == GameAppBase.Tab.UNIVERSE ? skin : null;
-        if (skin == Skin.CURSOR_MAGNIFIER) return tab == GameAppBase.Tab.BIG_BANG ? skin : null;
-        return skin;
+        return handles(skin) ? skin : null;
     }
 
     /** Le curseur de ce skin, dessiné une fois ; {@code null} pour un skin qui n'en a pas. */

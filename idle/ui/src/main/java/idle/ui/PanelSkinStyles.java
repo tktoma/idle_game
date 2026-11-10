@@ -55,6 +55,8 @@ final class PanelSkinStyles {
             case PANEL_BOARD -> "-fx-background-color: #0e0a06cc;";
             case ENDING_CREDITS -> "-fx-background-color: #000000f2;";
             case ENDING_CERTIFICATE -> "-fx-background-color: #1a1508cc;";
+            // Version 0.203 : la photo se pose sur une table sombre et chaude (elle gardait le voile classique).
+            case ENDING_PHOTO -> "-fx-background-color: #17120ed8;";
             case TRANSITION_WHITE -> "-fx-background-color: #e8ecf2b8;";
             case TRANSITION_PAGE -> "-fx-background-color: #2a2318cc;";
             case TRANSITION_IRIS, TRANSITION_HOLE -> "-fx-background-color: #000000d8;";

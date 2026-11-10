@@ -45,7 +45,7 @@ class BurstSkinsTest {
     void chaqueAnimationDeLaMatiereNoireJoueJusquAuBout() {
         FxTestSupport.fx(() -> {
             List<Skin> skins = skinsOf(SkinVisual.DARK_ANIMATION);
-            assertEquals(6, skins.size());
+            assertEquals(4, skins.size(), "version 0.203 : la pluie et le feu d'artifice retirés");
             BurstView view = new BurstView();
             for (Skin skin : skins) {
                 play(view, skin, 1040, 640);

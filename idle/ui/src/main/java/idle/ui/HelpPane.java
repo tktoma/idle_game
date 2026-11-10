@@ -189,7 +189,7 @@ final class HelpPane extends Overlay {
                     + (game.isSkinsUnlocked() ? " L'échelle des grandeurs, l'arbre et les défis ont leurs skins, choisis dans l'onglet Skins : "
                             + "Règle de bois (10 explosions), Règle d'architecte (20) et Repères célestes (les 26 paliers de taille) pour "
                             + "l'échelle ; Racines (30 cases achetées), Circuit (100 niveaux), Constellation (la galaxie) et Métro (les quatre "
-                            + "branches entamées) pour l'arbre ; Tarot (3 défis réussis), Wanted (6) et Sceaux (les dix) pour les défis." : "")));
+                            + "branches entamées) pour l'arbre, qui changent ses traits, ses vignettes, ses en-têtes et son fond ; Tarot (3 défis réussis), Wanted (6) et Sceaux (les dix) pour les défis." : "")));
         }
         if (game.isBigBangUnlocked()) {
             // Version 0.126 : ce que le Big Bang garde, comme le dit l'arbre, et les paliers payants de la 0.124.
@@ -359,8 +359,8 @@ final class HelpPane extends Overlay {
                         + "sépia) est libre et change leurs couleurs partout d'un coup." : "")
                 + " Le chrono, sur l'étage du haut, se remplit de temps et fait passer tout le jeu plus vite, avec des "
                 + "pertes d'autant plus fortes qu'il va vite ; son étage se paie en facettes du plan, dès le deuxième univers (le tuyau en sphères du "
-                + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis le coin bas gauche de la fenêtre, "
-                + "sur tous les onglets. Les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (voir plus bas). Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
+                + "volume, la terre fertile en instants de la durée), et une fois acheté il se règle aussi depuis une ligne à lui, sous celle de l'objectif, "
+                + "sur tous les onglets et dans la fenêtre des dimensions. Les automatismes des dimensions s'ouvrent par les paliers de la graine et les univers (voir plus bas). Au palier qui ouvre l'univers 4, des bulles naissent dans l'arbre : "
                 + "une à la base, sur la graine, puis d'autres à chaque palier, reliées entre elles, jusqu'à l'arbre-monde et ses "
                 + "racines. Un clic achète une bulle avec l'énergie du vide accumulée (ce qu'il en restait à la formation de chaque "
                 + "univers ; les bulles d'un palier coûtent ensemble plus que ce qu'un univers en laisse : il faut choisir), une fois achetée une bulle reliée à elle "
@@ -604,14 +604,16 @@ final class HelpPane extends Overlay {
                         + "par univers formé), l'écran de fin (Générique qui défile à la partie finie, Certificat encadré et Photo souvenir à "
                         + "dix et onze univers), le bouton de démarrage d'une partie neuve (Interrupteur à la partie finie, Graine qu'on "
                         + "plante, Allumette et Détonateur à neuf, dix et onze univers) et le curseur (Main de verre, Étoile filante et sa "
-                        + "traînée, Arrosoir sur l'onglet Univers, Loupe sur l'onglet Big Bang, Baguette : un succès d'un onglet différent "
-                        + "chacun)." : "")
+                        + "traînée, Arrosoir, Loupe, Baguette : un succès d'un onglet différent chacun ; le curseur choisi se montre sur "
+                        + "tous les onglets, sauf au-dessus d'un bouton, où la main du système reste)." : "")
                 // Version 0.200 : les sons (skins), les thèmes et les notations nouveaux (réglages).
                 + (game.isSkinsUnlocked() ? " Les sons aussi ont leurs skins, tous synthétisés : la banque de sons change le timbre de tous "
                         + "(Bois à une heure de jeu, Verre à deux, 8 bits à cinq, Orchestre à dix, Nature à vingt ; Silence partiel, libre, ne "
                         + "laisse sonner que les Big Bangs), le son du Big Bang a le sien (Carillon géant, Souffle de vent, Orgue à 5, 10 et 20 "
                         + "Big Bangs) et le tic du métronome de la boucle le sien (Bois au seuil de la boucle, Métal, Goutte d'eau et "
-                        + "Battement de cœur à six, sept et huit univers)." : "")
+                        + "Battement de cœur à six, sept et huit univers) ; un son choisi dans l'onglet Skins se fait entendre tout de suite, "
+                        + "et choisir un tic allume le métronome de la boucle, éteint au départ (il ne bat que dans la boucle, "
+                        + "la dimension 5)." : "")
                 + " Les réglages comptent dix-neuf thèmes, dont douze à débloquer par une énigme (le thème Daltonien, d'accessibilité, "
                 + "est libre), et quatorze notations, dont neuf à débloquer ; la notation Battements de cœur écrit les durées en battements, "
                 + "un par seconde."));

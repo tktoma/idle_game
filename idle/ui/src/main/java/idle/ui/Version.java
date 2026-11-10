@@ -23,6 +23,41 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.203", "Retours sur les skins : six retirés, plus de fonds clairs, le chrono rangé, des skins plus légers", List.of(
+                    "Six skins retirés : l'Œuf, la Pluie et le Feu d'artifice de la matière noire ; le Ballon noué, la Planète-fruit "
+                            + "et l'Œuf des bulles des univers. Une sauvegarde qui en avait un de choisi revient au Classique pour ce "
+                            + "visuel. Il reste 363 skins ; la Boule à neige et le Globe d'orrery viennent aux univers 2 et 3. Le bonus "
+                            + "des skins ne baisse que pour une partie qui comptait moins de cent skins hors de ces six.",
+                    "Plus de grand fond clair dans une fenêtre sombre : l'Encre de Chine, le Papier plié et la Carte ancienne du Big "
+                            + "Bang, l'Encre du collisionneur, la Carte au trésor du tableau et l'Empreinte digitale de la galaxie "
+                            + "gardent leur dessin, en version nuit (papier noir, feuille bleu nuit, vélin sombre à l'encre d'or).",
+                    "Le chrono ne flotte plus en bas à gauche, par-dessus les cartes et la colonne des onglets : il a sa ligne, sous "
+                            + "celle de l'objectif, et la même dans l'en-tête de la fenêtre d'une dimension. Il ne recouvre plus rien.",
+                    "La galaxie garde son skin au milieu de l'amas (elle redevenait la spirale classique dès l'amas formé). La Grappe "
+                            + "de raisin est une vraie grappe : des grains serrés, une rafle, une feuille et une vrille.",
+                    "L'arbre de matière noire : chaque skin habille aussi le fond de l'arbre et ses en-têtes, et ses vignettes sont "
+                            + "plus grandes. Avant, seuls les traits changeaient.",
+                    "Le plan en Feuille de cahier : la feuille est couchée et fuit vers le fond, comme la grille du Classique. Le "
+                            + "Coquillage est une conque dont le canal finit là où l'eau sort ; la Fontaine a une borne et un bec, d'où "
+                            + "part le jet.",
+                    "Les curseurs Arrosoir et Loupe se montrent sur tous les onglets, comme les autres (ils ne se voyaient que sur "
+                            + "l'Univers et le Big Bang). Un son choisi dans l'onglet Skins se fait entendre tout de suite ; choisir un "
+                            + "tic allume le métronome de la boucle, éteint au départ.",
+                    "Avec les onglets à gauche et le skin Pastilles, la colonne prend la largeur des pastilles au lieu de garder un "
+                            + "grand bloc vide. L'onglet Skins écrit sous chaque visuel où il se voit et ce qu'il change (les signes "
+                            + "des états de la matière, le cadre des mini-jeux, purement décoratif…).",
+                    "Des skins plus légers à dessiner. Mesuré image par image : les cartes Étiquette triplaient presque le temps de "
+                            + "rendu d'une page chargée (elles coûtent maintenant comme le Classique), le Kaléidoscope du mélange le "
+                            + "doublait (+11 % à présent), le Pin coûtait moitié plus que les autres essences (+34 %).",
+                    "Profil de test : les outils d'un groupe défilent dans une zone bornée (le groupe Univers ou Dimensions poussait "
+                            + "le haut de la barre hors de l'écran, les autres groupes devenaient inaccessibles), une page plus haute "
+                            + "que la fenêtre ne passe plus sur les onglets, et un groupe « Animations » rejoue l'explosion, le Big "
+                            + "Bang, la naissance et le lancement d'un univers, la transition et la fin, dans le skin choisi.",
+                    "Les 32 tests de l'interface qui échouaient depuis la 0.182 passent : la plupart vérifiaient une règle d'avant "
+                            + "(les automatismes des dimensions), quatre montraient un vrai défaut (la neige de la Comète restait "
+                            + "sous le Laser, les bulles de l'arbre Inversé étaient mal placées, le feuillage du Saule trop bas, "
+                            + "le Baobab trop lourd).",
+                    "Le rendu réel n'a pas été vu pendant le développement : seulement des captures prises sous un écran virtuel.")),
             new Note("0.202", "Un moteur 40 % plus rapide, les mêmes nombres", List.of(
                     "Rien ne change dans le jeu. Le bonus des skins se relit à chaque fusion : son compte se garde maintenant tant "
                             + "que les skins débloqués ne changent pas, au lieu de repasser sur les quelque 370 skins à chaque fois. "
