@@ -83,6 +83,37 @@ public final class ElementBonuses {
         return bonuses;
     }
 
+    /**
+     * Version 0.202 : la chance des familles rares et le double tirage seuls, sans le reste des bonus. La synthèse les
+     * relit à chaque tirage, et chaque tirage change le tableau : recalculer tous les bonus pour ces deux nombres prenait
+     * jusqu'à 42 % du calcul d'une partie. Les mêmes termes, ajoutés dans le même ordre que {@link #of(int[], double)}
+     * (les éléments par numéro croissant, puis les ensembles dans l'ordre du catalogue) : les mêmes nombres au bit près.
+     *
+     * @return {@code {1 + chance, double tirage}}, le double tirage non borné (comme le champ de {@link #of})
+     */
+    public static double[] luckAndDoubleDraw(int[] counts, double elementStrength) {
+        double luck = 0, doubleDraw = 0;
+        int last = Math.min(counts.length, PeriodicTable.ELEMENTS.size() + 1);
+        for (int number = 1; number < last; number++) {
+            int count = counts[number];
+            if (count <= 0) continue;
+            ElementEffect effect = PeriodicTable.element(number).effect();
+            if (effect instanceof ElementEffect.Luck more) luck += more.bonus() * (Math.sqrt(count) * elementStrength);
+            else if (effect instanceof ElementEffect.DoubleDraw draw) doubleDraw += draw.chance() * (Math.sqrt(count) * elementStrength);
+        }
+        for (ElementSet set : LUCK_OR_DRAW_SETS) {
+            double strength = set.strength(counts);
+            if (strength <= 0) continue;
+            if (set.effect() instanceof ElementEffect.Luck more) luck += more.bonus() * strength;
+            else if (set.effect() instanceof ElementEffect.DoubleDraw draw) doubleDraw += draw.chance() * strength;
+        }
+        return new double[] {1 + luck, doubleDraw};
+    }
+
+    /** Les ensembles dont l'effet est la chance ou le double tirage, dans l'ordre du catalogue. */
+    private static final List<ElementSet> LUCK_OR_DRAW_SETS = ElementSets.DEFAULT.stream()
+            .filter(set -> set.effect() instanceof ElementEffect.Luck || set.effect() instanceof ElementEffect.DoubleDraw).toList();
+
     private void apply(ElementEffect effect, double strength) {
         switch (effect) {
             case ElementEffect.GeneratorBoost boost -> {

@@ -53,7 +53,9 @@ class SaveTest {
     private static final Set<String> DERIVED = Set.of("elementsVersion", "achievementsVersion", "darkVersion", "challengesVersion", "completedChallengesView", "moleculesVersion", "substancesSeen",
             "assembliesSeen", "bodiesSeen", "moleculeLog",
             // Version 0.168 : vrai seulement à la relecture d'une sauvegarde d'avant, le temps du premier relevé des moments.
-            "momentsUndated");
+            "momentsUndated",
+            // Version 0.202 : le compte des skins débloqués, gardé tant qu'ils ne changent pas.
+            "skinsVersion", "skinsCountVersion", "skinsCountUnlocked", "skinsCountCounted");
 
     // ------------------------------------------------------------------
     // Une partie où tout a bougé

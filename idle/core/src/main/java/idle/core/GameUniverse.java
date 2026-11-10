@@ -2175,16 +2175,13 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Nombre de skins débloqués, les skins libres compris (version 0.192). */
     public int skinsUnlocked() {
-        int count = 0;
-        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (hasSkin(skin)) count++;
-        return count;
+        return state.skinsUnlockedCount(false);
     }
 
     /** Version 0.192 : les skins débloqués qui comptent pour le bonus : sans les libres, {@link idle.core.universe.Skin#MAX_COUNTED} au plus. */
     public int skinsCounted() {
-        int count = 0;
-        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (!skin.isFree() && hasSkin(skin)) count++;
-        return Math.min(count, idle.core.universe.Skin.MAX_COUNTED);
+        // Version 0.202 : le compte se garde tant que les skins débloqués ne changent pas (il se relit à chaque fusion).
+        return Math.min(state.skinsUnlockedCount(true), idle.core.universe.Skin.MAX_COUNTED);
     }
 
     /** Débloque un skin ; vrai s'il ne l'était pas. */

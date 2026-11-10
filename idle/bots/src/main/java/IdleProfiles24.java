@@ -273,7 +273,7 @@ private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
 double left=dt;
 // Version 0.179 : le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
-while(left>1e-9){double part=Math.min(HOLD_STEP,left);tree.tick(g,part);g.tick(part);left-=part;g.buyAllWithParticles();}
+while(left>1e-9){double part=Math.min(HOLD_STEP,left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){
@@ -319,7 +319,9 @@ if(g.isPulseUnlocked() && rng.nextDouble()<p.skyAttention()){
       }
     }
 // Version 0.167 : celui qui ne tient pas M l'appuie une fois à chaque décision (un achat « max » en particules).
-if(!holdsBuyAll() && g.isStarted())g.buyAllWithParticles();
+// Version 0.202 : rien pendant la sobriété (sans fusion, les générateurs s'empilaient : le skin Essaim, 100 générateurs, tombait
+// à l'univers 3 et pas sans elle, et décalait l'univers 4).
+if(!holdsBuyAll() && g.isStarted() && !sobriety)g.buyAllWithParticles();
 if(g.state().explosions()>0 || g.isBigBangUnlocked())collider();
 probes();cosmos();resourceLoop();
 }

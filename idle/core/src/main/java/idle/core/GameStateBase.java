@@ -190,6 +190,28 @@ public abstract class GameStateBase {
     long explosionsAtUniverse = 0;
     boolean skinsOpen = false;
     final Set<String> unlockedSkins = new java.util.TreeSet<>();
+    /**
+     * Version 0.202 : change à chaque fois que {@link #unlockedSkins} change ; le compte des skins débloqués (relu à chaque
+     * fusion et à chaque calcul de production, par le bonus des skins) se garde tant qu'il ne bouge pas. Pas sauvegardé.
+     */
+    int skinsVersion = 0;
+    private int skinsCountVersion = -1, skinsCountUnlocked, skinsCountCounted;
+
+    /** Le nombre de skins débloqués, libres compris, et celui des skins non libres débloqués (sans plafond). */
+    final int skinsUnlockedCount(boolean counted) {
+        if (skinsCountVersion != skinsVersion) {
+            int unlocked = 0, nonFree = 0;
+            for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+                boolean has = skin.isFree() || unlockedSkins.contains(skin.id());
+                if (has) unlocked++;
+                if (has && !skin.isFree()) nonFree++;
+            }
+            skinsCountUnlocked = unlocked;
+            skinsCountCounted = nonFree;
+            skinsCountVersion = skinsVersion;
+        }
+        return counted ? skinsCountCounted : skinsCountUnlocked;
+    }
     final Map<String, String> chosenSkins = new TreeMap<>();
     boolean regimeOpen = false;
     double regimeLeft = 0;

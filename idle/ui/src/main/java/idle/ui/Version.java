@@ -23,6 +23,14 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.202", "Un moteur 40 % plus rapide, les mêmes nombres", List.of(
+                    "Rien ne change dans le jeu. Le bonus des skins se relit à chaque fusion : son compte se garde maintenant tant "
+                            + "que les skins débloqués ne changent pas, au lieu de repasser sur les quelque 370 skins à chaque fois. "
+                            + "La synthèse lit la chance des familles rares et le double tirage sans recalculer tous les bonus des "
+                            + "éléments. Les mêmes nombres au bit près, de 40 % de calcul en moins en fin de partie : le jeu reste "
+                            + "fluide plus longtemps quand le tableau se remplit vite.",
+                    "Les bots : quand plus rien dans l'univers ne demande d'éléments, ils éteignent la fusion, la synthèse et "
+                            + "les achats automatiques, et les rallument dès qu'un besoin revient (10 à 15 % de calcul en moins).")),
             new Note("0.201", "Correctif : le jeu ne se lançait plus depuis la 0.194", List.of(
                     "Au lancement, la page du Big Bang plantait (NullPointerException sur les dessins des cartes de molécules) : le "
                             + "constructeur de la classe mère dessinait les cartes avant que la liste qui garde leurs dessins soit créée. "

@@ -25,6 +25,88 @@ public class RobotCosmosPlanner {
   BigNum previousPersistenceReserve=BigNum.ZERO;
   /** La réserve posée pour le prochain niveau de Persistance (version 0.167), pour la rendre telle quelle ensuite. */
   BigNum persistenceReserveSet=null;
+  /**
+   * La sobriété (version 0.202) : vrai quand la boucle des particules, des atomes et des éléments est éteinte parce que
+   * plus rien ne demande d'éléments ({@link #loopIdle()}). Une sobriété des atomes seuls a été essayée et écartée : la
+   * fusion fait aussi grandir la matière noire, qui accélère les automatismes ; sans elle, la synthèse tombait de 21 à
+   * 1,1 par seconde, et la partie s'allongeait de 2 h 34 en deux univers.
+   *
+   * <p>Ce que la sobriété change : l'univers où elle agit finit à la même seconde, mais le hasard de la synthèse continue
+   * d'un univers à l'autre, et des synthèses en moins le décalent pour la suite. Mesuré : l'univers 4 du Speedrunner
+   * (graine 201) se forme 76 s plus tard sur 8 h, l'ordre d'un changement de graine. Le calcul baisse de 10 à 15 %.
+   */
+  boolean sobriety=false;
+  /** Les automatismes que la sobriété a éteints, pour les rallumer tels quels. */
+  final List<String> sobrietyOff=new ArrayList<>();
+  /** Allumée par défaut ; la propriété {@code idle.sansSobriete} la coupe, pour comparer avec le bot d'avant la 0.202. */
+  static boolean sober(){return !Boolean.getBoolean("idle.sansSobriete");}
+  /**
+   * Vrai si les particules, les atomes et les éléments n'ont plus besoin de grandir. Jamais avant le dernier Big Bang de
+   * l'univers (chaque Big Bang les demande tous, et la matière noire avec), ni pendant un défi, ni tant qu'un palier de
+   * Big Bang ou une case finie de l'arbre reste à payer, ni tant que des éléments servent ({@link #elementsWanted()}).
+   */
+  boolean loopIdle(){
+    if(!sober() || g.bigBangs()<Bots.LAST_BIG_BANG || g.inChallenge() || g.activeBangChallenge()!=null)return false;
+    // L'arbre mûr, à droite, fait passer la matière noire d'un univers à l'autre, et chaque fusion la fait grandir : la
+    // fin d'un univers prépare alors le suivant. Rien ne s'éteint.
+    if(g.isTreeBubbleBought(GameUniverse.TreeBubble.MATURE_RIGHT))return false;
+    // Les paliers de Big Bang se paient en particules ou en atomes, même après le dernier Big Bang (les matières
+    // exotiques du huitième ouvrent les derniers astres) ; les cases finies de l'arbre aussi, ou par la taille de la
+    // matière noire (la fusion la fait grandir).
+    if(g.nextMilestoneToBuy()!=null)return false;
+    for(DarkUpgrade d:g.darkUpgrades()){
+      // Les cases sans fin (Densité, Noyau lourd) ne font que nourrir la boucle des particules et des atomes.
+      if(d.branch()==DarkUpgrade.Branch.DARK_MATTER || d.isLink() || d.maxLevel()==Upgrade.NO_LIMIT || g.isDarkMaxed(d.id()))continue;
+      if(g.isDarkAvailable(d.id()))return false;
+    }
+    return !elementsWanted();
+  }
+  /**
+   * Vrai si des éléments servent encore : une molécule de la liste de courses ou de la matière visée qui en manque, ou
+   * une échelle du cosmos à venir qui attend de la matière ou de la variété (les éléments synthétisés pendant que la
+   * galaxie mûrit font la matière de l'amas : couper la synthèse pendant cette attente retardait l'amas de 3 h 49).
+   */
+  boolean elementsWanted(){
+    var list=g.shoppingList();
+    for(int n:list.matter().values())if(n>0)return true;
+    for(int n:list.sorts().values())if(n>0)return true;
+    for(Cosmos scale:Cosmos.values()){
+      if(g.hasCosmos(scale))continue;
+      for(var need:g.cosmosMatter(scale).entrySet())if(g.gatheredInState(need.getKey())<need.getValue())return true;
+      for(var need:scale.sorts().entrySet())if(g.sortsInState(need.getKey())<need.getValue())return true;
+    }
+    for(var item:list.items())if(item.missing()>0 && g.isMoleculeWithinReach(item.molecule().id()) && !stocked(item.molecule(),item.missing()))return true;
+    var state=FirstUniversePolicy.focusMatterState(g);
+    if(state!=null){
+      var molecule=FirstUniversePolicy.matterTarget(g,state);
+      if(molecule!=null && !stocked(molecule,Math.max(1,list.matter().getOrDefault(state,1))))return true;
+    }
+    return false;
+  }
+  /** Vrai si les éléments en stock suffisent à {@code count} molécules de plus, le dernier exemplaire de chacun gardé. */
+  boolean stocked(idle.core.molecules.Molecule molecule,int count){
+    for(var e:g.nextMoleculeCost(molecule.id()).entrySet()){
+      if(e.getValue()>0 && g.elementCount(e.getKey())-1L<(long)e.getValue()*count)return false;
+    }
+    return true;
+  }
+  /**
+   * Éteint (ou rallume) la boucle : les automatismes ordinaires allumés (achats, fusion, synthèse) s'arrêtent et sont
+   * notés ; ils se rallument tels quels quand un besoin revient. Les autres automatismes (matière noire, molécules,
+   * rassemblement, formation) continuent.
+   */
+  void applySobriety(boolean idle){
+    if(idle==sobriety)return;
+    sobriety=idle;
+    if(!idle){
+      for(String id:sobrietyOff)g.setAutomationEnabled(id,true);
+      sobrietyOff.clear();
+      return;
+    }
+    for(Automation a:g.automations()){
+      if(g.isAutomationEnabled(a.id())){g.setAutomationEnabled(a.id(),false);sobrietyOff.add(a.id());}
+    }
+  }
   /** La variante experte sait quand différer volontairement une fusion. */
   boolean waitForPatientFusion(){return false;}
   /**
@@ -530,7 +612,10 @@ public class RobotCosmosPlanner {
     logBigBangDiagnostic();
     g.buyAllBigBangMilestones();   // version 0.124 : les paliers de Big Bang se paient
     // Réduire les décisions pendant la phase de production pure.
-    particle(g,500);
+    // La sobriété (version 0.202) : la boucle s'éteint quand plus rien ne demande d'éléments.
+    boolean saturated=loopIdle();
+    applySobriety(saturated);
+    if(!saturated)particle(g,500);
     boolean finalMode=FirstUniversePolicy.finalBangPreparation(g);
     // Les atomes exigés sont ceux du moteur : cent fois plus pendant la barre haute (avant la 0.141, la fusion se
     // coupait à 1e12 atomes quand le défi en demandait 1e14).
@@ -554,7 +639,7 @@ public class RobotCosmosPlanner {
       g.setAutomationEnabled("auto_fusion",true);
       patiencePausedByRobot=false;
     }
-    for(int i=0;i<5 && !stopFusion && !patientWait && g.canFuse();i++){
+    for(int i=0;i<5 && !stopFusion && !patientWait && !saturated && g.canFuse();i++){
       g.fuse();
       if(earlyStyle.opening())prioritizePersistence();
       if(!finalMode)buyAtoms(50);
@@ -574,11 +659,11 @@ public class RobotCosmosPlanner {
       g.setAutomationEnabled("auto_fusion",false);
       patiencePausedByRobot=true;
     }
-    if(!finalMode)buyAtoms(60);
+    if(!finalMode && !saturated)buyAtoms(60);
     // Modèle 0.123 §4 et §14.2 : synthétiser dès l'ouverture du tableau, en gardant seulement les atomes
     // de la prochaine étape de l'ouverture. Avant, rien ne se synthétisait jusqu'à Persistance :
     // le tableau restait vide de 3 h 10 à 4 h 30 et la première explosion venait à 7 h au lieu de 5 h 12.
-    if(!finalMode)FirstUniversePolicy.synthesize(g,20,earlyStyle.opening());
+    if(!finalMode && !saturated)FirstUniversePolicy.synthesize(g,20,earlyStyle.opening());
     if(g.state().explosions()>0)g.growDarkMatter(step);
     buyDark(50);
     // Les automatismes sombres ouverts gratuitement doivent rester actifs,
@@ -712,8 +797,8 @@ public class RobotCosmosPlanner {
     boolean wantReserve=!g.hasAchievement("feat_reserve") && g.isSynthesisAutomationUnlocked();
     if(wantReserve && g.synthesisReserve().lt(BigNum.of(50)))g.setSynthesisReserve(BigNum.of(50));
     if(!wantReserve && g.synthesisReserve().equals(BigNum.of(50)) && g.hasAchievement("feat_reserve"))g.setSynthesisReserve(BigNum.ZERO);
-    if(!g.hasAchievement(Achievements.BUY_EVERYTHING))g.buyAllWithParticles();
-    if(!g.hasAchievement(Achievements.BULK_PURCHASE)){
+    if(!g.hasAchievement(Achievements.BUY_EVERYTHING) && !sobriety)g.buyAllWithParticles();
+    if(!g.hasAchievement(Achievements.BULK_PURCHASE) && !sobriety){
       Upgrade cheapest=Bots.cheapest(g,Resource.PARTICLES);
       if(cheapest!=null)g.buy(cheapest.id(),Integer.MAX_VALUE);
     }

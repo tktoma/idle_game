@@ -303,6 +303,7 @@ public abstract class GameStateResets extends GameStateCollider {
         explosionsAtUniverse = 0;
         skinsOpen = false;
         unlockedSkins.clear();
+        skinsVersion++;
         chosenSkins.clear();
         regimeOpen = false;
         regimeLeft = 0;

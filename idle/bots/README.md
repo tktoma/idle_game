@@ -80,6 +80,7 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 |---|---|---|---|
 | `idle.cycle` | `NextUniversePolicy` | Le choix de cycle de tous les profils dans l'univers 2 : `FUSION`, `SYNTHESIS` ou `RESERVE` ; autre valeur refusée. | celui du profil (`RESERVE` pour l'expert) |
 | `idle.sansNouveautesUnivers2` | `NextUniversePolicy` | `true` : l'univers 2 se rejoue sans ses nouveautés (régime, cycle, famille, éléments offerts). | `false` |
+| `idle.sansSobriete` | `RobotCosmosPlanner` | `true` : la boucle des particules, des atomes et des éléments ne s'éteint jamais, comme avant la 0.202 : la partie d'avant au bit près (la sobriété décale le hasard de la synthèse pour les univers suivants), le calcul 10 à 15 % plus long. | `false` |
 | `idle.sansAnomalies` | `RobotCosmosPlanner` | `true` : les anomalies du ciel ne sont pas saisies, comme avant la 0.131. | `false` |
 | `idle.defisBB` | `RobotCosmosPlanner` | L'ordre des défis de Big Bang à partir de l'univers 2 : `maturation`, `gele` ou `avant` ; autre valeur refusée (0.141 : avant, elle jouait `gele` en silence). | `maturation` |
 | `idle.defisBBPremier` | `RobotCosmosPlanner` | `true` : la même règle des défis de Big Bang dès le premier univers (change la partie de référence). | `false` |
@@ -565,6 +566,30 @@ Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionne
 Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre parenthèses, la 0.171) : univers 1 à 25:59 (25:59), 2 à 40:28 (40:38), 3 à 51:32 (52:12), 4 à 59:34 (60:59), 5 à 67:05 (70:02), 6 à 74:04 (78:04), 7 à 80:57 (85:57), 8 à 83:24 (88:41), soit 5 h 17 plus tôt. Les univers 4 à 8 sont repris de la formation de l'univers 3 de la 0.171, comme les variantes ; la galaxie y attend 4 h 53 à 5 h 07 au lieu de 5 h 53 à 7 h 03. Le Régulier forme son univers 8 à 152:18 au lieu de 172:34 (mesuré avant la correction de la puissance des succès : ses heures sont un peu pessimistes).
 
 Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
+
+## Des simulations 40 % plus rapides, et la sobriété des bots (version 0.202)
+
+Demande : que le bot ne fasse plus grandir une ressource qui n'en a plus besoin, pour moins d'actions et une simulation plus rapide. Mesuré d'abord (Speedrunner, graine 201, profil JFR) : les **décisions du bot ne pèsent que 9 %** du calcul ; les 91 % restants sont le moteur entre deux décisions, surtout les automatismes que le bot laisse allumés (fusion 37 %, synthèse 23 %, achats 6 %, matière noire 10 %). Trois changements en sortent.
+
+**1. Le compte des skins, gardé (moteur, au bit près).** Le bonus des skins se relit à chaque fusion et à chaque calcul de production ; depuis les patchs des skins (~370), le compter skin par skin prenait **10 à 32 % du calcul**. Il se garde maintenant tant que les skins débloqués ne changent pas (un numéro de version dans l'état, changé à chaque déblocage, verrouillage, remise à zéro ou relecture). Deux univers depuis zéro : **414 s → 260 s**, historique horaire et sauvegarde finale identiques octet pour octet.
+
+**2. La chance des éléments, à part (moteur, au bit près).** À chaque synthèse, le tirage lisait la chance des familles rares et le double tirage dans *tous* les bonus des 118 éléments, recalculés puisque la synthèse d'avant venait de changer le tableau : **42 % du calcul** d'un univers tardif. Ces deux nombres se calculent maintenant seuls (`ElementBonuses.luckAndDoubleDraw`), avec les mêmes termes dans le même ordre : les mêmes nombres au bit près (`ChanceDesElementsTest`). Univers 3 et 4 depuis la sauvegarde « univers 2 formé » : **845 s → 514 s (−39 %)**, étapes et historique horaire identiques ; deux univers depuis zéro : 260 s → 239 s, identiques.
+
+**3. La sobriété (bot, allumée par défaut).** Après le dernier Big Bang de l'univers, quand plus rien ne demande d'éléments — ni la liste de courses, ni la matière ou la variété d'une échelle du cosmos à venir — ni de particules ou d'atomes (palier de Big Bang, case finie de l'arbre), le bot éteint les automatismes ordinaires allumés (achats, fusion, synthèse), ne fait plus ses propres achats ni son « tout acheter », et rallume le tout tel quel dès qu'un besoin revient (`RobotCosmosPlanner.loopIdle`, `applySobriety`). Rien ne s'éteint pendant un défi, ni quand l'arbre mûr, à droite, fait passer la matière noire à l'univers suivant. `-Didle.sansSobriete=true` la coupe.
+
+| Mesure | Sans | Avec |
+|---|---|---|
+| Deux univers depuis zéro, Speedrunner | 260 s | 234 s, toutes les étapes à la seconde |
+| Deux univers depuis zéro, Régulier | 319 s | 301 s, toutes les étapes à la seconde |
+| Univers 3 et 4 (moteur 0.202) | 514 s | 438 s ; univers 3 à la seconde, univers 4 **40 à 76 s plus tard** |
+
+**Ce qu'elle change.** L'univers où elle agit finit à la même seconde. Mais le hasard de la synthèse continue d'un univers à l'autre : des synthèses en moins pendant la pause décalent les tirages de toute la suite, et l'univers suivant se forme une minute plus tard ou plus tôt sur huit heures — l'ordre d'un changement de graine. Une partie avec sobriété n'est donc plus identique au bit près à celle d'avant la 0.202 au-delà du premier univers où elle agit.
+
+**Essayé et écarté, en mesurant.**
+- *Une limite des atomes seuls* (couper la fusion dès qu'il y a de quoi payer les synthèses) : la fusion fait aussi grandir la matière noire, qui accélère les automatismes ; sans elle, la synthèse tombait de 21 à 1,1 par seconde et deux univers prenaient 2 h 34 de plus. Le compter sur le rythme mesuré de la synthèse n'y changeait rien.
+- *Couper pendant que la galaxie mûrit* (3 h 30 de pur temps d'attente) : les éléments synthétisés pendant cette attente font la matière de l'amas (60 millions de gaz) ; l'amas partait à vide, +3 h 49. D'où la règle : les besoins comptés sont ceux de tout le reste de l'univers, pas du seul prochain pas.
+- *Les cases sans fin de l'arbre* (Densité, achetée jusqu'au niveau 99 000 ; Noyau lourd) ne comptent pas comme un besoin : elles ne font que nourrir la boucle.
+- *Le « tout acheter » du bot pendant la pause* : sans fusion, les générateurs s'empilaient jusqu'à cent, et le skin Essaim tombait à l'univers 3 (+2 % pour toute la suite).
 
 ## Des tests qui prennent le temps du plus long (version 0.172)
 

@@ -585,6 +585,13 @@ public abstract class GameBase {
     ElementBonuses elementBonuses = ElementBonuses.of(Map.of());
     int elementBonusesVersion = -1;
     double elementBonusesStrength = 1;
+    /**
+     * La chance des familles rares et le double tirage (version 0.202), gardés à part des autres bonus des éléments : la
+     * synthèse les relit à chaque tirage ({@link idle.core.elements.ElementBonuses#luckAndDoubleDraw}).
+     */
+    double[] elementLuck = {1, 0};
+    int elementLuckVersion = -1;
+    double elementLuckStrength = 1;
     /** Les bonus d'une collection vide : ceux du défi où les éléments sont inertes. */
     static final ElementBonuses NO_BONUSES = ElementBonuses.of(Map.of());
 

@@ -879,7 +879,7 @@ public abstract class GameAtoms extends GamePlans {
     /** Poids d'une famille dans le tirage : sa chance de base, augmentée si elle est rare, nulle si elle est épuisée. */
     private double drawWeight(ElementCategory category) {
         if (!anyAvailable(category)) return 0;
-        return category.chance() * (category.rare() ? bonuses().luckMultiplier() : 1) * preferenceMultiplier(category);
+        return category.chance() * (category.rare() ? luckAndDoubleDraw()[0] : 1) * preferenceMultiplier(category);
     }
 
     /** Probabilité actuelle qu'une synthèse tombe dans cette famille, chance et familles épuisées comprises. */
@@ -891,7 +891,22 @@ public abstract class GameAtoms extends GamePlans {
 
     /** Chance qu'une synthèse donne un second élément, entre 0 et 1. */
     public double doubleDrawChance() {
-        return bonuses().doubleDrawChance();
+        return Math.min(1, luckAndDoubleDraw()[1]);
+    }
+
+    /**
+     * {@code {1 + chance des familles rares, double tirage non borné}} (version 0.202) : les mêmes nombres que
+     * {@link #bonuses()}, sans recalculer les autres bonus à chaque tirage.
+     */
+    private double[] luckAndDoubleDraw() {
+        if (ruled(Challenge.Rule.INERT_ELEMENTS)) return new double[] {NO_BONUSES.luckMultiplier(), NO_BONUSES.doubleDrawChance()};
+        double strength = rewarded(Challenge.Reward.STRONGER_ELEMENTS) ? REWARD_ELEMENT_STRENGTH : 1;
+        if (elementLuckVersion != state.elementsVersion() || elementLuckStrength != strength) {
+            elementLuck = ElementBonuses.luckAndDoubleDraw(state.elementCounts, strength);
+            elementLuckVersion = state.elementsVersion();
+            elementLuckStrength = strength;
+        }
+        return elementLuck;
     }
 
     /** Nombre d'exemplaires possédés d'un élément. */

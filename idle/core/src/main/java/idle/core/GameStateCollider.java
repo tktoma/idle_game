@@ -434,6 +434,7 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         }
         skinsOpen = skins;
         unlockedSkins.addAll(skinsUnlocked);
+        skinsVersion++;
         chosenSkins.putAll(skinsChosen);
         fusionsAtUniverse = fusions;
         explosionsAtUniverse = explosionsDone;

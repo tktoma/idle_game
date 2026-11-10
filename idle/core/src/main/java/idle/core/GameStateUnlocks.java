@@ -82,11 +82,11 @@ public abstract class GameStateUnlocks extends GameStateBase {
     }
 
     public void unlockSkin(String id) {
-        if (id != null && !id.isBlank()) unlockedSkins.add(id);
+        if (id != null && !id.isBlank() && unlockedSkins.add(id)) skinsVersion++;
     }
 
     public void lockSkin(String id) {
-        unlockedSkins.remove(id);
+        if (unlockedSkins.remove(id)) skinsVersion++;
         chosenSkins.values().remove(id);
     }
 

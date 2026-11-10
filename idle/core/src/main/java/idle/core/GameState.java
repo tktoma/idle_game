@@ -428,6 +428,7 @@ public final class GameState extends GameStateResets {
         explosionsAtUniverse = data.count("explosionsAtUniverse", 0);
         skinsOpen = data.flag("skinsOpen", false);
         unlockedSkins.clear();
+        skinsVersion++;
         for (String id : data.list("unlockedSkins")) unlockSkin(id);
         chosenSkins.clear();
         for (String pair : data.list("chosenSkins")) {
