@@ -191,6 +191,20 @@ tasks.register<JavaExec>("arrets") {
     ) + listOfNotNull(providers.gradleProperty("fils").orNull)
 }
 
+// Version 0.205 : ce que pèse dans le calcul tout ce que « arrets » a mesuré inutile (témoin, puis la même partie coupée).
+//   ./gradlew :bots:charge                    tout le plan
+//   ./gradlew :bots:charge -Pplan=automatismes   ou ameliorations, mecaniques
+tasks.register<JavaExec>("charge") {
+    group = "application"
+    description = "Le temps de calcul de l'univers 1 avec et sans ce qui ne sert plus"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "ChargeArrets"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    jvmArgs("-Dstdout.encoding=UTF-8")
+    args = listOf(providers.gradleProperty("plan").orElse("tout").get())
+}
+
 // Version 0.166 : ce que vaut chaque amélioration durable du premier univers, mesuré par une partie sans elle.
 //   ./gradlew :bots:durables -Psortie=sorties/durables                 les neuf améliorations payées en atomes
 //   ./gradlew :bots:durables -Psortie=sorties/durables -Pids=atom_keep  une seule

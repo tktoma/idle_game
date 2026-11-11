@@ -2184,9 +2184,13 @@ public abstract class GameUniverse extends GameAtoms {
         return Math.min(state.skinsUnlockedCount(true), idle.core.universe.Skin.MAX_COUNTED);
     }
 
-    /** Débloque un skin ; vrai s'il ne l'était pas. */
+    /**
+     * Débloque un skin ; vrai s'il ne l'était pas. Version 0.206 : un skin attend son univers
+     * ({@link idle.core.universe.Skin#minUniverses()}) en plus de sa condition, pour que la collection s'étale jusqu'à la
+     * fin de la partie ; une sauvegarde qui l'avait déjà le garde.
+     */
     public boolean unlockSkin(idle.core.universe.Skin skin) {
-        if (hasSkin(skin)) return false;
+        if (hasSkin(skin) || universes() < skin.minUniverses()) return false;
         state.unlockSkin(skin.id());
         moleculeBonusesVersion = -1;
         return true;

@@ -10,6 +10,7 @@ import idle.core.collider.ColliderAchievement;
 import idle.core.collider.GluonMilestone;
 import idle.core.collider.Quark;
 import idle.core.darkmatter.Challenge;
+import idle.core.darkmatter.DarkUpgrade;
 import idle.core.darkmatter.DarkAutomation;
 import idle.core.darkmatter.Landmark;
 import idle.core.darkmatter.SizeScale;
@@ -89,6 +90,11 @@ final class Notifier {
     private final Set<String> darkAutomations = new HashSet<>();
     private final Set<String> challengesOpen = new HashSet<>();
     private final Set<String> challengesDone = new HashSet<>();
+    /** Version 0.206 : le défi de matière noire en cours et les univers formés au dernier relevé, pour les annonces des défis. */
+    private Challenge challenge;
+    private int universes;
+    /** Version 0.206 : Noyaux sombres déjà à portée au dernier relevé (annoncée une fois, quand elle le devient). */
+    private boolean keyAvailable;
     private int explosions;
     private int weightLevel;
     private int bigBangs;
@@ -324,13 +330,34 @@ final class Notifier {
                                     ? ", tableau " + Format.multiplier(game.tableWeight()) + " plus lourd qu'au début" : "")
                     : "Explosion : défi rejoué, sans matière noire");
         }
-        for (Challenge challenge : game.challenges()) {
-            if (game.isChallengeCompleted(challenge.id()) && !challengesDone.contains(challenge.id())) {
-                add(news, Notice.CHALLENGES, "Défi réussi : " + challenge.name() + "  (" + ChallengesPane.reward(challenge) + ")");
+        for (Challenge each : game.challenges()) {
+            if (game.isChallengeCompleted(each.id()) && !challengesDone.contains(each.id())) {
+                add(news, Notice.CHALLENGES, "Défi réussi : " + each.name() + "  (" + ChallengesPane.reward(each) + ")");
             }
-            if (game.isChallengeUnlocked(challenge.id()) && !challengesOpen.contains(challenge.id())) {
-                add(news, Notice.CHALLENGES, "Nouveau défi : " + challenge.name());
+            if (game.isChallengeUnlocked(each.id()) && !challengesOpen.contains(each.id())) {
+                add(news, Notice.CHALLENGES, "Nouveau défi : " + each.name());
             }
+        }
+        // Version 0.206 : Noyaux sombres arrive à portée : c'est l'amélioration de matière noire qui compte le plus.
+        if (game.isDarkAvailable(Game.KEY_DARK_UPGRADE) && !keyAvailable) {
+            String keyName = game.darkUpgrades().stream().filter(each -> each.id().equals(Game.KEY_DARK_UPGRADE)).map(DarkUpgrade::name).findFirst().orElse("Noyaux sombres");
+            add(news, Notice.EXPLOSION, "« " + keyName + " » à portée dans l'arbre : "
+                    + "l'amélioration de matière noire qui compte le plus (atomes par fusion × toute la matière noire gagnée). "
+                    + "Sans elle, l'univers suivant dure trois fois plus longtemps.");
+        }
+        // Version 0.206 : un défi commencé, un défi abandonné, et le poids des défis à chaque univers formé.
+        Challenge active = game.activeChallenge();
+        if (active != null && active != challenge) {
+            add(news, Notice.CHALLENGES, "Défi « " + active.name() + " » commencé : " + lower(ChallengesPane.shortRule(active))
+                    + (game.universes() > 0 ? " ; le tableau pèse " + Format.multiplier(game.challengeUniverseFactor()) + " plus qu'au premier univers" : "")
+                    + ". L'explosion le réussit, l'abandon rend la partie.");
+        }
+        if (active == null && challenge != null && !game.isChallengeCompleted(challenge.id())) {
+            add(news, Notice.CHALLENGES, "Défi « " + challenge.name() + " » abandonné : la partie repart sans contrainte.");
+        }
+        if (game.universes() > universes && universes >= 0) {
+            add(news, Notice.CHALLENGES, "Univers formé : les défis pèsent maintenant " + Format.multiplier(game.challengeUniverseFactor())
+                    + " plus qu'au premier univers (×" + ElementText.number(Game.CHALLENGE_UNIVERSE_GROWTH) + " par univers formé).");
         }
         for (DarkAutomation automation : game.darkAutomations()) {
             if (game.isDarkAutomationUnlocked(automation.id()) && !darkAutomations.contains(automation.id())) {
@@ -386,7 +413,10 @@ final class Notifier {
                     : (reached - landmarks) + " paliers de taille, jusqu'à : " + landmark.name());
         }
         if (game.canExplode() && !canExplode) {
-            add(news, Notice.EXPLOSION, "Le tableau périodique peut exploser");
+            // Version 0.206 : pendant un défi, l'explosion le termine : c'est dit.
+            add(news, game.activeChallenge() != null ? Notice.CHALLENGES : Notice.EXPLOSION, game.activeChallenge() != null
+                    ? "Défi « " + game.activeChallenge().name() + " » : le tableau est assez lourd, l'explosion le réussit"
+                    : "Le tableau périodique peut exploser");
         }
         for (Achievement achievement : achievements) {
             add(news, Notice.ACHIEVEMENTS, AchievementText.announce(achievement));
@@ -485,6 +515,9 @@ final class Notifier {
         moleculeKinds = game.moleculeKindsUnlocked();
         bangChallengesDone = game.completedBangChallenges();
         bangChallenge = game.activeBangChallenge();
+        challenge = game.activeChallenge();
+        universes = game.universes();
+        keyAvailable = game.isDarkAvailable(Game.KEY_DARK_UPGRADE);
     }
 
     private static String lower(String text) {

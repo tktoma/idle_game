@@ -385,13 +385,22 @@ public abstract class GameBase {
     public static final BigNum CHALLENGE_WEIGHT = BigNum.of(5000);
 
     /**
-     * Version 0.181 : les défis d'explosion se corsent un peu à chaque univers formé. La masse de leur tableau
-     * ({@link #CHALLENGE_WEIGHT}, {@link #STYLE_CHALLENGE_WEIGHT}) est multipliée par {@code 1,3^univers formés} :
-     * ×1,3 au deuxième univers, ×2,2 au quatrième, ×6,3 au huitième, ×13,8 au onzième. En 0.179 les dix défis se
-     * gagnaient en moins d'une minute dès le milieu de la partie ; cette pente les ramène à quelques minutes sans
-     * jamais barrer la route, la production montant bien plus vite d'un univers à l'autre.
+     * Version 0.181 : les défis d'explosion se corsent à chaque univers formé. La masse de leur tableau
+     * ({@link #CHALLENGE_WEIGHT}, {@link #STYLE_CHALLENGE_WEIGHT}) est multipliée par {@code 2^univers formés}
+     * (version 0.206 ; 1,3 de la 0.181 à la 0.203) : ×2 au deuxième univers, ×8 au quatrième, ×128 au huitième, ×1 024 au
+     * onzième. Avec ×1,3 les treize défis se gagnaient encore en moins d'une minute à tous les univers (mesures 0.183 et
+     * 0.203) ; la production montant bien plus vite d'un univers à l'autre, ×2 ne barre jamais la route.
      */
-    public static final double CHALLENGE_UNIVERSE_GROWTH = 1.3;
+    public static final double CHALLENGE_UNIVERSE_GROWTH = 2.0;
+
+    /**
+     * Version 0.206 : l'amélioration de matière noire qui compte le plus, Noyaux sombres ({@code dark_shop_atoms}) :
+     * les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau. Mesuré en 0.203 sur
+     * l'univers 2 du Speedrunner rejoué sans elle : 35 h au lieu de 12 h 42 (Rouages sombres + 5 h, Rendement + 3 h 40,
+     * les autres moins d'une heure). L'interface la met en avant : carte dorée, mention sur la carte, annonce quand elle
+     * arrive à portée.
+     */
+    public static final String KEY_DARK_UPGRADE = "dark_shop_atoms";
 
     /** Le facteur de difficulté des défis dans cet univers : {@link #CHALLENGE_UNIVERSE_GROWTH} par univers formé. */
     public double challengeUniverseFactor() {

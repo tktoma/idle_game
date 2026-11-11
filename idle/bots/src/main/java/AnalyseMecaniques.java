@@ -23,7 +23,7 @@ final class AnalyseMecaniques {
         list.add(sans("cometes", "Les comètes : plus attrapées"));
         list.add(sans("anomalies", "Les anomalies du ciel : plus attrapées"));
         list.add(sans("impulsions", "Les impulsions d'espace : plus déclenchées"));
-        list.add(sans("appui_m", "La touche M tenue : un achat « max » par décision au lieu d'un toutes les secondes (sans effet sur un profil qui ne la tient pas, comme le Speedrunner au pas de 20 s)"));
+        list.add(sans("appui_m", "La touche M tenue : un achat « max » par décision au lieu d'un toutes les secondes (sans effet sur un profil qui ne la tient pas, comme le Régulier)"));
         return list;
     }
 }

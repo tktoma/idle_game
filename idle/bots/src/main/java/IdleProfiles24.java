@@ -265,15 +265,32 @@ StringBuilder logs;
  * décision.
  */
 static final double HOLD_STEP=0.5;
-static final int HOLD_MAX_ACTION_SECONDS=5;
-/** Vrai si ce profil tient la touche M pendant qu'il joue. */
-boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1 && !sansJouer("appui_m");}
+/**
+ * Version 0.206 : le morceau de pas des profils qui tiennent M sans décider vite (plus de 5 s entre deux décisions : le
+ * Speedrunner des audits). Mesuré sur le premier univers : 0,5 s → 25 h 05 ; 1 s → 26 h 27 ; 1,5 s → 24 h 48 ; 2 s → 24 h 58 ;
+ * 3 s → 26 h 42 ; 5 s → 28 h 42 ; 10 s → 33 h 10. À 2 s, le calcul coûte quatre fois moins de pas qu'à 0,5 s pour la même heure
+ * d'arrivée. -Didle.pasM=0.5 le règle.
+ */
+static final double HOLD_STEP_SLOW=Double.parseDouble(System.getProperty("idle.pasM","2"));
+double holdStep(){return p.actionEverySeconds()<=5?HOLD_STEP:HOLD_STEP_SLOW;}
+// Version 0.206 : la limite passe de 5 à 20 s. Tenir une touche ne demande pas de décider vite : le Speedrunner des audits
+// (une décision toutes les 20 s, attention entière) la tient lui aussi, et son premier univers se forme en 25 h au lieu de
+// 35 h. -Didle.appuiM=5 rend la partie d'avant.
+static final int HOLD_MAX_ACTION_SECONDS=Integer.getInteger("idle.appuiM",20);
+/**
+ * Vrai si ce profil tient la touche M en ce moment. Version 0.206 : il la lâche une fois l'amas formé. Mesuré
+ * (AnalyseArrets, appui_m, deux hasards) : la lâcher au 8e Big Bang retarde l'univers de 18 min, à la galaxie de 10 min, à
+ * l'amas d'une minute ; après, le pas de jeu n'est plus coupé en demi-secondes et le calcul s'allège.
+ */
+boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && p.attention()>=1 && !sansJouer("appui_m") && !(LACHER_M && RobotCosmosPlanner.cosmosStage(g)>=2);}
+/** {@code -Didle.sansLacherM=true} : M tenue jusqu'au bout de l'univers, comme avant la 0.206. */
+static final boolean LACHER_M=!Boolean.getBoolean("idle.sansLacherM");
 /** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
 private void tickHoldingBuyAll(double dt){
 if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
 double left=dt;
 // Version 0.179 : le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
-while(left>1e-9){double part=Math.min(HOLD_STEP,left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}
+while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}
 }
 /** Prépare la boucle : à appeler une fois avant le premier {@link #stepOnce()}. */
 void begin(){

@@ -174,11 +174,17 @@ final class HelpPane extends Overlay {
                     + "seul pendant votre absence si vous n'avez pas choisi. Entre "
                     + "les branches, six liaisons, payées en matière noire, s'ouvrent par l'une ou l'autre des voies voisines ; "
                     + "quatre accords demandent trois voies du même style à la fois. Aucune case n'attend un nombre de "
-                    + "matières noires : seuls les prix rythment l'arbre. Les défis sont des "
+                    + "matières noires : seuls les prix rythment l'arbre. "
+                    // Version 0.206 : la case qui compte le plus.
+                    + "Dans la colonne payée en matière noire, « Noyaux sombres » (carte dorée) est la case qui compte le plus : "
+                    + "les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau ; sans elle, "
+                    + "l'univers suivant dure trois fois plus longtemps. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste"
                     + (game.universes() > 0 ? " ; leur tableau pèse " + ElementText.number(game.challengeUniverseFactor())
                             + " fois plus qu'au premier univers (×" + ElementText.number(Game.CHALLENGE_UNIVERSE_GROWTH) + " par univers formé)" : "")
-                    + ". Au bout de l'arbre, les "
+                    // Version 0.206 : les annonces des défis.
+                    + ". Les annonces suivent chaque défi : commencé, tableau assez lourd pour exploser, réussi ou abandonné, et "
+                    + "le poids des défis à chaque univers formé. Au bout de l'arbre, les "
                     + game.bigBangConditions().size() + " conditions du prochain Big Bang, une fois réunies, le "
                     + "déclenchent ; le tout premier demande une grande réserve de matière noire ("
                     + ElementText.number(Game.FIRST_BIG_BANG_DARK_MATTER.toDouble()) + "), les suivants "
@@ -302,7 +308,11 @@ final class HelpPane extends Overlay {
                 + "les épreuves du collisionneur, la fuite après les dix défis, le petit arbre du cycle au premier Big Bang. "
                 + "Chaque défi de Big Bang réussi a aussi le sien : il ouvre les bonus d'univers de ce défi, qui comptent tant "
                 + "qu'il est réussi. Un succès obtenu le reste ; ce que la nouveauté demande à chaque partie (un Big Bang, "
-                + "la Persistance…) compte en plus. D'autres succès jalonnent la suite, du vide jusqu'à la fin de la partie."));
+                + "la Persistance…) compte en plus. D'autres succès jalonnent la suite, du vide jusqu'à la fin de la partie. "
+                // Version 0.206 : les skins s'étalent sur la partie.
+                + "Les skins eux-mêmes viennent au fil des univers : une trentaine se débloquent par univers formé, jusqu'au "
+                + (idle.core.universe.Skin.LAST_SKIN_UNIVERSE + 1) + "ᵉ ; la carte d'un skin verrouillé dit l'univers qu'il attend, "
+                + "en plus de sa condition. Les skins gagnés par une épreuve ou une recherche viennent dès que c'est fait."));
         if (game.isColliderUnlocked()) sections.add(new Section("Collisionneur", "Un onglet à part, depuis la première "
                 + "explosion, que ni l'explosion ni le Big Bang ne remettent à zéro. Les faisceaux croisés donnent de l'énergie, et "
                 + "huit générateurs se produisent l'un l'autre, de l'aimant supraconducteur au collisionneur de Planck : comptez "

@@ -129,7 +129,10 @@ public final class SkinsPage extends VBox {
         summary.setText(unlocked + " / " + Skin.values().length + " skins débloqués"
                 + (unlocked > 0 ? " : +" + ElementText.percent(game.skinBoost() - 1) + " à toutes les ressources d'en dessous de l'univers" : "")
                 + ". Choisir un skin ne change que l'apparence ; le bonus vient de chaque skin débloqué, choisi ou non, "
-                + "jusqu'à " + Skin.MAX_COUNTED + " skins (les skins libres, ouverts d'office, n'en donnent pas).");
+                + "jusqu'à " + Skin.MAX_COUNTED + " skins (les skins libres, ouverts d'office, n'en donnent pas). "
+                // Version 0.206 : la collection s'étale sur la partie.
+                + "Les skins viennent au fil des univers, une trentaine par univers formé jusqu'au " + (Skin.LAST_SKIN_UNIVERSE + 1)
+                + "ᵉ : une carte verrouillée dit l'univers qu'elle attend, en plus de sa condition.");
         double best = game.rebuildRecord();
         record.setText("Record de reconstruction (de la fusion à " + game.generatorsPerAtom() + " générateurs) : "
                 + (best > 0 ? Format.duration(best) : "aucun encore") + " — en " + (int) Game.REBUILD_FAST_SECONDS
@@ -179,11 +182,19 @@ public final class SkinsPage extends VBox {
             Skin skin = entry.getKey();
             boolean has = game.hasSkin(skin);
             boolean chosen = game.chosenSkin(skin.visual()) == skin;
+            // Version 0.206 : un skin attend aussi son univers ; la carte le dit tant qu'il n'est pas atteint.
+            boolean later = !has && game.universes() < skin.minUniverses();
             entry.getValue().show(chosen ? Card.State.ON : has ? Card.State.READY : Card.State.LOCKED, "",
                     chosen ? "choisi" : has ? "débloqué" : "", skin.label(),
-                    has ? skin.isFree() ? skin.source() : "+" + ElementText.percent(Skin.BONUS) + " à toutes les ressources" : skin.source(), "",
-                    chosen ? "" : has ? "Choisir" : "Verrouillé", "");
+                    has ? skin.isFree() ? skin.source() : "+" + ElementText.percent(Skin.BONUS) + " à toutes les ressources"
+                            : later ? skin.source() + " — dès l'univers " + (skin.minUniverses() + 1) : skin.source(), "",
+                    chosen ? "" : has ? "Choisir" : later ? "Univers " + (skin.minUniverses() + 1) : "Verrouillé", "");
         }
+    }
+
+    /** Le texte du résumé en tête de page : pour les vérifications (version 0.206). */
+    public String summaryText() {
+        return summary.getText();
     }
 
     /** La carte d'un skin : pour les vérifications. */

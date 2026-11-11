@@ -81,6 +81,9 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.cycle` | `NextUniversePolicy` | Le choix de cycle de tous les profils dans l'univers 2 : `FUSION`, `SYNTHESIS` ou `RESERVE` ; autre valeur refusée. | celui du profil (`RESERVE` pour l'expert) |
 | `idle.sansNouveautesUnivers2` | `NextUniversePolicy` | `true` : l'univers 2 se rejoue sans ses nouveautés (régime, cycle, famille, éléments offerts). | `false` |
 | `idle.sansSobriete` | `RobotCosmosPlanner` | `true` : la boucle des particules, des atomes et des éléments ne s'éteint jamais, comme avant la 0.202 : la partie d'avant au bit près (la sobriété décale le hasard de la synthèse pour les univers suivants), le calcul 10 à 15 % plus long. | `false` |
+| `idle.appuiM` | `IdleProfiles24` | L'écart maximal entre deux décisions, en secondes, pour qu'un profil à l'attention entière tienne la touche M. `5` : le Speedrunner et le Vétéran des audits ne la tiennent plus, comme avant la 0.206. | `20` |
+| `idle.pasM` | `IdleProfiles24` | Le morceau de pas, en secondes, des profils qui tiennent M en décidant à plus de 5 s d'écart (un « tout acheter » après chaque morceau). | `2` |
+| `idle.sansLacherM` | `IdleProfiles24` | `true` : M reste tenue après l'amas formé, comme avant la 0.206. | `false` |
 | `idle.sansAnomalies` | `RobotCosmosPlanner` | `true` : les anomalies du ciel ne sont pas saisies, comme avant la 0.131. | `false` |
 | `idle.defisBB` | `RobotCosmosPlanner` | L'ordre des défis de Big Bang à partir de l'univers 2 : `maturation`, `gele` ou `avant` ; autre valeur refusée (0.141 : avant, elle jouait `gele` en silence). | `maturation` |
 | `idle.defisBBPremier` | `RobotCosmosPlanner` | `true` : la même règle des défis de Big Bang dès le premier univers (change la partie de référence). | `false` |
@@ -566,6 +569,96 @@ Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionne
 Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre parenthèses, la 0.171) : univers 1 à 25:59 (25:59), 2 à 40:28 (40:38), 3 à 51:32 (52:12), 4 à 59:34 (60:59), 5 à 67:05 (70:02), 6 à 74:04 (78:04), 7 à 80:57 (85:57), 8 à 83:24 (88:41), soit 5 h 17 plus tôt. Les univers 4 à 8 sont repris de la formation de l'univers 3 de la 0.171, comme les variantes ; la galaxie y attend 4 h 53 à 5 h 07 au lieu de 5 h 53 à 7 h 03. Le Régulier forme son univers 8 à 152:18 au lieu de 172:34 (mesuré avant la correction de la puissance des succès : ses heures sont un peu pessimistes).
 
 Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
+
+## Le Speedrunner tient la touche M, et la lâche à l'amas (version 0.206)
+
+Demande : que le bot appuie sur M passivement, et s'arrête au bon moment. Avant, seuls les profils qui décident au moins toutes les 5 s tenaient M ; le Speedrunner des audits (20 s) ne la tenait pas, et son univers 1 prenait 35 h au lieu de 25 (voir la 0.205).
+
+**1. Tenir une touche ne demande pas de décider vite.** La limite passe de 5 à 20 s (`idle.appuiM`) : le Speedrunner et le Vétéran, attention entière, la tiennent. Les 22 autres profils ne changent pas, ni le bot analyste.
+
+**2. Passivement : un « tout acheter » toutes les 2 s, pas toutes les demi-secondes.** Tenir M coupe le pas de jeu en morceaux, et c'est ce découpage qui coûte du calcul. Essayé sur l'univers 1 (graine 201) :
+
+| Morceau de pas | Univers 1 formé | Calcul |
+|---|---|---|
+| sans M | 35 h 26 | 80 s |
+| 0,5 s (celui du bot analyste) | 25 h 05 | 107 s |
+| 1 s | 26 h 27 | 84 s |
+| 1,5 s | 24 h 48 | 87 s |
+| **2 s (retenu)** | **24 h 58** | **79 s** |
+| 3 s | 26 h 42 | 89 s |
+| 5 s | 28 h 42 | 86 s |
+| 10 s | 33 h 10 | 79 s |
+
+Jusqu'à 2 s, l'heure d'arrivée ne bouge pas plus que le hasard (une heure et demie d'un essai à l'autre) ; au-delà, elle recule. À 2 s, l'univers 1 se forme 10 h 28 plus tôt pour le même temps de calcul que sans M. Les temps de calcul sont à dix secondes près. Les profils qui décident au moins toutes les 5 s gardent leurs morceaux de 0,5 s : leurs parties sont celles d'avant.
+
+Vérifié aussi : couper le pas sans appuyer plus souvent ne sert à rien (35 h 32). C'est bien l'appui répété qui fait gagner les 10 h, pas la finesse du pas.
+
+**3. Le bon moment pour lâcher : l'amas formé.** Mesuré avec `AnalyseArrets` (M lâchée à chaque jalon, deux hasards) :
+
+| M lâchée à partir de | Retard de l'univers |
+|---|---|
+| début, explosion 1 | plafond (plus de 30 min) |
+| Big Bang 1 | −1 min / +31 min 40 |
+| Big Bang 5 | −17 min / +25 min |
+| Big Bang 8 | +18 min 20 / +17 min 40 |
+| galaxie | +9 min 40 / +11 min 40 |
+| **amas** | **+1 min 20 / +1 min** |
+
+M sert donc presque jusqu'au bout, bien après que les automatismes et les améliorations ont cessé de compter : le bot la lâche une fois l'amas formé (`idle.sansLacherM=true` la garde tenue). Avec des morceaux de 0,5 s, la lâcher à l'amas fait passer le calcul de 107 à 102 s pour 1 min 20 de jeu ; avec des morceaux de 2 s, le gain de calcul est dans le bruit.
+
+**Ce que ça change pour les mesures.** La partie de référence du Speedrunner n'est plus la même : univers 1 à 24 h 58 au lieu de 35 h 26. `-Didle.appuiM=5` rend l'ancienne. Les tableaux des versions 0.204 et 0.205 ont été mesurés sans M ; avec M tenue, les jalons où un automatisme ou une amélioration cesse de servir sont à remesurer (`./gradlew :bots:arrets`), et le plan de `ChargeArrets` avec eux. Seul l'univers 1 est mesuré : la règle « lâcher à l'amas » s'applique aussi aux univers suivants sans y avoir été vérifiée.
+
+## Ce que pèse ce qui ne sert plus, et pourquoi l'univers 1 dure 35 h (version 0.205)
+
+Deux questions après la 0.204 : combien de calcul gagne une simulation qui coupe ce que la mesure dit inutile, et pourquoi l'univers 1 du Speedrunner se forme à 35 h 25 alors que d'anciennes mesures donnaient 22 à 26 h.
+
+### 1. La charge : 40 % de calcul en moins
+
+`ChargeArrets` (`./gradlew :bots:charge`, ou `-Pplan=automatismes`, `ameliorations`, `mecaniques`) joue l'univers 1 deux fois, à la suite, sur le même hasard : le témoin, puis la même partie où chaque chose est coupée au jalon où le tableau de la 0.204 dit qu'elle ne sert plus. Une partie est jouée avant, pour rien, afin que la JVM soit chaude. La sobriété de la 0.202 est allumée dans les deux parties : le gain vient en plus du sien.
+
+Tout le plan (14 automatismes, les 12 améliorations, les défis et le collisionneur) :
+
+| Tronçon | Calcul du témoin | Calcul coupé | Gain |
+|---|---|---|---|
+| début → explosion 1 | 1,8 s | 1,5 s | 15 % |
+| explosion 1 → Big Bang 1 | 8,0 s | 7,8 s | 3 % |
+| Big Bang 1 → Big Bang 5 | 8,5 s | 9,6 s | −13 % |
+| Big Bang 5 → Big Bang 8 | 20,0 s | 11,8 s | 41 % |
+| Big Bang 8 → galaxie | 20,7 s | 12,7 s | 38 % |
+| galaxie → amas | 7,1 s | 1,8 s | 74 % |
+| amas → univers | 11,8 s | 1,8 s | 85 % |
+| **Univers 1 entier** | **77,8 s** | **47,0 s** | **40 %** |
+
+L'univers se forme à 35 h 38 au lieu de 35 h 36 : deux minutes de jeu perdues pour 40 % de calcul gagné. Entre le Big Bang 1 et le Big Bang 5, la partie coupée prend 44 min de retard (les Big Bangs 2 à 5 arrivent plus tard) et le rattrape ensuite : c'est la zone où le hasard pèse, voir la 0.204.
+
+Famille par famille :
+
+| Plan | Calcul | Gain | Arrivée (témoin 35:36:00) |
+|---|---|---|---|
+| Automatismes seuls | 80,0 → 62,1 s | 22 % | 35:32:20 |
+| Améliorations seules | 78,4 → 61,0 s | 22 % | 35:22:00 |
+| Mécaniques seules (défis, collisionneur) | 79,4 → 78,8 s | 1 % | 35:37:20 |
+| Tout | 77,8 → 47,0 s | 40 % | 35:38:00 |
+
+Les deux gains viennent du même endroit : après le Big Bang 5, les automatismes et le « tout acheter » du bot continuent d'empiler des niveaux de particules et d'atomes qui ne changent plus rien. Les mécaniques ne pèsent presque rien dans le calcul. Rien n'est branché dans le bot : c'est une mesure, la coupure reste à décider (elle ne vaut que pour l'univers 1 et pour ce profil).
+
+### 2. Pourquoi 35 h : le Speedrunner des audits ne tient pas la touche M
+
+L'univers 1 du Speedrunner (graine 201, `FreshUniverseAudit`, pas de 20 s), version par version :
+
+| Version (commit) | Univers 1 formé |
+|---|---|
+| 0.160 à 0.166 (`26a74a2`, `72e226b`, `07babb8`) | 26 h 47 à 26 h 53 |
+| **0.167** (`82e24f7`) | **41 h 14** |
+| 0.168 à 0.177 (`43a6331` … `64abfa3`) | 41 h 14 |
+| acte 3 facilité (`9bbc8ff`) | 40 h 31 |
+| 0.184 (`dfa6388`, avec les seuils de la 0.181) à 0.204 | 35 h 26 |
+
+Le saut est à la 0.167 : depuis, **un automatisme n'achète qu'un niveau par action** (ou son lot, payé en matière noire), et le joueur attentif tient la touche M. Le bot ne tient M que si son profil décide au moins toutes les 5 s (`IdleProfiles24.HOLD_MAX_ACTION_SECONDS`). Le bot analyste (5 s) la tient ; le profil Speedrunner des audits décide toutes les 20 s et ne la tient pas : il appuie une fois par décision. Vérifié : le même audit avec la limite passée à 20 s forme l'univers 1 à **25 h 05** au lieu de 35 h 26 (4 514 décisions au lieu de 6 377 ; 109 s de calcul au lieu de 80).
+
+Les durées de 21 h 50 à 26 h des notes 0.167 à 0.181 viennent du bot analyste, qui tient M ; les 35 h viennent des audits et d'`AnalyseArrets`, qui ne la tiennent pas. Ce sont deux joueurs différents, pas une régression du jeu : la 0.181 a bien raccourci l'univers 1 (41 h 14 → 35 h 26 sans M).
+
+Conséquence pour la 0.204 : ses tableaux décrivent un joueur qui ne tient pas M. Pour un joueur qui la tient, les automatismes de particules comptent sans doute encore moins.
 
 ## À partir de quand une chose ne sert plus (version 0.204)
 

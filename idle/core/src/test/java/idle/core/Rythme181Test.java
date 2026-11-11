@@ -79,17 +79,19 @@ class Rythme181Test {
         game.abandonChallenge();
         for (int universes = 1; universes <= 11; universes++) {
             Game later = GameTestSupport.universe(universes);
-            assertEquals(Math.pow(1.3, universes), later.challengeUniverseFactor(), 1e-9, universes + " univers");
+            assertEquals(Math.pow(Game.CHALLENGE_UNIVERSE_GROWTH, universes), later.challengeUniverseFactor(), 1e-9, universes + " univers");
         }
         Game four = GameTestSupport.universe(4);
         four.state().setDarkMatter(BigNum.of(1000));
         four.state().setExplosions(1);
         assertTrue(four.startChallenge("challenge_heavy"));
-        assertEquals(5000 * Math.pow(1.3, 4), four.tableWeight().toDouble(), 1e-6, "quatre univers : ×2,86");
-        assertEquals(118 * 5000 * Math.pow(1.3, 4), four.atomCap().toDouble(), 118 * 5000 * Math.pow(1.3, 4) * 1e-9);
+        // Version 0.206 : ×2 par univers formé, donc ×16 au quatrième (×2,86 avec le 1,3 d'avant).
+        assertEquals(2.0, Game.CHALLENGE_UNIVERSE_GROWTH, 1e-12, "×2 par univers formé (version 0.206)");
+        assertEquals(5000 * 16, four.tableWeight().toDouble(), 1e-6, "quatre univers : ×16");
+        assertEquals(118 * 5000 * 16, four.atomCap().toDouble(), 118 * 5000 * 16 * 1e-9);
         four.abandonChallenge();
         assertTrue(four.startChallenge("challenge_presence"));
-        assertEquals(3e6 * Math.pow(1.3, 4), four.tableWeight().toDouble(), 1, "les défis de style aussi");
+        assertEquals(3e6 * 16, four.tableWeight().toDouble(), 1, "les défis de style aussi");
         four.abandonChallenge();
         assertEquals(BigNum.of(3).pow(Math.min(four.state().tableWeightLevel(), Game.TABLE_WEIGHT_MAX_LEVEL)).toDouble(),
                 four.tableWeight().toDouble(), 1e-9, "hors défi, la masse ordinaire ne bouge pas");

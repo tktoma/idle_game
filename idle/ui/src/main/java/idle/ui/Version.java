@@ -23,6 +23,18 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.206", "Rien de changé au jeu : le bot de référence tient la touche M", List.of(
+                    "Le jeu se joue exactement comme en 0.205. Le bot le plus rapide des mesures tient maintenant la touche M "
+                            + "(tout acheter) entre deux décisions, comme un joueur attentif, et la lâche une fois l'amas formé.",
+                    "Son premier univers se forme en 25 h au lieu de 35 h, pour le même temps de calcul. Les prochaines mesures "
+                            + "d'équilibrage partent de cette partie-là.")),
+            new Note("0.205", "Rien de changé au jeu : le poids de l'inutile dans une simulation, et la touche M", List.of(
+                    "Le jeu se joue exactement comme en 0.204. Un second outil de mesure, du côté des bots, chronomètre le premier "
+                            + "univers avec et sans ce que la 0.204 a mesuré inutile : 40 % de calcul en moins, pour deux minutes "
+                            + "de jeu de retard.",
+                    "Trouvé au passage : depuis la 0.167, un automatisme n'achète qu'un niveau par action. Le premier univers se "
+                            + "forme en 25 h quand on tient la touche M (tout acheter), en 35 h quand on appuie une fois toutes "
+                            + "les 20 s.")),
             new Note("0.204", "Rien de changé au jeu : une mesure de ce qui ne sert plus, automatismes, améliorations et mécaniques", List.of(
                     "Le jeu se joue exactement comme en 0.203 : mêmes règles, mêmes prix, mêmes textes. Cette version ajoute un "
                             + "outil de mesure pour l'équilibrage, du côté des bots.",

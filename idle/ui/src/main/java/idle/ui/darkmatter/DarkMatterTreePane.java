@@ -123,9 +123,16 @@ public final class DarkMatterTreePane extends Pane {
             this.upgrade = upgrade;
             this.row = row;
             this.side = side;
-            this.card = new Card(COLORS.get(upgrade.branch()));
+            // Version 0.206 : la case qui compte le plus (Noyaux sombres) porte la couleur des atomes qu'elle multiplie.
+            this.card = new Card(upgrade.id().equals(Game.KEY_DARK_UPGRADE) ? GameApp.ATOMS_COLOR : COLORS.get(upgrade.branch()));
         }
     }
+
+    /** Version 0.206 : ce que la carte de Noyaux sombres dit en plus, sur la carte et au survol. */
+    static final String KEY_LINE = "la case qui compte le plus";
+    static final String KEY_DETAIL = "Mesuré sur une partie entière : sans elle, l'univers suivant dure trois fois plus longtemps. "
+            + "Son effet grandit avec toute la matière noire gagnée depuis le début, et chaque niveau l'ajoute encore : "
+            + "à prendre dès qu'elle est à portée, et à reprendre à chaque univers.";
 
     /**
      * Une liaison ou un accord (versions 0.070 et 0.071) : sa carte, les voies qui l'ouvrent, et le rang
@@ -397,6 +404,12 @@ public final class DarkMatterTreePane extends Pane {
         return false;
     }
 
+    /** La carte de cette amélioration, ou {@code null} : pour les vérifications (version 0.206). */
+    public Card card(String darkUpgradeId) {
+        for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) return cell.card;
+        return null;
+    }
+
     /** Un clic sur la case de cette amélioration, comme le joueur : pour les vérifications. */
     public void clickCell(String darkUpgradeId) {
         for (Cell cell : cells) if (cell.upgrade.id().equals(darkUpgradeId)) cell.card.click();
@@ -502,13 +515,16 @@ public final class DarkMatterTreePane extends Pane {
             }
 
             // Acquise : couleur pleine. À portée : éclairée. Entamée : teintée. Trop chère ou verrouillée : éteinte.
+            // Version 0.206 : Noyaux sombres, la case qui compte le plus, le dit sur sa carte et au survol.
+            boolean key = upgrade.id().equals(Game.KEY_DARK_UPGRADE);
             cell.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY
                             : !available ? Card.State.LOCKED : level > 0 ? Card.State.STARTED : Card.State.WAITING,
                     oneTime ? "" : level + (upgrade.hasLimit() ? "/" + upgrade.maxLevel() : ""),
-                    !maxed ? "" : oneTime ? "acquise" : "max",
-                    upgrade.name(), DarkText.brief(upgrade.effect(), game),
-                    Detail.shown() ? DarkText.describe(upgrade.effect(), game) + "." : "",
+                    !maxed ? key ? "★ " + KEY_LINE : "" : oneTime ? "acquise" : "max",
+                    key ? "★ " + upgrade.name() : upgrade.name(), DarkText.brief(upgrade.effect(), game) + (key ? " : " + KEY_LINE : ""),
+                    Detail.shown() ? DarkText.describe(upgrade.effect(), game) + "." + (key ? " " + KEY_DETAIL : "") : "",
                     maxed ? "" : price(upgrade, available), "");
+            if (key) cell.card.setHint(KEY_DETAIL);
 
             // Le trait qui mène à la case s'allume quand elle est accessible.
             boolean elbowOn = available && !(cell.side >= 0 && level == 0);

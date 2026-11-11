@@ -64,18 +64,22 @@ class SkinsRetiresTest {
 
     @Test
     void lesBullesQuiRestentViennentAuxTroisPremiersUnivers() {
+        // Version 0.206 : chaque skin attend aussi son univers (Skin.minUniverses()) ; la bulle vient au plus tard des deux.
         Game game = GameTestSupport.universe(1);
         game.state().setSkinsOpen(true);
         game.tick(1);
-        assertTrue(game.hasSkin(Skin.BUBBLE_SOAP));
+        assertEquals(1 >= Skin.BUBBLE_SOAP.minUniverses(), game.hasSkin(Skin.BUBBLE_SOAP));
         assertFalse(game.hasSkin(Skin.BUBBLE_SNOWGLOBE));
-        assertTrue(game.testAddUniverse());
-        game.tick(1);
-        assertTrue(game.hasSkin(Skin.BUBBLE_SNOWGLOBE), "la boule à neige à l'univers 2 (3 avant)");
-        assertFalse(game.hasSkin(Skin.BUBBLE_ORRERY));
-        assertTrue(game.testAddUniverse());
-        game.tick(1);
-        assertTrue(game.hasSkin(Skin.BUBBLE_ORRERY), "le globe d'orrery à l'univers 3 (4 avant)");
+        for (int universes = 2; universes <= Skin.LAST_SKIN_UNIVERSE; universes++) {
+            assertTrue(game.testAddUniverse());
+            game.tick(1);
+            assertEquals(universes, game.universes());
+            assertEquals(universes >= Skin.BUBBLE_SOAP.minUniverses(), game.hasSkin(Skin.BUBBLE_SOAP), "le savon à " + universes);
+            assertEquals(universes >= Math.max(2, Skin.BUBBLE_SNOWGLOBE.minUniverses()), game.hasSkin(Skin.BUBBLE_SNOWGLOBE),
+                    "la boule à neige à l'univers 2 formé (3 avant), ou à son univers : " + universes);
+            assertEquals(universes >= Math.max(3, Skin.BUBBLE_ORRERY.minUniverses()), game.hasSkin(Skin.BUBBLE_ORRERY),
+                    "le globe d'orrery à l'univers 3 formé (4 avant), ou à son univers : " + universes);
+        }
         assertEquals("Univers 2 formé", Skin.BUBBLE_SNOWGLOBE.source());
         assertEquals("Univers 3 formé", Skin.BUBBLE_ORRERY.source());
     }

@@ -571,6 +571,24 @@ public enum Skin {
      */
     public static final int MAX_COUNTED = 100;
 
+    /**
+     * Version 0.206 : le nombre d'univers formés à partir duquel le dernier skin d'un visuel peut se débloquer : dix,
+     * c'est-à-dire le onzième univers. Les skins d'un visuel s'étalent ainsi sur toute la partie (voir
+     * {@link #minUniverses()}) au lieu de tomber presque tous dans le deuxième univers.
+     */
+    public static final int LAST_SKIN_UNIVERSE = 10;
+
+    /**
+     * Les skins qui se gagnent par une action du joueur (version 0.206) : une épreuve, la fusion prismatique, les paliers
+     * du noyau dense, le record de reconstruction. Ils ne s'étalent pas : ils viennent dès le deuxième univers, quand
+     * l'action est faite, et ne prennent pas de place dans l'échelonnement des autres skins de leur visuel.
+     */
+    private static final java.util.Set<Skin> WON = java.util.EnumSet.of(FUSION_LONE, DARK_CONTRACTED, BANG_CRYSTAL, BEAM_GOLD,
+            COLLIDER_NEON, COLLIDER_PLASMA, COLLIDER_ICE, FUSION_PRISM, ATOM_DENSE, TABLE_LEAD, ATOM_STELLAR, TABLE_GOLD, FUSION_FLASH);
+
+    /** L'univers formé que chaque skin attend (version 0.206), calculé une fois d'après l'ordre des skins de son visuel. */
+    private static final int[] MIN_UNIVERSES = computeMinUniverses();
+
     private final SkinVisual visual;
     private final String label;
     private final String source;
@@ -613,6 +631,42 @@ public enum Skin {
     /** Comment on l'obtient. */
     public String source() {
         return source;
+    }
+
+    /**
+     * Version 0.206 : le nombre d'univers formés qu'il faut au moins pour débloquer ce skin, en plus de sa condition
+     * propre. Les skins payants se répartissent à parts égales entre le deuxième univers (un univers formé) et le onzième
+     * ({@link #LAST_SKIN_UNIVERSE}), une trentaine par univers, et ceux d'un même visuel viennent dans l'ordre où ils sont
+     * déclarés : le premier skin d'un visuel vient aux univers 2 à 4, le dernier vers la fin. Un skin gagné par une action
+     * ({@link #isWon()}) vient dès le deuxième univers ; un skin libre n'attend rien (0).
+     */
+    public int minUniverses() {
+        return MIN_UNIVERSES[ordinal()];
+    }
+
+    /** Vrai pour un skin gagné par une action du joueur (version 0.206) : il n'attend pas d'univers au-delà du deuxième. */
+    public boolean isWon() {
+        return WON.contains(this);
+    }
+
+    private static int[] computeMinUniverses() {
+        Skin[] all = values();
+        int[] out = new int[all.length];
+        for (Skin skin : WON) out[skin.ordinal()] = 1;
+        // Chaque skin payant prend rang dans son visuel (le k-ième de n : rang k/n) ; tous les rangs du jeu, triés, se
+        // coupent en dix parts égales, une par univers : autant de skins à chaque univers, et les skins d'un visuel dans
+        // l'ordre où ils sont déclarés.
+        java.util.List<Skin> paid = new java.util.ArrayList<>();
+        java.util.Map<Skin, Double> rank = new java.util.EnumMap<>(Skin.class);
+        for (SkinVisual visual : SkinVisual.values()) {
+            java.util.List<Skin> ofVisual = new java.util.ArrayList<>();
+            for (Skin skin : all) if (skin.visual == visual && !skin.free && !WON.contains(skin)) ofVisual.add(skin);
+            for (int k = 0; k < ofVisual.size(); k++) rank.put(ofVisual.get(k), k / (double) ofVisual.size());
+            paid.addAll(ofVisual);
+        }
+        paid.sort(java.util.Comparator.comparingDouble(rank::get));   // tri stable : à rang égal, l'ordre des visuels
+        for (int i = 0; i < paid.size(); i++) out[paid.get(i).ordinal()] = 1 + i * LAST_SKIN_UNIVERSE / paid.size();
+        return out;
     }
 
     /** Le skin de cet identifiant, ou {@code null}. */
