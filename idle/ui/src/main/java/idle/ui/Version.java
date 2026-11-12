@@ -23,6 +23,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.207", "Rien de changé au jeu : ce qui ne sert plus, mesuré univers par univers", List.of(
+                    "Le jeu se joue exactement comme en 0.206. La mesure de ce qui ne sert plus est refaite avec le bot qui tient "
+                            + "la touche M, et étendue aux six premiers univers.",
+                    "Dès le deuxième univers, plus rien de ce que fait le joueur ne compte après la galaxie : la fin de chaque "
+                            + "univers n'est que de l'attente. Une piste pour l'équilibrage.")),
             new Note("0.206", "Rien de changé au jeu : le bot de référence tient la touche M", List.of(
                     "Le jeu se joue exactement comme en 0.205. Le bot le plus rapide des mesures tient maintenant la touche M "
                             + "(tout acheter) entre deux décisions, comme un joueur attentif, et la lâche une fois l'amas formé.",

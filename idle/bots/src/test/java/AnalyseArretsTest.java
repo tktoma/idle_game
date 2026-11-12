@@ -35,6 +35,30 @@ class AnalyseArretsTest {
         for (AnalyseArrets.Coupure c : automatismes) assertTrue(c.sans().isEmpty());
     }
 
+    /** Version 0.207 : les huit lots couvrent chaque automatisme, amélioration, achat d'arbre et dimension une seule fois. */
+    @Test
+    void lesLotsCouvrentToutSansRienCompterDeuxFois() {
+        Game catalogue = Bots.fresh(201);
+        List<AnalyseArrets.Coupure> lots = AnalyseArrets.lots(catalogue);
+        assertEquals(8, lots.size());
+        Set<String> ids = new HashSet<>();
+        for (AnalyseArrets.Coupure lot : lots) {
+            assertEquals("lots", lot.famille());
+            assertTrue(lot.id().startsWith("lot_"), lot.id());
+            assertTrue(ids.add(lot.id()), lot.id());
+        }
+        // Les améliorations retirées de la partie : celles des deux lots d'améliorations, toutes, sans doublon.
+        Set<String> retirees = new HashSet<>();
+        for (AnalyseArrets.Coupure lot : lots) for (String id : lot.sans()) assertTrue(retirees.add(id), "retirée deux fois : " + id);
+        for (AnalyseArrets.Coupure c : AnalyseArrets.ameliorations(catalogue)) assertTrue(retirees.containsAll(c.sans()), c.id());
+        for (AnalyseArrets.Coupure c : AnalyseArrets.arbre(catalogue)) assertTrue(retirees.containsAll(c.sans()), c.id());
+        // Un lot se choisit par la famille ou par son identifiant, et se règle sur un bot sans erreur.
+        assertEquals(8, AnalyseArrets.choisies("lots").size());
+        assertEquals(1, AnalyseArrets.choisies("lot_auto_ciel").size());
+        IdleProfiles24 bot = new IdleProfiles24(catalogue, IdleProfiles24.PROFILES[0], 201, 20);
+        for (AnalyseArrets.Coupure lot : lots) lot.regler().accept(bot);
+    }
+
     @Test
     void unChoixSeFaitParFamilleOuParIdentifiant() {
         assertEquals(AnalyseArrets.automatismes(Bots.fresh(201)).size(), AnalyseArrets.choisies("automatismes").size());

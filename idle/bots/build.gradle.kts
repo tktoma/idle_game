@@ -176,6 +176,7 @@ tasks.register<JavaExec>("bulles") {
 //   ./gradlew :bots:arrets -Psortie=sorties/arrets                       les automatismes, sur le premier univers
 //   ./gradlew :bots:arrets -Psortie=sorties/arrets -Pids=ameliorations   ou arbre, mecaniques, dimensions, ou des identifiants
 //   ./gradlew :bots:arrets -Pdepart=…/une.save -Punivers=4 -Pids=dimensions   depuis une sauvegarde, jusqu'à l'univers 4
+//   ./gradlew :bots:arrets -Pdepart=…/apres_univers_5.save -Punivers=6 -Pids=lots,mecaniques -Pcourt=true -Pjalons=3   (0.207)
 tasks.register<JavaExec>("arrets") {
     group = "application"
     description = "À partir de quel jalon un automatisme, une amélioration ou une mécanique ne sert plus"
@@ -189,6 +190,26 @@ tasks.register<JavaExec>("arrets") {
         providers.gradleProperty("univers").orElse("1").get(),
         providers.gradleProperty("ids").orElse("automatismes").get(),
     ) + listOfNotNull(providers.gradleProperty("fils").orNull)
+    // Version 0.207 : -Pcourt=true s'arrête au premier jalon où la coupe retarde ; -Pjalons=3 ne garde que les 3 derniers.
+    providers.gradleProperty("court").orNull?.let { systemProperty("idle.arretsCourt", it) }
+    providers.gradleProperty("jalons").orNull?.let { systemProperty("idle.arretsJalons", it) }
+}
+
+// Version 0.207 : la partie de référence jouée d'un trait, une sauvegarde (et la mémoire du bot) à chaque univers formé.
+// Ces fichiers servent de départ à « arrets » pour mesurer un univers sans rejouer les précédents.
+//   ./gradlew :bots:jalons -Psortie=sorties/jalons -Punivers=11
+tasks.register<JavaExec>("jalons") {
+    group = "application"
+    description = "Joue jusqu'à l'univers demandé et écrit une sauvegarde à chaque univers formé"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass = "UniversParalleles"
+    workingDir = projectDir
+    maxHeapSize = "2500m"
+    args = listOf(
+        "jalons",
+        providers.gradleProperty("sortie").orElse("sorties/jalons").get(),
+        providers.gradleProperty("univers").orElse("11").get(),
+    )
 }
 
 // Version 0.205 : ce que pèse dans le calcul tout ce que « arrets » a mesuré inutile (témoin, puis la même partie coupée).

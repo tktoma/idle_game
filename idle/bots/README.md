@@ -570,6 +570,59 @@ Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre par
 
 Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
 
+## Ce qui ne sert plus, univers par univers, touche M tenue (version 0.207)
+
+Demande : refaire les tableaux de la 0.204 pour tous les univers. Ils sont refaits avec le Speedrunner de la 0.206 (touche M tenue, lâchée à l'amas), graine 201, une décision toutes les 20 s. Les tableaux de la 0.204 et le plan de `ChargeArrets` (0.205) étaient mesurés sans M : pour l'univers 1, ce sont ceux-ci qui font foi.
+
+**La méthode : par lots.** Rejouer chaque chose une à une (34 coupures) depuis chaque jalon de chaque univers, c'est des jours de calcul. `AnalyseArrets` a une famille `lots` : huit lots (automatismes des particules, des atomes, de matière noire, du ciel, des dimensions ; améliorations en particules, en atomes ; arbre) à côté des sept mécaniques. Un lot qui ne retarde rien dit que rien de ce qu'il contient ne sert.
+
+**Partir d'un univers déjà formé.** La tâche `jalons` (`UniversParalleles jalons <dossier> 11`) écrit une sauvegarde et la mémoire du bot à chaque univers formé ; `AnalyseArrets` repart de `apres_univers_N.save` (il relit le `.bot` à côté) pour mesurer l'univers N+1.
+
+**Deux réglages pour les univers longs** (tâche `arrets` : `-Pcourt=true`, `-Pjalons=3`) :
+
+| Propriété | Effet |
+|---|---|
+| `idle.arretsCourt` | en remontant les jalons, s'arrête au premier où la coupe retarde : donne le seuil, pas les écarts d'avant ; le second hasard n'est joué que pour un écart au-delà de la tolérance |
+| `idle.arretsJalons` | ne garde que les N derniers jalons de l'univers ; « ne sert à aucun moment » se lit alors « ne sert déjà plus au premier jalon gardé » |
+
+**Le résultat.** Chaque case : le jalon à partir duquel la chose ne sert plus. « sert jusqu'au bout » : la couper à l'amas retarde encore. « jamais » : la couper dès le début de l'univers ne retarde rien. Univers 1 à 3 : mesure complète (7 jalons, deux hasards). Univers 4 et 5 : mesure courte. Univers 6 : mesure courte sur les trois derniers jalons (« ≤ BB 8 » : ne sert déjà plus au Big Bang 8).
+
+| Chose | U1 (25 h) | U2 (15 h) | U3 (11 h 30) | U4 (7 h 30) | U5 (6 h 50) | U6 (6 h 30) |
+|---|---|---|---|---|---|---|
+| Automatismes des particules | BB 8 | BB 5 | BB 5 | explosion 1 | explosion 1 | ≤ BB 8 |
+| Automatismes des atomes | jusqu'au bout | BB 8 | BB 8 | BB 8 | BB 8 | ≤ BB 8 |
+| Automatismes de matière noire | amas | BB 8 | BB 8 | BB 8 | BB 8 | ≤ BB 8 |
+| Automatismes du ciel | jusqu'au bout | BB 8 | BB 8 | jamais | jamais | ≤ BB 8 (−6 min 30) |
+| Automatismes des dimensions | jamais | jamais | jamais | BB 1 | non mesuré | non mesuré |
+| Améliorations en particules | BB 8 | BB 5 | BB 5 | BB 5 | BB 5 | ≤ BB 8 |
+| Améliorations en atomes | BB 8 | BB 5 | BB 1 | BB 1 | BB 1 | non mesuré |
+| Arbre de matière noire | BB 8 | BB 8 | BB 8 | BB 5 | BB 5 | non mesuré |
+| Collisionneur | BB 8 | BB 5 | BB 8 | galaxie | galaxie | galaxie |
+| Défis | BB 5 | BB 5 | BB 5 | BB 5 | BB 5 | non mesuré |
+| Sondes | jusqu'au bout | BB 8 | BB 8 | BB 8 | BB 8 | ≤ BB 8 |
+| Impulsions | jusqu'au bout | galaxie | galaxie | galaxie | galaxie | galaxie |
+| Touche M | amas | BB 5 | BB 8 | galaxie | galaxie | non mesuré |
+| Comètes | jusqu'au bout | jamais | BB 5 | jamais | jamais | non mesuré |
+| Anomalies | BB 8 | jamais | jamais | jamais | jamais | non mesuré |
+
+Ce que ça dit :
+
+- **Dès l'univers 2, plus rien ne compte après la galaxie** : la fin de chaque univers (2 à 3 h de jeu) est de l'attente pure. Dans l'univers 1, automatismes des atomes et du ciel, comètes, sondes et impulsions servent jusqu'à l'amas.
+- **Les univers 4 et 5 sont identiques** ligne à ligne ; ce que l'univers 6 a mesuré les répète.
+- **Trois coupes font gagner du temps au bot**, sur les deux hasards : les améliorations en atomes à partir du Big Bang 8 de l'univers 1 (−30 min), les anomalies au même endroit (−20 min), et les automatismes du ciel dans tout l'univers 4 (−3 à −5 min), l'univers 5 (jusqu'à −11 min) et au Big Bang 8 de l'univers 6 (−6 min 30). Le bot y dépense à perte : piste de réglage, pas encore suivie.
+- **Les automatismes des dimensions n'entrent en jeu qu'à l'univers 4** (utiles jusqu'au Big Bang 1).
+- **La touche M** pourrait être lâchée plus tôt que l'amas à partir de l'univers 2 (Big Bang 5 à galaxie selon l'univers) ; le bot n'est pas changé, pour garder la partie de référence de la 0.206.
+- Au Big Bang 1 de l'univers 1, les deux hasards se contredisent sur plusieurs lignes : le bruit y dépasse la mesure.
+
+**Mesuré sur le jeu d'avant les défis ×2.** Pendant ces mesures, le jeu a changé (défis d'explosion ×2 par univers au lieu de ×1,3, skins étalés sur les univers). La partie de référence rejouée sur le jeu d'après : univers 1 identique à l'octet près (ses tableaux restent exacts) ; univers 2 en 16 h 00 au lieu de 15 h 07, univers 3 en 12 h 33 au lieu de 11 h 30, univers 4 en 7 h 29 (7 h 24), univers 5 en 6 h 39 (6 h 54), univers 6 en 6 h 29 (6 h 27) ; six univers en 74 h 08 au lieu de 72 h 20. Les seuils des univers 2 et 3, là où les défis pèsent, sont à remesurer avant de s'appuyer dessus.
+
+**Ce qui n'est pas mesuré : les univers 7 à 11**, sept lignes de l'univers 6 et les dimensions de l'univers 5. Une partie de l'univers 6 demande 21 min de calcul (6 min pour l'univers 5, pour autant d'heures de jeu) ; les univers 7 à 10 en demandent 12 à 23. Sur la machine de mesure (2 cœurs, 2 h par calcul), cela faisait une dizaine d'heures par univers. Pour les faire :
+
+```
+./gradlew :bots:jalons -Psortie=sorties/jalons -Punivers=11
+./gradlew :bots:arrets -Pdepart=sorties/jalons/apres_univers_6.save -Punivers=7 -Pids=lots,mecaniques -Pcourt=true -Pjalons=3 -Psortie=sorties/arrets_u7
+```
+
 ## Le Speedrunner tient la touche M, et la lâche à l'amas (version 0.206)
 
 Demande : que le bot appuie sur M passivement, et s'arrête au bon moment. Avant, seuls les profils qui décident au moins toutes les 5 s tenaient M ; le Speedrunner des audits (20 s) ne la tenait pas, et son univers 1 prenait 35 h au lieu de 25 (voir la 0.205).

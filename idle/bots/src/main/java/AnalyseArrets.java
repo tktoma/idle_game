@@ -57,6 +57,17 @@ final class AnalyseArrets {
     record Coupure(String id, String nom, String famille, Set<String> sans, Consumer<IdleProfiles24> regler) {}
 
     /** Un arrêt de la partie de référence : son nom, l'état sauvegardé, le bot figé (sa mémoire), l'heure de jeu. */
+    /**
+     * Version 0.207 : la mesure courte ({@code -Didle.arretsCourt=true}). En remontant les jalons, elle s'arrête au premier
+     * où la coupe retarde (les deux hasards d'accord, ou le plafond) : elle donne le seuil, pas les jalons d'avant. Pour les
+     * univers longs, où rejouer chaque coupe depuis chaque jalon coûte des jours de calcul. Le second hasard n'y est joué que
+     * pour un écart qui dépasse la tolérance du jalon (au lieu de 30 s).
+     */
+    static final boolean COURT = Boolean.getBoolean("idle.arretsCourt");
+
+    /** Version 0.207 : nombre de jalons gardés en fin d'univers ({@code -Didle.arretsJalons}) ; 0 : tous. */
+    static final int DERNIERS = Integer.getInteger("idle.arretsJalons", 0);
+
     record Jalon(String nom, String etat, IdleProfiles24 bot, double jeu) {}
 
     /** Une mesure : l'heure d'arrivée ({@code +∞} au plafond), ou NaN si la partie s'est arrêtée sans arriver. */
@@ -116,6 +127,39 @@ final class AnalyseArrets {
         return list;
     }
 
+    /** Un lot : plusieurs coupures faites ensemble, comptées comme une seule (version 0.207). */
+    private static Coupure lot(String id, String nom, List<Coupure> membres) {
+        Set<String> sans = new java.util.LinkedHashSet<>();
+        for (Coupure c : membres) sans.addAll(c.sans());
+        return new Coupure(id, nom, "lots", Set.copyOf(sans), bot -> { for (Coupure c : membres) c.regler().accept(bot); });
+    }
+
+    /**
+     * Version 0.207 : les coupures par lots, pour mesurer tous les univers sans rejouer chaque chose une à une (34 coupures
+     * par univers, c'est des jours de calcul). Un lot qui ne retarde rien dit que rien de ce qu'il contient ne sert ; un
+     * lot qui retarde demande d'être détaillé, chose par chose, sur cet univers-là.
+     */
+    static List<Coupure> lots(Game catalogue) {
+        Map<String, Coupure> autos = new LinkedHashMap<>();
+        for (Coupure c : automatismes(catalogue)) autos.put(c.id(), c);
+        List<Coupure> noire = new ArrayList<>(), particules = new ArrayList<>(), atomes = new ArrayList<>();
+        for (DarkAutomation a : catalogue.darkAutomations()) noire.add(autos.get(a.id()));
+        for (Coupure c : ameliorations(catalogue)) (c.id().startsWith("atom_") ? atomes : particules).add(c);
+        List<Coupure> list = new ArrayList<>();
+        list.add(lot("lot_auto_particules", "Automatismes des particules (vitesse, couplage, générateur)",
+                List.of(autos.get("auto_speed"), autos.get("auto_coupling"), autos.get("auto_generator"))));
+        list.add(lot("lot_auto_atomes", "Automatismes des atomes (fusion, synthèse)", List.of(autos.get("auto_fusion"), autos.get("auto_synthesis"))));
+        list.add(lot("lot_auto_noire", "Automatismes de matière noire (les " + noire.size() + ")", noire));
+        list.add(lot("lot_auto_ciel", "Automatismes du ciel (collisionneur, rassemblement, formation, molécules, appui)",
+                List.of(autos.get("auto_collisionneur"), autos.get("auto_rassemblement"), autos.get("auto_formation"), autos.get("auto_molecules"),
+                        autos.get("auto_appui"))));
+        list.add(lot("lot_ameliorations_particules", "Améliorations en particules (les " + particules.size() + ")", particules));
+        list.add(lot("lot_ameliorations_atomes", "Améliorations en atomes (les " + atomes.size() + ")", atomes));
+        list.add(lot("lot_arbre", "Arbre de matière noire (plus aucun achat)", arbre(catalogue)));
+        list.add(lot("lot_dimensions", "Automatismes des dix dimensions", dimensions()));
+        return list;
+    }
+
     static List<Coupure> choisies(String liste) {
         Game catalogue = Bots.fresh(GRAINE);
         Map<String, Coupure> toutes = new LinkedHashMap<>();
@@ -124,6 +168,7 @@ final class AnalyseArrets {
         for (Coupure c : ameliorations(catalogue)) toutes.put(c.id(), c);
         for (Coupure c : arbre(catalogue)) toutes.putIfAbsent(c.id(), c);
         for (Coupure c : AnalyseMecaniques.toutes()) toutes.putIfAbsent(c.id(), c);
+        for (Coupure c : lots(catalogue)) toutes.putIfAbsent(c.id(), c);
         List<Coupure> list = new ArrayList<>();
         for (String mot : liste.split(",")) {
             String cle = mot.trim();
@@ -167,9 +212,19 @@ final class AnalyseArrets {
      * explosion, les Big Bangs 1, 5 et le dernier, la galaxie et l'amas de chaque univers. Rend l'heure d'arrivée.
      */
     static double reference(Game game, int univers, List<Jalon> jalons, PrintStream journal) throws Exception {
+        return reference(game, univers, jalons, journal, Map.of());
+    }
+
+    /** Version 0.207 : {@code memoire}, la mémoire du bot d'un jalon d'{@code UniversParalleles} (vide : un bot neuf). */
+    static double reference(Game game, int univers, List<Jalon> jalons, PrintStream journal, Map<String, byte[]> memoire) throws Exception {
         IdleProfiles24 bot = bot(game, univers);
         bot.quiet = true;
         bot.begin();
+        if (!memoire.isEmpty()) {
+            AnalyseMemoire.remettre(bot, memoire);
+            bot.targetUniverses = univers;
+            bot.quiet = true;
+        }
         jalons.add(jalon("U" + (game.universes() + 1) + " début", bot));
         int explosions = game.state().explosions(), bangs = game.bigBangs(), cosmos = RobotCosmosPlanner.cosmosStage(game), formes = game.universes();
         long limite = (long) (2000 * 3600 / PAS);
@@ -259,10 +314,15 @@ final class AnalyseArrets {
             long depart = System.currentTimeMillis();
             Game game = args[1].equals("neuf") ? Bots.fresh(GRAINE) : Bots.load(Path.of(args[1]), GRAINE);
             List<Jalon> jalons = new ArrayList<>();
-            double arrivee = reference(game, univers, jalons, journal);
+            // Version 0.207 : un jalon d'UniversParalleles en départ rend aussi la mémoire du bot (le fichier .bot à côté).
+            Map<String, byte[]> memoire = args[1].equals("neuf") ? Map.of() : AnalyseMemoire.relire(Path.of(args[1]));
+            double arrivee = reference(game, univers, jalons, journal, memoire);
             journal.printf(Locale.ROOT, "référence : arrivée à %s, %d jalons, %d s de calcul%n", AnalyseJournal.chrono(arrivee), jalons.size(),
                     (System.currentTimeMillis() - depart) / 1000);
             if (Double.isNaN(arrivee)) throw new IllegalStateException("La partie de référence n'arrive pas à l'univers " + univers);
+            // Version 0.207 : -Didle.arretsJalons=N ne garde que les N derniers jalons (univers longs). « Ne sert à aucun
+            // moment » se lit alors « ne sert déjà plus au premier jalon gardé ».
+            if (DERNIERS > 0 && jalons.size() > DERNIERS) jalons.subList(0, jalons.size() - DERNIERS).clear();
 
             ExecutorService pool = Executors.newFixedThreadPool(fils);
             // Les témoins : un par jalon ; celui du second hasard ne se joue que si une coupure le demande.
@@ -295,15 +355,18 @@ final class AnalyseArrets {
                     java.util.Arrays.fill(ecart[0], Double.NaN);
                     java.util.Arrays.fill(ecart[1], Double.NaN);
                     int auPlafond = 0;
-                    for (int j = n - 1; j >= 0 && auPlafond < 2; j--) {
+                    boolean sert = false;
+                    for (int j = n - 1; j >= 0 && auPlafond < 2 && !(COURT && sert); j--) {
                         double fin = suite(jalons.get(j), c, graineDuJalon(j, 0), plafond[j]);
                         ecart[0][j] = fin - temoin[j];
                         auPlafond = Double.isInfinite(fin) || Double.isNaN(fin) ? auPlafond + 1 : 0;
-                        if (Double.isFinite(ecart[0][j]) && Math.abs(ecart[0][j]) > CONFIRMER) {
+                        if (Double.isFinite(ecart[0][j]) && Math.abs(ecart[0][j]) > (COURT ? tolerance[j] : CONFIRMER)) {
                             seconds.get(j).run();
                             double second = seconds.get(j).get();
                             ecart[1][j] = suite(jalons.get(j), c, graineDuJalon(j, 1), second + (plafond[j] - temoin[j])) - second;
                         }
+                        // Mesure courte : le premier jalon (en remontant) où la coupe retarde donne le seuil, on s'arrête là.
+                        sert = auPlafond > 0 || ecart[0][j] > tolerance[j] && !(ecart[1][j] <= tolerance[j]);
                     }
                     return ecart;
                 }));
