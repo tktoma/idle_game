@@ -23,6 +23,11 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.208", "Rien de changé au jeu : des mesures trois fois plus rapides, onze univers mesurés", List.of(
+                    "Le jeu se joue exactement comme en 0.207. Les robots de mesure n'achètent plus la bulle du jeune arbre, à "
+                            + "droite : elle triplait leur temps de calcul pour 13 minutes gagnées sur 87 heures.",
+                    "Mesuré sur les onze univers : les trois derniers se jouent en dix minutes, puis deux heures d'attente où "
+                            + "rien de ce que fait le joueur ne compte. Une piste pour l'équilibrage.")),
             new Note("0.207", "Rien de changé au jeu : ce qui ne sert plus, mesuré univers par univers", List.of(
                     "Le jeu se joue exactement comme en 0.206. La mesure de ce qui ne sert plus est refaite avec le bot qui tient "
                             + "la touche M, et étendue aux six premiers univers.",

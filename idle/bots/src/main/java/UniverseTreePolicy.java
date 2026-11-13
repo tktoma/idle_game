@@ -78,8 +78,18 @@ final class UniverseTreePolicy {
      * à droite, s'achète depuis la version 0.167 : sans elle, les automatismes n'achètent qu'un niveau par action.
      */
     static boolean skipped(Game game, TreeBubble bubble) {
-        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER || withoutBubbles.contains(bubble);
+        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER || withoutBubbles.contains(bubble)
+                || bubble == TreeBubble.YOUNG_RIGHT && !UNCAPPED_GENERATORS;
     }
+
+    /**
+     * Version 0.208 : les bots n'achètent plus la bulle du jeune arbre, à droite (plus de plafond de générateurs). Avec
+     * celle du bonsaï (automatismes sans délai), l'automatisme des générateurs a toujours un achat à tenter et recalcule
+     * des prix à chaque pas : les univers où le bot la possède coûtent trois à six fois plus de calcul, pour 13 min de jeu
+     * gagnées sur 87 h (Speedrunner, graine 201, dix univers : 86 h 44 avec, 86 h 57 sans ; 6 682 s de calcul contre
+     * 2 101 s). {@code -Didle.avecBulleGenerateurs=true} la rend aux bots, pour comparer avec les mesures d'avant.
+     */
+    static final boolean UNCAPPED_GENERATORS = Boolean.getBoolean("idle.avecBulleGenerateurs");
 
     /**
      * Version 0.168 : les bulles qu'une mesure « sans » retire ({@code sans=bulle:NOM} du bot analyste) : aucun profil ne

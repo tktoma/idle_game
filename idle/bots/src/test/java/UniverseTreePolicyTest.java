@@ -274,6 +274,10 @@ class UniverseTreePolicyTest {
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.ROOTS), "après, le bot la prend (version 0.163)");
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai s'achète (version 0.167)");
         assertFalse(UniverseTreePolicy.skipped(ten, TreeBubble.LEAVES_RIGHT));
+        // Version 0.208 : la bulle qui retire le plafond de générateurs n'est plus achetée (coût de calcul), les autres si.
+        assertTrue(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_RIGHT));
+        assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_LEFT));
+        assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.MATURE_RIGHT));
     }
 
     @Test

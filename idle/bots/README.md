@@ -84,6 +84,7 @@ Toutes se passent à la JVM (`java -Didle.cycle=FUSION -cp … IdleProfiles24 �
 | `idle.appuiM` | `IdleProfiles24` | L'écart maximal entre deux décisions, en secondes, pour qu'un profil à l'attention entière tienne la touche M. `5` : le Speedrunner et le Vétéran des audits ne la tiennent plus, comme avant la 0.206. | `20` |
 | `idle.pasM` | `IdleProfiles24` | Le morceau de pas, en secondes, des profils qui tiennent M en décidant à plus de 5 s d'écart (un « tout acheter » après chaque morceau). | `2` |
 | `idle.sansLacherM` | `IdleProfiles24` | `true` : M reste tenue après l'amas formé, comme avant la 0.206. | `false` |
+| `idle.avecBulleGenerateurs` | `UniverseTreePolicy` | `true` : les bots rachètent la bulle du jeune arbre, à droite (plus de plafond de générateurs), comme avant la 0.208. | `false` |
 | `idle.sansAnomalies` | `RobotCosmosPlanner` | `true` : les anomalies du ciel ne sont pas saisies, comme avant la 0.131. | `false` |
 | `idle.defisBB` | `RobotCosmosPlanner` | L'ordre des défis de Big Bang à partir de l'univers 2 : `maturation`, `gele` ou `avant` ; autre valeur refusée (0.141 : avant, elle jouait `gele` en silence). | `maturation` |
 | `idle.defisBBPremier` | `RobotCosmosPlanner` | `true` : la même règle des défis de Big Bang dès le premier univers (change la partie de référence). | `false` |
@@ -569,6 +570,54 @@ Essayé puis écarté : fermer le vide tant que la galaxie attend le collisionne
 Le Speedrunner (graine 201) avec le bot livré, en heure de formation (entre parenthèses, la 0.171) : univers 1 à 25:59 (25:59), 2 à 40:28 (40:38), 3 à 51:32 (52:12), 4 à 59:34 (60:59), 5 à 67:05 (70:02), 6 à 74:04 (78:04), 7 à 80:57 (85:57), 8 à 83:24 (88:41), soit 5 h 17 plus tôt. Les univers 4 à 8 sont repris de la formation de l'univers 3 de la 0.171, comme les variantes ; la galaxie y attend 4 h 53 à 5 h 07 au lieu de 5 h 53 à 7 h 03. Le Régulier forme son univers 8 à 152:18 au lieu de 172:34 (mesuré avant la correction de la puissance des succès : ses heures sont un peu pessimistes).
 
 Ce que le bot oublie encore, laissé pour plus tard parce que ce n'est pas sur le chemin du Speedrunner : le seuil de fusion jamais réglé, les épreuves jamais tentées, les dimensions 2 à 10 jamais jouées à la main avant leurs automatismes, la densité plafonnée par le nombre d'achats d'une décision, deux planètes par système au plus.
+
+## La bulle qui triplait le calcul, et les onze univers mesurés (version 0.208)
+
+**La bulle.** Avec la touche M, les univers 6 et 7 coûtaient quatre fois plus de calcul (1 370 et 1 298 s contre 318 et 348 s). Ce n'était pas M : l'univers 6 rejoué depuis la même sauvegarde coûte 1 436 s avec M et 1 272 s sans. La différence est dans la sauvegarde : le bot qui tient M possède dès la fin de l'univers 5 la « Bulle du jeune arbre, à droite » (plus de plafond de générateurs), le bot sans M seulement à la fin de l'univers 7 ; à partir de l'univers 8, les deux parties coûtent pareil. Le profil : 87 à 98 % du calcul dans les automatismes, dont 65 à 73 % dans leurs achats groupés (`bulkBuy` → prix d'un générateur). Avec la bulle du bonsaï (automatismes sans délai, jusqu'à 100 actions par pas), l'automatisme des générateurs a toujours un achat à tenter au-delà de l'ancien plafond.
+
+**Le réglage.** Les bots ne l'achètent plus (`UniverseTreePolicy.skipped`) ; `-Didle.avecBulleGenerateurs=true` la leur rend. Speedrunner, graine 201, M tenue, dix univers :
+
+| | avec la bulle | sans la bulle |
+|---|---|---|
+| Temps de jeu | 86 h 44 | 86 h 57 (+13 min, +0,2 %) |
+| Temps de calcul | 6 682 s | 2 101 s (−69 %) |
+| Univers 6 / 7 / 8 / 9 / 10 (calcul) | 1 370 / 1 298 / 747 / 1 155 / 1 276 s | 315 / 349 / 230 / 196 / 189 s |
+
+Les onze univers et la fin se jouent en 38 min de calcul (fin à 89 h 07 de jeu) ; avant, la limite de 2 h coupait pendant le onzième. Les autres bulles s'achètent aux mêmes moments. Sans M, l'heure de fin ne bouge pas (112 h 53). Le coût reste dans le moteur pour un joueur qui achète la bulle : la vraie correction serait de calculer d'un coup l'achat groupé au-delà de l'ancien plafond (pas faite).
+
+**Ancienne version contre nouvelle** (0.184, avant les skins, bot sans M → jeu actuel, bot qui tient M, avec la bulle ; dix univers) : jeu 116 h 57 → 86 h 44 (−26 %), calcul 6 439 → 6 682 s (+4 %). Par cause : le jeu seul −5 % de jeu et −28 % de calcul (bot sans M des deux côtés) ; la touche M seule −22 % de jeu et +43 % de calcul, presque tout dans les univers 6 et 7 (la bulle).
+
+**Les tableaux, onze univers.** Nouveau bot, jeu actuel (défis ×2 par univers, skins étalés), sauf les univers 4 et 5 (mesure 0.207, jeu d'avant : leurs durées ont bougé de +5 et −15 min). Univers 1 à 3 : mesure complète. Univers 6 à 11 : mesure courte sur les trois derniers jalons ; « ≤ » : ne sert déjà plus au premier jalon gardé. Chaque case : le jalon à partir duquel la chose ne sert plus.
+
+| Chose | U1 | U2 | U3 | U4 | U5 | U6 | U7 | U8 | U9 | U10 | U11 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Durée de l'univers | 24 h 58 | 16 h 00 | 12 h 33 | 7 h 29 | 6 h 39 | 6 h 30 | 4 h 57 | 3 h 26 | 2 h 12 | 2 h 12 | 2 h 10 |
+| Automatismes des particules | BB 8 | BB 5 | BB 5 | explosion 1 | explosion 1 | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Automatismes des atomes | jusqu'au bout | BB 8 | BB 8 | BB 8 | BB 8 | ≤ BB 8 | ≤ BB 8 | galaxie | BB 8 | ≤ BB 8 | ≤ galaxie |
+| Automatismes de matière noire | amas | BB 8 | BB 8 | BB 8 | BB 8 | ≤ BB 8 | ≤ BB 8 | galaxie | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Automatismes du ciel | jusqu'au bout | BB 5 | jamais | jamais | jamais | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | BB 8 | ≤ BB 8 | ≤ galaxie |
+| Automatismes des dimensions | jamais | jamais | jamais | BB 1 | non mesuré | galaxie | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Améliorations en particules | BB 8 | BB 5 | BB 5 | BB 5 | BB 5 | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Améliorations en atomes | BB 8 | BB 5 | BB 1 | BB 1 | BB 1 | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Arbre de matière noire | BB 8 | BB 8 | BB 8 | BB 5 | BB 5 | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Collisionneur | BB 8 | BB 8 | BB 5 | galaxie | galaxie | galaxie | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Défis | BB 5 | BB 5 | BB 5 | BB 5 | BB 5 | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Sondes | jusqu'au bout | BB 8 | BB 8 | BB 8 | BB 8 | galaxie | ≤ BB 8 | amas | amas | ≤ BB 8 | ≤ galaxie |
+| Impulsions | jusqu'au bout | galaxie | galaxie | galaxie | galaxie | galaxie | galaxie | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Touche M | amas | BB 5 | BB 5 | galaxie | galaxie | galaxie | ≤ BB 8 | ≤ BB 8 | BB 8 | ≤ BB 8 | ≤ galaxie |
+| Comètes | jusqu'au bout | BB 5 | BB 1 | jamais | jamais | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+| Anomalies | BB 8 | jamais | explosion 1 | jamais | jamais | ≤ BB 8 | ≤ BB 8 | ≤ BB 8 | ≤ BB 5 | ≤ BB 8 | ≤ galaxie |
+
+Jalons gardés : univers 6, 7, 8 et 10 : Big Bang 8, galaxie, amas ; univers 9 : Big Bang 5, Big Bang 8, amas (galaxie et amas arrivent ensemble) ; univers 11 : galaxie, Big Bang 8, amas (la galaxie arrive avant le Big Bang 8).
+
+Ce que ça dit :
+
+- **Les univers 9 à 11 se jouent en dix minutes, puis deux heures d'attente.** Univers 9 : début 82 h 33, Big Bang 8 à 82 h 44, amas à 83 h 44, univers à 84 h 45. Univers 10 : Big Bang 8 neuf minutes après le début, puis 1 h + 1 h. Univers 8 : 1 h 22 de jeu, 2 h d'attente. Dans cette attente, rien de ce que fait le joueur ne change l'heure d'arrivée (sauf les sondes, univers 8 et 9).
+- **Dès l'univers 2, rien ne compte après la galaxie** ; à partir de l'univers 7, presque rien après le Big Bang 8.
+- **Univers 2 et 3 sur le jeu actuel** (défis ×2) : les lots gardent leurs seuils de la 0.207, sauf les automatismes du ciel (Big Bang 5 au lieu de 8 dans l'univers 2, plus jamais utiles dans l'univers 3). Les mécaniques bougent d'un jalon : collisionneur (BB 8 et BB 5, inversés), touche M (BB 5 dans les deux), comètes (BB 5 et BB 1), anomalies (un peu utiles au tout début de l'univers 3).
+- **Les automatismes du ciel font toujours perdre du temps** dans l'univers 6 (−3 min 42 sans eux au Big Bang 8).
+
+Non mesuré : les automatismes des dimensions de l'univers 5 ; les jalons d'avant le Big Bang 8 des univers 6 à 11 (le seuil exact de ce qui s'y éteint tôt) ; le détail chose par chose des lots.
 
 ## Ce qui ne sert plus, univers par univers, touche M tenue (version 0.207)
 
