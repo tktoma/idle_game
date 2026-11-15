@@ -586,7 +586,8 @@ public abstract class GameStateBase {
      * Version 0.204 : ce qu'une mesure interdit d'allumer, pour l'outil des bots qui cherche à partir de quand un
      * automatisme ne sert plus ({@code AnalyseArrets}). Jamais sauvegardé, vide dans une partie ordinaire. Les clés : l'identifiant
      * d'un automatisme (ordinaire ou de matière noire), {@code collider}, {@code gather}, {@code form}, {@code molecules},
-     * {@code hold}, et {@code dimension:N} pour les automatismes de la dimension N.
+     * {@code hold}, {@code dimension:N} pour les automatismes de la dimension N, et {@code bulle:NOM} pour l'effet d'une
+     * bulle de l'arbre achetée (version 0.209 : les bots coupent celui du jeune arbre, à droite).
      */
     private final Set<String> testBlocked = new java.util.HashSet<>();
 

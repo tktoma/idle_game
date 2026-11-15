@@ -206,7 +206,7 @@ class BouclePageTest {
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             idle.ui.FxTestSupport.openDimensionAutomations(game, 5);
             game.state().setDurationShards(1e9);
-            assertTrue(game.buyDimensionAutomation(DimensionAutomation.LOOP_PLAY));
+            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.LOOP_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.loopHintText().startsWith("Rythme automatique"), window.loopHintText());
@@ -324,11 +324,14 @@ class BouclePageTest {
             pane.refresh();
             assertTrue(pane.sectionShown(5));
             assertEquals("Dimension 5 : La boucle", pane.headingText(5));
-            Card play = pane.card(DimensionAutomation.LOOP_PLAY);
+            idle.ui.FxTestSupport.buyUpgradesOnly(game, 5);
+            idle.ui.FxTestSupport.fillDimension(game, 5, 1e9);
+            pane.refresh();
+            Card play = pane.card(DimensionAutomation.LOOP_PLAY_5S);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Clique « bien » à chaque passage d'un point dans une zone"), play.text());
+            assertTrue(play.text().contains("Clique « bien » au passage d'un point dans une zone, un clic toutes les 5 s au plus"), play.text());
             play.click();
-            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.LOOP_PLAY));
+            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.LOOP_PLAY_5S));
             UniversePage page = new UniversePage(game);
             page.refresh();
             assertFalse(page.dimensionsView().isMarked(5));

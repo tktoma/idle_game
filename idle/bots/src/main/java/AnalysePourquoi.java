@@ -152,7 +152,7 @@ final class AnalysePourquoi {
         }
         for (DimensionAutomation d : DimensionAutomation.values()) {
             if (!d.name().equals(id)) continue;
-            return d.kind() == DimensionAutomation.Kind.PLAY ? "joue la dimension " + d.dimension() + " à la place du joueur (" + d.label() + ")"
+            return d.kind() == DimensionAutomation.Kind.PLAY ? "joue la dimension " + d.dimension() + " à la place du joueur (" + d.title() + ")"
                     : "achète « " + d.label() + " » de la dimension " + d.dimension() + " dès que c'est payable";
         }
         return "";

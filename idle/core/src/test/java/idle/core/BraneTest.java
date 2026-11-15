@@ -149,10 +149,10 @@ class BraneTest {
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
         game.state().addDimensionAutomation(DimensionAutomation.BRANE_PULL.name());
         run(game, 60);
-        assertTrue(game.braneWavesSent() >= 15, "une onde toutes les trois secondes : " + game.braneWavesSent());
+        assertTrue(game.braneWavesSent() >= 15, "une onde dès que la précédente s'éteint : " + game.braneWavesSent());
         assertTrue(game.braneTouches() > 0 && game.state().braneShardsEarned() > 0);
-        assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 6).count(), "six pour la brane");
-        assertEquals(5, DimensionAutomation.BRANE_PULL.paidWith(), "payés en nœuds de la boucle");
+        assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 6).count(), "dix pour la brane");
+        assertEquals(6, DimensionAutomation.BRANE_PULL.paidWith(), "payés en ondes de la brane (version 0.209)");
     }
 
     @Test

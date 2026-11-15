@@ -751,7 +751,9 @@ public abstract class GameDarkMatter extends GameParticles {
     private boolean buyCheapestDarkUpgrade() {
         if (inChallenge()) return false;
         for (DarkUpgrade upgrade : darkUpgrades.values()) {
-            if (!upgrade.hasLimit() && (!upgrade.inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
+            // Version 0.209 : le premier niveau de Noyaux sombres, que tous les autres achats en matière noire attendent.
+            boolean key = upgrade.id().equals(KEY_DARK_UPGRADE) && state.darkLevelOf(upgrade.id()) == 0;
+            if (!key && !upgrade.hasLimit() && (!upgrade.inTree() || state.darkLevelOf(upgrade.id()) >= 1)) continue;
             // Les bifurcations restent au joueur : c'est lui qui choisit sa voie (version 0.069).
             if (upgrade.isFork()) continue;
             if (canBuyDark(upgrade.id()) && buyDark(upgrade.id())) return true;

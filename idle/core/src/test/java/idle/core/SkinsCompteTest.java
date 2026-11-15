@@ -28,7 +28,7 @@ class SkinsCompteTest {
             unlocked++;
             if (!skin.isFree()) counted++;
         }
-        return new int[] {unlocked, Math.min(counted, Skin.MAX_COUNTED)};
+        return new int[] {unlocked, counted};
     }
 
     private static void memeCompte(Game game, String quand) {

@@ -264,7 +264,7 @@ class MelangePageTest {
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             idle.ui.FxTestSupport.openDimensionAutomations(game, 10);
             game.state().setMirrorShards(1e9);
-            assertTrue(game.buyDimensionAutomation(DimensionAutomation.MIX_AUTO));
+            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.MIX_AUTO);
             game.state().setMixStageEarned(game.mixStageGoal());
             run(game, window, 0.5);
             assertEquals("automatique", window.autoBadgeText());
@@ -315,14 +315,17 @@ class MelangePageTest {
             new Scene(pane, 1200, 760);
             pane.refresh();
             assertTrue(pane.sectionShown(10));
-            Card play = pane.card(DimensionAutomation.MIX_AUTO);
+            idle.ui.FxTestSupport.buyUpgradesOnly(game, 10);
+            idle.ui.FxTestSupport.fillDimension(game, 10, 1e9);
+            pane.refresh();
+            Card play = pane.card(DimensionAutomation.MIX_AUTO_5S);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Joue le mélange : mène le point"), play.text());
+            assertTrue(play.text().contains("Joue le mélange (vise, plonge, charge, clique), une action toutes les 5 s"), play.text());
             play.click();
-            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIX_AUTO));
-            assertEquals(69, DimensionAutomation.values().length);
-            assertEquals(12, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count(),
-                    "douze automatismes pour le mélange");
+            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIX_AUTO_5S));
+            assertEquals(105, DimensionAutomation.values().length);
+            assertEquals(16, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count(),
+                    "seize automatismes pour le mélange");
             StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");

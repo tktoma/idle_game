@@ -37,7 +37,8 @@ import javafx.scene.text.TextAlignment;
  *   <li><b>taille</b> : les cases s'enchaînent aussi, mais se débloquent en atteignant une taille,
  *       sans rien dépenser ;</li>
  *   <li><b>matière noire</b> : les améliorations payées en matière noire. Elles ne dépendent pas
- *       les unes des autres : au lieu de s'enchaîner, elles partent toutes d'un même tronc.</li>
+ *       les unes des autres : au lieu de s'enchaîner, elles partent toutes d'un même tronc. Depuis la version 0.209,
+ *       cette colonne vient en tête, et Noyaux sombres, sa première case, doit être prise avant les autres.</li>
  * </ul>
  * Une case est une {@link Card} : un clic achète un niveau. Elle dit son niveau, ce qu'elle
  * fait en quelques mots et son prix ; l'explication complète, avec la valeur actuelle, vient en
@@ -132,7 +133,9 @@ public final class DarkMatterTreePane extends Pane {
     static final String KEY_LINE = "la case qui compte le plus";
     static final String KEY_DETAIL = "Mesuré sur une partie entière : sans elle, l'univers suivant dure trois fois plus longtemps. "
             + "Son effet grandit avec toute la matière noire gagnée depuis le début, et chaque niveau l'ajoute encore : "
-            + "à prendre dès qu'elle est à portée, et à reprendre à chaque univers.";
+            + "la première matière noire lui va, les autres achats en matière noire l'attendent ; à reprendre à chaque univers.";
+    /** Version 0.209 : ce que disent les autres achats en matière noire tant que Noyaux sombres n'a pas de niveau. */
+    static final String KEY_FIRST = "Après ★ Noyaux sombres";
 
     /**
      * Une liaison ou un accord (versions 0.070 et 0.071) : sa carte, les voies qui l'ouvrent, et le rang
@@ -227,6 +230,9 @@ public final class DarkMatterTreePane extends Pane {
             if (upgrade.isFork()) forkCells.computeIfAbsent(upgrade.fork(), key -> new ArrayList<>()).add(cell);
         }
         rowCounts.putAll(filled);
+        // Version 0.209 : la colonne de la matière noire passe en tête, à gauche (en haut dans une fenêtre étroite) :
+        // Noyaux sombres, sa première case, est le premier achat en matière noire de chaque univers.
+        if (branches.remove(DarkUpgrade.Branch.DARK_MATTER)) branches.add(0, DarkUpgrade.Branch.DARK_MATTER);
         // Le rang d'une bifurcation : la première de sa branche, ou la deuxième. Une liaison prend le rang de ses voies.
         Map<String, Integer> forkLevel = new HashMap<>();
         Map<DarkUpgrade.Branch, Integer> forksInBranch = new EnumMap<>(DarkUpgrade.Branch.class);
@@ -608,7 +614,8 @@ public final class DarkMatterTreePane extends Pane {
         }
         // Fermée jusqu'au prochain Big Bang : un accord dont une voie est fermée, une liaison dont toutes le sont.
         boolean shutOut = accord ? closed > 0 : closed == link.options.size();
-        String missing = shutOut ? "Fermée jusqu'au prochain Big Bang" : accord ? "Il faut les trois voies"
+        String missing = shutOut ? "Fermée jusqu'au prochain Big Bang" : game.darkWaitsForKey(upgrade.id()) && needs.stream().allMatch(n -> n.startsWith("✓"))
+                ? KEY_FIRST : accord ? "Il faut les trois voies"
                 : link.options.size() == 1 ? "Il faut cette voie" : "Il faut l'une des deux voies";
         String joined = String.join(accord ? "\n" : "\nou ", needs);
         link.card.show(maxed ? Card.State.DONE : affordable ? Card.State.READY : !available ? Card.State.LOCKED : Card.State.WAITING,
@@ -701,7 +708,7 @@ public final class DarkMatterTreePane extends Pane {
 
     /** Le prix du prochain niveau, ou ce qu'il faut pour que la case s'ouvre. Ce que le joueur possède est dans l'en-tête. */
     private String price(DarkUpgrade upgrade, boolean available) {
-        if (!available) return "Après la case du dessus";
+        if (!available) return game.darkWaitsForKey(upgrade.id()) ? KEY_FIRST : "Après la case du dessus";
         BigNum cost = game.darkCostOf(upgrade.id());
         return switch (upgrade.branch()) {
             case PARTICLES -> Format.count(cost) + " particules";

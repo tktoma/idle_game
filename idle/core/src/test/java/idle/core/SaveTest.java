@@ -266,9 +266,10 @@ class SaveTest {
         held.setHadrons(idle.core.collider.Hadron.NEUTRON, 7);
         state.bubbleKeep = held;
         state.bubbleKeepMask = 0b1010_0000_0000;
-        // Version 0.150 : deux automatismes des dimensions, dont un coupé.
+        // Version 0.150 : deux automatismes des dimensions, dont un coupé. Version 0.209 : le palier de la visée sans
+        // attente vient avec ceux, plus lents, d'avant lui (la relecture les ajoute s'ils manquent).
         state.addDimensionAutomation("LINE_YIELD");
-        state.addDimensionAutomation("PLANE_AIM");
+        for (String tier : new String[] {"PLANE_AIM_5S", "PLANE_AIM_2S", "PLANE_AIM_1S", "PLANE_AIM_05S", "PLANE_AIM"}) state.addDimensionAutomation(tier);
         state.setDimensionAutomationOff("PLANE_AIM", true);
         state.setTwigOpened(true);
         state.setSeedUniversesOpened(1);

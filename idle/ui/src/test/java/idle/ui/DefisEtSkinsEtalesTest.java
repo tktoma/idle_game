@@ -117,8 +117,12 @@ class DefisEtSkinsEtalesTest {
             assertTrue(text.contains("★ Noyaux sombres") && text.contains("la case qui compte le plus"), text);
             assertTrue(card.hint().startsWith("Mesuré sur une partie entière"), card.hint());
             idle.ui.common.Card other = page.treePane().card("dark_shop_cadence");
-            assertFalse(other.text().contains("★"), other.text());
+            // Version 0.209 : tant que Noyaux sombres n'a pas de niveau, les autres achats en matière noire l'attendent.
+            assertTrue(other.text().endsWith("| Après ★ Noyaux sombres"), other.text());
             assertEquals("", other.hint());
+            assertTrue(game.buyDark(Game.KEY_DARK_UPGRADE));
+            page.treePane().refresh();
+            assertFalse(other.text().contains("★"), other.text());
             return null;
         });
     }

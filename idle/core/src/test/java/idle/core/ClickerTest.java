@@ -116,17 +116,20 @@ class ClickerTest {
     void lAutomatismeCliqueVraimentEtEnAbsence() {
         Game game = seven();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
-        game.state().addDimensionAutomation(DimensionAutomation.CLICKER_PLAY.name());
+        // Version 0.209 : le palier d'une demi-seconde, deux clics par seconde.
+        game.state().addDimensionAutomation(DimensionAutomation.CLICKER_PLAY_05S.name());
         run(game, 10);
-        assertTrue(Math.abs(game.clickerAutoClicks() - 60) <= 2, "six par seconde : " + game.clickerAutoClicks());
-        assertEquals(6, game.clickerRate(), 0.6);
+        assertTrue(Math.abs(game.clickerAutoClicks() - 20) <= 1, "deux par seconde : " + game.clickerAutoClicks());
+        assertEquals(2, game.clickerRate(), 0.3);
         double before = game.state().clickerShardsEarned();
         game.tick(10);
-        assertTrue(Math.abs(game.clickerAutoClicks() - 120) <= 3, "une absence les compte aussi : " + game.clickerAutoClicks());
-        assertEquals(60 * game.clickerValue() * game.clickerSpeedFactor(6), game.state().clickerShardsEarned() - before, 1e-6);
-        assertEquals(9, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count());
-        assertEquals(6, DimensionAutomation.CLICKER_PLAY.paidWith(), "payés en ondes de la brane");
-        assertEquals(2_000, DimensionAutomation.CLICKER_PLAY.cost(), 0);
+        assertTrue(Math.abs(game.clickerAutoClicks() - 40) <= 2, "une absence les compte aussi : " + game.clickerAutoClicks());
+        assertEquals(20 * game.clickerValue() * game.clickerSpeedFactor(2), game.state().clickerShardsEarned() - before, 1e-6);
+        // Le dernier palier, sans attente : vingt par seconde.
+        game.state().addDimensionAutomation(DimensionAutomation.CLICKER_PLAY.name());
+        assertEquals(1 / DimensionAutomation.INSTANT_PERIOD, game.clickerAutoRate(), 1e-9);
+        assertEquals(13, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count());
+        assertEquals(7, DimensionAutomation.CLICKER_PLAY.paidWith(), "payés en étincelles du clicker (version 0.209)");
     }
 
     @Test

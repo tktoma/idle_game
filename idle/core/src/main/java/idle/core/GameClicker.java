@@ -119,8 +119,13 @@ public abstract class GameClicker extends GameBrane {
     public static final double CLICKER_ZONE_EVERY = 3;
     /** Chaque zone superposée de plus : ×1,5, +0,25 par niveau. */
     public static final double CLICKER_STACK = 1.5, CLICKER_STACK_STEP = 0.25;
-    /** Les clics automatiques : six par seconde, au meilleur endroit. */
-    public static final double CLICKER_AUTO_RATE = 6;
+    /**
+     * Les clics automatiques, au meilleur endroit : un par action de leur palier (version 0.209 ; six par seconde de la
+     * 0.155 à la 0.208).
+     */
+    public double clickerAutoRate() {
+        return 1 / dimensionPlayPeriod(7);
+    }
     /** En jeu ouvert (pas au plus de {@value} s), l'automatisme clique vraiment ; au-delà, il compte ses clics d'un coup. */
     public static final double CLICKER_PLAYED_STEP = 1;
 
@@ -278,14 +283,15 @@ public abstract class GameClicker extends GameBrane {
         if (!isClickerOpen() || dt <= 0) return;
         boolean auto = isClickerAutomatic();
         if (auto && dt > CLICKER_PLAYED_STEP) {
-            // Absence : une cadence tenue de six clics par seconde, au meilleur endroit, morceau par morceau.
+            // Absence : une cadence tenue, au meilleur endroit, morceau par morceau.
+            double rate = clickerAutoRate();
             double left = dt;
             for (int piece = 0; left > 1e-12 && piece < 10_000; piece++) {
                 double step = Math.min(0.5, left);
                 advanceClicker(step);
                 double[] spot = clickerBestSpot();
-                double clicks = CLICKER_AUTO_RATE * step;
-                double gain = clickerValue() * clickerSpeedFactor(CLICKER_AUTO_RATE) * clickerStackMultiplier(clickerStackAt(spot[0], spot[1])) * clicks;
+                double clicks = rate * step;
+                double gain = clickerValue() * clickerSpeedFactor(rate) * clickerStackMultiplier(clickerStackAt(spot[0], spot[1])) * clicks;
                 state.setClickerShards(state.clickerShards() + gain);
                 state.setClickerShardsEarned(state.clickerShardsEarned() + gain);
                 clickerAutoClicks += Math.round(clicks);
@@ -298,8 +304,9 @@ public abstract class GameClicker extends GameBrane {
         advanceClicker(dt);
         if (auto) {
             clickerAutoTimer += dt;
-            while (clickerAutoTimer >= 1 / CLICKER_AUTO_RATE) {
-                clickerAutoTimer -= 1 / CLICKER_AUTO_RATE;
+            double every = dimensionPlayPeriod(7);
+            while (clickerAutoTimer >= every) {
+                clickerAutoTimer -= every;
                 double[] spot = clickerBestSpot();
                 clickClicker(spot[0], spot[1]);
                 clickerAutoClicks++;
@@ -339,7 +346,7 @@ public abstract class GameClicker extends GameBrane {
 
     /** Vrai quand l'automatisme du clicker joue (automatisation des dimensions, version 0.155). */
     boolean isClickerAutomatic() {
-        return isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.CLICKER_PLAY);
+        return isDimensionPlayed(7);
     }
 
     /** Prix du prochain niveau, en étincelles ; infini une fois au plus haut. */

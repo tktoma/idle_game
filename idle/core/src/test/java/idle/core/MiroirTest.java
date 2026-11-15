@@ -149,8 +149,8 @@ class MiroirTest {
         long before = game.mirrorSuccesses();
         game.tick(300);
         assertTrue(game.mirrorSuccesses() > before + 10, "une absence les joue aussi");
-        assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count());
-        assertEquals(8, DimensionAutomation.MIRROR_PLAY.paidWith(), "payés en repères de la grille");
+        assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count());
+        assertEquals(9, DimensionAutomation.MIRROR_PLAY.paidWith(), "payés en reflets du miroir (version 0.209)");
     }
 
     @Test

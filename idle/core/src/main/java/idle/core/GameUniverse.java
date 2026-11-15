@@ -614,7 +614,7 @@ public abstract class GameUniverse extends GameAtoms {
         // La visée automatique, sur un grand pas (une absence rejouée par pas de 10 s), se joue par morceaux, comme en jeu
         // ouvert (version 0.163). Avant, un pas ne valait jamais plus d'un quart de seconde de course : sur un pas de 10 s, le
         // point automatique avançait quarante fois moins vite, et le plan ne rapportait presque rien en absence.
-        if (dt > PLANE_AUTO_STEP && planeInputX == 0 && planeInputY == 0 && planeAutoDirection() != null) {
+        if (dt > PLANE_AUTO_STEP && planeInputX == 0 && planeInputY == 0 && isPlaneAutomatic()) {
             for (double left = dt; left > 1e-12; left -= PLANE_AUTO_STEP) runPlaneStep(Math.min(PLANE_AUTO_STEP, left));
             return;
         }
@@ -641,7 +641,7 @@ public abstract class GameUniverse extends GameAtoms {
         // La visée automatique (version 0.150) ne prend la main que quand le joueur ne tient aucune direction.
         double inputX = planeInputX, inputY = planeInputY;
         if (inputX == 0 && inputY == 0) {
-            double[] auto = planeAutoDirection();
+            double[] auto = planeAutoDirection(dt);
             if (auto != null) {
                 inputX = auto[0];
                 inputY = auto[1];
@@ -663,9 +663,17 @@ public abstract class GameUniverse extends GameAtoms {
         }
     }
 
-    /** La direction que donne la visée automatique du plan (version 0.150) ; {@code null} sans elle. */
-    double[] planeAutoDirection() {
+    /**
+     * La direction que donne la visée automatique du plan (version 0.150) ; {@code null} sans elle. Version 0.209 : elle
+     * reçoit le temps écoulé, pour ne reprendre sa direction qu'à son rythme.
+     */
+    double[] planeAutoDirection(double dt) {
         return null;
+    }
+
+    /** Vrai quand quelqu'un d'autre que le joueur mène le point du plan (version 0.209) : un palier de la visée, un bot. */
+    boolean isPlaneAutomatic() {
+        return false;
     }
 
     /** Prix du prochain niveau, en éclats du plan ; infini une fois au plus haut. */
@@ -839,13 +847,14 @@ public abstract class GameUniverse extends GameAtoms {
         // La plongée automatique (version 0.150) : elle replonge dès qu'elle sort, et vise une boule à son rythme.
         if (isVolumeAutomatic() && isVolumeOpen() && dt > 0) {
             if (!inVolume) enterVolume();
+            double every = volumeShotPeriod();
             volumeShotTimer += dt;
-            while (volumeShotTimer >= VOLUME_AUTO_SHOT_SECONDS && !volumeBalls.isEmpty()) {
-                volumeShotTimer -= VOLUME_AUTO_SHOT_SECONDS;
+            while (volumeShotTimer >= every && !volumeBalls.isEmpty()) {
+                volumeShotTimer -= every;
                 VolumeBall ball = volumeBalls.get(0);
                 shootVolume(ball.x(), ball.y(), ball.z());
             }
-            if (volumeBalls.isEmpty()) volumeShotTimer = Math.min(volumeShotTimer, VOLUME_AUTO_SHOT_SECONDS);
+            if (volumeBalls.isEmpty()) volumeShotTimer = Math.min(volumeShotTimer, every);
         }
         if (!inVolume || dt <= 0) return;
         if (!isVolumeOpen()) {
@@ -908,8 +917,14 @@ public abstract class GameUniverse extends GameAtoms {
         return hit;
     }
 
-    /** La plongée automatique cueille une boule toutes les {@value} secondes. */
-    public static final double VOLUME_AUTO_SHOT_SECONDS = 0.4;
+    /**
+     * Le temps entre deux boules cueillies par la plongée automatique (version 0.209 : celui de son palier ; 0,4 s avant,
+     * pour la seule plongée d'alors).
+     */
+    double volumeShotPeriod() {
+        return Double.POSITIVE_INFINITY;
+    }
+
     private double volumeShotTimer;
 
     /** Vrai quand la plongée automatique joue le volume (version 0.150). */
@@ -1045,7 +1060,8 @@ public abstract class GameUniverse extends GameAtoms {
 
     /** Depuis combien de secondes le bouton est tenu, sans dépasser le temps au plus. */
     public double durationHeldSeconds() {
-        return durationHeld ? durationHeldSeconds : 0;
+        // Version 0.209 : l'appui automatique compte aussi son attente avant l'appui suivant ; le bouton, lui, est au plus plein.
+        return durationHeld ? Math.min(durationMaxSeconds(), durationHeldSeconds) : 0;
     }
 
     /** Où en sont les spirales : 0 au bord, 1 au centre. */
@@ -1104,15 +1120,17 @@ public abstract class GameUniverse extends GameAtoms {
                 durationHeld = true;
                 durationHeldSeconds = 0;
             }
-            double max = durationMaxSeconds(), total = durationHeldSeconds + dt;
-            long cycles = (long) Math.floor(total / max + 1e-9);
+            // Version 0.209 : entre deux appuis, le temps d'une action de son palier (presque rien pour le dernier). Le temps
+            // tenu compte ce délai : un tour dure le temps au plus, plus ce délai, et ne paie que le temps au plus.
+            double max = durationMaxSeconds(), delay = durationPressDelay(), lap = max + delay, total = durationHeldSeconds + dt;
+            long cycles = (long) Math.floor(total / lap + 1e-9);
             if (cycles > 0) {
                 double each = durationRewardFor(max), reward = each * cycles;
                 state.setDurationShards(state.durationShards() + reward);
                 state.setDurationShardsEarned(state.durationShardsEarned() + reward);
                 durationReleases += cycles;
                 durationLastReward = each;
-                total = Math.max(0, total - cycles * max);
+                total = Math.max(0, total - cycles * lap);
             }
             durationHeldSeconds = total;
             return;
@@ -1129,6 +1147,11 @@ public abstract class GameUniverse extends GameAtoms {
     /** Vrai quand l'appui automatique joue la durée (version 0.150). */
     boolean isDurationAutomatic() {
         return false;
+    }
+
+    /** Le temps entre un relâcher et l'appui suivant de l'appui automatique (version 0.209) : celui de son palier. */
+    double durationPressDelay() {
+        return 0;
     }
 
     /** Vrai une fois le seuil de la durée atteint : {@link #DURATION_THRESHOLD} éclats de la durée gagnés en tout. */
@@ -2178,10 +2201,13 @@ public abstract class GameUniverse extends GameAtoms {
         return state.skinsUnlockedCount(false);
     }
 
-    /** Version 0.192 : les skins débloqués qui comptent pour le bonus : sans les libres, {@link idle.core.universe.Skin#MAX_COUNTED} au plus. */
+    /**
+     * Version 0.192 : les skins débloqués qui comptent pour le bonus, sans les libres. Version 0.209 : tous, sans plafond
+     * (cent au plus de la 0.192 à la 0.208) ; depuis la 0.206 ils s'étalent jusqu'au onzième univers.
+     */
     public int skinsCounted() {
         // Version 0.202 : le compte se garde tant que les skins débloqués ne changent pas (il se relit à chaque fusion).
-        return Math.min(state.skinsUnlockedCount(true), idle.core.universe.Skin.MAX_COUNTED);
+        return state.skinsUnlockedCount(true);
     }
 
     /**

@@ -143,6 +143,7 @@ class JeuExplosionTest extends GameTestSupport {
             Game game = newGame();
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.ONE);
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);   // ce qui se paie en matière noire l'attend (version 0.209)
             for (DarkUpgrade dark : DarkUpgrades.DEFAULT) {
                 if (dark.requires() == null) assertTrue(game.isDarkAvailable(dark.id()), dark.id());
             }
@@ -277,6 +278,7 @@ class JeuExplosionTest extends GameTestSupport {
         @Test
         void uneLiaisonSOuvreParLUneOuLAutreDeSesVoies() {
             Game game = gameWithDarkMatter(20);
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
             DarkUpgrade link = DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("link_nuclei")).findFirst().orElseThrow();
             assertTrue(link.isLink() && link.inTree() && !link.branch().inTree());
             assertEquals(List.of("dark_burst", "dark_rich_fusion"), link.linkedIds());
@@ -290,6 +292,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertFalse(game.darkUpgrades(DarkUpgrade.Branch.DARK_MATTER).contains(link));
             assertEquals(10, game.darkLinks().size());
             Game other = gameWithDarkMatter(20);
+            other.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
             other.state().setDarkLevel("dark_burst", 1);                    // ou la voie de droite des particules
             assertTrue(other.canBuyDark("link_nuclei"));
             assertFalse(other.isDarkAvailable("link_flow"));                // celle de gauche n'a qu'une voie
@@ -298,6 +301,7 @@ class JeuExplosionTest extends GameTestSupport {
         @Test
         void unAccordDemandeSesTroisVoies() {
             Game game = gameWithDarkMatter(30);
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
             assertEquals(Game.Style.PRESENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_flow")).findFirst().orElseThrow()));
             assertEquals(Game.Style.ABSENCE, game.darkStyle(DarkUpgrades.DEFAULT.stream().filter(d -> d.id().equals("dark_burst")).findFirst().orElseThrow()));
             game.state().setDarkLevel("dark_flow", 1);
@@ -321,6 +325,7 @@ class JeuExplosionTest extends GameTestSupport {
             assertEquals(before + 3 * Game.ABSENCE_PATH_BONUS, game.offlineRate(), 1e-9);
             for (String id : List.of("dark_shadow_echo", "dark_double_synthesis", "dark_harvest")) game.state().setDarkLevel(id, 1);
             game.state().setDarkMatter(BigNum.of(60));
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);       // Noyaux sombres d'abord (version 0.209)
             assertTrue(game.buyDark("accord_absence_2"));
             assertEquals(before + 6 * Game.ABSENCE_PATH_BONUS + 0.10, game.offlineRate(), 1e-9);
         }

@@ -169,6 +169,8 @@ this.voidPolicy=new VoidPolicy(VOID_STYLES[profile.id-1],new Random(seed ^ (prof
 // Version 0.152 : l'arbre, à partir de l'univers 4. Le Speedrunner joue en expert ; les autres prennent soin de l'arbre
 // avec leur sens de l'organisation, et suivent l'ordre de l'expert s'ils suivent l'ordre d'achat du modèle.
 this.tree=new UniverseTreePolicy(treeStyle(profile,earlyStyle),new Random(seed ^ (profile.id*9173L) ^ 0x7ee1L));
+// Version 0.209 : un joueur moins présent joue les dimensions à la main au rythme de ses décisions.
+this.tree.occasionalHandSeconds=profile.actionEverySeconds();
 lastBang=game.bigBangs();lastCosmos=RobotCosmosPlanner.cosmosStage(game);lastExplosions=game.state().explosions();
 progressGuard=new ProfileProgressGuard(profile);
 }
@@ -287,7 +289,8 @@ boolean holdsBuyAll(){return p.actionEverySeconds()<=HOLD_MAX_ACTION_SECONDS && 
 static final boolean LACHER_M=!Boolean.getBoolean("idle.sansLacherM");
 /** Fait passer {@code dt} secondes de jeu, la touche M tenue si le profil la tient. */
 private void tickHoldingBuyAll(double dt){
-if(!holdsBuyAll() || !g.isStarted()){g.tick(dt);return;}
+// Version 0.209 : la main dans les dimensions joue aussi sans la touche M (avant, seulement avec elle, jusqu'à l'amas).
+if(!holdsBuyAll() || !g.isStarted()){if(g.isStarted())tree.tick(g,dt);g.tick(dt);return;}
 double left=dt;
 // Version 0.179 : le joueur présent joue aussi une dimension à la main avant chaque morceau de pas (UniverseTreePolicy.tick).
 while(left>1e-9){double part=Math.min(holdStep(),left);tree.tick(g,part);g.tick(part);left-=part;if(!sobriety)g.buyAllWithParticles();}

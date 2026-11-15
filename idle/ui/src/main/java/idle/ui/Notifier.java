@@ -343,7 +343,7 @@ final class Notifier {
             String keyName = game.darkUpgrades().stream().filter(each -> each.id().equals(Game.KEY_DARK_UPGRADE)).map(DarkUpgrade::name).findFirst().orElse("Noyaux sombres");
             add(news, Notice.EXPLOSION, "« " + keyName + " » à portée dans l'arbre : "
                     + "l'amélioration de matière noire qui compte le plus (atomes par fusion × toute la matière noire gagnée). "
-                    + "Sans elle, l'univers suivant dure trois fois plus longtemps.");
+                    + "Sans elle, l'univers suivant dure trois fois plus longtemps ; les autres achats en matière noire l'attendent.");
         }
         // Version 0.206 : un défi commencé, un défi abandonné, et le poids des défis à chaque univers formé.
         Challenge active = game.activeChallenge();

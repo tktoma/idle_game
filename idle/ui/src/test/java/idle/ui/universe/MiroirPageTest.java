@@ -196,7 +196,7 @@ class MiroirPageTest {
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             idle.ui.FxTestSupport.openDimensionAutomations(game, 9);
             game.state().setGridShards(1e9);
-            assertTrue(game.buyDimensionAutomation(DimensionAutomation.MIRROR_PLAY));
+            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.MIRROR_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.mirrorHintText().startsWith("Miroir automatique"), window.mirrorHintText());
@@ -265,14 +265,17 @@ class MiroirPageTest {
             pane.refresh();
             assertTrue(pane.sectionShown(9));
             assertEquals("Dimension 9 : Le miroir", pane.headingText(9));
-            assertTrue(pane.balanceText(9).startsWith("Payés en repères"), pane.balanceText(9));
-            Card play = pane.card(DimensionAutomation.MIRROR_PLAY);
+            assertTrue(pane.balanceText(9).startsWith("Payés en reflets"), pane.balanceText(9));
+            idle.ui.FxTestSupport.buyUpgradesOnly(game, 9);
+            idle.ui.FxTestSupport.fillDimension(game, 9, 1e9);
+            pane.refresh();
+            Card play = pane.card(DimensionAutomation.MIRROR_PLAY_5S);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Reproduit le motif, une case toutes les 0,4 s"), play.text());
+            assertTrue(play.text().contains("Reproduit le motif, une case toutes les 5 s"), play.text());
             play.click();
-            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY));
-            assertEquals(6, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count(),
-                    "six automatismes pour le miroir");
+            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY_5S));
+            assertEquals(10, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 9).count(),
+                    "dix automatismes pour le miroir");
             StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");

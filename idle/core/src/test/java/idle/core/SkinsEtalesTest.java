@@ -48,8 +48,8 @@ class SkinsEtalesTest {
                     "un dixième des skins attendent " + u + " univers formés : " + parUnivers[u] + " sur " + total);
         }
         assertEquals(0, parUnivers[0]);
-        // Moins de cent skins possibles avant le quatrième univers : le bonus ne plafonne plus dès le deuxième.
-        assertTrue(parUnivers[1] + parUnivers[2] + wonSkins() < Skin.MAX_COUNTED, "avant trois univers formés");
+        // Moins de cent skins possibles avant le quatrième univers : le bonus monte au fil de la partie, pas d'un coup au deuxième.
+        assertTrue(parUnivers[1] + parUnivers[2] + wonSkins() < 100, "avant trois univers formés");
     }
 
     @Test

@@ -164,8 +164,6 @@ public abstract class GameMix extends GameMirror {
     public static final int MIX_GRID = 10;
     /** Le miroir : le reflet ramassé juste après son éclat vaut ×2, +0,25 par niveau ; chaque paire de suite +10 %. */
     public static final double MIX_PAIR = 2, MIX_PAIR_STEP = 0.25, MIX_PAIR_STREAK = 0.1;
-    /** L'automatisme clique six fois par seconde. */
-    public static final double MIX_AUTO_CLICKS = 6;
 
     private final java.util.Random mixRandom = new java.util.Random(10);
     private final List<MixShard> mixShards = new ArrayList<>();
@@ -666,9 +664,20 @@ public abstract class GameMix extends GameMirror {
 
     /**
      * Le mélange automatique : le point file vers l'éclat le plus proche (et plonge à sa profondeur) ; il tient la charge
-     * et la relâche une fois pleine, quand le rythme est au moins « bien » ; il clique six fois par seconde.
+     * et la relâche une fois pleine, quand le rythme est au moins « bien » ; il clique. Version 0.209 : il fait tout cela
+     * une fois par action de son palier (six clics par seconde, et le reste à chaque pas, de la 0.158 à la 0.208).
      */
     private void playMixAutomatically(double dt) {
+        double every = dimensionPlayPeriod(10);
+        mixAutoClickTimer += dt;
+        while (mixAutoClickTimer >= every) {
+            mixAutoClickTimer -= every;
+            actMixOnce();
+        }
+    }
+
+    /** Une action du mélange automatique : viser, tenir ou relâcher la charge, cliquer. */
+    private void actMixOnce() {
         if (isMixing(2) && !mixShards.isEmpty()) {
             MixShard best = null;
             double distance = Double.POSITIVE_INFINITY;
@@ -687,18 +696,12 @@ public abstract class GameMix extends GameMirror {
             else if (mixHoldTime >= MIX_CHARGE_SECONDS && mixPot > 0
                     && (!isMixing(5) || mixRhythmNow() == MixRhythm.GOOD || mixRhythmNow() == MixRhythm.EXCELLENT)) holdMix(false);
         }
-        if (isMixing(7)) {
-            mixAutoClickTimer += dt;
-            while (mixAutoClickTimer >= 1 / MIX_AUTO_CLICKS) {
-                mixAutoClickTimer -= 1 / MIX_AUTO_CLICKS;
-                clickMix();
-            }
-        }
+        if (isMixing(7)) clickMix();
     }
 
     /** Vrai quand le mélange automatique tourne (automatisation des dimensions, version 0.158). */
     boolean isMixAutomatic() {
-        return isDimensionAutomationRunning(DimensionAutomation.MIX_AUTO);
+        return isDimensionPlayed(10);
     }
 
     // ------------------------------------------------------------------

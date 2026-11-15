@@ -78,18 +78,40 @@ final class UniverseTreePolicy {
      * à droite, s'achète depuis la version 0.167 : sans elle, les automatismes n'achètent qu'un niveau par action.
      */
     static boolean skipped(Game game, TreeBubble bubble) {
-        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER || withoutBubbles.contains(bubble)
-                || bubble == TreeBubble.YOUNG_RIGHT && !UNCAPPED_GENERATORS;
+        return bubble == TreeBubble.ROOTS && game.universes() < ROOTS_AFTER || withoutBubbles.contains(bubble);
     }
 
     /**
-     * Version 0.208 : les bots n'achètent plus la bulle du jeune arbre, à droite (plus de plafond de générateurs). Avec
-     * celle du bonsaï (automatismes sans délai), l'automatisme des générateurs a toujours un achat à tenter et recalcule
-     * des prix à chaque pas : les univers où le bot la possède coûtent trois à six fois plus de calcul, pour 13 min de jeu
-     * gagnées sur 87 h (Speedrunner, graine 201, dix univers : 86 h 44 avec, 86 h 57 sans ; 6 682 s de calcul contre
-     * 2 101 s). {@code -Didle.avecBulleGenerateurs=true} la rend aux bots, pour comparer avec les mesures d'avant.
+     * Les bulles que l'ordre de l'expert passe : celles de {@link #skipped}, et celle du jeune arbre, à droite, qui ne
+     * s'achète qu'une fois l'ordre fini, avec les restes (version 0.209 ; jamais de la 0.208).
+     */
+    static boolean skippedInOrder(Game game, TreeBubble bubble) {
+        return skipped(game, bubble) || bubble == TreeBubble.YOUNG_RIGHT && !UNCAPPED_GENERATORS;
+    }
+
+    /**
+     * Version 0.208 : la bulle du jeune arbre, à droite (plus de plafond de générateurs), coûtait trop de calcul aux bots.
+     * Avec celle du bonsaï (automatismes sans délai), l'automatisme des générateurs a toujours un achat à tenter et
+     * recalcule des prix à chaque pas : les univers où le bot la possède coûtent trois à six fois plus de calcul, pour
+     * 13 min de jeu gagnées sur 87 h (Speedrunner, graine 201, dix univers : 86 h 44 avec, 86 h 57 sans ; 6 682 s de
+     * calcul contre 2 101 s). En 0.208, les bots ne l'achetaient pas, et lui manquaient deux skins de bulles (18 achetées
+     * sur 19). Version 0.209 : ils l'achètent après les autres, mais son effet reste coupé pour eux
+     * ({@link #keepGeneratorCap}) : elle compte comme achetée, paie son prix, et le plafond de générateurs reste. Un
+     * joueur n'a pas cet interrupteur. {@code -Didle.avecBulleGenerateurs=true} la rend aux bots avec son effet, à sa
+     * place dans l'ordre, pour comparer avec les mesures d'avant la 0.208.
      */
     static final boolean UNCAPPED_GENERATORS = Boolean.getBoolean("idle.avecBulleGenerateurs");
+
+    /** La clé qui coupe l'effet de la bulle du jeune arbre, à droite, pour les bots ({@code GameStateBase#testBlock}). */
+    static final String GENERATOR_CAP_KEY = "bulle:" + TreeBubble.YOUNG_RIGHT.name();
+
+    /**
+     * Version 0.209 : coupe l'effet de la bulle du jeune arbre, à droite, pour la partie en mémoire (jamais sauvegardé, à
+     * remettre après chaque reprise : l'achat des bulles le fait à chaque passage).
+     */
+    static void keepGeneratorCap(Game game) {
+        if (!UNCAPPED_GENERATORS) game.state().testBlock(GENERATOR_CAP_KEY);
+    }
 
     /**
      * Version 0.168 : les bulles qu'une mesure « sans » retire ({@code sans=bulle:NOM} du bot analyste) : aucun profil ne
@@ -258,35 +280,77 @@ final class UniverseTreePolicy {
     private double dimensionRethink;
     /** Le temps de jeu entre deux choix de dimension. */
     static final double DIMENSION_RETHINK_SECONDS = 60;
-    /** Les dimensions jouées à la main : le plan, le volume et la durée ; la ligne tourne seule. */
-    static final int FIRST_PLAYED = 2, LAST_PLAYED = 4;
+    /**
+     * Les dimensions jouées à la main : du plan au mélange (version 0.209 ; le plan, le volume et la durée seulement de la
+     * 0.179 à la 0.208) ; la ligne tourne seule. Le plan, le volume et la durée ont leur joueur appliqué
+     * ({@link DimensionBots}) ; les autres se jouent avec ce que ferait l'automatisme qui les joue
+     * ({@code Game.playDimensionByHand}), une action toutes les {@link #HAND_SECONDS} secondes.
+     */
+    static final int FIRST_PLAYED = 2, LAST_PLAYED = 10, LAST_APPLIED = 4;
+    /** Le temps entre deux actions d'un joueur présent qui joue une dimension à la main (version 0.209). */
+    static final double HAND_SECONDS = 1;
+    /**
+     * Version 0.209 : la part du prix de l'automatisme suivant à partir de laquelle le joueur économise pour lui. En
+     * dessous, il achète les améliorations de la dimension, qui font monter ce qu'elle rapporte ; au-dessus, seulement
+     * ce qui laisse de quoi payer l'automatisme. Économiser dès le premier segment bloquait la ligne : sans
+     * amélioration, elle ne rapportait presque rien (5 402 segments en quatre univers, mesure de réglage).
+     */
+    static final double SAVE_FROM = 0.5;
+
+    /** Vrai si le joueur achète à la main ce niveau de cette dimension, à ce prix (version 0.209, {@link #SAVE_FROM}). */
+    static boolean handBuys(Game game, int dimension, double price) {
+        double balance = game.dimensionResource(dimension), reserve = game.dimensionAutomationReserve(dimension);
+        return price <= balance && (balance < reserve * SAVE_FROM || balance - price >= reserve - 1e-9);
+    }
 
     /**
-     * Avant chaque pas du jeu, le joueur présent joue une dimension à la main (version 0.179), celle dont les éclats
-     * manquent le plus à la prochaine amélioration de la graine : les attentes de l'amas, de la formation et de la
-     * maturation se passent dans les dimensions, et ce qu'elles rapportent paie la graine. Rien si la politique est
-     * coupée, avant l'univers 1 formé, ou pour un joueur qui ne s'occupe pas de l'arbre à chaque décision ({@link Style#care}).
+     * Version 0.209 : le temps entre deux actions à la main d'un joueur qui ne s'occupe pas de l'arbre à chaque décision
+     * ({@link Style#care} sous 1), celui de ses décisions ; 0 : il ne joue pas les dimensions. Les profils le donnent.
+     */
+    double occasionalHandSeconds;
+
+    /**
+     * Avant chaque pas du jeu, le joueur joue une dimension à la main (version 0.179), celle dont la ressource couvre le
+     * moins ce qu'elle doit payer ensuite ({@link #bestDimension}) : les attentes de l'amas, de la formation et de la
+     * maturation se passent dans les dimensions. Version 0.209 : les automatismes des dimensions se paient avec leur
+     * propre ressource, et celui qui joue vient en dernier ; sans jouer à la main, une dimension ne rapporte rien. Le joueur
+     * présent ({@link Style#care} à 1) joue à vitesse humaine ; les autres, au rythme de leurs décisions
+     * ({@link #occasionalHandSeconds}). Rien si la politique est coupée ou avant l'univers 1 formé.
      */
     void tick(Game game, double dt) {
-        if (!watering(game) || style.care() < 1 || dt <= 0) return;
+        boolean present = style.care() >= 1;
+        if (!watering(game) || dt <= 0 || !present && !(occasionalHandSeconds > 0)) {
+            game.playDimensionByHand(0, 0);
+            return;
+        }
+        double hand = present ? HAND_SECONDS : occasionalHandSeconds;
         dimensionRethink -= dt;
-        if (dimensionPlayer == null || dimensionRethink <= 0) {
+        if (dimensionRethink <= 0) {
             dimensionRethink = DIMENSION_RETHINK_SECONDS;
-            int best = bestDimension(game);
-            if (best != dimensionPlayed || dimensionPlayer == null) {
-                dimensionPlayer = best == 0 ? null : DimensionBots.player(game, DimensionBots.name(best));
+            int best = bestDimension(game, hand);
+            if (best != dimensionPlayed) {
+                boolean applied = present && best >= FIRST_PLAYED && best <= LAST_APPLIED;
+                dimensionPlayer = applied ? DimensionBots.player(game, DimensionBots.name(best)) : null;
+                game.playDimensionByHand(applied ? 0 : best, hand);
                 dimensionPlayed = best;
+                trace(game, "main dimension " + best);
             }
         }
         if (dimensionPlayer != null) dimensionPlayer.decide(dt);
+        else if (dimensionPlayed != 0) game.playDimensionByHand(dimensionPlayed, hand);
     }
 
-    /** La dimension à jouer : parmi celles ouvertes de {@link #FIRST_PLAYED} à {@link #LAST_PLAYED}, celle dont la réserve couvre le moins sa prochaine amélioration de la graine ; 0 sans. */
-    static int bestDimension(Game game) {
+    /**
+     * La dimension à jouer : parmi celles ouvertes de {@link #FIRST_PLAYED} à {@link #LAST_PLAYED}, celle dont la réserve
+     * couvre le moins ce qu'elle doit payer ensuite, la moins chère de ses améliorations de la graine ou son automatisme
+     * suivant (version 0.209) ; pas celles qu'un automatisme joue déjà au moins aussi vite que la main ; 0 sans.
+     */
+    static int bestDimension(Game game, double hand) {
         int best = 0;
         double worst = Double.POSITIVE_INFINITY;
         for (int dimension = FIRST_PLAYED; dimension <= Math.min(LAST_PLAYED, game.dimensionsUnlocked()); dimension++) {
-            double cost = cheapestSeedUpgrade(game, dimension);
+            if (automaticPeriod(game, dimension) <= hand + 1e-9) continue;
+            double cost = Math.min(cheapestSeedUpgrade(game, dimension), nextAutomationCost(game, dimension));
             double cover = cost == Double.POSITIVE_INFINITY ? Double.POSITIVE_INFINITY : game.dimensionResource(dimension) / cost;
             if (cover < worst) {
                 worst = cover;
@@ -294,6 +358,52 @@ final class UniverseTreePolicy {
             }
         }
         return best;
+    }
+
+    /** Le temps entre deux actions du palier qui joue cette dimension, sans la main d'un bot ; l'infini sans palier (version 0.209). */
+    static double automaticPeriod(Game game, int dimension) {
+        double period = Double.POSITIVE_INFINITY;
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
+            if (automation.dimension() == dimension && automation.kind() == DimensionAutomation.Kind.PLAY
+                    && game.isDimensionAutomationRunning(automation)) period = Math.min(period, automation.playPeriod());
+        }
+        return period;
+    }
+
+    /** Le prix de l'automatisme suivant de cette dimension, s'il s'achète déjà ; l'infini sinon (version 0.209). */
+    static double nextAutomationCost(Game game, int dimension) {
+        DimensionAutomation next = game.nextDimensionAutomation(dimension);
+        return next == null || !game.isDimensionAutomationAvailable(next) ? Double.POSITIVE_INFINITY : game.dimensionAutomationCost(next);
+    }
+
+    /**
+     * Version 0.209 : les améliorations d'une dimension jouée à la main au-delà de la durée, prises comme le ferait un
+     * joueur, la moins chère d'abord ; près du prix de l'automatisme suivant, il économise ({@link #handBuys}).
+     * Le plan, le volume et la durée ont leur joueur appliqué, qui achète lui-même.
+     */
+    int buyByHand(Game game) {
+        int dimension = game.dimensionPlayedByHand();
+        return dimension <= LAST_APPLIED ? 0 : buyByHand(game, dimension);
+    }
+
+    /** Les améliorations de cette dimension prises à la main, la moins chère d'abord ({@link #handBuys}) ; le nombre d'achats. */
+    static int buyByHand(Game game, int dimension) {
+        int done = 0;
+        for (int n = 0; n < 50; n++) {
+            DimensionAutomation cheapest = null;
+            double price = Double.POSITIVE_INFINITY;
+            for (DimensionAutomation automation : DimensionAutomation.values()) {
+                if (automation.dimension() != dimension || automation.kind() != DimensionAutomation.Kind.UPGRADE) continue;
+                double cost = game.dimensionUpgradeCost(automation);
+                if (cost < price) {
+                    price = cost;
+                    cheapest = automation;
+                }
+            }
+            if (cheapest == null || !handBuys(game, dimension, price) || !game.buyDimensionUpgradeByHand(cheapest)) break;
+            done++;
+        }
+        return done;
     }
 
     /** Le prix de la moins chère des améliorations de la graine ouvertes et pas au plus haut que paie cette dimension ; infini sans. */
@@ -348,7 +458,7 @@ final class UniverseTreePolicy {
     /** La prochaine bulle de l'expert : la première de la liste pas encore au niveau voulu et ouverte, ou {@code null}. */
     static Step nextBest(Game game) {
         for (Step step : order()) {
-            if (skipped(game, step.bubble()) || game.treeBubbleLevel(step.bubble()) >= step.level()) continue;
+            if (skippedInOrder(game, step.bubble()) || game.treeBubbleLevel(step.bubble()) >= step.level()) continue;
             if (!game.isTreeBubbleOpen(step.bubble())) continue;
             if (!WAIT_FOR_NEXT && !game.canBuyTreeBubble(step.bubble())) continue;
             return step;
@@ -359,7 +469,7 @@ final class UniverseTreePolicy {
     /** Vrai quand toutes les bulles de l'ordre de l'expert (hors celles qu'on saute) sont au niveau voulu. */
     static boolean allBestDone(Game game) {
         for (Step step : order()) {
-            if (!skipped(game, step.bubble()) && game.treeBubbleLevel(step.bubble()) < step.level()) return false;
+            if (!skippedInOrder(game, step.bubble()) && game.treeBubbleLevel(step.bubble()) < step.level()) return false;
         }
         return true;
     }
@@ -375,6 +485,7 @@ final class UniverseTreePolicy {
     }
 
     int buyBubbles(Game game) {
+        keepGeneratorCap(game);
         int done = 0;
         for (int n = 0; n < 40; n++) {
             TreeBubble choice;
@@ -499,6 +610,7 @@ final class UniverseTreePolicy {
                 }
             }
         }
+        done += buyByHand(game);
         if (game.canTendSeed() && game.canBuySeedUpgrade(SeedUpgrade.WATERING) && game.buySeedUpgrade(SeedUpgrade.WATERING)) {
             seedBought++;
             done++;
@@ -522,9 +634,10 @@ final class UniverseTreePolicy {
             }
             if (!any) break;
         }
+        // Version 0.209 : près du prix de l'automatisme suivant de la ligne, payé en segments, il économise ({@link #handBuys}).
         for (int n = 0; n < 50; n++) {
             LineUpgrade best = DimensionBots.bestLine(game);
-            if (best == null || !game.buyLine(best)) break;
+            if (best == null || !handBuys(game, 1, game.lineCost(best)) || !game.buyLine(best)) break;
             lineBought++;
             done++;
         }

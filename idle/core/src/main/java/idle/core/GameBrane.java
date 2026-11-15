@@ -124,8 +124,6 @@ public abstract class GameBrane extends GameLoop {
     public static final double BRANE_SPAWN_SECONDS = 2;
     /** Le rebond : ×1,5 au départ, +0,25 par niveau ; la suite : +10 % par point de plus, +5 points par niveau. */
     public static final double BRANE_BOUNCE = 1.5, BRANE_BOUNCE_STEP = 0.25, BRANE_COMBO = 0.1, BRANE_COMBO_STEP = 0.05;
-    /** L'automatisme tire une onde à fond toutes les {@value} secondes, sur le point qui en touche le plus (version 0.163). */
-    public static final double BRANE_AUTO_SECONDS = 3;
 
     private final java.util.Random braneRandom = new java.util.Random(6);
     private final List<BranePoint> branePoints = new ArrayList<>();
@@ -263,7 +261,8 @@ public abstract class GameBrane extends GameLoop {
     /**
      * La brane avance de {@code dt} secondes : un point apparaît à son rythme tant qu'il en manque ; chaque onde
      * grandit, touche les points que son front (ou l'un de ses rebonds) passe, et s'éteint à sa portée. L'automatisme
-     * de jeu tire une onde à fond sur le point qui en touche le plus ({@link #braneAutoAim()}), toutes les {@link #BRANE_AUTO_SECONDS} secondes.
+     * de jeu tire une onde à fond sur le point qui en touche le plus ({@link #braneAutoAim()}), une fois par action de son palier
+     * (version 0.209 ; toutes les 3 s de la 0.163 à la 0.208), quand l'onde d'avant s'est éteinte.
      */
     void runBrane(double dt) {
         if (!isBraneOpen() || dt <= 0) return;
@@ -284,13 +283,14 @@ public abstract class GameBrane extends GameLoop {
         }
         if (branePoints.size() >= BRANE_MAX_POINTS) braneSpawnTimer = Math.min(braneSpawnTimer, BRANE_SPAWN_SECONDS);
         if (isBraneAutomatic()) {
+            double every = dimensionPlayPeriod(6);
             braneAutoTimer += dt;
-            while (braneAutoTimer >= BRANE_AUTO_SECONDS && canPullBrane()) {
-                braneAutoTimer -= BRANE_AUTO_SECONDS;
+            while (braneAutoTimer >= every && canPullBrane()) {
+                braneAutoTimer -= every;
                 double[] aim = braneAutoAim();
                 pullBrane(aim[0], aim[1], 1);
             }
-            if (!canPullBrane()) braneAutoTimer = Math.min(braneAutoTimer, BRANE_AUTO_SECONDS);
+            if (!canPullBrane()) braneAutoTimer = Math.min(braneAutoTimer, every);
         }
         for (java.util.Iterator<BraneWave> it = braneWaves.iterator(); it.hasNext(); ) {
             BraneWave wave = it.next();
@@ -365,7 +365,7 @@ public abstract class GameBrane extends GameLoop {
 
     /** Vrai quand l'automatisme de la brane joue (automatisation des dimensions, version 0.154). */
     boolean isBraneAutomatic() {
-        return isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.BRANE_PULL);
+        return isDimensionPlayed(6);
     }
 
     /** Prix du prochain niveau, en ondes ; infini une fois au plus haut. */

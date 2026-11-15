@@ -15,6 +15,24 @@ import java.util.random.RandomGenerator;
  */
 public abstract class GameFinale extends GameMix {
 
+    /** Le prix du prochain niveau de l'amélioration de ce rang dans cette dimension (version 0.209) : pour la réserve des automatismes. */
+    @Override
+    double dimensionUpgradeCost(int dimension, int index) {
+        return switch (dimension) {
+            case 1 -> lineCost(LineUpgrade.values()[index]);
+            case 2 -> planeCost(PlaneUpgrade.values()[index]);
+            case 3 -> volumeCost(VolumeUpgrade.values()[index]);
+            case 4 -> durationCost(DurationUpgrade.values()[index]);
+            case 5 -> loopCost(LoopUpgrade.values()[index]);
+            case 6 -> braneCost(BraneUpgrade.values()[index]);
+            case 7 -> clickerCost(ClickerUpgrade.values()[index]);
+            case 8 -> gridCost(GridUpgrade.values()[index]);
+            case 9 -> mirrorCost(MirrorUpgrade.values()[index]);
+            case 10 -> mixCost(MixUpgrade.values()[index]);
+            default -> Double.POSITIVE_INFINITY;
+        };
+    }
+
     GameFinale(GameState state, List<Upgrade> catalog, List<Automation> automationCatalog, List<DarkUpgrade> darkCatalog,
             List<Achievement> achievementCatalog, RandomGenerator random) {
         super(state, catalog, automationCatalog, darkCatalog, achievementCatalog, random);

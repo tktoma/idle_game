@@ -61,11 +61,12 @@ class DimensionAutomationPageTest {
         return page;
     }
 
-    /** Achète, dans l'ordre, tous les automatismes jusqu'à {@code last} compris (ceux des dimensions d'avant aussi). */
+    /**
+     * Achète, dans l'ordre, les automatismes de sa dimension jusqu'à {@code last} compris (version 0.209 : ceux qui achètent
+     * d'abord, coupés ensuite pour que seul celui qui joue tourne).
+     */
     private static void buyUpTo(Game game, DimensionAutomation last) {
-        for (DimensionAutomation automation : DimensionAutomation.values()) {
-            if (automation.ordinal() <= last.ordinal()) game.buyDimensionAutomation(automation);
-        }
+        FxTestSupport.buyPlay(game, last);
         assertTrue(game.ownsDimensionAutomation(last), last.toString());
     }
 
@@ -105,9 +106,9 @@ class DimensionAutomationPageTest {
             few.refresh();
             assertTrue(few.dimensionsPane().sectionShown(2));
             assertTrue(few.dimensionsPane().sectionShown(3), "trois univers : le volume est ouvert, ses automatismes pas encore");
-            assertEquals(Card.State.LOCKED, few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).state());
-            assertTrue(few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).text().contains("Avec le bonsaï et 4 univers formés"),
-                    few.dimensionsPane().card(DimensionAutomation.VOLUME_DIVE).text());
+            assertEquals(Card.State.LOCKED, few.dimensionsPane().card(DimensionAutomation.VOLUME_TIME).state());
+            assertTrue(few.dimensionsPane().card(DimensionAutomation.VOLUME_TIME).text().contains("Avec le bonsaï et 4 univers formés"),
+                    few.dimensionsPane().card(DimensionAutomation.VOLUME_TIME).text());
             assertFalse(few.dimensionsPane().sectionShown(4), "la durée n'est pas ouverte");
             return null;
         });
@@ -124,14 +125,19 @@ class DimensionAutomationPageTest {
             Card yield = dims.card(DimensionAutomation.LINE_YIELD);
             assertEquals(Card.State.READY, yield.state());
             assertTrue(yield.text().contains("Achète « Densité » dès qu'il est payable"), yield.text());
-            assertTrue(yield.text().contains("1 graine d'univers"), yield.text());
+            assertTrue(yield.text().contains(DimensionAutomationPane.price(game, DimensionAutomation.LINE_YIELD)) && yield.text().contains(" segments"), yield.text());
             Card ticks = dims.card(DimensionAutomation.LINE_TICKS);
             assertEquals(Card.State.LOCKED, ticks.state());
             assertTrue(ticks.text().contains("Après : Densité"), ticks.text());
-            assertTrue(dims.card(DimensionAutomation.PLANE_AIM).text()
-                    .contains("Le point file vers l'éclat le plus proche quand vous ne tenez aucune touche"));
-            assertTrue(dims.card(DimensionAutomation.VOLUME_DIVE).text().contains("Plonge seul et cueille une boule toutes les 0,4 s"));
-            assertTrue(dims.card(DimensionAutomation.DURATION_HOLD).text().contains("Tient le bouton jusqu'au centre, relâche, recommence"));
+            // Version 0.209 : ceux qui jouent, en dernier, disent leur cadence et le palier d'avant.
+            Card aim = dims.card(DimensionAutomation.PLANE_AIM_5S);
+            assertTrue(aim.text().contains("Visée automatique, toutes les 5 s"), aim.text());
+            assertTrue(aim.text().contains("Mène le point vers l'éclat le plus proche quand vous ne tenez aucune touche ; reprend sa direction toutes les 5 s"), aim.text());
+            assertTrue(aim.text().contains("Après : Taille du point"), aim.text());
+            assertTrue(dims.card(DimensionAutomation.PLANE_AIM).text().contains("Après : Visée automatique, toutes les 0,5 s"),
+                    dims.card(DimensionAutomation.PLANE_AIM).text());
+            assertTrue(dims.card(DimensionAutomation.VOLUME_DIVE_05S).text().contains("Plonge seul et cueille une boule toutes les 0,5 s"));
+            assertTrue(dims.card(DimensionAutomation.DURATION_HOLD).text().contains("Tient le bouton jusqu'au centre, relâche, rappuie sans attente"));
 
             yield.click();
             assertTrue(game.ownsDimensionAutomation(DimensionAutomation.LINE_YIELD));

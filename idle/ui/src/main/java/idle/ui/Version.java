@@ -23,6 +23,26 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.209", "Noyaux sombres d'abord, le bonus des skins sans plafond, des automatismes des dimensions à gagner", List.of(
+                    "Arbre de matière noire : la colonne payée en matière noire passe en tête, et « Noyaux sombres » doit être "
+                            + "prise avant tout autre achat en matière noire (accords et liaisons compris) ; les autres cartes disent "
+                            + "« Après ★ Noyaux sombres ». L'automatisme de l'arbre prend son premier niveau. Les niveaux déjà pris "
+                            + "restent.",
+                    "Skins : le bonus de +2 % par skin n'a plus de plafond (cent skins, ×3, jusqu'ici). Il n'est plus écrit sur "
+                            + "chaque carte : une carte « Collection », en tête de l'onglet, donne le nombre de skins débloqués puis "
+                            + "le bonus cumulé.",
+                    "Automatismes des dimensions : ils se paient avec la ressource de leur propre dimension (les segments pour la "
+                            + "ligne, les facettes pour le plan…), au lieu de celle de la dimension d'avant et des graines d'univers : "
+                            + "il faut jouer une dimension à la main avant de l'automatiser.",
+                    "Ceux qui jouent la dimension à votre place viennent maintenant en dernier, les plus chers, en cinq paliers : "
+                            + "une action toutes les 5 s, puis 2 s, 1 s, 0,5 s, et le dernier sans attente. Le plus rapide acheté "
+                            + "joue ; aucune bulle ni la matière noire ne change leur cadence. Une partie qui avait l'automatisme de "
+                            + "jeu d'une dimension garde les cinq paliers.",
+                    "Ceux qui achètent les améliorations d'une dimension gardent de quoi payer son automatisme suivant.",
+                    "Robots de mesure : ils achètent la bulle du jeune arbre, à droite, après les autres, sans son effet (pour "
+                            + "le calcul) ; ils jouent les dimensions à la main, une à la fois. Prix réglés pour un joueur appliqué : "
+                            + "le premier palier qui joue vers dix minutes de jeu à la main, le dernier vers une demi-heure. La "
+                            + "partie de référence forme ses onze univers en 89 h 01 (89 h 07 en 0.208).")),
             new Note("0.208", "Rien de changé au jeu : des mesures trois fois plus rapides, onze univers mesurés", List.of(
                     "Le jeu se joue exactement comme en 0.207. Les robots de mesure n'achètent plus la bulle du jeune arbre, à "
                             + "droite : elle triplait leur temps de calcul pour 13 minutes gagnées sur 87 heures.",

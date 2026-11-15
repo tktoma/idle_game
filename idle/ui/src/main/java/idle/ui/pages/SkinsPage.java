@@ -21,7 +21,8 @@ import javafx.scene.layout.VBox;
  * L'onglet « Skins » (version 0.087), sous les réglages : il s'ouvre dans le deuxième univers, après
  * cinq fusions. Une section par visuel du jeu, avec son apparence classique et ses skins : un skin
  * débloqué se choisit d'un clic, un skin verrouillé dit comment l'obtenir. Chaque skin débloqué
- * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers.
+ * ajoute {@link Skin#BONUS} à toutes les ressources d'en dessous de l'univers. Version 0.209 : ce bonus n'est plus
+ * écrit sur chaque carte ; une carte en tête de page donne le nombre de skins débloqués, puis le bonus cumulé.
  */
 public final class SkinsPage extends VBox {
 
@@ -30,6 +31,8 @@ public final class SkinsPage extends VBox {
 
     private final Game game;
     private final Label summary = new Label();
+    /** Version 0.209 : la carte de la collection, en tête : skins débloqués, puis le bonus cumulé. */
+    private final Card collection = new Card(COLOR);
     private final Map<SkinVisual, Card> classics = new EnumMap<>(SkinVisual.class);
     private final Map<Skin, Card> cards = new LinkedHashMap<>();
     private final Label record = new Label();
@@ -46,7 +49,10 @@ public final class SkinsPage extends VBox {
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + COLOR + ";");
         Labels.centered(summary, "-fx-font-size: 13px; -fx-text-fill: #e8f4ff;");
         summary.setMaxWidth(760);
-        getChildren().addAll(title, summary);
+        TileGrid collectionGrid = new TileGrid(320, 1, 8);
+        collectionGrid.setMaxWidth(340);
+        collectionGrid.add(collection);
+        getChildren().addAll(title, collectionGrid, summary);
         // Version 0.088 : les recherches, le record et les épreuves qui donnent les skins.
         record.setStyle("-fx-font-size: 12px; -fx-text-fill: #cfe3ff;");
         TileGrid research = new TileGrid(260, 2, 8);
@@ -126,10 +132,14 @@ public final class SkinsPage extends VBox {
 
     public void refresh() {
         int unlocked = game.skinsUnlocked();
-        summary.setText(unlocked + " / " + Skin.values().length + " skins débloqués"
-                + (unlocked > 0 ? " : +" + ElementText.percent(game.skinBoost() - 1) + " à toutes les ressources d'en dessous de l'univers" : "")
-                + ". Choisir un skin ne change que l'apparence ; le bonus vient de chaque skin débloqué, choisi ou non, "
-                + "jusqu'à " + Skin.MAX_COUNTED + " skins (les skins libres, ouverts d'office, n'en donnent pas). "
+        int counted = game.skinsCounted();
+        collection.show(counted > 0 ? Card.State.DONE : Card.State.WAITING, "", "", "Collection",
+                unlocked + " / " + Skin.values().length + " skins débloqués",
+                counted + (counted > 1 ? " skins comptés" : " skin compté") + " × " + ElementText.percent(Skin.BONUS)
+                        + ", sur toutes les ressources d'en dessous de l'univers",
+                "Bonus cumulé : ×" + ElementText.number(game.skinBoost()) + " (+" + ElementText.percent(game.skinBoost() - 1) + ")", "");
+        summary.setText("Choisir un skin ne change que l'apparence ; chaque skin débloqué, choisi ou non, ajoute "
+                + ElementText.percent(Skin.BONUS) + " au bonus, sans plafond (les skins libres, ouverts d'office, n'en donnent pas). "
                 // Version 0.206 : la collection s'étale sur la partie.
                 + "Les skins viennent au fil des univers, une trentaine par univers formé jusqu'au " + (Skin.LAST_SKIN_UNIVERSE + 1)
                 + "ᵉ : une carte verrouillée dit l'univers qu'elle attend, en plus de sa condition.");
@@ -186,10 +196,14 @@ public final class SkinsPage extends VBox {
             boolean later = !has && game.universes() < skin.minUniverses();
             entry.getValue().show(chosen ? Card.State.ON : has ? Card.State.READY : Card.State.LOCKED, "",
                     chosen ? "choisi" : has ? "débloqué" : "", skin.label(),
-                    has ? skin.isFree() ? skin.source() : "+" + ElementText.percent(Skin.BONUS) + " à toutes les ressources"
-                            : later ? skin.source() + " — dès l'univers " + (skin.minUniverses() + 1) : skin.source(), "",
+                    later ? skin.source() + " — dès l'univers " + (skin.minUniverses() + 1) : skin.source(), "",
                     chosen ? "" : has ? "Choisir" : later ? "Univers " + (skin.minUniverses() + 1) : "Verrouillé", "");
         }
+    }
+
+    /** La carte de la collection (version 0.209) : pour les vérifications. */
+    public Card collectionCard() {
+        return collection;
     }
 
     /** Le texte du résumé en tête de page : pour les vérifications (version 0.206). */

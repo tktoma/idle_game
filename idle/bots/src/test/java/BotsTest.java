@@ -168,9 +168,13 @@ class BotsTest {
         g.state().setExplosions(1);
         g.state().setDarkLevel("dark_flow", 1);
         g.state().setDarkMatter(idle.core.math.BigNum.of(30));
+        // Version 0.209 : Noyaux sombres d'abord (tout achat en matière noire l'attend), puis la liaison avant les boutiques.
+        FirstUniversePolicy.dark(g, 1);
+        assertEquals(1, g.darkLevelOf("dark_shop_atoms"));
+        assertEquals(0, g.darkLevelOf("link_flow"));
         FirstUniversePolicy.dark(g, 1);
         assertEquals(1, g.darkLevelOf("link_flow"));
-        assertEquals(0, g.darkLevelOf("dark_shop_atoms"));
+        assertEquals(1, g.darkLevelOf("dark_shop_atoms"));
     }
 
     @Test

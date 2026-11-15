@@ -85,8 +85,6 @@ public abstract class GameGrid extends GameClicker {
     public static final double GRID_FOUND = 5;
     /** L'attente après chaque essai, en secondes. */
     public static final double GRID_COOLDOWN = 0.5;
-    /** L'automatisme essaie toutes les {@value} secondes. */
-    public static final double GRID_AUTO_SECONDS = 2;
 
     private final java.util.Random gridRandom = new java.util.Random(8);
     private final List<GridPoint> gridPoints = new ArrayList<>();
@@ -285,7 +283,7 @@ public abstract class GameGrid extends GameClicker {
 
     /**
      * La grille avance de {@code dt} secondes : l'attente s'écoule, il y a autant de points que le niveau le veut, et
-     * l'automatisme essaie toutes les {@value #GRID_AUTO_SECONDS} secondes une case près d'un point : à au plus un
+     * l'automatisme essaie une case par action de son palier (version 0.209 ; toutes les 2 s avant) près d'un point : à au plus un
      * huitième de la grille sur chaque axe. Sur une grande grille, il ne trouve presque jamais ; réduite, il trouve
      * souvent.
      */
@@ -294,9 +292,10 @@ public abstract class GameGrid extends GameClicker {
         gridWait -= dt;
         ensureGridPoints();
         if (!isGridAutomatic()) return;
+        double every = dimensionPlayPeriod(8);
         gridAutoTimer += dt;
-        for (int turn = 0; gridAutoTimer >= GRID_AUTO_SECONDS && turn < 100_000; turn++) {
-            gridAutoTimer -= GRID_AUTO_SECONDS;
+        for (int turn = 0; gridAutoTimer >= every && turn < 100_000; turn++) {
+            gridAutoTimer -= every;
             GridPoint target = gridPoints.get(gridRandom.nextInt(gridPoints.size()));
             int n = gridDivisions(), spread = Math.max(0, n / 8);
             int i = near(gridCell(target.x()), spread, n), j = near(gridCell(target.y()), spread, n), k = near(gridCell(target.z()), spread, n);
@@ -330,7 +329,7 @@ public abstract class GameGrid extends GameClicker {
 
     /** Vrai quand l'automatisme de la grille joue (automatisation des dimensions, version 0.156). */
     boolean isGridAutomatic() {
-        return isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.GRID_PROBE);
+        return isDimensionPlayed(8);
     }
 
     /** Prix du prochain niveau, en repères ; infini une fois au plus haut. */

@@ -157,7 +157,7 @@ class ClickerPageTest {
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             idle.ui.FxTestSupport.openDimensionAutomations(game, 7);
             game.state().setBraneShards(1e9);
-            assertTrue(game.buyDimensionAutomation(DimensionAutomation.CLICKER_PLAY));
+            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.CLICKER_PLAY);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.clickerHintText().startsWith("Clics automatiques"), window.clickerHintText());
@@ -232,14 +232,17 @@ class ClickerPageTest {
             pane.refresh();
             assertTrue(pane.sectionShown(7));
             assertEquals("Dimension 7 : Le clicker", pane.headingText(7));
-            assertTrue(pane.balanceText(7).startsWith("Payés en ondes"), pane.balanceText(7));
-            Card play = pane.card(DimensionAutomation.CLICKER_PLAY);
+            assertTrue(pane.balanceText(7).startsWith("Payés en étincelles"), pane.balanceText(7));
+            idle.ui.FxTestSupport.buyUpgradesOnly(game, 7);
+            idle.ui.FxTestSupport.fillDimension(game, 7, 1e9);
+            pane.refresh();
+            Card play = pane.card(DimensionAutomation.CLICKER_PLAY_5S);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Clique 6 fois par seconde au meilleur endroit"), play.text());
+            assertTrue(play.text().contains("Clique au meilleur endroit, toutes les 5 s"), play.text());
             play.click();
-            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY));
-            assertEquals(9, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
-                    "neuf automatismes pour le clicker");
+            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY_5S));
+            assertEquals(13, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 7).count(),
+                    "treize automatismes pour le clicker");
             StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");

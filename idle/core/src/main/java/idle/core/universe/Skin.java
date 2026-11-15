@@ -562,14 +562,12 @@ public enum Skin {
     /** L'univers formé qui débloque la première essence. */
     public static final int FIRST_TREE_UNIVERSE = 4;
 
-    /** Ce qu'ajoute chaque skin débloqué à toutes les ressources d'en dessous de l'univers : +2 %. */
-    public static final double BONUS = 0.02;
-
     /**
-     * Version 0.192 : le bonus des skins s'arrête à cent skins comptés (×3 au plus), pour que les centaines de skins
-     * ajoutés depuis la 0.185 ne déséquilibrent pas la partie ; les skins libres ({@link #isFree()}) ne comptent pas.
+     * Ce qu'ajoute chaque skin débloqué à toutes les ressources d'en dessous de l'univers : +2 %. Les skins libres
+     * ({@link #isFree()}) ne comptent pas. De la 0.192 à la 0.208, le bonus s'arrêtait à cent skins (×3) ; depuis la
+     * 0.209 il n'a plus de plafond : les skins s'étalent sur toute la partie (0.206), le bonus monte avec elle.
      */
-    public static final int MAX_COUNTED = 100;
+    public static final double BONUS = 0.02;
 
     /**
      * Version 0.206 : le nombre d'univers formés à partir duquel le dernier skin d'un visuel peut se débloquer : dix,

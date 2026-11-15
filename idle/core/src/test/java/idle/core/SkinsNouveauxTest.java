@@ -545,9 +545,9 @@ class SkinsNouveauxTest {
         assertEquals(SkinVisual.VOID_HOLE, Skin.VOID_HOLE_TEA.visual());
     }
 
-    /** Version 0.192 : le bonus s'arrête à cent skins comptés, et les skins libres ne comptent pas. */
+    /** Version 0.209 : le bonus n'a plus de plafond (cent skins de la 0.192 à la 0.208) ; les skins libres ne comptent pas. */
     @Test
-    void leBonusSArreteACentSkinsEtIgnoreLesSkinsLibres() {
+    void leBonusMonteSansPlafondEtIgnoreLesSkinsLibres() {
         Game game = GameTestSupport.universe(2);
         game.state().setSkinsOpen(true);
         int counted = 0;
@@ -558,12 +558,13 @@ class SkinsNouveauxTest {
             }
             game.state().unlockSkin(skin.id());
             counted++;
-            assertEquals(1 + Skin.BONUS * Math.min(counted, Skin.MAX_COUNTED), game.skinBoost(), 1e-9, "après " + skin);
+            assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9, "après " + skin);
         }
-        assertTrue(counted > Skin.MAX_COUNTED, "assez de skins pour atteindre le plafond");
-        assertEquals(Skin.MAX_COUNTED, game.skinsCounted());
+        assertTrue(counted > 100, "plus de cent skins comptés : l'ancien plafond est passé");
+        assertEquals(counted, game.skinsCounted());
         assertEquals(Skin.values().length, game.skinsUnlocked());
-        assertEquals(3.0, game.skinBoost(), 1e-9);
+        assertEquals(1 + Skin.BONUS * counted, game.skinBoost(), 1e-9);
+        assertTrue(game.skinBoost() > 3, "au-delà des ×3 de l'ancien plafond");
     }
 
     /**

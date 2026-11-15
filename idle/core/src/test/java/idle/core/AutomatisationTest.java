@@ -278,7 +278,8 @@ class AutomatisationTest {
                     // Tout ce qui a un dernier niveau y est porté, case ou boutique.
                     if (game.isDarkAvailable(upgrade.id())) assertEquals(upgrade.maxLevel(), level, upgrade.id());
                 } else if (!tree) {
-                    assertEquals(0, level, upgrade.id());              // la boutique sans limite reste au joueur
+                    // La boutique sans limite reste au joueur, sauf le premier niveau de Noyaux sombres (version 0.209).
+                    assertEquals(upgrade.id().equals(Game.KEY_DARK_UPGRADE) ? 1 : 0, level, upgrade.id());
                 } else {
                     // Une case sans dernier niveau est ouverte, puis montée tant qu'un niveau coûte au plus 1 % de sa branche :
                     // avec une production aussi absurde, Densité monte d'un niveau à chaque action.

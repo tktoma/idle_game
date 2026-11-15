@@ -464,8 +464,11 @@ class JeuMatiereNoireTest extends GameTestSupport {
             for (DarkUpgrade dark : shop) {
                 assertFalse(dark.branch().inTree());
                 assertEquals(null, dark.requires());
-                assertTrue(game.isDarkAvailable(dark.id()));   // dès la première matière noire
+                // Dès la première matière noire : Noyaux sombres, puis les autres (version 0.209).
+                assertEquals(dark.id().equals(Game.KEY_DARK_UPGRADE), game.isDarkAvailable(dark.id()), dark.id());
             }
+            game.state().setDarkLevel(Game.KEY_DARK_UPGRADE, 1);
+            for (DarkUpgrade dark : shop) assertTrue(game.isDarkAvailable(dark.id()), dark.id());
             assertEquals(19, game.darkUpgrades(DarkUpgrade.Branch.PARTICLES).size());   // six cases du seuil du Big Bang en 0.097
         }
 
@@ -512,8 +515,8 @@ class JeuMatiereNoireTest extends GameTestSupport {
             Game game = gameWithDarkMatter(3);
             double momentum = game.darkMatterMomentum();
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
-            assertTrue(game.buyDark("dark_shop_synthesis"));      // 2 matières noires
-            assertTrue(game.buyDark("dark_shop_atoms"));          // et la dernière : tout y passe
+            assertTrue(game.buyDark("dark_shop_atoms"));          // la première, d'abord (version 0.209)
+            assertTrue(game.buyDark("dark_shop_synthesis"));      // 2 matières noires : tout y passe
             assertValue(0, game.state().darkMatter());
             assertTrue(game.isDarkAutomationUnlocked("dark_auto_start"));
             assertEquals(momentum, game.darkMatterMomentum(), 1e-12);
@@ -563,6 +566,7 @@ class JeuMatiereNoireTest extends GameTestSupport {
         void departLanceCompteDesAtomesCommeCreesDesLAchat() {
             Game game = gameWithDarkMatter(3);
             assertValue(0, game.darkHeadStartAtoms());
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
             assertTrue(game.buyDark("dark_shop_start"));          // 2 matières noires
             assertValue(15, game.darkHeadStartAtoms());           // 5 × 3 gagnées
             assertValue(15, game.state().totalAtoms());

@@ -178,7 +178,10 @@ final class HelpPane extends Overlay {
                     // Version 0.206 : la case qui compte le plus.
                     + "Dans la colonne payée en matière noire, « Noyaux sombres » (carte dorée) est la case qui compte le plus : "
                     + "les atomes de chaque fusion multipliés par toute la matière noire gagnée, à chaque niveau ; sans elle, "
-                    + "l'univers suivant dure trois fois plus longtemps. Les défis sont des "
+                    + "l'univers suivant dure trois fois plus longtemps. "
+                    // Version 0.209 : en tête, et premier achat en matière noire.
+                    + "Sa colonne vient en tête de l'arbre, et elle passe avant le reste : tant qu'elle n'a pas de niveau, "
+                    + "les autres achats en matière noire, accords compris, l'attendent. Les défis sont des "
                     + "parties sous contrainte, avec une récompense qui reste"
                     + (game.universes() > 0 ? " ; leur tableau pèse " + ElementText.number(game.challengeUniverseFactor())
                             + " fois plus qu'au premier univers (×" + ElementText.number(Game.CHALLENGE_UNIVERSE_GROWTH) + " par univers formé)" : "")
@@ -491,29 +494,26 @@ final class HelpPane extends Overlay {
                 + Game.SEED_STAGE_NAMES.get(Game.dimensionAutomationStage(2) - 1) + " et " + Game.dimensionAutomationUniverses(2)
                 + " univers, et ainsi de suite, un palier et un univers de plus par dimension (ceux du mélange avec l'arbre-monde et "
                 + Game.dimensionAutomationUniverses(Game.MAX_DIMENSIONS) + " univers). La bulle du sommet de l'arbre-monde les fait "
-                + "moitié prix. En tout, " + DimensionAutomation.values().length + " automatismes qui jouent les dimensions à votre "
-                + "place et achètent leurs améliorations. Dans chaque dimension, ils s'achètent l'un après l'autre : ceux de la ligne en graines "
-                + "d'univers, ceux du plan en " + Game.dimensionResourceName(1) + ", ceux du volume en "
-                + Game.dimensionResourceName(2) + ", ceux de la durée en " + Game.dimensionResourceName(3) + ", ceux de la "
-                + "boucle en " + Game.dimensionResourceName(4) + ", ceux de la brane en " + Game.dimensionResourceName(5)
-                + ", ceux du clicker en " + Game.dimensionResourceName(6) + ", ceux de la grille en "
-                + Game.dimensionResourceName(7) + ", ceux du miroir en " + Game.dimensionResourceName(8) + ", ceux du "
-                + "mélange en " + Game.dimensionResourceName(9) + ". La visée "
-                + "automatique fait filer le point du plan vers l'éclat le plus proche tant que vous ne tenez aucune touche ; "
-                + "la plongée automatique plonge seule dans le volume et y cueille une boule toutes les "
-                + ElementText.number(Game.VOLUME_AUTO_SHOT_SECONDS) + " seconde ; l'appui automatique tient le "
-                + "bouton de la durée jusqu'au centre, relâche et recommence ; le rythme automatique clique « bien » à chaque "
-                + "passage d'un point de la boucle dans une zone, clic par clic ; la tirée automatique tire la membrane de "
-                + "la brane à fond, sur le point qui en touche le plus, toutes les " + ElementText.number(Game.BRANE_AUTO_SECONDS)
-                + " secondes ; les clics automatiques cliquent " + ElementText.number(Game.CLICKER_AUTO_RATE) + " fois par "
-                + "seconde là où se superposent le plus de zones du clicker ; les essais automatiques essaient toutes "
-                + "les " + ElementText.number(Game.GRID_AUTO_SECONDS) + " secondes une case près d'un point de la grille ; "
-                + "le miroir automatique refait le motif, une case toutes les " + ElementText.number(Game.MIRROR_AUTO_STEP)
-                + " seconde ; le mélange automatique mène le point, plonge, tient et relâche la charge en rythme, clique et "
-                + "passe seul aux étapes suivantes. Les autres achètent chacun une amélioration dès "
-                + "qu'elle est payable. Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
+                + "moitié prix. En tout, " + DimensionAutomation.values().length + " automatismes. Dans chaque dimension, ils "
+                // Version 0.209 : payés avec la ressource de leur dimension ; ceux qui jouent en dernier, en cinq paliers.
+                + "s'achètent l'un après l'autre, avec la ressource de la dimension (" + Game.dimensionResourceName(1) + " pour la ligne, "
+                + Game.dimensionResourceName(2) + " pour le plan, et ainsi de suite jusqu'aux " + Game.dimensionResourceName(10)
+                + " du mélange) : il faut d'abord la jouer à la main, de dix minutes à une demi-heure. Viennent d'abord ceux qui "
+                + "achètent chacun une amélioration dès qu'elle est payable, en gardant de quoi payer l'automatisme suivant ; puis, "
+                + "les plus chers, ceux qui jouent la dimension à votre place, en cinq paliers : une action toutes les 5 s, puis "
+                + "2 s, 1 s et 0,5 s, et le dernier sans attente. Le plus rapide acheté joue ; aucune bulle ni la matière noire "
+                + "ne change leur cadence. La visée automatique fait filer le point du plan vers l'éclat le plus proche tant "
+                + "que vous ne tenez aucune touche, et reprend sa direction à chaque action ; la plongée automatique plonge seule "
+                + "dans le volume et y cueille une boule par action ; l'appui automatique tient le bouton de la durée jusqu'au "
+                + "centre, relâche et rappuie à l'action suivante ; le rythme automatique clique « bien » au passage d'un point "
+                + "de la boucle dans une zone ; la tirée automatique tire la membrane de la brane à fond, sur le point qui en "
+                + "touche le plus, dès que l'onde d'avant s'est éteinte ; les clics automatiques cliquent là où se superposent le "
+                + "plus de zones du clicker ; les essais automatiques essaient une case près d'un point de la grille ; le miroir "
+                + "automatique refait le motif, une case par action ; le mélange automatique mène le point, plonge, tient et "
+                + "relâche la charge en rythme, clique et passe seul aux étapes suivantes. "
+                + "Ils jouent même fenêtre fermée, et une mention « automatique » le dit dans la fenêtre "
                 + "de la dimension. Un clic sur une carte en met un en pause ; « Couper tous les automatismes » les arrête "
-                + "tous. Achetés, ils traversent les univers."));
++ "tous. Achetés, ils traversent les univers."));
         // Le vide (version 0.129) : dès qu'il se propose, et tant qu'il est ouvert ou qu'un cumul est gardé.
         if (game.isVoidOffered() || game.isVoidUnlocked() || !game.state().voidHistory().isEmpty()) sections.add(new Section("Le vide",
                 "Au premier Big Bang du troisième univers, puis de chaque univers suivant, le vide se propose dans l'onglet "

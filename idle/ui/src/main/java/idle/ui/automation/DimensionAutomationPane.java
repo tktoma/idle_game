@@ -5,6 +5,7 @@ import idle.core.universe.DimensionAutomation;
 import idle.ui.GameApp;
 import idle.ui.common.Card;
 import idle.ui.common.Detail;
+import idle.ui.common.ElementText;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.TileGrid;
@@ -110,67 +111,58 @@ public final class DimensionAutomationPane extends VBox {
         refresh();
     }
 
-    /** Ce que fait un automatisme, en une ligne : celle de sa carte. */
+    /** Ce que fait un automatisme, en une ligne : celle de sa carte. Version 0.209 : celui qui joue dit sa cadence. */
     public static String brief(DimensionAutomation automation) {
-        return switch (automation) {
-            case PLANE_AIM -> "Le point file vers l'éclat le plus proche quand vous ne tenez aucune touche";
-            case VOLUME_DIVE -> "Plonge seul et cueille une boule toutes les "
-                    + String.format(java.util.Locale.FRANCE, "%.1f", Game.VOLUME_AUTO_SHOT_SECONDS) + " s";
-            case DURATION_HOLD -> "Tient le bouton jusqu'au centre, relâche, recommence";
-            case LOOP_PLAY -> "Clique « bien » à chaque passage d'un point dans une zone";
-            case BRANE_PULL -> "Tire la membrane à fond sur le point qui en touche le plus toutes les "
-                    + String.format(java.util.Locale.FRANCE, "%.0f", Game.BRANE_AUTO_SECONDS) + " s";
-            case CLICKER_PLAY -> "Clique " + String.format(java.util.Locale.FRANCE, "%.0f", Game.CLICKER_AUTO_RATE)
-                    + " fois par seconde au meilleur endroit";
-            case GRID_PROBE -> "Essaie une case près d'un point toutes les "
-                    + String.format(java.util.Locale.FRANCE, "%.0f", Game.GRID_AUTO_SECONDS) + " s";
-            case MIX_AUTO -> "Joue le mélange : mène le point, plonge, charge en rythme, clique "
-                    + String.format(java.util.Locale.FRANCE, "%.0f", Game.MIX_AUTO_CLICKS) + " fois par seconde, passe les étapes";
-            case MIRROR_PLAY -> "Reproduit le motif, une case toutes les "
-                    + String.format(java.util.Locale.FRANCE, "%.1f", Game.MIRROR_AUTO_STEP) + " s";
-            default -> "Achète « " + automation.label() + " » dès qu'il est payable";
+        if (automation.kind() == DimensionAutomation.Kind.UPGRADE) return "Achète « " + automation.label() + " » dès qu'il est payable";
+        String cadence = automation.cadence();
+        return switch (automation.dimension()) {
+            case 2 -> "Mène le point vers l'éclat le plus proche quand vous ne tenez aucune touche ; reprend sa direction " + cadence;
+            case 3 -> "Plonge seul et cueille une boule " + cadence;
+            case 4 -> "Tient le bouton jusqu'au centre, relâche, rappuie " + cadence;
+            case 5 -> "Clique « bien » au passage d'un point dans une zone, un clic " + cadence + " au plus";
+            case 6 -> "Tire la membrane à fond sur le point qui en touche le plus, " + cadence;
+            case 7 -> "Clique au meilleur endroit, " + cadence;
+            case 8 -> "Essaie une case près d'un point, " + cadence;
+            case 9 -> "Reproduit le motif, une case " + cadence;
+            default -> "Joue le mélange (vise, plonge, charge, clique), une action " + cadence;
         };
     }
 
     /** Ce qu'il fait, en détail : seulement en mode détails. */
     private static String detail(DimensionAutomation automation) {
-        return switch (automation.kind()) {
-            case PLAY -> switch (automation) {
-                case PLANE_AIM -> "Dès que vous lâchez les touches, il reprend la main, fenêtre ouverte ou non.";
-                case VOLUME_DIVE -> "Il replonge dès que le cube le rejette ; les améliorations du volume s'achètent entre "
-                        + "deux plongées. Vous pouvez cueillir avec lui, fenêtre ouverte.";
-                case DURATION_HOLD -> "Chaque fois que les spirales atteignent le centre, il relâche et en donne les instants. Les "
-                        + "améliorations de la durée s'achètent quand même, à la main ou par leurs automatismes.";
-                case LOOP_PLAY -> "Il joue tous les cercles de la boucle, fenêtre ouverte ou non, clic par clic, sans jamais "
-                        + "rater ni viser le centre ; la zone touchée part ailleurs, et vos clics comptent en plus. Les "
-                        + "améliorations de la boucle s'achètent quand même.";
-                case CLICKER_PLAY -> "Il clique là où se superposent le plus de zones (sinon au milieu), fenêtre "
-                        + "ouverte ou non ; ses clics comptent dans la cadence, et vos clics comptent en plus. Les "
-                        + "améliorations du clicker s'achètent quand même.";
-                case GRID_PROBE -> "Il essaie une case à au plus un huitième de la grille d'un point, sur chaque axe, "
-                        + "fenêtre ouverte ou non : sur une grande grille, il ne trouve presque jamais ; réduite, souvent. "
-                        + "Vos essais comptent en plus. Les améliorations de la grille s'achètent quand même.";
-                case MIX_AUTO -> "Il mène le point vers l'éclat le plus proche et plonge à sa profondeur, tient la charge "
-                        + "et la relâche une fois pleine quand le rythme est au moins « bien », clique et passe à l'étape "
-                        + "suivante dès qu'elle est gagnée, fenêtre ouverte ou non. Vous pouvez y jouer en plus ; les "
-                        + "améliorations du mélange s'achètent quand même.";
-                case MIRROR_PLAY -> "Il refait chaque motif sans faute jusqu'à " + Game.MIRROR_AUTO_MAX + " cases, puis se "
-                        + "trompe, fenêtre ouverte ou non ; vos clics comptent en plus. Les améliorations du miroir s'achètent "
-                        + "quand même.";
-                default -> "Il lance une onde de toute sa portée depuis le point d'où elle en touche le plus, fenêtre ouverte ou non, dès "
-                        + "que l'onde d'avant s'est éteinte ; vos tirées comptent en plus. Les améliorations de la brane "
-                        + "s'achètent quand même.";
-            };
-            case UPGRADE -> "Il achète tant que la ressource suffit, jusqu'au plus haut niveau s'il y en a un.";
+        if (automation.kind() == DimensionAutomation.Kind.UPGRADE) {
+            return "Il achète tant que la ressource suffit, jusqu'au plus haut niveau s'il y en a un, en gardant de quoi payer "
+                    + "l'automatisme suivant de la dimension.";
+        }
+        String tiers = " Cinq paliers, du plus lent au plus rapide (5 s, 2 s, 1 s, 0,5 s, sans attente) : le plus rapide acheté "
+                + "joue, et aucune bulle ni la matière noire ne change sa cadence.";
+        return switch (automation.dimension()) {
+            case 2 -> "Dès que vous lâchez les touches, il reprend la main, fenêtre ouverte ou non." + tiers;
+            case 3 -> "Il replonge dès que le cube le rejette ; les améliorations du volume s'achètent entre deux plongées. "
+                    + "Vous pouvez cueillir avec lui, fenêtre ouverte." + tiers;
+            case 4 -> "Chaque fois que les spirales atteignent le centre, il relâche et en donne les instants. Les améliorations "
+                    + "de la durée s'achètent quand même, à la main ou par leurs automatismes." + tiers;
+            case 5 -> "Il joue tous les cercles de la boucle, fenêtre ouverte ou non, sans jamais rater ni viser le centre ; la "
+                    + "zone touchée part ailleurs, et vos clics comptent en plus." + tiers;
+            case 6 -> "Il lance une onde de toute sa portée depuis le point d'où elle en touche le plus, fenêtre ouverte ou non, "
+                    + "dès que l'onde d'avant s'est éteinte ; vos tirées comptent en plus." + tiers;
+            case 7 -> "Il clique là où se superposent le plus de zones (sinon au milieu), fenêtre ouverte ou non ; ses clics "
+                    + "comptent dans la cadence, et vos clics comptent en plus." + tiers;
+            case 8 -> "Il essaie une case à au plus un huitième de la grille d'un point, sur chaque axe, fenêtre ouverte ou non : "
+                    + "sur une grande grille, il ne trouve presque jamais ; réduite, souvent. Vos essais comptent en plus." + tiers;
+            case 9 -> "Il refait chaque motif sans faute jusqu'à " + Game.MIRROR_AUTO_MAX + " cases, puis se trompe, fenêtre "
+                    + "ouverte ou non ; vos clics comptent en plus." + tiers;
+            default -> "Il mène le point vers l'éclat le plus proche et plonge à sa profondeur, tient la charge et la relâche "
+                    + "une fois pleine quand le rythme est au moins « bien », clique et passe à l'étape suivante dès qu'elle est "
+                    + "gagnée, fenêtre ouverte ou non. Vous pouvez y jouer en plus." + tiers;
         };
     }
 
-    /** « 1 graine d'univers », « 100 000 segments » : un prix, avec ce qui le paie (moitié prix avec la bulle du sommet, version 0.182). */
+    /** « 100 000 segments » : un prix, avec ce qui le paie (moitié prix avec la bulle du sommet, version 0.182). */
     public static String price(Game game, DimensionAutomation automation) {
         double cost = game.dimensionAutomationCost(automation);
         String currency = Game.dimensionAutomationCurrency(automation);
-        if (cost < 2 && automation.paidWith() == 0) currency = "graine d'univers";
-        return (cost < 1e6 ? Format.whole((long) cost) : Format.darkMatter(cost)) + " " + currency;
+        return (cost < 100 ? ElementText.number(cost) : cost < 1e6 ? Format.whole((long) cost) : Format.darkMatter(cost)) + " " + currency;
     }
 
     /** Recopie la partie : la coupure, ce que le joueur a pour payer, puis les cartes, si leur état a changé. */
@@ -206,16 +198,16 @@ public final class DimensionAutomationPane extends VBox {
             if (game.ownsDimensionAutomation(automation)) {
                 boolean on = game.isDimensionAutomationEnabled(automation);
                 card.show(on ? Card.State.ON : Card.State.OFF, "", !on ? "en pause" : paused ? "tout coupé" : "en marche",
-                        automation.label(), brief(automation), detail(automation) + " Un clic " + (on ? "le met en pause." : "le relance."),
+                        automation.title(), brief(automation), detail(automation) + " Un clic " + (on ? "le met en pause." : "le relance."),
                         "acheté", "");
             } else if (game.isDimensionAutomationAvailable(automation)) {
                 card.show(game.canBuyDimensionAutomation(automation) ? Card.State.READY : Card.State.WAITING, "", "",
-                        automation.label(), brief(automation), detail(automation) + " S'achète une fois, puis se met en pause d'un clic.",
+                        automation.title(), brief(automation), detail(automation) + " S'achète une fois, puis se met en pause d'un clic.",
                         price(game, automation), "");
             } else {
-                card.show(Card.State.LOCKED, "", "verrouillé", automation.label(), brief(automation), detail(automation),
+                card.show(Card.State.LOCKED, "", "verrouillé", automation.title(), brief(automation), detail(automation),
                         price(game, automation), !game.isDimensionAutomationOpen(automation.dimension()) ? opening(automation.dimension())
-                                : "Après : " + automation.previous().label());
+                                : "Après : " + automation.previous().title());
             }
         }
     }

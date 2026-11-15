@@ -580,6 +580,16 @@ public final class GameState extends GameStateResets {
         clearDimensionAutomations();
         data.list("dimensionAutomations").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
                 automation -> addDimensionAutomation(automation.name())));
+        // Version 0.209 : l'automatisme qui joue a cinq paliers, et l'ancien garde son nom pour le dernier, sans attente.
+        // Qui l'avait les a tous : un palier acheté donne ceux, plus lents, d'avant lui.
+        for (idle.core.universe.DimensionAutomation owned : idle.core.universe.DimensionAutomation.values()) {
+            if (owned.kind() != idle.core.universe.DimensionAutomation.Kind.PLAY || !dimensionAutomations.contains(owned.name())) continue;
+            for (idle.core.universe.DimensionAutomation slower : idle.core.universe.DimensionAutomation.values()) {
+                if (slower.kind() == owned.kind() && slower.dimension() == owned.dimension() && slower.playPeriod() > owned.playPeriod()) {
+                    addDimensionAutomation(slower.name());
+                }
+            }
+        }
         data.list("dimensionAutomationsOff").forEach(name -> known(name, idle.core.universe.DimensionAutomation.class,
                 automation -> setDimensionAutomationOff(automation.name(), true)));
         // Les hadrons (version 0.149) : absents d'avant, l'onglet fermé et rien d'assemblé.

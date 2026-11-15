@@ -213,6 +213,7 @@ class JeuEnsemblesTest extends GameTestSupport {
 
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(2));
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
             assertTrue(game.buyDark("dark_shop_target"));
             assertValue(0, game.state().darkMatter());
             assertTrue(game.isTargetedSynthesisUnlocked());
@@ -560,6 +561,7 @@ class JeuEnsemblesTest extends GameTestSupport {
             unlock(game);
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.of(1e6));
+            game.state().setDarkLevel("dark_shop_atoms", 1);      // Noyaux sombres d'abord (version 0.209)
             for (int level = 0; level < 12; level++) game.buyDark("dark_shop_cadence");
             assertEquals(game.minAutomationInterval(), game.automationInterval("autoSlow"), 0);
         }

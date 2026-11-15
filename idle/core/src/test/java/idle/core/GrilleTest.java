@@ -151,7 +151,8 @@ class GrilleTest {
     void lAutomatismeEssaieSeul() {
         Game game = eight();
         game.state().setTreeBubbleBought(GameUniverse.TreeBubble.SUMMIT.ordinal(), true);
-        game.state().addDimensionAutomation(DimensionAutomation.GRID_PROBE.name());
+        // Version 0.209 : le palier de deux secondes (la cadence de l'automatisme d'avant).
+        game.state().addDimensionAutomation(DimensionAutomation.GRID_PROBE_2S.name());
         for (int i = 0; i < 1_200; i++) game.tick(0.05);
         assertEquals(30, game.gridAutoProbes(), 1, "un essai toutes les deux secondes");
         assertEquals(0, game.gridFound(), "sur un milliard de cases, il ne trouve pas");
@@ -160,8 +161,8 @@ class GrilleTest {
         game.tick(200);
         assertEquals(130, game.gridAutoProbes(), 2, "une absence les compte aussi");
         assertEquals(100, game.gridFound(), 2, "réduite à deux cases par côté, il trouve à chaque fois");
-        assertEquals(7, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
-        assertEquals(7, DimensionAutomation.GRID_PROBE.paidWith(), "payés en étincelles du clicker");
+        assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count());
+        assertEquals(8, DimensionAutomation.GRID_PROBE.paidWith(), "payés en repères de la grille (version 0.209)");
     }
 
     @Test

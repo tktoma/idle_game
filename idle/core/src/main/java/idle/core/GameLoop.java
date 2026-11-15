@@ -303,15 +303,18 @@ public abstract class GameLoop extends GameDimensionAutomation {
         double turns = loopTurnsPerSecond() * dt;
         boolean automatic = isLoopAutomatic();
         boolean played = automatic && dt <= LOOP_PLAYED_STEP;
+        double period = dimensionPlayPeriod(5);
+        loopAutoWait = Math.max(0, loopAutoWait - dt);
         for (int ring = 0; ring < loopRings(); ring++) {
             spreadZones(ring);
             double from = loopPhase[ring];
             loopPhase[ring] = (from + turns) % 1;
-            if (played) playRing(ring, from, turns, dt);
+            if (played) playRing(ring, from, turns, dt, period);
             loopWait[ring] = Math.max(0, loopWait[ring] - dt);
         }
         if (automatic && !played) {
-            loopAutoPending += turns * loopRings() * loopZoneCount();
+            // Version 0.209 : pas plus d'un clic par action de son palier.
+            loopAutoPending += Math.min(turns * loopRings() * loopZoneCount(), dt / period);
             long clicks = (long) Math.floor(loopAutoPending);
             if (clicks > 0) {
                 loopAutoPending -= clicks;
@@ -325,11 +328,15 @@ public abstract class GameLoop extends GameDimensionAutomation {
     /** Au-delà de ce pas, en secondes, l'automatisme compte ses clics au lieu de les jouer. */
     public static final double LOOP_PLAYED_STEP = 1;
 
+    /** Le temps avant la prochaine action de celui qui joue la boucle (version 0.209), tous cercles confondus. */
+    private double loopAutoWait;
+
     /**
      * L'automatisme sur un cercle : le point a fait {@code turns} tours depuis {@code from} ; s'il a passé l'endroit
      * où il vise dans une zone (au milieu du « bien », côté arrivée) et que le cercle n'attendait plus, il clique là.
+     * Version 0.209 : une action par {@code period} secondes au plus, pour tous les cercles.
      */
-    private void playRing(int ring, double from, double turns, double dt) {
+    private void playRing(int ring, double from, double turns, double dt, double period) {
         double half = loopZoneHalfWidth(), aim = -half * (LOOP_EXCELLENT + LOOP_GOOD) / 2;
         double[] centers = zonesOf(ring);
         for (int zone = 0; zone < loopZoneCount(); zone++) {
@@ -337,7 +344,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
             if (ahead > turns) continue;
             // Le cercle doit avoir fini d'attendre quand le point y arrive.
             double when = turns <= 0 ? 0 : dt * ahead / turns;
-            if (loopWait[ring] - when > 1e-9) continue;
+            if (loopWait[ring] - when > 1e-9 || loopAutoWait - when > 1e-9) continue;
             double phase = loopPhase[ring];
             loopPhase[ring] = (from + ahead) % 1;
             LoopHit hit = hitAt(ring, loopPhase[ring]);
@@ -348,6 +355,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
                 loopAutoClicks++;
                 moveTouchedZone(ring, loopPhase[ring]);
                 loopWait[ring] = LOOP_COOLDOWN + when;
+                loopAutoWait = period + when;
             }
             loopPhase[ring] = phase;
             return;
@@ -363,7 +371,7 @@ public abstract class GameLoop extends GameDimensionAutomation {
 
     /** Vrai quand l'automatisme de la boucle joue (automatisation des dimensions, version 0.153). */
     boolean isLoopAutomatic() {
-        return isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.LOOP_PLAY);
+        return isDimensionPlayed(5);
     }
 
     /** Prix du prochain niveau, en nœuds ; infini une fois au plus haut. */

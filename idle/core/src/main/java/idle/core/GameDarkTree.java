@@ -79,11 +79,28 @@ public abstract class GameDarkTree extends GameSystems {
     /**
      * Vrai si la case est accessible : la matière noire existe et la case du dessus est acquise
      * (s'il y en a une). Depuis la version 0.070, aucune case n'attend plus un nombre de matières noires
-     * gagnées : seuls les prix rythment l'arbre.
+     * gagnées : seuls les prix rythment l'arbre. Depuis la version 0.209, ce qui se paie en matière noire
+     * attend Noyaux sombres ({@link #darkKeyFirst}).
      */
     public boolean isDarkAvailable(String darkUpgradeId) {
         DarkUpgrade dark = darkUpgrade(darkUpgradeId);
-        return isDarkMatterUnlocked() && hasDarkParent(dark) && darkForkRival(darkUpgradeId) == null;
+        return isDarkMatterUnlocked() && hasDarkParent(dark) && darkForkRival(darkUpgradeId) == null && darkKeyFirst(dark);
+    }
+
+    /**
+     * Version 0.209 : la première matière noire dépensée va à Noyaux sombres ({@link #KEY_DARK_UPGRADE}), la case qui
+     * compte le plus (sans elle, l'univers 2 du Speedrunner se bloque, mesure 0.208). Tout ce qui se paie en matière
+     * noire, accords compris, attend qu'elle ait un niveau ; elle-même n'attend rien. Les niveaux déjà pris dans une
+     * ancienne sauvegarde restent : seul l'achat suivant attend.
+     */
+    boolean darkKeyFirst(DarkUpgrade dark) {
+        return dark.branch() != DarkUpgrade.Branch.DARK_MATTER || dark.id().equals(KEY_DARK_UPGRADE)
+                || state.darkLevelOf(KEY_DARK_UPGRADE) > 0;
+    }
+
+    /** Vrai si cette case ne s'achète pas encore parce que Noyaux sombres n'a pas de niveau (version 0.209) : pour les textes. */
+    public boolean darkWaitsForKey(String darkUpgradeId) {
+        return !darkKeyFirst(darkUpgrade(darkUpgradeId));
     }
 
     /** Vrai si la case du dessus est acquise : une case ordinaire, ou l'une des voies d'une bifurcation. */

@@ -90,8 +90,8 @@ class BoucleTest {
         game.tick(200);
         // 200 s, un tour en 20 s, une zone : dix passages, dix « bien ».
         assertEquals(10 * game.loopReward(LoopHit.GOOD), game.state().loopShardsEarned(), 1e-6);
-        assertEquals(7, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 5).count(), "sept pour la boucle");
-        assertEquals(4, DimensionAutomation.LOOP_PLAY.paidWith(), "payés en instants de la durée");
+        assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 5).count(), "onze pour la boucle");
+        assertEquals(5, DimensionAutomation.LOOP_PLAY.paidWith(), "payés en nœuds de la boucle (version 0.209)");
     }
 
     @Test

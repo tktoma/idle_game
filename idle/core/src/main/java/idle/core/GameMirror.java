@@ -78,8 +78,7 @@ public abstract class GameMirror extends GameGrid {
     public static final int MIRROR_GROW_EVERY = 3, MIRROR_GROWTHS = 3;
     /** Un motif manqué donne un quart de reflet par case juste. */
     public static final double MIRROR_FAIL_SHARE = 0.25;
-    /** L'automatisme clique une case toutes les {@value} secondes, sans faute jusqu'à six cases. */
-    public static final double MIRROR_AUTO_STEP = 0.4;
+    /** L'automatisme ne se trompe pas jusqu'à six cases ; il en clique une par action de son palier (version 0.209 ; 0,4 s avant). */
     public static final int MIRROR_AUTO_MAX = 6;
 
     private final java.util.Random mirrorRandom = new java.util.Random(9);
@@ -281,8 +280,8 @@ public abstract class GameMirror extends GameGrid {
 
     /**
      * Le miroir avance de {@code dt} secondes : le motif s'allume case après case, puis attend la reproduction ; après
-     * le résultat, une courte pause, puis le motif suivant. L'automatisme reproduit une case toutes les
-     * {@value #MIRROR_AUTO_STEP} secondes, sans faute jusqu'à {@value #MIRROR_AUTO_MAX} cases ; au-delà, il se trompe à
+     * le résultat, une courte pause, puis le motif suivant. L'automatisme reproduit une case par action de son palier,
+     * sans faute jusqu'à {@value #MIRROR_AUTO_MAX} cases ; au-delà, il se trompe à
      * la septième. Un grand pas se découpe, pour que chaque motif se joue comme en jeu ouvert.
      */
     void runMirror(double dt) {
@@ -310,9 +309,10 @@ public abstract class GameMirror extends GameGrid {
                 case INPUT -> {
                     // Sans l'automatisme, le motif attend le joueur.
                     if (!isMirrorAutomatic()) return;
+                    double every = dimensionPlayPeriod(9);
                     mirrorAutoTimer += step;
-                    while (mirrorAutoTimer >= MIRROR_AUTO_STEP && mirrorPhase == MirrorPhase.INPUT) {
-                        mirrorAutoTimer -= MIRROR_AUTO_STEP;
+                    while (mirrorAutoTimer >= every && mirrorPhase == MirrorPhase.INPUT) {
+                        mirrorAutoTimer -= every;
                         MirrorCell target = mirrored(mirrorPattern.get(mirrorPosition));
                         if (mirrorPosition >= MIRROR_AUTO_MAX) {
                             // Au-delà de six cases, il se trompe : la case voisine sur la même ligne (la première du côté droit au bord).
@@ -329,7 +329,7 @@ public abstract class GameMirror extends GameGrid {
 
     /** Vrai quand l'automatisme du miroir joue (automatisation des dimensions, version 0.157). */
     boolean isMirrorAutomatic() {
-        return isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.MIRROR_PLAY);
+        return isDimensionPlayed(9);
     }
 
     /** Prix du prochain niveau, en reflets ; infini une fois au plus haut. */

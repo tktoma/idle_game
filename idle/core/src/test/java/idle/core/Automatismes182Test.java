@@ -60,22 +60,24 @@ class Automatismes182Test {
         game.state().setUniverseSeeds(BigNum.of(100));
         game.state().setDimensionShards(1e9);
         game.state().setPlaneShards(1e9);
+        game.state().setVolumeShards(1e9);
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.dimension() <= 2) assertTrue(game.buyDimensionAutomation(automation), automation.toString());
             else assertFalse(game.canBuyDimensionAutomation(automation), automation + " : sa dimension n'est pas ouverte aux automatismes");
         }
         assertTrue(game.testAddUniverse());
         assertTrue(game.isDimensionAutomationOpen(3), "quatre univers, l'arbre-monde : le volume");
-        assertEquals(DimensionAutomation.VOLUME_DIVE.cost(), game.dimensionAutomationCost(DimensionAutomation.VOLUME_DIVE), 1e-9);
+        assertEquals(DimensionAutomation.VOLUME_TIME.cost(), game.dimensionAutomationCost(DimensionAutomation.VOLUME_TIME), 1e-9);
         game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
-        assertEquals(DimensionAutomation.VOLUME_DIVE.cost() * Game.SUMMIT_DISCOUNT, game.dimensionAutomationCost(DimensionAutomation.VOLUME_DIVE), 1e-9);
-        game.state().setPlaneShards(DimensionAutomation.VOLUME_DIVE.cost() * 0.6);
-        assertTrue(game.canBuyDimensionAutomation(DimensionAutomation.VOLUME_DIVE), "60 % du prix suffisent avec la bulle");
-        assertTrue(game.buyDimensionAutomation(DimensionAutomation.VOLUME_DIVE));
-        assertEquals(DimensionAutomation.VOLUME_DIVE.cost() * 0.1, game.state().planeShards(), 1e-6);
+        assertEquals(DimensionAutomation.VOLUME_TIME.cost() * Game.SUMMIT_DISCOUNT, game.dimensionAutomationCost(DimensionAutomation.VOLUME_TIME), 1e-9);
+        // Version 0.209 : payé en sphères, la ressource du volume.
+        game.state().setVolumeShards(DimensionAutomation.VOLUME_TIME.cost() * 0.6);
+        assertTrue(game.canBuyDimensionAutomation(DimensionAutomation.VOLUME_TIME), "60 % du prix suffisent avec la bulle");
+        assertTrue(game.buyDimensionAutomation(DimensionAutomation.VOLUME_TIME));
+        assertEquals(DimensionAutomation.VOLUME_TIME.cost() * 0.1, game.state().volumeShards(), 1e-6);
         // Les automatismes achetés tournent sans la bulle, et la carte de la bulle dit son nouveau rôle.
         game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), false);
-        assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE));
+        assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_TIME));
         assertTrue(TreeBubble.SUMMIT.effect().contains("moitié prix"), TreeBubble.SUMMIT.effect());
     }
 

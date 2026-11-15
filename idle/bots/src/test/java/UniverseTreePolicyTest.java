@@ -222,26 +222,58 @@ class UniverseTreePolicyTest {
         expert.line(game);
         assertEquals(0, game.dimensionAutomationsOwned(), "pas avant le palier 3 de la graine");
         game.state().setSeedWaterings(Game.seedStageWaterings(3));
-        double seeds = game.state().universeSeeds().toDouble();
+        // Version 0.209 : payés en segments, la ressource de la ligne ; juste de quoi acheter les cinq.
+        double price = 0;
+        for (DimensionAutomation automation : DimensionAutomation.values()) if (automation.dimension() == 1) price += automation.cost();
+        game.state().setDimensionShards(price);
         expert.line(game);
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             assertEquals(automation.dimension() == 1, game.ownsDimensionAutomation(automation), automation.name());
         }
-        assertEquals(seeds - 9, game.state().universeSeeds().toDouble(), 1e-9, "1 + 1 + 2 + 2 + 3 graines");
         assertEquals(5, expert.automations);
-        // Avec les segments du premier automatisme du plan, la visée automatique suit, dès le palier 4 (trois univers déjà là).
-        game.state().setDimensionShards(DimensionAutomation.PLANE_AIM.cost());
+        // Le plan : payé en facettes, dès le palier 4 (trois univers déjà là) ; ses achats d'abord.
+        game.state().setPlaneShards(DimensionAutomation.PLANE_VALUE.cost());
         expert.line(game);
-        assertFalse(game.ownsDimensionAutomation(DimensionAutomation.PLANE_AIM), "le plan attend le palier 4");
+        assertFalse(game.ownsDimensionAutomation(DimensionAutomation.PLANE_VALUE), "le plan attend le palier 4");
         game.state().setSeedWaterings(Game.seedStageWaterings(4));
-        game.state().setDimensionShards(DimensionAutomation.PLANE_AIM.cost());   // la ligne a dépensé les premiers
         expert.line(game);
-        assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_AIM));
+        assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_VALUE));
         // La bulle du sommet : moitié prix.
         own(game, TreeBubble.SUMMIT);
-        game.state().setDimensionShards(DimensionAutomation.PLANE_VALUE.cost() * 0.6);
+        game.state().setPlaneShards(DimensionAutomation.PLANE_SPAWN.cost() * 0.6);
         expert.line(game);
-        assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_VALUE), "60 % du prix suffisent avec la bulle");
+        assertTrue(game.ownsDimensionAutomation(DimensionAutomation.PLANE_SPAWN), "60 % du prix suffisent avec la bulle");
+    }
+
+    /** Version 0.209 : la bulle du jeune arbre, à droite, s'achète après les autres, sans son effet pour le bot. */
+    @Test
+    void laBulleDuJeuneArbreADroiteSAcheteSansSonEffet() {
+        Game game = universes(3, true);
+        UniverseTreePolicy.keepGeneratorCap(game);
+        int cap = game.maxGeneratorCount();
+        game.state().setTreeBubbleLevel(TreeBubble.YOUNG_RIGHT.ordinal(), 1);
+        assertEquals(cap, game.maxGeneratorCount(), "le plafond de générateurs reste");
+        assertTrue(game.isTreeBubbleBought(TreeBubble.YOUNG_RIGHT), "elle compte comme achetée");
+        assertTrue(UniverseTreePolicy.skippedInOrder(game, TreeBubble.YOUNG_RIGHT), "après l'ordre de l'expert");
+        assertFalse(UniverseTreePolicy.skipped(game, TreeBubble.YOUNG_RIGHT), "mais pas sautée pour de bon");
+    }
+
+    /** Version 0.209 : le joueur présent joue à la main la dimension qui manque le plus, une à la fois. */
+    @Test
+    void laMainJoueLaDimensionQuiManqueLePlus() {
+        Game game = universes(4, true);
+        game.state().setSeedSprouted(true);
+        game.state().setSeedWaterings(Game.seedStageWaterings(Game.SEED_STAGES));
+        assertTrue(game.dimensionsUnlocked() >= 2, "au moins le plan");
+        int best = UniverseTreePolicy.bestDimension(game, UniverseTreePolicy.HAND_SECONDS);
+        assertTrue(best >= UniverseTreePolicy.FIRST_PLAYED, "une dimension à jouer : " + best);
+        // Un palier qui joue au moins aussi vite que la main : elle n'y va plus.
+        for (DimensionAutomation automation : DimensionAutomation.values()) {
+            if (automation.dimension() == best && automation.kind() == DimensionAutomation.Kind.PLAY && automation.playPeriod() <= 1) {
+                game.state().addDimensionAutomation(automation.name());
+            }
+        }
+        assertTrue(UniverseTreePolicy.bestDimension(game, UniverseTreePolicy.HAND_SECONDS) != best);
     }
 
     @Test
@@ -274,8 +306,10 @@ class UniverseTreePolicyTest {
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.ROOTS), "après, le bot la prend (version 0.163)");
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.LEAVES_RIGHT), "la bulle sans délai s'achète (version 0.167)");
         assertFalse(UniverseTreePolicy.skipped(ten, TreeBubble.LEAVES_RIGHT));
-        // Version 0.208 : la bulle qui retire le plafond de générateurs n'est plus achetée (coût de calcul), les autres si.
-        assertTrue(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_RIGHT));
+        // Version 0.208 : la bulle qui retire le plafond de générateurs n'était plus achetée (coût de calcul) ; version 0.209 :
+        // elle s'achète après l'ordre de l'expert, son effet coupé pour le bot.
+        assertTrue(UniverseTreePolicy.skippedInOrder(eleven, TreeBubble.YOUNG_RIGHT));
+        assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_RIGHT));
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.YOUNG_LEFT));
         assertFalse(UniverseTreePolicy.skipped(eleven, TreeBubble.MATURE_RIGHT));
     }

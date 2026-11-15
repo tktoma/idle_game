@@ -595,6 +595,12 @@ public final class DimensionWindow extends BorderPane {
      * Vrai si l'automatisation joue la dimension montrée : son automatisme de jeu tourne (la visée, la plongée, l'appui) ;
      * pour la ligne, qui n'en a pas, un de ses achats automatiques.
      */
+    /** La cadence du palier qui joue cette dimension, en mots (version 0.209) : « toutes les 5 s », « sans attente ». */
+    private String cadence(int dimension) {
+        DimensionAutomation tier = game.dimensionPlayTier(dimension);
+        return tier == null ? "" : tier.cadence();
+    }
+
     private boolean automatic() {
         for (DimensionAutomation automation : DimensionAutomation.values()) {
             if (automation.dimension() != view.dimension().number() || !game.isDimensionAutomationRunning(automation)) continue;
@@ -746,8 +752,9 @@ public final class DimensionWindow extends BorderPane {
         // Le seuil du plan (version 0.120), comme celui de la ligne : son rond vert (version 0.139 : il n'ouvre plus de palier de la graine).
         threshold(planeThreshold, game.isPlaneThresholdReached(), game.state().planeShardsEarned(), Game.PLANE_THRESHOLD, "facettes gagnées", 2);
         planeHint.setText("Z Q S D (ou les flèches) déplacent le point. Passez sur un éclat pour le ramasser."
-                + (game.isDimensionAutomationRunning(DimensionAutomation.PLANE_AIM)
-                        ? " Visée automatique : touches lâchées, le point file seul vers l'éclat le plus proche." : ""));
+                + (game.isDimensionAutoPlayed(2)
+                        ? " Visée automatique : touches lâchées, le point file seul vers l'éclat le plus proche (il reprend sa direction "
+                                + cadence(2) + ")." : ""));
         paintUpgrades(planeButtons, this::describe, game::planeLevel, Game.PlaneUpgrade::max, game::planeCost, game::canBuyPlane, " facette", color(2));
     }
 
@@ -759,9 +766,9 @@ public final class DimensionWindow extends BorderPane {
         volumeShards.setText("Sphères du volume : " + shardText(game.state().volumeShards()));
         threshold(volumeThreshold, game.isVolumeThresholdReached(), game.state().volumeShardsEarned(), Game.VOLUME_THRESHOLD, "sphères gagnées", 3);
         boolean outside = view.dive() == DimensionView.Dive.OUTSIDE;
-        boolean diving = game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE);
-        volumeHint.setText((diving ? "Plongée automatique : elle replonge seule et cueille une boule toutes les "
-                + seconds(Game.VOLUME_AUTO_SHOT_SECONDS) + " s ; vous pouvez cueillir avec elle. " : "") + switch (view.dive()) {
+        boolean diving = game.isDimensionAutoPlayed(3);
+        volumeHint.setText((diving ? "Plongée automatique : elle replonge seule et cueille une boule " + cadence(3)
+                + " ; vous pouvez cueillir avec elle. " : "") + switch (view.dive()) {
             case OUTSIDE -> diving ? "Les améliorations s'achètent ici, entre deux plongées."
                     : "Cliquez le cube pour y plonger, " + seconds(game.volumeDiveSeconds()) + " s par plongée. "
                     + "Les améliorations s'achètent ici, hors du cube.";
@@ -803,10 +810,10 @@ public final class DimensionWindow extends BorderPane {
         durationShards.setText("Instants de la durée : " + shardText(game.state().durationShards()));
         threshold(durationThreshold, game.isDurationThresholdReached(), game.state().durationShardsEarned(), Game.DURATION_THRESHOLD, "instants gagnés", 4);
         boolean held = game.isDurationHeld();
-        durationHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.DURATION_HOLD)
+        durationHint.setText(game.isDimensionAutoPlayed(4)
                 ? "Appui automatique : tenu " + seconds(game.durationHeldSeconds()) + " s sur " + seconds(game.durationMaxSeconds())
                         + " s, il relâche seul au centre (+" + shardText(game.durationRewardFor(game.durationMaxSeconds()))
-                        + ") et recommence. Les améliorations s'achètent quand même, et valent dès le cycle en cours."
+                        + ") et rappuie " + cadence(4) + ". Les améliorations s'achètent quand même, et valent dès le cycle en cours."
                 : !held
                 ? "Tenez le bouton du milieu (clic tenu, ou la barre d'espace) : les spirales avancent vers le centre, qu'elles "
                         + "atteignent en " + seconds(game.durationMaxSeconds()) + " s. Relâchez pour gagner leurs instants : plus on tient, plus chaque tour rapporte."
@@ -842,8 +849,8 @@ public final class DimensionWindow extends BorderPane {
         threshold(loopThreshold, game.isLoopThresholdReached(), game.state().loopShardsEarned(), Game.LOOP_THRESHOLD, "nœuds gagnés", 5);
         Game.LoopHit last = game.lastLoopHit();
         String lastText = game.loopHits() == 0 && last == Game.LoopHit.MISS ? "" : " Dernier clic : " + DimensionView.hitWord(last).toLowerCase(java.util.Locale.ROOT) + ".";
-        loopHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.LOOP_PLAY)
-                ? "Rythme automatique : il clique « bien » à chaque passage d'un point dans une zone, sur chaque cercle. "
+        loopHint.setText(game.isDimensionAutoPlayed(5)
+                ? "Rythme automatique : il clique « bien » au passage d'un point dans une zone, sur chaque cercle, un clic " + cadence(5) + " au plus. "
                         + "Vos clics comptent en plus ; les améliorations s'achètent quand même."
                 : "Cliquez un cercle, ou sa touche (" + loopKeysText() + "), quand son point passe dans une zone : au centre "
                         + "« excellent », puis « bien », au bord « mauvais ». Après chaque clic, le cercle attend "
@@ -884,8 +891,8 @@ public final class DimensionWindow extends BorderPane {
         braneHint.setText(view.braneHeld()
                 ? "Tirée à " + Math.round(view.branePull() * 100) + " % : l'onde portera à " + reach(game.braneReach(view.branePull()))
                         + " (" + reach(game.braneMaxReach()) + " à fond). Relâchez pour la lancer."
-                : game.isDimensionAutomationRunning(DimensionAutomation.BRANE_PULL)
-                ? "Tirée automatique : toutes les " + seconds(Game.BRANE_AUTO_SECONDS) + " s, elle tire la membrane à fond sur "
+                : game.isDimensionAutoPlayed(6)
+                ? "Tirée automatique : " + cadence(6) + ", dès que l'onde d'avant s'est éteinte, elle tire la membrane à fond sur "
                         + "le point qui en touche le plus. Vos tirées comptent en plus ; les améliorations s'achètent quand même." + last
                 : !game.canPullBrane()
                 ? "Une onde court déjà : attendez qu'elle s'éteigne pour tirer de nouveau." + last
@@ -926,8 +933,8 @@ public final class DimensionWindow extends BorderPane {
         String zones = game.areClickerZonesUnlocked()
                 ? " Dans une zone, ×" + idle.ui.common.ElementText.number(game.clickerZoneFactor()) + ", et davantage là où elles se superposent."
                 : "";
-        clickerHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.CLICKER_PLAY)
-                ? "Clics automatiques : " + idle.ui.common.ElementText.number(Game.CLICKER_AUTO_RATE) + " clics par seconde au "
+        clickerHint.setText(game.isDimensionAutoPlayed(7)
+                ? "Clics automatiques : " + idle.ui.common.ElementText.number(game.clickerAutoRate()) + " clics par seconde au "
                         + "meilleur endroit (cadence " + view.cadenceText(game.clickerRate()) + "). Vos clics comptent en plus ; "
                         + "les améliorations s'achètent quand même." + last
                 : "Cliquez la surface : chaque clic donne des étincelles, d'autant plus que vous cliquez vite (cadence "
@@ -985,8 +992,8 @@ public final class DimensionWindow extends BorderPane {
         String last = lastProbeText();
         String how = big ? "Visez une case (un clic sur la carte, ou ses coordonnées), puis « Essayer »"
                 : "Cliquez une case pour l'essayer";
-        gridHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE)
-                ? "Essais automatiques : toutes les " + seconds(Game.GRID_AUTO_SECONDS) + " s, une case près d'un point ; sur "
+        gridHint.setText(game.isDimensionAutoPlayed(8)
+                ? "Essais automatiques : " + cadence(8) + ", une case près d'un point ; sur "
                         + "une grande grille ils ne trouvent presque jamais, réduite souvent. Vos essais comptent en plus." + last
                 : how + " (la molette ou les flèches haut et bas changent de couche) : plus elle est près d'un point caché, "
                         + "plus elle donne de repères ; celle qui le contient le trouve, " + Format.multiplier(Game.GRID_FOUND) + "." + last);
@@ -1100,8 +1107,8 @@ public final class DimensionWindow extends BorderPane {
             case FAIL -> " Dernier motif manqué : +" + shardText(game.mirrorLastGain()) + ".";
             default -> "";
         };
-        mirrorHint.setText(game.isDimensionAutomationRunning(DimensionAutomation.MIRROR_PLAY)
-                ? "Miroir automatique : il reproduit une case toutes les " + seconds(Game.MIRROR_AUTO_STEP) + " s, sans faute "
+        mirrorHint.setText(game.isDimensionAutoPlayed(9)
+                ? "Miroir automatique : il reproduit une case " + cadence(9) + ", sans faute "
                         + "jusqu'à " + Game.MIRROR_AUTO_MAX + " cases, puis se trompe. Vos clics comptent en plus." + last
                 : switch (game.mirrorPhase()) {
                     case SHOW -> "Regardez le motif s'allumer à gauche, case après case : vous le referez de mémoire, en miroir, "
@@ -1180,8 +1187,8 @@ public final class DimensionWindow extends BorderPane {
         if (game.isMixing(9)) info.append(" · paires de suite ").append(game.mixPairStreak());
         if (game.mixLastGain() > 0) info.append(" · dernier gain +").append(idle.ui.common.ElementText.number(game.mixLastGain()));
         mixInfo.setText(info.toString());
-        mixHint.setText((game.isDimensionAutomationRunning(DimensionAutomation.MIX_AUTO)
-                ? "Mélange automatique : il mène le point vers l'éclat le plus proche, plonge à sa profondeur, tient et relâche "
+        mixHint.setText((game.isDimensionAutoPlayed(10)
+                ? "Mélange automatique : " + cadence(10) + ", il mène le point vers l'éclat le plus proche, plonge à sa profondeur, tient et relâche "
                         + "la charge en rythme, clique et passe seul à l'étape suivante. Vous pouvez jouer avec lui. "
                 : "") + mixHintFor(stage));
         StringBuilder levels = new StringBuilder().append(idle.ui.common.Detail.shown()).append('/').append(stage);
@@ -1634,7 +1641,7 @@ public final class DimensionWindow extends BorderPane {
         held.clear();
         loopKeysHeld.clear();
         game.setPlaneInput(0, 0);
-        if (game.isInVolume() && !game.isDimensionAutomationRunning(DimensionAutomation.VOLUME_DIVE)) game.leaveVolume();
+        if (game.isInVolume() && !game.isDimensionAutoPlayed(3)) game.leaveVolume();
         view.resetDive();
         setVisible(false);
     }

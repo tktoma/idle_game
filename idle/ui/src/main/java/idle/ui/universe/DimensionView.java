@@ -1462,7 +1462,7 @@ public final class DimensionView extends Canvas {
      */
     public boolean releaseHold() {
         if (dimension != Dimension.DURATION || !game.isDurationHeld()
-                || game.isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.DURATION_HOLD)) return false;
+                || game.isDimensionAutoPlayed(4)) return false;
         durationPickup(game.releaseDuration());
         lastReleases = game.durationReleases();
         return true;
@@ -3426,7 +3426,7 @@ public final class DimensionView extends Canvas {
         mirrorShownColumns = game.mirrorColumns();
         if (mirrorGrowAge >= 0) mirrorGrowAge = mirrorGrowAge + elapsed > MIRROR_GROW_SECONDS ? -1 : mirrorGrowAge + elapsed;
         long count = mirrorCount();
-        if (lastMirrorCount >= 0 && count != lastMirrorCount && game.isDimensionAutomationRunning(idle.core.universe.DimensionAutomation.MIRROR_PLAY)) {
+        if (lastMirrorCount >= 0 && count != lastMirrorCount && game.isDimensionAutoPlayed(9)) {
             List<Game.MirrorCell> pattern = game.mirrorPattern();
             int position = Math.min(game.mirrorPosition(), pattern.size());
             boolean failed = game.mirrorPhase() == Game.MirrorPhase.PAUSE && game.mirrorLastResult() == Game.MirrorAnswer.FAIL;

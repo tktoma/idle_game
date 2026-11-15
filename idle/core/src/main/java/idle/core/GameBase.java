@@ -605,16 +605,23 @@ public abstract class GameBase {
     static final ElementBonuses NO_BONUSES = ElementBonuses.of(Map.of());
 
     /**
-     * Vrai si cette bulle de l'arbre est achetée (version 0.148) : ses effets touchent tous les étages du moteur, d'où
-     * ce raccourci ici, tout en bas.
+     * Vrai si l'effet de cette bulle de l'arbre agit : elle est achetée (version 0.148). Ses effets touchent tous les
+     * étages du moteur, d'où ce raccourci ici, tout en bas. Version 0.209 : une mesure peut couper l'effet d'une bulle
+     * achetée ({@code bulle:NOM}, {@link GameStateBase#testBlock}) ; les bots le font pour celle du jeune arbre, à droite.
+     * La bulle compte toujours comme achetée pour l'arbre (liens, skins) : seul son effet manque.
      */
     final boolean hasBubble(GameUniverse.TreeBubble bubble) {
-        return state.treeBubbleBought(bubble.ordinal());
+        return state.treeBubbleBought(bubble.ordinal()) && !bubbleEffectBlocked(bubble);
     }
 
-    /** Le niveau de cette bulle de l'arbre : 0 si elle n'est pas achetée (version 0.148). */
+    /** Le niveau de cette bulle de l'arbre, pour ses effets : 0 si elle n'est pas achetée (version 0.148), ou si une mesure coupe son effet. */
     final int bubbleLevel(GameUniverse.TreeBubble bubble) {
-        return Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
+        return bubbleEffectBlocked(bubble) ? 0 : Math.min(bubble.maxLevel(), state.treeBubbleLevel(bubble.ordinal()));
+    }
+
+    /** Vrai si une mesure coupe l'effet de cette bulle (version 0.209) : jamais dans une partie ordinaire. */
+    private boolean bubbleEffectBlocked(GameUniverse.TreeBubble bubble) {
+        return state.testBlocking() && state.testBlocked("bulle:" + bubble.name());
     }
 
     /** Ce que chaque ordre de grandeur de hadrons d'une sorte ajoute à son bonus (version 0.151) : +25 %. */

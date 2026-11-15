@@ -121,6 +121,8 @@ class ConfortTest {
             assertFalse(game.isBulkAtomBuyUnlocked());
             game.state().setExplosions(1);
             game.state().setDarkMatter(BigNum.ONE);
+            assertFalse(game.canBuyDark("dark_shop_bulk"));      // Noyaux sombres d'abord (version 0.209)
+            game.state().setDarkLevel("dark_shop_atoms", 1);
             assertTrue(game.canBuyDark("dark_shop_bulk"));
             assertTrue(game.buyDark("dark_shop_bulk"));
             assertTrue(game.isBulkAtomBuyUnlocked());

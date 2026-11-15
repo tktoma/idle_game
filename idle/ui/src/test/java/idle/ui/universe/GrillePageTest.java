@@ -255,11 +255,11 @@ class GrillePageTest {
             game.state().setTreeBubbleBought(TreeBubble.SUMMIT.ordinal(), true);
             idle.ui.FxTestSupport.openDimensionAutomations(game, 8);
             game.state().setClickerShards(1e9);
-            assertTrue(game.buyDimensionAutomation(DimensionAutomation.GRID_PROBE));
+            idle.ui.FxTestSupport.buyPlay(game, DimensionAutomation.GRID_PROBE);
             window.frame(0.016, true);
             assertEquals("automatique", window.autoBadgeText());
             assertTrue(window.gridHintText().startsWith("Essais automatiques"), window.gridHintText());
-            run(game, window, Game.GRID_AUTO_SECONDS + 0.2);
+            run(game, window, 0.5);
             assertTrue(game.gridAutoProbes() >= 1, "ils essaient seuls");
             assertTrue(window.view().gridAutoFlashes() >= 1, "et leurs essais se voient");
             game.setDimensionAutomationEnabled(DimensionAutomation.GRID_PROBE, false);
@@ -316,14 +316,17 @@ class GrillePageTest {
             pane.refresh();
             assertTrue(pane.sectionShown(8));
             assertEquals("Dimension 8 : La grille", pane.headingText(8));
-            assertTrue(pane.balanceText(8).startsWith("Payés en étincelles"), pane.balanceText(8));
-            Card play = pane.card(DimensionAutomation.GRID_PROBE);
+            assertTrue(pane.balanceText(8).startsWith("Payés en repères"), pane.balanceText(8));
+            idle.ui.FxTestSupport.buyUpgradesOnly(game, 8);
+            idle.ui.FxTestSupport.fillDimension(game, 8, 1e9);
+            pane.refresh();
+            Card play = pane.card(DimensionAutomation.GRID_PROBE_5S);
             assertEquals(Card.State.READY, play.state());
-            assertTrue(play.text().contains("Essaie une case près d'un point toutes les 2 s"), play.text());
+            assertTrue(play.text().contains("Essaie une case près d'un point, toutes les 5 s"), play.text());
             play.click();
-            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE));
-            assertEquals(7, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count(),
-                    "sept automatismes pour la grille");
+            assertTrue(game.isDimensionAutomationRunning(DimensionAutomation.GRID_PROBE_5S));
+            assertEquals(11, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 8).count(),
+                    "onze automatismes pour la grille");
             StatsPage stats = new StatsPage(game, new idle.core.history.PurchaseHistory(), new idle.core.history.Pace());
             stats.refresh();
             stats.openSubPage("Univers");

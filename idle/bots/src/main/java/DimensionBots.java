@@ -296,22 +296,30 @@ final class DimensionBots {
             return true;
         }
 
-        /** Achète, tant qu'il y en a un, le niveau au meilleur rapport, et le note avec son instant et son niveau. */
-        private <U> void shop(Supplier<U> best, Predicate<U> buy, ToIntFunction<U> level) {
-            for (U choice; (choice = best.get()) != null && buy.test(choice); )
+        /**
+         * Achète, tant qu'il y en a un, le niveau au meilleur rapport, et le note avec son instant et son niveau. Version
+         * 0.209 : près du prix de l'automatisme suivant de la dimension, payé avec la même ressource, il économise.
+         */
+        private <U> void shop(Supplier<U> best, ToDoubleFunction<U> cost, Predicate<U> buy, ToIntFunction<U> level) {
+            for (U choice; (choice = best.get()) != null && affordable(cost.applyAsDouble(choice)) && buy.test(choice); )
                 purchases.add(String.format(Locale.ROOT, "%.0fs %s %d", t, choice, level.applyAsInt(choice)));
+        }
+
+        /** Vrai si le joueur achète à ce prix, près de l'automatisme suivant de la dimension (version 0.209). */
+        private boolean affordable(double price) {
+            return UniverseTreePolicy.handBuys(g, number, price);
         }
 
         /** La ligne tourne seule : un passage toutes les quelques secondes pour acheter. */
         private void line() {
             if (t < nextCheck) return;
             nextCheck += LINE_CHECK_SECONDS;
-            shop(() -> bestLine(g), g::buyLine, g::lineLevel);
+            shop(() -> bestLine(g), g::lineCost, g::buyLine, g::lineLevel);
         }
 
         /** Le plan : droit vers l'éclat le plus proche, une courte pause après chaque éclat ramassé. */
         private void plane(double dt) {
-            shop(() -> bestPlane(g), g::buyPlane, g::planeLevel);
+            shop(() -> bestPlane(g), g::planeCost, g::buyPlane, g::planeLevel);
             if (g.planeCollected() > collected) { collected = g.planeCollected(); pause = PLANE_REACTION_SECONDS; }
             PlaneShard target = null;
             double nearest = Double.POSITIVE_INFINITY;
@@ -333,7 +341,7 @@ final class DimensionBots {
         /** Le volume : achats entre deux plongées, puis chaque boule visée le temps qu'il faut. */
         private void volume(double dt) {
             if (!g.isInVolume()) {
-                shop(() -> bestVolume(g), g::buyVolume, g::volumeLevel);
+                shop(() -> bestVolume(g), g::volumeCost, g::buyVolume, g::volumeLevel);
                 outside += dt;
                 if (outside >= VOLUME_REENTRY_SECONDS && g.enterVolume()) { outside = 0; aiming = 0; }
             } else if (!g.volumeBalls().isEmpty()) {
@@ -350,7 +358,7 @@ final class DimensionBots {
             if (g.isDurationHeld()) {
                 if (g.durationProgress() >= 1) { g.releaseDuration(); released = 0; }
             } else {
-                shop(() -> bestDuration(g), g::buyDuration, g::durationLevel);
+                shop(() -> bestDuration(g), g::durationCost, g::buyDuration, g::durationLevel);
                 released += dt;
                 if (released >= DURATION_REACTION_SECONDS) g.holdDuration();
             }

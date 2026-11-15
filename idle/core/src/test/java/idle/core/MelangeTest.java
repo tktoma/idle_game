@@ -226,8 +226,8 @@ class MelangeTest {
         early.state().setMixStageEarned(1_000);
         early.tick(0.05);
         assertEquals(2, early.mixStage(), "il passe à l'étape suivante");
-        assertEquals(12, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count());
-        assertEquals(9, DimensionAutomation.MIX_AUTO.paidWith(), "payés en reflets du miroir");
+        assertEquals(16, java.util.Arrays.stream(DimensionAutomation.values()).filter(a -> a.dimension() == 10).count());
+        assertEquals(10, DimensionAutomation.MIX_AUTO.paidWith(), "payés en fragments du mélange (version 0.209)");
     }
 
     @Test
