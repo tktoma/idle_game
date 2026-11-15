@@ -339,9 +339,7 @@ public abstract class GamePlans extends GameCollider {
 
     /** Les voies d'une bifurcation, dans l'ordre du catalogue. */
     public List<DarkUpgrade> darkForkOptions(String fork) {
-        List<DarkUpgrade> options = new ArrayList<>();
-        for (DarkUpgrade dark : darkUpgrades.values()) if (fork.equals(dark.fork())) options.add(dark);
-        return options;
+        return darkForks.getOrDefault(fork, List.of());
     }
 
     /** Prix du prochain niveau, dans l'unité de sa branche (particules, atomes, ou mètres à atteindre). */

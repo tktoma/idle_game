@@ -151,6 +151,9 @@ public final class SettingsPage extends VBox {
     private static final long LOCKED_NOTATIONS = java.util.Arrays.stream(Settings.Notation.values()).filter(n -> n.unlock() != null).count();
     private final Label notationNote = new Label();
     private final Map<Settings.Effect, Button> effectButtons = new EnumMap<>(Settings.Effect.class);
+    /** Les catégories de sons (version 0.213), une par bouton : gardée ou coupée. */
+    private final Map<idle.ui.SoundKind, Button> soundKindButtons = new EnumMap<>(idle.ui.SoundKind.class);
+    private final javafx.scene.layout.FlowPane soundKindRow = new javafx.scene.layout.FlowPane(8, 8);
     private final javafx.scene.layout.FlowPane effectRow = new javafx.scene.layout.FlowPane(8, 8);
     private final Map<Settings.SaveDelay, Button> saveDelayButtons = new EnumMap<>(Settings.SaveDelay.class);
     private final Button offlineButton = new Button();
@@ -215,6 +218,11 @@ public final class SettingsPage extends VBox {
     private final Button quieterButton = new Button("−");
     private final Button louderButton = new Button("+");
     private final Label volumeLabel = new Label();
+    /** La musique de fond (version 0.210) : son interrupteur et son volume, sur leur ligne. */
+    private final Button musicButton = new Button();
+    private final Button musicQuieterButton = new Button("−");
+    private final Button musicLouderButton = new Button("+");
+    private final Label musicVolumeLabel = new Label();
     private final java.util.Map<Settings.FrameRate, Button> frameRateButtons = new java.util.EnumMap<>(Settings.FrameRate.class);
     private final Button energyButton = new Button();
     /** Joue un son d'essai au volume réglé : branché par la fenêtre, qui possède les sons. */
@@ -435,11 +443,19 @@ public final class SettingsPage extends VBox {
                 effect -> settings.setEffect(effect, !settings.effectChosen(effect)), effectButtons, true);
         target.getChildren().add(effectRow);
 
-        block("Sons",
-                "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, comète, défi "
-                        + "réussi. Tous sont fabriqués par le jeu, sans fichier. Un même son ne revient pas avant une "
-                        + "seconde, même quand les automatismes enchaînent tout. Changer le volume fait entendre un essai. "
-                        + "Le métronome de la boucle, qui se branche dans sa fenêtre, suit ce réglage et ce volume.");
+        block("Sons et musique",
+                "Un son accompagne les grands moments : succès, élément nouveau, explosion, Big Bang, univers formé, palier "
+                        + "du défi final, skin débloqué, défi, matière noire, comète, jalon. Un achat, un interrupteur et chaque "
+                        + "geste dans le mini-jeu d'une dimension ont aussi le leur, plus discret, comme les "
+                        + "bruitages de ce qui se passe sous vos yeux : une particule créée, une fusion, une collision, des hadrons, "
+                        + "le vide, la graine, un point gagné dans une dimension, un clic, un changement d'onglet. Chaque sorte de "
+                        + "son se garde ou se coupe à part, en bas de ce bloc. Tous sont fabriqués par le jeu, "
+                        + "sans fichier. Un même son d'annonce ne revient pas avant une seconde, même quand les automatismes "
+                        + "enchaînent tout. Changer le volume fait entendre un essai. Le métronome de la boucle, qui se branche "
+                        + "dans sa fenêtre, suit ce réglage et ce volume. La musique, composée par le jeu pendant qu'on joue, suit "
+                        + "la partie : chaque étape d'un univers a la sienne (l'aube, l'élan, les Big Bangs, les astres, l'amas, la "
+                        + "formation), un défi la resserre, une dimension ouverte a son arpège, et chaque univers change de tonalité. "
+                        + "Elle a son interrupteur et son volume.");
         soundButton.setOnAction(event -> {
             settings.setSound(!settings.sound());
             if (settings.sound()) soundTest.run();
@@ -455,6 +471,27 @@ public final class SettingsPage extends VBox {
         HBox soundRow = new HBox(8, soundButton, quieterButton, volumeLabel, louderButton);
         soundRow.setAlignment(Pos.CENTER);
         target.getChildren().add(soundRow);
+        musicButton.setOnAction(event -> {
+            settings.setMusic(!settings.music());
+            refresh();
+        });
+        musicQuieterButton.setOnAction(event -> changeMusicVolume(-VOLUME_STEP));
+        musicLouderButton.setOnAction(event -> changeMusicVolume(VOLUME_STEP));
+        for (Button button : List.of(musicQuieterButton, musicLouderButton)) {
+            button.setStyle(OFF_STYLE);
+            button.setFocusTraversable(false);
+        }
+        musicVolumeLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #c9d1d9; -fx-min-width: 110; -fx-alignment: center;");
+        HBox musicRow = new HBox(8, musicButton, musicQuieterButton, musicVolumeLabel, musicLouderButton);
+        musicRow.setAlignment(Pos.CENTER);
+        target.getChildren().add(musicRow);
+        // note() pose le libellé sur la page : l'y ajouter une seconde fois fait planter JavaFX au lancement.
+        note(new Label("Les sons à garder, un par un :"));
+        soundKindRow.setAlignment(Pos.CENTER);
+        soundKindRow.setMaxWidth(640);
+        choiceRow(soundKindRow, idle.ui.SoundKind.values(), idle.ui.SoundKind::label,
+                kind -> settings.setSoundKind(kind, !settings.soundKind(kind)), soundKindButtons, true);
+        target.getChildren().add(soundKindRow);
 
         block("Images par seconde",
                 "Moins d'images, c'est moins de calcul et moins de batterie ; le jeu avance au même rythme, seule "
@@ -833,6 +870,12 @@ public final class SettingsPage extends VBox {
         refresh();
     }
 
+    /** Le volume de la musique (version 0.210) : elle joue déjà, le changement s'entend sans essai. */
+    private void changeMusicVolume(int step) {
+        settings.setMusicVolume(settings.musicVolume() + step);
+        refresh();
+    }
+
     /** Branche le son d'essai, joué quand le joueur règle le volume ou rallume les sons. */
     public void setSoundTest(Runnable test) {
         soundTest = test == null ? () -> { } : test;
@@ -1014,6 +1057,12 @@ public final class SettingsPage extends VBox {
         for (Settings.Notation notation : Settings.Notation.values()) if (notation.unlock() != null && settings.isOpen(notation)) notationsOpen++;
         themeNote.setText(!themeHint.isEmpty() ? themeHint : "Thèmes à débloquer : " + themesOpen + " / " + LOCKED_THEMES);
         notationNote.setText(!notationHint.isEmpty() ? notationHint : "Notations à débloquer : " + notationsOpen + " / " + LOCKED_NOTATIONS);
+        soundKindButtons.forEach((kind, button) -> {
+            boolean on = settings.soundKind(kind);
+            button.setText((on ? "✓ " : "✗ ") + kind.label());
+            button.setStyle(on && settings.sound() ? ON_STYLE : OFF_STYLE);
+            button.setDisable(!settings.sound());
+        });
         effectButtons.forEach((effect, button) -> {
             boolean on = settings.effectChosen(effect);
             button.setText((on ? "✓ " : "✗ ") + effect.label());
@@ -1052,6 +1101,10 @@ public final class SettingsPage extends VBox {
         volumeLabel.setText("Volume : " + settings.volume() + " %");
         quieterButton.setDisable(!settings.sound() || settings.volume() <= 0);
         louderButton.setDisable(!settings.sound() || settings.volume() >= 100);
+        toggle(musicButton, settings.music(), "Musique : activée", "Musique : coupée");
+        musicVolumeLabel.setText("Musique : " + settings.musicVolume() + " %");
+        musicQuieterButton.setDisable(!settings.music() || settings.musicVolume() <= 0);
+        musicLouderButton.setDisable(!settings.music() || settings.musicVolume() >= 100);
         for (Map.Entry<Settings.FrameRate, Button> entry : frameRateButtons.entrySet()) {
             entry.getValue().setText(entry.getKey().label() + " images/s");
             entry.getValue().setStyle(entry.getKey() == settings.frameRate() ? ON_STYLE : OFF_STYLE);

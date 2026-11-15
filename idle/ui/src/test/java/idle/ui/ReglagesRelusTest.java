@@ -1,0 +1,63 @@
+package idle.ui;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+import idle.ui.GameAppBase.Tab;
+import idle.ui.pages.Avatar;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Version 0.214 : les réglages, l'ordre des onglets et les avatars se relisent par l'utilitaire commun
+ * ({@link idle.core.Enums}). Un nom d'une autre version donne la valeur d'origine, comme avant ; un nom connu se relit.
+ */
+class ReglagesRelusTest {
+
+    @Test
+    void unReglageInconnuRevientACeluiDOrigine() {
+        NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();
+        for (String key : List.of("notation", "theme", "scale", "saveDelay", "frameRate", "buyAmount", "detailKey")) {
+            store.put(key, "UNE_VALEUR_D_UNE_AUTRE_VERSION");
+        }
+        Settings settings = Settings.load(store);
+        Settings defaults = Settings.load(new NotificationsEtSignesTest.MemoryPreferences());
+        assertSame(defaults.notation(), settings.notation());
+        assertSame(defaults.theme(), settings.theme());
+        assertSame(defaults.scale(), settings.scale());
+        assertSame(defaults.saveDelay(), settings.saveDelay());
+        assertSame(defaults.frameRate(), settings.frameRate());
+        assertSame(defaults.buyAmount(), settings.buyAmount());
+        assertSame(defaults.detailKey(), settings.detailKey());
+    }
+
+    @Test
+    void unReglageConnuSeRelit() {
+        NotificationsEtSignesTest.MemoryPreferences store = new NotificationsEtSignesTest.MemoryPreferences();
+        Settings.Scale scale = Settings.Scale.values()[Settings.Scale.values().length - 1];
+        Settings.FrameRate rate = Settings.FrameRate.values()[0];
+        store.put("scale", scale.name());
+        store.put("frameRate", rate.name());
+        Settings settings = Settings.load(store);
+        assertSame(scale, settings.scale());
+        assertSame(rate, settings.frameRate());
+    }
+
+    @Test
+    void lOrdreDesOngletsEcarteLesInconnusEtLesDoublons() {
+        List<Tab> order = GameAppTabs.readTabOrder("STATS, INCONNU,,PARTICLES,STATS");
+        assertEquals(Tab.STATS, order.get(0));
+        assertEquals(Tab.PARTICLES, order.get(1));
+        assertEquals(Tab.values().length, order.size(), "chaque onglet une fois");
+        assertEquals(List.of(Tab.values()), GameAppTabs.readTabOrder(""), "rien d'écrit : l'ordre d'origine");
+    }
+
+    @Test
+    void chaqueAvatarSeRetrouveParSonIdentifiant() {
+        for (Avatar avatar : Avatar.values()) assertSame(avatar, Avatar.of(avatar.id()), avatar.name());
+        assertNull(Avatar.of(null));
+        assertNull(Avatar.of(""));
+        assertNull(Avatar.of("un_avatar_d_une_autre_version"));
+    }
+}

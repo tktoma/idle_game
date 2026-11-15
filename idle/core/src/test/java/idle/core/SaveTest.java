@@ -292,7 +292,6 @@ class SaveTest {
         state.setVoidSacrificed(BigNum.of(1, 50));
         for (int i = 0; i < GameState.VOID_UPGRADES; i++) state.setVoidLevel(i, i + 1);
         state.noteVoidHistory("3", 1234.5);
-        state.setUniverseUpgradeLevel("brane", 2);
         state.setRecord("FIRST_FUSION", 2280.5);
         state.setRecord("GALAXY", 231_456.75);
         // Le profil et les albums (version 0.147), avec des caractères que la sauvegarde doit échapper.
@@ -562,12 +561,21 @@ class SaveTest {
             state.setExtraUniverses(4);
             state.setUniverseSeeds(BigNum.of(1.5, 40));
             state.setVoidEnergy(BigNum.of(12));
-            state.setUniverseUpgradeLevel("bulk", 3);
             GameState read = copy(state);
             assertEquals(4, read.extraUniverses());
             assertEquals(40.176, read.universeSeeds().log10(), 1e-3);
             assertEquals(12, read.voidEnergy().toDouble(), 1e-9);
-            assertEquals(3, read.universeUpgradeLevel("bulk"));
+        }
+
+        /** Version 0.213 : les quatre améliorations de l'univers (Brane, Bulk, Paysage, Omnivers) sont parties ; leurs niveaux, dans une ancienne sauvegarde, sont ignorés. */
+        @Test
+        void uneAncienneSauvegardeAvecDesAmeliorationsDeLUniversSeRelit() throws Exception {
+            GameState state = new GameState();
+            state.setExtraUniverses(2);
+            String old = SaveCodec.write(state, 1_700_000_000_000L) + "\nuniverseUpgrades=brane:2,bulk:3\n";
+            GameState read = SaveCodec.read(old).state();
+            assertEquals(2, read.extraUniverses(), "le reste de la partie se relit");
+            assertFalse(SaveCodec.write(read, 1_700_000_000_000L).contains("universeUpgrades"), "et la clé disparaît à la prochaine sauvegarde");
         }
 
         @Test

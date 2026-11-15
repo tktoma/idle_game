@@ -16,6 +16,9 @@ import idle.ui.Sound.Cue;
  * « 8 bits » (ondes carrées), « Orchestre » (cordes), « Nature » (gouttes, vent, oiseaux), « Silence partiel » (seuls
  * les Big Bangs sonnent). Le son du Big Bang (« Carillon géant », « Souffle de vent », « Orgue ») et le tic du métronome
  * (« Bois », « Métal », « Goutte d'eau », « Battement de cœur ») ont chacun leur skin, qui passe devant la banque.
+ *
+ * <p>Version 0.210 : les nouveaux sons (univers, défi final, skin, défi, matière noire, jalon, achat, interrupteur) prennent
+ * la voix de chaque banque ; les gestes dans les dimensions gardent leur timbre, que seul le silence partiel coupe.
  */
 final class SoundBanks {
 
@@ -192,6 +195,25 @@ final class SoundBanks {
             case COMET -> render(0.7, t -> sequence(t, step / 2, 0.7, voice, 1760, 2093, 2637, 2093, 1760));
             case ELEMENT -> render(0.6, t -> voice.tone(880, t, 0.6));
             case LEVEL -> render(0.18, t -> voice.tone(1046.5, t, 0.18));
+            // Version 0.210 : les nouveaux sons, aux notes du Classique, dans la voix de la banque.
+            case UNIVERSE -> render(2.2, t -> 0.8 * voice.tone(130.8, t, 2.2) + sequence(t, step * 1.5, 2.2, voice, 523.25, 659.25, 783.99, 1046.5));
+            case FINALE -> render(1.0, t -> sequence(t, step * 1.4, 1.0, voice, 587.33, 880));
+            case SKIN -> render(0.5, t -> sequence(t, step / 2, 0.5, voice, 1567.98, 1975.53, 2349.32));
+            case CHALLENGE -> render(0.6, t -> sequence(t, step * 1.7, 0.6, voice, 293.66, 311.13));
+            case DARK -> render(0.9, t -> voice.tone(110, t, 0.9) + 0.7 * voice.tone(164.8, t, 0.9));
+            case MILESTONE -> render(0.45, t -> voice.tone(784, t, 0.45) + 0.7 * voice.tone(1174.7, t, 0.45));
+            case PURCHASE -> render(0.08, t -> voice.tone(1760, t, 0.08));
+            case TOGGLE -> render(0.06, t -> voice.tone(523.25, t, 0.06));
+            // Version 0.213 : les bruitages, aux notes du Classique, dans la voix de la banque.
+            case PARTICLE -> render(0.06, t -> 0.6 * voice.tone(2349.3, t, 0.06));
+            case ATOM -> render(0.14, t -> sequence(t, 0.05, 0.14, voice, 600, 900));
+            case COLLISION -> render(0.25, t -> voice.tone(1200, t, 0.25) + 0.5 * voice.tone(1797, t, 0.25));
+            case HADRON -> render(0.35, t -> sequence(t, 0.03, 0.35, voice, 783.99, 987.77, 1174.66));
+            case VOID -> render(0.6, t -> voice.tone(220, t, 0.6) + 0.5 * voice.tone(110, t, 0.6));
+            case SEED -> render(0.9, t -> sequence(t, step * 0.8, 0.9, voice, 523.25, 659.25, 783.99, 1046.5));
+            case WATER -> render(0.12, t -> voice.tone(1200, t, 0.12));
+            case CLICK -> render(0.04, t -> 0.7 * voice.tone(1800, t, 0.04));
+            case TAB -> render(0.07, t -> voice.tone(700, t, 0.07));
             default -> throw new IllegalArgumentException("pas un son mélodique : " + cue);
         };
     }

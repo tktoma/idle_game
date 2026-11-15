@@ -596,7 +596,8 @@ final class HelpPane extends Overlay {
                 + "une part du temps d'absence est rejouée : " + ElementText.percent(Game.OFFLINE_RATE_PARTICLES) + " au début, "
                 + ElementText.percent(Game.OFFLINE_RATE_UNIVERSE) + " une fois l'univers formé, sur "
                 + (int) (Absence.MAX_SECONDS / 3600) + " heures d'absence au plus. Les réglages permettent d'exporter la partie, de régler le volume des sons ou de les "
-                + "couper, de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
+                + "couper, de choisir un à un les sons à garder (particules, fusions, collisions, clics, onglets…), de régler ou couper la musique (composée par le jeu : elle change à chaque étape d'un univers, se resserre "
+                + "pendant un défi, a son arpège dans chaque dimension et change de tonalité à chaque univers), de limiter les images par seconde ou de couper les effets visuels un par un ; la fenêtre ralentit d'elle-même quand "
                 + "elle n'est pas au premier plan. Des thèmes et des notations s'y ouvrent en faisant des choses très précises."
                 // Le chrome de la fenêtre (version 0.190) : trois visuels, fond, onglets et cartes, chacun avec ses conditions.
                 + (game.isSkinsUnlocked() ? " Le chrome de la fenêtre a aussi ses skins, choisis dans l'onglet Skins : le fond (Papier à une "

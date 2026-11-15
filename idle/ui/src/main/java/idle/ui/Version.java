@@ -23,6 +23,61 @@ public final class Version {
 
     /** Les notes de version, de la plus récente à la plus ancienne. */
     static final List<Note> NOTES = List.of(
+            new Note("0.214", "Un jeu un peu plus léger", List.of(
+                    "Un pas de jeu en partie avancée prend 12 % de temps en moins, et l'onglet des particules calcule la "
+                            + "production une fois par image au lieu de trois. Rien ne change dans les calculs : une partie se joue "
+                            + "à l'identique.",
+                    "Le skin choisi pour chaque partie de l'écran (une dizaine par image) se retrouve directement, sans passer "
+                            + "les deux cents skins en revue ; les annonces de skins débloqués ne les repassent que s'il y en a un nouveau.",
+                    "Les réglages, l'ordre des onglets, les titres et les avatars se relisent tous de la même façon : une valeur "
+                            + "d'une autre version du jeu revient à celle d'origine, comme avant.")),
+            new Note("0.213", "Des bruitages pour tout ce qui se passe, et le choix des sons à garder", List.of(
+                    "Bruitages nouveaux : une particule créée et une fusion (sur leurs onglets), une collision du collisionneur, "
+                            + "des hadrons créés, une paire du vide, un arrosage et un palier de la graine, chaque point gagné dans "
+                            + "une dimension ouverte (une note par dimension), un clic sur un bouton, un changement d'onglet. Ce qui "
+                            + "revient sans cesse ne sonne que sur l'onglet ou dans la fenêtre où on le voit, et pas trop souvent.",
+                    "Réglages : chaque catégorie de sons se garde ou se coupe d'un clic (particules, fusions, explosions, Big "
+                            + "Bangs, univers, dimensions, achats, clics, onglets, collisions, hadrons, vide, graine, autres annonces).",
+                    "Onglet Univers : les quatre améliorations Brane, Bulk, Paysage et Omnivers, sans prix ni effet depuis la "
+                            + "0.081, sont retirées. Leurs niveaux, dans une ancienne sauvegarde, sont ignorés.",
+                    "Textes corrigés : l'automatisation des dimensions dit que chaque automatisme se paie avec la ressource de sa "
+                            + "propre dimension (depuis la 0.209) ; la fenêtre de l'univers formé ne parle plus d'améliorations.")),
+            new Note("0.212", "La musique choisie à l'écoute", List.of(
+                    "La façon de jouer la musique a été choisie à l'écoute, parmi quatre séries de variantes : tempo fixe de 69 dans "
+                            + "toutes les scènes (plus aucune accélération), une nouvelle scène qui attend la fin de la section (plus "
+                            + "aucune phrase coupée), des cloches de verre plus basses (au plus le do à 523 Hz), une mélodie plus douce "
+                            + "et plus grave, moins d'écho, et un fond très doux qui respire : chaque accord s'éteint deux temps avant "
+                            + "le suivant.",
+                    "Grésillement corrigé : une nappe encore tenue pouvait être coupée net quand trop de notes avaient été lancées "
+                            + "(un claquement, et un trou dans l'accord) ; le froissement des contretemps est retiré. Plus de marge avant "
+                            + "la saturation.")),
+            new Note("0.211", "La musique réécrite : des grilles d'accords, des mélodies qui reviennent", List.of(
+                    "La musique de fond est écrite comme un morceau : chaque scène a sa grille de quatre accords (I-V-vi-IV pour "
+                            + "l'élan, i-VII-VI-VII pour un défi, i-VI-III-VII pour le défi final, IV-I pour la fin…), les nappes passent "
+                            + "d'un accord au suivant par le plus court chemin en gardant les notes communes, la basse tient la "
+                            + "fondamentale, l'arpège ne joue que les notes de l'accord.",
+                    "La mélodie est faite de motifs qui reviennent (A, A, B, A), avance surtout par degrés, se pose sur l'accord à "
+                            + "chaque temps fort, ne saute jamais de plus d'une quinte, respire en fin de phrase et se tait une section "
+                            + "sur trois.",
+                    "Plus rien ne glisse de hauteur : une nouvelle scène ou une nouvelle tonalité attend la mesure suivante. Une "
+                            + "réverbération et un écho donnent l'espace ; les nappes ne battent plus, la basse et la pulsation sont "
+                            + "plus discrètes, les cloches plus douces.")),
+            new Note("0.210", "Une musique qui suit la partie, des sons pour tous les grands moments", List.of(
+                    "Musique de fond, composée par le jeu pendant qu'on joue (aucun fichier) : nappes, basse, arpèges, cloches et "
+                            + "scintillement. Chaque étape d'un univers a sa scène (l'aube avant la première explosion, l'élan, les Big "
+                            + "Bangs, les astres, l'amas, la formation, l'univers formé), un défi la resserre, une dimension ouverte a son "
+                            + "arpège, le défi final et la fin ont la leur ; chaque univers change de tonalité, et un Big Bang ou un "
+                            + "univers formé la fait monter un moment. Les changements glissent sans couper.",
+                    "Réglages : la musique a son interrupteur et son volume, à part des sons (activée, 30 % au départ).",
+                    "Nouveaux sons : univers formé et fin de la partie, palier du défi final, skin débloqué, défi qui s'ouvre ou "
+                            + "commence, matière noire (Noyaux sombres à portée, automatisme de matière noire, palier de taille), jalons "
+                            + "(cosmos, gluons, racines, ensembles, titres, premier atome). Les skins de banque de sons les jouent dans "
+                            + "leur timbre.",
+                    "Sons d'interface, plus discrets : un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu "
+                            + "d'une dimension, un timbre par dimension (un tir dans le volume, un clic sur la surface, un sondage de la "
+                            + "grille, la membrane relâchée…). Le silence partiel les coupe.",
+                    "Tests : les systèmes du jeu combinés de toutes les façons (skins, galaxie, matière noire, univers, bulle, "
+                            + "atomes, Big Bangs) gardent leurs règles ensemble.")),
             new Note("0.209", "Noyaux sombres d'abord, le bonus des skins sans plafond, des automatismes des dimensions à gagner", List.of(
                     "Arbre de matière noire : la colonne payée en matière noire passe en tête, et « Noyaux sombres » doit être "
                             + "prise avant tout autre achat en matière noire (accords et liaisons compris) ; les autres cartes disent "

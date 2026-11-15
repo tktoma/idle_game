@@ -393,10 +393,17 @@ public final class Settings {
     private static final String OFFLINE = "offline";
     private static final String COSMETICS = "cosmetics";
     private static final String VOLUME = "volume";
+    /** La musique de fond (version 0.210) : son interrupteur et son volume, à part des sons. */
+    private static final String MUSIC = "music";
+    private static final String MUSIC_VOLUME = "musicVolume";
+    /** Les catégories de sons coupées (version 0.213). */
+    private static final String SOUNDS_OFF = "soundsOff";
     private static final String FRAME_RATE = "frameRate";
     private static final String SAVE_ENERGY = "saveEnergy";
     /** Volume de départ, sur 100 : assez bas pour qu'un premier son ne surprenne pas. */
     static final int DEFAULT_VOLUME = 40;
+    /** Volume de départ de la musique (version 0.210) : un fond, sous les sons. */
+    static final int DEFAULT_MUSIC_VOLUME = 30;
     private static final String BUY_AMOUNT = "buyAmount";
     private static final String SHORTCUTS = "shortcuts";
     private static final String EFFECTS = "effects";
@@ -444,6 +451,7 @@ public final class Settings {
     private final java.util.EnumSet<Effect> effectsOff = java.util.EnumSet.noneOf(Effect.class);
     /** Les notifications coupées par catégorie, les morceaux de l'objectif cachés et les pastilles cachées (version 0.146). */
     private final java.util.EnumSet<Notice> noticesOff = java.util.EnumSet.noneOf(Notice.class);
+    private final java.util.EnumSet<SoundKind> soundsOff = java.util.EnumSet.noneOf(SoundKind.class);
     private final java.util.EnumSet<Goals.Part> goalPartsOff = java.util.EnumSet.noneOf(Goals.Part.class);
     private final java.util.EnumSet<Readiness.Kind> dotsOff = java.util.EnumSet.noneOf(Readiness.Kind.class);
     private SaveDelay saveDelay = SaveDelay.THIRTY;
@@ -452,6 +460,8 @@ public final class Settings {
     /** Les thèmes et notations débloqués (version 0.063). */
     private final java.util.EnumSet<Cosmetic> cosmetics = java.util.EnumSet.noneOf(Cosmetic.class);
     private int volume = DEFAULT_VOLUME;
+    private boolean music = true;
+    private int musicVolume = DEFAULT_MUSIC_VOLUME;
     private FrameRate frameRate = FrameRate.HIGH;
     private boolean saveEnergy = true;
     private KeyCode detailKey = DEFAULT_DETAIL_KEY;
@@ -483,50 +493,29 @@ public final class Settings {
     static Settings load(Preferences store) {
         Settings settings = new Settings(store);
         if (store != null) {
-            try {
-                settings.notation = Notation.valueOf(store.get(NOTATION, Notation.SCIENTIFIC.name()));
-            } catch (RuntimeException unknown) {
-                settings.notation = Notation.SCIENTIFIC;   // valeur inconnue ou préférences illisibles
-            }
-            try {
-                settings.buyAmount = BuyAmount.valueOf(store.get(BUY_AMOUNT, BuyAmount.ONE.name()));
-            } catch (RuntimeException unknown) {
-                settings.buyAmount = BuyAmount.ONE;
-            }
-            try {
-                settings.theme = Theme.valueOf(store.get(THEME, Theme.DARK.name()));
-            } catch (RuntimeException unknown) {
-                settings.theme = Theme.DARK;
-            }
-            try {
-                settings.scale = Scale.valueOf(store.get(SCALE, Scale.NORMAL.name()));
-            } catch (RuntimeException unknown) {
-                settings.scale = Scale.NORMAL;
-            }
-            try {
-                settings.frameRate = FrameRate.valueOf(store.get(FRAME_RATE, FrameRate.HIGH.name()));
-            } catch (RuntimeException unknown) {
-                settings.frameRate = FrameRate.HIGH;
-            }
+            settings.notation = stored(store, NOTATION, Notation.SCIENTIFIC);
+            settings.buyAmount = stored(store, BUY_AMOUNT, BuyAmount.ONE);
+            settings.theme = stored(store, THEME, Theme.DARK);
+            settings.scale = stored(store, SCALE, Scale.NORMAL);
+            settings.frameRate = stored(store, FRAME_RATE, FrameRate.HIGH);
             try {
                 settings.sound = store.getBoolean(SOUND, true);
                 settings.tabsLeft = store.getBoolean(TABS_LEFT, false);
                 settings.tabOrder = store.get(TAB_ORDER, "");
                 settings.volume = Math.max(0, Math.min(100, store.getInt(VOLUME, DEFAULT_VOLUME)));
+                settings.music = store.getBoolean(MUSIC, true);
+                settings.musicVolume = Math.max(0, Math.min(100, store.getInt(MUSIC_VOLUME, DEFAULT_MUSIC_VOLUME)));
                 settings.saveEnergy = store.getBoolean(SAVE_ENERGY, true);
             } catch (RuntimeException unreadable) {
                 // on garde les valeurs par défaut
             }
-            try {
-                settings.saveDelay = SaveDelay.valueOf(store.get(SAVE_DELAY, SaveDelay.THIRTY.name()));
-            } catch (RuntimeException unknown) {
-                settings.saveDelay = SaveDelay.THIRTY;
-            }
+            settings.saveDelay = stored(store, SAVE_DELAY, SaveDelay.THIRTY);
             try {
                 settings.offline = store.getBoolean(OFFLINE, true);
                 settings.effectsOff.addAll(names(Effect.class, store.get(EFFECTS_OFF, "")));
                 // Version 0.146 : absentes d'avant, tout est affiché.
                 settings.noticesOff.addAll(names(Notice.class, store.get(NOTICES_OFF, "")));
+                settings.soundsOff.addAll(names(SoundKind.class, store.get(SOUNDS_OFF, "")));
                 settings.goalPartsOff.addAll(names(Goals.Part.class, store.get(GOAL_PARTS_OFF, "")));
                 settings.dotsOff.addAll(names(Readiness.Kind.class, store.get(DOTS_OFF, "")));
                 settings.cosmetics.addAll(names(Cosmetic.class, store.get(COSMETICS, "")));
@@ -536,11 +525,7 @@ public final class Settings {
             // Un thème ou une notation à débloquer, gardé sans être débloqué (préférences touchées à la main) : celui d'origine.
             if (settings.theme.unlock() != null && !settings.cosmetics.contains(settings.theme.unlock())) settings.theme = Theme.DARK;
             if (settings.notation.unlock() != null && !settings.cosmetics.contains(settings.notation.unlock())) settings.notation = Notation.SCIENTIFIC;
-            try {
-                settings.detailKey = KeyCode.valueOf(store.get(DETAIL_KEY, DEFAULT_DETAIL_KEY.name()));
-            } catch (RuntimeException unknown) {
-                settings.detailKey = DEFAULT_DETAIL_KEY;
-            }
+            settings.detailKey = stored(store, DETAIL_KEY, DEFAULT_DETAIL_KEY);
             try {
                 settings.detailToggle = store.getBoolean(DETAIL_TOGGLE, false);
                 settings.notifications = store.getBoolean(NOTIFICATIONS, true);
@@ -666,17 +651,21 @@ public final class Settings {
         save(LOOP_METRONOME, String.valueOf(on));
     }
 
-    /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus sont ignorés. */
+    /** Les valeurs d'une énumération écrites dans un texte, séparées par des virgules ; les noms inconnus (d'une autre version) sont ignorés. */
     private static <E extends Enum<E>> java.util.List<E> names(Class<E> type, String text) {
-        java.util.List<E> values = new java.util.ArrayList<>();
-        for (String name : text.split(",")) {
-            try {
-                if (!name.isBlank()) values.add(Enum.valueOf(type, name.trim()));
-            } catch (IllegalArgumentException unknown) {
-                // une valeur d'une autre version du jeu
-            }
+        return idle.core.Enums.parseAll(type, text);
+    }
+
+    /**
+     * Version 0.214 : une constante relue dans les préférences (huit blocs pareils avant). Un nom inconnu, d'une autre
+     * version, ou des préférences illisibles donnent {@code fallback}.
+     */
+    private static <E extends Enum<E>> E stored(Preferences store, String key, E fallback) {
+        try {
+            return idle.core.Enums.parse(fallback.getDeclaringClass(), store.get(key, fallback.name()), fallback);
+        } catch (RuntimeException unreadable) {
+            return fallback;
         }
-        return values;
     }
 
     private static <E extends Enum<E>> String joined(java.util.Set<E> values) {
@@ -941,6 +930,17 @@ public final class Settings {
         return !noticesOff.contains(kind);
     }
 
+    /** Vrai si cette catégorie de sons est gardée (version 0.213) : toutes le sont au départ. */
+    public boolean soundKind(SoundKind kind) {
+        return !soundsOff.contains(kind);
+    }
+
+    public void setSoundKind(SoundKind kind, boolean on) {
+        if (on) soundsOff.remove(kind);
+        else soundsOff.add(kind);
+        save(SOUNDS_OFF, joined(soundsOff));
+    }
+
     public void setNotice(Notice kind, boolean on) {
         if (on) noticesOff.remove(kind);
         else noticesOff.add(kind);
@@ -1028,6 +1028,26 @@ public final class Settings {
     public void setVolume(int volume) {
         this.volume = Math.max(0, Math.min(100, volume));
         save(VOLUME, String.valueOf(this.volume));
+    }
+
+    /** Vrai si la musique de fond joue (version 0.210). */
+    public boolean music() {
+        return music;
+    }
+
+    public void setMusic(boolean music) {
+        this.music = music;
+        save(MUSIC, String.valueOf(music));
+    }
+
+    /** Volume de la musique, de 0 à 100 (version 0.210). */
+    public int musicVolume() {
+        return musicVolume;
+    }
+
+    public void setMusicVolume(int volume) {
+        this.musicVolume = Math.max(0, Math.min(100, volume));
+        save(MUSIC_VOLUME, String.valueOf(this.musicVolume));
     }
 
     public FrameRate frameRate() {

@@ -179,8 +179,8 @@ final class PopupPane extends Overlay {
                     + "bas font un proton, un haut et deux bas un neutron ; plus tard viennent les particules exotiques, pions, "
                     + "kaons, mésons charmés. Chaque liaison consomme ses quarks ; chaque sorte "
                     + "renforce une grandeur ou baisse un prix, et les gluons font garder plus à l'explosion et au Big Bang.";
-            case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Les graines d'univers achètent ici "
-                    + "des améliorations qui restent, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
+            case "UNIVERSE" -> "L'univers est formé : tout ce qui y a mené repart de zéro. Ici s'ouvrent la graine d'univers et "
+                    + "les dimensions, et « Lancer l'univers » relance une partie pour former l'univers suivant.";
             case "SKINS" -> "Des apparences de rechange pour les visuels du jeu. Chaque skin débloqué ajoute " + Math.round(Skin.BONUS * 100) + "\u00a0% à toutes les "
                     + "ressources, et ces bonus s'additionnent, que le skin soit choisi ou non : le choisir ne change que l'apparence.";
             default -> null;

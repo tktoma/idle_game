@@ -36,14 +36,8 @@ public abstract class GameAppTabs extends GameAppWindow {
     /** L'ordre des onglets lu dans les réglages ; les onglets qu'il ne cite pas suivent, dans l'ordre d'origine. */
     static List<Tab> readTabOrder(String saved) {
         List<Tab> order = new java.util.ArrayList<>();
-        for (String name : saved.split(",")) {
-            try {
-                Tab tab = Tab.valueOf(name.trim());
-                if (!order.contains(tab)) order.add(tab);
-            } catch (IllegalArgumentException unknown) {
-                // un onglet d'une autre version, ou rien : écarté
-            }
-        }
+        // Un onglet d'une autre version, ou rien : écarté.
+        for (Tab tab : idle.core.Enums.parseAll(Tab.class, saved)) if (!order.contains(tab)) order.add(tab);
         // Un onglet que l'ordre ne cite pas (un nouveau, comme l'univers en 0.080) se range après celui qui le
         // précède d'habitude, pas au bout : les pages pour s'y retrouver restent à part.
         Tab[] natural = Tab.values();
@@ -457,6 +451,9 @@ public abstract class GameAppTabs extends GameAppWindow {
                 .filter(item -> (!phase || item.kind() == Notice.ACHIEVEMENTS || item.kind() == Notice.TITLES) && settings.notice(item.kind()))
                 .map(Notifier.News::text).toList());
         sound.announce(shown, settings.sound(), settings.volume());
+        // Version 0.210 : un Big Bang ou un univers formé fait monter la musique, même si l'annonce est coupée.
+        Sound.Cue strongest = Sound.strongest(news.stream().map(Notifier.News::text).toList());
+        if (strongest == Sound.Cue.BIG_BANG || strongest == Sound.Cue.UNIVERSE) music.accent();
         if (settings.notifications()) {
             for (String text : shown) toasts.show(text, noticeColor(text));
         } else if (toasts.count() > 0) {
@@ -500,6 +497,8 @@ public abstract class GameAppTabs extends GameAppWindow {
 
     /** Affiche un onglet et masque les autres. */
     void selectTab(Tab tab) {
+        // Version 0.213 : un changement d'onglet a son son ; pas l'onglet repris au lancement, fenêtre pas encore montrée.
+        if (tab != selectedTab && stage != null && stage.isShowing() && settings.sound()) sound.click(Sound.Cue.TAB, settings.volume());
         if (tab != selectedTab && selectedTab != Tab.SETTINGS) gameTab = selectedTab;
         selectedTab = tab;
         // Le profil de test (version 0.122) : la barre d'outils ouvre le groupe de l'onglet affiché.
@@ -765,7 +764,7 @@ public abstract class GameAppTabs extends GameAppWindow {
         if (selectedTab != Tab.PARTICLES) {
             return;
         }
-        if (settings.effect(Settings.Effect.AMBIENT)) generators.animateBackground(dt, Math.min(game.productionPerSecond().toDouble(), 1e12));
+        if (settings.effect(Settings.Effect.AMBIENT)) generators.animateBackground(dt, production);   // celle du haut (version 0.214)
         else generators.clearBackground();
         // Chaque générateur a sa propre vitesse : les éléments du tableau périodique en accélèrent certains.
         List<ParticleView> views = generators.views();

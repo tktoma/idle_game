@@ -667,9 +667,11 @@ public enum Skin {
         return out;
     }
 
+    /** Version 0.214 : les skins par identifiant ; l'interface en cherche une dizaine à chaque image. */
+    private static final java.util.Map<String, Skin> BY_ID = idle.core.Enums.index(values(), Skin::id);
+
     /** Le skin de cet identifiant, ou {@code null}. */
     public static Skin byId(String id) {
-        for (Skin skin : values()) if (skin.id().equals(id)) return skin;
-        return null;
+        return id == null ? null : BY_ID.get(id);
     }
 }

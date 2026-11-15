@@ -80,15 +80,26 @@ public abstract class GameSystems extends GameBase {
         return milestoneEffects(kind, true);
     }
 
+    /**
+     * Version 0.214 : un palier n'est regardé (atteint ? payé ?) que s'il a un effet de cette sorte. Ces effets se
+     * relisent plusieurs fois à chaque pas de jeu, et la plupart des paliers n'en ont pas : les regarder tous était le
+     * plus cher du calcul.
+     */
     private <E extends BigBangMilestone.Effect> List<E> milestoneEffects(Class<E> kind, boolean withNextBigBang) {
-        List<E> found = new ArrayList<>();
+        List<E> found = null;
         for (BigBangMilestone milestone : BigBangMilestones.DEFAULT) {
-            if (!isBigBangMilestoneReached(milestone) && !(withNextBigBang && milestone.bigBangs() == state.bigBangs() + 1)) continue;
             for (BigBangMilestone.Effect effect : milestone.effects()) {
-                if (kind.isInstance(effect)) found.add(kind.cast(effect));
+                if (!kind.isInstance(effect) || !counts(milestone, withNextBigBang)) continue;
+                if (found == null) found = new ArrayList<>(2);
+                found.add(kind.cast(effect));
             }
         }
-        return found;
+        return found == null ? List.of() : found;
+    }
+
+    /** Vrai si ce palier agit : atteint, ou atteint par le prochain Big Bang quand {@code withNextBigBang}. */
+    private boolean counts(BigBangMilestone milestone, boolean withNextBigBang) {
+        return isBigBangMilestoneReached(milestone) || withNextBigBang && milestone.bigBangs() == state.bigBangs() + 1;
     }
 
     /** Vrai si un palier atteint donne cet effet. */

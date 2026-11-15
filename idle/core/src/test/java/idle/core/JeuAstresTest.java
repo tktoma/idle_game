@@ -504,14 +504,10 @@ class JeuAstresTest extends GameTestSupport {
             assertEquals(11, game.universes());
             game.testAddUniverseSeeds(BigNum.of(10));
             game.testAddVoidEnergy(BigNum.of(3));
-            game.testRaiseUniverseUpgrade(idle.core.universe.UniverseUpgrade.BRANE);
-            assertEquals(1, game.universeUpgradeLevel(idle.core.universe.UniverseUpgrade.BRANE));
             assertEquals(10, game.state().universeSeeds().toDouble(), 1e-9);
-            assertEquals(4, game.universeUpgrades().size());
             game.testResetUniverses();
             assertEquals(1, game.universes());
             assertTrue(game.state().universeSeeds().isZero() && game.state().voidEnergy().isZero());
-            assertEquals(0, game.universeUpgradeLevel(idle.core.universe.UniverseUpgrade.BRANE));
             assertFalse(game.testRemoveUniverse());
         }
 

@@ -2,15 +2,10 @@ package idle.ui.universe;
 
 import idle.core.Game;
 import idle.core.math.BigNum;
-import idle.core.universe.UniverseUpgrade;
 import idle.ui.common.CanvasPane;
-import idle.ui.common.Card;
 import idle.ui.common.Format;
 import idle.ui.common.Labels;
 import idle.ui.common.SubTabs;
-import idle.ui.common.TileGrid;
-import java.util.EnumMap;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import javafx.geometry.Insets;
@@ -28,8 +23,8 @@ import javafx.scene.layout.VBox;
  * L'onglet « Univers » : la partie secondaire du jeu, qui commence quand l'univers est formé
  * (version 0.080, refaite en 0.081). Trois sous-onglets :
  * <ul>
- *   <li>« Univers » : les univers en bulles, les graines d'univers, les quatre améliorations (Brane,
- *       Bulk, Paysage, Omnivers) et les outils d'essai ;</li>
+ *   <li>« Univers » : les univers en bulles, les graines d'univers et les outils d'essai (les quatre améliorations de
+ *       la version 0.081, Brane, Bulk, Paysage et Omnivers, sans prix ni effet, sont parties à la version 0.213) ;</li>
  *   <li>« Graine d'univers » (version 0.083) : la ressource principale, en grand, et son visuel ;</li>
  *   <li>« Dimensions », dès le premier univers (version 0.100) : dix points autour d'un onzième, une dimension
  *       de plus par univers ; chacune ouvre sa fenêtre. Depuis la version 0.160, le défi final y montre l'avancée de
@@ -66,7 +61,6 @@ public final class UniversePage extends VBox {
     // Sous-onglet « Univers »
     private final UniverseView view = new UniverseView();
     private final Label resources = new Label();
-    private final Map<UniverseUpgrade, Card> upgradeCards = new EnumMap<>(UniverseUpgrade.class);
     private final Button addUniverse = tool("+1 univers");
     private final Button removeUniverse = tool("−1 univers");
     private final Button addSeeds = tool("+10 graines d'univers");
@@ -136,16 +130,6 @@ public final class UniversePage extends VBox {
         CanvasPane holder = CanvasPane.filling(view);
         holder.setMinHeight(220);
         VBox.setVgrow(holder, Priority.ALWAYS);
-        TileGrid upgrades = new TileGrid(220, 4, 10);
-        for (UniverseUpgrade upgrade : UniverseUpgrade.values()) {
-            Card card = new Card(COLOR);
-            card.setOnAction(() -> {
-                game.testRaiseUniverseUpgrade(upgrade);
-                refresh();
-            });
-            upgradeCards.put(upgrade, card);
-            upgrades.add(card);
-        }
         Label toolsTitle = new Label("Outils d'essai, sans logique : pour voir l'onglet avant que la suite existe");
         toolsTitle.setStyle("-fx-font-size: 11px; -fx-text-fill: #b8a06a;");
         FlowPane tools = new FlowPane(8, 6, addUniverse, removeUniverse, addSeeds, addVoid, replay, oldTabs, reset);
@@ -204,7 +188,7 @@ public final class UniversePage extends VBox {
         nextLine.setMaxWidth(640);
         VBox nextBox = new VBox(4, nextLine);
         nextBox.setAlignment(Pos.CENTER);
-        mainPane = new VBox(8, resources, nextBox, holder, upgrades, toolsBox);
+        mainPane = new VBox(8, resources, nextBox, holder, toolsBox);
         mainPane.setAlignment(Pos.TOP_CENTER);
 
         // « Dimensions » : la carte, et une ligne.
@@ -360,12 +344,6 @@ public final class UniversePage extends VBox {
                 + (universes > UniverseView.MAX_BUBBLES ? " (" + UniverseView.MAX_BUBBLES + " dessinés)" : "")
                 // Le bonus permanent des univers formés (version 0.112).
                 + (universes > 0 ? "   |   matière noire et sa croissance " + Format.multiplier(BigNum.of(game.universeDarkMatterFactor())) : ""));
-        for (Map.Entry<UniverseUpgrade, Card> entry : upgradeCards.entrySet()) {
-            UniverseUpgrade upgrade = entry.getKey();
-            int level = game.universeUpgradeLevel(upgrade);
-            entry.getValue().show(Card.State.READY, level > 0 ? String.valueOf(level) : "", "", upgrade.label(),
-                    upgrade.flavor(), "Pas encore d'effet : un clic monte son niveau, pour essayer.", "Essai : +1 niveau", "");
-        }
         removeUniverse.setDisable(universes <= 1);
         boolean replaying = game.isReplaying();
         // Le deuxième univers (version 0.106) attend la brindille de la graine ; il s'ouvre alors tout seul.
@@ -697,10 +675,5 @@ public final class UniversePage extends VBox {
     /** Un outil d'essai, par sa place (0 : +1 univers, 1 : −1, 2 : graines, 3 : vide, 4 : naissance, 5 : anciens onglets, 6 : zéro). */
     public void pressTool(int index) {
         tool(index).fire();
-    }
-
-    /** La carte d'une amélioration : pour les vérifications. */
-    public Card card(UniverseUpgrade upgrade) {
-        return upgradeCards.get(upgrade);
     }
 }

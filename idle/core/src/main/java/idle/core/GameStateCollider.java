@@ -410,7 +410,6 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         Set<String> dimensionAutomationsKept = new java.util.TreeSet<>(dimensionAutomations);
         Set<String> dimensionAutomationsOffKept = new java.util.TreeSet<>(dimensionAutomationsOff);
         double voidSpentKept = voidSpent, trickledKept = voidTrickled, carriedKept = voidCarried;
-        Map<String, Integer> upgrades = new TreeMap<>(universeUpgrades);
         List<String> treeCodes = new ArrayList<>(savedDarkPlans), systemsCodes = new ArrayList<>(savedSystemPlans);
         // Les skins (version 0.087) sont des apparences : ils restent d'un univers à l'autre.
         boolean skins = skinsOpen;
@@ -509,7 +508,6 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         voidSpent = voidSpentKept;
         voidTrickled = trickledKept;
         voidCarried = carriedKept;
-        universeUpgrades.putAll(upgrades);
         settings.restore(this);
         restoreForBubbles(kept);
     }
@@ -1364,16 +1362,6 @@ public abstract class GameStateCollider extends GameStateUnlocks {
         double total = voidTrickled;
         for (double stock : voidHistory.values()) total += stock;
         return total;
-    }
-
-    /** Niveau d'une amélioration de l'univers. */
-    public int universeUpgradeLevel(String id) {
-        return universeUpgrades.getOrDefault(id, 0);
-    }
-
-    public void setUniverseUpgradeLevel(String id, int level) {
-        if (level <= 0) universeUpgrades.remove(id);
-        else universeUpgrades.put(id, level);
     }
 
     public void setCometsCaught(int count) {

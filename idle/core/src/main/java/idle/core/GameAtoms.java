@@ -70,7 +70,7 @@ public abstract class GameAtoms extends GamePlans {
      */
     public boolean isAutomationUnlocked() {
         // Des automatismes conservés après une explosion restent utilisables tout de suite.
-        return hasCreatedEnoughAtoms() || !state.ownedAutomations().isEmpty();
+        return hasCreatedEnoughAtoms() || state.ownedAutomationCount() > 0;
     }
 
     /** Vrai une fois {@link #UNLOCK_TOTAL_ATOMS} atomes créés depuis le début de la partie. */
@@ -159,7 +159,7 @@ public abstract class GameAtoms extends GamePlans {
 
     /** Vrai si le joueur a au moins un automatisme, de quelque sorte que ce soit : il y a alors quelque chose à couper. */
     public boolean hasAnyAutomation() {
-        if (!state.ownedAutomations().isEmpty() || isAutoHoldUnlocked() || isMoleculeAutomationUnlocked()
+        if (state.ownedAutomationCount() > 0 || isAutoHoldUnlocked() || isMoleculeAutomationUnlocked()
                 || isAutoGatherUnlocked() || isAutoFormUnlocked()) return true;
         for (DarkAutomation automation : darkAutomations.values()) {
             if (isDarkAutomationUnlocked(automation.id())) return true;
@@ -969,7 +969,7 @@ public abstract class GameAtoms extends GamePlans {
             case DISTINCT_ELEMENTS -> state.elements().size();
             case GENERATORS -> generatorCount();
             case AVAILABLE_ATOMS -> Math.floor(state.atoms().min(MAX_ATOMS).toDouble() + 1e-9);
-            case AUTOMATIONS -> state.ownedAutomations().size();
+            case AUTOMATIONS -> state.ownedAutomationCount();
             case SPEED_LEVELS -> {
                 int levels = 0;
                 for (Upgrade upgrade : upgrades.values()) {

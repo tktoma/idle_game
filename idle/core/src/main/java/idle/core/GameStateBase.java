@@ -197,6 +197,14 @@ public abstract class GameStateBase {
     int skinsVersion = 0;
     private int skinsCountVersion = -1, skinsCountUnlocked, skinsCountCounted;
 
+    /**
+     * Version 0.214 : un nombre qui change à chaque fois que les skins débloqués changent. L'interface ne repasse les deux
+     * cents skins (pour annoncer les nouveaux) que lorsqu'il bouge.
+     */
+    public int skinsVersion() {
+        return skinsVersion;
+    }
+
     /** Le nombre de skins débloqués, libres compris, et celui des skins non libres débloqués (sans plafond). */
     final int skinsUnlockedCount(boolean counted) {
         if (skinsCountVersion != skinsVersion) {
@@ -374,7 +382,6 @@ public abstract class GameStateBase {
     double voidTrickled = 0;
     /** L'énergie du vide gardée d'un univers à l'autre et déjà comptée au cumul (version 0.152). */
     double voidCarried = 0;
-    final Map<String, Integer> universeUpgrades = new HashMap<>();
     /** Charges d'impulsion en réserve (fractions comprises) et impulsions données depuis le début. */
     double pulseCharges = 0;
     // Le collisionneur de quarks (version 0.050) : rien ne s'y perd à l'explosion ni au Big Bang.
@@ -566,6 +573,14 @@ public abstract class GameStateBase {
     public void setLevel(String upgradeId, int level) {
         if (level < 0) throw new IllegalArgumentException("Niveau négatif");
         upgradeLevels.put(upgradeId, level);
+    }
+
+    /**
+     * Version 0.214 : le nombre d'automatismes achetés, sans la copie triée de {@code ownedAutomations()} (faite pour la
+     * sauvegarde) : la synergie le relit plusieurs fois à chaque pas de jeu.
+     */
+    public int ownedAutomationCount() {
+        return ownedAutomations.size();
     }
 
     /** Vrai si le joueur a acheté cet automatisme. */

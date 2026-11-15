@@ -105,7 +105,9 @@ public enum Avatar {
 
     /** L'avatar de cet identifiant, ou {@code null} (vide, image importée, ou un avatar d'une autre version). */
     public static Avatar of(String id) {
-        for (Avatar avatar : values()) if (avatar.id().equals(id)) return avatar;
-        return null;
+        return id == null ? null : BY_ID.get(id);
     }
+
+    /** Version 0.214 : les avatars par identifiant. */
+    private static final java.util.Map<String, Avatar> BY_ID = idle.core.Enums.index(values(), Avatar::id);
 }

@@ -88,7 +88,6 @@ public enum Title {
 
     /** Le titre de ce nom, ou {@code null} s'il n'existe plus (une sauvegarde d'une autre version). */
     public static Title named(String name) {
-        for (Title title : values()) if (title.name().equals(name)) return title;
-        return null;
+        return idle.core.Enums.parse(Title.class, name);
     }
 }

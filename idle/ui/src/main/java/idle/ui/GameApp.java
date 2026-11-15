@@ -159,13 +159,15 @@ public final class GameApp extends GameAppTabs {
             BigNum particles = game.state().particles();
             particlesLabel.setText(Format.count(particles) + (particles.gt(BigNum.ONE) ? " particules" : " particule"));
 
-            double rate = Math.min(game.productionPerSecond().toDouble(), 1e9);
+            // Version 0.214 : la production se calcule une fois pour les trois textes (toute la formule à chaque appel).
+            BigNum production = game.productionPerSecond();
+            double rate = Math.min(production.toDouble(), 1e9);
             String perSecond = rate <= 0 ? "Aucun générateur"
                     : rate < 1
                     ? String.format(Locale.ROOT, "1 particule toutes les %.1f s", 1 / rate)
-                    : "+" + Format.big(game.productionPerSecond()) + " particules par seconde";
+                    : "+" + Format.big(production) + " particules par seconde";
             int hidden = game.generatorCount() - MAX_VISIBLE_GENERATORS;
-            productionLabel.setText(perSecond + "   |   " + Format.perMinute(game.productionPerSecond()) + " p/m"
+            productionLabel.setText(perSecond + "   |   " + Format.perMinute(production) + " p/m"
                     + (hidden > 0 ? "   |   " + game.generatorCount() + " générateurs (" + hidden + " non dessinés)" : ""));
             productionBreakdown.refresh();
             refreshSecondUniverse();

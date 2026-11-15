@@ -101,10 +101,14 @@ final class Notifier {
     private int moleculeKinds;
     private int bangChallengesDone;
     private BangChallenge bangChallenge;
-    /** Les skins débloqués au dernier relevé (version 0.089) : chacun s'annonce avec le bonus cumulé. */
     /** Le ralentissement du premier élan au dernier relevé (version 0.095, par paliers en 0.096). */
     private double slowSeen = 1;
+    /** Les skins débloqués au dernier relevé (version 0.089) : chacun s'annonce avec le bonus cumulé. */
     private final java.util.EnumSet<idle.core.universe.Skin> skinsSeen = java.util.EnumSet.noneOf(idle.core.universe.Skin.class);
+    /** Version 0.214 : la version des skins au dernier relevé ; tant qu'elle ne bouge pas, les deux cents skins ne sont pas repassés. */
+    private int skinsVersionSeen = -1;
+
+    private static final idle.core.universe.Skin[] NO_SKINS = {};
 
     /** Le début de l'annonce d'un titre (version 0.147) : « Nouveau titre : Étincelle ». */
     static final String NEW_TITLE = "Nouveau titre : ";
@@ -222,13 +226,15 @@ final class Notifier {
         }
         slowSeen = slow;
         // Un skin débloqué (version 0.089) : son bonus s'ajoute aux autres, qu'il soit choisi ou non.
-        for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) {
+        int skinsVersion = game.state().skinsVersion();
+        for (idle.core.universe.Skin skin : skinsVersion == skinsVersionSeen ? NO_SKINS : idle.core.universe.Skin.values()) {
             if (skinsSeen.contains(skin) || skin.isFree() || !game.hasSkin(skin)) continue;
             skinsSeen.add(skin);
             add(news, Notice.COSMETICS, "Skin débloqué : « " + skin.label() + " » (" + skin.visual().label().toLowerCase(java.util.Locale.ROOT) + "). +"
                     + ElementText.percent(idle.core.universe.Skin.BONUS) + " à toutes les ressources, soit +"
                     + ElementText.percent(game.skinBoost() - 1) + " au total, choisi ou non.");
         }
+        skinsVersionSeen = skinsVersion;
 
         List<String> matured = game.takeMaturedBodies();
         if (matured.size() == 1) {
@@ -463,6 +469,7 @@ final class Notifier {
         slowSeen = game.firstRunSlowdown();
         skinsSeen.clear();
         for (idle.core.universe.Skin skin : idle.core.universe.Skin.values()) if (game.hasSkin(skin)) skinsSeen.add(skin);
+        skinsVersionSeen = game.state().skinsVersion();
         colliderUpgradesSeen = game.isColliderUpgradesUnlocked();
         voidOfferedSeen = game.isVoidOffered();
         hadronsOfferedSeen = game.isHadronsOffered();

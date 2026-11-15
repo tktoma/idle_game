@@ -98,6 +98,20 @@ public enum ColliderAchievement {
 
     /** Le succès de ce générateur et de cette sorte. */
     public static ColliderAchievement of(ColliderGenerator generator, Kind kind) {
-        return valueOf(generator.name() + "_" + kind.name());
+        ColliderAchievement achievement = BY_GENERATOR[generator.ordinal()][kind.ordinal()];
+        if (achievement == null) throw new IllegalArgumentException("Pas de succès " + kind + " pour " + generator);
+        return achievement;
+    }
+
+    /**
+     * Version 0.214 : les succès par générateur et par sorte. Le collisionneur en cherche à chaque pas de jeu ; les
+     * retrouver par leur nom recomposé coûtait une chaîne et une recherche à chaque fois.
+     */
+    private static final ColliderAchievement[][] BY_GENERATOR = new ColliderAchievement[ColliderGenerator.values().length][Kind.values().length];
+
+    static {
+        for (ColliderAchievement achievement : values()) {
+            if (achievement.generator != null) BY_GENERATOR[achievement.generator.ordinal()][achievement.kind.ordinal()] = achievement;
+        }
     }
 }

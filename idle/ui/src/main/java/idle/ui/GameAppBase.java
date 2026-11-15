@@ -318,6 +318,12 @@ public abstract class GameAppBase extends Application {
         notifier.showSkyEvents(settings::skyEvents);
     }
     final Sound sound = new Sound();
+    /** La musique de fond (version 0.210), qui suit la partie. */
+    final Music music = new Music();
+    /** Les bruitages relevés image par image (version 0.213). */
+    final SoundEvents soundEvents = new SoundEvents();
+    /** La marque d'un bouton d'onglet (version 0.213) : son changement d'onglet a son son, il ne fait pas en plus celui d'un clic. */
+    static final String TAB_BUTTON = "ongletDuJeu";
     // L'apparence : la taille de l'interface et le thème clair s'appliquent à toute la fenêtre.
     ScaledPane scaled;
     ThemeFilter themeFilter;
@@ -392,6 +398,17 @@ public abstract class GameAppBase extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         settingsPage.setSoundTest(() -> sound.test(settings.volume()));
+        // Version 0.213 : les catégories de sons coupées dans les réglages ne sonnent pas.
+        sound.setAllowed(settings::soundKind);
+        // Version 0.210 : un achat ou un interrupteur sur une carte, et chaque geste dans le mini-jeu d'une dimension, sonnent.
+        Card.setOnActed(state -> {
+            if (!settings.sound()) return;
+            boolean toggle = state == Card.State.ON || state == Card.State.OFF;
+            sound.click(toggle ? Sound.Cue.TOGGLE : Sound.Cue.PURCHASE, settings.volume());
+        });
+        dimensionWindow.setOnGesture(dimension -> {
+            if (settings.sound()) sound.gesture(dimension, settings.volume());
+        });
         // La boucle (version 0.153) : les touches de ses cercles et son métronome se rangent dans les réglages.
         dimensionWindow.setLoopSettings(new DimensionWindow.LoopSettings() {
             @Override
@@ -508,6 +525,7 @@ public abstract class GameAppBase extends Application {
         for (Button tab : tabButtons) {
             tab.setGraphicTextGap(6);
             tab.setFocusTraversable(false);
+            tab.getProperties().put(TAB_BUTTON, true);
         }
         tabGap.setMinWidth(18);
         tabGap.setMinHeight(18);
@@ -733,6 +751,15 @@ public abstract class GameAppBase extends Application {
                 explosionArmed = Math.max(0, explosionArmed - dt);
                 if (selectedTab == Tab.SETTINGS) settingsPage.frame(dt);
                 announce(dt);
+                // Version 0.210 : la musique suit le moment de la partie, et la fenêtre d'une dimension ouverte.
+                int openDimension = dimensionWindow.isOpen() ? dimensionWindow.dimension().number() : 0;
+                music.update(Music.moodOf(game, openDimension), settings.music(), settings.musicVolume());
+                // Version 0.213 : les bruitages de ce qui vient de se passer, là où on le voit.
+                for (SoundEvents.Heard heard : soundEvents.frame(game, selectedTab.name(), openDimension)) {
+                    if (!settings.sound()) continue;
+                    if (heard.cue() == null) sound.gain(heard.dimension(), settings.volume());
+                    else sound.click(heard.cue(), settings.volume());
+                }
                 // L'écran de fin attend que la naissance de l'univers soit jouée.
                 boolean bornNow = hadUniverse == 0 && game.hasCosmos(idle.core.sky.Cosmos.UNIVERSE);
                 if (!bornNow && !(selectedTab == Tab.UNIVERSE && universePage.isBirthPlaying())) endPane.check();
@@ -756,11 +783,9 @@ public abstract class GameAppBase extends Application {
         }.start();
 
         // L'onglet de la dernière fois, s'il existe encore dans cette partie : sinon refresh() revient aux particules.
-        try {
-            if (loaded.found() && !settings.lastTab().isEmpty()) selectTab(Tab.valueOf(settings.lastTab()));
-        } catch (IllegalArgumentException unknown) {
-            // un onglet d'une autre version du jeu : on reste sur le premier
-        }
+        // Un onglet d'une autre version du jeu : on reste sur le premier.
+        Tab lastTab = idle.core.Enums.parse(Tab.class, settings.lastTab());
+        if (loaded.found() && lastTab != null) selectTab(lastTab);
         animate(0);
         refresh();
         if (!loaded.notice().isEmpty() && settings.notice(Notice.GAME)) toasts.show(loaded.notice(), SETTINGS_COLOR);
@@ -771,6 +796,12 @@ public abstract class GameAppBase extends Application {
         }
         stage.setTitle(testProfile ? "Idle [profil de test]" : "Idle");
         Scene scene = new Scene(scaled, Settings.WindowSize.SMALL.width(), Settings.WindowSize.SMALL.height());
+        // Version 0.213 : un clic sur un bouton, quel qu'il soit, sauf un onglet (qui a son propre son).
+        scene.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            if (event.getTarget() instanceof Button button && !button.getProperties().containsKey(TAB_BUTTON) && settings.sound()) {
+                sound.click(Sound.Cue.CLICK, settings.volume());
+            }
+        });
         applyAppearance();
         // Les touches sont lues avant les boutons : sinon, Espace irait d'abord au bouton qui a le focus.
         // Sauf quand le joueur écrit dans une barre de recherche : ses lettres ne sont pas des raccourcis.

@@ -265,9 +265,9 @@ public final class DimensionView extends Canvas {
             // La durée (version 0.134) : relâcher le bouton, où que soit la souris, donne les éclats.
             releaseHold();
             // La brane (version 0.154) : relâcher la membrane, où que soit la souris, lance l'onde.
-            if (releaseBrane()) event.consume();
+            if (gestured(releaseBrane())) event.consume();
             // Le mélange (version 0.159) : le bouton droit relâché verse la charge ; le gauche lâche le point.
-            if (releaseMix(event.getButton() == javafx.scene.input.MouseButton.SECONDARY)) event.consume();
+            if (gestured(releaseMix(event.getButton() == javafx.scene.input.MouseButton.SECONDARY))) event.consume();
             dragging = false;
             setCursor(cursorAt(event.getX(), event.getY()));
         });
@@ -591,12 +591,12 @@ public final class DimensionView extends Canvas {
      * mélange, l'arène (version 0.159). Vrai si le geste a servi.
      */
     public boolean press(double x, double y, boolean secondary) {
-        if (dimension == Dimension.DURATION) return pressDuration(x, y);
+        if (dimension == Dimension.DURATION) return gestured(pressDuration(x, y));
         if (dimension == Dimension.LOOP) return pressLoop(x, y);
         if (dimension == Dimension.BRANE) return !secondary && pressBrane(x, y);
-        if (dimension == Dimension.CLICKER) return !secondary && pressClicker(x, y);
-        if (dimension == Dimension.GRID) return !secondary && pressGrid(x, y);
-        if (dimension == Dimension.MIRROR) return !secondary && pressMirror(x, y);
+        if (dimension == Dimension.CLICKER) return !secondary && gestured(pressClicker(x, y));
+        if (dimension == Dimension.GRID) return !secondary && gestured(pressGrid(x, y));
+        if (dimension == Dimension.MIRROR) return !secondary && gestured(pressMirror(x, y));
         if (dimension == Dimension.MIX) return pressMix(x, y, secondary);
         if (dimension != Dimension.VOLUME || !game.isVolumeOpen()) return false;
         if (dive == Dive.OUTSIDE) {
@@ -630,6 +630,7 @@ public final class DimensionView extends Canvas {
         aimCamera();
         double[] ray = camera.ray(x, y);
         Game.VolumeBall hit = game.shootVolume(ray[0], ray[1], ray[2]);
+        gesture();
         Pickup mark = new Pickup();
         if (hit != null) {
             // Cueillie à la main : elle a déjà son gain, la vue ne la compte pas parmi celles de la plongée automatique.
@@ -1015,6 +1016,8 @@ public final class DimensionView extends Canvas {
             pickup.y = at[1];
             pickup.text = "+" + idle.ui.common.Format.darkMatter(idle.core.math.BigNum.of(game.planeValue() * (collected - lastCollected)));
             if (pickups.size() < 20) pickups.add(pickup);
+            // Un éclat ramassé par le joueur sonne ; celui que l'automatisme ramasse, non.
+            if (!game.isDimensionAutoPlayed(Dimension.PLANE.number())) gesture();
         }
         lastCollected = collected;
     }
@@ -1643,6 +1646,24 @@ public final class DimensionView extends Canvas {
     private double lastBeatPhase = Double.NaN;
     /** Le métronome : ce qu'il joue à chaque battement ; {@code null} quand il est coupé. */
     private Runnable onBeat;
+    /** Ce qui suit un geste du joueur dans le mini-jeu (version 0.210) : son son, avec le numéro de la dimension. */
+    private java.util.function.IntConsumer onGesture = dimension -> { };
+
+    /** Branche ce qui suit un geste du joueur dans le mini-jeu : un tir, un clic, un sondage, la membrane relâchée… */
+    public void setOnGesture(java.util.function.IntConsumer gesture) {
+        onGesture = gesture == null ? dimension -> { } : gesture;
+    }
+
+    /** Un geste du joueur dans la dimension montrée. */
+    private void gesture() {
+        onGesture.accept(dimension.number());
+    }
+
+    /** Fait suivre d'un geste une action qui a servi, et rend si elle a servi. */
+    private boolean gestured(boolean done) {
+        if (done) gesture();
+        return done;
+    }
     private long beats;
     /** L'éclat de chaque cercle juste joué, de 1 à 0, et ce que le clic a valu. */
     private final double[] ringFlash = new double[Game.MAX_RINGS];
@@ -1725,6 +1746,7 @@ public final class DimensionView extends Canvas {
         Game.LoopHit hit = game.clickLoop(ring);
         lastLoopHits = game.loopHits();
         if (hit == Game.LoopHit.WAIT || ring < 0 || ring >= Game.MAX_RINGS) return hit;
+        gesture();
         // Le cercle attend : ce n'est pas le rythme automatique qui l'a joué.
         lastLoopWait[ring] = game.loopWait(ring);
         ringMark(ring, hit);

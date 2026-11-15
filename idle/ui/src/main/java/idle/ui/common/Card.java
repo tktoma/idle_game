@@ -378,7 +378,10 @@ public final class Card extends VBox {
                 held = null;
                 break;
             }
-            held.action.run();
+            Card card = held;
+            State before = card.state;
+            card.action.run();
+            onActed.accept(before);
             heldRepeated = true;
             nextRepeat += REPEAT_EVERY;
             repeated++;
@@ -422,7 +425,21 @@ public final class Card extends VBox {
     /** Clique sur la carte : sans effet si elle n'est ni à portée ni un interrupteur, sauf ce que {@link #setOnLook} demande. */
     public void click() {
         if (look != null) look.run();
-        if (isClickable()) action.run();
+        if (!isClickable()) return;
+        State before = state;
+        action.run();
+        onActed.accept(before);
+    }
+
+    /** Ce qui suit l'action d'une carte, quelle qu'elle soit (version 0.210) : le son d'un achat ou d'un interrupteur. */
+    private static java.util.function.Consumer<State> onActed = state -> { };
+
+    /**
+     * Branche ce qui suit chaque action d'une carte, au clic comme au clic tenu (version 0.210), avec l'état de la carte
+     * juste avant : à portée, c'est un achat ; allumée ou éteinte, un interrupteur. {@code null} : rien.
+     */
+    public static void setOnActed(java.util.function.Consumer<State> listener) {
+        onActed = listener == null ? state -> { } : listener;
     }
 
     /**

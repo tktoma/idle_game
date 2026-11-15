@@ -113,7 +113,7 @@ public final class Achievements {
                     game -> game.state().totalAtoms().gte(Game.UNLOCK_TOTAL_ATOMS)),
             Achievement.step("step_automation", "Premier automatisme", "1 automatisme",
                     "Posséder un automatisme.",
-                    game -> !game.state().ownedAutomations().isEmpty()),
+                    game -> game.state().ownedAutomationCount() > 0),
             Achievement.feat(EXACT_CHANGE, "Compte rond", "Payer 20 atomes pile",
                     "Payer une amélioration d'au moins 20 atomes avec exactement ce que vous avez.",
                     Achievement.Bonus.ATOMS, 0.005),
@@ -133,7 +133,7 @@ public final class Achievements {
             Achievement.step("step_automations", "Tout seul", "Tous les automatismes",
                     "Posséder tous les automatismes.",
                     game -> !game.automations().isEmpty()
-                            && game.state().ownedAutomations().size() == game.automations().size()),
+                            && game.state().ownedAutomationCount() == game.automations().size()),
             Achievement.step("step_yield", "Rendement", "Rendement",
                     "Acheter l'amélioration qui change la production en atomes.",
                     game -> owns(game, Effect.MultiplyAtomsByProduction.class, 1)),

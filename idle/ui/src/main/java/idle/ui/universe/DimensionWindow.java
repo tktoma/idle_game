@@ -575,6 +575,15 @@ public final class DimensionWindow extends BorderPane {
         loopSettings = settings == null ? new LocalLoopSettings() : settings;
     }
 
+    /** Ce qui suit un geste du joueur dans le mini-jeu (version 0.210), à la souris comme au clavier : son son. */
+    private java.util.function.IntConsumer onGesture = dimension -> { };
+
+    /** Branche le son des gestes : la vue le reçoit pour la souris, la fenêtre le garde pour les touches. */
+    public void setOnGesture(java.util.function.IntConsumer gesture) {
+        onGesture = gesture == null ? dimension -> { } : gesture;
+        view.setOnGesture(onGesture);
+    }
+
     /** Un bouton d'amélioration : large de {@code width}, haut de deux lignes, qui achète puis rafraîchit. */
     private Button upgradeButton(double width, Runnable buy) {
         Button button = new Button();
@@ -1483,7 +1492,7 @@ public final class DimensionWindow extends BorderPane {
         if (duration != null && code == javafx.scene.input.KeyCode.SPACE && game.isDurationOpen()) {
             if (down && !spaceHeld) {
                 spaceHeld = true;
-                game.holdDuration();
+                if (game.holdDuration()) onGesture.accept(Dimension.DURATION.number());
             } else if (!down) {
                 spaceHeld = false;
                 duration.releaseHold();

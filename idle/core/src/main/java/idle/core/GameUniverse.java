@@ -86,16 +86,6 @@ public abstract class GameUniverse extends GameAtoms {
         return isDimensionsUnlocked() ? Math.min(MAX_DIMENSIONS, universes()) : 0;
     }
 
-    /** Les améliorations de l'univers, dans l'ordre. */
-    public List<idle.core.universe.UniverseUpgrade> universeUpgrades() {
-        return List.of(idle.core.universe.UniverseUpgrade.values());
-    }
-
-    /** Niveau d'une amélioration de l'univers. */
-    public int universeUpgradeLevel(idle.core.universe.UniverseUpgrade upgrade) {
-        return state.universeUpgradeLevel(upgrade.id());
-    }
-
     /** Outil d'essai : un univers de plus, une fois le premier formé. Faux s'il n'y en a pas encore. */
     public boolean testAddUniverse() {
         if (!isUniverseFormed()) return false;
@@ -1893,11 +1883,6 @@ public abstract class GameUniverse extends GameAtoms {
         state.setVoidEnergy(state.voidEnergy().add(amount));
     }
 
-    /** Outil d'essai : un niveau de plus à une amélioration de l'univers, sans coût ni effet. */
-    public void testRaiseUniverseUpgrade(idle.core.universe.UniverseUpgrade upgrade) {
-        state.setUniverseUpgradeLevel(upgrade.id(), state.universeUpgradeLevel(upgrade.id()) + 1);
-    }
-
     /** Outil d'essai : la partie secondaire revient à son début (un seul univers, rien en réserve). */
     public void testResetUniverses() {
         state.setExtraUniverses(0);
@@ -1959,9 +1944,6 @@ public abstract class GameUniverse extends GameAtoms {
         state.setMixStageEarned(0);
         dropDuration();
         leaveVolume();
-        for (idle.core.universe.UniverseUpgrade upgrade : idle.core.universe.UniverseUpgrade.values()) {
-            state.setUniverseUpgradeLevel(upgrade.id(), 0);
-        }
     }
 
     /** Vrai si cette échelle du cosmos est formée. */
@@ -2303,11 +2285,7 @@ public abstract class GameUniverse extends GameAtoms {
     /** Le choix du petit arbre pour ce cycle, ou {@code null}. */
     public idle.core.universe.CycleChoice cycleChoice() {
         if (!isCycleChoiceUnlocked() || state.cycleChoice() == null) return null;
-        try {
-            return idle.core.universe.CycleChoice.valueOf(state.cycleChoice());
-        } catch (IllegalArgumentException unknown) {
-            return null;
-        }
+        return Enums.parse(idle.core.universe.CycleChoice.class, state.cycleChoice());
     }
 
     /** Fait le choix du cycle : un seul, jusqu'au prochain Big Bang. */
@@ -2325,11 +2303,7 @@ public abstract class GameUniverse extends GameAtoms {
     /** La famille préférée, ou {@code null}. */
     public ElementCategory preferredFamily() {
         if (!isFamilyPreferenceUnlocked() || state.preferredFamily() == null) return null;
-        try {
-            return ElementCategory.valueOf(state.preferredFamily());
-        } catch (IllegalArgumentException unknown) {
-            return null;
-        }
+        return Enums.parse(ElementCategory.class, state.preferredFamily());
     }
 
     /** Choisit la famille préférée ({@code null} : aucune) ; la préférence repart de zéro. */
@@ -2975,11 +2949,7 @@ public abstract class GameUniverse extends GameAtoms {
     /** L'épreuve en cours, ou {@code null}. */
     public idle.core.universe.Trial activeTrial() {
         if (state.activeTrial() == null) return null;
-        try {
-            return idle.core.universe.Trial.valueOf(state.activeTrial());
-        } catch (IllegalArgumentException unknown) {
-            return null;
-        }
+        return Enums.parse(idle.core.universe.Trial.class, state.activeTrial());
     }
 
     /** Vrai pendant cette épreuve. */

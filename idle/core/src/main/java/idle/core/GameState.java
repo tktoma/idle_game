@@ -248,7 +248,6 @@ public final class GameState extends GameStateResets {
         Map<String, Double> hadronCounts = new TreeMap<>();
         hadrons.forEach((hadron, count) -> hadronCounts.put(hadron.name(), (double) count));
         data.putDoubles("hadrons", hadronCounts);
-        data.putInts("universeUpgrades", new TreeMap<>(universeUpgrades));
         data.put("pulseCharges", pulseCharges);
         data.put("pulses", pulses);
         data.put("colliderEnergy", colliderEnergy);
@@ -354,15 +353,8 @@ public final class GameState extends GameStateResets {
         data.doubles("automationTimers").forEach(this::setAutomationTimer);
         data.ints("elements").forEach((number, count) -> setElementCount(Integer.parseInt(number), count));
         setSynthesisCount(data.whole("synthesisCount", 0));
-        String target = data.text("synthesisTarget", null);
-        synthesisTarget = null;
-        if (target != null) {
-            try {
-                synthesisTarget = ElementCategory.valueOf(target);
-            } catch (IllegalArgumentException unknown) {
-                // une famille d'une autre version (version 0.126) : la synthèse repart sans cible, la partie se relit
-            }
-        }
+        // Une famille d'une autre version (version 0.126) : la synthèse repart sans cible, la partie se relit.
+        synthesisTarget = Enums.parse(ElementCategory.class, data.text("synthesisTarget", null));
         setSynthesisTries(data.whole("synthesisTries", 0));
         setDrySyntheses(data.whole("drySyntheses", 0));
         setDarkMatter(data.big("darkMatter", BigNum.ZERO));
@@ -597,8 +589,6 @@ public final class GameState extends GameStateResets {
         setHadronsPrice(data.real("hadronsPrice", 0));
         hadrons.clear();
         known(data.doubles("hadrons"), idle.core.collider.Hadron.class, (hadron, count) -> setHadrons(hadron, (long) (double) count));
-        universeUpgrades.clear();
-        data.ints("universeUpgrades").forEach(this::setUniverseUpgradeLevel);
         setPulseCharges(data.real("pulseCharges", 0));
         setPulses((long) data.real("pulses", 0));
         setColliderEnergy(data.real("colliderEnergy", 0));
@@ -813,11 +803,8 @@ public final class GameState extends GameStateResets {
 
     /** Donne à {@code action} la constante de {@code type} que nomme {@code name}, s'il y en a une ; sinon rien. */
     private static <E extends Enum<E>> void known(String name, Class<E> type, java.util.function.Consumer<E> action) {
-        try {
-            action.accept(Enum.valueOf(type, name));
-        } catch (IllegalArgumentException unknown) {
-            // un nom d'une autre version : écarté
-        }
+        E constant = Enums.parse(type, name);
+        if (constant != null) action.accept(constant);
     }
 
 }

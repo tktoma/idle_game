@@ -418,7 +418,7 @@ public abstract class StatsPageBase extends VBox {
         row("Actions des automatismes de matière noire", () -> Format.whole(stats().darkAutomationActions()), this::exploded);
         row("Créations automatiques de molécules", () -> Format.whole(stats().autoMoleculeCreations()),
                 game::isMoleculeAutomationUnlocked);
-        row("Automatismes possédés", () -> game.state().ownedAutomations().size() + " / " + game.automations().size());
+        row("Automatismes possédés", () -> game.state().ownedAutomationCount() + " / " + game.automations().size());
         row("Délai le plus court possible", () -> AutomationPage.seconds(game.minAutomationInterval()));
         row("Améliorations en matière noire", () -> "délais ÷" + ElementText.number(game.darkAutomationDivisor()), this::exploded);
 

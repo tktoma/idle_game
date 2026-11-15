@@ -67,15 +67,9 @@ public final class DimensionAutomationPane extends VBox {
         });
         Labels.note(intro, MAX_WIDTH);
         intro.setText("Ils jouent les dimensions à votre place et achètent leurs améliorations, l'un après l'autre dans "
-                + "chaque dimension. Ceux de la ligne se paient en graines d'univers, ceux du plan en "
-                + Game.dimensionResourceName(1) + " de la ligne, ceux du volume en " + Game.dimensionResourceName(2)
-                + " du plan, ceux de la durée en " + Game.dimensionResourceName(3) + " du volume, ceux de la boucle en "
-                + Game.dimensionResourceName(4) + " de la durée, ceux de la brane en " + Game.dimensionResourceName(5)
-                + " de la boucle, ceux du clicker en " + Game.dimensionResourceName(6)
-                + " de la brane, ceux de la grille en " + Game.dimensionResourceName(7)
-                + " du clicker, ceux du miroir en " + Game.dimensionResourceName(8)
-                + " de la grille, ceux du mélange en " + Game.dimensionResourceName(9)
-                + " du miroir. « Couper tous les "
+                + "chaque dimension. Chacun se paie avec la ressource de sa propre dimension : ceux de la ligne en "
+                + Game.dimensionResourceName(1) + ", ceux du plan en " + Game.dimensionResourceName(2) + ", et ainsi de suite "
+                + "jusqu'au mélange. Ceux qui jouent la dimension viennent en dernier, les plus chers, en cinq paliers. « Couper tous les "
                 + "automatismes » les arrête tous ; chacun se met aussi en pause d'un clic. Achetés, ils traversent les univers.");
         getChildren().addAll(title, pauseButton, intro);
 

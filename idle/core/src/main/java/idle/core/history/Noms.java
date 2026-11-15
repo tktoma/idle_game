@@ -98,7 +98,7 @@ public final class Noms {
         for (Class<?> type : List.of(idle.core.collider.ColliderUpgrade.class, idle.core.collider.ColliderGenerator.class,
                 idle.core.probes.ProbeUpgrade.class, idle.core.collider.Hadron.class, idle.core.collider.Quark.class,
                 idle.core.bigbang.BangChallenge.class, idle.core.universe.DimensionAutomation.class, idle.core.profile.Title.class,
-                idle.core.universe.UniverseUpgrade.class, idle.core.universe.Skin.class)) {
+                idle.core.universe.Skin.class)) {
             enumLabels(type);
         }
     }

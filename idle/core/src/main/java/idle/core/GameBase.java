@@ -119,7 +119,9 @@ public abstract class GameBase {
             if (darkUpgrades.put(dark.id(), dark) != null) {
                 throw new IllegalArgumentException("Amélioration de matière noire en double : " + dark.id());
             }
+            if (dark.fork() != null) darkForks.computeIfAbsent(dark.fork(), fork -> new ArrayList<>()).add(dark);
         }
+        darkForks.replaceAll((fork, options) -> List.copyOf(options));
     }
 
 
@@ -554,6 +556,11 @@ public abstract class GameBase {
     final Map<String, Upgrade> upgrades = new LinkedHashMap<>();
     final Map<String, Automation> automations = new LinkedHashMap<>();
     final Map<String, DarkUpgrade> darkUpgrades = new LinkedHashMap<>();
+    /**
+     * Version 0.214 : les voies de chaque bifurcation de l'arbre, dans l'ordre du catalogue, rangées une fois. Le style
+     * d'une case (présence ou absence) les relit à chaque pas de jeu.
+     */
+    final Map<String, List<DarkUpgrade>> darkForks = new HashMap<>();
     final Map<String, Molecule> molecules = new LinkedHashMap<>();
     final List<Molecule> moleculeList = Molecules.DEFAULT;
     final Map<String, SpaceUpgrade> spaceUpgrades = new LinkedHashMap<>();
